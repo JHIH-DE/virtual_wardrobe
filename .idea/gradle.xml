@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/a11y_assessments/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/benchmarks/complex_layout/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/benchmarks/macrobenchmarks/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/benchmarks/microbenchmarks/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/benchmarks/multiple_flutters/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/benchmarks/platform_views_layout/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/benchmarks/platform_views_layout_hybrid_composition/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/android_engine_test/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/android_semantics_testing/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/android_views/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/channels/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/deferred_components_test/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/display_cutout_rotation/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/external_textures/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/flavors/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/flutter_gallery/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/module_host_with_custom_build_v2_embedding" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/platform_interaction/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/pure_android_host_apps/android_custom_host_app" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/pure_android_host_apps/android_host_app_v2_embedding" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/pure_android_host_apps/host_app_kotlin_gradle_dsl" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/release_smoke_test/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/spell_check/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/integration_tests/ui/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/manual_tests/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/dev/tracing_tests/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/examples/flutter_view/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/examples/hello_world/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/examples/image_list/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/examples/layers/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/examples/platform_channel/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/examples/platform_view/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/packages/flutter_tools/gradle" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/packages/integration_test/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/flutter/packages/integration_test/example/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+      <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/virtual_wardrobe/android" />
+        <option name="gradleJvm" value="11" />
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>
