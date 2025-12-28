@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'my_closet_page.dart';
 import 'add_garment_page.dart';
-import 'theme/app_colors.dart';
+import '../app/theme/app_colors.dart';
+import '../l10n/app_strings.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,7 +28,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Virtual Wardrobe'),
+        title: const Text(AppStrings.appName),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -56,7 +57,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Manage your wardrobe and explore new styling ideas.',
+              'I picked a few ideas for you today.',
               style: TextStyle(
                 fontSize: 16,
                 color: Color(0xFF7A6C5D),
@@ -107,7 +108,7 @@ class _HomePageState extends State<HomePage> {
                           color: isSelected
                               ? AppColors.primary.withOpacity(0.55)
                               : AppColors.border,
-                          width: isSelected ? 1.6 : 1.0,
+                          width: isSelected ? 2.0 : 1.0,
                         ),
 
                         boxShadow: [

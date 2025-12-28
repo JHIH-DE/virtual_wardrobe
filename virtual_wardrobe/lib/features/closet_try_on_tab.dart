@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'theme/app_colors.dart';
-import 'l10n/app_strings.dart';
-import 'data/looks_store.dart';
+import '../app/theme/app_colors.dart';
+import '../l10n/app_strings.dart';
+import '../data/looks_store.dart';
 import 'garment_category.dart';
 
 class ClosetTryOnTab extends StatefulWidget {

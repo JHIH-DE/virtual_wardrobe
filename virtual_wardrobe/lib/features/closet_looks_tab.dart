@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'theme/app_colors.dart';
-import 'data/looks_store.dart';
+import '../app/theme/app_colors.dart';
+import '../data/looks_store.dart';
 
 class ClosetLooksTab extends StatefulWidget {
   const ClosetLooksTab({super.key});

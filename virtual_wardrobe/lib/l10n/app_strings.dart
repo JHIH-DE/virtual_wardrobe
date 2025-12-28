@@ -2,7 +2,7 @@ class AppStrings {
   AppStrings._(); // prevent instantiate
 
   // ===== App =====
-  static const appName = 'Virtual Wardrobe';
+  static const appName = 'LUMI';
 
   // ===== Common =====
   static const addItem = 'Add Item';

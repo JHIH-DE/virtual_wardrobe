@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'home_page.dart';
-import 'theme/app_colors.dart';
+import '../app/theme/app_colors.dart';
+import '../l10n/app_strings.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -45,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'Virtual Wardrobe',
+                AppStrings.appName,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
@@ -56,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 50),
               const Text(
-                'Log in and start managing your wardrobe',
+                'Welcome back — let’s get you dressed',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
@@ -143,7 +144,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   onPressed: _login,
                   child: const Text(
-                    'Login',
+                    'Sign in',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

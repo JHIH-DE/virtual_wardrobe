@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'closet_items_tab.dart';
 import 'closet_try_on_tab.dart';
 import 'closet_looks_tab.dart';
-import 'theme/app_colors.dart';
+import '../app/theme/app_colors.dart';
 
 class MyClosetPage extends StatefulWidget {
   const MyClosetPage({super.key});

@@ -1,30 +1,41 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
-import 'garment_category.dart';
-import 'theme/app_colors.dart';
 
-class AddGarmentPage extends StatefulWidget {
-  const AddGarmentPage({super.key});
+import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+import '../app/theme/app_colors.dart';
+
+class ImageEditPage extends StatefulWidget {
+  /// initialPath supports local file path (demo mode)
+  final String? initialPath;
+
+  const ImageEditPage({super.key, this.initialPath});
 
   @override
-  State<AddGarmentPage> createState() => _AddGarmentPageState();
+  State<ImageEditPage> createState() => _ImageEditPageState();
 }
 
-class _AddGarmentPageState extends State<AddGarmentPage> {
-  GarmentCategory category = GarmentCategory.top;
-
+class _ImageEditPageState extends State<ImageEditPage> {
   final ImagePicker _picker = ImagePicker();
+
   File? originalFile;
   File? croppedFile;
   File? compressedFile;
 
-  bool uploading = false;
   String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    final path = widget.initialPath;
+    if (path != null && path.isNotEmpty && !path.startsWith('http')) {
+      originalFile = File(path);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +44,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Add Item'),
+        title: const Text('Edit Image'),
         backgroundColor: AppColors.surface,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
@@ -42,34 +53,23 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
+        actions: [
+          TextButton(
+            onPressed: displayFile == null ? null : () => Navigator.pop(context, displayFile!.path),
+            child: const Text('Done'),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 1) Category
-          _sectionTitle('Select category'),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<GarmentCategory>(
-            value: category,
-            items: GarmentCategory.values
-                .map((c) => DropdownMenuItem(
-              value: c,
-              child: Text(c.label),
-            ))
-                .toList(),
-            onChanged: uploading ? null : (v) => setState(() => category = v!),
-          ),
-
-          const SizedBox(height: 18),
-
-          // 2) Image
           _sectionTitle('Choose image'),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: uploading ? null : () => _pickImage(ImageSource.gallery),
+                  onPressed: () => _pickImage(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library),
                   label: const Text('Gallery'),
                   style: _outlineBtnStyle(),
@@ -78,7 +78,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: uploading ? null : () => _pickImage(ImageSource.camera),
+                  onPressed: () => _pickImage(ImageSource.camera),
                   icon: const Icon(Icons.photo_camera),
                   label: const Text('Camera'),
                   style: _outlineBtnStyle(),
@@ -86,10 +86,8 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
               ),
             ],
           ),
-
           const SizedBox(height: 14),
 
-          // Preview frame
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -108,10 +106,10 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: displayFile == null
-                    ? Center(
+                    ? const Center(
                   child: Text(
                     'No image selected',
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                 )
                     : Image.file(displayFile, fit: BoxFit.cover),
@@ -125,7 +123,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: (originalFile == null || uploading) ? null : _cropImage,
+                  onPressed: (originalFile == null) ? null : _cropImage,
                   style: _outlineBtnStyle(),
                   child: const Text('Crop'),
                 ),
@@ -133,9 +131,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: ((croppedFile == null && originalFile == null) || uploading)
-                      ? null
-                      : _compressImage,
+                  onPressed: ((croppedFile == null && originalFile == null)) ? null : _compressImage,
                   style: _outlineBtnStyle(),
                   child: const Text('Compress'),
                 ),
@@ -143,19 +139,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             ],
           ),
 
-          const SizedBox(height: 20),
-
-          // 3) Upload
-          _sectionTitle('Upload'),
-          const SizedBox(height: 10),
-
-          if (uploading) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: const LinearProgressIndicator(minHeight: 4),
-            ),
-            const SizedBox(height: 12),
-          ],
+          const SizedBox(height: 14),
 
           if (errorMessage != null) ...[
             Container(
@@ -170,31 +154,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                 style: const TextStyle(color: AppColors.textPrimary),
               ),
             ),
-            const SizedBox(height: 12),
           ],
-
-          ElevatedButton.icon(
-            onPressed: uploading ? null : _submit,
-            icon: const Icon(Icons.cloud_upload),
-            label: const Text('Upload'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
-
-          const SizedBox(height: 10),
-          const Text(
-            'Your item will be saved to the selected category.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12.5,
-              height: 1.3,
-            ),
-          ),
         ],
       ),
     );
@@ -208,23 +168,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
         letterSpacing: 0.2,
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({required String label}) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
-      filled: true,
-      fillColor: AppColors.surface,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
       ),
     );
   }
@@ -248,7 +191,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
     final XFile? xfile = await _picker.pickImage(
       source: source,
-      imageQuality: null, // 不用這個，因為我們要自己控制壓縮
+      imageQuality: null,
     );
 
     if (xfile == null) return;
@@ -257,7 +200,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       originalFile = File(xfile.path);
     });
 
-    // 一選到就先做壓縮（可讓使用者更快看到縮圖）
     await _compressImage();
   }
 
@@ -304,12 +246,11 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       'garment_${DateTime.now().millisecondsSinceEpoch}.jpg',
     );
 
-    // 壓縮：長邊 1024~1536 之間，先用 1536 兼顧畫質
     final result = await FlutterImageCompress.compressAndGetFile(
       input.absolute.path,
       outPath,
-      quality: 80,       // 70~85 之間，先用 80
-      minWidth: 1536,    // 會依比例縮放（不一定兩邊都到）
+      quality: 80,
+      minWidth: 1536,
       minHeight: 1536,
       format: CompressFormat.jpeg,
     );
@@ -322,37 +263,5 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     setState(() {
       compressedFile = File(result.path);
     });
-  }
-
-  Future<void> _submit() async {
-    final file = compressedFile ?? croppedFile ?? originalFile;
-    if (file == null) {
-      setState(() => errorMessage = 'Please select an image first.');
-      return;
-    }
-
-    setState(() {
-      uploading = true;
-      errorMessage = null;
-    });
-
-    try {
-      // TODO: 這裡改成你後端流程：
-      // 1) POST /garments/upload-url -> signed_url
-      // 2) PUT file to signed_url
-      // 3) POST /garments {image_url, category}
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      // 先把結果帶回 Items Tab（讓你可以更新 UI）
-      if (!mounted) return;
-      Navigator.pop(context, {
-        'category': category.apiValue,
-        'local_path': file.path, // demo 用，本來應該回 image_url
-      });
-    } catch (e) {
-      setState(() => errorMessage = 'Upload failed. Please try again.');
-    } finally {
-      if (mounted) setState(() => uploading = false);
-    }
   }
 }
