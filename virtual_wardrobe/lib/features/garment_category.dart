@@ -1,9 +1,84 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+
 enum GarmentCategory {
   top,
   bottom,
   outer,
   shoes,
   accessory,
+}
+
+enum GarmentColor {
+  black,
+  white,
+  gray,
+  beige,
+  brown,
+  navy,
+  blue,
+  green,
+  olive,
+  red,
+  burgundy,
+  yellow,
+  orange,
+  pink,
+  purple,
+}
+
+extension GarmentColorX on GarmentColor {
+  String get label {
+    final n = name;
+    return n[0].toUpperCase() + n.substring(1);
+  }
+
+  Color get color {
+    switch (this) {
+      case GarmentColor.black:
+        return Colors.black;
+      case GarmentColor.white:
+        return Colors.white;
+      case GarmentColor.gray:
+        return Colors.grey;
+      case GarmentColor.beige:
+        return const Color(0xFFF5F5DC);
+      case GarmentColor.brown:
+        return Colors.brown;
+      case GarmentColor.navy:
+        return const Color(0xFF1A237E);
+      case GarmentColor.blue:
+        return Colors.blue;
+      case GarmentColor.green:
+        return Colors.green;
+      case GarmentColor.olive:
+        return const Color(0xFF556B2F);
+      case GarmentColor.red:
+        return Colors.red;
+      case GarmentColor.burgundy:
+        return const Color(0xFF800020);
+      case GarmentColor.yellow:
+        return Colors.yellow;
+      case GarmentColor.orange:
+        return Colors.orange;
+      case GarmentColor.pink:
+        return Colors.pink;
+      case GarmentColor.purple:
+        return Colors.purple;
+    }
+  }
+
+  /// For visibility on very light colors.
+  Color get preferredCheckColor {
+    switch (this) {
+      case GarmentColor.white:
+      case GarmentColor.yellow:
+      case GarmentColor.beige:
+        return Colors.black;
+      default:
+        return Colors.white;
+    }
+  }
 }
 
 extension GarmentCategoryX on GarmentCategory {
@@ -85,6 +160,43 @@ extension GarmentSeasonX on GarmentSeason {
     return GarmentSeason.values.firstWhere(
           (e) => e.apiValue == value,
       orElse: () => GarmentSeason.all,
+    );
+  }
+}
+
+class OutfitSelection {
+  final Garment? top;
+  final Garment? bottom;
+  final Garment? outer;
+  final Garment? shoes;
+  final Garment? accessory;
+
+  const OutfitSelection({
+    this.top,
+    this.bottom,
+    this.outer,
+    this.shoes,
+    this.accessory,
+  });
+
+  bool get canTryOn => top != null && bottom != null;
+
+  OutfitSelection copyWith({
+    Garment? top,
+    Garment? bottom,
+    Garment? outer,
+    Garment? shoes,
+    Garment? accessory,
+    bool clearOuter = false,
+    bool clearShoes = false,
+    bool clearAccessory = false,
+  }) {
+    return OutfitSelection(
+      top: top ?? this.top,
+      bottom: bottom ?? this.bottom,
+      outer: clearOuter ? null : (outer ?? this.outer),
+      shoes: clearShoes ? null : (shoes ?? this.shoes),
+      accessory: clearAccessory ? null : (accessory ?? this.accessory),
     );
   }
 }

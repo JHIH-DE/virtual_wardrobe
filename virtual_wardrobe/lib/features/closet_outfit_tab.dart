@@ -4,18 +4,19 @@ import '../app/theme/app_colors.dart';
 import '../l10n/app_strings.dart';
 import '../data/looks_store.dart';
 import 'garment_category.dart';
+import 'select_garment_page.dart';
 
-class ClosetTryOnTab extends StatefulWidget {
-  const ClosetTryOnTab({super.key});
+class ClosetOutfitTab extends StatefulWidget {
+  const ClosetOutfitTab({super.key});
 
   @override
-  State<ClosetTryOnTab> createState() => _TryOnStudioTabState();
+  State<ClosetOutfitTab> createState() => _ClosetOutfitTabState();
 }
 
 enum OutfitMode { my, ai }
 
-class _TryOnStudioTabState extends State<ClosetTryOnTab> {
-  String occasion = 'Casual';
+class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
+  String seasons = 'Spring';
   String style = 'Minimal';
   OutfitSelection manualOutfit = const OutfitSelection();
   OutfitMode _mode = OutfitMode.my;
@@ -323,7 +324,7 @@ class _TryOnStudioTabState extends State<ClosetTryOnTab> {
         segments: const [
           ButtonSegment(
             value: OutfitMode.my,
-            icon: Icon(Icons.checkroom_outlined),
+            icon: Icon(Icons.account_circle),
             label: Text('My Outfit'),
           ),
           ButtonSegment(
@@ -410,16 +411,16 @@ class _TryOnStudioTabState extends State<ClosetTryOnTab> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: occasion,
+                  value: seasons,
                   items: const [
-                    DropdownMenuItem(value: 'Casual', child: Text('Casual')),
-                    DropdownMenuItem(value: 'Work', child: Text('Work')),
-                    DropdownMenuItem(value: 'Date', child: Text('Date')),
-                    DropdownMenuItem(value: 'Formal', child: Text('Formal')),
+                    DropdownMenuItem(value: 'Spring', child: Text('Spring')),
+                    DropdownMenuItem(value: 'Summer', child: Text('Summer')),
+                    DropdownMenuItem(value: 'Autumn', child: Text('Autumn')),
+                    DropdownMenuItem(value: 'Winter', child: Text('Winter')),
                   ],
                   onChanged: generating || tryOnLoading
                       ? null
-                      : (v) => setState(() => occasion = v ?? occasion),
+                      : (v) => setState(() => seasons = v ?? seasons),
                 ),
               ),
               const SizedBox(width: 12),
@@ -731,7 +732,7 @@ class _TryOnStudioTabState extends State<ClosetTryOnTab> {
     });
 
     try {
-      // TODO: Call backend /outfits/suggest with occasion/style
+      // TODO: Call backend /outfits/suggest with seasons/style
       await Future.delayed(const Duration(milliseconds: 600));
 
       setState(() {
@@ -739,7 +740,7 @@ class _TryOnStudioTabState extends State<ClosetTryOnTab> {
           {
             'outfit_id': 'o1',
             'title': 'Outfit 1',
-            'summary': '$style • $occasion',
+            'summary': '$style • $seasons',
           },
           {
             'outfit_id': 'o2',
@@ -842,7 +843,7 @@ class _TryOnStudioTabState extends State<ClosetTryOnTab> {
 
     try {
       // TODO: 你未來後端可以傳 garment ids：
-      // POST /tryon/manual {top_id, bottom_id, outer_id?, shoes_id?, accessory_id?, occasion, style}
+      // POST /tryon/manual {top_id, bottom_id, outer_id?, shoes_id?, accessory_id?, seasons, style}
       final jobId = 'job_${DateTime.now().millisecondsSinceEpoch}';
 
       if (!mounted) return;
@@ -889,7 +890,7 @@ class _TryOnStudioTabState extends State<ClosetTryOnTab> {
       LooksStore.I.add(
         Look(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
-          occasion: occasion,
+          seasons: seasons,
           style: style,
           imageUrl: tryOnResultUrl!,
           advice: aiAdvice,
@@ -917,108 +918,5 @@ class _TryOnStudioTabState extends State<ClosetTryOnTab> {
     aiAdvice = null;
 
     if (clearSelection) selectedOutfit = null;
-  }
-}
-
-class OutfitSelection {
-  final Garment? top;
-  final Garment? bottom;
-  final Garment? outer;
-  final Garment? shoes;
-  final Garment? accessory;
-
-  const OutfitSelection({
-    this.top,
-    this.bottom,
-    this.outer,
-    this.shoes,
-    this.accessory,
-  });
-
-  bool get canTryOn => top != null && bottom != null;
-
-  OutfitSelection copyWith({
-    Garment? top,
-    Garment? bottom,
-    Garment? outer,
-    Garment? shoes,
-    Garment? accessory,
-    bool clearOuter = false,
-    bool clearShoes = false,
-    bool clearAccessory = false,
-  }) {
-    return OutfitSelection(
-      top: top ?? this.top,
-      bottom: bottom ?? this.bottom,
-      outer: clearOuter ? null : (outer ?? this.outer),
-      shoes: clearShoes ? null : (shoes ?? this.shoes),
-      accessory: clearAccessory ? null : (accessory ?? this.accessory),
-    );
-  }
-}
-
-class SelectGarmentPage extends StatelessWidget {
-  final String title;
-  final GarmentCategory category;
-  final List<Garment> items;
-
-  const SelectGarmentPage({
-    super.key,
-    required this.title,
-    required this.category,
-    required this.items,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final filtered = items.where((g) => g.category == category).toList();
-
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: filtered.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, i) {
-          final g = filtered[i];
-          return InkWell(
-            onTap: () => Navigator.pop(context, g),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      g.imageUrl,
-                      width: 54,
-                      height: 54,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      g.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 }

@@ -17,11 +17,11 @@ class _HomePageState extends State<HomePage> {
 
   final List<String> features = [
     'My Closet',
-    'Styling Tips',
+    'Daily Outfit',
     'Add Item',
-    'Insights',
+    'Trip Planner',
     'Account',
-    'Share with Friends',
+    'Share',
   ];
 
   @override
@@ -154,15 +154,15 @@ class _HomePageState extends State<HomePage> {
     switch (feature) {
       case 'My Closet':
         return Icons.checkroom;
-      case 'Styling Tips':
-        return Icons.style;
+      case 'Daily Outfit':
+        return Icons.wb_sunny;
       case 'Add Item':
         return Icons.add_a_photo;
-      case 'Insights':
-        return Icons.analytics;
+      case 'Trip Planner':
+        return Icons.flight_takeoff;
       case 'Account':
         return Icons.person_outline;
-      case 'Share with Friends':
+      case 'Share':
         return Icons.share;
       default:
         return Icons.help_outline;

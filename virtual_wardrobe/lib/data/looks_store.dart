@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 class Look {
   final String id;
-  final String occasion;   // 'Casual' / 'Work' / ...
+  final String seasons;   // 'Casual' / 'Work' / ...
   final String style;      // 'Minimal' / 'Street' / ...
   final String imageUrl;   // try-on image url
   final String? advice;
@@ -10,7 +10,7 @@ class Look {
 
   Look({
     required this.id,
-    required this.occasion,
+    required this.seasons,
     required this.style,
     required this.imageUrl,
     this.advice,

@@ -10,18 +10,18 @@ class ClosetLooksTab extends StatefulWidget {
 }
 
 class _ClosetLooksTabState extends State<ClosetLooksTab> {
-  static const List<String> occasions = ['All', 'Casual', 'Work', 'Date', 'Formal'];
+  static const List<String> seasons = ['All', 'Spring', 'Summer', 'Autumn', 'Winter',];
   static const List<String> styles = ['All', 'Minimal', 'Street', 'Classic', 'Sporty'];
 
-  String selectedOccasion = 'All';
+  String selectedSeasons = 'All';
   String selectedStyle = 'All';
 
   List<Look> get _filteredLooks {
     final all = LooksStore.I.looks;
     return all.where((l) {
-      final okOccasion = selectedOccasion == 'All' || l.occasion == selectedOccasion;
+      final okSeasons = selectedSeasons == 'All' || l.seasons == selectedSeasons;
       final okStyle = selectedStyle == 'All' || l.style == selectedStyle;
-      return okOccasion && okStyle;
+      return okSeasons && okStyle;
     }).toList();
   }
 
@@ -44,12 +44,12 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: selectedOccasion,
-                        items: occasions
+                        value: selectedSeasons,
+                        items: seasons
                             .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                             .toList(),
-                        onChanged: (v) => setState(() => selectedOccasion = v ?? selectedOccasion),
-                        decoration: _inputDecoration(label: 'Occasion'),
+                        onChanged: (v) => setState(() => selectedSeasons = v ?? selectedSeasons),
+                        decoration: _inputDecoration(label: 'Seasons'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -186,7 +186,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${look.occasion} • ${look.style}',
+                        '${look.seasons} • ${look.style}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -228,7 +228,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
             ),
             const SizedBox(height: 12),
             Text(
-              '${look.occasion} • ${look.style}',
+              '${look.seasons} • ${look.style}',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
