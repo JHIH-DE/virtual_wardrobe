@@ -202,34 +202,37 @@ class OutfitSelection {
 }
 
 class Garment {
-  final String id;
-  final String name;
-
+  final int? id;
   final String? brand;
   final String? color;
   final GarmentSeason? season;
   final double? price;
   final DateTime? purchaseDate;
+  final String? imageUrl;
 
   final GarmentCategory category;
-
-  /// Supports either a network URL or local file path (demo/local mode)
-  final String imageUrl;
+  final String name;
+  final String uploadUrl;
+  final String objectName;
+  final String publicUrl;
 
   const Garment({
-    required this.id,
     required this.name,
     required this.category,
-    required this.imageUrl,
+    required this.uploadUrl,
+    required this.objectName,
+    required this.publicUrl,
+    this.id,
     this.brand,
     this.color,
-    this.season,
+    this.season, //Delete
     this.price,
     this.purchaseDate,
+    this.imageUrl,
   });
 
   Garment copyWith({
-    String? id,
+    int? id,
     String? name,
     String? brand,
     String? color,
@@ -237,7 +240,11 @@ class Garment {
     double? price,
     DateTime? purchaseDate,
     GarmentCategory? category,
+    String? uploadUrl,
+    String? objectName,
+    String? publicUrl,
     String? imageUrl,
+    bool clearId = false,
     bool clearBrand = false,
     bool clearColor = false,
     bool clearSeason = false,
@@ -245,10 +252,13 @@ class Garment {
     bool clearPurchaseDate = false,
   }) {
     return Garment(
-      id: id ?? this.id,
       name: name ?? this.name,
       category: category ?? this.category,
+      uploadUrl: uploadUrl ?? this.uploadUrl,
+      objectName: objectName ?? this.objectName,
+      publicUrl: publicUrl ?? this.publicUrl,
       imageUrl: imageUrl ?? this.imageUrl,
+      id: clearId ? null : (id ?? this. id),
       brand: clearBrand ? null : (brand ?? this.brand),
       color: clearColor ? null : (color ?? this.color),
       season: clearSeason ? null : (season ?? this.season),
@@ -272,7 +282,7 @@ class Garment {
     }
 
     return Garment(
-      id: json['id'] as String,
+      id: json['id'] as int?,
       name: (json['name'] as String?) ?? '',
       brand: json['brand'] as String?,
       color: json['color'] as String?,
@@ -282,6 +292,9 @@ class Garment {
       price: _parsePrice(json['price']),
       purchaseDate: _parseDate(json['purchase_date']),
       category: GarmentCategoryX.fromApiValue(json['category'] as String),
+      uploadUrl: (json['upload_url'] as String?) ?? '',
+      objectName: (json['object_name'] as String?) ?? '',
+      publicUrl: (json['public_url'] as String?) ?? '',
       imageUrl: (json['image_url'] as String?) ?? '',
     );
   }
@@ -296,6 +309,9 @@ class Garment {
       'price': price,
       'purchase_date': purchaseDate?.toIso8601String(),
       'category': category.apiValue,
+      'upload_url': uploadUrl,
+      'object_name': objectName,
+      'public_url': publicUrl,
       'image_url': imageUrl,
     };
   }

@@ -1,11 +1,10 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-
 import 'garment_category.dart';
 import 'image_edit_page.dart';
 import '../app/theme/app_colors.dart';
+import '../core/services/auth_api.dart';
+import '../core/services/token_storage.dart';
 
 class AddGarmentPage extends StatefulWidget {
   /// If provided, page works as "Edit Item"
@@ -21,13 +20,14 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   late GarmentCategory category;
 
   final _formKey = GlobalKey<FormState>();
-
   late final TextEditingController _nameCtrl;
   late final TextEditingController _brandCtrl;
   late final TextEditingController _priceCtrl;
 
   GarmentSeason? _season;
   DateTime? _purchaseDate;
+  bool uploading = false;
+  String? errorMessage;
 
   /// local file path (demo mode) or network url
   String? _imagePathOrUrl;
@@ -49,7 +49,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
     _season = g?.season;
     _purchaseDate = g?.purchaseDate;
-    _imagePathOrUrl = g?.imageUrl;
+    _imagePathOrUrl = g?.uploadUrl;
 
     // Map existing string color (if any) back to enum.
     _selectedColor = _tryParseGarmentColor(g?.color);
@@ -105,7 +105,19 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
             _sectionTitle('Basic'),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: _inputDecoration(label: 'Name'),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Please enter name';
+                return null;
+              },
+              textInputAction: TextInputAction.next,
+            ),
+
+            const SizedBox(height: 12),
 
             DropdownButtonFormField<GarmentCategory>(
               value: category,
@@ -125,18 +137,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                   .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
                   .toList(),
               onChanged: (v) => setState(() => _season = v),
-            ),
-
-            const SizedBox(height: 12),
-
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: _inputDecoration(label: 'Name'),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Please enter name';
-                return null;
-              },
-              textInputAction: TextInputAction.next,
             ),
 
             const SizedBox(height: 12),
@@ -446,39 +446,42 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     setState(() => _imagePathOrUrl = result);
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final name = _nameCtrl.text.trim();
-    final brand = _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim();
+    setState(() {
+      uploading = true;
+      errorMessage = null;
+    });
 
-    // Store selected color as string label in Garment.color
-    final color = _selectedColor?.label;
+    try {
+      final raw = (_imagePathOrUrl ?? '').trim();
+      final token = await _getAccessToken();
+      final initDate = await AuthApi.initUpload(token);
+      await AuthApi.uploadImage(initDate.uploadUrl, raw);
 
-    final priceText = _priceCtrl.text.trim();
-    final price = priceText.isEmpty ? null : double.tryParse(priceText);
-
-    final imageUrl = (_imagePathOrUrl ?? '').trim();
-    if (imageUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add an image.')),
+      final tempGarment = Garment(
+        uploadUrl: initDate.uploadUrl,
+        objectName: initDate.objectName,
+        publicUrl: initDate.publicUrl,
+        name: _nameCtrl.text.trim(),
+        brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+        color: _selectedColor?.label,
+        season: _season,
+        price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
+        purchaseDate: _purchaseDate,
+        category: category,
       );
-      return;
+      final savedGarment = await AuthApi.completeUpload(token, tempGarment);
+
+      if (!mounted) return;
+      debugPrint('[James] _save - done: ');
+      Navigator.pop(context, savedGarment);
+    } catch (e) {
+      setState(() => errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => uploading = false);
     }
-
-    final updated = Garment(
-      id: widget.initialGarment?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      brand: brand,
-      color: color,
-      season: _season,
-      price: price,
-      purchaseDate: _purchaseDate,
-      category: category,
-      imageUrl: imageUrl,
-    );
-
-    Navigator.pop(context, updated);
   }
 
   // ----------------------------
@@ -539,5 +542,14 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.symmetric(vertical: 12),
     );
+  }
+
+  Future<String> _getAccessToken() async {
+    final token = await TokenStorage.getAccessToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Not logged in. Please log in again.');
+    }
+    return token;
   }
 }

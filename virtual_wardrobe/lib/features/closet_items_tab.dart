@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'add_garment_page.dart';
 import 'garment_category.dart';
 import '../app/theme/app_colors.dart';
+import '../core/services/auth_api.dart';
+import '../core/services/token_storage.dart';
 
 class ClosetItemsTab extends StatefulWidget {
   const ClosetItemsTab({super.key});
@@ -15,32 +17,47 @@ class ClosetItemsTab extends StatefulWidget {
 class _ClosetItemsTabState extends State<ClosetItemsTab> {
   GarmentCategory _selectedCategory = GarmentCategory.top;
 
-  // 暫時用假資料，之後換 backend
-  final List<Garment> _allGarments = [
-    Garment(
-      id: '1',
-      name: 'White T-Shirt',
-      brand: 'Uniqlo',
-      color: 'White',
-      season: GarmentSeason.all,
-      price: 390,
-      category: GarmentCategory.top,
-      imageUrl: 'https://via.placeholder.com/600',
-    ),
-    Garment(
-      id: '2',
-      name: 'Jeans',
-      brand: 'Levi\'s',
-      color: 'Indigo',
-      season: GarmentSeason.autumn,
-      price: 2490,
-      category: GarmentCategory.bottom,
-      imageUrl: 'https://via.placeholder.com/600',
-    ),
-  ];
+  final List<Garment> _allGarments = [];
 
-  List<Garment> get _filteredGarments {
-    return _allGarments.where((g) => g.category == _selectedCategory).toList();
+  bool _loading = false;
+  String? _error;
+
+  List<Garment> get _filteredGarments =>
+      _allGarments.where((g) => g.category == _selectedCategory).toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+      setState(() => _error = 'Missing access token. Please login again.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final list = await AuthApi.getGarments(token);
+      if (!mounted) return;
+      setState(() {
+        _allGarments
+          ..clear()
+          ..addAll(list);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -65,41 +82,7 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
                   ),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AddGarmentPage()),
-                    );
-
-                    if (result is Garment) {
-                      setState(() {
-                        _allGarments.add(result);
-                        _selectedCategory = result.category;
-                      });
-                      return;
-                    }
-
-                    // backward compatibility: old AddGarmentPage return Map
-                    if (result is Map) {
-                      final apiValue = result['category'] as String?;
-                      final path = result['local_path'] as String?;
-                      if (apiValue != null && path != null) {
-                        final cat = GarmentCategory.values.firstWhere(
-                              (c) => c.apiValue == apiValue,
-                          orElse: () => GarmentCategory.top,
-                        );
-                        setState(() {
-                          _allGarments.add(Garment(
-                            id: DateTime.now().millisecondsSinceEpoch.toString(),
-                            name: 'New Item',
-                            category: cat,
-                            imageUrl: path,
-                          ));
-                          _selectedCategory = cat;
-                        });
-                      }
-                    }
-                  },
+                  onPressed: _loading ? null : _createGarment,
                   icon: const Icon(Icons.add),
                   label: const Text('Add Item'),
                   style: OutlinedButton.styleFrom(
@@ -111,10 +94,42 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
             _buildCategorySelector(),
             const SizedBox(height: 12),
-            Expanded(child: _buildGrid()),
+
+            if (_loading) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: const LinearProgressIndicator(minHeight: 4),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            if (_error != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+                ),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                child: _buildGrid(),
+              ),
+            ),
           ],
         ),
       ),
@@ -149,11 +164,8 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
               color: isSelected ? AppColors.primary.withOpacity(0.45) : AppColors.border,
               width: isSelected ? 1.2 : 1,
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(99),
-            ),
-            showCheckmark: false,
-            checkmarkColor: AppColors.primary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
+            showCheckmark: false, // ✅ 不要勾勾
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             padding: const EdgeInsets.symmetric(horizontal: 10),
           );
@@ -163,16 +175,22 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
   }
 
   Widget _buildGrid() {
-    if (_filteredGarments.isEmpty) {
-      return const Center(
-        child: Text(
-          'No items in this category',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
+    if (!_loading && _filteredGarments.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 60),
+          Center(
+            child: Text(
+              'No items in this category',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
       );
     }
 
     return GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(top: 4),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -183,7 +201,8 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
       itemCount: _filteredGarments.length,
       itemBuilder: (context, index) {
         final garment = _filteredGarments[index];
-        final bool isLocal = !garment.imageUrl.startsWith('http');
+        final img = garment.imageUrl;
+        final bool isLocal = !img!.startsWith('http');
 
         return GestureDetector(
           onTap: () => _editGarment(garment),
@@ -209,14 +228,12 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
                     children: [
                       Expanded(
                         child: isLocal
-                            ? Image.file(File(garment.imageUrl), fit: BoxFit.cover)
-                            : Image.network(garment.imageUrl, fit: BoxFit.cover),
+                            ? Image.file(File(img), fit: BoxFit.cover)
+                            : Image.network(img, fit: BoxFit.cover),
                       ),
                       _cardFooter(garment),
                     ],
                   ),
-
-                  // actions
                   Positioned(
                     top: 8,
                     right: 8,
@@ -275,7 +292,11 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
   }
 
   Widget _cardActions(Garment garment) {
-    Widget actionChip({required IconData icon, required VoidCallback onTap, required String tooltip}) {
+    Widget actionChip({
+      required IconData icon,
+      required VoidCallback onTap,
+      required String tooltip,
+    }) {
       return Tooltip(
         message: tooltip,
         child: InkWell(
@@ -296,19 +317,25 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        actionChip(
-          icon: Icons.edit,
-          tooltip: 'Edit',
-          onTap: () => _editGarment(garment),
-        ),
+        actionChip(icon: Icons.edit, tooltip: 'Edit', onTap: () => _editGarment(garment)),
         const SizedBox(width: 8),
-        actionChip(
-          icon: Icons.delete,
-          tooltip: 'Delete',
-          onTap: () => _deleteGarment(garment),
-        ),
+        actionChip(icon: Icons.delete, tooltip: 'Delete', onTap: () => _deleteGarment(garment)),
       ],
     );
+  }
+
+  Future<void> _createGarment() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddGarmentPage()),
+    );
+
+    if (result is! Garment) return;
+
+    setState(() {
+      _allGarments.add(result);
+      _selectedCategory = result.category;
+    });
   }
 
   Future<void> _editGarment(Garment garment) async {
@@ -318,6 +345,17 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
     );
 
     if (updated is! Garment) return;
+
+    // 如果你希望「編輯」也同步到後端，就把下面這段打開（需後端 PATCH 支援）
+    /*
+    final token = TokenStorage.getAccessToken();
+    if (token != null && token.isNotEmpty) {
+      try {
+        final serverUpdated = await AuthApi.updateGarment(token, updated);
+        updated = serverUpdated;
+      } catch (_) {}
+    }
+    */
 
     setState(() {
       final idx = _allGarments.indexWhere((g) => g.id == garment.id);
@@ -343,8 +381,29 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
 
     if (ok != true) return;
 
-    setState(() {
-      _allGarments.removeWhere((g) => g.id == garment.id);
-    });
+    final token = await TokenStorage.getAccessToken();
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing access token. Please login again.')),
+      );
+      return;
+    }
+
+    try {
+      if (garment.id == null) {
+        throw Exception('Missing garment.id');
+      }
+      await AuthApi.deleteGarment(token, garment.id!);
+
+      if (!mounted) return;
+      setState(() {
+        _allGarments.removeWhere((g) => g.id == garment.id);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Delete failed: $e')),
+      );
+    }
   }
 }

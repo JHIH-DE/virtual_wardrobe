@@ -41,7 +41,7 @@ class SelectGarmentPage extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      g.imageUrl,
+                      g.uploadUrl,
                       width: 54,
                       height: 54,
                       fit: BoxFit.cover,

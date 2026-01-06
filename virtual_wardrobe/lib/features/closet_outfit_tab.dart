@@ -23,36 +23,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
 
   // 暫時用假資料（之後接 ClosetStore / backend）
   final List<Garment> _allGarments = [
-    Garment(
-      id: '1',
-      name: 'White T-Shirt',
-      category: GarmentCategory.top,
-      imageUrl: 'https://via.placeholder.com/300',
-    ),
-    Garment(
-      id: '2',
-      name: 'Jeans',
-      category: GarmentCategory.bottom,
-      imageUrl: 'https://via.placeholder.com/300',
-    ),
-    Garment(
-      id: '3',
-      name: 'Jacket',
-      category: GarmentCategory.outer,
-      imageUrl: 'https://via.placeholder.com/300',
-    ),
-    Garment(
-      id: '4',
-      name: 'Sneakers',
-      category: GarmentCategory.shoes,
-      imageUrl: 'https://via.placeholder.com/300',
-    ),
-    Garment(
-      id: '5',
-      name: 'Watch',
-      category: GarmentCategory.accessory,
-      imageUrl: 'https://via.placeholder.com/300',
-    ),
+
   ];
 
   bool generating = false;
@@ -677,7 +648,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.network(
-                      value.imageUrl,
+                      value.uploadUrl,
                       width: 32,
                       height: 32,
                       fit: BoxFit.cover,

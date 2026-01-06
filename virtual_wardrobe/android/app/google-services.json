@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1096981732472",
+    "project_id": "synthetic-arc-482116-f5-66e8e",
+    "storage_bucket": "synthetic-arc-482116-f5-66e8e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1096981732472:android:4b7cc3d65f2c01aa28e18d",
+        "android_client_info": {
+          "package_name": "com.example.virtual_wardrobe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaUjYA3UcdyAJocPNZOuHibhHUPaD9vJw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
