@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'garment_category.dart';
 import '../app/theme/app_colors.dart';
@@ -5,18 +7,18 @@ import '../app/theme/app_colors.dart';
 class SelectGarmentPage extends StatelessWidget {
   final String title;
   final GarmentCategory category;
-  final List<Garment> items;
+  final List<Garment> garments;
 
   const SelectGarmentPage({
     super.key,
     required this.title,
     required this.category,
-    required this.items,
+    required this.garments,
   });
 
   @override
   Widget build(BuildContext context) {
-    final filtered = items.where((g) => g.category == category).toList();
+    final filtered = garments.where((g) => g.category == category).toList();
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -40,11 +42,13 @@ class SelectGarmentPage extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      g.uploadUrl,
-                      width: 54,
-                      height: 54,
-                      fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: _garmentImage(
+                        g.imageUrl,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -64,6 +68,42 @@ class SelectGarmentPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _garmentImage(String? url,
+      {double? width, double? height, BoxFit fit = BoxFit.cover}) {
+    final u = (url ?? '').trim();
+
+    if (u.isEmpty) {
+      return const Center(child: Text('No image'));
+    }
+
+    if (u.startsWith('http://') || u.startsWith('https://')) {
+      return Image.network(
+        u,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (_, __, ___) =>
+        const Center(child: Text('Image load failed')),
+      );
+    }
+
+    if (u.startsWith('file://')) {
+      return Image.file(
+        File.fromUri(Uri.parse(u)),
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    }
+
+    return Image.file(
+      File(u),
+      width: width,
+      height: height,
+      fit: fit,
     );
   }
 }

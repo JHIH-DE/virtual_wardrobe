@@ -7,14 +7,14 @@ import '../app/theme/app_colors.dart';
 import '../core/services/auth_api.dart';
 import '../core/services/token_storage.dart';
 
-class ClosetItemsTab extends StatefulWidget {
-  const ClosetItemsTab({super.key});
+class ClosetGarmentsTab extends StatefulWidget {
+  const ClosetGarmentsTab({super.key});
 
   @override
-  State<ClosetItemsTab> createState() => _ClosetItemsTabState();
+  State<ClosetGarmentsTab> createState() => _ClosetGarmentsTabState();
 }
 
-class _ClosetItemsTabState extends State<ClosetItemsTab> {
+class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
   GarmentCategory _selectedCategory = GarmentCategory.top;
 
   final List<Garment> _allGarments = [];
@@ -52,6 +52,9 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
           ..clear()
           ..addAll(list);
       });
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -73,7 +76,7 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
               children: [
                 const Expanded(
                   child: Text(
-                    'Your Items',
+                    'Your Garments',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -84,7 +87,7 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
                 OutlinedButton.icon(
                   onPressed: _loading ? null : _createGarment,
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Item'),
+                  label: const Text('Add Garments'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textPrimary,
                     side: const BorderSide(color: AppColors.border),
@@ -181,7 +184,7 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
           SizedBox(height: 60),
           Center(
             child: Text(
-              'No items in this category',
+              'No garments in this category',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
@@ -370,7 +373,7 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete item?'),
+        title: const Text('Delete garment?'),
         content: Text('Delete "${garment.name}" permanently?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
@@ -391,7 +394,7 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
 
     try {
       if (garment.id == null) {
-        throw Exception('Missing garment.id');
+        throw Exception('Missing item.id');
       }
       await AuthApi.deleteGarment(token, garment.id!);
 
@@ -399,6 +402,9 @@ class _ClosetItemsTabState extends State<ClosetItemsTab> {
       setState(() {
         _allGarments.removeWhere((g) => g.id == garment.id);
       });
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

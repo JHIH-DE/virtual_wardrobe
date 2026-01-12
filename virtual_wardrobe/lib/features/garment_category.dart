@@ -203,15 +203,18 @@ class OutfitSelection {
 
 class Garment {
   final int? id;
+  final String name;
+
   final String? brand;
   final String? color;
-  final GarmentSeason? season;
+  final GarmentSeason season;
   final double? price;
   final DateTime? purchaseDate;
   final String? imageUrl;
 
   final GarmentCategory category;
-  final String name;
+
+  /// Supports either a network URL or local file path (demo/local mode)
   final String uploadUrl;
   final String objectName;
   final String publicUrl;
@@ -222,10 +225,10 @@ class Garment {
     required this.uploadUrl,
     required this.objectName,
     required this.publicUrl,
+    required this.season,
     this.id,
     this.brand,
     this.color,
-    this.season, //Delete
     this.price,
     this.purchaseDate,
     this.imageUrl,
@@ -247,7 +250,6 @@ class Garment {
     bool clearId = false,
     bool clearBrand = false,
     bool clearColor = false,
-    bool clearSeason = false,
     bool clearPrice = false,
     bool clearPurchaseDate = false,
   }) {
@@ -261,7 +263,7 @@ class Garment {
       id: clearId ? null : (id ?? this. id),
       brand: clearBrand ? null : (brand ?? this.brand),
       color: clearColor ? null : (color ?? this.color),
-      season: clearSeason ? null : (season ?? this.season),
+      season: season ?? this.season,
       price: clearPrice ? null : (price ?? this.price),
       purchaseDate: clearPurchaseDate ? null : (purchaseDate ?? this.purchaseDate),
     );
@@ -286,9 +288,7 @@ class Garment {
       name: (json['name'] as String?) ?? '',
       brand: json['brand'] as String?,
       color: json['color'] as String?,
-      season: (json['season'] is String)
-          ? GarmentSeasonX.fromApiValue(json['season'] as String)
-          : null,
+      season: GarmentSeasonX.fromApiValue(json['season'] as String),
       price: _parsePrice(json['price']),
       purchaseDate: _parseDate(json['purchase_date']),
       category: GarmentCategoryX.fromApiValue(json['category'] as String),
@@ -305,7 +305,7 @@ class Garment {
       'name': name,
       'brand': brand,
       'color': color,
-      'season': season?.apiValue,
+      'season': season.apiValue,
       'price': price,
       'purchase_date': purchaseDate?.toIso8601String(),
       'category': category.apiValue,

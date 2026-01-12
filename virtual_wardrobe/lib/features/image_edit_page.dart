@@ -10,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../app/theme/app_colors.dart';
 
 class ImageEditPage extends StatefulWidget {
-  /// initialPath supports local file path (demo mode)
+  /// initialPath supports local file path OR network url
   final String? initialPath;
 
   const ImageEditPage({super.key, this.initialPath});
@@ -25,14 +25,19 @@ class _ImageEditPageState extends State<ImageEditPage> {
   File? originalFile;
   File? croppedFile;
   File? compressedFile;
-
+  String? _networkUrl;
   String? errorMessage;
 
   @override
   void initState() {
     super.initState();
     final path = widget.initialPath;
-    if (path != null && path.isNotEmpty && !path.startsWith('http')) {
+
+    if (path == null || path.isEmpty) return;
+
+    if (path.startsWith('http')) {
+      _networkUrl = path;
+    } else {
       originalFile = File(path);
     }
   }
@@ -40,6 +45,8 @@ class _ImageEditPageState extends State<ImageEditPage> {
   @override
   Widget build(BuildContext context) {
     final displayFile = compressedFile ?? croppedFile ?? originalFile;
+    final hasFile = displayFile != null;
+    final hasNetwork = (_networkUrl ?? '').isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -55,7 +62,15 @@ class _ImageEditPageState extends State<ImageEditPage> {
         ),
         actions: [
           TextButton(
-            onPressed: displayFile == null ? null : () => Navigator.pop(context, displayFile!.path),
+            onPressed: (!hasFile && !hasNetwork)
+                ? null
+                : () {
+              if (hasFile) {
+                Navigator.pop(context, displayFile!.path);
+              } else {
+                Navigator.pop(context, _networkUrl);
+              }
+            },
             child: const Text('Done'),
           ),
         ],
@@ -101,18 +116,37 @@ class _ImageEditPageState extends State<ImageEditPage> {
                 ),
               ],
             ),
+
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
                 aspectRatio: 1,
-                child: displayFile == null
+                child: (!hasFile && !hasNetwork)
                     ? const Center(
                   child: Text(
                     'No image selected',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                 )
-                    : Image.file(displayFile, fit: BoxFit.cover),
+                    : (hasFile
+                    ? Image.file(
+                  displayFile!,
+                  fit: BoxFit.contain,
+                )
+                    : Image.network(
+                  _networkUrl!,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (c, child, p) {
+                    if (p == null) return child;
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                  errorBuilder: (c, e, s) => const Center(
+                    child: Text(
+                      'Failed to load image',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                )),
               ),
             ),
           ),
@@ -187,13 +221,10 @@ class _ImageEditPageState extends State<ImageEditPage> {
       originalFile = null;
       croppedFile = null;
       compressedFile = null;
+      _networkUrl = null;
     });
 
-    final XFile? xfile = await _picker.pickImage(
-      source: source,
-      imageQuality: null,
-    );
-
+    final XFile? xfile = await _picker.pickImage(source: source, imageQuality: null);
     if (xfile == null) return;
 
     setState(() {
@@ -230,9 +261,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
 
       await _compressImage();
     } catch (e) {
-      setState(() {
-        errorMessage = 'Crop failed. Please try again.';
-      });
+      setState(() => errorMessage = 'Crop failed. Please try again.');
     }
   }
 
@@ -241,10 +270,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
     if (input == null) return;
 
     final dir = await getTemporaryDirectory();
-    final outPath = p.join(
-      dir.path,
-      'garment_${DateTime.now().millisecondsSinceEpoch}.jpg',
-    );
+    final outPath = p.join(dir.path, 'garment_${DateTime.now().millisecondsSinceEpoch}.png');
 
     final result = await FlutterImageCompress.compressAndGetFile(
       input.absolute.path,
@@ -252,7 +278,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
       quality: 80,
       minWidth: 1536,
       minHeight: 1536,
-      format: CompressFormat.jpeg,
+      format: CompressFormat.png,
     );
 
     if (result == null) {

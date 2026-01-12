@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../features/garment_category.dart';
+import '../../features/login_page.dart';
+import 'token_storage.dart';
 
 class AuthApi {
   // TODO: 換成你的正式網址
@@ -51,7 +53,7 @@ class AuthApi {
   }
 
   static Future<InitUploadResult> initUpload(String accessToken) async {
-    final uri = Uri.parse('$baseUrl/api/v1/garments/init-upload');
+    final uri = Uri.parse('$baseUrl/api/v1/garment/init-upload');
     final res = await http.post(
       uri,
       headers: {
@@ -59,7 +61,6 @@ class AuthApi {
         'Authorization': 'Bearer $accessToken',
       },
       body: jsonEncode({
-        'category': 'top',
         'content_type': 'image/jpeg',
       }),
     );
@@ -96,15 +97,14 @@ class AuthApi {
   }
 
   static Future<Garment> completeUpload(String accessToken, Garment garment) async {
-    final uri = Uri.parse('$baseUrl/api/v1/garments/complete');
-
+    final uri = Uri.parse('$baseUrl/api/v1/garment/complete');
     final payload = <String, dynamic>{
-      'name': garment.name,
       'category': garment.category.apiValue,
+      'name': garment.name,
       'object_name': garment.objectName,
-      'season': garment.season?.apiValue,
       'brand': garment.brand,
       'color': garment.color,
+      'season': garment.season.apiValue,
       'price': garment.price,
       'purchase_date': garment.purchaseDate?.toIso8601String(),
     };
@@ -119,30 +119,19 @@ class AuthApi {
     ).timeout(const Duration(seconds: 15));
 
     if (res.statusCode != 200) {
-      throw Exception(
-        'completeUpload failed (${res.statusCode}): ${res.body}',
-      );
+      throw Exception('completeUpload failed (${res.statusCode}): ${res.body}');
     }
 
     final data = jsonDecode(res.body);
     if (data is! Map<String, dynamic>) {
-      throw Exception(
-        'completeUpload: invalid response json: ${res.body}',
-      );
+      throw Exception('completeUpload: invalid response json: ${res.body}');
     }
 
-    final id = data['id'];
-    if (id == null) {
-      throw Exception(
-        'completeUpload: missing id in response: ${res.body}',
-      );
-    }
-
-    return garment.copyWith(id: id);
+    return Garment.fromJson(data);
   }
 
   static Future<List<Garment>> getGarments(String accessToken) async {
-    final uri = Uri.parse('$baseUrl/api/v1/garments');
+    final uri = Uri.parse('$baseUrl/api/v1/garment');
     final res = await http.get(uri, headers: authHeaders(accessToken));
 
     if (res.statusCode != 200) {
@@ -161,7 +150,7 @@ class AuthApi {
   }
 
   static Future<void> deleteGarment(String accessToken, int garmentId) async {
-    final uri = Uri.parse('$baseUrl/api/v1/garments/$garmentId');
+    final uri = Uri.parse('$baseUrl/api/v1/garment/$garmentId');
 
     final res = await http.delete(
       uri,
@@ -181,8 +170,7 @@ class AuthApi {
       throw Exception('updateGarment: missing garment.id');
     }
 
-    // 你的 Postman 看到有 PATCH Update，這邊假設是 /api/v1/garments/{id}
-    final uri = Uri.parse('$baseUrl/api/v1/garments/${garment.id}');
+    final uri = Uri.parse('$baseUrl/api/v1/garment/${garment.id}');
     final res = await http.patch(
       uri,
       headers: authHeaders(accessToken),
@@ -215,6 +203,178 @@ class AuthApi {
       }
     } catch (_) {}
     return null;
+  }
+
+  static void _throwIfAuthExpired(http.Response res) {
+    if (res.statusCode == 401) {
+      throw AuthExpiredException();
+    }
+  }
+
+  static Map<String, dynamic> _decodeMap(http.Response res, {required String op}) {
+    _throwIfAuthExpired(res);
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('$op failed (${res.statusCode}): ${res.body}');
+    }
+
+    final data = jsonDecode(res.body);
+    if (data is! Map<String, dynamic>) {
+      throw Exception('$op: invalid response json: ${res.body}');
+    }
+    return data;
+  }
+
+  // --- Avatar flow (Profile) ---
+
+  static Future<InitUploadResult> avatarInitUpload(String accessToken) async {
+    final uri = Uri.parse('$baseUrl/api/v1/profile/avatar/init-upload');
+    final res = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+      body: jsonEncode({
+        'content_type': 'image/jpeg',
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('initUpload failed (${res.statusCode}): ${res.body}');
+    }
+
+    final data = jsonDecode(res.body);
+    if (data is! Map<String, dynamic>) {
+      throw Exception('initUpload: invalid response json: ${res.body}');
+    }
+
+    return InitUploadResult.fromJson(data);
+  }
+
+  static Future<String> avatarComplete(String accessToken, {required String objectName}) async {
+    final uri = Uri.parse('$baseUrl/api/v1/profile/avatar/complete');
+    final res = await http.post(
+      uri,
+      headers: authHeaders(accessToken),
+      body: jsonEncode({'object_name': objectName}),
+    );
+    final data = _decodeMap(res, op: 'avatarComplete');
+    // 你 swagger 顯示 response "string"，我這邊用 body string 也行：
+    // 如果後端真的回 JSON string (e.g. "https://..."), 就這樣取：
+    return data['url']?.toString() ?? res.body.replaceAll('"', '');
+  }
+
+  static Future<String?> getMyAvatar(String accessToken) async {
+    final uri = Uri.parse('$baseUrl/api/v1/profile/me/avatar');
+    final res = await http.get(uri, headers: authHeaders(accessToken));
+    _throwIfAuthExpired(res);
+
+    if (res.statusCode == 404) return null; // 沒頭像
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('getMyAvatar failed (${res.statusCode}): ${res.body}');
+    }
+
+    // swagger 顯示 response "string"
+    return res.body.replaceAll('"', '');
+  }
+
+  static Future<void> deleteMyAvatar(String accessToken) async {
+    final uri = Uri.parse('$baseUrl/api/v1/profile/avatar');
+    final res = await http.delete(uri, headers: authHeaders(accessToken));
+    _throwIfAuthExpired(res);
+
+    if (res.statusCode == 204) return;
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('deleteMyAvatar failed (${res.statusCode}): ${res.body}');
+    }
+  }
+
+  // Signed URL PUT (通用)
+  static Future<void> putJpegToSignedUrl(String uploadUrl, String localPath) async {
+    final bytes = await File(localPath).readAsBytes();
+    final res = await http.put(
+      Uri.parse(uploadUrl),
+      headers: {'Content-Type': 'image/jpeg'},
+      body: bytes,
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      // signed url 過期通常是 403
+      throw Exception('PUT signed url failed (${res.statusCode}): ${res.body}');
+    }
+  }
+
+  Future<String> getAccessToken() async {
+    final token = await TokenStorage.getAccessToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Not logged in. Please log in again.');
+    }
+    return token;
+  }
+
+  // --- Profile update ---
+  static Future<Map<String, dynamic>> updateMyProfile(
+      String accessToken, {
+        int? height,
+        double? weight,
+        int? age,
+        String? name,
+        String? pictureUrl,
+      }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/user/me');
+
+    final payload = <String, dynamic>{};
+    if (height != null) payload['height_cm'] = height;
+    if (weight != null) payload['weight_kg'] = weight;
+    if (age != null) payload['age'] = age;
+    if (name != null) payload['name'] = name;
+    if (pictureUrl != null) payload['picture_url'] = pictureUrl;
+
+    final res = await http.patch(
+      uri,
+      headers: authHeaders(accessToken),
+      body: jsonEncode(payload),
+    );
+
+    return _decodeMap(res, op: 'updateMyProfile');
+  }
+}
+
+class AuthExpiredException implements Exception {
+  final String message;
+  AuthExpiredException([this.message = 'Authentication expired']);
+  @override
+  String toString() => message;
+}
+
+class AuthExpiredHandler {
+  static Future<void> handle(BuildContext context) async {
+    await TokenStorage.clear();
+
+    if (!context.mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Session Expired'),
+        content: const Text('Your session has expired. Please log in again to continue.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 }
 

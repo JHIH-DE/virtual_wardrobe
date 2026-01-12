@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'my_closet_page.dart';
 import 'add_garment_page.dart';
+import 'account_page.dart';
 import '../app/theme/app_colors.dart';
 import '../l10n/app_strings.dart';
+import 'outfit_planner.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,9 +19,9 @@ class _HomePageState extends State<HomePage> {
 
   final List<String> features = [
     'My Closet',
-    'Daily Outfit',
-    'Add Item',
-    'Trip Planner',
+    'Outfit Planner',
+    'Add Garment',
+    'Finance',
     'Account',
     'Share',
   ];
@@ -33,7 +35,6 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              debugPrint('[James]  press: ');
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -90,10 +91,20 @@ class _HomePageState extends State<HomePage> {
                           context,
                           MaterialPageRoute(builder: (_) => const MyClosetPage()),
                         );
-                      } else if (feature == 'Add Item') {
+                      } else if (feature == 'Add Garment') {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const AddGarmentPage()),
+                        );
+                      } else if (feature == 'Outfit Planner') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const OutfitPlannerPage()),
+                        );
+                      }else if (feature == 'Account') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AccountPage()),
                         );
                       }
                     },
@@ -155,12 +166,12 @@ class _HomePageState extends State<HomePage> {
     switch (feature) {
       case 'My Closet':
         return Icons.checkroom;
-      case 'Daily Outfit':
-        return Icons.wb_sunny;
-      case 'Add Item':
+      case 'Outfit Planner':
+        return Icons.auto_awesome;
+      case 'Add Garment':
         return Icons.add_a_photo;
-      case 'Trip Planner':
-        return Icons.flight_takeoff;
+      case 'Finance':
+        return Icons.account_balance_wallet;
       case 'Account':
         return Icons.person_outline;
       case 'Share':

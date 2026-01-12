@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'closet_items_tab.dart';
+import 'closet_garments_tab.dart';
 import 'closet_outfit_tab.dart';
 import 'closet_looks_tab.dart';
 import '../app/theme/app_colors.dart';
@@ -36,7 +36,7 @@ class _MyClosetPageState extends State<MyClosetPage> {
             labelColor: AppColors.textPrimary,
             unselectedLabelColor: AppColors.textSecondary,
             tabs: const [
-              Tab(text: 'Items', icon: Icon(Icons.checkroom)),
+              Tab(text: 'Garments', icon: Icon(Icons.checkroom)),
               Tab(text: 'Outfit', icon: Icon(Icons.style)),
               Tab(text: 'Looks', icon: Icon(Icons.collections_bookmark)),
             ],
@@ -44,7 +44,7 @@ class _MyClosetPageState extends State<MyClosetPage> {
         ),
         body: const TabBarView(
           children: [
-            ClosetItemsTab(),
+            ClosetGarmentsTab(),
             ClosetOutfitTab(),
             ClosetLooksTab(),
           ],

@@ -7,7 +7,7 @@ import '../core/services/auth_api.dart';
 import '../core/services/token_storage.dart';
 
 class AddGarmentPage extends StatefulWidget {
-  /// If provided, page works as "Edit Item"
+  /// If provided, page works as "Edit Garment"
   final Garment? initialGarment;
 
   const AddGarmentPage({super.key, this.initialGarment});
@@ -18,19 +18,20 @@ class AddGarmentPage extends StatefulWidget {
 
 class _AddGarmentPageState extends State<AddGarmentPage> {
   late GarmentCategory category;
+  late GarmentSeason season;
 
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameCtrl;
   late final TextEditingController _brandCtrl;
   late final TextEditingController _priceCtrl;
 
-  GarmentSeason? _season;
+  int? _id;
   DateTime? _purchaseDate;
   bool uploading = false;
   String? errorMessage;
-
-  /// local file path (demo mode) or network url
+  bool _isImageChanged = false;
   String? _imagePathOrUrl;
+  String? _initialImagePathOrUrl;
 
   GarmentColor? _selectedColor;
 
@@ -47,9 +48,11 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       text: g?.price == null ? '' : g!.price!.toStringAsFixed(0),
     );
 
-    _season = g?.season;
+    _id = g?.id;
+    season = g?.season?? GarmentSeason.all;
     _purchaseDate = g?.purchaseDate;
-    _imagePathOrUrl = g?.uploadUrl;
+    _imagePathOrUrl = g?.imageUrl;
+    _initialImagePathOrUrl = _imagePathOrUrl;
 
     // Map existing string color (if any) back to enum.
     _selectedColor = _tryParseGarmentColor(g?.color);
@@ -67,7 +70,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _isEditMode ? 'Edit Item' : 'Add Item';
+    final title = _isEditMode ? 'Edit Garment' : 'Add Garment';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -87,17 +90,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _sectionTitle('Image'),
-            const SizedBox(height: 10),
-
-            OutlinedButton.icon(
-              onPressed: _openImageEdit,
-              icon: const Icon(Icons.edit),
-              label: Text(_imagePathOrUrl == null ? 'Add image' : 'Edit image'),
-              style: _outlineBtnStyle(),
-            ),
-
-            const SizedBox(height: 12),
 
             _imagePreview(),
 
@@ -131,12 +123,12 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             const SizedBox(height: 12),
 
             DropdownButtonFormField<GarmentSeason>(
-              value: _season,
+              value: season,
               decoration: _inputDecoration(label: 'Season'),
               items: GarmentSeason.values
                   .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
                   .toList(),
-              onChanged: (v) => setState(() => _season = v),
+              onChanged: (v) => setState(() => season = v!),
             ),
 
             const SizedBox(height: 12),
@@ -166,9 +158,9 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             const SizedBox(height: 18),
 
             ElevatedButton.icon(
-              onPressed: _save,
+              onPressed: _saveGarment,
               icon: const Icon(Icons.check),
-              label: Text(_isEditMode ? 'Save changes' : 'Create item'),
+              label: Text(_isEditMode ? 'Save changes' : 'Create Garment'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -387,17 +379,21 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   Widget _imagePreview() {
     final img = _imagePathOrUrl;
     if (img == null || img.isEmpty) {
-      return Container(
-        height: 180,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: const Center(
-          child: Text(
-            'No image selected',
-            style: TextStyle(color: AppColors.textSecondary),
+      return  InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _openImageEdit,
+        child: Container(
+          height: 180,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: const Center(
+            child: Text(
+              'Add image',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
         ),
       );
@@ -420,19 +416,25 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: AspectRatio(
-          aspectRatio: 1.35,
-          child: isLocal
-              ? Image.file(File(img), fit: BoxFit.cover)
-              : Image.network(img, fit: BoxFit.cover),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _openImageEdit,
+            child: AspectRatio(
+              aspectRatio: 1.35,
+              child: Container(
+                color: AppColors.surface, // 或 Colors.white，避免留黑邊
+                alignment: Alignment.center,
+                child: isLocal
+                    ? Image.file(File(img), fit: BoxFit.contain)
+                    : Image.network(img, fit: BoxFit.contain),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
-
-  // ----------------------------
-  // Actions
-  // ----------------------------
 
   Future<void> _openImageEdit() async {
     final result = await Navigator.push<String?>(
@@ -444,10 +446,15 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
     if (result == null || result.isEmpty) return;
     setState(() => _imagePathOrUrl = result);
+    setState(() {
+      _imagePathOrUrl = result;
+      _isImageChanged = (_imagePathOrUrl != _initialImagePathOrUrl);
+    });
   }
 
-  Future<void> _save() async {
+  Future<void> _saveGarment() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    final isAdd = widget.initialGarment?.id == null;
 
     setState(() {
       uploading = true;
@@ -455,28 +462,56 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     });
 
     try {
-      final raw = (_imagePathOrUrl ?? '').trim();
-      final token = await _getAccessToken();
-      final initDate = await AuthApi.initUpload(token);
-      await AuthApi.uploadImage(initDate.uploadUrl, raw);
+      final token = await TokenStorage.getAccessToken();
+      late Garment result;
 
-      final tempGarment = Garment(
-        uploadUrl: initDate.uploadUrl,
-        objectName: initDate.objectName,
-        publicUrl: initDate.publicUrl,
-        name: _nameCtrl.text.trim(),
-        brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-        color: _selectedColor?.label,
-        season: _season,
-        price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
-        purchaseDate: _purchaseDate,
-        category: category,
-      );
-      final savedGarment = await AuthApi.completeUpload(token, tempGarment);
+      if (isAdd || _isImageChanged) {
+        final raw = (_imagePathOrUrl ?? '').trim();
+        final token = await TokenStorage.getAccessToken();
+        final initDate = await AuthApi.initUpload(token!);
+        await AuthApi.uploadImage(initDate.uploadUrl, raw);
 
+        final tempGarment = Garment(
+          uploadUrl: initDate.uploadUrl,
+          objectName: initDate.objectName,
+          publicUrl: initDate.publicUrl,
+          category: category,
+          name: _nameCtrl.text.trim(),
+          brand: _brandCtrl.text
+              .trim()
+              .isEmpty ? null : _brandCtrl.text.trim(),
+          color: _selectedColor?.label,
+          season: season,
+          price: _priceCtrl.text
+              .trim()
+              .isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
+          purchaseDate: _purchaseDate,
+        );
+
+        if (_isImageChanged && !isAdd) {
+          await AuthApi.deleteGarment(token, _id!);
+        }
+        result = await AuthApi.completeUpload(token, tempGarment);
+      } else {
+        final original = widget.initialGarment!;
+
+        Garment updated = original.copyWith(
+          name: _nameCtrl.text.trim(),
+          brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+          color: _selectedColor?.label,
+          price: _priceCtrl.text.trim().isEmpty
+              ? null
+              : double.tryParse(_priceCtrl.text.trim()),
+          purchaseDate: _purchaseDate,
+          category: category,
+        );
+        result = await AuthApi.updateGarment(token!, updated);
+      }
       if (!mounted) return;
-      debugPrint('[James] _save - done: ');
-      Navigator.pop(context, savedGarment);
+      Navigator.pop(context, result);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       setState(() => errorMessage = e.toString());
     } finally {
@@ -533,23 +568,5 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
       ),
     );
-  }
-
-  ButtonStyle _outlineBtnStyle() {
-    return OutlinedButton.styleFrom(
-      foregroundColor: AppColors.textPrimary,
-      side: const BorderSide(color: AppColors.border),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-    );
-  }
-
-  Future<String> _getAccessToken() async {
-    final token = await TokenStorage.getAccessToken();
-
-    if (token == null || token.isEmpty) {
-      throw Exception('Not logged in. Please log in again.');
-    }
-    return token;
   }
 }

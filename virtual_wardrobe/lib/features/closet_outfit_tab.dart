@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../app/theme/app_colors.dart';
+import '../core/services/auth_api.dart';
+import '../core/services/token_storage.dart';
 import '../l10n/app_strings.dart';
 import '../data/looks_store.dart';
 import 'garment_category.dart';
 import 'select_garment_page.dart';
+import '../core/services/auth_api.dart';
 
 class ClosetOutfitTab extends StatefulWidget {
   const ClosetOutfitTab({super.key});
@@ -22,9 +26,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   OutfitMode _mode = OutfitMode.my;
 
   // 暫時用假資料（之後接 ClosetStore / backend）
-  final List<Garment> _allGarments = [
-
-  ];
+  final List<Garment> _allGarments = [];
 
   bool generating = false;
 
@@ -40,6 +42,14 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   Timer? _pollTimer;
   bool tryOnLoading = false;
   String? errorMessage;
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGarments(); // 呼叫 async 方法
+  }
 
   @override
   void dispose() {
@@ -208,6 +218,45 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         ],
       ],
     );
+  }
+
+  Future<void> _loadGarments() async {
+    final token = await TokenStorage.getAccessToken();
+
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Missing access token. Please login again.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final list = await AuthApi.getGarments(token);
+
+      if (!mounted) return;
+      setState(() {
+        _allGarments
+          ..clear()
+          ..addAll(list);
+      });
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   Widget _outfitCard(Map<String, dynamic> outfit) {
@@ -609,7 +658,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             builder: (_) => SelectGarmentPage(
               title: 'Select $title',
               category: category,
-              items: _allGarments,
+              garments: _allGarments,
             ),
           ),
         );
@@ -645,15 +694,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
               )
                   : Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      value.uploadUrl,
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  _GarmentThumb(value.imageUrl),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -791,6 +832,26 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         errorMessage = 'Try-On failed. Please try again.';
       });
     }
+  }
+
+  Widget _GarmentThumb(String? urlOrPath) {
+    final u = (urlOrPath ?? '').trim();
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SizedBox(
+        width: 32,
+        height: 32,
+        child: u.isEmpty
+            ? Container(
+          color: AppColors.border,
+          child: const Icon(Icons.image_not_supported, size: 16, color: AppColors.textSecondary),
+        )
+            : (u.startsWith('http://') || u.startsWith('https://'))
+            ? Image.network(u, fit: BoxFit.cover)
+            : Image.file(File(u), fit: BoxFit.cover),
+      ),
+    );
   }
 
   Future<void> _startTryOnManual() async {
