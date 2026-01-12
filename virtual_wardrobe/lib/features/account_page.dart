@@ -30,7 +30,7 @@ class _AccountPageState extends State<AccountPage> {
   DateTime? _selectedBirthDate;
 
   String? _selectedGender;
-  bool _isMetric = true; // true: 公制(cm/kg), false: 英制(ft/lb)
+  bool _isMetric = true; 
 
   final List<String> _genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -59,15 +59,35 @@ class _AccountPageState extends State<AccountPage> {
     });
 
     try {
-      final avatar = await AuthApi.getMyAvatar(token);
+      final profile = await AuthApi.getMyProfile(token);
+
       if (!mounted) return;
+
       setState(() {
-        _avatarUrl = avatar;
-        _avatarLocalPath = null;
+        _avatarUrl = profile['avatar_object_url'] as String?;
+        _fullBodyUrl = profile['full_body_object_url'] as String?;
+        
+        _nameCtrl.text = profile['name'] ?? '';
+        _selectedGender = profile['gender'];
+        
+        final birthdayStr = profile['birthday'] as String?;
+        if (birthdayStr != null && birthdayStr.isNotEmpty) {
+          try {
+            _selectedBirthDate = DateTime.parse(birthdayStr);
+            _birthDateCtrl.text = DateFormat('yyyy-MM-dd').format(_selectedBirthDate!);
+          } catch (_) {}
+        }
+
+        if (profile['height'] != null) {
+          _heightCtrl.text = profile['height'].toString();
+        }
+        if (profile['weight'] != null) {
+          _weightCtrl.text = profile['weight'].toString();
+        }
+
+        _isMetric = (profile['unit_system'] ?? 'metric') == 'metric';
       });
 
-      // TODO: 若你有 GET /profile/me，可以在這裡把數據填回 Controller
-      // e.g. _nameCtrl.text = profileData['name'] ?? '';
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -96,25 +116,18 @@ class _AccountPageState extends State<AccountPage> {
     }
   }
 
-  int? _calculateAge(DateTime? birthDate) {
-    if (birthDate == null) return null;
-    final today = DateTime.now();
-    int age = today.year - birthDate.year;
-    if (today.month < birthDate.month ||
-        (today.month == birthDate.month && today.day < birthDate.day)) {
-      age--;
-    }
-    return age;
-  }
-
   Future<void> _saveProfile() async {
     final token = await TokenStorage.getAccessToken();
     if (token == null || token.isEmpty) return;
 
     final name = _nameCtrl.text.trim();
-    final height = int.tryParse(_heightCtrl.text.trim());
-    final weight = double.tryParse(_weightCtrl.text.trim());
-    final age = _calculateAge(_selectedBirthDate);
+    final gender = _selectedGender;
+    final birthday = _selectedBirthDate != null 
+        ? DateFormat('yyyy-MM-dd').format(_selectedBirthDate!) 
+        : null;
+    final height = num.tryParse(_heightCtrl.text.trim());
+    final weight = num.tryParse(_weightCtrl.text.trim());
+    final unitSystem = _isMetric ? 'metric' : 'imperial';
 
     setState(() {
       _loading = true;
@@ -122,19 +135,18 @@ class _AccountPageState extends State<AccountPage> {
     });
 
     try {
-      await AuthApi.updateMyProfile(
+     final result = await AuthApi.updateMyProfile(
         token,
         name: name.isNotEmpty ? name : null,
+        gender: gender,
+        birthday: birthday,
         height: height,
         weight: weight,
-        age: age,
+        unitSystem: unitSystem,
       );
 
-      // TODO: 如果後端支援 gender 與 unit_system，也一併傳送
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved')),
-      );
+      Navigator.pop(context, result);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -148,8 +160,6 @@ class _AccountPageState extends State<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    final avatarProvider = _buildAvatarProvider();
-
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
       body: ListView(
@@ -162,28 +172,7 @@ class _AccountPageState extends State<AccountPage> {
           ],
 
           const SizedBox(height: 12),
-          Center(
-            child: Stack(
-              children: [
-                CircleAvatar(radius: 56, backgroundImage: avatarProvider),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: InkWell(
-                    onTap: _loading ? null : _changeAvatar,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black87,
-                      ),
-                      child: const Icon(Icons.edit, color: Colors.white, size: 18),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildAvatarSection(),
 
           const SizedBox(height: 24),
           const Text('Profile Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -193,7 +182,7 @@ class _AccountPageState extends State<AccountPage> {
           const SizedBox(height: 16),
 
           DropdownButtonFormField<String>(
-            value: _selectedGender,
+            value: (_genderOptions.contains(_selectedGender)) ? _selectedGender : null,
             decoration: const InputDecoration(
               labelText: 'Gender',
               border: OutlineInputBorder(),
@@ -214,8 +203,8 @@ class _AccountPageState extends State<AccountPage> {
           const SizedBox(height: 24),
           const Divider(),
           SwitchListTile(
-            title: const Text('Use Metric Units (cm/kg)'),
-            subtitle: Text(_isMetric ? 'Currently: Metric' : 'Currently: Imperial (ft/lb)'),
+            title: const Text('Unit System'),
+            subtitle: Text(_isMetric ? 'Metric (cm/kg)' : 'Imperial (ft/lb)'),
             value: _isMetric,
             onChanged: (val) => setState(() => _isMetric = val),
           ),
@@ -262,12 +251,45 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 
-  // --- 輔助 UI 元件與方法 ---
+  // --- Helpers ---
 
-  ImageProvider _buildAvatarProvider() {
-    if (_avatarLocalPath != null) return FileImage(File(_avatarLocalPath!));
-    if (_avatarUrl != null && _avatarUrl!.isNotEmpty) return NetworkImage(_avatarUrl!);
-    return const AssetImage('assets/avatar_placeholder.png');
+  Widget _buildAvatarSection() {
+    ImageProvider? provider;
+    if (_avatarLocalPath != null) {
+      provider = FileImage(File(_avatarLocalPath!));
+    } else if (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != "string") {
+      provider = NetworkImage(_avatarUrl!);
+    }
+
+    return Center(
+      child: Stack(
+        children: [
+          CircleAvatar(
+            radius: 56,
+            backgroundColor: AppColors.surface,
+            backgroundImage: provider,
+            child: provider == null
+                ? const Icon(Icons.person, size: 56, color: AppColors.textSecondary)
+                : null,
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: InkWell(
+              onTap: _loading ? null : _changeAvatar,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black87,
+                ),
+                child: const Icon(Icons.edit, color: Colors.white, size: 18),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _field(
@@ -308,9 +330,13 @@ class _AccountPageState extends State<AccountPage> {
     try {
       final init = await AuthApi.avatarInitUpload(token);
       await AuthApi.putJpegToSignedUrl(init.uploadUrl, localPath);
-      await AuthApi.avatarComplete(token, objectName: init.objectName);
-      final avatar = await AuthApi.getMyAvatar(token);
-      if (mounted) setState(() { _avatarUrl = avatar; _avatarLocalPath = null; });
+      final newUrl = await AuthApi.avatarComplete(token, objectName: init.objectName);
+      if (mounted) {
+        setState(() {
+          _avatarUrl = newUrl;
+          _avatarLocalPath = null;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
@@ -319,13 +345,18 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Widget _buildBodyPhotoSection() {
-    final bool hasBodyImage = _fullBodyLocalPath != null || (_fullBodyUrl != null && _fullBodyUrl!.isNotEmpty);
-    final ImageProvider? bodyProvider = _fullBodyLocalPath != null
-        ? FileImage(File(_fullBodyLocalPath!))
-        : (_fullBodyUrl != null && _fullBodyUrl!.isNotEmpty) ? NetworkImage(_fullBodyUrl!) : null;
+    final bool hasLocal = _fullBodyLocalPath != null;
+    final bool hasUrl = _fullBodyUrl != null && _fullBodyUrl!.isNotEmpty && _fullBodyUrl != "string";
+    
+    ImageProvider? bodyProvider;
+    if (hasLocal) {
+      bodyProvider = FileImage(File(_fullBodyLocalPath!));
+    } else if (hasUrl) {
+      bodyProvider = NetworkImage(_fullBodyUrl!);
+    }
 
     return InkWell(
-      onTap: (_loading || _fullBodyUploading) ? null : _changeFullBodyPhoto,
+      onTap: (_loading || _fullBodyUploading) ? null : _changeFullBody,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
@@ -341,10 +372,31 @@ class _AccountPageState extends State<AccountPage> {
               fit: StackFit.expand,
               children: [
                 if (bodyProvider != null)
-                  Image(image: bodyProvider, fit: BoxFit.cover)
+                  Image(
+                    key: ValueKey(bodyProvider is NetworkImage ? _fullBodyUrl : _fullBodyLocalPath),
+                    image: bodyProvider,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image_outlined, color: AppColors.textSecondary, size: 40),
+                            SizedBox(height: 8),
+                            Text('Failed to load photo', style: TextStyle(color: AppColors.textSecondary)),
+                          ],
+                        ),
+                      );
+                    },
+                  )
                 else
                   const Center(child: Text('Tap to upload full body photo', style: TextStyle(color: AppColors.textSecondary))),
-                if (_fullBodyUploading) const Center(child: CircularProgressIndicator()),
+                
+                if (_fullBodyUploading) 
+                  Container(
+                    color: Colors.black26,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
               ],
             ),
           ),
@@ -353,11 +405,37 @@ class _AccountPageState extends State<AccountPage> {
     );
   }
 
-  Future<void> _changeFullBodyPhoto() async {
-    final result = await Navigator.push<String?>(
+  Future<void> _changeFullBody() async {
+    final picked = await Navigator.push<String?>(
       context,
       MaterialPageRoute(builder: (_) => ImageEditPage(initialPath: _fullBodyLocalPath ?? _fullBodyUrl)),
     );
-    if (result != null) setState(() => _fullBodyLocalPath = result);
+    if (picked == null || picked.isEmpty) return;
+    
+    setState(() => _fullBodyLocalPath = picked); 
+    await _uploadFullBody(picked);
+  }
+
+  Future<void> _uploadFullBody(String localPath) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null || token.isEmpty) return;
+    
+    setState(() => _fullBodyUploading = true); 
+    try {
+      final init = await AuthApi.fullBodyInitUpload(token); 
+      await AuthApi.putJpegToSignedUrl(init.uploadUrl, localPath);
+      final newUrl = await AuthApi.fullBodyComplete(token, objectName: init.objectName);
+      
+      if (mounted) {
+        setState(() {
+          _fullBodyUrl = newUrl;
+          _fullBodyLocalPath = null; // 在 URL 準備好後才清空 LocalPath
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _fullBodyUploading = false);
+    }
   }
 }
