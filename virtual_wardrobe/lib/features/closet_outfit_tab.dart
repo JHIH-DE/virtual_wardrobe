@@ -8,7 +8,6 @@ import '../l10n/app_strings.dart';
 import '../data/looks_store.dart';
 import 'garment_category.dart';
 import 'select_garment_page.dart';
-import '../core/services/auth_api.dart';
 
 class ClosetOutfitTab extends StatefulWidget {
   const ClosetOutfitTab({super.key});
@@ -25,16 +24,12 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   OutfitSelection manualOutfit = const OutfitSelection();
   OutfitMode _mode = OutfitMode.my;
 
-  // 暫時用假資料（之後接 ClosetStore / backend）
   final List<Garment> _allGarments = [];
-
   bool generating = false;
 
-  // TODO: Replace with models later
   final List<Map<String, dynamic>> suggestedOutfits = [];
   Map<String, dynamic>? selectedOutfit;
 
-  // Try-On Job / Result
   String? tryOnJobId;
   String? tryOnResultUrl;
   String? aiAdvice;
@@ -48,7 +43,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   @override
   void initState() {
     super.initState();
-    _loadGarments(); // 呼叫 async 方法
+    _loadGarments(); 
   }
 
   @override
@@ -59,8 +54,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasSelection = selectedOutfit != null;
-
     return Container(
       color: AppColors.background,
       child: ListView(
@@ -78,8 +71,8 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
           ],
 
           const SizedBox(height: 14),
-
-          _buildTryOnResultCard(context),
+          if (selectedOutfit != null || manualOutfit.canTryOn || tryOnResultUrl != null)
+            _buildTryOnResultCard(context),
         ],
       ),
     );
@@ -89,21 +82,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevatedButton.icon(
-          onPressed: tryOnLoading ? null : _startTryOn,
-          icon: const Icon(Icons.image_outlined),
-          label: Text(tryOnLoading ? AppStrings.tryingOn : AppStrings.tryOn),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
         if (tryOnLoading) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
@@ -135,7 +113,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         if (tryOnResultUrl != null) ...[
           const SizedBox(height: 12),
 
-          // Image frame
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -222,40 +199,19 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
 
   Future<void> _loadGarments() async {
     final token = await TokenStorage.getAccessToken();
-
-    if (token == null || token.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Missing access token. Please login again.';
-      });
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+    if (token == null || token.isEmpty) return;
+    setState(() => _loading = true);
     try {
       final list = await AuthApi.getGarments(token);
-
-      if (!mounted) return;
-      setState(() {
-        _allGarments
-          ..clear()
-          ..addAll(list);
-      });
+      if (mounted) setState(() => _allGarments..clear()..addAll(list));
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-      });
+      setState(() => _error = e.toString());
     } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -285,7 +241,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         ),
         child: Row(
           children: [
-            // small marker
             Container(
               width: 10,
               height: 10,
@@ -357,17 +312,11 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         onSelectionChanged: (s) {
           setState(() {
             _mode = s.first;
-
-            // 切換模式時，避免狀態混在一起（你可視需求保留/清掉）
             _resetTryOnState(clearSelection: false);
             errorMessage = null;
-
             if (_mode == OutfitMode.my) {
-              selectedOutfit = null;        // AI outfit selection
-              suggestedOutfits.clear();     // AI suggestions
-            } else {
-              // 進 AI 模式時可以選擇不清 manualOutfit（我建議保留）
-              // manualOutfit = const OutfitSelection(); // 如果你想清空再打開
+              selectedOutfit = null;
+              suggestedOutfits.clear();
             }
           });
         },
@@ -499,7 +448,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             category: GarmentCategory.top,
             onPicked: (g) => setState(() {
               manualOutfit = manualOutfit.copyWith(top: g);
-              // 你若想：選完就清掉舊結果
               _resetTryOnState(clearSelection: false);
             }),
             onClear: manualOutfit.top == null
@@ -511,17 +459,17 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
           ),
           const SizedBox(height: 10),
           _slotRow(
-            title: 'Bottom',
-            value: manualOutfit.bottom,
-            category: GarmentCategory.bottom,
+            title: 'Middle',
+            value: manualOutfit.middle,
+            category: GarmentCategory.top,
             onPicked: (g) => setState(() {
-              manualOutfit = manualOutfit.copyWith(bottom: g);
+              manualOutfit = manualOutfit.copyWith(middle: g);
               _resetTryOnState(clearSelection: false);
             }),
-            onClear: manualOutfit.bottom == null
+            onClear: manualOutfit.middle == null
                 ? null
                 : () => setState(() {
-              manualOutfit = manualOutfit.copyWith(bottom: null);
+              manualOutfit = manualOutfit.copyWith(clearMiddle: true);
               _resetTryOnState(clearSelection: false);
             }),
           ),
@@ -538,6 +486,22 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
                 ? null
                 : () => setState(() {
               manualOutfit = manualOutfit.copyWith(clearOuter: true);
+              _resetTryOnState(clearSelection: false);
+            }),
+          ),
+          const SizedBox(height: 10),
+          _slotRow(
+            title: 'Bottom',
+            value: manualOutfit.bottom,
+            category: GarmentCategory.bottom,
+            onPicked: (g) => setState(() {
+              manualOutfit = manualOutfit.copyWith(bottom: g);
+              _resetTryOnState(clearSelection: false);
+            }),
+            onClear: manualOutfit.bottom == null
+                ? null
+                : () => setState(() {
+              manualOutfit = manualOutfit.copyWith(bottom: null);
               _resetTryOnState(clearSelection: false);
             }),
           ),
@@ -621,23 +585,16 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     );
   }
 
-  Widget _buildTryOnResultByMode(BuildContext context) {
-    final hasAiSelection = selectedOutfit != null;
-    final hasManualSelection = manualOutfit.canTryOn;
-
-      if (!hasManualSelection && !hasAiSelection && tryOnResultUrl == null) {
-        return const Text(
-        AppStrings.selectOutfitFirst,
-        style: TextStyle(color: AppColors.textSecondary),
-        );
-      }
-      return _buildTryOnSection(context);
-  }
-
   Widget _buildTryOnResultCard(BuildContext context) {
+    //判斷是否有選中的套裝、是否手動組合完成、或者是否有現成的試穿結果
+    final bool hasSelection = selectedOutfit != null || manualOutfit.canTryOn;
+    final bool showSection = hasSelection || tryOnResultUrl != null;
+
     return _sectionCard(
       title: AppStrings.tryOnResult,
-      child: _buildTryOnResultByMode(context),
+      child: showSection
+          ? _buildTryOnSection(context)
+          : const SizedBox.shrink(),
     );
   }
 
@@ -711,10 +668,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             if (onClear != null) ...[
               const SizedBox(width: 8),
               InkWell(
-                onTap: () {
-                  // 防止觸發 row 的 onTap
-                  onClear();
-                },
+                onTap: onClear,
                 borderRadius: BorderRadius.circular(99),
                 child: Container(
                   padding: const EdgeInsets.all(6),
@@ -737,39 +691,22 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   Future<void> _generateOutfits() async {
     setState(() {
       generating = true;
-      // 重新生成時，清掉上一次選擇與結果（避免混亂）
       selectedOutfit = null;
       _resetTryOnState(clearSelection: false);
       suggestedOutfits.clear();
     });
 
     try {
-      // TODO: Call backend /outfits/suggest with seasons/style
       await Future.delayed(const Duration(milliseconds: 600));
-
       setState(() {
         suggestedOutfits.addAll([
-          {
-            'outfit_id': 'o1',
-            'title': 'Outfit 1',
-            'summary': '$style • $seasons',
-          },
-          {
-            'outfit_id': 'o2',
-            'title': 'Outfit 2',
-            'summary': 'Classic • Work',
-          },
-          {
-            'outfit_id': 'o3',
-            'title': 'Outfit 3',
-            'summary': 'Street • Date',
-          },
+          {'outfit_id': 'o1', 'title': 'Outfit 1', 'summary': '$style • $seasons'},
+          {'outfit_id': 'o2', 'title': 'Outfit 2', 'summary': 'Classic • Work'},
+          {'outfit_id': 'o3', 'title': 'Outfit 3', 'summary': 'Street • Date'},
         ]);
       });
     } catch (e) {
-      setState(() {
-        errorMessage = 'Failed to generate outfits. Please try again.';
-      });
+      setState(() => errorMessage = 'Failed to generate outfits.');
     } finally {
       if (mounted) setState(() => generating = false);
     }
@@ -777,8 +714,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
 
   Future<void> _startTryOn() async {
     if (selectedOutfit == null) return;
-
-    // 先清掉舊結果
     _pollTimer?.cancel();
     setState(() {
       tryOnLoading = true;
@@ -789,67 +724,25 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     });
 
     try {
-      final outfitId = selectedOutfit!['outfit_id'] as String;
-
-      // TODO: 1) POST /tryon -> job_id
-      // final jobId = await TryOnService.createJob(outfitId: outfitId);
-      final jobId = 'job_${DateTime.now().millisecondsSinceEpoch}'; // demo
-
+      final jobId = 'job_${DateTime.now().millisecondsSinceEpoch}';
       if (!mounted) return;
       setState(() => tryOnJobId = jobId);
-
-      // TODO: 2) Poll GET /tryon/{jobId} until done/failed
-      int tick = 0;
-      _pollTimer = Timer.periodic(const Duration(seconds: 2), (t) async {
-        tick++;
-
-        // ===== Demo logic =====
-        // Replace with real API:
-        // final job = await TryOnService.getJob(jobId);
-        // if (job.status == 'done') ...
-        // if (job.status == 'failed') ...
-        if (!mounted) {
-          t.cancel();
-          return;
-        }
-
-        if (tick >= 3) {
-          t.cancel();
-          setState(() {
-            tryOnLoading = false;
-            tryOnResultUrl = 'https://picsum.photos/600/800';
-            aiAdvice =
-            'Looks balanced. Pair with white sneakers for a cleaner silhouette.';
-          });
-        }
-        // ======================
-      });
+      _startPolling('token_placeholder', jobId); 
     } catch (e) {
-      _pollTimer?.cancel();
-      if (!mounted) return;
-      setState(() {
-        tryOnLoading = false;
-        errorMessage = 'Try-On failed. Please try again.';
-      });
+      if (mounted) setState(() { tryOnLoading = false; errorMessage = 'Try-On failed.'; });
     }
   }
 
   Widget _GarmentThumb(String? urlOrPath) {
     final u = (urlOrPath ?? '').trim();
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
         width: 32,
         height: 32,
         child: u.isEmpty
-            ? Container(
-          color: AppColors.border,
-          child: const Icon(Icons.image_not_supported, size: 16, color: AppColors.textSecondary),
-        )
-            : (u.startsWith('http://') || u.startsWith('https://'))
-            ? Image.network(u, fit: BoxFit.cover)
-            : Image.file(File(u), fit: BoxFit.cover),
+            ? Container(color: AppColors.border, child: const Icon(Icons.image_not_supported, size: 16))
+            : (u.startsWith('http')) ? Image.network(u, fit: BoxFit.cover) : Image.file(File(u), fit: BoxFit.cover),
       ),
     );
   }
@@ -860,7 +753,9 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
       return;
     }
 
-    // 清掉舊結果
+    final token = await TokenStorage.getAccessToken();
+    if (token == null || token.isEmpty) return;
+
     _pollTimer?.cancel();
     setState(() {
       tryOnLoading = true;
@@ -868,77 +763,89 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
       tryOnJobId = null;
       tryOnResultUrl = null;
       aiAdvice = null;
-
-      // 手動 try on 不依賴 suggested outfit
       selectedOutfit = null;
     });
 
     try {
-      // TODO: 你未來後端可以傳 garment ids：
-      // POST /tryon/manual {top_id, bottom_id, outer_id?, shoes_id?, accessory_id?, seasons, style}
-      final jobId = 'job_${DateTime.now().millisecondsSinceEpoch}';
+      final List<int> ids = [];
+      if (manualOutfit.top?.id != null) ids.add(manualOutfit.top!.id!);
+      if (manualOutfit.bottom?.id != null) ids.add(manualOutfit.bottom!.id!);
+      if (manualOutfit.outer?.id != null) ids.add(manualOutfit.outer!.id!);
+      if (manualOutfit.shoes?.id != null) ids.add(manualOutfit.shoes!.id!);
+      if (manualOutfit.accessory?.id != null) ids.add(manualOutfit.accessory!.id!);
 
+      final jobResponse = await AuthApi.createTryOnJob(
+        token,
+        garmentIds: ids
+      );
+
+      final jobId = jobResponse['job_id'].toString();
       if (!mounted) return;
       setState(() => tryOnJobId = jobId);
 
-      int tick = 0;
-      _pollTimer = Timer.periodic(const Duration(seconds: 2), (t) async {
-        tick++;
-        if (!mounted) {
-          t.cancel();
-          return;
-        }
+      _startPolling(token, jobId);
 
-        if (tick >= 3) {
-          t.cancel();
-          setState(() {
-            tryOnLoading = false;
-            tryOnResultUrl = 'https://picsum.photos/600/800';
-            aiAdvice = 'Great choice. Consider keeping accessories subtle for a cleaner silhouette.';
-          });
-        }
-      });
     } catch (e) {
-      _pollTimer?.cancel();
       if (!mounted) return;
       setState(() {
         tryOnLoading = false;
-        errorMessage = 'Try-On failed. Please try again.';
+        errorMessage = 'Failed: $e';
       });
     }
+  }
+
+  void _startPolling(String token, String jobId) {
+    int attempts = 0;
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      attempts++;
+      if (attempts > 180) {
+        timer.cancel();
+        if (mounted) setState(() { tryOnLoading = false; errorMessage = 'Timeout.'; });
+        return;
+      }
+      try {
+        final statusRes = await AuthApi.getTryOnJobStatus(token, jobId);
+        final status = statusRes['status'];
+        if (!mounted) { timer.cancel(); return; }
+
+        if (status == 'done') {
+          timer.cancel();
+          setState(() {
+            tryOnLoading = false;
+            tryOnResultUrl = statusRes['result_image_url'];
+            aiAdvice = statusRes['ai_notes'] ?? 'Looking good!';
+          });
+        } else if (status == 'failed') {
+          timer.cancel();
+          setState(() { tryOnLoading = false; errorMessage = 'Failed on server.'; });
+        }
+      } catch (_) {}
+    });
   }
 
   void _discardResult() {
     _pollTimer?.cancel();
-    setState(() {
-      _resetTryOnState(clearSelection: false);
-    });
+    setState(() { _resetTryOnState(clearSelection: false); });
   }
 
-  Future<void> _saveLook() async {
-    if (selectedOutfit == null || tryOnResultUrl == null) return;
-
+  Future<void> _saveLook() async { 
+    if (tryOnResultUrl == null) return;
     try {
-      LooksStore.I.add(
-        Look(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          seasons: seasons,
-          style: style,
-          imageUrl: tryOnResultUrl!,
-          advice: aiAdvice,
-        ),
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved to Looks ✅')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save. Please try again.')),
-      );
-    }
+      LooksStore.I.add(Look(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        seasons: seasons,
+        style: style,
+        imageUrl: tryOnResultUrl!,
+        advice: aiAdvice,
+        items: [
+          if (manualOutfit.top != null) manualOutfit.top!,
+          if (manualOutfit.bottom != null) manualOutfit.bottom!,
+          if (manualOutfit.outer != null) manualOutfit.outer!,
+          if (manualOutfit.shoes != null) manualOutfit.shoes!,
+        ],
+      ));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved ✅')));
+    } catch (_) {}
   }
 
   void _resetTryOnState({required bool clearSelection}) {
@@ -948,7 +855,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     tryOnJobId = null;
     tryOnResultUrl = null;
     aiAdvice = null;
-
     if (clearSelection) selectedOutfit = null;
   }
 }

@@ -1,15 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'garment_category.dart';
-import 'image_edit_page.dart';
 import '../app/theme/app_colors.dart';
 import '../core/services/auth_api.dart';
 import '../core/services/token_storage.dart';
+import 'garment_category.dart';
+import 'image_edit_page.dart';
 
 class AddGarmentPage extends StatefulWidget {
-  /// If provided, page works as "Edit Garment"
   final Garment? initialGarment;
-
   const AddGarmentPage({super.key, this.initialGarment});
 
   @override
@@ -17,44 +15,43 @@ class AddGarmentPage extends StatefulWidget {
 }
 
 class _AddGarmentPageState extends State<AddGarmentPage> {
-  late GarmentCategory category;
-  late GarmentSeason season;
-
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _brandCtrl;
-  late final TextEditingController _priceCtrl;
 
   int? _id;
-  DateTime? _purchaseDate;
-  bool uploading = false;
-  String? errorMessage;
-  bool _isImageChanged = false;
-  String? _imagePathOrUrl;
-  String? _initialImagePathOrUrl;
+  GarmentCategory category = GarmentCategory.top;
+  GarmentSubCategory subCategory = GarmentSubCategory.other;
+
+  final _nameCtrl = TextEditingController();
+  final _productTypeCtrl = TextEditingController();
+  final _brandCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
 
   GarmentColor? _selectedColor;
+  DateTime? _purchaseDate;
+
+  String? _imagePathOrUrl;
+  String? _initialImagePathOrUrl;
+  bool _isImageChanged = false;
+  bool _isAnalyzing = false;
+
+  bool uploading = false;
+  String? errorMessage;
+  String? _userGender;
 
   @override
   void initState() {
     super.initState();
+    _getGender();
     final g = widget.initialGarment;
-
-    category = g?.category ?? GarmentCategory.top;
-
-    _nameCtrl = TextEditingController(text: g?.name ?? '');
-    _brandCtrl = TextEditingController(text: g?.brand ?? '');
-    _priceCtrl = TextEditingController(
-      text: g?.price == null ? '' : g!.price!.toStringAsFixed(0),
-    );
-
     _id = g?.id;
-    season = g?.season?? GarmentSeason.all;
-    _purchaseDate = g?.purchaseDate;
     _imagePathOrUrl = g?.imageUrl;
-    _initialImagePathOrUrl = _imagePathOrUrl;
-
-    // Map existing string color (if any) back to enum.
+    _initialImagePathOrUrl = g?.imageUrl;
+    category = g?.category ?? GarmentCategory.top;
+    subCategory = g?.subCategory ?? GarmentSubCategory.other;
+    _nameCtrl.text = g?.name ?? '';
+    _brandCtrl.text = g?.brand ?? '';
+    _priceCtrl.text = g?.price?.toString() ?? '';
+    _purchaseDate = g?.purchaseDate;
     _selectedColor = _tryParseGarmentColor(g?.color);
   }
 
@@ -90,6 +87,12 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (uploading) const LinearProgressIndicator(),
+            if (errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+              ),
 
             _imagePreview(),
 
@@ -115,6 +118,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
               value: category,
               decoration: _inputDecoration(label: 'Category'),
               items: GarmentCategory.values
+                  .where((c) => c != GarmentCategory.dress || _userGender == 'Female')
                   .map((c) => DropdownMenuItem(value: c, child: Text(c.label)))
                   .toList(),
               onChanged: (v) => setState(() => category = v!),
@@ -122,13 +126,14 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
             const SizedBox(height: 12),
 
-            DropdownButtonFormField<GarmentSeason>(
-              value: season,
-              decoration: _inputDecoration(label: 'Season'),
-              items: GarmentSeason.values
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
-                  .toList(),
-              onChanged: (v) => setState(() => season = v!),
+            TextFormField(
+              controller: _productTypeCtrl,
+              decoration: _inputDecoration(label: 'Product Type'),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Please enter product type';
+                return null;
+              },
+              textInputAction: TextInputAction.next,
             ),
 
             const SizedBox(height: 12),
@@ -158,7 +163,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             const SizedBox(height: 18),
 
             ElevatedButton.icon(
-              onPressed: _saveGarment,
+              onPressed: uploading ? null : _saveGarment,
               icon: const Icon(Icons.check),
               label: Text(_isEditMode ? 'Save changes' : 'Create Garment'),
               style: ElevatedButton.styleFrom(
@@ -191,7 +196,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         decoration: _inputDecoration(label: 'Color'),
         child: Row(
           children: [
-            // Selected color dot (or placeholder)
             Container(
               width: 18,
               height: 18,
@@ -247,7 +251,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Drag handle
                 Container(
                   width: 42,
                   height: 4,
@@ -282,7 +285,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
                 const SizedBox(height: 10),
 
-                // Swatches grid (scrollable if needed)
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.45,
@@ -378,21 +380,26 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   Widget _imagePreview() {
     final img = _imagePathOrUrl;
+
     if (img == null || img.isEmpty) {
-      return  InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: _openImageEdit,
-        child: Container(
-          height: 180,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: const Center(
-            child: Text(
-              'Add image',
-              style: TextStyle(color: AppColors.textSecondary),
+      return Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+        ),
+        child: InkWell(
+          onTap: _openImageEdit,
+          child: const AspectRatio(
+            aspectRatio: 1.35,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_photo_alternate_outlined, size: 40, color: AppColors.textSecondary),
+                SizedBox(height: 8),
+                Text('Tap to add photo', style: TextStyle(color: AppColors.textSecondary)),
+              ],
             ),
           ),
         ),
@@ -401,38 +408,67 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
     final isLocal = !img.startsWith('http');
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _openImageEdit,
-            child: AspectRatio(
-              aspectRatio: 1.35,
-              child: Container(
-                color: AppColors.surface, // 或 Colors.white，避免留黑邊
-                alignment: Alignment.center,
-                child: isLocal
-                    ? Image.file(File(img), fit: BoxFit.contain)
-                    : Image.network(img, fit: BoxFit.contain),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openImageEdit,
+                child: AspectRatio(
+                  aspectRatio: 1.35,
+                  child: Container(
+                    color: AppColors.surface,
+                    alignment: Alignment.center,
+                    child: isLocal
+                        ? Image.file(File(img), fit: BoxFit.contain)
+                        : Image.network(img, fit: BoxFit.contain),
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
+
+        if (_isAnalyzing)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4), // 稍微加深一點以便看清文字
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                  SizedBox(height: 12),
+                  Text(
+                    'AI Analyzing...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -445,11 +481,54 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     );
 
     if (result == null || result.isEmpty) return;
-    setState(() => _imagePathOrUrl = result);
+
     setState(() {
       _imagePathOrUrl = result;
       _isImageChanged = (_imagePathOrUrl != _initialImagePathOrUrl);
     });
+
+    try {
+      final token = await TokenStorage.getAccessToken();
+      if (token != null) {
+        // --- 修改開始：開啟載入狀態 ---
+        setState(() => _isAnalyzing = true);
+
+        debugPrint('Analyzing garment image: $result');
+        final analysisData = await AuthApi.analyzeInstantGarment(token, result);
+
+        debugPrint('--- AI Analysis Data ---');
+        debugPrint(analysisData.toString());
+
+        setState(() {
+          if (analysisData['name'] != null) {
+            _nameCtrl.text = analysisData['name'].toString();
+          }
+
+          final String? catStr = analysisData['category']?.toString().toLowerCase();
+          if (catStr != null) {
+            for (var val in GarmentCategory.values) {
+              if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
+                category = val;
+                break;
+              }
+            }
+          }
+
+          if (analysisData['sub_category'] != null) {
+            _productTypeCtrl.text = analysisData['sub_category'].toString();
+          }
+
+          final String? colorStr = analysisData['color']?.toString();
+          if (colorStr != null) {
+            _selectedColor = _tryParseGarmentColor(colorStr);
+          }
+          _isAnalyzing = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('AI Analysis failed: $e');
+      setState(() => _isAnalyzing = false);
+    }
   }
 
   Future<void> _saveGarment() async {
@@ -467,43 +546,35 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
       if (isAdd || _isImageChanged) {
         final raw = (_imagePathOrUrl ?? '').trim();
-        final token = await TokenStorage.getAccessToken();
         final initDate = await AuthApi.initUpload(token!);
         await AuthApi.uploadImage(initDate.uploadUrl, raw);
 
         final tempGarment = Garment(
           uploadUrl: initDate.uploadUrl,
           objectName: initDate.objectName,
-          publicUrl: initDate.publicUrl,
           category: category,
+          subCategory: subCategory,
           name: _nameCtrl.text.trim(),
-          brand: _brandCtrl.text
-              .trim()
-              .isEmpty ? null : _brandCtrl.text.trim(),
+          brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
           color: _selectedColor?.label,
-          season: season,
-          price: _priceCtrl.text
-              .trim()
-              .isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
+          price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
           purchaseDate: _purchaseDate,
         );
 
-        if (_isImageChanged && !isAdd) {
+        if (_isImageChanged && !isAdd && _id != null) {
           await AuthApi.deleteGarment(token, _id!);
         }
         result = await AuthApi.completeUpload(token, tempGarment);
       } else {
         final original = widget.initialGarment!;
-
         Garment updated = original.copyWith(
           name: _nameCtrl.text.trim(),
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
           color: _selectedColor?.label,
-          price: _priceCtrl.text.trim().isEmpty
-              ? null
-              : double.tryParse(_priceCtrl.text.trim()),
+          price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
           purchaseDate: _purchaseDate,
           category: category,
+          subCategory: subCategory,
         );
         result = await AuthApi.updateGarment(token!, updated);
       }
@@ -523,20 +594,38 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   // Helpers
   // ----------------------------
 
+  Future<void> _getGender() async {
+    try {
+      final token = await TokenStorage.getAccessToken();
+      if (token != null) {
+        final profile = await AuthApi.getMyProfile(token);
+        setState(() {
+          _userGender = profile['gender'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to _getGender: $e');
+    }
+  }
+
   GarmentColor? _tryParseGarmentColor(String? colorText) {
     if (colorText == null) return null;
     final normalized = colorText.trim().toLowerCase();
     if (normalized.isEmpty) return null;
 
     for (final c in GarmentColor.values) {
-      if (c.name.toLowerCase() == normalized) return c;
-      if (c.label.toLowerCase() == normalized) return c;
+      final cName = c.name.toLowerCase();
+      final cLabel = c.label.toLowerCase();
+      
+      if (normalized.contains(cName) || cName.contains(normalized) ||
+          normalized.contains(cLabel) || cLabel.contains(normalized)) {
+        return c;
+      }
     }
     return null;
   }
 
   String _formatDate(DateTime d) {
-    // yyyy/MM/dd without intl
     String two(int v) => v.toString().padLeft(2, '0');
     return '${d.year}/${two(d.month)}/${two(d.day)}';
   }

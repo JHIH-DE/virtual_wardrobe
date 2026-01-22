@@ -51,8 +51,13 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
         _allGarments
           ..clear()
           ..addAll(list);
+
+        final available = _ownedCategories;
+        if (available.isNotEmpty && !available.contains(_selectedCategory)) {
+          _selectedCategory = available.first;
+        }
       });
-    } on AuthExpiredException {
+    }  on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
@@ -140,14 +145,19 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
   }
 
   Widget _buildCategorySelector() {
+    final categories = _ownedCategories; // 使用過濾後的類別
+
+    // 如果完全沒有衣服，可以選擇隱藏選擇器或顯示空狀態
+    if (categories.isEmpty) return const SizedBox.shrink();
+
     return SizedBox(
       height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: GarmentCategory.values.length,
+        itemCount: categories.length, // 修改這裡
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
-          final category = GarmentCategory.values[i];
+          final category = categories[i]; // 修改這裡
           final isSelected = category == _selectedCategory;
 
           return ChoiceChip(
@@ -160,7 +170,9 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
               ),
             ),
             selected: isSelected,
-            onSelected: (_) => setState(() => _selectedCategory = category),
+            onSelected: (_) {
+              setState(() => _selectedCategory = category);
+            },
             backgroundColor: AppColors.surface,
             selectedColor: AppColors.primary.withOpacity(0.10),
             side: BorderSide(
@@ -168,7 +180,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
               width: isSelected ? 1.2 : 1,
             ),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
-            showCheckmark: false, // ✅ 不要勾勾
+            showCheckmark: false,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             padding: const EdgeInsets.symmetric(horizontal: 10),
           );
@@ -211,7 +223,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
           onTap: () => _editGarment(garment),
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Colors.white, // 卡片背景改為白色
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
               boxShadow: [
@@ -230,9 +242,12 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: isLocal
-                            ? Image.file(File(img), fit: BoxFit.cover)
-                            : Image.network(img, fit: BoxFit.cover),
+                        child: Container(
+                          color: Colors.white, // 縮圖背景改為白色，確保 contain 旁邊填充處也是白色
+                          child: isLocal
+                              ? Image.file(File(img), fit: BoxFit.contain)
+                              : Image.network(img, fit: BoxFit.contain),
+                        ),
                       ),
                       _cardFooter(garment),
                     ],
@@ -260,7 +275,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white, // 底部文字區域也改為白色
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Column(
@@ -349,17 +364,6 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
 
     if (updated is! Garment) return;
 
-    // 如果你希望「編輯」也同步到後端，就把下面這段打開（需後端 PATCH 支援）
-    /*
-    final token = TokenStorage.getAccessToken();
-    if (token != null && token.isNotEmpty) {
-      try {
-        final serverUpdated = await AuthApi.updateGarment(token, updated);
-        updated = serverUpdated;
-      } catch (_) {}
-    }
-    */
-
     setState(() {
       final idx = _allGarments.indexWhere((g) => g.id == garment.id);
       if (idx != -1) {
@@ -411,5 +415,17 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
         SnackBar(content: Text('Delete failed: $e')),
       );
     }
+  }
+
+  List<GarmentCategory> get _ownedCategories {
+    // 提取所有衣服的類別並轉為 Set (去重)
+    final categories = _allGarments.map((g) => g.category).toSet();
+
+    // 依照原本 enum 的順序進行排序
+    final sortedList = GarmentCategory.values
+        .where((v) => categories.contains(v))
+        .toList();
+
+    return sortedList;
   }
 }

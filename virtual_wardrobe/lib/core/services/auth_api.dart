@@ -3,31 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 import '../../features/garment_category.dart';
 import '../../features/login_page.dart';
 import 'token_storage.dart';
 
 class AuthApi {
   static const String baseUrl = 'http://10.0.2.2:8000';
-
-  static Future<String> loginWithEmail(String email, String password) async {
-    final uri = Uri.parse('$baseUrl/api/v1/auth/login');
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
-
-    if (res.statusCode != 200) {
-      final msg = _tryReadMessage(res.body) ?? 'Login failed (${res.statusCode})';
-      throw Exception(msg);
-    }
-
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final token = data['access_token'] as String?;
-    if (token == null || token.isEmpty) throw Exception('Missing access_token');
-    return token;
-  }
 
   static Future<String> loginWithGoogleIdToken(String idToken) async {
     final uri = Uri.parse('$baseUrl/api/v1/auth/google');
@@ -37,14 +20,12 @@ class AuthApi {
       body: jsonEncode({'id_token': idToken}),
     );
 
-    if (res.statusCode != 200) {
-      final msg = _tryReadMessage(res.body) ?? 'Google login failed (${res.statusCode})';
-      throw Exception(msg);
-    }
+    final envelope = _decodeMap(res, op: 'loginWithGoogle');
+    final data = envelope['data'] as Map<String, dynamic>?;
+    if (data == null) throw Exception('Google login: response missing data');
 
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
     final token = data['access_token'] as String?;
-    if (token == null || token.isEmpty) throw Exception('Missing access_token');
+    if (token == null || token.isEmpty) throw Exception('Google login: missing access_token');
     return token;
   }
 
@@ -59,13 +40,11 @@ class AuthApi {
       body: jsonEncode({'content_type': 'image/jpeg'}),
     );
 
-    if (res.statusCode != 200) {
-      throw Exception('initUpload failed (${res.statusCode}): ${res.body}');
-    }
+    final envelope = _decodeMap(res, op: 'initUpload');
+    final data = envelope['data'] as Map<String, dynamic>?;
 
-    final data = jsonDecode(res.body);
-    if (data is! Map<String, dynamic>) {
-      throw Exception('initUpload: invalid response json: ${res.body}');
+    if (data == null) {
+      throw Exception('initUpload: invalid response json');
     }
 
     return InitUploadResult.fromJson(data);
@@ -84,30 +63,32 @@ class AuthApi {
 
   static Future<Garment> completeUpload(String accessToken, Garment garment) async {
     final uri = Uri.parse('$baseUrl/api/v1/garments/complete');
+    
+    final String? dateStr = garment.purchaseDate?.toIso8601String().split('T')[0];
+
     final payload = <String, dynamic>{
-      'category': garment.category.apiValue,
       'name': garment.name,
+      'category': garment.category.apiValue,
+      'sub_category': garment.subCategory,
       'object_name': garment.objectName,
       'brand': garment.brand,
       'color': garment.color,
-      'season': garment.season.apiValue,
       'price': garment.price,
-      'purchase_date': garment.purchaseDate?.toIso8601String(),
+      'purchase_date': dateStr,
     };
 
     final res = await http.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+      headers: authHeaders(accessToken),
       body: jsonEncode(payload),
     ).timeout(const Duration(seconds: 15));
 
-    if (res.statusCode != 200) {
-      throw Exception('completeUpload failed (${res.statusCode}): ${res.body}');
+    final envelope = _decodeMap(res, op: 'completeUpload');
+    final data = envelope['data'] as Map<String, dynamic>?;
+
+    if (data == null) {
+      throw Exception('completeUpload: response missing data');
     }
-    final data = jsonDecode(res.body);
     return Garment.fromJson(data);
   }
 
@@ -115,12 +96,9 @@ class AuthApi {
     final uri = Uri.parse('$baseUrl/api/v1/garments');
     final res = await http.get(uri, headers: authHeaders(accessToken));
 
-    if (res.statusCode != 200) {
-      throw Exception('getGarments failed (${res.statusCode}): ${res.body}');
-    }
-
-    final data = jsonDecode(res.body);
-    if (data is! List) throw Exception('getGarments: invalid response');
+    final envelope = _decodeMap(res, op: 'getGarments');
+    final data = envelope['data'];
+    if (data is! List) throw Exception('getGarments: response missing list data');
 
     return data.whereType<Map<String, dynamic>>().map((j) => Garment.fromJson(j)).toList();
   }
@@ -136,8 +114,66 @@ class AuthApi {
     if (garment.id == null) throw Exception('updateGarment: missing id');
     final uri = Uri.parse('$baseUrl/api/v1/garments/${garment.id}');
     final res = await http.patch(uri, headers: authHeaders(accessToken), body: jsonEncode(garment.toJson()));
-    if (res.statusCode != 200) throw Exception('updateGarment failed');
-    return Garment.fromJson(jsonDecode(res.body));
+    final envelope = _decodeMap(res, op: 'updateGarment');
+    final data = envelope['data'] as Map<String, dynamic>?;
+    if (data == null) throw Exception('updateGarment: response missing data');
+
+    return Garment.fromJson(data);
+  }
+
+  // --- Try-On flow ---
+
+  static Future<Map<String, dynamic>> createTryOnJob(
+    String accessToken, {
+    required List<int> garmentIds
+  }) async {
+    print('Creating Try-On Job with garment IDs: $garmentIds');
+    final uri = Uri.parse('$baseUrl/api/v1/tryon/jobs');
+    
+    final payload = <String, dynamic>{
+      'garment_ids': garmentIds,
+      "occasion": "Casual",
+      "style": "Minimal",
+    };
+
+    final res = await http.post(
+      uri,
+      headers: authHeaders(accessToken),
+      body: jsonEncode(payload),
+    );
+
+    final envelope = _decodeMap(res, op: 'createTryOnJob');
+    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+  }
+
+  static Future<Map<String, dynamic>> getTryOnJobStatus(String accessToken, String jobId) async {
+    final uri = Uri.parse('$baseUrl/api/v1/tryon/jobs/$jobId');
+    final res = await http.get(uri, headers: authHeaders(accessToken));
+    final envelope = _decodeMap(res, op: 'getTryOnJobStatus');
+    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+  }
+
+  // --- Analyze Instant ---
+  static Future<Map<String, dynamic>> analyzeInstantGarment(String accessToken, String localPath) async {
+    final uri = Uri.parse('$baseUrl/api/v1/garments/analyze-instant');
+    final request = http.MultipartRequest('POST', uri);
+    
+    request.headers.addAll({
+      'Authorization': 'Bearer $accessToken',
+    });
+
+    final mimeType = lookupMimeType(localPath) ?? 'image/jpeg';
+    request.files.add(await http.MultipartFile.fromPath(
+      'file',
+      localPath,
+      contentType: MediaType.parse(mimeType),
+    ));
+
+    final streamedRes = await request.send();
+    final res = await http.Response.fromStream(streamedRes);
+
+    final envelope = _decodeMap(res, op: 'analyzeInstantGarment');
+    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
   }
 
   static Map<String, String> authHeaders(String accessToken) {
@@ -145,14 +181,6 @@ class AuthApi {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $accessToken',
     };
-  }
-
-  static String? _tryReadMessage(String body) {
-    try {
-      final j = jsonDecode(body);
-      if (j is Map<String, dynamic>) return (j['detail'] ?? j['message'])?.toString();
-    } catch (_) {}
-    return null;
   }
 
   static void _throwIfAuthExpired(http.Response res) {
@@ -170,37 +198,69 @@ class AuthApi {
   }
 
   // --- Profile / Avatar flow ---
+  /// Updated to return the inner 'data' map from the common response envelope
   static Future<Map<String, dynamic>> getMyProfile(String accessToken) async {
     final uri = Uri.parse('$baseUrl/api/v1/users/me');
     final res = await http.get(uri, headers: authHeaders(accessToken));
-    return _decodeMap(res, op: 'getMyProfile');
+    final envelope = _decodeMap(res, op: 'getMyProfile');
+    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
   }
 
   static Future<InitUploadResult> avatarInitUpload(String accessToken) async {
     final uri = Uri.parse('$baseUrl/api/v1/users/me/avatar/init-upload');
     final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'content_type': 'image/jpeg'}));
-    return InitUploadResult.fromJson(_decodeMap(res, op: 'avatarInitUpload'));
+    final envelope = _decodeMap(res, op: 'avatarInitUpload');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    return InitUploadResult.fromJson(data);
   }
 
   static Future<String> avatarComplete(String accessToken, {required String objectName}) async {
     final uri = Uri.parse('$baseUrl/api/v1/users/me/avatar/complete');
     final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'object_name': objectName}));
-    final data = _decodeMap(res, op: 'avatarComplete');
-    return data['object_url']?.toString() ?? res.body.replaceAll('"', '');
+    final envelope = _decodeMap(res, op: 'avatarComplete');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    final url = data['object_url']?.toString();
+    if (url == null) throw Exception('avatarComplete: response missing object_url');
+    return url;
+  }
+
+  static Future<String?> getMyAvatar(String accessToken) async {
+    final uri = Uri.parse('$baseUrl/api/v1/users/me/avatar');
+    final res = await http.get(uri, headers: authHeaders(accessToken));
+    _throwIfAuthExpired(res);
+    if (res.statusCode == 404) return null;
+    final envelope = _decodeMap(res, op: 'getMyAvatar');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    return data['object_url']?.toString();
   }
 
   // --- Full Body flow ---
   static Future<InitUploadResult> fullBodyInitUpload(String accessToken) async {
     final uri = Uri.parse('$baseUrl/api/v1/users/me/full-body/init-upload');
     final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'content_type': 'image/jpeg'}));
-    return InitUploadResult.fromJson(_decodeMap(res, op: 'fullBodyInitUpload'));
+    final envelope = _decodeMap(res, op: 'fullBodyInitUpload');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    return InitUploadResult.fromJson(data);
   }
 
   static Future<String> fullBodyComplete(String accessToken, {required String objectName}) async {
     final uri = Uri.parse('$baseUrl/api/v1/users/me/full-body/complete');
     final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'object_name': objectName}));
-    final data = _decodeMap(res, op: 'fullBodyComplete');
-    return data['object_url']?.toString() ?? res.body.replaceAll('"', '');
+    final envelope = _decodeMap(res, op: 'fullBodyComplete');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    final url = data['object_url']?.toString();
+    if (url == null) throw Exception('fullBodyComplete: response missing object_url');
+    return url;
+  }
+
+  static Future<String?> getMyFullBody(String accessToken) async {
+    final uri = Uri.parse('$baseUrl/api/v1/users/me/full-body');
+    final res = await http.get(uri, headers: authHeaders(accessToken));
+    _throwIfAuthExpired(res);
+    if (res.statusCode == 404) return null;
+    final envelope = _decodeMap(res, op: 'getMyFullBody');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    return data['object_url']?.toString();
   }
 
   static Future<void> putJpegToSignedUrl(String uploadUrl, String localPath) async {
@@ -234,7 +294,8 @@ class AuthApi {
       body: jsonEncode(payload),
     );
 
-    return _decodeMap(res, op: 'updateMyProfile');
+    final envelope = _decodeMap(res, op: 'updateMyProfile');
+    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../features/garment_category.dart';
 
 class Look {
   final String id;
@@ -7,6 +8,7 @@ class Look {
   final String imageUrl;   // try-on image url
   final String? advice;
   final DateTime createdAt;
+  final List<Garment> items;
 
   Look({
     required this.id,
@@ -14,6 +16,7 @@ class Look {
     required this.style,
     required this.imageUrl,
     this.advice,
+    this.items = const [],
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 }
@@ -27,7 +30,7 @@ class LooksStore extends ChangeNotifier {
   List<Look> get looks => List.unmodifiable(_looks);
 
   void add(Look look) {
-    _looks.insert(0, look); // newest first
+    _looks.insert(0, look);
     notifyListeners();
   }
 
