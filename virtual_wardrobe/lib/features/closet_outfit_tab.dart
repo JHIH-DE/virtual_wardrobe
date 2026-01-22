@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_api.dart';
+import '../core/services/auth_error_handler.dart';
+import '../core/services/garment_service.dart';
 import '../core/services/token_storage.dart';
-import '../l10n/app_strings.dart';
+import '../core/services/tryon_service.dart';
 import '../data/looks_store.dart';
+import '../l10n/app_strings.dart';
 import 'garment_category.dart';
 import 'select_garment_page.dart';
 
@@ -202,7 +206,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     if (token == null || token.isEmpty) return;
     setState(() => _loading = true);
     try {
-      final list = await AuthApi.getGarments(token);
+      final list = await GarmentService().getGarments(token);
       if (mounted) setState(() => _allGarments..clear()..addAll(list));
     } on AuthExpiredException {
       if (!mounted) return;
@@ -774,7 +778,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
       if (manualOutfit.shoes?.id != null) ids.add(manualOutfit.shoes!.id!);
       if (manualOutfit.accessory?.id != null) ids.add(manualOutfit.accessory!.id!);
 
-      final jobResponse = await AuthApi.createTryOnJob(
+      final jobResponse = await TryOnService().createTryOnJob(
         token,
         garmentIds: ids
       );
@@ -804,7 +808,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         return;
       }
       try {
-        final statusRes = await AuthApi.getTryOnJobStatus(token, jobId);
+        final statusRes = await TryOnService().getTryOnJobStatus(token, jobId);
         final status = statusRes['status'];
         if (!mounted) { timer.cancel(); return; }
 

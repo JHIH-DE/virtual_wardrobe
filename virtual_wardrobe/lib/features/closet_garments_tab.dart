@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../app/theme/app_colors.dart';
+import '../core/services/auth_error_handler.dart';
+import '../core/services/garment_service.dart';
+import '../core/services/token_storage.dart';
 import 'add_garment_page.dart';
 import 'garment_category.dart';
-import '../app/theme/app_colors.dart';
-import '../core/services/auth_api.dart';
-import '../core/services/token_storage.dart';
 
 class ClosetGarmentsTab extends StatefulWidget {
   const ClosetGarmentsTab({super.key});
@@ -45,7 +48,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
     });
 
     try {
-      final list = await AuthApi.getGarments(token);
+      final list = await GarmentService().getGarments(token);
       if (!mounted) return;
       setState(() {
         _allGarments
@@ -57,7 +60,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
           _selectedCategory = available.first;
         }
       });
-    }  on AuthExpiredException {
+    } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
@@ -102,11 +105,9 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
             _buildCategorySelector(),
             const SizedBox(height: 12),
-
             if (_loading) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(99),
@@ -114,7 +115,6 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
               ),
               const SizedBox(height: 12),
             ],
-
             if (_error != null) ...[
               Container(
                 width: double.infinity,
@@ -131,7 +131,6 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
               ),
               const SizedBox(height: 12),
             ],
-
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _refresh,
@@ -145,19 +144,18 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
   }
 
   Widget _buildCategorySelector() {
-    final categories = _ownedCategories; // 使用過濾後的類別
+    final categories = _ownedCategories;
 
-    // 如果完全沒有衣服，可以選擇隱藏選擇器或顯示空狀態
     if (categories.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
       height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: categories.length, // 修改這裡
+        itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
-          final category = categories[i]; // 修改這裡
+          final category = categories[i];
           final isSelected = category == _selectedCategory;
 
           return ChoiceChip(
@@ -223,7 +221,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
           onTap: () => _editGarment(garment),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white, // 卡片背景改為白色
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
               boxShadow: [
@@ -243,7 +241,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
                     children: [
                       Expanded(
                         child: Container(
-                          color: Colors.white, // 縮圖背景改為白色，確保 contain 旁邊填充處也是白色
+                          color: Colors.white,
                           child: isLocal
                               ? Image.file(File(img), fit: BoxFit.contain)
                               : Image.network(img, fit: BoxFit.contain),
@@ -275,7 +273,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white, // 底部文字區域也改為白色
+        color: Colors.white,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Column(
@@ -400,7 +398,7 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
       if (garment.id == null) {
         throw Exception('Missing item.id');
       }
-      await AuthApi.deleteGarment(token, garment.id!);
+      await GarmentService().deleteGarment(token, garment.id!);
 
       if (!mounted) return;
       setState(() {
@@ -418,10 +416,8 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
   }
 
   List<GarmentCategory> get _ownedCategories {
-    // 提取所有衣服的類別並轉為 Set (去重)
     final categories = _allGarments.map((g) => g.category).toSet();
 
-    // 依照原本 enum 的順序進行排序
     final sortedList = GarmentCategory.values
         .where((v) => categories.contains(v))
         .toList();

@@ -1,8 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_api.dart';
+import '../core/services/auth_error_handler.dart';
+import '../core/services/profile_service.dart';
 import '../core/services/token_storage.dart';
 import 'image_edit_page.dart';
 
@@ -59,7 +62,7 @@ class _AccountPageState extends State<AccountPage> {
     });
 
     try {
-      final profile = await AuthApi.getMyProfile(token);
+      final profile = await ProfileService().getMyProfile(token);
 
       if (!mounted) return;
 
@@ -135,7 +138,7 @@ class _AccountPageState extends State<AccountPage> {
     });
 
     try {
-     final result = await AuthApi.updateMyProfile(
+     final result = await ProfileService().updateMyProfile(
         token,
         name: name.isNotEmpty ? name : null,
         gender: gender,
@@ -328,9 +331,9 @@ class _AccountPageState extends State<AccountPage> {
     if (token == null || token.isEmpty) return;
     setState(() => _loading = true);
     try {
-      final init = await AuthApi.avatarInitUpload(token);
-      await AuthApi.putJpegToSignedUrl(init.uploadUrl, localPath);
-      final newUrl = await AuthApi.avatarComplete(token, objectName: init.objectName);
+      final init = await ProfileService().avatarInitUpload(token);
+      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
+      final newUrl = await ProfileService().avatarComplete(token, objectName: init.objectName);
       if (mounted) {
         setState(() {
           _avatarUrl = newUrl;
@@ -422,9 +425,9 @@ class _AccountPageState extends State<AccountPage> {
     
     setState(() => _fullBodyUploading = true); 
     try {
-      final init = await AuthApi.fullBodyInitUpload(token); 
-      await AuthApi.putJpegToSignedUrl(init.uploadUrl, localPath);
-      final newUrl = await AuthApi.fullBodyComplete(token, objectName: init.objectName);
+      final init = await ProfileService().fullBodyInitUpload(token);
+      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
+      final newUrl = await ProfileService().fullBodyComplete(token, objectName: init.objectName);
       
       if (mounted) {
         setState(() {

@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'home_page.dart';
+
 import '../app/theme/app_colors.dart';
-import '../l10n/app_strings.dart';
-import '../core/services/auth_api.dart';
+import '../core/services/login_service.dart';
 import '../core/services/token_storage.dart';
+import '../l10n/app_strings.dart';
+import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -60,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
       if (idToken == null || idToken.isEmpty) {
         throw Exception('Google login failed: missing idToken');
       }
-      final token = await AuthApi.loginWithGoogleIdToken(idToken);
+      final token = await LoginService().loginWithGoogleIdToken(idToken);
       await TokenStorage.saveAccessToken(token);
 
       Fluttertoast.showToast(

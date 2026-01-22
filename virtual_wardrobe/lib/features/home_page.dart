@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'login_page.dart';
-import 'my_closet_page.dart';
-import 'add_garment_page.dart';
-import 'account_page.dart';
+
 import '../app/theme/app_colors.dart';
 import '../l10n/app_strings.dart';
+import 'account_page.dart';
+import 'add_garment_page.dart';
+import 'login_page.dart';
+import 'my_closet_page.dart';
 import 'outfit_planner.dart';
 
 class HomePage extends StatefulWidget {

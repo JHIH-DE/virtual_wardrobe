@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_api.dart';
+import '../core/services/auth_error_handler.dart';
+import '../core/services/garment_service.dart';
+import '../core/services/profile_service.dart';
 import '../core/services/token_storage.dart';
 import 'garment_category.dart';
 import 'image_edit_page.dart';
@@ -448,7 +453,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4), // 稍微加深一點以便看清文字
+                color: Colors.black12,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -494,7 +499,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         setState(() => _isAnalyzing = true);
 
         debugPrint('Analyzing garment image: $result');
-        final analysisData = await AuthApi.analyzeInstantGarment(token, result);
+        final analysisData = await GarmentService().analyzeInstantGarment(token, result);
 
         debugPrint('--- AI Analysis Data ---');
         debugPrint(analysisData.toString());
@@ -546,8 +551,8 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
       if (isAdd || _isImageChanged) {
         final raw = (_imagePathOrUrl ?? '').trim();
-        final initDate = await AuthApi.initUpload(token!);
-        await AuthApi.uploadImage(initDate.uploadUrl, raw);
+        final initDate = await GarmentService().initUpload(token!);
+        await GarmentService().uploadImage(initDate.uploadUrl, raw);
 
         final tempGarment = Garment(
           uploadUrl: initDate.uploadUrl,
@@ -562,9 +567,9 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         );
 
         if (_isImageChanged && !isAdd && _id != null) {
-          await AuthApi.deleteGarment(token, _id!);
+          await GarmentService().deleteGarment(token, _id!);
         }
-        result = await AuthApi.completeUpload(token, tempGarment);
+        result = await GarmentService().completeUpload(token, tempGarment);
       } else {
         final original = widget.initialGarment!;
         Garment updated = original.copyWith(
@@ -576,7 +581,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           category: category,
           subCategory: subCategory,
         );
-        result = await AuthApi.updateGarment(token!, updated);
+        result = await GarmentService().updateGarment(token!, updated);
       }
       if (!mounted) return;
       Navigator.pop(context, result);
@@ -598,7 +603,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     try {
       final token = await TokenStorage.getAccessToken();
       if (token != null) {
-        final profile = await AuthApi.getMyProfile(token);
+        final profile = await ProfileService().getMyProfile(token);
         setState(() {
           _userGender = profile['gender'];
         });
