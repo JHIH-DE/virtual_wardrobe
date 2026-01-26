@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_error_handler.dart';
+import '../core/services/error_handler.dart';
 import '../core/services/garment_service.dart';
-import '../core/services/token_storage.dart';
 import '../core/services/tryon_service.dart';
-import '../data/looks_store.dart';
+import '../../data/token_storage.dart';
+import '../../data/look_category.dart';
+import '../../data/garment_category.dart';
 import '../l10n/app_strings.dart';
-import 'garment_category.dart';
 import 'select_garment_page.dart';
 
 class ClosetOutfitTab extends StatefulWidget {
@@ -34,7 +34,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   final List<Map<String, dynamic>> suggestedOutfits = [];
   Map<String, dynamic>? selectedOutfit;
 
-  String? tryOnJobId;
+  int tryOnJobId = 0;
   String? tryOnResultUrl;
   String? aiAdvice;
 
@@ -93,7 +93,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
           ),
           const SizedBox(height: 10),
           Text(
-            tryOnJobId == null ? 'Creating job...' : 'Generating image… (job: $tryOnJobId)',
+            tryOnJobId == null ? 'Creating job...' : 'Generating image…',
             style: const TextStyle(color: AppColors.textSecondary),
           ),
         ],
@@ -547,7 +547,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
           OutlinedButton(
             onPressed: (tryOnLoading || !manualOutfit.canTryOn)
                 ? null
-                : _startTryOnManual,
+                : _startTryOn,
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.textPrimary,
               side: BorderSide(color: AppColors.border),
@@ -590,9 +590,8 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   }
 
   Widget _buildTryOnResultCard(BuildContext context) {
-    //判斷是否有選中的套裝、是否手動組合完成、或者是否有現成的試穿結果
-    final bool hasSelection = selectedOutfit != null || manualOutfit.canTryOn;
-    final bool showSection = hasSelection || tryOnResultUrl != null;
+    //final bool hasSelection = selectedOutfit != null || manualOutfit.canTryOn;
+    final bool showSection = tryOnResultUrl != null;
 
     return _sectionCard(
       title: AppStrings.tryOnResult,
@@ -716,27 +715,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     }
   }
 
-  Future<void> _startTryOn() async {
-    if (selectedOutfit == null) return;
-    _pollTimer?.cancel();
-    setState(() {
-      tryOnLoading = true;
-      errorMessage = null;
-      tryOnJobId = null;
-      tryOnResultUrl = null;
-      aiAdvice = null;
-    });
-
-    try {
-      final jobId = 'job_${DateTime.now().millisecondsSinceEpoch}';
-      if (!mounted) return;
-      setState(() => tryOnJobId = jobId);
-      _startPolling('token_placeholder', jobId); 
-    } catch (e) {
-      if (mounted) setState(() { tryOnLoading = false; errorMessage = 'Try-On failed.'; });
-    }
-  }
-
   Widget _GarmentThumb(String? urlOrPath) {
     final u = (urlOrPath ?? '').trim();
     return ClipRRect(
@@ -751,7 +729,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     );
   }
 
-  Future<void> _startTryOnManual() async {
+  Future<void> _startTryOn() async {
     if (!manualOutfit.canTryOn) {
       setState(() => errorMessage = 'Select Top + Bottom first.');
       return;
@@ -764,7 +742,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     setState(() {
       tryOnLoading = true;
       errorMessage = null;
-      tryOnJobId = null;
       tryOnResultUrl = null;
       aiAdvice = null;
       selectedOutfit = null;
@@ -783,7 +760,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         garmentIds: ids
       );
 
-      final jobId = jobResponse['job_id'].toString();
+      final jobId = jobResponse['job_id'];
       if (!mounted) return;
       setState(() => tryOnJobId = jobId);
 
@@ -798,7 +775,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     }
   }
 
-  void _startPolling(String token, String jobId) {
+  void _startPolling(String token, int jobId) {
     int attempts = 0;
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       attempts++;
@@ -810,15 +787,18 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
       try {
         final statusRes = await TryOnService().getTryOnJobStatus(token, jobId);
         final status = statusRes['status'];
+        print('--- Try-On Job Id: $jobId ---');
+        print('--- Try-On Job Status: $status ---');
         if (!mounted) { timer.cancel(); return; }
 
-        if (status == 'done') {
+        if (status == 'completed') {
           timer.cancel();
           setState(() {
             tryOnLoading = false;
             tryOnResultUrl = statusRes['result_image_url'];
             aiAdvice = statusRes['ai_notes'] ?? 'Looking good!';
           });
+          print('--- Try-On Job tryOnResultUrl: $tryOnResultUrl ---');
         } else if (status == 'failed') {
           timer.cancel();
           setState(() { tryOnLoading = false; errorMessage = 'Failed on server.'; });
@@ -835,19 +815,32 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   Future<void> _saveLook() async { 
     if (tryOnResultUrl == null) return;
     try {
-      LooksStore.I.add(Look(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      final compositeId = [
+        manualOutfit.top?.id,
+        manualOutfit.middle?.id,
+        manualOutfit.outer?.id,
+        manualOutfit.bottom?.id,
+        manualOutfit.shoes?.id,
+        manualOutfit.accessory?.id,
+      ].whereType<int>().join('-');
+
+      Look look = Look(
+        id: tryOnJobId,
+        imageUrl: tryOnResultUrl!,
         seasons: seasons,
         style: style,
-        imageUrl: tryOnResultUrl!,
         advice: aiAdvice,
         items: [
           if (manualOutfit.top != null) manualOutfit.top!,
-          if (manualOutfit.bottom != null) manualOutfit.bottom!,
+          if (manualOutfit.middle != null) manualOutfit.middle!,
           if (manualOutfit.outer != null) manualOutfit.outer!,
+          if (manualOutfit.bottom != null) manualOutfit.bottom!,
           if (manualOutfit.shoes != null) manualOutfit.shoes!,
+          if (manualOutfit.accessory != null) manualOutfit.accessory!,
         ],
-      ));
+      );
+
+      LooksStore.I.add(look);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved ✅')));
     } catch (_) {}
   }
@@ -856,7 +849,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     _pollTimer?.cancel();
     tryOnLoading = false;
     errorMessage = null;
-    tryOnJobId = null;
     tryOnResultUrl = null;
     aiAdvice = null;
     if (clearSelection) selectedOutfit = null;

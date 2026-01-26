@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import 'garment_category.dart';
+import '../data/garment_category.dart';
 
 class SelectGarmentPage extends StatelessWidget {
   final String title;

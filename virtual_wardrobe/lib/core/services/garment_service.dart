@@ -6,11 +6,11 @@ import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:mime/mime.dart';
 
-import '../../features/garment_category.dart';
+import '../../data/garment_category.dart';
 import '../config/app_config.dart';
-import 'base_api.dart';
+import 'base_service.dart';
 
-class GarmentService with BaseApi {
+class GarmentService with BaseService {
   static final GarmentService _instance = GarmentService._internal();
   factory GarmentService() => _instance;
   GarmentService._internal();
@@ -49,7 +49,6 @@ class GarmentService with BaseApi {
 
   Future<Garment> completeUpload(String accessToken, Garment garment) async {
     final uri = Uri.parse('${AppConfig.fullApiUrl}/garments/complete');
-
     final String? dateStr = garment.purchaseDate?.toIso8601String().split('T')[0];
 
     final payload = <String, dynamic>{
@@ -64,6 +63,9 @@ class GarmentService with BaseApi {
       'thickness': garment.thickness,
       'formality': garment.formality,
     };
+
+    print('--- completeUpload Payload ---');
+    print(jsonEncode(payload));
 
     final res = await http.post(
       uri,

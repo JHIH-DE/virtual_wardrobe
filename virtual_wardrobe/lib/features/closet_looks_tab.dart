@@ -1,10 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:virtual_wardrobe/core/services/tryon_service.dart';
 
 import '../app/theme/app_colors.dart';
-import '../data/looks_store.dart';
-import 'garment_category.dart';
+import '../data/look_category.dart';
+import '../data/garment_category.dart';
+
+import '../core/services/error_handler.dart';
+import '../core/services/garment_service.dart';
+import '../data/token_storage.dart';
+import 'add_garment_page.dart';
 
 class ClosetLooksTab extends StatefulWidget {
   const ClosetLooksTab({super.key});
@@ -31,15 +37,88 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
 
   String selectedSeasons = 'All';
   String selectedStyle = 'All';
+  final List<Look> _allLooks = [];
+  bool _loading = false;
+  String? _error;
 
   List<Look> get _filteredLooks {
-    final all = LooksStore.I.looks;
-    return all.where((l) {
+    return _allLooks.where((l) {
       final okSeasons = selectedSeasons == 'All' ||
           l.seasons == selectedSeasons;
       final okStyle = selectedStyle == 'All' || l.style == selectedStyle;
       return okSeasons && okStyle;
     }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _getTryOnJobs();
+  }
+
+  Future<void> _getTryOnJobs() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+      setState(() => _error = 'Missing access token. Please login again.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final list = await TryOnService().getTryOnJobs(token);
+      if (!mounted) return;
+      setState(() {
+        _allLooks
+          ..clear()
+          ..addAll(list);
+      });
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _delevteTryOnJob(int jobId) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+      setState(() => _error = 'Missing access token. Please login again.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      await TryOnService().deleteTryOnJob(token, jobId);
+      final list = await TryOnService().getTryOnJobs(token);
+      if (!mounted) return;
+      setState(() {
+        _allLooks
+          ..clear()
+          ..addAll(list);
+      });
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -137,7 +216,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white, // 卡片背景改為白色
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
           boxShadow: [
@@ -158,10 +237,10 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                   fit: StackFit.expand,
                   children: [
                     Container(
-                      color: Colors.white, // 圖片背景白色
+                      color: Colors.white,
                       child: Image.network(
                         look.imageUrl,
-                        fit: BoxFit.contain, // 改為 contain 避免裁切
+                        fit: BoxFit.contain,
                         loadingBuilder: (context, child, progress) {
                           if (progress == null) return child;
                           return const Center(
@@ -293,11 +372,15 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
 
                       SizedBox(
                         height: 90,
-                        child: ListView(
+                        child: ListView.separated(
                           scrollDirection: Axis.horizontal,
-                          children: look.items.map((garment) {
+                          padding: const EdgeInsets.symmetric(horizontal: 0),
+                          itemCount: look.items.length,
+                          separatorBuilder: (context, index) => const SizedBox(width: 12), // 項目間距
+                          itemBuilder: (context, index) {
+                            final garment = look.items[index];
                             return _buildSmallGarmentItem(garment.category.label, garment);
-                          }).toList(),
+                          },
                         ),
                       ),
 
@@ -307,7 +390,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
-                                LooksStore.I.removeById(look.id);
+                                _delevteTryOnJob(look.id);
                                 Navigator.pop(context);
                               },
                               style: OutlinedButton.styleFrom(
@@ -440,7 +523,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
     );
 
     if (ok == true) {
-      LooksStore.I.removeById(look.id);
+      _delevteTryOnJob(look.id);
     }
   }
 

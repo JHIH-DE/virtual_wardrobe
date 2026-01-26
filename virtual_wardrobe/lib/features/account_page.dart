@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_error_handler.dart';
+import '../core/services/error_handler.dart';
 import '../core/services/profile_service.dart';
-import '../core/services/token_storage.dart';
+import '../data/token_storage.dart';
 import 'image_edit_page.dart';
 
 class AccountPage extends StatefulWidget {

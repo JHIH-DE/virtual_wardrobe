@@ -4,11 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_error_handler.dart';
+import '../core/services/error_handler.dart';
 import '../core/services/garment_service.dart';
-import '../core/services/token_storage.dart';
+import '../data/token_storage.dart';
 import 'add_garment_page.dart';
-import 'garment_category.dart';
+import '../data/garment_category.dart';
 
 class ClosetGarmentsTab extends StatefulWidget {
   const ClosetGarmentsTab({super.key});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/login_page.dart';
-import 'token_storage.dart';
+import '../../data/token_storage.dart';
 
 class AuthExpiredException implements Exception {
   final String message;

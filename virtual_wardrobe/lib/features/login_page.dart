@@ -5,7 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../app/theme/app_colors.dart';
 import '../core/services/login_service.dart';
-import '../core/services/token_storage.dart';
+import '../data/token_storage.dart';
 import '../l10n/app_strings.dart';
 import 'home_page.dart';
 

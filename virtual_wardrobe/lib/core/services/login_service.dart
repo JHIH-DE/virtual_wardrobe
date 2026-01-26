@@ -4,9 +4,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
-import 'base_api.dart';
+import 'base_service.dart';
 
-class LoginService with BaseApi {
+class LoginService with BaseService {
 
   Future<String> loginWithGoogleIdToken(String idToken) async {
     final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/google');

@@ -4,11 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_error_handler.dart';
+import '../core/services/error_handler.dart';
 import '../core/services/garment_service.dart';
 import '../core/services/profile_service.dart';
-import '../core/services/token_storage.dart';
-import 'garment_category.dart';
+import '../data/token_storage.dart';
+import '../data/garment_category.dart';
 import 'image_edit_page.dart';
 
 class AddGarmentPage extends StatefulWidget {
@@ -24,10 +24,9 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   int? _id;
   GarmentCategory category = GarmentCategory.top;
-  GarmentSubCategory subCategory = GarmentSubCategory.other;
 
   final _nameCtrl = TextEditingController();
-  final _productTypeCtrl = TextEditingController();
+  final _subCategory = TextEditingController();
   final _brandCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
 
@@ -52,7 +51,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     _imagePathOrUrl = g?.imageUrl;
     _initialImagePathOrUrl = g?.imageUrl;
     category = g?.category ?? GarmentCategory.top;
-    subCategory = g?.subCategory ?? GarmentSubCategory.other;
+    _subCategory.text = g?.subCategory ?? '';
     _nameCtrl.text = g?.name ?? '';
     _brandCtrl.text = g?.brand ?? '';
     _priceCtrl.text = g?.price?.toString() ?? '';
@@ -63,6 +62,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _subCategory.dispose();
     _brandCtrl.dispose();
     _priceCtrl.dispose();
     super.dispose();
@@ -132,7 +132,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             const SizedBox(height: 12),
 
             TextFormField(
-              controller: _productTypeCtrl,
+              controller: _subCategory,
               decoration: _inputDecoration(label: 'Product Type'),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Please enter product type';
@@ -520,7 +520,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           }
 
           if (analysisData['sub_category'] != null) {
-            _productTypeCtrl.text = analysisData['sub_category'].toString();
+            _subCategory.text = analysisData['sub_category'].toString();
           }
 
           final String? colorStr = analysisData['color']?.toString();
@@ -558,7 +558,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           uploadUrl: initDate.uploadUrl,
           objectName: initDate.objectName,
           category: category,
-          subCategory: subCategory,
+          subCategory: _subCategory.text.trim(),
           name: _nameCtrl.text.trim(),
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
           color: _selectedColor?.label,
@@ -574,12 +574,12 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         final original = widget.initialGarment!;
         Garment updated = original.copyWith(
           name: _nameCtrl.text.trim(),
+          category: category,
+          subCategory: _subCategory.text.trim(),
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
           color: _selectedColor?.label,
           price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
           purchaseDate: _purchaseDate,
-          category: category,
-          subCategory: subCategory,
         );
         result = await GarmentService().updateGarment(token!, updated);
       }

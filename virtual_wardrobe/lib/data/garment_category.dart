@@ -152,7 +152,7 @@ extension GarmentSubCategoryX on GarmentSubCategory {
 }
 
 enum GarmentColor {
-  black, white, gray, beige, cream, brown, navy, blue, green, olive, khaki, red, burgundy, yellow, orange, pink, purple,
+  black, white, grey, beige, cream, brown, navy, blue, green, olive, khaki, red, burgundy, yellow, orange, pink, purple,
 }
 
 extension GarmentColorX on GarmentColor {
@@ -165,7 +165,7 @@ extension GarmentColorX on GarmentColor {
     switch (this) {
       case GarmentColor.black: return Colors.black;
       case GarmentColor.white: return Colors.white;
-      case GarmentColor.gray: return Colors.grey;
+      case GarmentColor.grey: return Colors.grey;
       case GarmentColor.beige: return const Color(0xFFF5F5DC);
       case GarmentColor.cream: return const Color(0xFFFFFDD0);
       case GarmentColor.brown: return Colors.brown;
@@ -248,7 +248,7 @@ class Garment {
   final DateTime? purchaseDate;
   final String? imageUrl;
   final GarmentCategory category;
-  final GarmentSubCategory subCategory;
+  final String subCategory;
   final double thickness;
   final double formality;
   final String uploadUrl;
@@ -278,7 +278,7 @@ class Garment {
     double? price,
     DateTime? purchaseDate,
     GarmentCategory? category,
-    GarmentSubCategory? subCategory,
+    String? subCategory,
     double? thickness,
     double? formality,
     String? uploadUrl,
@@ -331,7 +331,7 @@ class Garment {
       formality: _parseNum(json['formality']) ?? 0.0,
       purchaseDate: _parseDate(json['purchase_date']),
       category: GarmentCategoryX.fromApiValue(json['category'] as String?),
-      subCategory: GarmentSubCategoryX.fromApiValue(json['subCategory'] as String?),
+      subCategory: (json['sub_category'] as String?) ?? '',
       uploadUrl: (json['upload_url'] as String?) ?? '',
       objectName: (json['object_name'] as String?) ?? '',
       imageUrl: (json['image_url'] as String?) ?? '',
@@ -347,7 +347,7 @@ class Garment {
       'price': price,
       'thickness': thickness,
       'formality': formality,
-      'subCategory': subCategory.apiValue,
+      'subCategory': subCategory,
       'category': category.apiValue,
       'purchase_date': purchaseDate?.toIso8601String(),
       'upload_url': uploadUrl,
