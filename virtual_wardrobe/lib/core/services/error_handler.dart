@@ -4,13 +4,14 @@ import '../../features/login_page.dart';
 import '../../data/token_storage.dart';
 
 class AuthExpiredException implements Exception {
-  final String message;
-  AuthExpiredException([this.message = 'Authentication expired']);
+  final String _message;
+  AuthExpiredException([this._message = 'Authentication expired']);
   @override
-  String toString() => message;
+  String toString() => _message;
 }
 
 class AuthExpiredHandler {
+
   static Future<void> handle(BuildContext context) async {
     await TokenStorage.clear();
 

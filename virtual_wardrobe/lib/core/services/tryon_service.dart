@@ -8,6 +8,7 @@ import '../../data/look_category.dart';
 import 'base_service.dart';
 
 class TryOnService with BaseService {
+
   Future<Map<String, dynamic>> createTryOnJob(
       String accessToken, {
         required List<int> garmentIds

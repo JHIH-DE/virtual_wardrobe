@@ -16,9 +16,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int? selectedCardIndex;
+  int? _selectedCardIndex;
 
-  final List<String> features = [
+  final List<String> _features = [
     'My Closet',
     'Outfit Planner',
     'Add Garment',
@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 24),
             Expanded(
               child: GridView.builder(
-                itemCount: features.length,
+                itemCount: _features.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 18,
@@ -77,14 +77,14 @@ class _HomePageState extends State<HomePage> {
                   childAspectRatio: 1.0,
                 ),
                 itemBuilder: (context, index) {
-                  bool isSelected = selectedCardIndex == index;
+                  bool isSelected = _selectedCardIndex == index;
                   return InkWell(
                     onTap: () {
                       setState(() {
-                        selectedCardIndex = index;
+                        _selectedCardIndex = index;
                       });
 
-                      final feature = features[index];
+                      final feature = _features[index];
                       debugPrint('Tapped: $feature');
 
                       if (feature == 'My Closet') {
@@ -136,13 +136,13 @@ class _HomePageState extends State<HomePage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            _getIcon(features[index]),
+                            _getIcon(_features[index]),
                             size: 48,
                             color: isSelected ? AppColors.primary : AppColors.cardContent,
                           ),
 
                           Text(
-                            features[index],
+                            _features[index],
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 18,

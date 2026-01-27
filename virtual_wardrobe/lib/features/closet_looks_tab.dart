@@ -8,9 +8,7 @@ import '../data/look_category.dart';
 import '../data/garment_category.dart';
 
 import '../core/services/error_handler.dart';
-import '../core/services/garment_service.dart';
 import '../data/token_storage.dart';
-import 'add_garment_page.dart';
 
 class ClosetLooksTab extends StatefulWidget {
   const ClosetLooksTab({super.key});
@@ -20,32 +18,32 @@ class ClosetLooksTab extends StatefulWidget {
 }
 
 class _ClosetLooksTabState extends State<ClosetLooksTab> {
-  static const List<String> seasons = [
+  static const List<String> _seasons = [
     'All',
     'Spring',
     'Summer',
     'Autumn',
     'Winter',
   ];
-  static const List<String> styles = [
+  static const List<String> _styles = [
     'All',
     'Minimal',
     'Street',
     'Classic',
     'Sporty'
   ];
-
-  String selectedSeasons = 'All';
-  String selectedStyle = 'All';
   final List<Look> _allLooks = [];
+
   bool _loading = false;
   String? _error;
+  String _selectedSeasons = 'All';
+  String _selectedStyle = 'All';
 
   List<Look> get _filteredLooks {
     return _allLooks.where((l) {
-      final okSeasons = selectedSeasons == 'All' ||
-          l.seasons == selectedSeasons;
-      final okStyle = selectedStyle == 'All' || l.style == selectedStyle;
+      final okSeasons = _selectedSeasons == 'All' ||
+          l.seasons == _selectedSeasons;
+      final okStyle = _selectedStyle == 'All' || l.style == _selectedStyle;
       return okSeasons && okStyle;
     }).toList();
   }
@@ -88,7 +86,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
     }
   }
 
-  Future<void> _delevteTryOnJob(int jobId) async {
+  Future<void> _deleteTryOnJob(int jobId) async {
     final token = await TokenStorage.getAccessToken();
     if (token == null || token.isEmpty) {
       if (!mounted) return;
@@ -103,12 +101,10 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
 
     try {
       await TryOnService().deleteTryOnJob(token, jobId);
-      final list = await TryOnService().getTryOnJobs(token);
+      
       if (!mounted) return;
       setState(() {
-        _allLooks
-          ..clear()
-          ..addAll(list);
+        _allLooks.removeWhere((l) => l.id == jobId);
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -140,27 +136,27 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: selectedSeasons,
-                        items: seasons
+                        value: _selectedSeasons,
+                        items: _seasons
                             .map((v) =>
                             DropdownMenuItem(value: v, child: Text(v)))
                             .toList(),
                         onChanged: (v) =>
                             setState(() =>
-                            selectedSeasons = v ?? selectedSeasons),
+                            _selectedSeasons = v ?? _selectedSeasons),
                         decoration: _inputDecoration(label: 'Seasons'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: selectedStyle,
-                        items: styles
+                        value: _selectedStyle,
+                        items: _styles
                             .map((v) =>
                             DropdownMenuItem(value: v, child: Text(v)))
                             .toList(),
                         onChanged: (v) =>
-                            setState(() => selectedStyle = v ?? selectedStyle),
+                            setState(() => _selectedStyle = v ?? _selectedStyle),
                         decoration: _inputDecoration(label: 'Style'),
                       ),
                     ),
@@ -390,7 +386,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
-                                _delevteTryOnJob(look.id);
+                                _deleteTryOnJob(look.id);
                                 Navigator.pop(context);
                               },
                               style: OutlinedButton.styleFrom(
@@ -523,7 +519,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
     );
 
     if (ok == true) {
-      _delevteTryOnJob(look.id);
+      _deleteTryOnJob(look.id);
     }
   }
 

@@ -7,6 +7,7 @@ import '../config/app_config.dart';
 import 'base_service.dart';
 
 class ProfileService with BaseService {
+
    Future<Map<String, dynamic>> getMyProfile(String accessToken) async {
     final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me');
     final res = await http.get(uri, headers: authHeaders(accessToken));

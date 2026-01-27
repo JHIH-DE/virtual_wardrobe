@@ -11,6 +11,7 @@ import '../config/app_config.dart';
 import 'base_service.dart';
 
 class GarmentService with BaseService {
+
   static final GarmentService _instance = GarmentService._internal();
   factory GarmentService() => _instance;
   GarmentService._internal();

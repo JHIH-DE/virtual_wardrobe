@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'error_handler.dart';
 
 mixin BaseService {
+
   Map<String, String> authHeaders(String accessToken) {
     return {
       'Content-Type': 'application/json',

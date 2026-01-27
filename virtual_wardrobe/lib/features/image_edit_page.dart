@@ -10,10 +10,9 @@ import 'package:path_provider/path_provider.dart';
 import '../app/theme/app_colors.dart';
 
 class ImageEditPage extends StatefulWidget {
-  /// initialPath supports local file path OR network url
-  final String? initialPath;
+  final String? _initialPath;
 
-  const ImageEditPage({super.key, this.initialPath});
+  const ImageEditPage({super.key, String? initialPath}) : _initialPath = initialPath;
 
   @override
   State<ImageEditPage> createState() => _ImageEditPageState();
@@ -22,29 +21,29 @@ class ImageEditPage extends StatefulWidget {
 class _ImageEditPageState extends State<ImageEditPage> {
   final ImagePicker _picker = ImagePicker();
 
-  File? originalFile;
-  File? croppedFile;
-  File? compressedFile;
+  File? _originalFile;
+  File? _croppedFile;
+  File? _compressedFile;
   String? _networkUrl;
-  String? errorMessage;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    final path = widget.initialPath;
+    final path = widget._initialPath;
 
     if (path == null || path.isEmpty) return;
 
     if (path.startsWith('http')) {
       _networkUrl = path;
     } else {
-      originalFile = File(path);
+      _originalFile = File(path);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayFile = compressedFile ?? croppedFile ?? originalFile;
+    final displayFile = _compressedFile ?? _croppedFile ?? _originalFile;
     final hasFile = displayFile != null;
     final hasNetwork = (_networkUrl ?? '').isNotEmpty;
 
@@ -157,7 +156,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: (originalFile == null) ? null : _cropImage,
+                  onPressed: (_originalFile == null) ? null : _cropImage,
                   style: _outlineBtnStyle(),
                   child: const Text('Crop'),
                 ),
@@ -165,7 +164,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: ((croppedFile == null && originalFile == null)) ? null : _compressImage,
+                  onPressed: ((_croppedFile == null && _originalFile == null)) ? null : _compressImage,
                   style: _outlineBtnStyle(),
                   child: const Text('Compress'),
                 ),
@@ -175,7 +174,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
 
           const SizedBox(height: 14),
 
-          if (errorMessage != null) ...[
+          if (_errorMessage != null) ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -184,7 +183,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
                 border: Border.all(color: AppColors.primary.withOpacity(0.25)),
               ),
               child: Text(
-                errorMessage!,
+                _errorMessage!,
                 style: const TextStyle(color: AppColors.textPrimary),
               ),
             ),
@@ -217,10 +216,10 @@ class _ImageEditPageState extends State<ImageEditPage> {
 
   Future<void> _pickImage(ImageSource source) async {
     setState(() {
-      errorMessage = null;
-      originalFile = null;
-      croppedFile = null;
-      compressedFile = null;
+      _errorMessage = null;
+      _originalFile = null;
+      _croppedFile = null;
+      _compressedFile = null;
       _networkUrl = null;
     });
 
@@ -228,14 +227,14 @@ class _ImageEditPageState extends State<ImageEditPage> {
     if (xfile == null) return;
 
     setState(() {
-      originalFile = File(xfile.path);
+      _originalFile = File(xfile.path);
     });
 
     await _compressImage();
   }
 
   Future<void> _cropImage() async {
-    final file = originalFile;
+    final file = _originalFile;
     if (file == null) return;
 
     try {
@@ -255,18 +254,18 @@ class _ImageEditPageState extends State<ImageEditPage> {
       if (cropped == null) return;
 
       setState(() {
-        croppedFile = File(cropped.path);
-        compressedFile = null;
+        _croppedFile = File(cropped.path);
+        _compressedFile = null;
       });
 
       await _compressImage();
     } catch (e) {
-      setState(() => errorMessage = 'Crop failed. Please try again.');
+      setState(() => _errorMessage = 'Crop failed. Please try again.');
     }
   }
 
   Future<void> _compressImage() async {
-    final input = croppedFile ?? originalFile;
+    final input = _croppedFile ?? _originalFile;
     if (input == null) return;
 
     final dir = await getTemporaryDirectory();
@@ -282,12 +281,12 @@ class _ImageEditPageState extends State<ImageEditPage> {
     );
 
     if (result == null) {
-      setState(() => errorMessage = 'Failed to compress image.');
+      setState(() => _errorMessage = 'Failed to compress image.');
       return;
     }
 
     setState(() {
-      compressedFile = File(result.path);
+      _compressedFile = File(result.path);
     });
   }
 }

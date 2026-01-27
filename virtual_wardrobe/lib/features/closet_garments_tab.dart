@@ -18,10 +18,9 @@ class ClosetGarmentsTab extends StatefulWidget {
 }
 
 class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
-  GarmentCategory _selectedCategory = GarmentCategory.top;
-
   final List<Garment> _allGarments = [];
 
+  GarmentCategory _selectedCategory = GarmentCategory.top;
   bool _loading = false;
   String? _error;
 

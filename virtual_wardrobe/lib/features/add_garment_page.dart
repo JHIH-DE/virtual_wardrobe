@@ -21,26 +21,22 @@ class AddGarmentPage extends StatefulWidget {
 
 class _AddGarmentPageState extends State<AddGarmentPage> {
   final _formKey = GlobalKey<FormState>();
-
-  int? _id;
-  GarmentCategory category = GarmentCategory.top;
-
   final _nameCtrl = TextEditingController();
   final _subCategory = TextEditingController();
   final _brandCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
 
-  GarmentColor? _selectedColor;
-  DateTime? _purchaseDate;
-
-  String? _imagePathOrUrl;
-  String? _initialImagePathOrUrl;
   bool _isImageChanged = false;
   bool _isAnalyzing = false;
-
   bool uploading = false;
+  int? _id;
   String? errorMessage;
   String? _userGender;
+  String? _imagePathOrUrl;
+  String? _initialImagePathOrUrl;
+  GarmentColor? _selectedColor;
+  GarmentCategory _category = GarmentCategory.top;
+  DateTime? _purchaseDate;
 
   @override
   void initState() {
@@ -50,7 +46,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     _id = g?.id;
     _imagePathOrUrl = g?.imageUrl;
     _initialImagePathOrUrl = g?.imageUrl;
-    category = g?.category ?? GarmentCategory.top;
+    _category = g?.category ?? GarmentCategory.top;
     _subCategory.text = g?.subCategory ?? '';
     _nameCtrl.text = g?.name ?? '';
     _brandCtrl.text = g?.brand ?? '';
@@ -120,13 +116,13 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             const SizedBox(height: 12),
 
             DropdownButtonFormField<GarmentCategory>(
-              value: category,
+              value: _category,
               decoration: _inputDecoration(label: 'Category'),
               items: GarmentCategory.values
                   .where((c) => c != GarmentCategory.dress || _userGender == 'Female')
                   .map((c) => DropdownMenuItem(value: c, child: Text(c.label)))
                   .toList(),
-              onChanged: (v) => setState(() => category = v!),
+              onChanged: (v) => setState(() => _category = v!),
             ),
 
             const SizedBox(height: 12),
@@ -495,7 +491,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     try {
       final token = await TokenStorage.getAccessToken();
       if (token != null) {
-        // --- 修改開始：開啟載入狀態 ---
         setState(() => _isAnalyzing = true);
 
         debugPrint('Analyzing garment image: $result');
@@ -513,7 +508,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           if (catStr != null) {
             for (var val in GarmentCategory.values) {
               if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
-                category = val;
+                _category = val;
                 break;
               }
             }
@@ -530,6 +525,9 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           _isAnalyzing = false;
         });
       }
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       debugPrint('AI Analysis failed: $e');
       setState(() => _isAnalyzing = false);
@@ -557,7 +555,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         final tempGarment = Garment(
           uploadUrl: initDate.uploadUrl,
           objectName: initDate.objectName,
-          category: category,
+          category: _category,
           subCategory: _subCategory.text.trim(),
           name: _nameCtrl.text.trim(),
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
@@ -574,7 +572,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         final original = widget.initialGarment!;
         Garment updated = original.copyWith(
           name: _nameCtrl.text.trim(),
-          category: category,
+          category: _category,
           subCategory: _subCategory.text.trim(),
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
           color: _selectedColor?.label,

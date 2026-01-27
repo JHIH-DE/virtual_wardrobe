@@ -6,23 +6,23 @@ import '../app/theme/app_colors.dart';
 import '../data/garment_category.dart';
 
 class SelectGarmentPage extends StatelessWidget {
-  final String title;
-  final GarmentCategory category;
-  final List<Garment> garments;
+  final String _title;
+  final GarmentCategory _category;
+  final List<Garment> _garments;
 
   const SelectGarmentPage({
     super.key,
-    required this.title,
-    required this.category,
-    required this.garments,
-  });
+    required String title,
+    required GarmentCategory category,
+    required List<Garment> garments,
+  }) : _garments = garments, _category = category, _title = title;
 
   @override
   Widget build(BuildContext context) {
-    final filtered = garments.where((g) => g.category == category).toList();
+    final filtered = _garments.where((g) => g.category == _category).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: Text(_title)),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: filtered.length,

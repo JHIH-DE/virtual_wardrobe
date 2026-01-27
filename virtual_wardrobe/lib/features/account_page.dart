@@ -17,23 +17,21 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
-  bool _loading = false;
-  String? _error;
-
-  String? _avatarUrl;
-  String? _avatarLocalPath;
-  String? _fullBodyUrl;
-  String? _fullBodyLocalPath;
-  bool _fullBodyUploading = false;
-
   final _nameCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _birthDateCtrl = TextEditingController();
-  DateTime? _selectedBirthDate;
 
+  bool _loading = false;
+  bool _fullBodyUploading = false;
+  bool _isMetric = true;
+  String? _error;
+  String? _avatarUrl;
+  String? _avatarLocalPath;
+  String? _fullBodyUrl;
+  String? _fullBodyLocalPath;
   String? _selectedGender;
-  bool _isMetric = true; 
+  DateTime? _selectedBirthDate;
 
   final List<String> _genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
 

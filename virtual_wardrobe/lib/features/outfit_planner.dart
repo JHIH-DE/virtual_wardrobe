@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-enum PlannerMode { daily, trip }
+import '../app/theme/app_colors.dart';
+import 'daily_planner_tab.dart';
+import 'trip_planner_tab.dart';
 
 class OutfitPlannerPage extends StatefulWidget {
   const OutfitPlannerPage({super.key});
@@ -10,53 +12,43 @@ class OutfitPlannerPage extends StatefulWidget {
 }
 
 class _OutfitPlannerPageState extends State<OutfitPlannerPage> {
-  PlannerMode _mode = PlannerMode.daily;
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Outfit Planner')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _modeSwitcher(),
-          const SizedBox(height: 14),
-
-          if (_mode == PlannerMode.daily) ...[
-            _buildDailyPlanner(),
-          ] else ...[
-            _buildTripPlanner(),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: const Text(
+            'Outfit Planner',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          backgroundColor: AppColors.surface,
+          elevation: 0,
+          iconTheme: const IconThemeData(
+            color: AppColors.textPrimary,
+          ),
+          bottom: TabBar(
+            indicatorColor: AppColors.primary,
+            indicatorWeight: 2.5,
+            labelColor: AppColors.textPrimary,
+            unselectedLabelColor: AppColors.textSecondary,
+            tabs: const [
+              Tab(text: 'Daily', icon: Icon(Icons.wb_sunny_outlined)),
+              Tab(text: 'Trip', icon: Icon(Icons.luggage_outlined)),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            DailyPlannerTab(),
+            TripPlannerTab(),
           ],
-        ],
+        ),
       ),
     );
-  }
-
-  Widget _modeSwitcher() {
-    return SegmentedButton<PlannerMode>(
-      showSelectedIcon: false,
-      segments: const [
-        ButtonSegment(
-          value: PlannerMode.daily,
-          icon: Icon(Icons.wb_sunny_outlined),
-          label: Text('Daily'),
-        ),
-        ButtonSegment(
-          value: PlannerMode.trip,
-          icon: Icon(Icons.luggage_outlined),
-          label: Text('Trip'),
-        ),
-      ],
-      selected: {_mode},
-      onSelectionChanged: (s) => setState(() => _mode = s.first),
-    );
-  }
-
-  Widget _buildDailyPlanner() {
-    return const Text('TODO: Daily outfit content here');
-  }
-
-  Widget _buildTripPlanner() {
-    return const Text('TODO: Trip planner content here');
   }
 }
