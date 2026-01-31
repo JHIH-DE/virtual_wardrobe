@@ -5,8 +5,8 @@ import 'garment_category.dart';
 class Look {
   final int id;
   final String imageUrl;
-  final String? seasons; 
-  final String? style;   
+  final String? seasons;
+  final String? style;
   final String? advice;
   final String? errorMessage;
   final DateTime createdAt;
@@ -48,7 +48,7 @@ class Look {
       seasons: json['seasons'],
       style: json['style'],
       advice: json['ai_notes'],
-      items: [], 
+      items: [],
     );
   }
 
@@ -71,8 +71,10 @@ class LooksStore extends ChangeNotifier {
   static final LooksStore I = LooksStore._();
 
   final List<Look> _looks = [];
+  bool _initialized = false;
 
   List<Look> get looks => List.unmodifiable(_looks);
+  bool get initialized => _initialized;
 
   void add(Look look) {
     _looks.insert(0, look);
@@ -82,16 +84,18 @@ class LooksStore extends ChangeNotifier {
   void setLooks(List<Look> newLooks) {
     _looks.clear();
     _looks.addAll(newLooks);
+    _initialized = true;
     notifyListeners();
   }
 
-  void removeById(int id) { // ✅ 將 String 改為 int 以符合 Look.id 型別
+  void removeById(int id) {
     _looks.removeWhere((l) => l.id == id);
     notifyListeners();
   }
 
   void clear() {
     _looks.clear();
+    _initialized = false;
     notifyListeners();
   }
 }

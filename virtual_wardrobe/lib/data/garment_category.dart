@@ -214,7 +214,8 @@ class OutfitSelection {
     this.accessory,
   });
 
-  bool get canTryOn => (top != null || middle != null) && bottom != null;
+  //bool get canTryOn => (top != null || middle != null) && bottom != null;
+  bool get canTryOn => true;
 
   OutfitSelection copyWith({
     Garment? top,

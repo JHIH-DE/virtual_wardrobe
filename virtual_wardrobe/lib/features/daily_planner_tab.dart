@@ -83,10 +83,10 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> {
 
       final cached = CachedWeather(
         location: locationName,
-        temp: data['current_weather']['temperature'].round(),
-        high: data['main']['temp_max'].round(),
-        low: data['main']['temp_min'].round(),
-        condition: data['weather'][0]['main'],
+        temp: (data['current_weather']['temperature'] as num).toDouble(),
+        high: (data['daily']['temperature_2m_max'][0] as num).round(),
+        low: (data['daily']['temperature_2m_min'][0] as num).round(),
+        condition: _mapWeatherCode(data['current_weather']['weathercode']),
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 
@@ -118,13 +118,13 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> {
 
   void _onFeedback(bool liked) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(liked ? 'Glad you like it! ❤️' : 'Got it, we will try something else next time.')),
+      SnackBar(content: Text(liked ? 'Glad you like it! ' : 'Got it, we will try something else next time.')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    if (_loading || _temp == null || _high == null || _low == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -167,6 +167,14 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> {
     );
   }
 
+  String _mapWeatherCode(int code) {
+    if (code == 0) return 'Clear';
+    if (code <= 3) return 'Clouds';
+    if (code <= 67) return 'Rain';
+    if (code <= 77) return 'Snow';
+    return 'Clouds';
+  }
+
   Future<Position> _getCurrentLocation() async {
     await Geolocator.requestPermission();
     return await Geolocator.getCurrentPosition(
@@ -180,6 +188,7 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> {
           '?latitude=$lat'
           '&longitude=$lon'
           '&current_weather=true'
+          '&daily=temperature_2m_max,temperature_2m_min'
           '&timezone=Asia%2FTaipei',
     );
 
@@ -347,45 +356,53 @@ class _CounterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        child: Row(
-          children: [
-            // 讓文字靠左並不被擠掉
-            Expanded(
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text(
+              "Adjust perceived temperature",
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: onDecrement,
+            icon: const Icon(Icons.remove_circle_outline, color: AppColors.textSecondary),
+          ),
+          SizedBox(
+            width: 50,
+            child: Center(
               child: Text(
-                "Adjust perceived temperature",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black,
+                value >= 0 ? "+${value}°" : "${value}°",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
-
-            IconButton(
-              onPressed: onDecrement,
-              icon: const Icon(Icons.remove_circle_outline),
-            ),
-
-            Text(
-              value >= 0 ? "+${value}°" : "${value}°", // 加上度符號
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            IconButton(
-              onPressed: onIncrement,
-              icon: const Icon(Icons.add_circle_outline),
-            ),
-          ],
-        ),
+          ),
+          IconButton(
+            onPressed: onIncrement,
+            icon: const Icon(Icons.add_circle_outline, color: AppColors.textSecondary),
+          ),
+        ],
       ),
     );
   }

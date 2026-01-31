@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme/app_colors.dart';
 
@@ -15,84 +15,136 @@ class TripPlannerTab extends StatefulWidget {
 }
 
 class _TripPlannerTabState extends State<TripPlannerTab> {
-  bool _isLoading = false;
-  List<DailyWeather> _forecast = [];
+  final List<TripPlan> _trips = [];
+
+  void _addTrip(TripPlan trip) {
+    setState(() {
+      _trips.insert(0, trip);
+    });
+  }
+
+  void _deleteTrip(String id) {
+    setState(() {
+      _trips.removeWhere((t) => t.id == id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _forecast.isEmpty
-              ? Center(
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.travel_explore, size: 64, color: AppColors.textSecondary),
-                      const SizedBox(height: 16),
                       Text(
-                        "Please select a location first",
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => const CreateTripDialog(),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        "Plan Your Next Adventure",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
-                        child: const Text("Create New Trip"),
+                      ),
+                      Text(
+                        "Add locations and see forecasts",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _forecast.length,
-                  itemBuilder: (context, index) {
-                    final item = _forecast[index];
-                    return _ForecastCard(MeteoDailyForecast(
-                      date: DateTime.parse(item.date),
-                      maxTemp: item.high,
-                      minTemp: item.low,
-                      weatherCode: item.weatherCode,
-                    ));
-                  },
                 ),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await showDialog<TripPlan>(
+                      context: context,
+                      builder: (_) => const CreateTripDialog(),
+                    );
+                    if (result != null) {
+                      _addTrip(result);
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text("New Trip"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _trips.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.beach_access, size: 64, color: AppColors.textSecondary),
+                        const SizedBox(height: 16),
+                        Text(
+                          "No trips planned yet",
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _trips.length,
+                    itemBuilder: (context, index) {
+                      final trip = _trips[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _TripPlanCard(
+                          key: ValueKey(trip.id),
+                          trip: trip,
+                          onDelete: () => _deleteTrip(trip.id),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 // --- Data Models ---
 
-class DailyWeather {
-  final String date;
-  final int high;
-  final int low;
-  final int weatherCode;
+class TripPlan {
+  final String id;
+  final String name;
+  final DateTimeRange dateRange;
+  final LocationResult location;
 
-  DailyWeather({
-    required this.date,
-    required this.high,
-    required this.low,
-    required this.weatherCode,
+  TripPlan({
+    required this.id,
+    required this.name,
+    required this.dateRange,
+    required this.location,
   });
-
-  Map<String, dynamic> toJson() => {
-        "date": date,
-        "high": high,
-        "low": low,
-        "weatherCode": weatherCode,
-      };
 }
 
 class LocationResult {
@@ -123,73 +175,285 @@ class MeteoDailyForecast {
 
 // --- Components ---
 
-class _ForecastCard extends StatelessWidget {
-  final MeteoDailyForecast day;
-  const _ForecastCard(this.day);
+class _TripPlanCard extends StatelessWidget {
+  final TripPlan trip;
+  final VoidCallback onDelete;
+
+  const _TripPlanCard({
+    super.key,
+    required this.trip,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final condition = _mapWeatherCodeToText(day.weatherCode);
-    final icon = _mapWeatherCodeToIcon(day.weatherCode);
+    final dateStr =
+        "${DateFormat('MMM d').format(trip.dateRange.start)} - ${DateFormat('MMM d, yyyy').format(trip.dateRange.end)}";
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TripDetailsPage(trip: trip),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    trip.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.white70),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Delete Trip"),
+                        content: const Text("Are you sure you want to delete this trip?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              onDelete();
+                            },
+                            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    trip.location.name,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  dateStr,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  "View Plan",
+                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 12),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class TripDetailsPage extends StatefulWidget {
+  final TripPlan trip;
+  const TripDetailsPage({super.key, required this.trip});
+
+  @override
+  State<TripDetailsPage> createState() => _TripDetailsPageState();
+}
+
+class _TripDetailsPageState extends State<TripDetailsPage> {
+  @override
+  Widget build(BuildContext context) {
+    final List<DateTime> days = [];
+    for (int i = 0; i <= widget.trip.dateRange.duration.inDays; i++) {
+      days.add(widget.trip.dateRange.start.add(Duration(days: i)));
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: Text(widget.trip.name),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(
+                  bottom: BorderSide(color: AppColors.border),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        "${DateFormat('MMMM d').format(widget.trip.dateRange.start)} - ${DateFormat('MMMM d, yyyy').format(widget.trip.dateRange.end)}",
+                        style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.trip.location.name,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Trip Schedule",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 24),
+                  ...days.map((date) => _DailyAgendaCard(date: date)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DailyAgendaCard extends StatelessWidget {
+  final DateTime date;
+  const _DailyAgendaCard({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormatted = DateFormat('M/d').format(date);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 36, color: AppColors.primary),
-          const SizedBox(width: 16),
-          Expanded(
+          // Date Section
+          Text(
+            dateFormatted,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 20),
+          // Vertical Divider
+          Container(
+            height: 32,
+            width: 1,
+            color: AppColors.border,
+          ),
+          const SizedBox(width: 20),
+          // Agenda Content Placeholder
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  DateFormat('EEE, MMM d').format(day.date),
-                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$condition · H:${day.maxTemp}° L:${day.minTemp}°',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  "No activities planned",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ],
             ),
           ),
-          Text(
-            '${day.maxTemp}°',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
           ),
         ],
       ),
     );
-  }
-
-  String _mapWeatherCodeToText(int code) {
-    if (code == 0) return 'Clear';
-    if (code <= 3) return 'Clouds';
-    if (code == 45 || code == 48) return 'Fog';
-    if (code <= 55) return 'Drizzle';
-    if (code <= 65) return 'Rain';
-    if (code <= 77) return 'Snow';
-    if (code <= 82) return 'Rain';
-    return 'Thunderstorm';
-  }
-
-  IconData _mapWeatherCodeToIcon(int code) {
-    final text = _mapWeatherCodeToText(code);
-    switch (text) {
-      case 'Clear': return Icons.wb_sunny_rounded;
-      case 'Clouds': return Icons.cloud_rounded;
-      case 'Rain': return Icons.umbrella_rounded;
-      case 'Snow': return Icons.ac_unit_rounded;
-      case 'Fog': return Icons.foggy;
-      default: return Icons.wb_cloudy_rounded;
-    }
   }
 }
 
@@ -225,7 +489,9 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(_dateRange == null ? "Select Dates" : "${DateFormat('MM/dd').format(_dateRange!.start)} - ${DateFormat('MM/dd').format(_dateRange!.end)}"),
+            title: Text(_dateRange == null
+                ? "Select Dates"
+                : "${DateFormat('MM/dd').format(_dateRange!.start)} - ${DateFormat('MM/dd').format(_dateRange!.end)}"),
             leading: const Icon(Icons.calendar_today, color: AppColors.primary),
             onTap: _pickDateRange,
           ),
@@ -294,7 +560,15 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
       return;
     }
-    Navigator.pop(context);
+    Navigator.pop(
+      context,
+      TripPlan(
+        id: DateTime.now().toIso8601String(),
+        name: _tripNameController.text,
+        dateRange: _dateRange!,
+        location: _location!,
+      ),
+    );
   }
 }
 
@@ -318,11 +592,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       final data = json.decode(res.body);
       if (data['results'] != null) {
         setState(() {
-          _results = (data['results'] as List).map((r) => LocationResult(
-            name: "${r['name']}, ${r['country']}",
-            latitude: r['latitude'],
-            longitude: r['longitude'],
-          )).toList();
+          _results = (data['results'] as List)
+              .map((r) => LocationResult(
+                    name: "${r['name']}, ${r['country']}",
+                    latitude: r['latitude'],
+                    longitude: r['longitude'],
+                  ))
+              .toList();
         });
       }
     } finally {

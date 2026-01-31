@@ -79,6 +79,17 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     );
   }
 
+  Widget _buildTryOnResultCard(BuildContext context) {
+    final bool isVisible = _tryOnResultUrl != null || _isTryOnLoading || _errorMessage != null;
+
+    if (!isVisible) return const SizedBox.shrink();
+
+    return _sectionCard(
+      title: AppStrings.tryOnResult,
+      child: _buildTryOnSection(context),
+    );
+  }
+
   Widget _buildTryOnSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,31 +125,45 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         if (_tryOnResultUrl != null) ...[
           const SizedBox(height: 12),
 
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 3 / 4,
-                child: Image.network(
-                  _tryOnResultUrl!,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                  errorBuilder: (context, error, stack) {
-                    return const Center(
-                      child: Text(
-                        AppStrings.loadingImageWarning,
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    );
-                  },
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  opaque: false,
+                  pageBuilder: (_, __, ___) => FullScreenImagePage(imageUrl: _tryOnResultUrl!),
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio:  3/4,
+                  child: Hero(
+                    tag: 'tryon_image',
+                    child: Image.network(
+                      _tryOnResultUrl!,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                      errorBuilder: (context, error, stack) {
+                        return const Center(
+                          child: Text(
+                            AppStrings.loadingImageWarning,
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -586,17 +611,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     );
   }
 
-  Widget _buildTryOnResultCard(BuildContext context) {
-    final bool isVisible = _tryOnResultUrl != null || _isTryOnLoading || _errorMessage != null;
-
-    if (!isVisible) return const SizedBox.shrink();
-
-    return _sectionCard(
-      title: AppStrings.tryOnResult,
-      child: _buildTryOnSection(context),
-    );
-  }
-
   Widget _slotRow({
     required String title,
     required Garment? value,
@@ -870,5 +884,37 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+}
+
+class FullScreenImagePage extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImagePage({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          alignment: Alignment.center,
+          child: Hero(
+            tag: 'tryon_image',
+            child: AspectRatio(
+              aspectRatio: 0.6,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

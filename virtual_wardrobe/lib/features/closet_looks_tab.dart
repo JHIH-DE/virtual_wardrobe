@@ -32,7 +32,6 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
     'Classic',
     'Sporty'
   ];
-  final List<Look> _allLooks = [];
 
   bool _loading = false;
   String? _error;
@@ -40,7 +39,8 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
   String _selectedStyle = 'All';
 
   List<Look> get _filteredLooks {
-    return _allLooks.where((l) {
+    // 從 LooksStore.I 拿資料進行篩選
+    return LooksStore.I.looks.where((l) {
       final okSeasons = _selectedSeasons == 'All' ||
           l.seasons == _selectedSeasons;
       final okStyle = _selectedStyle == 'All' || l.style == _selectedStyle;
@@ -51,7 +51,10 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
   @override
   void initState() {
     super.initState();
-    _getTryOnJobs();
+    // 確保 App 開啟後至少執行一次完整的資料讀取
+    if (!LooksStore.I.initialized) {
+      _getTryOnJobs();
+    }
   }
 
   Future<void> _getTryOnJobs() async {
@@ -70,11 +73,9 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
     try {
       final list = await TryOnService().getTryOnJobs(token);
       if (!mounted) return;
-      setState(() {
-        _allLooks
-          ..clear()
-          ..addAll(list);
-      });
+      
+      // 更新到全域 Store
+      LooksStore.I.setLooks(list);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -103,9 +104,8 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
       await TryOnService().deleteTryOnJob(token, jobId);
       
       if (!mounted) return;
-      setState(() {
-        _allLooks.removeWhere((l) => l.id == jobId);
-      });
+      // 從全域 Store 移除
+      LooksStore.I.removeById(jobId);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -167,32 +167,50 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
               const SizedBox(height: 14),
 
               Expanded(
-                child: looks.isEmpty
-                    ? const Center(
-                  child: Text(
-                    'No looks yet.',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                )
-                    : GridView.builder(
-                  padding: const EdgeInsets.only(top: 4),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.72, // 3/4 圖 + label
-                  ),
-                  itemCount: looks.length,
-                  itemBuilder: (context, index) {
-                    final look = looks[index];
-                    return _lookCard(context, look);
-                  },
+                child: RefreshIndicator(
+                  onRefresh: _getTryOnJobs,
+                  color: AppColors.primary,
+                  child: _buildListContent(looks),
                 ),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildListContent(List<Look> looks) {
+    if (_loading && looks.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (looks.isEmpty) {
+      return const Center(
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Text(
+            'No looks yet.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(top: 4, bottom: 20),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.72,
+      ),
+      itemCount: looks.length,
+      itemBuilder: (context, index) {
+        final look = looks[index];
+        return _lookCard(context, look);
+      },
     );
   }
 
@@ -281,8 +299,8 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white, // 底部也改為白色
+                decoration: const BoxDecoration(
+                  color: Colors.white,
                   border: Border(top: BorderSide(color: AppColors.border)),
                 ),
                 child: Row(
@@ -300,7 +318,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Icon(Icons.chevron_right, size: 18,
+                    const Icon(Icons.chevron_right, size: 18,
                         color: AppColors.textSecondary),
                   ],
                 ),
@@ -322,17 +340,15 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 全畫面圖片 + 疊加指示條
                 Stack(
                   children: [
                     AspectRatio(
-                      aspectRatio: 0.65, // 更長的比例，佔據更多畫面
+                      aspectRatio: 0.65,
                       child: Image.network(
                         look.imageUrl,
                         fit: BoxFit.cover,
                       ),
                     ),
-                    // 疊加在圖片上的指示條
                     Positioned(
                       top: 12,
                       left: 0,
@@ -372,7 +388,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 0),
                           itemCount: look.items.length,
-                          separatorBuilder: (context, index) => const SizedBox(width: 12), // 項目間距
+                          separatorBuilder: (context, index) => const SizedBox(width: 12),
                           itemBuilder: (context, index) {
                             final garment = look.items[index];
                             return _buildSmallGarmentItem(garment.category.label, garment);
@@ -481,7 +497,6 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
   }
 
   Future<void> _confirmDelete(BuildContext context, Look look) async {
-    debugPrint('Opening Look Detail. ID: ${look.id}');
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) =>
@@ -530,8 +545,6 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
 
     final bool isNetwork = imageUrl.startsWith('http');
 
-    debugPrint('Building Item: ${garment.name}');
-
     return Container(
       width: 80,
       margin: const EdgeInsets.only(right: 12),
@@ -550,10 +563,8 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                 imageUrl,
                 fit: BoxFit.cover,
                 width: double.infinity,
-                // 對於 Google Cloud Storage 網址，有時需要忽略快取或特定的連線設定
                 filterQuality: FilterQuality.low,
                 errorBuilder: (context, error, stackTrace) {
-                  debugPrint('Network Image Error: $error');
                   return const Center(
                     child: Icon(Icons.broken_image, size: 20, color: AppColors.textSecondary),
                   );
@@ -587,7 +598,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(11)),
             ),
             child: Text(
-              garment.name, // 建議顯示衣服名稱，讓使用者更容易對照
+              garment.name,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
