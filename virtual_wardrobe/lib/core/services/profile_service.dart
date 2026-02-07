@@ -7,25 +7,31 @@ import '../config/app_config.dart';
 import 'base_service.dart';
 
 class ProfileService with BaseService {
+   static final String _baseUrl = '${AppConfig.fullApiUrl}/users/me';
+   static final String _avatarUrl = '$_baseUrl/avatar';
+   static final String _fullBodyUrl = '$_baseUrl/full-body';
 
-   Future<Map<String, dynamic>> getMyProfile(String accessToken) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me');
-    final res = await http.get(uri, headers: authHeaders(accessToken));
+   Future<Map<String, dynamic>> getMyProfile() async {
+    final token = await getSafeToken();
+    final uri = Uri.parse(_baseUrl);
+    final res = await http.get(uri, headers: authHeaders(token));
     final envelope = decodeMap(res, op: 'getMyProfile');
     return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
   }
 
-   Future<InitUploadResult> avatarInitUpload(String accessToken) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me/avatar/init-upload');
-    final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'content_type': 'image/jpeg'}));
+   Future<InitUploadResult> avatarInitUpload() async {
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_avatarUrl/init-upload');
+    final res = await http.post(uri, headers: authHeaders(token), body: jsonEncode({'content_type': 'image/jpeg'}));
     final envelope = decodeMap(res, op: 'avatarInitUpload');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
     return InitUploadResult.fromJson(data);
   }
 
-   Future<String> avatarComplete(String accessToken, {required String objectName}) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me/avatar/complete');
-    final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'object_name': objectName}));
+   Future<String> avatarComplete({required String objectName}) async {
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_avatarUrl/complete');
+    final res = await http.post(uri, headers: authHeaders(token), body: jsonEncode({'object_name': objectName}));
     final envelope = decodeMap(res, op: 'avatarComplete');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
     final url = data['object_url']?.toString();
@@ -33,9 +39,10 @@ class ProfileService with BaseService {
     return url;
   }
 
-   Future<String?> getMyAvatar(String accessToken) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me/avatar');
-    final res = await http.get(uri, headers: authHeaders(accessToken));
+   Future<String?> getMyAvatar() async {
+    final token = await getSafeToken();
+    final uri = Uri.parse(_avatarUrl);
+    final res = await http.get(uri, headers: authHeaders(token));
     throwIfAuthExpired(res);
     if (res.statusCode == 404) return null;
     final envelope = decodeMap(res, op: 'getMyAvatar');
@@ -43,17 +50,19 @@ class ProfileService with BaseService {
     return data['object_url']?.toString();
   }
 
-  Future<InitUploadResult> fullBodyInitUpload(String accessToken) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me/full-body/init-upload');
-    final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'content_type': 'image/jpeg'}));
+  Future<InitUploadResult> fullBodyInitUpload() async {
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_fullBodyUrl/init-upload');
+    final res = await http.post(uri, headers: authHeaders(token), body: jsonEncode({'content_type': 'image/jpeg'}));
     final envelope = decodeMap(res, op: 'fullBodyInitUpload');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
     return InitUploadResult.fromJson(data);
   }
 
-  Future<String> fullBodyComplete(String accessToken, {required String objectName}) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me/full-body/complete');
-    final res = await http.post(uri, headers: authHeaders(accessToken), body: jsonEncode({'object_name': objectName}));
+  Future<String> fullBodyComplete({required String objectName}) async {
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_fullBodyUrl/complete');
+    final res = await http.post(uri, headers: authHeaders(token), body: jsonEncode({'object_name': objectName}));
     final envelope = decodeMap(res, op: 'fullBodyComplete');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
     final url = data['object_url']?.toString();
@@ -61,9 +70,10 @@ class ProfileService with BaseService {
     return url;
   }
 
-  Future<String?> getMyFullBody(String accessToken) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me/full-body');
-    final res = await http.get(uri, headers: authHeaders(accessToken));
+  Future<String?> getMyFullBody() async {
+    final token = await getSafeToken();
+    final uri = Uri.parse(_fullBodyUrl);
+    final res = await http.get(uri, headers: authHeaders(token));
     throwIfAuthExpired(res);
     if (res.statusCode == 404) return null;
     final envelope = decodeMap(res, op: 'getMyFullBody');
@@ -72,7 +82,7 @@ class ProfileService with BaseService {
   }
 
   Future<Map<String, dynamic>> updateMyProfile(
-       String accessToken, {
+       {
          String? name,
          String? gender,
          String? birthday,
@@ -80,7 +90,8 @@ class ProfileService with BaseService {
          num? weight,
          String? unitSystem,
        }) async {
-     final uri = Uri.parse('${AppConfig.fullApiUrl}/users/me');
+    final token = await getSafeToken();
+    final uri = Uri.parse(_baseUrl);
 
      final payload = <String, dynamic>{};
      if (name != null) payload['name'] = name;
@@ -92,7 +103,7 @@ class ProfileService with BaseService {
 
      final res = await http.patch(
        uri,
-       headers: authHeaders(accessToken),
+       headers: authHeaders(token),
        body: jsonEncode(payload),
      );
 

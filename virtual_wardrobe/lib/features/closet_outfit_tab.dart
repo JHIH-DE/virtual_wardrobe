@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
 import '../core/services/error_handler.dart';
-import '../core/services/garment_service.dart';
-import '../core/services/tryon_service.dart';
-import '../../data/token_storage.dart';
+import '../core/services/garments_service.dart';
+import '../core/services/outfit_service.dart';
 import '../../data/look_category.dart';
 import '../../data/garment_category.dart';
 import '../l10n/app_strings.dart';
@@ -34,7 +33,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   String? _error;
   bool _isLoading = false;
   bool _isGenerating = false;
-  bool _isTryOnLoading = false;
+  bool _isOutfitLoading = false;
   int _tryOnJobId = 0;
   OutfitMode _mode = OutfitMode.my;
   OutfitSelection _manualOutfit = const OutfitSelection();
@@ -73,28 +72,28 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
 
           const SizedBox(height: 14),
           if (_selectedOutfit != null || _manualOutfit.canTryOn || _tryOnResultUrl != null)
-            _buildTryOnResultCard(context),
+            _buildOutfitResultCard(context),
         ],
       ),
     );
   }
 
-  Widget _buildTryOnResultCard(BuildContext context) {
-    final bool isVisible = _tryOnResultUrl != null || _isTryOnLoading || _errorMessage != null;
+  Widget _buildOutfitResultCard(BuildContext context) {
+    final bool isVisible = _tryOnResultUrl != null || _isOutfitLoading || _errorMessage != null;
 
     if (!isVisible) return const SizedBox.shrink();
 
     return _sectionCard(
       title: AppStrings.tryOnResult,
-      child: _buildTryOnSection(context),
+      child: _buildOutfitSection(context),
     );
   }
 
-  Widget _buildTryOnSection(BuildContext context) {
+  Widget _buildOutfitSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_isTryOnLoading) ...[
+        if (_isOutfitLoading) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: const LinearProgressIndicator(minHeight: 4),
@@ -145,7 +144,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
                 child: AspectRatio(
                   aspectRatio:  3/4,
                   child: Hero(
-                    tag: 'tryon_image',
+                    tag: 'outfit_image',
                     child: Image.network(
                       _tryOnResultUrl!,
                       fit: BoxFit.cover,
@@ -192,7 +191,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: _isTryOnLoading ? null : _discardResult,
+                  onPressed: _isOutfitLoading ? null : _discardResult,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textPrimary,
                     side: const BorderSide(color: AppColors.border),
@@ -205,7 +204,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _isTryOnLoading ? null : _saveLook,
+                  onPressed: _isOutfitLoading ? null : _saveLook,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -224,11 +223,9 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
   }
 
   Future<void> _loadGarments() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) return;
     setState(() => _isLoading = true);
     try {
-      final list = await GarmentService().getGarments(token);
+      final list = await GarmentService().getGarments();
       if (mounted) setState(() => _allGarments..clear()..addAll(list));
     } on AuthExpiredException {
       if (!mounted) return;
@@ -245,12 +242,12 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     final bool isSelected = _selectedOutfit?['outfit_id'] == outfit['outfit_id'];
 
     return InkWell(
-      onTap: _isTryOnLoading
+      onTap: _isOutfitLoading
           ? null
           : () {
         setState(() {
           _selectedOutfit = outfit;
-          _resetTryOnState(clearSelection: false);
+          _resetOutfitState(clearSelection: false);
         });
       },
       borderRadius: BorderRadius.circular(14),
@@ -338,7 +335,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         onSelectionChanged: (s) {
           setState(() {
             _mode = s.first;
-            _resetTryOnState(clearSelection: false);
+            _resetOutfitState(clearSelection: false);
             _errorMessage = null;
             if (_mode == OutfitMode.my) {
               _selectedOutfit = null;
@@ -413,7 +410,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
                     DropdownMenuItem(value: 'Autumn', child: Text('Autumn')),
                     DropdownMenuItem(value: 'Winter', child: Text('Winter')),
                   ],
-                  onChanged: _isGenerating || _isTryOnLoading
+                  onChanged: _isGenerating || _isOutfitLoading
                       ? null
                       : (v) => setState(() => _selectedSeason = v ?? _selectedSeason),
                 ),
@@ -428,7 +425,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
                     DropdownMenuItem(value: 'Classic', child: Text('Classic')),
                     DropdownMenuItem(value: 'Sporty', child: Text('Sporty')),
                   ],
-                  onChanged: _isGenerating || _isTryOnLoading
+                  onChanged: _isGenerating || _isOutfitLoading
                       ? null
                       : (v) => setState(() => _selectedStyle = v ?? _selectedStyle),
                 ),
@@ -437,7 +434,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
           ),
           const SizedBox(height: 12),
           OutlinedButton(
-            onPressed: _isGenerating || _isTryOnLoading ? null : _generateOutfits,
+            onPressed: _isGenerating || _isOutfitLoading ? null : _generateOutfits,
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.textPrimary,
               side: BorderSide(color: AppColors.border),
@@ -474,13 +471,13 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             category: GarmentCategory.top,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(top: g);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
             onClear: _manualOutfit.top == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(top: null);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -490,13 +487,13 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             category: GarmentCategory.top,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(middle: g);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
             onClear: _manualOutfit.middle == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearMiddle: true);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -506,13 +503,13 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             category: GarmentCategory.outer,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(outer: g);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
             onClear: _manualOutfit.outer == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearOuter: true);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -522,13 +519,13 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             category: GarmentCategory.bottom,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(bottom: g);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
             onClear: _manualOutfit.bottom == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(bottom: null);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -538,13 +535,13 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             category: GarmentCategory.shoes,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(shoes: g);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
             onClear: _manualOutfit.shoes == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearShoes: true);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -554,20 +551,20 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
             category: GarmentCategory.accessory,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(accessory: g);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
             onClear: _manualOutfit.accessory == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearAccessory: true);
-              _resetTryOnState(clearSelection: false);
+              _resetOutfitState(clearSelection: false);
             }),
           ),
 
           const SizedBox(height: 12),
 
           OutlinedButton(
-            onPressed: (_isTryOnLoading || !_manualOutfit.canTryOn)
+            onPressed: (_isOutfitLoading || !_manualOutfit.canTryOn)
                 ? null
                 : _startTryOn,
             style: OutlinedButton.styleFrom(
@@ -619,7 +616,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     VoidCallback? onClear,
   }) {
     return InkWell(
-      onTap: _isTryOnLoading
+      onTap: _isOutfitLoading
           ? null
           : () async {
         final picked = await Navigator.push(
@@ -705,7 +702,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     setState(() {
       _isGenerating = true;
       _selectedOutfit = null;
-      _resetTryOnState(clearSelection: false);
+      _resetOutfitState(clearSelection: false);
       _suggestedOutfits.clear();
     });
 
@@ -745,12 +742,9 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
       return;
     }
 
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) return;
-
     _pollTimer?.cancel();
     setState(() {
-      _isTryOnLoading = true;
+      _isOutfitLoading = true;
       _errorMessage = null;
       _tryOnResultUrl = null;
       _aiAdvice = null;
@@ -765,8 +759,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
       if (_manualOutfit.shoes?.id != null) ids.add(_manualOutfit.shoes!.id!);
       if (_manualOutfit.accessory?.id != null) ids.add(_manualOutfit.accessory!.id!);
 
-      final jobResponse = await TryOnService().createTryOnJob(
-        token,
+      final jobResponse = await OutfitService().createOutfit(
         garmentIds: ids
       );
 
@@ -774,7 +767,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
       if (!mounted) return;
       setState(() => _tryOnJobId = jobId);
 
-      _startPolling(token, jobId);
+      _startPolling(jobId);
 
     } on AuthExpiredException {
       if (!mounted) return;
@@ -782,23 +775,23 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _isTryOnLoading = false;
+        _isOutfitLoading = false;
         _errorMessage = 'Failed: $e';
       });
     }
   }
 
-  void _startPolling(String token, int jobId) {
+  void _startPolling(int jobId) {
     int attempts = 0;
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       attempts++;
       if (attempts > 180) {
         timer.cancel();
-        if (mounted) setState(() { _isTryOnLoading = false; _errorMessage = 'Timeout.'; });
+        if (mounted) setState(() { _isOutfitLoading = false; _errorMessage = 'Timeout.'; });
         return;
       }
       try {
-        final statusRes = await TryOnService().getTryOnJobStatus(token, jobId);
+        final statusRes = await OutfitService().getOutfit(jobId);
         final status = statusRes['status'];
         print('--- Try-On Job Id: $jobId ---');
         print('--- Try-On Job Status: $status ---');
@@ -807,14 +800,14 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         if (status == 'completed') {
           timer.cancel();
           setState(() {
-            _isTryOnLoading = false;
+            _isOutfitLoading = false;
             _tryOnResultUrl = statusRes['result_image_url'];
             _aiAdvice = statusRes['ai_notes'] ?? 'Looking good!';
           });
           print('--- Try-On Job tryOnResultUrl: $_tryOnResultUrl ---');
         } else if (status == 'failed') {
           timer.cancel();
-          setState(() { _isTryOnLoading = false; _errorMessage = 'Failed on server.'; });
+          setState(() { _isOutfitLoading = false; _errorMessage = 'Failed on server.'; });
         }
       } catch (_) {}
     });
@@ -822,8 +815,8 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
 
   void _discardResult() {
     _pollTimer?.cancel();
-    _deleteTryOnJob(_tryOnJobId);
-    setState(() { _resetTryOnState(clearSelection: false); });
+    _deleteOutfit(_tryOnJobId);
+    setState(() { _resetOutfitState(clearSelection: false); });
   }
 
   Future<void> _saveLook() async { 
@@ -835,14 +828,6 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
         seasons: _selectedSeason,
         style: _selectedStyle,
         advice: _aiAdvice,
-        items: [
-          if (_manualOutfit.top != null) _manualOutfit.top!,
-          if (_manualOutfit.middle != null) _manualOutfit.middle!,
-          if (_manualOutfit.outer != null) _manualOutfit.outer!,
-          if (_manualOutfit.bottom != null) _manualOutfit.bottom!,
-          if (_manualOutfit.shoes != null) _manualOutfit.shoes!,
-          if (_manualOutfit.accessory != null) _manualOutfit.accessory!,
-        ],
       );
 
       LooksStore.I.add(look);
@@ -850,30 +835,23 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> {
     } catch (_) {}
   }
 
-  void _resetTryOnState({required bool clearSelection}) {
+  void _resetOutfitState({required bool clearSelection}) {
     _pollTimer?.cancel();
-    _isTryOnLoading = false;
+    _isOutfitLoading = false;
     _errorMessage = null;
     _tryOnResultUrl = null;
     _aiAdvice = null;
     if (clearSelection) _selectedOutfit = null;
   }
 
-  Future<void> _deleteTryOnJob(int jobId) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) {
-      if (!mounted) return;
-      setState(() => _error = 'Missing access token. Please login again.');
-      return;
-    }
-
+  Future<void> _deleteOutfit(int jobId) async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      await TryOnService().deleteTryOnJob(token, jobId);
+      await OutfitService().deleteOutfit(jobId);
       if (!mounted) return;
     } on AuthExpiredException {
       if (!mounted) return;
@@ -903,7 +881,7 @@ class FullScreenImagePage extends StatelessWidget {
           height: double.infinity,
           alignment: Alignment.center,
           child: Hero(
-            tag: 'tryon_image',
+            tag: 'outfit_image',
             child: AspectRatio(
               aspectRatio: 0.6,
               child: Image.network(

@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
 import '../core/services/error_handler.dart';
-import '../core/services/garment_service.dart';
-import '../data/token_storage.dart';
+import '../core/services/garments_service.dart';
 import 'add_garment_page.dart';
 import '../data/garment_category.dart';
 
@@ -34,20 +33,13 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
   }
 
   Future<void> _refresh() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) {
-      if (!mounted) return;
-      setState(() => _error = 'Missing access token. Please login again.');
-      return;
-    }
-
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      final list = await GarmentService().getGarments(token);
+      final list = await GarmentService().getGarments();
       if (!mounted) return;
       setState(() {
         _allGarments
@@ -385,19 +377,11 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
 
     if (ok != true) return;
 
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Missing access token. Please login again.')),
-      );
-      return;
-    }
-
     try {
       if (garment.id == null) {
         throw Exception('Missing item.id');
       }
-      await GarmentService().deleteGarment(token, garment.id!);
+      await GarmentService().deleteGarment(garment.id!);
 
       if (!mounted) return;
       setState(() {

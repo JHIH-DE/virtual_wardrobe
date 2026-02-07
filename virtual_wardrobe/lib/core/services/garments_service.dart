@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:mime/mime.dart';
+import 'package:flutter/material.dart';
 
 import '../../data/garment_category.dart';
 import '../config/app_config.dart';
@@ -13,16 +14,19 @@ import 'base_service.dart';
 class GarmentService with BaseService {
 
   static final GarmentService _instance = GarmentService._internal();
+  static final String _baseUrl = '${AppConfig.fullApiUrl}/garments';
   factory GarmentService() => _instance;
   GarmentService._internal();
 
-  Future<InitUploadResult> initUpload(String accessToken) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/garments/init-upload');
+  Future<InitUploadResult> initUpload() async {
+    debugPrint('--- initUpload ---');
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_baseUrl/init-upload');
     final res = await http.post(
       uri,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
+        'Authorization': 'Bearer $token',
       },
       body: jsonEncode({'content_type': 'image/jpeg'}),
     );
@@ -38,6 +42,7 @@ class GarmentService with BaseService {
   }
 
   Future<void> uploadImage(String uploadUrl, String localPath) async {
+    debugPrint('--- uploadImage ---');
     final file = File(localPath);
     final bytes = await file.readAsBytes();
     final uri = Uri.parse(uploadUrl);
@@ -48,8 +53,10 @@ class GarmentService with BaseService {
     }
   }
 
-  Future<Garment> completeUpload(String accessToken, Garment garment) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/garments/complete');
+  Future<Garment> completeUpload(Garment garment, Map<String, dynamic>? metaData) async {
+    debugPrint('--- completeUpload ---');
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_baseUrl/complete');
     final String? dateStr = garment.purchaseDate?.toIso8601String().split('T')[0];
 
     final payload = <String, dynamic>{
@@ -63,14 +70,12 @@ class GarmentService with BaseService {
       'purchase_date': dateStr,
       'thickness': garment.thickness,
       'formality': garment.formality,
+      'metadata': metaData,
     };
-
-    print('--- completeUpload Payload ---');
-    print(jsonEncode(payload));
 
     final res = await http.post(
       uri,
-      headers: authHeaders(accessToken),
+      headers: authHeaders(token),
       body: jsonEncode(payload),
     ).timeout(const Duration(seconds: 15));
 
@@ -83,9 +88,11 @@ class GarmentService with BaseService {
     return Garment.fromJson(data);
   }
 
-  Future<List<Garment>> getGarments(String accessToken) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/garments');
-    final res = await http.get(uri, headers: authHeaders(accessToken));
+  Future<List<Garment>> getGarments() async {
+    debugPrint('--- getGarments ---');
+    final token = await getSafeToken();
+    final uri = Uri.parse(_baseUrl);
+    final res = await http.get(uri, headers: authHeaders(token));
 
     final envelope = decodeMap(res, op: 'getGarments');
     final data = envelope['data'];
@@ -94,17 +101,37 @@ class GarmentService with BaseService {
     return data.whereType<Map<String, dynamic>>().map((j) => Garment.fromJson(j)).toList();
   }
 
-  Future<void> deleteGarment(String accessToken, int garmentId) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/garments/$garmentId');
-    final res = await http.delete(uri, headers: {'Authorization': 'Bearer $accessToken'});
+  Future<Garment> getGarment(int garmentId) async {
+    debugPrint('--- getGarment ---');
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_baseUrl/$garmentId');
+    final res = await http.get(uri, headers: authHeaders(token));
+
+    final envelope = decodeMap(res, op: 'getGarment');
+    final data = envelope['data'] as Map<String, dynamic>?;
+
+    if (data == null) {
+      throw Exception('getGarment: response missing data');
+    }
+
+    return Garment.fromJson(data);
+  }
+
+  Future<void> deleteGarment(int garmentId) async {
+    debugPrint('--- deleteGarment ---');
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_baseUrl/$garmentId');
+    final res = await http.delete(uri, headers: {'Authorization': 'Bearer $token'});
     if (res.statusCode == 200 || res.statusCode == 204 || res.statusCode == 404) return;
     throw Exception('deleteGarment failed (${res.statusCode})');
   }
 
-  Future<Garment> updateGarment(String accessToken, Garment garment) async {
+  Future<Garment> updateGarment(Garment garment) async {
+    debugPrint('--- updateGarment ---');
     if (garment.id == null) throw Exception('updateGarment: missing id');
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/garments/${garment.id}');
-    final res = await http.patch(uri, headers: authHeaders(accessToken), body: jsonEncode(garment.toJson()));
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_baseUrl/${garment.id}');
+    final res = await http.patch(uri, headers: authHeaders(token), body: jsonEncode(garment.toJson()));
     final envelope = decodeMap(res, op: 'updateGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
     if (data == null) throw Exception('updateGarment: response missing data');
@@ -112,12 +139,14 @@ class GarmentService with BaseService {
     return Garment.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> analyzeInstantGarment(String accessToken, String localPath) async {
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/garments/analyze-instant');
+  Future<Map<String, dynamic>> analyzeGarment(String localPath) async {
+    debugPrint('--- analyzeGarment ---');
+    final token = await getSafeToken();
+    final uri = Uri.parse('$_baseUrl/analyze-instant');
     final request = http.MultipartRequest('POST', uri);
 
     request.headers.addAll({
-      'Authorization': 'Bearer $accessToken',
+      'Authorization': 'Bearer $token',
     });
 
     final mimeType = lookupMimeType(localPath) ?? 'image/jpeg';

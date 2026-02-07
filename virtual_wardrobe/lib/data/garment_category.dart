@@ -254,6 +254,7 @@ class Garment {
   final double formality;
   final String uploadUrl;
   final String objectName;
+  final Map<String, dynamic>? metadata;
 
   const Garment({
     required this.name,
@@ -269,6 +270,7 @@ class Garment {
     this.price,
     this.purchaseDate,
     this.imageUrl,
+    this.metadata,
   });
 
   Garment copyWith({
@@ -285,11 +287,13 @@ class Garment {
     String? uploadUrl,
     String? objectName,
     String? imageUrl,
+    Map<String, dynamic>? metadata,
     bool clearId = false,
     bool clearBrand = false,
     bool clearColor = false,
     bool clearPrice = false,
     bool clearPurchaseDate = false,
+    bool clearMetadata = false,
   }) {
     return Garment(
       id: clearId ? null : (id ?? this.id),
@@ -305,6 +309,7 @@ class Garment {
       color: clearColor ? null : (color ?? this.color),
       price: clearPrice ? null : (price ?? this.price),
       purchaseDate: clearPurchaseDate ? null : (purchaseDate ?? this.purchaseDate),
+      metadata: clearMetadata ? null : (metadata ?? this.metadata),
     );
   }
 
@@ -336,6 +341,7 @@ class Garment {
       uploadUrl: (json['upload_url'] as String?) ?? '',
       objectName: (json['object_name'] as String?) ?? '',
       imageUrl: (json['image_url'] as String?) ?? '',
+      metadata: json['metadata'] as Map<String, dynamic>?,
     );
   }
 
@@ -354,6 +360,7 @@ class Garment {
       'upload_url': uploadUrl,
       'object_name': objectName,
       'image_url': imageUrl,
+      'metadata': metadata,
     };
   }
 }

@@ -51,16 +51,13 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _loadProfile() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) return;
-
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      final profile = await ProfileService().getMyProfile(token);
+      final profile = await ProfileService().getMyProfile();
 
       if (!mounted) return;
 
@@ -137,7 +134,6 @@ class _AccountPageState extends State<AccountPage> {
 
     try {
      final result = await ProfileService().updateMyProfile(
-        token,
         name: name.isNotEmpty ? name : null,
         gender: gender,
         birthday: birthday,
@@ -325,13 +321,11 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _uploadAvatar(String localPath) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) return;
     setState(() => _loading = true);
     try {
-      final init = await ProfileService().avatarInitUpload(token);
+      final init = await ProfileService().avatarInitUpload();
       await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final newUrl = await ProfileService().avatarComplete(token, objectName: init.objectName);
+      final newUrl = await ProfileService().avatarComplete(objectName: init.objectName);
       if (mounted) {
         setState(() {
           _avatarUrl = newUrl;
@@ -418,14 +412,11 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _uploadFullBody(String localPath) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null || token.isEmpty) return;
-    
     setState(() => _fullBodyUploading = true); 
     try {
-      final init = await ProfileService().fullBodyInitUpload(token);
+      final init = await ProfileService().fullBodyInitUpload();
       await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final newUrl = await ProfileService().fullBodyComplete(token, objectName: init.objectName);
+      final newUrl = await ProfileService().fullBodyComplete(objectName: init.objectName);
       
       if (mounted) {
         setState(() {

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../data/token_storage.dart';
 import 'error_handler.dart';
 
 mixin BaseService {
@@ -14,10 +15,16 @@ mixin BaseService {
     };
   }
 
-  Map<String, dynamic> decodeResponse(http.Response res, {required String op}) {
-    if (res.statusCode == 401) {
-      throw Exception('Authentication expired');
+  Future<String> getSafeToken() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null || token.isEmpty) {
+      throw AuthExpiredException();
     }
+    return token;
+  }
+
+  Map<String, dynamic> decodeResponse(http.Response res, {required String op}) {
+    throwIfAuthExpired(res);
     
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('$op failed (${res.statusCode}): ${res.body}');

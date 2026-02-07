@@ -26,7 +26,6 @@ class _LoginPageState extends State<LoginPage> {
   );
 
   bool _isLoading = false;
-  bool _obscure = true;
 
   @override
   void dispose() {

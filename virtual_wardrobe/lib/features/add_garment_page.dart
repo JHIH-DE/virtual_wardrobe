@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
 import '../core/services/error_handler.dart';
-import '../core/services/garment_service.dart';
+import '../core/services/garments_service.dart';
 import '../core/services/profile_service.dart';
-import '../data/token_storage.dart';
 import '../data/garment_category.dart';
 import 'image_edit_page.dart';
 
@@ -37,22 +36,24 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   GarmentColor? _selectedColor;
   GarmentCategory _category = GarmentCategory.top;
   DateTime? _purchaseDate;
+  Garment? _editingGarment;
+  Map<String, dynamic>? _metaData;
 
   @override
   void initState() {
     super.initState();
     _getGender();
-    final g = widget.initialGarment;
-    _id = g?.id;
-    _imagePathOrUrl = g?.imageUrl;
-    _initialImagePathOrUrl = g?.imageUrl;
-    _category = g?.category ?? GarmentCategory.top;
-    _subCategory.text = g?.subCategory ?? '';
-    _nameCtrl.text = g?.name ?? '';
-    _brandCtrl.text = g?.brand ?? '';
-    _priceCtrl.text = g?.price?.toString() ?? '';
-    _purchaseDate = g?.purchaseDate;
-    _selectedColor = _tryParseGarmentColor(g?.color);
+    _editingGarment = widget.initialGarment;
+    _id = _editingGarment?.id;
+    _imagePathOrUrl = _editingGarment?.imageUrl;
+    _initialImagePathOrUrl = _editingGarment?.imageUrl;
+    _category = _editingGarment?.category ?? GarmentCategory.top;
+    _subCategory.text = _editingGarment?.subCategory ?? '';
+    _nameCtrl.text = _editingGarment?.name ?? '';
+    _brandCtrl.text = _editingGarment?.brand ?? '';
+    _priceCtrl.text = _editingGarment?.price?.toString() ?? '';
+    _purchaseDate = _editingGarment?.purchaseDate;
+    _selectedColor = _tryParseGarmentColor(_editingGarment?.color);
   }
 
   @override
@@ -64,7 +65,26 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     super.dispose();
   }
 
-  bool get _isEditMode => widget.initialGarment != null;
+  bool get _isEditMode => _editingGarment != null;
+
+  void _resetForm() {
+    setState(() {
+      _nameCtrl.clear();
+      _subCategory.clear();
+      _brandCtrl.clear();
+      _priceCtrl.clear();
+      _imagePathOrUrl = null;
+      _initialImagePathOrUrl = null;
+      _selectedColor = null;
+      _category = GarmentCategory.top;
+      _purchaseDate = null;
+      _isImageChanged = false;
+      errorMessage = null;
+      _id = null;
+      _editingGarment = null;
+      _metaData = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -489,42 +509,38 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     });
 
     try {
-      final token = await TokenStorage.getAccessToken();
-      if (token != null) {
-        setState(() => _isAnalyzing = true);
+      setState(() => _isAnalyzing = true);
+      debugPrint('Analyzing garment image: $result');
+      final analysisData = await GarmentService().analyzeGarment(result);
+      debugPrint(analysisData.toString());
 
-        debugPrint('Analyzing garment image: $result');
-        final analysisData = await GarmentService().analyzeInstantGarment(token, result);
+      setState(() {
+        if (analysisData['name'] != null) {
+          _nameCtrl.text = analysisData['name'].toString();
+        }
 
-        debugPrint('--- AI Analysis Data ---');
-        debugPrint(analysisData.toString());
-
-        setState(() {
-          if (analysisData['name'] != null) {
-            _nameCtrl.text = analysisData['name'].toString();
-          }
-
-          final String? catStr = analysisData['category']?.toString().toLowerCase();
-          if (catStr != null) {
-            for (var val in GarmentCategory.values) {
-              if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
-                _category = val;
-                break;
-              }
+        final String? catStr = analysisData['category']?.toString().toLowerCase();
+        if (catStr != null) {
+          for (var val in GarmentCategory.values) {
+            if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
+              _category = val;
+              break;
             }
           }
+        }
 
-          if (analysisData['sub_category'] != null) {
-            _subCategory.text = analysisData['sub_category'].toString();
-          }
+        if (analysisData['sub_category'] != null) {
+          _subCategory.text = analysisData['sub_category'].toString();
+        }
 
-          final String? colorStr = analysisData['color']?.toString();
-          if (colorStr != null) {
-            _selectedColor = _tryParseGarmentColor(colorStr);
-          }
-          _isAnalyzing = false;
-        });
-      }
+        final String? colorStr = analysisData['color']?.toString();
+        if (colorStr != null) {
+          _selectedColor = _tryParseGarmentColor(colorStr);
+        }
+        _metaData = analysisData;
+
+        _isAnalyzing = false;
+      });
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -536,7 +552,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   Future<void> _saveGarment() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final isAdd = widget.initialGarment?.id == null;
+    final isAdd = _editingGarment?.id == null;
 
     setState(() {
       uploading = true;
@@ -544,12 +560,11 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     });
 
     try {
-      final token = await TokenStorage.getAccessToken();
       late Garment result;
 
       if (isAdd || _isImageChanged) {
         final raw = (_imagePathOrUrl ?? '').trim();
-        final initDate = await GarmentService().initUpload(token!);
+        final initDate = await GarmentService().initUpload();
         await GarmentService().uploadImage(initDate.uploadUrl, raw);
 
         final tempGarment = Garment(
@@ -563,13 +578,16 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
           purchaseDate: _purchaseDate,
         );
-
+        debugPrint('--- [James] 0 ---');
         if (_isImageChanged && !isAdd && _id != null) {
-          await GarmentService().deleteGarment(token, _id!);
+          await GarmentService().deleteGarment(_id!);
         }
-        result = await GarmentService().completeUpload(token, tempGarment);
+        debugPrint('--- [James] 1 ---');
+        debugPrint('--- [James] Sending metadata: $_metaData ---');
+        result = await GarmentService().completeUpload(tempGarment, _metaData);
+        debugPrint('--- [James] 2 ---');
       } else {
-        final original = widget.initialGarment!;
+        final original = _editingGarment!;
         Garment updated = original.copyWith(
           name: _nameCtrl.text.trim(),
           category: _category,
@@ -577,16 +595,65 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
           color: _selectedColor?.label,
           price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
-          purchaseDate: _purchaseDate,
-        );
-        result = await GarmentService().updateGarment(token!, updated);
+          purchaseDate: _purchaseDate,        );
+        result = await GarmentService().updateGarment(updated);
       }
       if (!mounted) return;
-      Navigator.pop(context, result);
+
+      if (isAdd) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) {
+            Timer(const Duration(milliseconds: 3000), () {
+              if (Navigator.canPop(ctx)) {
+                Navigator.pop(ctx);
+              }
+            });
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Garment Created!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Successfully added to your wardrobe',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+        _resetForm();
+      } else {
+        // 編輯成功：回到前一頁
+        Navigator.pop(context, result);
+      }
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
+      debugPrint('Save garment failed: $e');
       setState(() => errorMessage = e.toString());
     } finally {
       if (mounted) setState(() => uploading = false);
@@ -599,13 +666,10 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   Future<void> _getGender() async {
     try {
-      final token = await TokenStorage.getAccessToken();
-      if (token != null) {
-        final profile = await ProfileService().getMyProfile(token);
-        setState(() {
-          _userGender = profile['gender'];
-        });
-      }
+      final profile = await ProfileService().getMyProfile();
+      setState(() {
+        _userGender = profile['gender'];
+      });
     } catch (e) {
       debugPrint('Failed to _getGender: $e');
     }

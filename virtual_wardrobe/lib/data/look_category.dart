@@ -4,6 +4,7 @@ import 'garment_category.dart';
 
 class Look {
   final int id;
+  final List<int> garmentIds; // 新增此欄位
   final String imageUrl;
   final String? seasons;
   final String? style;
@@ -11,16 +12,15 @@ class Look {
   final String? errorMessage;
   final DateTime createdAt;
   final DateTime? finishedAt;
-  final List<Garment> items;
 
   Look({
     required this.id,
+    this.garmentIds = const [], // 建構子加入
     required this.imageUrl,
     this.seasons,
     this.style,
     this.advice,
     this.errorMessage,
-    this.items = const [],
     DateTime? createdAt,
     this.finishedAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -32,15 +32,23 @@ class Look {
       return null;
     }
 
-    // 健壯地解析 ID，防止 String/int 型別不符
     int parseId(dynamic v) {
       if (v is int) return v;
       if (v is String) return int.tryParse(v) ?? 0;
       return 0;
     }
 
+    // 解析 garment_ids 列表
+    List<int> parseIds(dynamic v) {
+      if (v is List) {
+        return v.map((e) => parseId(e)).toList();
+      }
+      return [];
+    }
+
     return Look(
       id: parseId(json['job_id']),
+      garmentIds: parseIds(json['garment_ids']), // 使用解析方法
       imageUrl: json['result_image_url'] ?? '',
       errorMessage: json['error_message'],
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
@@ -48,13 +56,13 @@ class Look {
       seasons: json['seasons'],
       style: json['style'],
       advice: json['ai_notes'],
-      items: [],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'job_id': id,
+      'garment_ids': garmentIds, // 修正此處
       'result_image_url': imageUrl,
       'error_message': errorMessage,
       'created_at': createdAt.toIso8601String(),
