@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
@@ -9,6 +10,7 @@ import 'base_service.dart';
 class LoginService with BaseService {
 
   Future<String> loginWithGoogleIdToken(String idToken) async {
+    debugPrint('--- loginWithGoogleIdToken ---');
     final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/google');
     final res = await http.post(
       uri,
@@ -22,6 +24,45 @@ class LoginService with BaseService {
 
     final token = data['access_token'] as String?;
     if (token == null || token.isEmpty) throw Exception('Google login: missing access_token');
+    return token;
+  }
+
+  Future<String> loginWithAppleIdToken(String idToken) async {
+    debugPrint('--- loginWithAppleIdToken ---');
+    final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/apple');
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'id_token': idToken,
+        'name': null,
+      }),
+    );
+
+    final envelope = decodeMap(res, op: 'loginWithApple');
+    final data = envelope['data'] as Map<String, dynamic>?;
+    if (data == null) throw Exception('Apple login: response missing data');
+
+    final token = data['access_token'] as String?;
+    if (token == null || token.isEmpty) throw Exception('Apple login: missing access_token');
+    return token;
+  }
+
+  Future<String> loginWithFaceBookIdToken(String idToken) async {
+    debugPrint('--- loginWithFaceBookIdToken ---');
+    final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/facebook');
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'access_token': idToken}),
+    );
+
+    final envelope = decodeMap(res, op: 'loginWithFacebook');
+    final data = envelope['data'] as Map<String, dynamic>?;
+    if (data == null) throw Exception('Facebook login: response missing data');
+
+    final token = data['access_token'] as String?;
+    if (token == null || token.isEmpty) throw Exception('Facebook login: missing access_token');
     return token;
   }
 }

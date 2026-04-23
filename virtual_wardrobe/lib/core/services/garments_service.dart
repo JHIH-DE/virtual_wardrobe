@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:mime/mime.dart';
-import 'package:flutter/material.dart';
 
 import '../../data/garment_category.dart';
 import '../config/app_config.dart';
@@ -24,10 +24,7 @@ class GarmentService with BaseService {
     final uri = Uri.parse('$_baseUrl/init-upload');
     final res = await http.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      headers: authHeaders(token),
       body: jsonEncode({'content_type': 'image/jpeg'}),
     );
 
@@ -47,6 +44,7 @@ class GarmentService with BaseService {
     final bytes = await file.readAsBytes();
     final uri = Uri.parse(uploadUrl);
     final res = await http.put(uri, headers: {'Content-Type': 'image/jpeg'}, body: bytes);
+    throwIfAuthExpired(res);
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('PUT to signed url failed: ${res.statusCode} ${res.body}');
@@ -93,7 +91,7 @@ class GarmentService with BaseService {
     final token = await getSafeToken();
     final uri = Uri.parse(_baseUrl);
     final res = await http.get(uri, headers: authHeaders(token));
-
+    throwIfAuthExpired(res);
     final envelope = decodeMap(res, op: 'getGarments');
     final data = envelope['data'];
     if (data is! List) throw Exception('getGarments: response missing list data');
@@ -102,11 +100,11 @@ class GarmentService with BaseService {
   }
 
   Future<Garment> getGarment(int garmentId) async {
-    debugPrint('--- getGarment ---');
+    debugPrint('--- getGarment: $garmentId  ---');
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/$garmentId');
     final res = await http.get(uri, headers: authHeaders(token));
-
+    throwIfAuthExpired(res);
     final envelope = decodeMap(res, op: 'getGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
 
@@ -118,10 +116,11 @@ class GarmentService with BaseService {
   }
 
   Future<void> deleteGarment(int garmentId) async {
-    debugPrint('--- deleteGarment ---');
+    debugPrint('--- deleteGarment: $garmentId ---');
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/$garmentId');
-    final res = await http.delete(uri, headers: {'Authorization': 'Bearer $token'});
+    final res = await http.delete(uri, headers: authHeaders(token));
+    throwIfAuthExpired(res);
     if (res.statusCode == 200 || res.statusCode == 204 || res.statusCode == 404) return;
     throw Exception('deleteGarment failed (${res.statusCode})');
   }
@@ -132,6 +131,7 @@ class GarmentService with BaseService {
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/${garment.id}');
     final res = await http.patch(uri, headers: authHeaders(token), body: jsonEncode(garment.toJson()));
+    throwIfAuthExpired(res);
     final envelope = decodeMap(res, op: 'updateGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
     if (data == null) throw Exception('updateGarment: response missing data');

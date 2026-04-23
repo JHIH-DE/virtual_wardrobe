@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'garment_category.dart';
 
 class Look {
   final int id;
-  final List<int> garmentIds; // 新增此欄位
+  final List<int> garmentIds;
   final String imageUrl;
   final String? seasons;
   final String? style;
@@ -15,7 +14,7 @@ class Look {
 
   Look({
     required this.id,
-    this.garmentIds = const [], // 建構子加入
+    this.garmentIds = const [],
     required this.imageUrl,
     this.seasons,
     this.style,
@@ -38,7 +37,6 @@ class Look {
       return 0;
     }
 
-    // 解析 garment_ids 列表
     List<int> parseIds(dynamic v) {
       if (v is List) {
         return v.map((e) => parseId(e)).toList();
@@ -48,7 +46,7 @@ class Look {
 
     return Look(
       id: parseId(json['job_id']),
-      garmentIds: parseIds(json['garment_ids']), // 使用解析方法
+      garmentIds: parseIds(json['garment_ids']),
       imageUrl: json['result_image_url'] ?? '',
       errorMessage: json['error_message'],
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
@@ -62,7 +60,7 @@ class Look {
   Map<String, dynamic> toJson() {
     return {
       'job_id': id,
-      'garment_ids': garmentIds, // 修正此處
+      'garment_ids': garmentIds,
       'result_image_url': imageUrl,
       'error_message': errorMessage,
       'created_at': createdAt.toIso8601String(),

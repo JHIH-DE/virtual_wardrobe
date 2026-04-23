@@ -59,7 +59,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
     });
 
     try {
-      final list = await OutfitService().getOutfits();
+      final list = await OutfitService().getAllOutfits();
       if (!mounted) return;
       LooksStore.I.setLooks(list);
     } on AuthExpiredException {

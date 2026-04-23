@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../app/theme/app_colors.dart';
 import '../core/services/error_handler.dart';
 import '../core/services/garments_service.dart';
 import '../core/services/profile_service.dart';
 import '../data/garment_category.dart';
-import 'image_edit_page.dart';
 
 class AddGarmentPage extends StatefulWidget {
   final Garment? initialGarment;
@@ -47,13 +47,23 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     _id = _editingGarment?.id;
     _imagePathOrUrl = _editingGarment?.imageUrl;
     _initialImagePathOrUrl = _editingGarment?.imageUrl;
-    _category = _editingGarment?.category ?? GarmentCategory.top;
-    _subCategory.text = _editingGarment?.subCategory ?? '';
-    _nameCtrl.text = _editingGarment?.name ?? '';
-    _brandCtrl.text = _editingGarment?.brand ?? '';
-    _priceCtrl.text = _editingGarment?.price?.toString() ?? '';
-    _purchaseDate = _editingGarment?.purchaseDate;
-    _selectedColor = _tryParseGarmentColor(_editingGarment?.color);
+    
+    if (_id == null && _imagePathOrUrl != null && _imagePathOrUrl!.isNotEmpty) {
+      _isImageChanged = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _runAIAnalysis(_imagePathOrUrl!);
+      });
+    }
+
+    if (_editingGarment != null) {
+      _category = _editingGarment!.category;
+      _subCategory.text = _editingGarment!.subCategory;
+      _nameCtrl.text = _editingGarment!.name;
+      _brandCtrl.text = _editingGarment!.brand ?? '';
+      _priceCtrl.text = _editingGarment!.price?.toString() ?? '';
+      _purchaseDate = _editingGarment!.purchaseDate;
+      _selectedColor = _tryParseGarmentColor(_editingGarment!.color);
+    }
   }
 
   @override
@@ -65,7 +75,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     super.dispose();
   }
 
-  bool get _isEditMode => _editingGarment != null;
+  bool get _isEditMode => _id != null;
 
   void _resetForm() {
     setState(() {
@@ -201,6 +211,52 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         ),
       ),
     );
+  }
+
+  // ----------------------------
+  // AI Analysis Logic
+  // ----------------------------
+
+  Future<void> _runAIAnalysis(String imagePath) async {
+    if (imagePath.startsWith('http')) return; 
+
+    try {
+      setState(() => _isAnalyzing = true);
+      final analysisData = await GarmentService().analyzeGarment(imagePath);
+
+      setState(() {
+        if (analysisData['name'] != null) {
+          _nameCtrl.text = analysisData['name'].toString();
+        }
+
+        final String? catStr = analysisData['category']?.toString().toLowerCase();
+        if (catStr != null) {
+          for (var val in GarmentCategory.values) {
+            if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
+              _category = val;
+              break;
+            }
+          }
+        }
+
+        if (analysisData['sub_category'] != null) {
+          _subCategory.text = analysisData['sub_category'].toString();
+        }
+
+        final String? colorStr = analysisData['color']?.toString();
+        if (colorStr != null) {
+          _selectedColor = _tryParseGarmentColor(colorStr);
+        }
+        _metaData = analysisData;
+        _isAnalyzing = false;
+      });
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      debugPrint('AI Analysis failed: $e');
+      setState(() => _isAnalyzing = false);
+    }
   }
 
   // ----------------------------
@@ -411,7 +467,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           border: Border.all(color: AppColors.border, style: BorderStyle.solid),
         ),
         child: InkWell(
-          onTap: _openImageEdit,
+          onTap: _pickNewImage,
           child: const AspectRatio(
             aspectRatio: 1.35,
             child: Column(
@@ -449,7 +505,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: _openImageEdit,
+                onTap: _pickNewImage,
                 child: AspectRatio(
                   aspectRatio: 1.35,
                   child: Container(
@@ -493,66 +549,22 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     );
   }
 
-  Future<void> _openImageEdit() async {
-    final result = await Navigator.push<String?>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ImageEditPage(initialPath: _imagePathOrUrl),
-      ),
-    );
-
-    if (result == null || result.isEmpty) return;
+  Future<void> _pickNewImage() async {
+    final picker = ImagePicker();
+    final xfile = await picker.pickImage(source: ImageSource.gallery);
+    if (xfile == null) return;
 
     setState(() {
-      _imagePathOrUrl = result;
+      _imagePathOrUrl = xfile.path;
       _isImageChanged = (_imagePathOrUrl != _initialImagePathOrUrl);
     });
 
-    try {
-      setState(() => _isAnalyzing = true);
-      debugPrint('Analyzing garment image: $result');
-      final analysisData = await GarmentService().analyzeGarment(result);
-      debugPrint(analysisData.toString());
-
-      setState(() {
-        if (analysisData['name'] != null) {
-          _nameCtrl.text = analysisData['name'].toString();
-        }
-
-        final String? catStr = analysisData['category']?.toString().toLowerCase();
-        if (catStr != null) {
-          for (var val in GarmentCategory.values) {
-            if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
-              _category = val;
-              break;
-            }
-          }
-        }
-
-        if (analysisData['sub_category'] != null) {
-          _subCategory.text = analysisData['sub_category'].toString();
-        }
-
-        final String? colorStr = analysisData['color']?.toString();
-        if (colorStr != null) {
-          _selectedColor = _tryParseGarmentColor(colorStr);
-        }
-        _metaData = analysisData;
-
-        _isAnalyzing = false;
-      });
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      debugPrint('AI Analysis failed: $e');
-      setState(() => _isAnalyzing = false);
-    }
+    _runAIAnalysis(xfile.path);
   }
 
   Future<void> _saveGarment() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final isAdd = _editingGarment?.id == null;
+    final isAdd = !_isEditMode;
 
     setState(() {
       uploading = true;
@@ -578,14 +590,10 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
           purchaseDate: _purchaseDate,
         );
-        debugPrint('--- [James] 0 ---');
         if (_isImageChanged && !isAdd && _id != null) {
           await GarmentService().deleteGarment(_id!);
         }
-        debugPrint('--- [James] 1 ---');
-        debugPrint('--- [James] Sending metadata: $_metaData ---');
         result = await GarmentService().completeUpload(tempGarment, _metaData);
-        debugPrint('--- [James] 2 ---');
       } else {
         final original = _editingGarment!;
         Garment updated = original.copyWith(
@@ -605,7 +613,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) {
-            Timer(const Duration(milliseconds: 3000), () {
+            Timer(const Duration(milliseconds: 1500), () {
               if (Navigator.canPop(ctx)) {
                 Navigator.pop(ctx);
               }
@@ -646,7 +654,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         );
         _resetForm();
       } else {
-        // 編輯成功：回到前一頁
         Navigator.pop(context, result);
       }
     } on AuthExpiredException {
@@ -659,10 +666,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       if (mounted) setState(() => uploading = false);
     }
   }
-
-  // ----------------------------
-  // Helpers
-  // ----------------------------
 
   Future<void> _getGender() async {
     try {

@@ -332,17 +332,11 @@ class _ClosetGarmentsTabState extends State<ClosetGarmentsTab> {
   }
 
   Future<void> _createGarment() async {
-    final result = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddGarmentPage()),
     );
-
-    if (result is! Garment) return;
-
-    setState(() {
-      _allGarments.add(result);
-      _selectedCategory = result.category;
-    });
+    _refresh();
   }
 
   Future<void> _editGarment(Garment garment) async {

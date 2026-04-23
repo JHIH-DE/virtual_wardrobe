@@ -58,12 +58,15 @@ class _AccountPageState extends State<AccountPage> {
 
     try {
       final profile = await ProfileService().getMyProfile();
+      debugPrint('Loaded Profile: $profile');
 
       if (!mounted) return;
 
       setState(() {
         _avatarUrl = profile['avatar_object_url'] as String?;
         _fullBodyUrl = profile['full_body_object_url'] as String?;
+        debugPrint('Avatar URL: $_avatarUrl');
+        debugPrint('Full Body URL: $_fullBodyUrl');
         
         _nameCtrl.text = profile['name'] ?? '';
         _selectedGender = profile['gender'];
@@ -169,45 +172,37 @@ class _AccountPageState extends State<AccountPage> {
           ],
 
           const SizedBox(height: 12),
-          _buildAvatarSection(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAvatarSection(),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _field('Full Name', _nameCtrl, keyboard: TextInputType.name),
+                    const SizedBox(height: 16),
 
-          const SizedBox(height: 24),
-          const Text('Profile Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-
-          _field('Full Name', _nameCtrl, keyboard: TextInputType.name),
-          const SizedBox(height: 16),
-
-          DropdownButtonFormField<String>(
-            value: (_genderOptions.contains(_selectedGender)) ? _selectedGender : null,
-            decoration: const InputDecoration(
-              labelText: 'Gender',
-              border: OutlineInputBorder(),
-            ),
-            items: _genderOptions.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-            onChanged: (val) => setState(() => _selectedGender = val),
+                    DropdownButtonFormField<String>(
+                      value: (_genderOptions.contains(_selectedGender)) ? _selectedGender : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Gender',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: _genderOptions.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                      onChanged: (val) => setState(() => _selectedGender = val),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
 
-          _field(
-            'Birth Date',
-            _birthDateCtrl,
-            readOnly: true,
-            onTap: _pickBirthDate,
-            suffixIcon: const Icon(Icons.calendar_today, size: 20),
-          ),
-
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           const Divider(),
-          SwitchListTile(
-            title: const Text('Unit System'),
-            subtitle: Text(_isMetric ? 'Metric (cm/kg)' : 'Imperial (ft/lb)'),
-            value: _isMetric,
-            onChanged: (val) => setState(() => _isMetric = val),
-          ),
-          const Divider(),
-          const SizedBox(height: 16),
-
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -227,8 +222,14 @@ class _AccountPageState extends State<AccountPage> {
               ),
             ],
           ),
-
-          const SizedBox(height: 32),
+          SwitchListTile(
+            title: const Text('Unit System'),
+            subtitle: Text(_isMetric ? 'Metric (cm/kg)' : 'Imperial (ft/lb)'),
+            value: _isMetric,
+            onChanged: (val) => setState(() => _isMetric = val),
+          ),
+          const Divider(),
+          const SizedBox(height: 12),
           const Text('Full Body Photo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           _buildBodyPhotoSection(),
@@ -258,34 +259,32 @@ class _AccountPageState extends State<AccountPage> {
       provider = NetworkImage(_avatarUrl!);
     }
 
-    return Center(
-      child: Stack(
-        children: [
-          CircleAvatar(
-            radius: 56,
-            backgroundColor: AppColors.surface,
-            backgroundImage: provider,
-            child: provider == null
-                ? const Icon(Icons.person, size: 56, color: AppColors.textSecondary)
-                : null,
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: InkWell(
-              onTap: _loading ? null : _changeAvatar,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black87,
-                ),
-                child: const Icon(Icons.edit, color: Colors.white, size: 18),
+    return Stack(
+      children: [
+        CircleAvatar(
+          radius: 56,
+          backgroundColor: AppColors.surface,
+          backgroundImage: provider,
+          child: provider == null
+              ? const Icon(Icons.person, size: 56, color: AppColors.textSecondary)
+              : null,
+        ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: InkWell(
+            onTap: _loading ? null : _changeAvatar,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black87,
               ),
+              child: const Icon(Icons.edit, color: Colors.white, size: 18),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

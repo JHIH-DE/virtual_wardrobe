@@ -11,22 +11,19 @@ class AuthExpiredException implements Exception {
 }
 
 class AuthExpiredHandler {
-
   static Future<void> handle(BuildContext context) async {
     await TokenStorage.clear();
 
-    if (!context.mounted) return;
-
-    await showDialog(
+    if (!context.mounted) return;    await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Session Expired'),
         content: const Text('Your session has expired. Please log in again to continue.'),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // 關閉對話框
+              Navigator.of(dialogContext).pop();
             },
             child: const Text('OK'),
           ),
@@ -36,9 +33,10 @@ class AuthExpiredHandler {
 
     if (!context.mounted) return;
 
+    // 彈窗關閉後，執行跳轉
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
+          (route) => false,
     );
   }
 }
