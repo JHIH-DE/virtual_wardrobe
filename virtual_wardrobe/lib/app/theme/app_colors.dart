@@ -4,7 +4,8 @@ class AppColors {
   AppColors._();
 
   // Fashion Editorial base
-  static const Color background = Color(0xFFDCD9CC);
+  static const Color background = Color(0xFFF5F2EE);
+  static const Color toolBar = Color(0xFFEEEDE6);
   static const Color backgroundLight = Color(0xFFF5F4F0);
   static const Color surface = Color(0xFFFFFFFF);        // 卡片白
   static const Color border = Color(0xFFE6E6E6);         // 細邊框灰
@@ -23,4 +24,6 @@ class AppColors {
   // 你原本用到的命名：保留，讓現有 code 不用大改
   static const Color card = surface;
   static const Color cardContent = textPrimary;
+
+  static const Color textBoxBorder = Color(0xFF738FBD);
 }

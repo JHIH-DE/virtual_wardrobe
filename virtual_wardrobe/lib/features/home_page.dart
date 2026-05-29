@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../app/theme/app_colors.dart';
-import '../data/garment_category.dart';
 import 'account_page.dart';
-import 'add_garment_page.dart';
-import 'camera_capture_page.dart';
 import 'login_page.dart';
 import 'my_closet_page.dart';
 import 'outfit_planner.dart';
+import 'fitting_room_page.dart';
+import 'widgets/garment_upload_helper.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -165,6 +163,11 @@ class _HomePageState extends State<HomePage> {
                                 context,
                                 MaterialPageRoute(builder: (_) => const MyClosetPage()),
                               );
+                            } else if (feature == 'Fitting Room') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const FittingRoomPage()),
+                              );
                             } else if (feature == 'Outfit Planner') {
                               Navigator.push(
                                 context,
@@ -255,7 +258,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildQuickAddButton(BuildContext context) {
     return InkWell(
       onTap: () {
-        _showAddClothingDialog(context);
+        GarmentUploadHelper.showAddClothingDialog(context);
       },
       borderRadius: BorderRadius.circular(32),
       child: Container(
@@ -312,149 +315,6 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
-  }
-
-  void _showAddClothingDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/add.png',
-                height: 80,
-                width: 80,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'How would you like to add a new clothing?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildDialogOption(
-                dialogCtx,
-                icon: Icons.camera_alt_outlined,
-                label: 'Camera',
-                onTap: () => _onPickImage(dialogCtx, ImageSource.camera),
-              ),
-              const SizedBox(height: 16),
-              _buildDialogOption(
-                dialogCtx,
-                icon: Icons.photo_library_outlined,
-                label: 'Photo Album',
-                onTap: () => _onPickImage(dialogCtx, ImageSource.gallery),
-              ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.pop(dialogCtx),
-                icon: const Icon(Icons.arrow_back_ios, size: 16, color: Color(0xFF1A1A1A)),
-                label: const Text(
-                  'Back',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                  side: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDialogOption(BuildContext context,
-      {required IconData icon, required String label, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        height: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              offset: const Offset(0, 4),
-              blurRadius: 12,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
-            const Spacer(),
-            Icon(icon, size: 28, color: const Color(0xFF1A1A1A)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _onPickImage(BuildContext dialogContext, ImageSource source) async {
-    Navigator.pop(dialogContext); // 關閉彈窗
-
-    String? imagePath;
-
-    if (source == ImageSource.camera) {
-      // 使用自定義相機頁面
-      imagePath = await Navigator.push<String>(
-        context,
-        MaterialPageRoute(builder: (_) => const CameraCapturePage()),
-      );
-    } else {
-      // 使用系統相簿
-      final picker = ImagePicker();
-      final xFile = await picker.pickImage(source: ImageSource.gallery);
-      imagePath = xFile?.path;
-    }
-
-    if (imagePath != null && mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AddGarmentPage(
-            initialGarment: Garment(
-              name: '',
-              category: GarmentCategory.top,
-              subCategory: '',
-              uploadUrl: '',
-              objectName: '',
-              imageUrl: imagePath,
-            ),
-          ),
-        ),
-      );
-    }
   }
 
   Color _getBackgroundColor(String feature) {

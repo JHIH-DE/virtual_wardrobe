@@ -1,18 +1,22 @@
-import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
+import '../core/config/app_text_style.dart';
 import '../app/theme/app_colors.dart';
-import '../core/services/error_handler.dart';
 import '../core/services/garments_service.dart';
-import '../core/services/profile_service.dart';
 import '../data/garment_category.dart';
+import 'image_edit_page.dart';
+import 'widgets/custom_dropdown.dart';
 
 class AddGarmentPage extends StatefulWidget {
   final Garment? initialGarment;
-  const AddGarmentPage({super.key, this.initialGarment});
+  final Map<String, dynamic>? initialAnalysisData;
+
+  const AddGarmentPage({
+    super.key,
+    this.initialGarment,
+    this.initialAnalysisData,
+  });
 
   @override
   State<AddGarmentPage> createState() => _AddGarmentPageState();
@@ -32,23 +36,41 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   String? errorMessage;
   String? _userGender;
   String? _imagePathOrUrl;
-  String? _initialImagePathOrUrl;
   GarmentColor? _selectedColor;
   GarmentCategory _category = GarmentCategory.top;
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
 
+  // 用於追蹤是否有變更
+  bool _isModified = false;
+  late String _initialName;
+  late GarmentCategory _initialCategory;
+  late String _initialSub;
+  late String _initialBrand;
+  late String _initialPrice;
+  GarmentColor? _initialColor;
+  DateTime? _initialDate;
+
   @override
   void initState() {
     super.initState();
-    _getGender();
     _editingGarment = widget.initialGarment;
     _id = _editingGarment?.id;
     _imagePathOrUrl = _editingGarment?.imageUrl;
-    _initialImagePathOrUrl = _editingGarment?.imageUrl;
-    
-    if (_id == null && _imagePathOrUrl != null && _imagePathOrUrl!.isNotEmpty) {
+
+    // 初始化初始值，用於後續比較
+    _initialName = _editingGarment?.name ?? '';
+    _initialCategory = _editingGarment?.category ?? GarmentCategory.top;
+    _initialSub = _editingGarment?.subCategory ?? '';
+    _initialBrand = _editingGarment?.brand ?? '';
+    _initialPrice = _editingGarment?.price?.toString() ?? '';
+    _initialColor = _tryParseGarmentColor(_editingGarment?.color);
+    _initialDate = _editingGarment?.purchaseDate;
+
+    if (widget.initialAnalysisData != null) {
+      _applyAnalysisData(widget.initialAnalysisData!);
+    } else if (_id == null && _imagePathOrUrl != null && _imagePathOrUrl!.isNotEmpty) {
       _isImageChanged = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _runAIAnalysis(_imagePathOrUrl!);
@@ -62,7 +84,28 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       _brandCtrl.text = _editingGarment!.brand ?? '';
       _priceCtrl.text = _editingGarment!.price?.toString() ?? '';
       _purchaseDate = _editingGarment!.purchaseDate;
-      _selectedColor = _tryParseGarmentColor(_editingGarment!.color);
+      _selectedColor ??= _initialColor;
+    }
+
+    // 監聽輸入變化
+    _nameCtrl.addListener(_checkModified);
+    _subCategory.addListener(_checkModified);
+    _brandCtrl.addListener(_checkModified);
+    _priceCtrl.addListener(_checkModified);
+  }
+
+  void _checkModified() {
+    final changed = _isImageChanged ||
+        _nameCtrl.text != _initialName ||
+        _category != _initialCategory ||
+        _subCategory.text != _initialSub ||
+        _brandCtrl.text != _initialBrand ||
+        _priceCtrl.text != _initialPrice ||
+        _selectedColor != _initialColor ||
+        _purchaseDate != _initialDate;
+
+    if (changed != _isModified) {
+      setState(() => _isModified = changed);
     }
   }
 
@@ -75,139 +118,285 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     super.dispose();
   }
 
-  bool get _isEditMode => _id != null;
+  // 修改變數名稱：當沒有 ID 時，代表是新增模式 (Add Mode)
+  bool get _isAddMode => _id == null;
 
-  void _resetForm() {
-    setState(() {
-      _nameCtrl.clear();
-      _subCategory.clear();
-      _brandCtrl.clear();
-      _priceCtrl.clear();
-      _imagePathOrUrl = null;
-      _initialImagePathOrUrl = null;
-      _selectedColor = null;
-      _category = GarmentCategory.top;
-      _purchaseDate = null;
-      _isImageChanged = false;
-      errorMessage = null;
-      _id = null;
-      _editingGarment = null;
-      _metaData = null;
-    });
+  Future<void> _handleDelete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Garment'),
+        content: const Text('Are you sure you want to delete this garment?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && _id != null) {
+      try {
+        await GarmentService().deleteGarment(_id!);
+        if (!mounted) return;
+        Navigator.pop(context, 'deleted');
+      } catch (e) {
+        setState(() => errorMessage = 'Delete failed: $e');
+      }
+    }
+  }
+
+  Future<bool> _onWillPop() async {
+    if (!_isModified) return true;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'You have unsaved changes',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'If you leave this page, your changes will be lost.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, 'save'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A1A1A),
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                ),
+                child: const Text('Save', style: TextStyle(color: Colors.white)),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, 'cancel'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                ),
+                child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'discard'),
+                child: const Text('Don\'t Save', style: TextStyle(color: Colors.black)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result == 'save') {
+      await _saveGarment();
+      return false;
+    }
+    return result == 'discard';
   }
 
   @override
   Widget build(BuildContext context) {
-    final title = _isEditMode ? 'Edit Garment' : 'Add Garment';
+    final title = _isAddMode ? 'Add Clothing' : 'Edit Clothing';
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        titleTextStyle: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (uploading) const LinearProgressIndicator(),
-            if (errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: Text(title, style: AppTextStyle.bold16),
+          centerTitle: true,
+          backgroundColor: AppColors.toolBar,
+          elevation: 0,
+          leading: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(4),
+              child: Image.asset(
+                'assets/images/page-arrow.png',
+                height: 28,
               ),
-
-            _imagePreview(),
-
-            const SizedBox(height: 22),
-
-            _sectionTitle('Basic'),
-
-            const SizedBox(height: 12),
-
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: _inputDecoration(label: 'Name'),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Please enter name';
-                return null;
-              },
-              textInputAction: TextInputAction.next,
             ),
+            onPressed: () async {
+              final shouldPop = await _onWillPop();
+              if (shouldPop && mounted) Navigator.pop(context);
+            },
+          ),
+          actions: [
+            if (!_isAddMode)
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Image.asset(
+                    'assets/images/delete.png',
+                    height: 28,
+                  ),
+                ),
+                onPressed: _handleDelete,
+              ),
+          ],
+          titleTextStyle: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              const SizedBox(height: 16),
+              if (uploading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: LinearProgressIndicator(),
+                ),
+              if (errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+                ),
 
-            const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _imagePreview(),
+              ),
+              const SizedBox(height: 24),
 
-            DropdownButtonFormField<GarmentCategory>(
-              value: _category,
-              decoration: _inputDecoration(label: 'Category'),
-              items: GarmentCategory.values
-                  .where((c) => c != GarmentCategory.dress || _userGender == 'Female')
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c.label)))
-                  .toList(),
-              onChanged: (v) => setState(() => _category = v!),
-            ),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionTitle('Clothing Name'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _nameCtrl,
+                      decoration: _inputDecoration(hint: 'Name the clothing'),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter name' : null,
+                    ),
 
-            const SizedBox(height: 12),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Clothing Category'),
+                    const SizedBox(height: 8),
+                    CustomDropdown<GarmentCategory>(
+                        value: _category,
+                        items: GarmentCategory.values
+                            .where((c) => c != GarmentCategory.dress || _userGender == 'Female')
+                            .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(
+                              c.label,
+                              style: const TextStyle(fontSize: 14.5, color: AppColors.textPrimary)
+                          ),
+                        ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() => _category = v);
+                            _checkModified();
+                          }
+                          },
+                    ),
 
-            TextFormField(
-              controller: _subCategory,
-              decoration: _inputDecoration(label: 'Product Type'),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Please enter product type';
-                return null;
-              },
-              textInputAction: TextInputAction.next,
-            ),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Product Type'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _subCategory,
+                      decoration: _inputDecoration(hint: 'e.g. Top'),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter product type' : null,
+                    ),
 
-            const SizedBox(height: 12),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Color'),
+                    const SizedBox(height: 8),
+                    _colorPicker(),
 
-            _colorPicker(),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Brand (optional)'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _brandCtrl,
+                      decoration: _inputDecoration(hint: 'What is the brand of this clothing?'),
+                    ),
 
-            const SizedBox(height: 12),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Price (optional)'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _priceCtrl,
+                      decoration: _inputDecoration(hint: 'How much is this clothing?'),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
 
-            TextFormField(
-              controller: _brandCtrl,
-              decoration: _inputDecoration(label: 'Brand (optional)'),
-              textInputAction: TextInputAction.next,
-            ),
-
-            const SizedBox(height: 12),
-
-            TextFormField(
-              controller: _priceCtrl,
-              decoration: _inputDecoration(label: 'Price (optional)'),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-
-            const SizedBox(height: 12),
-
-            _purchaseDateField(context),
-
-            const SizedBox(height: 18),
-
-            ElevatedButton.icon(
-              onPressed: uploading ? null : _saveGarment,
-              icon: const Icon(Icons.check),
-              label: Text(_isEditMode ? 'Save changes' : 'Create Garment'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Purchase date'),
+                    const SizedBox(height: 8),
+                    _purchaseDateField(context),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 固定在底部的儲存按鈕
+        bottomNavigationBar: Container(
+          color: AppColors.toolBar,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 15,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: (_isModified && !uploading) ? _saveGarment : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A1A1A),
+                    disabledBackgroundColor: const Color(0xFFE0E0E0),
+                    minimumSize: const Size(double.infinity, 54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                    elevation: 0,
+                  ),
+                  child: uploading
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        _isAddMode ? 'Add to Closet' : 'Save Changes',
+                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -217,42 +406,39 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   // AI Analysis Logic
   // ----------------------------
 
+  void _applyAnalysisData(Map<String, dynamic> analysisData) {
+    if (analysisData['name'] != null) {
+      _nameCtrl.text = analysisData['name'].toString();
+    }
+    final String? catStr = analysisData['category']?.toString().toLowerCase();
+    if (catStr != null) {
+      for (var val in GarmentCategory.values) {
+        if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
+          _category = val;
+          break;
+        }
+      }
+    }
+    if (analysisData['sub_category'] != null) {
+      _subCategory.text = analysisData['sub_category'].toString();
+    }
+    final String? colorStr = analysisData['color']?.toString();
+    if (colorStr != null) {
+      _selectedColor = _tryParseGarmentColor(colorStr);
+    }
+    _metaData = analysisData;
+    _checkModified();
+  }
+
   Future<void> _runAIAnalysis(String imagePath) async {
     if (imagePath.startsWith('http')) return; 
-
     try {
       setState(() => _isAnalyzing = true);
       final analysisData = await GarmentService().analyzeGarment(imagePath);
-
       setState(() {
-        if (analysisData['name'] != null) {
-          _nameCtrl.text = analysisData['name'].toString();
-        }
-
-        final String? catStr = analysisData['category']?.toString().toLowerCase();
-        if (catStr != null) {
-          for (var val in GarmentCategory.values) {
-            if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
-              _category = val;
-              break;
-            }
-          }
-        }
-
-        if (analysisData['sub_category'] != null) {
-          _subCategory.text = analysisData['sub_category'].toString();
-        }
-
-        final String? colorStr = analysisData['color']?.toString();
-        if (colorStr != null) {
-          _selectedColor = _tryParseGarmentColor(colorStr);
-        }
-        _metaData = analysisData;
+        _applyAnalysisData(analysisData);
         _isAnalyzing = false;
       });
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
     } catch (e) {
       debugPrint('AI Analysis failed: $e');
       setState(() => _isAnalyzing = false);
@@ -265,12 +451,11 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   Widget _colorPicker() {
     final selected = _selectedColor;
-
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: _openColorPickerSheet,
       child: InputDecorator(
-        decoration: _inputDecoration(label: 'Color'),
+        decoration: _inputDecoration(hint: ''),
         child: Row(
           children: [
             Container(
@@ -286,7 +471,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
               ),
             ),
             const SizedBox(width: 10),
-
             Expanded(
               child: Text(
                 selected?.label ?? 'Select a color',
@@ -296,15 +480,10 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                 ),
               ),
             ),
-
-            if (selected != null)
-              IconButton(
-                tooltip: 'Clear',
-                onPressed: () => setState(() => _selectedColor = null),
-                icon: const Icon(Icons.close, size: 18, color: AppColors.textSecondary),
-              )
-            else
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Image.asset(
+              'assets/images/arrow_down.png',
+              height: 20,
+            ),
           ],
         ),
       ),
@@ -316,138 +495,68 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Choose a color',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(100))),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Expanded(child: Text('Choose a color', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                  TextButton(onPressed: () { setState(() => _selectedColor = null); _checkModified(); Navigator.pop(context); }, child: const Text('Clear')),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 12, runSpacing: 12,
+                    children: GarmentColor.values.map((c) {
+                      final isSelected = c == _selectedColor;
+                      return GestureDetector(
+                        onTap: () { setState(() => _selectedColor = c); _checkModified(); Navigator.pop(context); },
+                        child: Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(color: c.color, shape: BoxShape.circle, border: Border.all(color: isSelected ? AppColors.primary : Colors.black12, width: isSelected ? 2.5 : 1)),
+                          child: isSelected ? Icon(Icons.check, size: 20, color: c.preferredCheckColor) : null,
                         ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() => _selectedColor = null);
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Clear'),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.45,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: GarmentColor.values.map((c) {
-                        final isSelected = c == _selectedColor;
-
-                        final borderColor = isSelected
-                            ? AppColors.primary
-                            : (c == GarmentColor.white ||
-                            c == GarmentColor.beige ||
-                            c == GarmentColor.yellow)
-                            ? Colors.grey.shade400
-                            : Colors.transparent;
-
-                        final borderWidth = isSelected ? 2.5 : 1.2;
-
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() => _selectedColor = c);
-                            Navigator.pop(context);
-                          },
-                          child: Tooltip(
-                            message: c.label,
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: c.color,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: borderColor, width: borderWidth),
-                              ),
-                              child: isSelected
-                                  ? Icon(Icons.check, size: 20, color: c.preferredCheckColor)
-                                  : null,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                      );
+                    }).toList(),
                   ),
                 ),
-
-                const SizedBox(height: 14),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   Widget _purchaseDateField(BuildContext context) {
-    final text = _purchaseDate == null
-        ? 'Purchase date (optional)'
-        : _formatDate(_purchaseDate!);
-
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () async {
         final now = DateTime.now();
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: _purchaseDate ?? now,
-          firstDate: DateTime(2000),
-          lastDate: DateTime(now.year + 2),
-        );
-        if (picked != null) setState(() => _purchaseDate = picked);
+        final picked = await showDatePicker(context: context, initialDate: _purchaseDate ?? now, firstDate: DateTime(2000), lastDate: DateTime(now.year + 2));
+        if (picked != null) {
+          setState(() => _purchaseDate = picked);
+          _checkModified();
+        }
       },
       child: InputDecorator(
-        decoration: _inputDecoration(label: 'Purchase date'),
+        decoration: _inputDecoration(hint: ''),
         child: Row(
           children: [
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: _purchaseDate == null ? AppColors.textSecondary : AppColors.textPrimary,
-                  fontSize: 14.5,
-                ),
-              ),
-            ),
+            Expanded(child: Text(_purchaseDate == null ? 'Select date' : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}', style: TextStyle(color: _purchaseDate == null ? AppColors.textSecondary : AppColors.textPrimary))),
             const Icon(Icons.calendar_today, size: 18, color: AppColors.textSecondary),
           ],
         ),
@@ -457,96 +566,67 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   Widget _imagePreview() {
     final img = _imagePathOrUrl;
-
     if (img == null || img.isEmpty) {
       return Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-        ),
-        child: InkWell(
-          onTap: _pickNewImage,
-          child: const AspectRatio(
-            aspectRatio: 1.35,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_photo_alternate_outlined, size: 40, color: AppColors.textSecondary),
-                SizedBox(height: 8),
-                Text('Tap to add photo', style: TextStyle(color: AppColors.textSecondary)),
-              ],
-            ),
-          ),
-        ),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
+        child: InkWell(onTap: _pickNewImage, child: const AspectRatio(aspectRatio: 1.35, child: Icon(Icons.add_photo_alternate_outlined, size: 40, color: AppColors.textSecondary))),
       );
     }
-
-    final isLocal = !img.startsWith('http');
 
     return Stack(
       children: [
         Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: _pickNewImage,
-                child: AspectRatio(
-                  aspectRatio: 1.35,
-                  child: Container(
-                    color: AppColors.surface,
-                    alignment: Alignment.center,
-                    child: isLocal
-                        ? Image.file(File(img), fit: BoxFit.contain)
-                        : Image.network(img, fit: BoxFit.contain),
-                  ),
-                ),
-              ),
+            child: AspectRatio(
+              aspectRatio: 1.1,
+              child: img.startsWith('http') ? Image.network(img, fit: BoxFit.contain) : Image.file(File(img), fit: BoxFit.contain),
             ),
           ),
         ),
-
-        if (_isAnalyzing)
-          Positioned.fill(
+        // Edit Image 按鈕
+        Positioned(
+          bottom: 12,
+          right: 12,
+          child: GestureDetector(
+            onTap: _editCurrentImage,
             child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                  SizedBox(height: 12),
-                  Text(
-                    'AI Analyzing...',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+              child: Row(
+                children: [
+                  const Text('Edit image', style: AppTextStyle.bold16),
+                  const SizedBox(width: 8),
+                  Image.asset(
+                    'assets/images/edit.png',
+                    height: 20,
                   ),
                 ],
               ),
             ),
           ),
+        ),
+        if (_isAnalyzing)
+          Positioned.fill(child: Container(decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(16)), child: const Center(child: CircularProgressIndicator(color: Colors.white)))),
       ],
     );
+  }
+
+  void _handleImageEditResult(ImageEditResult? result) {
+    if (result != null) {
+      setState(() {
+        _imagePathOrUrl = result.imagePath;
+        _isImageChanged = true;
+        if (result.analysisData != null) _applyAnalysisData(result.analysisData!);
+      });
+      _checkModified();
+    }
   }
 
   Future<void> _pickNewImage() async {
@@ -554,177 +634,117 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     final xfile = await picker.pickImage(source: ImageSource.gallery);
     if (xfile == null) return;
 
-    setState(() {
-      _imagePathOrUrl = xfile.path;
-      _isImageChanged = (_imagePathOrUrl != _initialImagePathOrUrl);
-    });
+    if (!mounted) return;
+    final result = await Navigator.push<ImageEditResult>(
+      context,
+      MaterialPageRoute(builder: (_) => ImageEditPage(initialPath: xfile.path))
+    );
+    _handleImageEditResult(result);
+  }
 
-    _runAIAnalysis(xfile.path);
+  Future<void> _editCurrentImage() async {
+    if (_imagePathOrUrl == null) return;
+
+    if (!mounted) return;
+    final result = await Navigator.push<ImageEditResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ImageEditPage(
+          initialPath: _imagePathOrUrl,
+          showAnalysis: false,
+        ),
+      ),
+    );
+    _handleImageEditResult(result);
   }
 
   Future<void> _saveGarment() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final isAdd = !_isEditMode;
-
-    setState(() {
-      uploading = true;
-      errorMessage = null;
-    });
+    setState(() { uploading = true; errorMessage = null; });
 
     try {
-      late Garment result;
-
-      if (isAdd || _isImageChanged) {
-        final raw = (_imagePathOrUrl ?? '').trim();
+      Garment result;
+      // 當新增模式或圖片變更時執行上傳
+      if (_isAddMode || _isImageChanged) {
         final initDate = await GarmentService().initUpload();
-        await GarmentService().uploadImage(initDate.uploadUrl, raw);
-
-        final tempGarment = Garment(
-          uploadUrl: initDate.uploadUrl,
-          objectName: initDate.objectName,
-          category: _category,
-          subCategory: _subCategory.text.trim(),
-          name: _nameCtrl.text.trim(),
-          brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-          color: _selectedColor?.label,
-          price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
-          purchaseDate: _purchaseDate,
+        await GarmentService().uploadImage(initDate.uploadUrl, _imagePathOrUrl!);
+        final temp = Garment(
+          uploadUrl: initDate.uploadUrl, objectName: initDate.objectName,
+          category: _category, subCategory: _subCategory.text.trim(),
+          name: _nameCtrl.text.trim(), brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+          color: _selectedColor?.label, price: double.tryParse(_priceCtrl.text.trim()), purchaseDate: _purchaseDate,
         );
-        if (_isImageChanged && !isAdd && _id != null) {
-          await GarmentService().deleteGarment(_id!);
-        }
-        result = await GarmentService().completeUpload(tempGarment, _metaData);
+        // 如果是在編輯模式下更換圖片，先刪除舊紀錄
+        if (!_isAddMode) await GarmentService().deleteGarment(_id!);
+        result = await GarmentService().completeUpload(temp, _metaData);
       } else {
-        final original = _editingGarment!;
-        Garment updated = original.copyWith(
-          name: _nameCtrl.text.trim(),
-          category: _category,
-          subCategory: _subCategory.text.trim(),
+        // 單純更新文字資料
+        final updated = _editingGarment!.copyWith(
+          name: _nameCtrl.text.trim(), category: _category, subCategory: _subCategory.text.trim(),
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-          color: _selectedColor?.label,
-          price: _priceCtrl.text.trim().isEmpty ? null : double.tryParse(_priceCtrl.text.trim()),
-          purchaseDate: _purchaseDate,        );
+          color: _selectedColor?.label, price: double.tryParse(_priceCtrl.text.trim()), purchaseDate: _purchaseDate,
+        );
         result = await GarmentService().updateGarment(updated);
       }
-      if (!mounted) return;
 
-      if (isAdd) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) {
-            Timer(const Duration(milliseconds: 1500), () {
-              if (Navigator.canPop(ctx)) {
-                Navigator.pop(ctx);
-              }
-            });
-            return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Garment Created!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Successfully added to your wardrobe',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-        _resetForm();
-      } else {
-        Navigator.pop(context, result);
-      }
-    } on AuthExpiredException {
       if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
+      _showSuccessOverlay();
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) Navigator.pop(context, result);
+      });
     } catch (e) {
-      debugPrint('Save garment failed: $e');
-      setState(() => errorMessage = e.toString());
-    } finally {
-      if (mounted) setState(() => uploading = false);
+      setState(() { errorMessage = e.toString(); uploading = false; });
     }
   }
 
-  Future<void> _getGender() async {
-    try {
-      final profile = await ProfileService().getMyProfile();
-      setState(() {
-        _userGender = profile['gender'];
-      });
-    } catch (e) {
-      debugPrint('Failed to _getGender: $e');
-    }
+  void _showSuccessOverlay() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle, color: Color(0xFF00BFA5), size: 48),
+              SizedBox(height: 12),
+              Text('Changes Saved', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black, decoration: TextDecoration.none)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   GarmentColor? _tryParseGarmentColor(String? colorText) {
     if (colorText == null) return null;
     final normalized = colorText.trim().toLowerCase();
-    if (normalized.isEmpty) return null;
-
     for (final c in GarmentColor.values) {
-      final cName = c.name.toLowerCase();
-      final cLabel = c.label.toLowerCase();
-      
-      if (normalized.contains(cName) || cName.contains(normalized) ||
-          normalized.contains(cLabel) || cLabel.contains(normalized)) {
-        return c;
-      }
+      if (normalized.contains(c.name.toLowerCase()) || normalized.contains(c.label.toLowerCase())) return c;
     }
     return null;
   }
 
-  String _formatDate(DateTime d) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${d.year}/${two(d.month)}/${two(d.day)}';
-  }
-
   Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-        letterSpacing: 0.2,
-      ),
-    );
+    return Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
   }
 
-  InputDecoration _inputDecoration({required String label}) {
+  InputDecoration _inputDecoration({required String hint}) {
     return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.black26, fontSize: 14),
       filled: true,
-      fillColor: AppColors.surface,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: const BorderSide(color: AppColors.textBoxBorder, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
     );
   }

@@ -31,6 +31,7 @@ dependencies:
   flutter_timezone: ^5.0.1
   google_fonts: ^6.2.1
   camera: ^0.11.0+2
+  dropdown_button2: ^2.3.9
 
 
 dev_dependencies:
