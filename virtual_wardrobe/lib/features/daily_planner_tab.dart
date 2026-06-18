@@ -60,7 +60,7 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
   }
 
   Future<void> _fullInit() async {
-    setState(() => _loading = true);
+    if (mounted) setState(() => _loading = true);
     try {
       await _initOccasions();
       await _loadCachedWeather();
@@ -86,7 +86,7 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
     if (lastSavedDate == todayStr) {
       final saved = prefs.getStringList('weekly_occasions');
       if (saved != null && saved.length == 7) {
-        setState(() => _weeklyOccasions = saved);
+        if (mounted) setState(() => _weeklyOccasions = saved);
         return;
       }
     }
@@ -101,7 +101,7 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
       }
     }
 
-    setState(() => _weeklyOccasions = newOccasions);
+    if (mounted) setState(() => _weeklyOccasions = newOccasions);
     await _saveOccasions();
   }
 
@@ -125,19 +125,21 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
     try {
       final data = json.decode(jsonStr);
       final cached = CachedWeather.fromJson(data);
-      setState(() {
-        _location = cached.location;
-        _temp = cached.temp;
-        _high = cached.high;
-        _low = cached.low;
-        _condition = cached.condition;
-        _weatherIcon = _mapWeatherIcon(_condition);
-        if (cached.weeklyWeatherCodes != null) {
-          _weeklyWeatherCodes = cached.weeklyWeatherCodes!;
-          _weeklyHighTemps = cached.weeklyMaxTemps!;
-          _weeklyLowTemps = cached.weeklyMinTemps ?? [];
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _location = cached.location;
+          _temp = cached.temp;
+          _high = cached.high;
+          _low = cached.low;
+          _condition = cached.condition;
+          _weatherIcon = _mapWeatherIcon(_condition);
+          if (cached.weeklyWeatherCodes != null) {
+            _weeklyWeatherCodes = cached.weeklyWeatherCodes!;
+            _weeklyHighTemps = cached.weeklyMaxTemps!;
+            _weeklyLowTemps = cached.weeklyMinTemps ?? [];
+          }
+        });
+      }
     } catch (e) {
       debugPrint('Error loading cached weather: $e');
     }
@@ -290,7 +292,7 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
                                 if (val != null) {
                                   setModalState(
                                       () => _weeklyOccasions[index] = val);
-                                  setState(() {}); // 同步更新主畫面
+                                  if (mounted) setState(() {}); // 同步更新主畫面
                                   _saveOccasions();
                                 }
                               },
@@ -306,8 +308,10 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
                       onPressed: () async {
                         await _createWeeklyPlan();
                         await _loadDailyData();
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan updated based on your settings')));
+                        if (context.mounted) Navigator.pop(context);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan updated based on your settings')));
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -345,7 +349,7 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
             onPressed: () {
               if (_counterValue > -5) {
                 setModalState(() => _counterValue--);
-                setState(() {});
+                if (mounted) setState(() {});
               }
             },
             icon: const Icon(Icons.remove_circle_outline, color: AppColors.textSecondary),
@@ -362,7 +366,7 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
             onPressed: () {
               if (_counterValue < 5) {
                 setModalState(() => _counterValue++);
-                setState(() {});
+                if (mounted) setState(() {});
               }
             },
             icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
@@ -491,9 +495,11 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
 
           return GestureDetector(
             onTap: () async {
-              setState(() {
-                _selectedDayIndex = index;
-              });
+              if (mounted) {
+                setState(() {
+                  _selectedDayIndex = index;
+                });
+              }
               await _loadDailyData();
             },
             onLongPress: _showPlanSettings,
@@ -555,11 +561,22 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
 
   Future<void> _getGarments({int daysFromNow = 0}) async {
     final day = DateFormat('yyyy-MM-dd').format(DateTime.now().add(Duration(days: daysFromNow)));
-    setState(() => _loadingOutfits = true);
+    if (mounted) setState(() => _loadingOutfits = true);
     try {
       final list = await WeeklyPlansService().getGarments(day);
       List<Garment> fetchedGarments = List.from(list);
-      //debugPrint('Fetched garments: ${fetchedGarments.map((g) => '{id: ${g.id}, imageUrl: ${g.imageUrl}}').toList()}');
+
+      if (fetchedGarments.isEmpty || fetchedGarments.every((g) => g.id == null)) {
+        debugPrint('All garment IDs are null, forcing regenerate plan...');
+        final adjustedTemps = _weeklyHighTemps.map((t) => t + _counterValue).toList();
+        await WeeklyPlansService().createWeeklyPlan(
+          tempsC: adjustedTemps,
+          occasions: _weeklyOccasions,
+          forceRegenerate: true,
+        );
+        final newList = await WeeklyPlansService().getGarments(day);
+        fetchedGarments = List.from(newList);
+      }
 
       if (mounted) {
         setState(() {
@@ -606,11 +623,14 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
 
   Future<void> _handleGenerateLook() async {
     if (_todayGarments.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No garments to generate look from.')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No garments to generate look from.')));
+      }
       return;
     }
 
-    final ids = _todayGarments.where((g) => g.id != null).map((g) => g.id!).toList();
+    final ids = _todayGarments.where((g) => g.garmentId != null).map((g) => g.garmentId!).toList();
+    debugPrint('_handleGenerateLook - ids: $ids');
     final int? jobId = await performTryOn(ids, "weekly");
 
     if (jobId != null) {
@@ -638,7 +658,9 @@ class _DailyPlannerTabState extends State<DailyPlannerTab> with TryOnMixin {
       );
 
       LooksStore.I.add(look);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to Closet ✅')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to Closet ✅')));
+      }
     } catch (e) {
       debugPrint('Save error: $e');
     }

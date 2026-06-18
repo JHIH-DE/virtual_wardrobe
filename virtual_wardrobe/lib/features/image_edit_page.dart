@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../core/services/error_handler.dart';
 import '../core/services/garments_service.dart';
 import 'camera_capture_page.dart';
-import '../core/config/app_text_style.dart';
+import '../app/theme/app_text_styles.dart';
 import '../app/theme/app_colors.dart';
 
 class ImageEditResult {
@@ -76,6 +76,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
       setState(() => _isAnalyzing = true);
       try {
         final analysisData = await GarmentService().analyzeGarment(_currentPath!);
+        debugPrint('_handleConfirmed: $analysisData');
         
         if (!mounted) return;
 

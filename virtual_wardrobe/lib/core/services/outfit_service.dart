@@ -12,7 +12,6 @@ class OutfitService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/outfits';
 
   Future<Map<String, dynamic>> createOutfit({required List<int> garmentIds, required String type}) async {
-    debugPrint('--- createOutfit ---');
     debugPrint('createOutfit garmentIds: $garmentIds');
     final token = await getSafeToken();
     final uri = Uri.parse(_baseUrl);

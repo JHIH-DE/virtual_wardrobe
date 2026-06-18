@@ -4,7 +4,8 @@ import '../../data/garment_category.dart';
 import '../add_garment_page.dart';
 import '../camera_capture_page.dart';
 import '../image_edit_page.dart';
-import '../../core/config/app_text_style.dart';
+import '../../app/theme/app_text_styles.dart';
+import '../../app/theme/app_colors.dart';
 
 class GarmentUploadHelper {
   static void showAddClothingDialog(BuildContext context, {VoidCallback? onComplete}) {
@@ -69,9 +70,11 @@ class GarmentUploadHelper {
                     height: 20,
                   ),
                 ),
-                label: const Text(
+                label: Text(
                   'Back',
-                  style: AppTextStyle.bold16,
+                  style: AppTextStyle.bold16.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),

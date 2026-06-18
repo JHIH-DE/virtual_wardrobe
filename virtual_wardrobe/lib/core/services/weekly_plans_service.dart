@@ -15,8 +15,9 @@ class WeeklyPlansService with BaseService {
   Future<Map<String, dynamic>> createWeeklyPlan({
     required List<double?> tempsC,
     required List<String> occasions,
+    bool forceRegenerate = false,
   }) async {
-    debugPrint('--- createWeeklyPlan ---');
+    debugPrint('--- createWeeklyPlan - 0 (force: $forceRegenerate) ---');
     final uri = Uri.parse('$_baseUrl/rolling');
     final token = await getSafeToken();
     final String defaultOccasion = 'casual_daily';
@@ -26,7 +27,6 @@ class WeeklyPlansService with BaseService {
     final String effectiveTimezone = timezoneData.identifier;
     final int alternativesPerDay = 2;
     final int wardrobeVersion = 0;
-    final bool forceRegenerate = false;
 
     final body = {
       "today": effectiveToday,
@@ -61,7 +61,6 @@ class WeeklyPlansService with BaseService {
   }
 
   Future<List<Garment>> getGarments(String day) async {
-    debugPrint('--- getGarments ---');
     final data = await _fetchDayData(day, 'getGarments');
     
     if (data == null || data['items'] == null) {
@@ -71,6 +70,9 @@ class WeeklyPlansService with BaseService {
     final items = data['items'];
     if (items is! List) {
       throw Exception('getGarments: items field is not a list');
+    } else {
+      final ids = items.whereType<Map<String, dynamic>>().map((j) => j['garment_id']).toList();
+      debugPrint('--- getGarments ids: $ids ---');
     }
 
     return items
@@ -80,15 +82,17 @@ class WeeklyPlansService with BaseService {
   }
 
   Future<int?> getId(String day) async {
-    debugPrint('--- getId ---');
     final data = await _fetchDayData(day, 'getId');
-    return data?['id'] as int?;
+    final id = data?['id'] as int?;
+    debugPrint('--- getId id: $id ---');
+    return id;
   }
 
   Future<int?> getLook(String day) async {
-    debugPrint('--- getLook ---');
     final data = await _fetchDayData(day, 'getLook');
-    return data?['job_id'] as int?;
+    final jobId = data?['job_id'] as int?;
+    debugPrint('--- getLook job_id: $jobId ---');
+    return jobId;
   }
 
   Future<void> saveJobId(String day, int jobId) async {

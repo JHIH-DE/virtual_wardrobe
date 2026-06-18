@@ -142,12 +142,14 @@ class TripPlan {
   final String name;
   final DateTimeRange dateRange;
   final LocationResult location;
+  final String style;
 
   TripPlan({
     required this.id,
     required this.name,
     required this.dateRange,
     required this.location,
+    required this.style,
   });
 }
 
@@ -728,6 +730,9 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
   final TextEditingController _tripNameController = TextEditingController();
   DateTimeRange? _dateRange;
   LocationResult? _location;
+  String _selectedStyle = 'Casual';
+  final List<String> _styleOptions = ['Casual', 'Formal', 'Street', 'Vacation', 'Sporty', 'Chic'];
+
 
   @override
   Widget build(BuildContext context) {
@@ -756,6 +761,24 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
             title: Text(_location == null ? "Select Location" : _location!.name),
             leading: const Icon(Icons.location_on, color: AppColors.primary),
             onTap: _pickLocation,
+          ),
+          DropdownButtonFormField<String>(
+            value: _selectedStyle,
+            decoration: const InputDecoration(
+              labelText: "Default Style",
+              prefixIcon: Icon(Icons.style, color: AppColors.primary, size: 20),
+            ),
+            items: _styleOptions.map((String style) {
+              return DropdownMenuItem<String>(
+                value: style,
+                child: Text(style),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() => _selectedStyle = newValue);
+              }
+            },
           ),
         ],
       ),
@@ -795,6 +818,7 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
         name: _tripNameController.text,
         dateRange: _dateRange!,
         location: _location!,
+        style: _selectedStyle,
       ),
     );
   }

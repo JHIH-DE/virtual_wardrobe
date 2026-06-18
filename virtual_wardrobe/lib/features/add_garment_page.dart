@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../core/config/app_text_style.dart';
+import '../app/theme/app_text_styles.dart';
 import '../app/theme/app_colors.dart';
 import '../core/services/garments_service.dart';
 import '../data/garment_category.dart';
@@ -42,7 +42,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
 
-  // 用於追蹤是否有變更
   bool _isModified = false;
   late String _initialName;
   late GarmentCategory _initialCategory;
@@ -68,15 +67,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     _initialColor = _tryParseGarmentColor(_editingGarment?.color);
     _initialDate = _editingGarment?.purchaseDate;
 
-    if (widget.initialAnalysisData != null) {
-      _applyAnalysisData(widget.initialAnalysisData!);
-    } else if (_id == null && _imagePathOrUrl != null && _imagePathOrUrl!.isNotEmpty) {
-      _isImageChanged = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _runAIAnalysis(_imagePathOrUrl!);
-      });
-    }
-
     if (_editingGarment != null) {
       _category = _editingGarment!.category;
       _subCategory.text = _editingGarment!.subCategory;
@@ -87,7 +77,15 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       _selectedColor ??= _initialColor;
     }
 
-    // 監聽輸入變化
+    if (widget.initialAnalysisData != null) {
+      _applyAnalysisData(widget.initialAnalysisData!);
+    } else if (_id == null && _imagePathOrUrl != null && _imagePathOrUrl!.isNotEmpty) {
+      _isImageChanged = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _runAIAnalysis(_imagePathOrUrl!);
+      });
+    }
+
     _nameCtrl.addListener(_checkModified);
     _subCategory.addListener(_checkModified);
     _brandCtrl.addListener(_checkModified);
@@ -153,49 +151,88 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'You have unsaved changes',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'If you leave this page, your changes will be lost.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, 'save'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A1A1A),
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          bool _dontSavePressed = false;
+          return Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            child: SizedBox(
+              width: 292,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'You have unsaved changes',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyle.dialogTitle,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'If you leave this page, your changes will be lost.',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyle.dialogBody,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, 'save'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A1A1A),
+                        minimumSize: const Size(double.infinity, 54),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Save', style: TextStyle(color: Colors.white)),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, 'cancel'),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.black, width: 1.6),
+                        minimumSize: const Size(double.infinity, 54),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+                    ),
+                    const SizedBox(height: 6),
+                    const Divider(thickness: 1, color: Colors.black12),
+                    SizedBox(
+                      width: 104,
+                      child: GestureDetector(
+                        onTapDown: (_) => setDialogState(() => _dontSavePressed = true),
+                        onTapUp: (_) {
+                          setDialogState(() => _dontSavePressed = false);
+                          Navigator.pop(ctx, 'discard');
+                        },
+                        onTapCancel: () => setDialogState(() => _dontSavePressed = false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: _dontSavePressed ? const Color(0xFF1A1A1A) : Colors.white,
+                            border: Border.all(color: Colors.black, width: 1.6),
+                            borderRadius: BorderRadius.circular(19),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Don\'t Save',
+                            style: TextStyle(
+                              color: _dontSavePressed ? Colors.white : Colors.black,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text('Save', style: TextStyle(color: Colors.white)),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => Navigator.pop(ctx, 'cancel'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                ),
-                child: const Text('Cancel', style: TextStyle(color: Colors.black)),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, 'discard'),
-                child: const Text('Don\'t Save', style: TextStyle(color: Colors.black)),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
 
@@ -221,11 +258,13 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
+        extendBody: true,
         appBar: AppBar(
           title: Text(title, style: AppTextStyle.bold16),
           centerTitle: true,
           backgroundColor: AppColors.toolBar,
           elevation: 0,
+          scrolledUnderElevation: 0,
           leading: IconButton(
             icon: Container(
               padding: const EdgeInsets.all(4),
@@ -261,7 +300,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         body: Form(
           key: _formKey,
           child: ListView(
-            padding: EdgeInsets.zero,
+            padding: const EdgeInsets.only(bottom: 110),
             children: [
               const SizedBox(height: 16),
               if (uploading)
@@ -363,37 +402,40 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         ),
         // 固定在底部的儲存按鈕
         bottomNavigationBar: Container(
-          color: AppColors.toolBar,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.25),
+          ),
+          child: Container(
+            height: 60,
+            width: 355,
+            decoration: BoxDecoration(
+              color: (_isModified && !uploading) ? const Color(0xFF1A1A1A) : const Color(0xFFE0E0E0),
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 4),
                 ),
-                child: ElevatedButton(
-                  onPressed: (_isModified && !uploading) ? _saveGarment : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A1A1A),
-                    disabledBackgroundColor: const Color(0xFFE0E0E0),
-                    minimumSize: const Size(double.infinity, 54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                    elevation: 0,
-                  ),
-                  child: uploading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text(
-                        _isAddMode ? 'Add to Closet' : 'Save Changes',
-                        style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-                      ),
-                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: (_isModified && !uploading) ? _saveGarment : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                minimumSize: const Size(355, 60),
+                maximumSize: const Size(355, 60),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                elevation: 0,
+              ),
+              child: uploading
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(
+                _isAddMode ? 'Add to Closet' : 'Save',
+                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -689,11 +731,17 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
       if (!mounted) return;
       _showSuccessOverlay();
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted) Navigator.pop(context, result);
-      });
+
+      // 延遲一段時間讓使用者看到成功訊息，然後關閉彈窗並返回上一頁
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (!mounted) return;
+
+      Navigator.of(context).pop(); // 關閉成功彈窗
+      Navigator.of(context).pop(result); // 關閉 AddGarmentPage 並回傳結果
     } catch (e) {
-      setState(() { errorMessage = e.toString(); uploading = false; });
+      if (mounted) {
+        setState(() { errorMessage = e.toString(); uploading = false; });
+      }
     }
   }
 

@@ -1,0 +1,58 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:http/http.dart' as http;
+
+import '../config/app_config.dart';
+import 'base_service.dart';
+
+class TripPlanService with BaseService {
+  static final String _baseUrl = '${AppConfig.fullApiUrl}/trip_plans';
+
+  Future<Map<String, dynamic>> createTripPlan({
+    required String name,
+    required String location,
+    required String startDate,
+    required String endDate,
+    required String style,
+    required String defaultOccasion,
+    required List<Map<String, dynamic>> days,
+  }) async {
+    debugPrint('--- createTripPlan ---');
+    final uri = Uri.parse(_baseUrl);
+    final token = await getSafeToken();
+    final timezone = await FlutterTimezone.getLocalTimezone();
+
+    final body = {
+      "name": name,
+      "location": location,
+      "start_date": startDate,
+      "end_date": endDate,
+      "timezone": timezone,
+      "default_occasion": defaultOccasion,
+      "style": style,
+      "days": days,
+    };
+
+    final res = await http.post(
+      uri,
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    throwIfAuthExpired(res);
+
+    final envelope = decodeMap(res, op: 'createTripPlan');
+    final data = envelope['data'];
+
+    if (data is! Map<String, dynamic>) {
+      throw Exception('createTripPlan: response missing data object');
+    }
+    return data;
+  }
+}

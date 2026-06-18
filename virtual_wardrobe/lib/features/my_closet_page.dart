@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../core/config/app_text_style.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/services/error_handler.dart';
 import '../core/services/garments_service.dart';
 import '../data/garment_category.dart';

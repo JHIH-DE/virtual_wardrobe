@@ -242,6 +242,7 @@ class OutfitSelection {
 
 class Garment {
   final int? id;
+  final int? garmentId;
   final String name;
   final String? brand;
   final String? color;
@@ -265,6 +266,7 @@ class Garment {
     this.thickness = 0.0,
     this.formality = 0.0,
     this.id,
+    this.garmentId,
     this.brand,
     this.color,
     this.price,
@@ -275,6 +277,7 @@ class Garment {
 
   Garment copyWith({
     int? id,
+    int? garmentId,
     String? name,
     String? brand,
     String? color,
@@ -289,6 +292,7 @@ class Garment {
     String? imageUrl,
     Map<String, dynamic>? metadata,
     bool clearId = false,
+    bool clearGarmentId = false,
     bool clearBrand = false,
     bool clearColor = false,
     bool clearPrice = false,
@@ -297,6 +301,7 @@ class Garment {
   }) {
     return Garment(
       id: clearId ? null : (id ?? this.id),
+      garmentId: clearGarmentId ? null : (garmentId ?? this.garmentId),
       category: category ?? this.category,
       subCategory: subCategory ?? this.subCategory,
       thickness: thickness ?? this.thickness,
@@ -329,6 +334,7 @@ class Garment {
 
     return Garment(
       id: json['id'] as int?,
+      garmentId: json['garment_id'] as int?,
       name: (json['name'] as String?) ?? '',
       brand: json['brand'] as String?,
       color: json['color'] as String?,
@@ -348,13 +354,14 @@ class Garment {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'garment_id': garmentId,
       'name': name,
       'brand': brand,
       'color': color,
       'price': price,
       'thickness': thickness,
       'formality': formality,
-      'subCategory': subCategory,
+      'sub_category': subCategory,
       'category': category.apiValue,
       'purchase_date': purchaseDate?.toIso8601String(),
       'upload_url': uploadUrl,

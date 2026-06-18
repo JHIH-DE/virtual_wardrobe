@@ -26,7 +26,7 @@ class GarmentService with BaseService {
       uri,
       headers: authHeaders(token),
       body: jsonEncode({'content_type': 'image/jpeg'}),
-    );
+    ).timeout(const Duration(seconds: 15));
 
     final envelope = decodeMap(res, op: 'initUpload');
     final data = envelope['data'] as Map<String, dynamic>?;
@@ -43,7 +43,12 @@ class GarmentService with BaseService {
     final file = File(localPath);
     final bytes = await file.readAsBytes();
     final uri = Uri.parse(uploadUrl);
-    final res = await http.put(uri, headers: {'Content-Type': 'image/jpeg'}, body: bytes);
+    final res = await http.put(
+      uri, 
+      headers: {'Content-Type': 'image/jpeg'}, 
+      body: bytes
+    ).timeout(const Duration(seconds: 45)); // Image upload can take longer
+    
     throwIfAuthExpired(res);
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
@@ -90,7 +95,7 @@ class GarmentService with BaseService {
     debugPrint('--- getGarments ---');
     final token = await getSafeToken();
     final uri = Uri.parse(_baseUrl);
-    final res = await http.get(uri, headers: authHeaders(token));
+    final res = await http.get(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15));
     throwIfAuthExpired(res);
     final envelope = decodeMap(res, op: 'getGarments');
     final data = envelope['data'];
@@ -103,7 +108,7 @@ class GarmentService with BaseService {
     debugPrint('--- getGarment: $garmentId  ---');
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/$garmentId');
-    final res = await http.get(uri, headers: authHeaders(token));
+    final res = await http.get(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15));
     throwIfAuthExpired(res);
     final envelope = decodeMap(res, op: 'getGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
@@ -119,7 +124,7 @@ class GarmentService with BaseService {
     debugPrint('--- deleteGarment: $garmentId ---');
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/$garmentId');
-    final res = await http.delete(uri, headers: authHeaders(token));
+    final res = await http.delete(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15));
     throwIfAuthExpired(res);
     if (res.statusCode == 200 || res.statusCode == 204 || res.statusCode == 404) return;
     throw Exception('deleteGarment failed (${res.statusCode})');
@@ -130,7 +135,12 @@ class GarmentService with BaseService {
     if (garment.id == null) throw Exception('updateGarment: missing id');
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/${garment.id}');
-    final res = await http.patch(uri, headers: authHeaders(token), body: jsonEncode(garment.toJson()));
+    final res = await http.patch(
+      uri, 
+      headers: authHeaders(token), 
+      body: jsonEncode(garment.toJson())
+    ).timeout(const Duration(seconds: 15));
+    
     throwIfAuthExpired(res);
     final envelope = decodeMap(res, op: 'updateGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
@@ -156,7 +166,7 @@ class GarmentService with BaseService {
       contentType: MediaType.parse(mimeType),
     ));
 
-    final streamedRes = await request.send();
+    final streamedRes = await request.send().timeout(const Duration(seconds: 30));
     final res = await http.Response.fromStream(streamedRes);
 
     final envelope = decodeMap(res, op: 'analyzeInstantGarment');
