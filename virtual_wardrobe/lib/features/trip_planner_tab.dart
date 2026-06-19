@@ -2,41 +2,27 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
-import '../core/services/error_handler.dart';
+import '../core/providers/looks_provider.dart';
+import '../core/providers/trips_provider.dart';
+import '../core/services/auth_handler.dart';
 import '../core/services/weekly_plans_service.dart';
 import '../core/services/outfit_service.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/garment_category.dart';
 import '../data/look_category.dart';
 
-class TripPlannerTab extends StatefulWidget {
+class TripPlannerTab extends ConsumerWidget {
   const TripPlannerTab({super.key});
 
   @override
-  State<TripPlannerTab> createState() => _TripPlannerTabState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trips = ref.watch(tripsProvider);
 
-class _TripPlannerTabState extends State<TripPlannerTab> {
-  final List<TripPlan> _trips = [];
-
-  void _addTrip(TripPlan trip) {
-    setState(() {
-      _trips.insert(0, trip);
-    });
-  }
-
-  void _deleteTrip(String id) {
-    setState(() {
-      _trips.removeWhere((t) => t.id == id);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -84,7 +70,7 @@ class _TripPlannerTabState extends State<TripPlannerTab> {
                       builder: (_) => const CreateTripDialog(),
                     );
                     if (result != null) {
-                      _addTrip(result);
+                      ref.read(tripsProvider.notifier).add(result);
                     }
                   },
                   icon: const Icon(Icons.add),
@@ -99,7 +85,7 @@ class _TripPlannerTabState extends State<TripPlannerTab> {
             ),
           ),
           Expanded(
-            child: _trips.isEmpty
+            child: trips.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -117,15 +103,15 @@ class _TripPlannerTabState extends State<TripPlannerTab> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: _trips.length,
+                    itemCount: trips.length,
                     itemBuilder: (context, index) {
-                      final trip = _trips[index];
+                      final trip = trips[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: _TripPlanCard(
                           key: ValueKey(trip.id),
                           trip: trip,
-                          onDelete: () => _deleteTrip(trip.id),
+                          onDelete: () => ref.read(tripsProvider.notifier).remove(trip.id),
                         ),
                       );
                     },
@@ -292,15 +278,15 @@ class _TripPlanCard extends StatelessWidget {
   }
 }
 
-class TripDetailsPage extends StatefulWidget {
+class TripDetailsPage extends ConsumerStatefulWidget {
   final TripPlan trip;
   const TripDetailsPage({super.key, required this.trip});
 
   @override
-  State<TripDetailsPage> createState() => _TripDetailsPageState();
+  ConsumerState<TripDetailsPage> createState() => _TripDetailsPageState();
 }
 
-class _TripDetailsPageState extends State<TripDetailsPage> with TryOnMixin {
+class _TripDetailsPageState extends ConsumerState<TripDetailsPage> with TryOnMixin {
   bool _loading = true;
   int _selectedDayIndex = 0;
   
@@ -590,7 +576,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> with TryOnMixin {
         advice: tryOnAiAdvice,
       );
 
-      LooksStore.I.add(look);
+      ref.read(looksProvider.notifier).add(look);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to Closet ✅')));
     } catch (e) {
       debugPrint('Save error: $e');

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../core/services/error_handler.dart';
+import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
 import 'camera_capture_page.dart';
 import '../app/theme/app_text_styles.dart';

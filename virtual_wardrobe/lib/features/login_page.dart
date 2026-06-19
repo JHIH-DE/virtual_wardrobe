@@ -6,6 +6,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../app/theme/app_colors.dart';
+import '../core/config/env.dart';
 import '../core/services/login_service.dart';
 import '../data/token_storage.dart';
 import 'home_page.dart';
@@ -19,7 +20,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '223311252510-haiarn37l0h64lo3ju07j05kjdv7lssj.apps.googleusercontent.com',
+    serverClientId: Env.googleClientId,
     scopes: const ['email', 'profile', 'openid'],
   );
 

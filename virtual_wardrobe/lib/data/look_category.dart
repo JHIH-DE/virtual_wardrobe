@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class Look {
@@ -69,39 +68,5 @@ class Look {
       'style': style,
       'ai_notes': advice,
     };
-  }
-}
-
-class LooksStore extends ChangeNotifier {
-  LooksStore._();
-  static final LooksStore I = LooksStore._();
-
-  final List<Look> _looks = [];
-  bool _initialized = false;
-
-  List<Look> get looks => List.unmodifiable(_looks);
-  bool get initialized => _initialized;
-
-  void add(Look look) {
-    _looks.insert(0, look);
-    notifyListeners();
-  }
-
-  void setLooks(List<Look> newLooks) {
-    _looks.clear();
-    _looks.addAll(newLooks);
-    _initialized = true;
-    notifyListeners();
-  }
-
-  void removeById(int id) {
-    _looks.removeWhere((l) => l.id == id);
-    notifyListeners();
-  }
-
-  void clear() {
-    _looks.clear();
-    _initialized = false;
-    notifyListeners();
   }
 }

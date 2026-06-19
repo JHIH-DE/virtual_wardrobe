@@ -1,175 +1,117 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:virtual_wardrobe/core/services/outfit_service.dart';
-import 'package:virtual_wardrobe/core/services/garments_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
+import '../core/providers/looks_provider.dart';
+import '../core/services/auth_handler.dart';
+import '../core/services/garments_service.dart';
+import '../core/services/outfit_service.dart';
 import '../data/look_category.dart';
 import '../data/garment_category.dart';
-import '../core/services/error_handler.dart';
 
-class ClosetLooksTab extends StatefulWidget {
+class ClosetLooksTab extends ConsumerStatefulWidget {
   const ClosetLooksTab({super.key});
 
   @override
-  State<ClosetLooksTab> createState() => _ClosetLooksTabState();
+  ConsumerState<ClosetLooksTab> createState() => _ClosetLooksTabState();
 }
 
-class _ClosetLooksTabState extends State<ClosetLooksTab> {
-  static const List<String> _seasons = [
-    'All',
-    'Spring',
-    'Summer',
-    'Autumn',
-    'Winter',
-  ];
-  static const List<String> _styles = [
-    'All',
-    'Minimal',
-    'Street',
-    'Classic',
-    'Sporty'
-  ];
+class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
+  static const List<String> _seasons = ['All', 'Spring', 'Summer', 'Autumn', 'Winter'];
+  static const List<String> _styles = ['All', 'Minimal', 'Street', 'Classic', 'Sporty'];
 
-  bool _loading = false;
-  String? _error;
   String _selectedSeasons = 'All';
   String _selectedStyle = 'All';
-
-  List<Look> get _filteredLooks {
-    return LooksStore.I.looks.where((l) {
-      final okSeasons = _selectedSeasons == 'All' ||
-          l.seasons == _selectedSeasons;
-      final okStyle = _selectedStyle == 'All' || l.style == _selectedStyle;
-      return okSeasons && okStyle;
-    }).toList();
-  }
 
   @override
   void initState() {
     super.initState();
-    _getOutfits();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listenManual(looksProvider, (_, next) {
+        if (next.hasError && next.error is AuthExpiredException) {
+          AuthExpiredHandler.handle(context);
+        }
+      });
+    });
   }
 
-  Future<void> _getOutfits() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      final list = await OutfitService().getAllOutfits();
-      if (!mounted) return;
-      LooksStore.I.setLooks(list);
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _deleteOutfit(int jobId) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      await OutfitService().deleteOutfit(jobId);
-      if (!mounted) return;
-      LooksStore.I.removeById(jobId);
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+  List<Look> _filtered(List<Look> all) {
+    return all.where((l) {
+      final okSeason = _selectedSeasons == 'All' || l.seasons == _selectedSeasons;
+      final okStyle = _selectedStyle == 'All' || l.style == _selectedStyle;
+      return okSeason && okStyle;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final looksAsync = ref.watch(looksProvider);
+
     return Container(
       color: AppColors.background,
       padding: const EdgeInsets.all(16),
-      child: AnimatedBuilder(
-        animation: LooksStore.I,
-        builder: (context, _) {
-          final looks = _filteredLooks;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _sectionCard(
-                title: 'Filters',
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedSeasons,
-                        items: _seasons
-                            .map((v) =>
-                            DropdownMenuItem(value: v, child: Text(v)))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() =>
-                            _selectedSeasons = v ?? _selectedSeasons),
-                        decoration: _inputDecoration(label: 'Seasons'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedStyle,
-                        items: _styles
-                            .map((v) =>
-                            DropdownMenuItem(value: v, child: Text(v)))
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedStyle = v ?? _selectedStyle),
-                        decoration: _inputDecoration(label: 'Style'),
-                      ),
-                    ),
-                  ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionCard(
+            title: 'Filters',
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedSeasons,
+                    items: _seasons
+                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedSeasons = v ?? _selectedSeasons),
+                    decoration: _inputDecoration(label: 'Seasons'),
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 14),
-
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _getOutfits,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedStyle,
+                    items: _styles
+                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedStyle = v ?? _selectedStyle),
+                    decoration: _inputDecoration(label: 'Style'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: looksAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) {
+                if (e is AuthExpiredException) return const SizedBox.shrink();
+                return Center(child: Text(e.toString()));
+              },
+              data: (all) {
+                final looks = _filtered(all);
+                return RefreshIndicator(
+                  onRefresh: () => ref.read(looksProvider.notifier).refresh(),
                   color: AppColors.primary,
                   child: _buildListContent(looks),
-                ),
-              ),
-            ],
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildListContent(List<Look> looks) {
-    if (_loading && looks.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     if (looks.isEmpty) {
       return const Center(
         child: SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(),
-          child: Text(
-            'No looks yet.',
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
+          child: Text('No looks yet.', style: TextStyle(color: AppColors.textSecondary)),
         ),
       );
     }
@@ -184,10 +126,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
         childAspectRatio: 0.72,
       ),
       itemCount: looks.length,
-      itemBuilder: (context, index) {
-        final look = looks[index];
-        return _lookCard(context, look);
-      },
+      itemBuilder: (context, index) => _lookCard(context, looks[index]),
     );
   }
 
@@ -211,11 +150,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 6),
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 6)),
           ],
         ),
         child: ClipRRect(
@@ -232,22 +167,13 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                       child: Image.network(
                         look.imageUrl,
                         fit: BoxFit.contain,
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        },
-                        errorBuilder: (context, error, stack) {
-                          return const Center(
-                            child: Text(
-                              'Failed to load image',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          );
-                        },
+                        loadingBuilder: (_, child, progress) =>
+                            progress == null ? child : const Center(child: CircularProgressIndicator()),
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Text('Failed to load image', style: TextStyle(color: AppColors.textSecondary)),
+                        ),
                       ),
                     ),
-
                     Positioned(
                       top: 8,
                       right: 8,
@@ -261,11 +187,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                             borderRadius: BorderRadius.circular(99),
                             border: Border.all(color: AppColors.border),
                           ),
-                          child: const Icon(
-                            Icons.delete_outline,
-                            size: 18,
-                            color: AppColors.textPrimary,
-                          ),
+                          child: const Icon(Icons.delete_outline, size: 18, color: AppColors.textPrimary),
                         ),
                       ),
                     ),
@@ -273,8 +195,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   border: Border(top: BorderSide(color: AppColors.border)),
@@ -286,16 +207,11 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                         '${look.seasons} • ${look.style}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.8,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: const TextStyle(fontSize: 12.8, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.chevron_right, size: 18,
-                        color: AppColors.textSecondary),
+                    const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
                   ],
                 ),
               ),
@@ -320,10 +236,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                   children: [
                     AspectRatio(
                       aspectRatio: 0.65,
-                      child: Image.network(
-                        look.imageUrl,
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.network(look.imageUrl, fit: BoxFit.cover),
                     ),
                     Positioned(
                       top: 12,
@@ -349,71 +262,47 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                     children: [
                       Text(
                         '${look.seasons} • ${look.style}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
                       ),
-
                       const SizedBox(height: 12),
-
                       FutureBuilder<List<Garment>>(
                         future: Future.wait(look.garmentIds.map((id) => GarmentService().getGarment(id))),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const SizedBox(
-                              height: 90,
-                              child: Center(child: CircularProgressIndicator()),
-                            );
+                            return const SizedBox(height: 90, child: Center(child: CircularProgressIndicator()));
                           }
-                          
                           if (snapshot.hasError) {
-                            if (snapshot.error is AuthExpiredException) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                AuthExpiredHandler.handle(context);
-                              });
-                            }
                             return const SizedBox(
                               height: 90,
                               child: Center(child: Text('Failed to load garments', style: TextStyle(color: Colors.red, fontSize: 12))),
                             );
                           }
-
                           final garments = snapshot.data ?? [];
-
                           return SizedBox(
                             height: 90,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 0),
                               itemCount: garments.length,
-                              separatorBuilder: (context, index) => const SizedBox(width: 12),
-                              itemBuilder: (context, index) {
-                                final garment = garments[index];
-                                return _buildSmallGarmentItem(garment.category.label, garment);
-                              },
+                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              itemBuilder: (_, i) => _buildSmallGarmentItem(garments[i]),
                             ),
                           );
-                        }
+                        },
                       ),
-
                       const SizedBox(height: 28),
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
-                                _deleteOutfit(look.id);
+                                _deleteLook(look.id);
                                 Navigator.pop(context);
                               },
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.textPrimary,
                                 side: const BorderSide(color: AppColors.border),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14)),
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
                               child: const Text('Remove'),
                             ),
@@ -426,10 +315,8 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14)),
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
                               child: const Text('Close'),
                             ),
@@ -447,105 +334,50 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
     );
   }
 
-  Widget _sectionCard({required String title, required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({required String label}) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
-      filled: true,
-      fillColor: AppColors.surface,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
-      ),
-    );
+  Future<void> _deleteLook(int id) async {
+    try {
+      await OutfitService().deleteOutfit(id);
+      ref.read(looksProvider.notifier).removeById(id);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   Future<void> _confirmDelete(BuildContext context, Look look) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) =>
-          AlertDialog(
-            backgroundColor: AppColors.surface,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
-            title: const Text(
-              'Remove look?',
-              style: TextStyle(
-                  color: AppColors.textPrimary, fontWeight: FontWeight.w700),
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Remove look?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+        content: const Text('This look will be removed from your Looks.', style: TextStyle(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            content: const Text(
-              'This look will be removed from your Looks.',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Remove'),
-              ),
-            ],
+            child: const Text('Remove'),
           ),
+        ],
+      ),
     );
-
-    if (ok == true) {
-      _deleteOutfit(look.id);
-    }
+    if (ok == true) _deleteLook(look.id);
   }
 
-  Widget _buildSmallGarmentItem(String label, Garment garment) {
-    final String imageUrl = (garment.imageUrl != null && garment.imageUrl!.isNotEmpty)
+  Widget _buildSmallGarmentItem(Garment garment) {
+    final imageUrl = (garment.imageUrl != null && garment.imageUrl!.isNotEmpty)
         ? garment.imageUrl!
         : garment.uploadUrl;
-
-    final bool isNetwork = imageUrl.startsWith('http');
+    final isNetwork = imageUrl.startsWith('http');
 
     return InkWell(
       onTap: () => _showGarmentDetail(garment),
@@ -563,25 +395,11 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
                 child: isNetwork
-                    ? Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  filterQuality: FilterQuality.low,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Icon(Icons.broken_image, size: 20, color: AppColors.textSecondary),
-                    );
-                  },
-                )
-                    : Image.file(
-                  File(imageUrl),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  errorBuilder: (_, __, ___) => const Center(
-                    child: Icon(Icons.broken_image, size: 20, color: AppColors.textSecondary),
-                  ),
-                ),
+                    ? Image.network(imageUrl, fit: BoxFit.cover, width: double.infinity,
+                        filterQuality: FilterQuality.low,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 20, color: AppColors.textSecondary)))
+                    : Image.file(File(imageUrl), fit: BoxFit.cover, width: double.infinity,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 20, color: AppColors.textSecondary))),
               ),
             ),
             Container(
@@ -596,11 +414,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
             ),
           ],
@@ -610,7 +424,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
   }
 
   void _showGarmentDetail(Garment garment) {
-    final String imageUrl = (garment.imageUrl != null && garment.imageUrl!.isNotEmpty)
+    final imageUrl = (garment.imageUrl != null && garment.imageUrl!.isNotEmpty)
         ? garment.imageUrl!
         : garment.uploadUrl;
 
@@ -618,7 +432,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
+      builder: (_) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -632,10 +446,7 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
               child: Container(
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(99),
-                ),
+                decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(99)),
               ),
             ),
             const SizedBox(height: 20),
@@ -649,15 +460,10 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
               ),
             ),
             const SizedBox(height: 20),
-            Text(
-              garment.name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
-            ),
+            Text(garment.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
             const SizedBox(height: 8),
-            Text(
-              '${garment.category.label} • ${garment.subCategory}',
-              style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-            ),
+            Text('${garment.category.label} • ${garment.subCategory}',
+                style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
             const Divider(height: 32),
             if (garment.brand != null) _infoRow('Brand', garment.brand!),
             if (garment.color != null) _infoRow('Color', garment.color!),
@@ -681,6 +487,37 @@ class _ClosetLooksTabState extends State<ClosetLooksTab> {
           Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
         ],
       ),
+    );
+  }
+
+  Widget _sectionCard({required String title, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: 0.2)),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({required String label}) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AppColors.textSecondary),
+      filled: true,
+      fillColor: AppColors.surface,
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.2)),
     );
   }
 }

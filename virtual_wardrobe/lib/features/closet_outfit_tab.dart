@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
-import '../core/services/error_handler.dart';
+import '../core/providers/looks_provider.dart';
+import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
 import '../core/services/recommend_service.dart';
 import '../core/utils/try_on_mixin.dart';
@@ -13,16 +15,16 @@ import '../../data/garment_category.dart';
 import '../l10n/app_strings.dart';
 import 'select_garment_page.dart';
 
-class ClosetOutfitTab extends StatefulWidget {
+class ClosetOutfitTab extends ConsumerStatefulWidget {
   const ClosetOutfitTab({super.key});
 
   @override
-  State<ClosetOutfitTab> createState() => _ClosetOutfitTabState();
+  ConsumerState<ClosetOutfitTab> createState() => _ClosetOutfitTabState();
 }
 
 enum OutfitMode { my, ai }
 
-class _ClosetOutfitTabState extends State<ClosetOutfitTab> with TryOnMixin {
+class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMixin {
   final List<Garment> _allGarments = [];
   final List<Map<String, dynamic>> _suggestedOutfits = [];
 
@@ -866,7 +868,7 @@ class _ClosetOutfitTabState extends State<ClosetOutfitTab> with TryOnMixin {
         advice: tryOnAiAdvice,
       );
 
-      LooksStore.I.add(look);
+      ref.read(looksProvider.notifier).add(look);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved ✅')));
     } catch (_) {}
   }

@@ -18,6 +18,8 @@ class GarmentService with BaseService {
   factory GarmentService() => _instance;
   GarmentService._internal();
 
+  final Map<int, Garment> _cache = {};
+
   Future<InitUploadResult> initUpload() async {
     debugPrint('--- initUpload ---');
     final token = await getSafeToken();
@@ -101,10 +103,16 @@ class GarmentService with BaseService {
     final data = envelope['data'];
     if (data is! List) throw Exception('getGarments: response missing list data');
 
-    return data.whereType<Map<String, dynamic>>().map((j) => Garment.fromJson(j)).toList();
+    final garments = data.whereType<Map<String, dynamic>>().map((j) => Garment.fromJson(j)).toList();
+    for (final g in garments) {
+      if (g.id != null) _cache[g.id!] = g;
+    }
+    return garments;
   }
 
   Future<Garment> getGarment(int garmentId) async {
+    if (_cache.containsKey(garmentId)) return _cache[garmentId]!;
+
     debugPrint('--- getGarment: $garmentId  ---');
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/$garmentId');
@@ -117,7 +125,9 @@ class GarmentService with BaseService {
       throw Exception('getGarment: response missing data');
     }
 
-    return Garment.fromJson(data);
+    final garment = Garment.fromJson(data);
+    _cache[garmentId] = garment;
+    return garment;
   }
 
   Future<void> deleteGarment(int garmentId) async {
@@ -126,7 +136,10 @@ class GarmentService with BaseService {
     final uri = Uri.parse('$_baseUrl/$garmentId');
     final res = await http.delete(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15));
     throwIfAuthExpired(res);
-    if (res.statusCode == 200 || res.statusCode == 204 || res.statusCode == 404) return;
+    if (res.statusCode == 200 || res.statusCode == 204 || res.statusCode == 404) {
+      _cache.remove(garmentId);
+      return;
+    }
     throw Exception('deleteGarment failed (${res.statusCode})');
   }
 
@@ -146,7 +159,9 @@ class GarmentService with BaseService {
     final data = envelope['data'] as Map<String, dynamic>?;
     if (data == null) throw Exception('updateGarment: response missing data');
 
-    return Garment.fromJson(data);
+    final updated = Garment.fromJson(data);
+    if (updated.id != null) _cache[updated.id!] = updated;
+    return updated;
   }
 
   Future<Map<String, dynamic>> analyzeGarment(String localPath) async {

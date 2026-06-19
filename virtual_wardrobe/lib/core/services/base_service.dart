@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../../data/token_storage.dart';
-import 'error_handler.dart';
+import 'auth_handler.dart';
 
 mixin BaseService {
 

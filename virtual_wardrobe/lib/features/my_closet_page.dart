@@ -1,81 +1,57 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_text_styles.dart';
-import '../core/services/error_handler.dart';
-import '../core/services/garments_service.dart';
+import '../core/providers/garments_provider.dart';
+import '../core/services/auth_handler.dart';
 import '../data/garment_category.dart';
 import 'widgets/garment_upload_helper.dart';
 import 'add_garment_page.dart';
 
-class MyClosetPage extends StatefulWidget {
+class MyClosetPage extends ConsumerStatefulWidget {
   const MyClosetPage({super.key});
 
   @override
-  State<MyClosetPage> createState() => _MyClosetPageState();
+  ConsumerState<MyClosetPage> createState() => _MyClosetPageState();
 }
 
-class _MyClosetPageState extends State<MyClosetPage> {
-  final List<Garment> _allGarments = [];
-
+class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   GarmentCategory _selectedCategory = GarmentCategory.top;
-  bool _loading = false;
-  String? _error;
-
-  List<Garment> get _filteredGarments =>
-      _allGarments.where((g) => g.category == _selectedCategory).toList();
 
   @override
   void initState() {
     super.initState();
-    _refresh();
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      final list = await GarmentService().getGarments();
-      if (!mounted) return;
-      setState(() {
-        _allGarments
-          ..clear()
-          ..addAll(list);
+    // 監聽 auth 過期，只需在頁面層處理一次
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listenManual(garmentsProvider, (_, next) {
+        if (next.hasError && next.error is AuthExpiredException) {
+          AuthExpiredHandler.handle(context);
+        }
       });
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    });
   }
+
+  List<Garment> _filtered(List<Garment> all) =>
+      all.where((g) => g.category == _selectedCategory).toList();
 
   @override
   Widget build(BuildContext context) {
-    const Color pageBgColor = Color(0xFFF5F2EE); // 定義統一背景色
+    const Color pageBgColor = Color(0xFFF5F2EE);
+    final garmentsAsync = ref.watch(garmentsProvider);
 
     return Scaffold(
       backgroundColor: pageBgColor,
       appBar: AppBar(
-        backgroundColor: pageBgColor, // 不要用 transparent，改用跟背景一樣的顏色
-        surfaceTintColor: Colors.transparent, // 防止捲動時變色
+        backgroundColor: pageBgColor,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(4),
-            child: Image.asset(
-              'assets/images/page-arrow.png',
-              height: 28,
-            ),
+            child: Image.asset('assets/images/page-arrow.png', height: 28),
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -88,15 +64,12 @@ class _MyClosetPageState extends State<MyClosetPage> {
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(4),
-              child: Image.asset(
-                'assets/images/plus.png',
-                height: 28,
-              ),
+              child: Image.asset('assets/images/plus.png', height: 28),
             ),
             onPressed: () {
               GarmentUploadHelper.showAddClothingDialog(
                 context,
-                onComplete: _refresh,
+                onComplete: () => ref.read(garmentsProvider.notifier).refresh(),
               );
             },
           ),
@@ -110,19 +83,39 @@ class _MyClosetPageState extends State<MyClosetPage> {
               const SizedBox(height: 8),
               _buildCategorySelector(),
               const SizedBox(height: 16),
-              if (_loading && _allGarments.isEmpty)
-                const Expanded(child: Center(child: CircularProgressIndicator()))
-              else
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _refresh,
+              Expanded(
+                child: garmentsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => _buildError(e),
+                  data: (all) => RefreshIndicator(
+                    onRefresh: () => ref.read(garmentsProvider.notifier).refresh(),
                     color: Colors.black,
-                    child: _buildGrid(),
+                    child: _buildGrid(_filtered(all)),
                   ),
                 ),
+              ),
             ],
           ),
           _buildBottomSearchBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(Object e) {
+    if (e is AuthExpiredException) return const SizedBox.shrink();
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+          const SizedBox(height: 12),
+          Text(e.toString(), style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: () => ref.read(garmentsProvider.notifier).refresh(),
+            child: const Text('重試'),
+          ),
         ],
       ),
     );
@@ -175,8 +168,8 @@ class _MyClosetPageState extends State<MyClosetPage> {
     );
   }
 
-  Widget _buildGrid() {
-    if (!_loading && _filteredGarments.isEmpty) {
+  Widget _buildGrid(List<Garment> garments) {
+    if (garments.isEmpty) {
       return ListView(
         children: [
           const SizedBox(height: 100),
@@ -197,14 +190,15 @@ class _MyClosetPageState extends State<MyClosetPage> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120), // 增加底部間距以防遮擋
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 0.75),
-      itemCount: _filteredGarments.length,
-      itemBuilder: (context, index) {
-        final garment = _filteredGarments[index];
-        return _buildGarmentCard(garment);
-      },
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: garments.length,
+      itemBuilder: (context, index) => _buildGarmentCard(garments[index]),
     );
   }
 
@@ -263,10 +257,7 @@ class _MyClosetPageState extends State<MyClosetPage> {
                     garment.color ?? garment.subCategory,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -285,7 +276,7 @@ class _MyClosetPageState extends State<MyClosetPage> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.25), // 灰階遮罩背景
+          color: Colors.black.withOpacity(0.25),
         ),
         child: Center(
           child: Container(
@@ -313,19 +304,13 @@ class _MyClosetPageState extends State<MyClosetPage> {
                     ),
                   ),
                 ),
-                // 右側搜尋圖示與方框
                 Container(
                   padding: const EdgeInsets.all(6),
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    icon: Image.asset(
-                      'assets/images/search.png',
-                      height: 28,
-                    ),
-                    onPressed: () {
-                      // 這裡可以加入搜尋邏輯
-                    },
+                    icon: Image.asset('assets/images/search.png', height: 28),
+                    onPressed: () {},
                   ),
                 ),
               ],
@@ -342,8 +327,10 @@ class _MyClosetPageState extends State<MyClosetPage> {
       MaterialPageRoute(builder: (_) => AddGarmentPage(initialGarment: garment)),
     );
 
-    if (result == 'deleted' || result is Garment) {
-      _refresh();
+    if (result == 'deleted') {
+      ref.read(garmentsProvider.notifier).removeGarment(garment.id!);
+    } else if (result is Garment) {
+      ref.read(garmentsProvider.notifier).updateGarment(result);
     }
   }
 }

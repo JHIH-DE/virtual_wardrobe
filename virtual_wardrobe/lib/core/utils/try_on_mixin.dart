@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/outfit_service.dart';
-import '../services/error_handler.dart';
+import '../services/auth_handler.dart';
 
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   bool isOutfitLoading = false;
