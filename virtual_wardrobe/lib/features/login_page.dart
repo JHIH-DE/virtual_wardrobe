@@ -121,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.defaultBackground,
       body: Center(
         child: SingleChildScrollView(
           child: Column(
@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: AppColors.defaultBackground,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.08),

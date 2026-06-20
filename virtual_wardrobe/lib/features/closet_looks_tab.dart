@@ -11,6 +11,7 @@ import '../core/services/outfit_service.dart';
 import '../data/look.dart';
 import '../data/garment.dart';
 import 'widgets/app_card.dart';
+import 'widgets/app_text_field.dart';
 
 class ClosetLooksTab extends ConsumerStatefulWidget {
   const ClosetLooksTab({super.key});
@@ -51,7 +52,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
     final looksAsync = ref.watch(looksProvider);
 
     return Container(
-      color: AppColors.background,
+      color: AppColors.defaultBackground,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +68,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                         .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                         .toList(),
                     onChanged: (v) => setState(() => _selectedSeasons = v ?? _selectedSeasons),
-                    decoration: _inputDecoration(label: 'Seasons'),
+                    decoration: appInputDecoration(label: 'Seasons'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -78,7 +79,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                         .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                         .toList(),
                     onChanged: (v) => setState(() => _selectedStyle = v ?? _selectedStyle),
-                    decoration: _inputDecoration(label: 'Style'),
+                    decoration: appInputDecoration(label: 'Style'),
                   ),
                 ),
               ],
@@ -491,14 +492,4 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
     );
   }
 
-  InputDecoration _inputDecoration({required String label}) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
-      filled: true,
-      fillColor: AppColors.surface,
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.2)),
-    );
-  }
 }

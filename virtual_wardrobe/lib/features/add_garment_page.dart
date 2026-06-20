@@ -4,10 +4,12 @@ import 'package:image_picker/image_picker.dart';
 import '../app/theme/app_text_styles.dart';
 import '../app/theme/app_colors.dart';
 import 'widgets/page_app_bar.dart';
+import 'widgets/bottom_action_button.dart';
 import '../core/services/garments_service.dart';
 import '../data/garment.dart';
 import 'image_edit_page.dart';
 import '../data/image_edit_result.dart';
+import 'widgets/app_text_field.dart';
 import 'widgets/custom_dropdown.dart';
 
 class AddGarmentPage extends StatefulWidget {
@@ -259,7 +261,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.defaultBackground,
         extendBody: true,
         appBar: PageAppBar(
           title: title,
@@ -314,9 +316,9 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                   children: [
                     _sectionTitle('Clothing Name'),
                     const SizedBox(height: 8),
-                    TextFormField(
+                    AppTextField(
                       controller: _nameCtrl,
-                      decoration: _inputDecoration(hint: 'Name the clothing'),
+                      hint: 'Name the clothing',
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter name' : null,
                     ),
 
@@ -346,9 +348,9 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                     const SizedBox(height: 20),
                     _sectionTitle('Product Type'),
                     const SizedBox(height: 8),
-                    TextFormField(
+                    AppTextField(
                       controller: _subCategory,
-                      decoration: _inputDecoration(hint: 'e.g. Top'),
+                      hint: 'e.g. Top',
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter product type' : null,
                     ),
 
@@ -360,17 +362,17 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                     const SizedBox(height: 20),
                     _sectionTitle('Brand (optional)'),
                     const SizedBox(height: 8),
-                    TextFormField(
+                    AppTextField(
                       controller: _brandCtrl,
-                      decoration: _inputDecoration(hint: 'What is the brand of this clothing?'),
+                      hint: 'What is the brand of this clothing?',
                     ),
 
                     const SizedBox(height: 20),
                     _sectionTitle('Price (optional)'),
                     const SizedBox(height: 8),
-                    TextFormField(
+                    AppTextField(
                       controller: _priceCtrl,
-                      decoration: _inputDecoration(hint: 'How much is this clothing?'),
+                      hint: 'How much is this clothing?',
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     ),
 
@@ -385,44 +387,10 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           ),
         ),
         // 固定在底部的儲存按鈕
-        bottomNavigationBar: Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.25),
-          ),
-          child: Container(
-            height: 60,
-            width: 355,
-            decoration: BoxDecoration(
-              color: (_isModified && !uploading) ? const Color(0xFF1A1A1A) : const Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 15,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: (_isModified && !uploading) ? _saveGarment : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                disabledBackgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                minimumSize: const Size(355, 60),
-                maximumSize: const Size(355, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                elevation: 0,
-              ),
-              child: uploading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text(
-                _isAddMode ? 'Add to Closet' : 'Save',
-                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
+        bottomNavigationBar: BottomActionButton(
+          label: _isAddMode ? 'Add to Closet' : 'Save',
+          onPressed: _isModified ? _saveGarment : null,
+          isLoading: uploading,
         ),
       ),
     );
@@ -481,7 +449,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       borderRadius: BorderRadius.circular(12),
       onTap: _openColorPickerSheet,
       child: InputDecorator(
-        decoration: _inputDecoration(hint: ''),
+        decoration: appInputDecoration(hint: ''),
         child: Row(
           children: [
             Container(
@@ -579,7 +547,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         }
       },
       child: InputDecorator(
-        decoration: _inputDecoration(hint: ''),
+        decoration: appInputDecoration(hint: ''),
         child: Row(
           children: [
             Expanded(child: Text(_purchaseDate == null ? 'Select date' : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}', style: TextStyle(color: _purchaseDate == null ? AppColors.textSecondary : AppColors.textPrimary))),
@@ -763,21 +731,4 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     return Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
   }
 
-  InputDecoration _inputDecoration({required String hint}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.black26, fontSize: 14),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.textBoxBorder, width: 1.5),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-      ),
-    );
-  }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
+import 'app_text_field.dart';
+import 'bottom_action_button.dart';
 import '../../data/trip_plan.dart';
 import 'location_picker_page.dart';
 
@@ -30,9 +32,9 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
+          AppTextField(
             controller: _tripNameController,
-            decoration: const InputDecoration(labelText: "Trip Name"),
+            label: 'Trip Name',
           ),
           const SizedBox(height: 16),
           ListTile(
@@ -51,9 +53,9 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
           ),
           DropdownButtonFormField<String>(
             value: _selectedStyle,
-            decoration: const InputDecoration(
-              labelText: "Default Style",
-              prefixIcon: Icon(Icons.style, color: AppColors.primary, size: 20),
+            decoration: appInputDecoration(
+              label: 'Default Style',
+              prefixIcon: const Icon(Icons.style, color: AppColors.primary, size: 20),
             ),
             items: _styleOptions
                 .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -62,13 +64,22 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
               if (v != null) setState(() => _selectedStyle = v);
             },
           ),
+          const SizedBox(height: 24),
+          BottomActionButton(
+            label: 'Create',
+            onPressed: _saveTrip,
+            buttonColor: AppColors.primary,
+            textColor: Colors.white,
+            panelColor: Colors.transparent,
+            showShadow: false,
+            panelPadding: EdgeInsets.zero,
+          ),
         ],
       ),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel")),
-        ElevatedButton(onPressed: _saveTrip, child: const Text("Create")),
       ],
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/theme/app_colors.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
+import 'figure_setting_page.dart';
 import 'personal_details_page.dart';
 import '../app/theme/app_text_styles.dart';
 import 'widgets/app_card.dart';
@@ -77,10 +78,18 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadProfile();
   }
 
+  Future<void> _openFigureSetting() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FigureSettingPage()),
+    );
+    _loadProfile();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.defaultBackground,
       appBar: const PageAppBar(title: 'Setting'),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -162,14 +171,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildFigureCard() {
     return AppCard(
-      onTap: _openPersonalDetails,
+      onTap: _openFigureSetting,
       child: Row(
         children: [
           Container(
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: AppColors.defaultBackground,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),

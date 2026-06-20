@@ -5,7 +5,7 @@ class AppTheme {
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: AppColors.defaultBackground,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
       ),

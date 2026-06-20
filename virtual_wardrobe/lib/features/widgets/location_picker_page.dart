@@ -46,7 +46,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.defaultBackground,
       appBar: PageAppBar(
         title: 'Search Location',
         backgroundColor: AppColors.surface,

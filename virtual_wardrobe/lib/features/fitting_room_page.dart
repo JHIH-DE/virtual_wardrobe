@@ -18,7 +18,7 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.defaultBackground,
         appBar: PageAppBar(
           title: 'Fitting Room',
           backgroundColor: AppColors.surface,

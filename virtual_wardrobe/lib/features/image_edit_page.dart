@@ -8,6 +8,7 @@ import 'camera_capture_page.dart';
 import '../app/theme/app_text_styles.dart';
 import '../app/theme/app_colors.dart';
 import 'widgets/page_app_bar.dart';
+import 'widgets/bottom_action_button.dart';
 
 class ImageEditPage extends StatefulWidget {
   final String? initialPath;
@@ -98,18 +99,25 @@ class _ImageEditPageState extends State<ImageEditPage> {
     final hasImage = _currentPath != null && _currentPath!.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.defaultBackground,
       appBar: PageAppBar(
         title: 'Edit',
         onBack: () { if (!_isAnalyzing) Navigator.pop(context); },
       ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
+      bottomNavigationBar: BottomActionButton(
+        label: _isAnalyzing ? 'Analyzing...' : 'Confirmed',
+        onPressed: (hasImage && !_isAnalyzing) ? _handleConfirmed : null,
+        trailing: Image.asset(
+          'assets/images/AI.png',
+          height: 20,
+          color: Colors.white,
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
                 Stack(
                   children: [
                     AspectRatio(
@@ -248,40 +256,9 @@ class _ImageEditPageState extends State<ImageEditPage> {
                     ),
                   ],
                 ),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 32),
-                  child: ElevatedButton(
-                    onPressed: (hasImage && !_isAnalyzing) ? _handleConfirmed : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A1A1A),
-                      minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _isAnalyzing ? 'Analyzing...' : 'Confirmed',
-                          style: AppTextStyle.bold16.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Image.asset(
-                          'assets/images/AI.png',
-                          height: 20,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
-        ],
-      ),
     );
   }
 

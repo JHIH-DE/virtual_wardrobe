@@ -16,6 +16,7 @@ import 'select_garment_page.dart';
 import 'widgets/full_screen_image_page.dart';
 import 'widgets/garment_image.dart';
 import 'widgets/app_card.dart';
+import 'widgets/bottom_action_button.dart';
 
 class ClosetOutfitTab extends ConsumerStatefulWidget {
   const ClosetOutfitTab({super.key});
@@ -54,7 +55,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.background,
+      color: AppColors.defaultBackground,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -202,16 +203,14 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
+                child: BottomActionButton(
+                  label: 'Save Look',
                   onPressed: isOutfitLoading ? null : _saveLook,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Save Look'),
+                  buttonColor: AppColors.primary,
+                  textColor: Colors.white,
+                  panelColor: Colors.transparent,
+                  showShadow: false,
+                  panelPadding: EdgeInsets.zero,
                 ),
               ),
             ],

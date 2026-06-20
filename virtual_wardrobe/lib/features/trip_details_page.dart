@@ -132,7 +132,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.defaultBackground,
       appBar: PageAppBar(
         title: widget.trip.name,
         backgroundColor: AppColors.surface,

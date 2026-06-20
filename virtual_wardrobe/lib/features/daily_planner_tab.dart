@@ -12,6 +12,7 @@ import '../core/services/outfit_service.dart';
 import 'try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
+import 'widgets/bottom_action_button.dart';
 import 'widgets/today_outfit_idea.dart';
 
 class DailyPlannerTab extends ConsumerStatefulWidget {
@@ -229,7 +230,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () => ref.read(weatherProvider.notifier).refresh(),
-              child: const Text('重試'),
+              child: const Text('Retry'),
             ),
           ],
         ),
@@ -240,7 +241,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
 
   Widget _buildContent(WeatherData weather) {
     return Container(
-      color: AppColors.background,
+      color: AppColors.defaultBackground,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -423,9 +424,9 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.75,
+          height: MediaQuery.of(context).size.height * 0.8,
           decoration: const BoxDecoration(
-            color: AppColors.background,
+            color: AppColors.defaultBackground,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -498,35 +499,22 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final weather =
-                        ref.read(weatherProvider).valueOrNull;
-                    if (weather != null) {
-                      await _createWeeklyPlan(weather);
-                    }
-                    await _loadDailyData();
-                    if (context.mounted) Navigator.pop(context);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text(
-                              'Plan updated based on your settings')));
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: const Size(double.infinity, 52),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text('Apply',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold)),
-                ),
+              BottomActionButton(
+                label: 'Apply',
+                onPressed: () async {
+                  final weather =
+                      ref.read(weatherProvider).valueOrNull;
+                  if (weather != null) {
+                    await _createWeeklyPlan(weather);
+                  }
+                  await _loadDailyData();
+                  if (context.mounted) Navigator.pop(context);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text(
+                            'Plan updated based on your settings')));
+                  }
+                },
               ),
             ],
           ),

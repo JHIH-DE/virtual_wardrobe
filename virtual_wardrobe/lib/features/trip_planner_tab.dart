@@ -15,7 +15,7 @@ class TripPlannerTab extends ConsumerWidget {
     final trips = ref.watch(tripsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.defaultBackground,
       body: Column(
         children: [
           Container(

@@ -10,6 +10,8 @@ import '../core/services/profile_service.dart';
 import 'image_edit_page.dart';
 import 'widgets/custom_dropdown.dart';
 import 'widgets/page_app_bar.dart';
+import 'widgets/app_text_field.dart';
+import 'widgets/bottom_action_button.dart';
 
 class PersonalDetailsPage extends StatefulWidget {
   const PersonalDetailsPage({super.key});
@@ -151,11 +153,8 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: PageAppBar(
-        title: 'Personal Details',
-        backgroundColor: AppColors.background,
-      ),
+      backgroundColor: AppColors.defaultBackground,
+      appBar: PageAppBar(title: 'Personal Details'),
       body: Column(
         children: [
           Expanded(
@@ -174,7 +173,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
                   const SizedBox(height: 24),
                   _fieldLabel('Account Name'),
                   const SizedBox(height: 8),
-                  _buildTextField(_nameCtrl, hint: 'Enter your name'),
+                  AppTextField(controller: _nameCtrl, hint: 'Enter your name'),
                   const SizedBox(height: 20),
                   _fieldLabel('Gender'),
                   const SizedBox(height: 8),
@@ -204,7 +203,11 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
               ),
             ),
           ),
-          _buildSaveButton(),
+          BottomActionButton(
+            label: 'Save',
+            onPressed: _saveProfile,
+            isLoading: _loading,
+          ),
         ],
       ),
     );
@@ -316,60 +319,4 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, {String hint = ''}) {
-    return TextField(
-      controller: ctrl,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.textSecondary),
-        filled: true,
-        fillColor: AppColors.surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  // ── Save button ────────────────────────────────────────────────────────────
-
-  Widget _buildSaveButton() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _loading ? null : _saveProfile,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-            ),
-            child: _loading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                  )
-                : const Text('Save',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
-        ),
-      ),
-    );
-  }
 }

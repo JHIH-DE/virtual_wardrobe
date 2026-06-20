@@ -80,13 +80,13 @@ class ProfileService with BaseService {
   Future<String?> getMyFullBody() async {
      debugPrint('--- getMyFullBody ---');
      final token = await getSafeToken();
-     final uri = Uri.parse(_fullBodyUrl);
+     final uri = Uri.parse(_baseUrl);
      final res = await http.get(uri, headers: authHeaders(token));
      throwIfAuthExpired(res);
      if (res.statusCode == 404) return null;
      final envelope = decodeMap(res, op: 'getMyFullBody');
      final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-     return data['object_url']?.toString();
+     return data['full_body_object_url']?.toString();
   }
 
   Future<Map<String, dynamic>> updateMyProfile({String? name, String? gender, String? birthday, num? height, num? weight, String? unitSystem}) async {

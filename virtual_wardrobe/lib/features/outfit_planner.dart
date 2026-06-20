@@ -18,7 +18,7 @@ class _OutfitPlannerPageState extends State<OutfitPlannerPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.defaultBackground,
         appBar: PageAppBar(
           title: 'Outfit Planner',
           backgroundColor: AppColors.surface,
