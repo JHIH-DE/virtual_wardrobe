@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
+import 'widgets/page_app_bar.dart';
 import 'closet_looks_tab.dart';
 import 'closet_outfit_tab.dart';
 
@@ -18,19 +19,9 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
       length: 2,
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: const Text(
-            'Fitting Room',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+        appBar: PageAppBar(
+          title: 'Fitting Room',
           backgroundColor: AppColors.surface,
-          elevation: 0,
-          iconTheme: const IconThemeData(
-            color: AppColors.textPrimary,
-          ),
           bottom: TabBar(
             indicatorColor: AppColors.primary,
             indicatorWeight: 2.5,

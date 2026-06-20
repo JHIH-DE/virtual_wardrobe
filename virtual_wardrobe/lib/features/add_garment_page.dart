@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../app/theme/app_text_styles.dart';
 import '../app/theme/app_colors.dart';
+import 'widgets/page_app_bar.dart';
 import '../core/services/garments_service.dart';
-import '../data/garment_category.dart';
+import '../data/garment.dart';
 import 'image_edit_page.dart';
+import '../data/image_edit_result.dart';
 import 'widgets/custom_dropdown.dart';
 
 class AddGarmentPage extends StatefulWidget {
@@ -259,25 +261,12 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         extendBody: true,
-        appBar: AppBar(
-          title: Text(title, style: AppTextStyle.bold16),
-          centerTitle: true,
-          backgroundColor: AppColors.toolBar,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          leading: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(4),
-              child: Image.asset(
-                'assets/images/page-arrow.png',
-                height: 28,
-              ),
-            ),
-            onPressed: () async {
-              final shouldPop = await _onWillPop();
-              if (shouldPop && mounted) Navigator.pop(context);
-            },
-          ),
+        appBar: PageAppBar(
+          title: title,
+          onBack: () async {
+            final shouldPop = await _onWillPop();
+            if (shouldPop && mounted) Navigator.pop(context);
+          },
           actions: [
             if (!_isAddMode)
               IconButton(
@@ -291,11 +280,6 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                 onPressed: _handleDelete,
               ),
           ],
-          titleTextStyle: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
         ),
         body: Form(
           key: _formKey,

@@ -6,8 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../data/garment_category.dart';
+import '../data/garment.dart';
 import 'widgets/garment_upload_helper.dart';
+import 'widgets/page_app_bar.dart';
 import 'add_garment_page.dart';
 
 class MyClosetPage extends ConsumerStatefulWidget {
@@ -43,23 +44,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
 
     return Scaffold(
       backgroundColor: pageBgColor,
-      appBar: AppBar(
+      appBar: PageAppBar(
+        title: 'My closet',
         backgroundColor: pageBgColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(4),
-            child: Image.asset('assets/images/page-arrow.png', height: 28),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'My closet',
-          textScaler: TextScaler.noScaling,
-          style: AppTextStyle.bold16,
-        ),
         actions: [
           IconButton(
             icon: Container(

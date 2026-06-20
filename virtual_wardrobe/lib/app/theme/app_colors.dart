@@ -5,7 +5,7 @@ class AppColors {
 
   // Fashion Editorial base
   static const Color background = Color(0xFFF5F2EE);
-  static const Color toolBar = Color(0xFFEEEDE6);
+  static const Color toolBar = Color(0xFFFFFFFF);
   static const Color backgroundLight = Color(0xFFF5F4F0);
   static const Color surface = Color(0xFFFFFFFF);        // 卡片白
   static const Color border = Color(0xFFE6E6E6);         // 細邊框灰

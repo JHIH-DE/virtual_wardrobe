@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,11 +8,14 @@ import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
 import '../core/services/recommend_service.dart';
-import '../core/utils/try_on_mixin.dart';
-import '../../data/look_category.dart';
-import '../../data/garment_category.dart';
+import 'try_on_mixin.dart';
+import '../data/look.dart';
+import '../data/garment.dart';
 import '../l10n/app_strings.dart';
 import 'select_garment_page.dart';
+import 'widgets/full_screen_image_page.dart';
+import 'widgets/garment_image.dart';
+import 'widgets/app_card.dart';
 
 class ClosetOutfitTab extends ConsumerStatefulWidget {
   const ClosetOutfitTab({super.key});
@@ -80,7 +82,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
 
     if (!isVisible) return const SizedBox.shrink();
 
-    return _sectionCard(
+    return AppCard(
       title: AppStrings.tryOnResult,
       child: _buildOutfitSection(context),
     );
@@ -310,7 +312,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
                   scrollDirection: Axis.horizontal,
                   itemCount: garments.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) => _garmentThumb(garments[index].imageUrl, size: 64),
+                  itemBuilder: (context, index) => GarmentImage(url: garments[index].imageUrl, width: 64, height: 64, borderRadius: 10, fit: BoxFit.cover),
                 ),
               ),
             ],
@@ -396,42 +398,8 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
     );
   }
 
-  Widget _sectionCard({required String title, required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-
   Widget _buildAiOutfitCard() {
-    return _sectionCard(
+    return AppCard(
       title: 'Ai Outfit',
       child: Column(
         children: [
@@ -522,7 +490,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   }
 
   Widget _buildMyOutfitCard() {
-    return _sectionCard(
+    return AppCard(
       title: 'My Outfit',
       child: Column(
         children: [
@@ -654,7 +622,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   }
 
   Widget _buildSuggestedOutfitsCard() {
-    return _sectionCard(
+    return AppCard(
       title: AppStrings.suggestedOutfits,
       child: _suggestedOutfits.isEmpty
           ? const Text(
@@ -722,7 +690,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
               )
                   : Row(
                 children: [
-                  _garmentThumb(value.imageUrl),
+                  GarmentImage(url: value.imageUrl, width: 32, height: 32, borderRadius: 10, fit: BoxFit.cover),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -814,20 +782,6 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
     }
   }
 
-  Widget _garmentThumb(String? urlOrPath, {double size = 32}) {
-    final u = (urlOrPath ?? '').trim();
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: u.isEmpty
-            ? Container(color: AppColors.border, child: Icon(Icons.image_not_supported, size: size))
-            : (u.startsWith('http')) ? Image.network(u, fit: BoxFit.cover) : Image.file(File(u), fit: BoxFit.cover),
-      ),
-    );
-  }
-
   Future<void> _startTryOn({List<int>? garmentIds}) async {
     List<int> ids = garmentIds ?? [];
 
@@ -883,34 +837,3 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   }
 }
 
-class FullScreenImagePage extends StatelessWidget {
-  final String imageUrl;
-
-  const FullScreenImagePage({super.key, required this.imageUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          alignment: Alignment.center,
-          child: Hero(
-            tag: 'outfit_image',
-            child: AspectRatio(
-              aspectRatio: 0.6,
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

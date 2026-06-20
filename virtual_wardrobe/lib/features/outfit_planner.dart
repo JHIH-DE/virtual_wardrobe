@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
+import 'widgets/page_app_bar.dart';
 import 'daily_planner_tab.dart';
 import 'trip_planner_tab.dart';
 
@@ -18,19 +19,9 @@ class _OutfitPlannerPageState extends State<OutfitPlannerPage> {
       length: 2,
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: const Text(
-            'Outfit Planner',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+        appBar: PageAppBar(
+          title: 'Outfit Planner',
           backgroundColor: AppColors.surface,
-          elevation: 0,
-          iconTheme: const IconThemeData(
-            color: AppColors.textPrimary,
-          ),
           bottom: TabBar(
             indicatorColor: AppColors.primary,
             indicatorWeight: 2.5,

@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../../data/token_storage.dart';
+import 'auth_storage.dart';
 import 'auth_handler.dart';
 
 mixin BaseService {
@@ -16,26 +16,11 @@ mixin BaseService {
   }
 
   Future<String> getSafeToken() async {
-    final token = await TokenStorage.getAccessToken();
+    final token = await AuthStorage.getAccessToken();
     if (token == null || token.isEmpty) {
       throw AuthExpiredException();
     }
     return token;
-  }
-
-  Map<String, dynamic> decodeResponse(http.Response res, {required String op}) {
-    throwIfAuthExpired(res);
-    
-    if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception('$op failed (${res.statusCode}): ${res.body}');
-    }
-    
-    final data = jsonDecode(res.body);
-    if (data is! Map<String, dynamic>) {
-      throw Exception('$op: invalid response format');
-    }
-
-    return (data['data'] as Map<String, dynamic>?) ?? data;
   }
 
   Map<String, dynamic> decodeMap(http.Response res, {required String op}) {
@@ -62,14 +47,12 @@ mixin BaseService {
 class InitUploadResult {
   final String uploadUrl;
   final String objectName;
-  final String publicUrl;
-  const InitUploadResult({required this.uploadUrl, required this.objectName, required this.publicUrl});
+  const InitUploadResult({required this.uploadUrl, required this.objectName});
 
   factory InitUploadResult.fromJson(Map<String, dynamic> json) {
     return InitUploadResult(
       uploadUrl: json['upload_url'] ?? '',
       objectName: json['object_name'] ?? '',
-      publicUrl: json['public_url'] ?? '',
     );
   }
 }

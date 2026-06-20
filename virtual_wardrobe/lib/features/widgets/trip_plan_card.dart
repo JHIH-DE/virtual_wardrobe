@@ -1,0 +1,143 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../../app/theme/app_colors.dart';
+import '../../data/trip_plan.dart';
+import '../trip_details_page.dart';
+
+class TripPlanCard extends StatelessWidget {
+  final TripPlan trip;
+  final VoidCallback onDelete;
+
+  const TripPlanCard({
+    super.key,
+    required this.trip,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr =
+        "${DateFormat('MMM d').format(trip.dateRange.start)} - "
+        "${DateFormat('MMM d, yyyy').format(trip.dateRange.end)}";
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TripDetailsPage(trip: trip),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    trip.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon:
+                      const Icon(Icons.delete_outline, color: Colors.white70),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Delete Trip"),
+                        content: const Text(
+                            "Are you sure you want to delete this trip?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              onDelete();
+                            },
+                            child: const Text("Delete",
+                                style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    trip.location.name,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today,
+                    color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  dateStr,
+                  style:
+                      const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  "View Plan",
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward_ios,
+                    color: Colors.white70, size: 12),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

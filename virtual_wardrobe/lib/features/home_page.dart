@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import 'account_page.dart';
 import 'login_page.dart';
+import 'settings_page.dart';
 import 'my_closet_page.dart';
 import 'outfit_planner.dart';
 import 'fitting_room_page.dart';
@@ -42,10 +42,9 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.only(right: 16.0),
             child: InkWell(
               onTap: () {
-                Navigator.pushAndRemoveUntil(
+                Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                  (route) => false,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()),
                 );
               },
               borderRadius: BorderRadius.circular(25),
@@ -172,11 +171,6 @@ class _HomePageState extends State<HomePage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (_) => const OutfitPlannerPage()),
-                              );
-                            } else if (feature == 'Account') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const AccountPage()),
                               );
                             }
                           },

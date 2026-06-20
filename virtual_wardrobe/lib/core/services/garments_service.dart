@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:mime/mime.dart';
 
-import '../../data/garment_category.dart';
+import '../../data/garment.dart';
 import '../config/app_config.dart';
 import 'base_service.dart';
 

@@ -3,16 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
+import '../data/image_edit_result.dart';
 import 'camera_capture_page.dart';
 import '../app/theme/app_text_styles.dart';
 import '../app/theme/app_colors.dart';
-
-class ImageEditResult {
-  final String imagePath;
-  final Map<String, dynamic>? analysisData;
-
-  ImageEditResult({required this.imagePath, this.analysisData});
-}
+import 'widgets/page_app_bar.dart';
 
 class ImageEditPage extends StatefulWidget {
   final String? initialPath;
@@ -104,18 +99,9 @@ class _ImageEditPageState extends State<ImageEditPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.toolBar,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => _isAnalyzing ? null : Navigator.pop(context),
-        ),
-        title: const Text(
-          'Edit',
-          style: AppTextStyle.bold16,
-        ),
-        centerTitle: true,
+      appBar: PageAppBar(
+        title: 'Edit',
+        onBack: () { if (!_isAnalyzing) Navigator.pop(context); },
       ),
       body: Stack(
         children: [

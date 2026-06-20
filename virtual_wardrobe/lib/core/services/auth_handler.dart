@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/login_page.dart';
-import '../../data/token_storage.dart';
+import 'auth_storage.dart';
 
 class AuthExpiredException implements Exception {
   final String _message;
@@ -12,7 +12,7 @@ class AuthExpiredException implements Exception {
 
 class AuthExpiredHandler {
   static Future<void> handle(BuildContext context) async {
-    await TokenStorage.clear();
+    await AuthStorage.clear();
 
     if (!context.mounted) return;    await showDialog(
       context: context,

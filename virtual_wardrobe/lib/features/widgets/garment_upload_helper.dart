@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../data/garment_category.dart';
+import '../../data/garment.dart';
 import '../add_garment_page.dart';
 import '../camera_capture_page.dart';
 import '../image_edit_page.dart';
+import '../../data/image_edit_result.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../app/theme/app_colors.dart';
 
@@ -66,7 +67,7 @@ class GarmentUploadHelper {
                 icon: Container(
                   padding: const EdgeInsets.all(4),
                   child: Image.asset(
-                    'assets/images/page-arrow.png',
+                    'assets/images/page_arrow_left.png',
                     height: 20,
                   ),
                 ),

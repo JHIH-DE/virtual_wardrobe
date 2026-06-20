@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -42,6 +43,19 @@ class WeatherData {
     if (code <= 67) return 'Rain';
     if (code <= 77) return 'Snow';
     return 'Clouds';
+  }
+
+  static IconData iconFromCondition(String condition) {
+    switch (condition) {
+      case 'Clear':
+        return Icons.wb_sunny_rounded;
+      case 'Rain':
+        return Icons.umbrella_rounded;
+      case 'Snow':
+        return Icons.ac_unit_rounded;
+      default:
+        return Icons.wb_cloudy_rounded;
+    }
   }
 
   factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(

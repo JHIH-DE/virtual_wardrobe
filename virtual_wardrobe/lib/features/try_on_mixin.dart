@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../services/outfit_service.dart';
-import '../services/auth_handler.dart';
+import '../core/services/outfit_service.dart';
+import '../core/services/auth_handler.dart';
 
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   bool isOutfitLoading = false;
@@ -37,11 +37,11 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         _tryOnCompleter?.complete(jobId);
         return jobId;
       }
-      
+
       setState(() => tryOnJobId = jobId);
 
       _startPolling(jobId);
-      
+
       return _tryOnCompleter!.future;
     } on AuthExpiredException {
       if (mounted) {
@@ -81,7 +81,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         final status = statusRes['status'];
         debugPrint('--- Try-On Job Id: $jobId ---');
         debugPrint('--- Try-On Job Status: $status ---');
-        
+
         if (!mounted) {
           timer.cancel();
           _tryOnCompleter?.complete(jobId);

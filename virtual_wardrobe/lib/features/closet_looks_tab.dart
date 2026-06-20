@@ -8,8 +8,9 @@ import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
 import '../core/services/outfit_service.dart';
-import '../data/look_category.dart';
-import '../data/garment_category.dart';
+import '../data/look.dart';
+import '../data/garment.dart';
+import 'widgets/app_card.dart';
 
 class ClosetLooksTab extends ConsumerStatefulWidget {
   const ClosetLooksTab({super.key});
@@ -55,7 +56,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionCard(
+          AppCard(
             title: 'Filters',
             child: Row(
               children: [
@@ -485,26 +486,6 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
         children: [
           Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionCard({required String title, required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 6))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: 0.2)),
-          const SizedBox(height: 10),
-          child,
         ],
       ),
     );

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 
-import '../../data/garment_category.dart';
+import '../../data/garment.dart';
 import '../config/app_config.dart';
 import 'base_service.dart';
 

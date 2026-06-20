@@ -8,7 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../app/theme/app_colors.dart';
 import '../core/config/env.dart';
 import '../core/services/login_service.dart';
-import '../data/token_storage.dart';
+import '../core/services/auth_storage.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -51,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception('Google login failed: missing idToken');
       }
       final token = await LoginService().loginWithGoogleIdToken(idToken);
-      await TokenStorage.saveAccessToken(token);
+      await AuthStorage.saveAccessToken(token);
 
       Fluttertoast.showToast(msg: 'Google login success');
       await _goHome();
@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
       if (idToken == null) throw Exception('Apple login failed: missing idToken');
 
       final token = await LoginService().loginWithAppleIdToken(idToken);
-      await TokenStorage.saveAccessToken(token);
+      await AuthStorage.saveAccessToken(token);
 
       Fluttertoast.showToast(msg: 'Apple login success');
       await _goHome();
@@ -101,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
         final token = await LoginService().loginWithFaceBookIdToken(accessToken.tokenString);
-        await TokenStorage.saveAccessToken(token);
+        await AuthStorage.saveAccessToken(token);
 
         Fluttertoast.showToast(msg: 'Facebook login success');
         await _goHome();

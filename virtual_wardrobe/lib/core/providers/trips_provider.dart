@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/trip_planner_tab.dart';
+import '../../data/trip_plan.dart';
 
 final tripsProvider =
     NotifierProvider<TripsNotifier, List<TripPlan>>(TripsNotifier.new);

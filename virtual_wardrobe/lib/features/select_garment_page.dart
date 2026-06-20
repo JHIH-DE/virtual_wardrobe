@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import '../data/garment_category.dart';
+import '../data/garment.dart';
+import 'widgets/garment_image.dart';
+import 'widgets/page_app_bar.dart';
 
 class SelectGarmentPage extends StatelessWidget {
   final String _title;
@@ -22,7 +22,7 @@ class SelectGarmentPage extends StatelessWidget {
     final filtered = _garments.where((g) => g.category == _category).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(_title)),
+      appBar: PageAppBar(title: _title),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: filtered.length,
@@ -41,16 +41,12 @@ class SelectGarmentPage extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: 64,
-                      height: 64,
-                      child: _garmentImage(
-                        g.imageUrl,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  GarmentImage(
+                    url: g.imageUrl,
+                    width: 64,
+                    height: 64,
+                    borderRadius: 12,
+                    fit: BoxFit.cover,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -72,39 +68,4 @@ class SelectGarmentPage extends StatelessWidget {
     );
   }
 
-  Widget _garmentImage(String? url,
-      {double? width, double? height, BoxFit fit = BoxFit.cover}) {
-    final u = (url ?? '').trim();
-
-    if (u.isEmpty) {
-      return const Center(child: Text('No image'));
-    }
-
-    if (u.startsWith('http://') || u.startsWith('https://')) {
-      return Image.network(
-        u,
-        width: width,
-        height: height,
-        fit: fit,
-        errorBuilder: (_, __, ___) =>
-        const Center(child: Text('Image load failed')),
-      );
-    }
-
-    if (u.startsWith('file://')) {
-      return Image.file(
-        File.fromUri(Uri.parse(u)),
-        width: width,
-        height: height,
-        fit: fit,
-      );
-    }
-
-    return Image.file(
-      File(u),
-      width: width,
-      height: height,
-      fit: fit,
-    );
-  }
 }

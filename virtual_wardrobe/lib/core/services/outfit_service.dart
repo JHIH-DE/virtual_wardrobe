@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
-import '../../data/look_category.dart';
+import '../../data/look.dart';
 import 'base_service.dart';
 
 class OutfitService with BaseService {

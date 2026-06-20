@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/outfit_service.dart';
-import '../../data/look_category.dart';
+import '../../data/look.dart';
 
 final looksProvider =
     AsyncNotifierProvider<LooksNotifier, List<Look>>(LooksNotifier.new);
