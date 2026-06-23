@@ -6,6 +6,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/config/env.dart';
 import '../core/services/login_service.dart';
 import '../core/services/auth_storage.dart';
@@ -122,7 +123,8 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      body: Center(
+      body: SafeArea(
+        child: Center(
         child: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -188,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                             icon: const Icon(Icons.apple, size: 28),
                             label: const Text(
                               'Continue with Apple',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: AppTextStyle.semibold16,
                             ),
                           ),
                         ),
@@ -266,6 +268,7 @@ class _LoginPageState extends State<LoginPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

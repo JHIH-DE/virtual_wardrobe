@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/base_service.dart';
 import '../core/services/profile_service.dart';
@@ -155,7 +156,9 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
       appBar: PageAppBar(title: 'Personal Details'),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
@@ -167,7 +170,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(_error!,
-                          style: const TextStyle(color: Colors.red, fontSize: 13)),
+                          style: AppTextStyle.regular13.copyWith(color: Colors.red)),
                     ),
                   _buildAvatarBanner(),
                   const SizedBox(height: 24),
@@ -209,6 +212,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
             isLoading: _loading,
           ),
         ],
+      ),
       ),
     );
   }
@@ -259,13 +263,9 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
                       color: Colors.black87,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Edit Photo',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTextStyle.regular12.copyWith(color: Colors.white),
                     ),
                   ),
                 ],
@@ -307,14 +307,10 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
+          style: AppTextStyle.semibold14,
         ),
         const SizedBox(width: 4),
-        const Text('✳', style: TextStyle(fontSize: 10, color: Colors.red)),
+        Text('✳', style: AppTextStyle.regular12.copyWith(color: Colors.red)),
       ],
     );
   }

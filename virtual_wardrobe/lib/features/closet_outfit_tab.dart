@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
@@ -15,7 +16,7 @@ import '../l10n/app_strings.dart';
 import 'select_garment_page.dart';
 import 'widgets/full_screen_image_page.dart';
 import 'widgets/garment_image.dart';
-import 'widgets/app_card.dart';
+import 'widgets/app_list_tile.dart';
 import 'widgets/bottom_action_button.dart';
 
 class ClosetOutfitTab extends ConsumerStatefulWidget {
@@ -83,7 +84,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
 
     if (!isVisible) return const SizedBox.shrink();
 
-    return AppCard(
+    return AppListTile(
       title: AppStrings.tryOnResult,
       child: _buildOutfitSection(context),
     );
@@ -154,10 +155,10 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
                         return const Center(child: CircularProgressIndicator());
                       },
                       errorBuilder: (context, error, stack) {
-                        return const Center(
+                        return Center(
                           child: Text(
                             AppStrings.loadingImageWarning,
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: AppTextStyle.regular13.copyWith(color: AppColors.textSecondary),
                           ),
                         );
                       },
@@ -173,11 +174,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
           if (tryOnAiAdvice != null) ...[
             const Text(
               AppStrings.aiStylingNotes,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyle.bold14,
             ),
             const SizedBox(height: 6),
             Text(
@@ -398,7 +395,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   }
 
   Widget _buildAiOutfitCard() {
-    return AppCard(
+    return AppListTile(
       title: 'Ai Outfit',
       child: Column(
         children: [
@@ -489,7 +486,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   }
 
   Widget _buildMyOutfitCard() {
-    return AppCard(
+    return AppListTile(
       title: 'My Outfit',
       child: Column(
         children: [
@@ -621,12 +618,12 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   }
 
   Widget _buildSuggestedOutfitsCard() {
-    return AppCard(
+    return AppListTile(
       title: AppStrings.suggestedOutfits,
       child: _suggestedOutfits.isEmpty
-          ? const Text(
+          ? Text(
         AppStrings.suggestedWarning,
-        style: TextStyle(color: AppColors.textSecondary),
+        style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
       )
           : Column(
         children: [
@@ -683,9 +680,9 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
 
             Expanded(
               child: value == null
-                  ? const Text(
+                  ? Text(
                 'Select',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
               )
                   : Row(
                 children: [
@@ -835,4 +832,3 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
     }
   }
 }
-

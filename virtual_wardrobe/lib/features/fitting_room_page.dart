@@ -33,11 +33,14 @@ class _FittingRoomPageState extends State<FittingRoomPage> {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: SafeArea(
+          top: false,
+          child: const TabBarView(
           children: [
             ClosetOutfitTab(),
             ClosetLooksTab(),
           ],
+          ),
         ),
       ),
     );

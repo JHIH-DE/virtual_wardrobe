@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
 import '../data/image_edit_result.dart';
@@ -140,7 +141,9 @@ class _FigureSettingPageState extends State<FigureSettingPage> {
         buttonColor: const Color(0xFF1A1A1A),
         textColor: Colors.white,
       ),
-      body: SingleChildScrollView(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,29 +153,19 @@ class _FigureSettingPageState extends State<FigureSettingPage> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
                   _error!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: AppTextStyle.regular13.copyWith(color: Colors.red),
                 ),
               ),
-            _sectionLabel('Full-body Photo'),
+            const Text('Full-body Photo', style: AppTextStyle.bold14),
             const SizedBox(height: 10),
             _buildPhotoUpload(),
             const SizedBox(height: 24),
-            _sectionLabel('Figure Detail'),
+            const Text('Figure Detail', style: AppTextStyle.bold14),
             const SizedBox(height: 10),
             _buildHeightWeightFields(),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
       ),
     );
   }
@@ -186,14 +179,18 @@ class _FigureSettingPageState extends State<FigureSettingPage> {
     }
 
     if (provider != null) {
-      return GestureDetector(
-        onTap: _loading ? null : _changeFullBodyPhoto,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            width: double.infinity,
-            height: 240,
-            child: Image(image: provider, fit: BoxFit.cover),
+      return Center(
+        child: FractionallySizedBox(
+          widthFactor: 0.85,
+          child: GestureDetector(
+            onTap: _loading ? null : _changeFullBodyPhoto,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 3 / 4,
+                child: Image(image: provider, fit: BoxFit.cover),
+              ),
+            ),
           ),
         ),
       );
@@ -216,18 +213,14 @@ class _FigureSettingPageState extends State<FigureSettingPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Upload Image',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTextStyle.semibold16,
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Please choose a clear, full-body photo.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: AppTextStyle.regular13.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(

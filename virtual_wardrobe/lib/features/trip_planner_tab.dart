@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/providers/trips_provider.dart';
 import '../data/trip_plan.dart';
 import 'widgets/create_trip_dialog.dart';
@@ -16,7 +17,9 @@ class TripPlannerTab extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
@@ -32,24 +35,17 @@ class TripPlannerTab extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         "Plan Your Next Adventure",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: AppTextStyle.bold18,
                       ),
                       Text(
                         "Add locations and see forecasts",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -113,6 +109,7 @@ class TripPlannerTab extends ConsumerWidget {
                   ),
           ),
         ],
+        ),
       ),
     );
   }

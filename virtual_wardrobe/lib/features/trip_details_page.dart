@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/weekly_plans_service.dart';
 import '../core/services/outfit_service.dart';
@@ -137,7 +138,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         title: widget.trip.name,
         backgroundColor: AppColors.surface,
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildTripHeader(),
@@ -158,6 +161,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -176,8 +180,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               const Icon(Icons.location_on, color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
               Text(widget.trip.location.name,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
+                  style: AppTextStyle.bold16),
             ],
           ),
           const SizedBox(height: 4),
@@ -243,8 +246,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                         const SizedBox(height: 4),
                         Text(
                           "${_highTemps[index].round()}° / ${_lowTemps[index].round()}°",
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600),
+                          style: AppTextStyle.semibold14,
                         ),
                       ],
                     ),

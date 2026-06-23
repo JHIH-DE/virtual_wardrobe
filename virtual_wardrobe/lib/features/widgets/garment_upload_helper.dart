@@ -73,9 +73,7 @@ class GarmentUploadHelper {
                 ),
                 label: Text(
                   'Back',
-                  style: AppTextStyle.bold16.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyle.bold16,
                 ),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),

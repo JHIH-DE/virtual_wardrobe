@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
 import '../core/services/outfit_service.dart';
 import '../data/look.dart';
 import '../data/garment.dart';
-import 'widgets/app_card.dart';
+import 'widgets/app_list_tile.dart';
 import 'widgets/app_text_field.dart';
 
 class ClosetLooksTab extends ConsumerStatefulWidget {
@@ -57,7 +58,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppCard(
+          AppListTile(
             title: 'Filters',
             child: Row(
               children: [
@@ -110,10 +111,10 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
 
   Widget _buildListContent(List<Look> looks) {
     if (looks.isEmpty) {
-      return const Center(
+      return Center(
         child: SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(),
-          child: Text('No looks yet.', style: TextStyle(color: AppColors.textSecondary)),
+          child: Text('No looks yet.', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
         ),
       );
     }
@@ -171,8 +172,8 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                         fit: BoxFit.contain,
                         loadingBuilder: (_, child, progress) =>
                             progress == null ? child : const Center(child: CircularProgressIndicator()),
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Text('Failed to load image', style: TextStyle(color: AppColors.textSecondary)),
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text('Failed to load image', style: AppTextStyle.regular13.copyWith(color: AppColors.textSecondary)),
                         ),
                       ),
                     ),
@@ -264,7 +265,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                     children: [
                       Text(
                         '${look.seasons} • ${look.style}',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.textPrimary),
+                        style: AppTextStyle.title18,
                       ),
                       const SizedBox(height: 12),
                       FutureBuilder<List<Garment>>(
@@ -355,8 +356,8 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove look?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
-        content: const Text('This look will be removed from your Looks.', style: TextStyle(color: AppColors.textSecondary)),
+        title: const Text('Remove look?', style: AppTextStyle.bold16),
+        content: Text('This look will be removed from your Looks.', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -416,7 +417,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: AppTextStyle.bold10,
               ),
             ),
           ],
@@ -462,10 +463,10 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
               ),
             ),
             const SizedBox(height: 20),
-            Text(garment.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.textPrimary)),
+            Text(garment.name, style: AppTextStyle.title22),
             const SizedBox(height: 8),
             Text('${garment.category.label} • ${garment.subCategory}',
-                style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                style: AppTextStyle.semibold16.copyWith(color: AppColors.textSecondary)),
             const Divider(height: 32),
             if (garment.brand != null) _infoRow('Brand', garment.brand!),
             if (garment.color != null) _infoRow('Color', garment.color!),
@@ -486,7 +487,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
-          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text(value, style: AppTextStyle.bold14),
         ],
       ),
     );

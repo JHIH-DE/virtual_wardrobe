@@ -504,7 +504,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Expanded(child: Text('Choose a color', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                  const Expanded(child: Text('Choose a color', style: AppTextStyle.bold16)),
                   TextButton(onPressed: () { setState(() => _selectedColor = null); _checkModified(); Navigator.pop(context); }, child: const Text('Clear')),
                 ],
               ),
@@ -728,7 +728,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   }
 
   Widget _sectionTitle(String text) {
-    return Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
+    return Text(text, style: AppTextStyle.bold14);
   }
 
 }

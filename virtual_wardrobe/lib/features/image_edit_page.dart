@@ -113,7 +113,9 @@ class _ImageEditPageState extends State<ImageEditPage> {
           color: Colors.white,
         ),
       ),
-      body: Padding(
+      body: SafeArea(
+        top: false,
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           children: [
@@ -259,6 +261,7 @@ class _ImageEditPageState extends State<ImageEditPage> {
               ],
             ),
           ),
+      ),
     );
   }
 

@@ -33,11 +33,14 @@ class _OutfitPlannerPageState extends State<OutfitPlannerPage> {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: SafeArea(
+          top: false,
+          child: const TabBarView(
           children: [
             DailyPlannerTab(),
             TripPlannerTab(),
           ],
+          ),
         ),
       ),
     );

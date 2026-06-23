@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 
 class TodayOutfitIdea extends StatelessWidget {
   final VoidCallback onSave;
@@ -140,8 +141,8 @@ class TodayOutfitIdea extends StatelessWidget {
           Icon(Icons.inventory_2_outlined,
               size: 64, color: AppColors.textSecondary.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text('Generating your look...',
-              style: TextStyle(color: AppColors.textSecondary)),
+          Text('Generating your look...',
+              style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
         ],
       );
 
@@ -151,14 +152,14 @@ class TodayOutfitIdea extends StatelessWidget {
           Icon(Icons.auto_awesome,
               size: 64, color: AppColors.primary.withOpacity(0.5)),
           const SizedBox(height: 16),
-          const Text('No look image yet',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+          Text('No look image yet',
+              style: AppTextStyle.dialogBody.copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: onGenerate,
             icon: const Icon(Icons.brush_rounded, size: 20, color: Colors.white),
-            label: const Text('Generate Look',
-                style: TextStyle(color: Colors.white)),
+            label: Text('Generate Look',
+                style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv)),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

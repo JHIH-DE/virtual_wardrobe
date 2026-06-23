@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import 'login_page.dart';
 import 'settings_page.dart';
 import 'my_closet_page.dart';
 import 'outfit_planner.dart';
 import 'fitting_room_page.dart';
-import 'widgets/garment_upload_helper.dart';
+import 'widgets/app_card.dart';
+import 'create_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,8 +20,9 @@ class _HomePageState extends State<HomePage> {
 
   final List<String> _features = [
     'My Closet',
-    'Fitting Room',
-    'Outfit Planner',
+    'Planner',
+    'Manual Try-on',
+    'Looks',
     'Finance',
   ];
 
@@ -58,8 +59,8 @@ class _HomePageState extends State<HomePage> {
                   child: Center(
                     child: Image.asset(
                       'assets/images/setting.png',
-                      width: 23,
-                      height: 23,
+                      width: 50,
+                      height: 50,
                     ),
                   ),
                 ),
@@ -68,48 +69,12 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  left: 120,
-                  bottom: -180,
-                  child: Image.asset(
-                    'assets/images/main-character_small.png',
-                    height: 450,
-                  ),
-                ),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome!',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'What kind of outfit\ninspiration are you in the\nmood for today?',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF7A6C5D),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 50),
           Expanded(
             child: Container(
               width: double.infinity,
@@ -150,92 +115,24 @@ class _HomePageState extends State<HomePage> {
                       ),
                       itemBuilder: (context, index) {
                         final feature = _features[index];
-                        bool isSelected = _selectedCardIndex == index;
-                        return InkWell(
+                        return AppVerticalCard(
+                          label: feature,
+                          iconPath: _getIconPath(feature),
+                          isSelected: _selectedCardIndex == index,
                           onTap: () {
-                            setState(() {
-                              _selectedCardIndex = index;
-                            });
-
+                            setState(() => _selectedCardIndex = index);
                             if (feature == 'My Closet') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const MyClosetPage()),
-                              );
-                            } else if (feature == 'Fitting Room') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const FittingRoomPage()),
-                              );
-                            } else if (feature == 'Outfit Planner') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const OutfitPlannerPage()),
-                              );
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const MyClosetPage()));
+                            } else if (feature == 'Planner') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const OutfitPlannerPage()));
+                            } else if (feature == 'Manual Try-on') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FittingRoomPage()));
+                            } else if (feature == 'Looks') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FittingRoomPage()));
+                            } else if (feature == 'Finance') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FittingRoomPage()));
                             }
                           },
-                          borderRadius: BorderRadius.circular(32),
-                          child: AnimatedScale(
-                            scale: isSelected ? 0.98 : 1.0, // 縮放變小一點 (微調 0.98)
-                            duration: const Duration(milliseconds: 150),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              decoration: BoxDecoration(
-                                color: _getBackgroundColor(feature),
-                                borderRadius: BorderRadius.circular(32),
-                                boxShadow: [
-                                  // 右下深色影子 (變淡、變小)
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.06),
-                                    offset: const Offset(3, 3),
-                                    blurRadius: 8,
-                                  ),
-                                  // 左上亮色高光 (變更淡)
-                                  BoxShadow(
-                                    color: Colors.white.withOpacity(0.5),
-                                    offset: const Offset(-2, -2),
-                                    blurRadius: 6,
-                                  ),
-                                ],
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primary.withOpacity(0.4)
-                                      : Colors.transparent,
-                                  width: 2,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      _getIcon(feature),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    feature,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                      color: Color(0xFF1A1A1A),
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
                         );
                       },
                     ),
@@ -246,109 +143,32 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildQuickAddButton(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        GarmentUploadHelper.showAddClothingDialog(context);
-      },
-      borderRadius: BorderRadius.circular(32),
-      child: Container(
-        height: 110,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F2),
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              offset: const Offset(3, 3),
-              blurRadius: 8,
-            ),
-            BoxShadow(
-              color: Colors.white.withOpacity(0.5),
-              offset: const Offset(-2, -2),
-              blurRadius: 6,
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                Image.asset(
-                  'assets/images/add.png',
-                  height: 64,
-                  width: 64,
-                  fit: BoxFit.contain,
-                ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            const Text(
-              'Quick Add Clothing',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF1A1A1A),
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Color _getBackgroundColor(String feature) {
-    switch (feature) {
-      case 'My Closet':
-        return const Color(0xFFC9FFE5);
-      case 'Fitting Room':
-        return const Color(0xFFFFE5D1);
-      case 'Outfit Planner':
-        return const Color(0xFFBDE0FF);
-      case 'Finance':
-        return const Color(0xFFFFC9E5);
-      default:
-        return Colors.white;
-    }
+  Widget _buildQuickAddButton(BuildContext context) {
+    return AppHorizontalCard(
+      label: 'Create',
+      iconPath: 'assets/images/create.png',
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePage())),
+    );
   }
 
-  Widget _getIcon(String feature) {
-    String assetPath = '';
+  String _getIconPath(String feature) {
     switch (feature) {
       case 'My Closet':
-        assetPath = 'assets/images/my_closet.png';
-        break;
-      case 'Fitting Room':
-        assetPath = 'assets/images/fitting_room.png';
-        break;
-      case 'Outfit Planner':
-        assetPath = 'assets/images/outfit_planner.png';
-        break;
+        return 'assets/images/my_closet.png';
+      case 'Planner':
+        return 'assets/images/ai_planner.png';
+      case 'Manual Try-on':
+        return 'assets/images/manul.png';
+      case 'Looks':
+        return 'assets/images/looks.png';
       case 'Finance':
-        assetPath = 'assets/images/finance.png';
-        break;
+        return 'assets/images/finance.png';
       default:
-        return const Icon(Icons.help_outline, size: 40);
+        return '';
     }
-    return Image.asset(
-      assetPath,
-      height: 64,
-      width: 64,
-      fit: BoxFit.contain,
-    );
   }
 }

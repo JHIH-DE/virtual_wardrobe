@@ -1,5 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 
 class CameraCapturePage extends StatefulWidget {
   const CameraCapturePage({super.key});
@@ -141,15 +143,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Expanded(
+                   Expanded(
                     child: Text(
                       'Camera',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv),
                     ),
                   ),
                   const SizedBox(width: 48), // Spacer for center alignment

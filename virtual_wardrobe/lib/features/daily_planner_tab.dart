@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
@@ -252,10 +253,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(weather.location,
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary)),
+                      style: AppTextStyle.bold20),
                   Text(DateFormat('MMMM d, EEEE').format(DateTime.now()),
                       style: const TextStyle(color: AppColors.textSecondary)),
                 ],
@@ -346,8 +344,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
                       size: 28, color: AppColors.textPrimary),
                   const SizedBox(height: 8),
                   Text('$high° / $low°',
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600)),
+                      style: AppTextStyle.semibold14),
                 ],
               ),
             ),
@@ -365,10 +362,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Items for $selectedDateStr',
-            style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary)),
+            style: AppTextStyle.bold18),
         const SizedBox(height: 12),
         if (_loadingOutfits)
           const SizedBox(
@@ -382,9 +376,9 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-            child: const Center(
+            child: Center(
                 child: Text('No items planned for this day',
-                    style: TextStyle(color: AppColors.textSecondary))),
+                    style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary))),
           )
         else
           SizedBox(
@@ -440,7 +434,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
                     borderRadius: BorderRadius.circular(2)),
               ),
               const Text('Plan Customization',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  style: AppTextStyle.bold20),
               const SizedBox(height: 20),
               Expanded(
                 child: ListView(
@@ -525,10 +519,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
 
   Widget _buildSectionTitle(String title) {
     return Text(title,
-        style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textSecondary));
+        style: AppTextStyle.bold16.copyWith(color: AppColors.textSecondary));
   }
 
   Widget _buildTempAdjuster(StateSetter setModalState) {
@@ -543,8 +534,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
         children: [
           const Expanded(
               child: Text('Perceived temperature offset',
-                  style:
-                      TextStyle(fontSize: 14, fontWeight: FontWeight.w500))),
+                  style: AppTextStyle.regular14)),
           IconButton(
             onPressed: () {
               if (_counterValue > -5) {
@@ -560,10 +550,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
             child: Text(
               '${_counterValue > 0 ? "+" : ""}$_counterValue°',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary),
+              style: AppTextStyle.bold18,
             ),
           ),
           IconButton(

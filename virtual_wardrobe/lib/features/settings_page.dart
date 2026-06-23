@@ -6,7 +6,7 @@ import '../core/services/profile_service.dart';
 import 'figure_setting_page.dart';
 import 'personal_details_page.dart';
 import '../app/theme/app_text_styles.dart';
-import 'widgets/app_card.dart';
+import 'widgets/app_list_tile.dart';
 import 'widgets/page_app_bar.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -91,20 +91,23 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
       appBar: const PageAppBar(title: 'Setting'),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildProfileCard(),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildFigureCard(),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
+      body: SafeArea(
+        top: false,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildProfileCard(),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildFigureCard(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+      ),
     );
   }
 
@@ -170,7 +173,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildFigureCard() {
-    return AppCard(
+    return AppListTile(
       onTap: _openFigureSetting,
       child: Row(
         children: [
@@ -204,10 +207,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 3),
                 Text(
                   '$_weightLabel   $_heightLabel',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppTextStyle.regular13.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),

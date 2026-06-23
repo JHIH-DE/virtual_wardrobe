@@ -7,6 +7,7 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../data/garment.dart';
+import '../app/theme/app_colors.dart';
 import 'widgets/garment_upload_helper.dart';
 import 'widgets/page_app_bar.dart';
 import 'add_garment_page.dart';
@@ -39,14 +40,13 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color pageBgColor = Color(0xFFF5F2EE);
     final garmentsAsync = ref.watch(garmentsProvider);
 
     return Scaffold(
-      backgroundColor: pageBgColor,
+      backgroundColor: AppColors.backgroundLight,
       appBar: PageAppBar(
         title: 'My closet',
-        backgroundColor: pageBgColor,
+        backgroundColor: AppColors.defaultToolBar,
         actions: [
           IconButton(
             icon: Container(
@@ -63,7 +63,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Stack(
+      body: SafeArea(
+        top: false,
+        child: Stack(
         children: [
           Column(
             children: [
@@ -85,6 +87,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           ),
           _buildBottomSearchBar(),
         ],
+      ),
       ),
     );
   }
@@ -233,11 +236,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                     garment.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
+                    style: AppTextStyle.bold14.copyWith(color: Colors.black),
                   ),
                   const SizedBox(height: 4),
                   Text(

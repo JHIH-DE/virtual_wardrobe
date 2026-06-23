@@ -8,6 +8,7 @@ class AppColors {
   static const Color defaultToolBar = Color(0xFFFFFFFF);
   static const Color defaultButton = Color(0xFF222325);
   static const Color defaultButtonText = Color(0xFFFFFFFF);
+  static const Color defaultCard = Color(0xFFFFFFFF);
   static const Color backgroundLight = Color(0xFFF5F4F0);
   static const Color surface = Color(0xFFFFFFFF);        // 卡片白
   static const Color border = Color(0xFFE6E6E6);         // 細邊框灰

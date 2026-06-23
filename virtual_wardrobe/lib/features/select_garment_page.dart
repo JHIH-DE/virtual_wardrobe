@@ -23,7 +23,9 @@ class SelectGarmentPage extends StatelessWidget {
 
     return Scaffold(
       appBar: PageAppBar(title: _title),
-      body: ListView.separated(
+      body: SafeArea(
+        top: false,
+        child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: filtered.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -64,6 +66,7 @@ class SelectGarmentPage extends StatelessWidget {
             ),
           );
         },
+      ),
       ),
     );
   }
