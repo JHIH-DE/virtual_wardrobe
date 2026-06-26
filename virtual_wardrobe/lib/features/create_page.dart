@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import '../app/theme/app_text_styles.dart';
+import 'figure_setting_page.dart';
 import 'add_garment_page.dart';
 import 'fitting_room_page.dart';
 import 'outfit_planner.dart';
@@ -21,10 +21,13 @@ class CreatePage extends StatelessWidget {
         actions: [
           IconButton(
             icon: Container(
-              padding: const EdgeInsets.all(4),
-              child: Image.asset('assets/images/plus.png', height: 28),
+              child: Image.asset('assets/images/personal_setting.png', height: 40),
             ),
-            onPressed: () {
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FigureSettingPage()),
+              );
             },
           ),
           const SizedBox(width: 8),

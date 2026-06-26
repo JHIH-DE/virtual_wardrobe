@@ -9,7 +9,7 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/weekly_plans_service.dart';
-import '../core/services/outfit_service.dart';
+import '../core/services/looks_service.dart';
 import 'try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
@@ -115,7 +115,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     try {
       final jobId = await WeeklyPlansService().getLook(dayStr);
       if (jobId != null) {
-        final statusRes = await OutfitService().getOutfit(jobId);
+        final statusRes = await LookService().getLook(jobId);
         if (mounted)
           setState(() => _todayLookImageUrl = statusRes['result_image_url']);
       } else {
@@ -345,8 +345,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       final look = Look(
         id: tryOnJobId,
         imageUrl: url,
-        seasons: 'Trip',
-        style: 'Daily',
+        seasons: const [],
+        style: const [],
         advice: tryOnAiAdvice,
       );
       ref.read(looksProvider.notifier).add(look);

@@ -9,7 +9,7 @@ import '../core/providers/looks_provider.dart';
 import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/weekly_plans_service.dart';
-import '../core/services/outfit_service.dart';
+import '../core/services/looks_service.dart';
 import 'try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
@@ -147,7 +147,7 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
     try {
       final jobId = await WeeklyPlansService().getLook(day);
       if (jobId != null) {
-        final statusRes = await OutfitService().getOutfit(jobId);
+        final statusRes = await LookService().getLook(jobId);
         if (mounted) {
           setState(() {
             _todayLookImageUrl = statusRes['result_image_url'];
@@ -199,8 +199,8 @@ class _DailyPlannerTabState extends ConsumerState<DailyPlannerTab>
       final look = Look(
         id: tryOnJobId,
         imageUrl: url,
-        seasons: _weeklyOccasions[_selectedDayIndex],
-        style: 'Daily',
+        seasons: const [],
+        style: const [],
         advice: tryOnAiAdvice,
       );
       ref.read(looksProvider.notifier).add(look);

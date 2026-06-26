@@ -21,6 +21,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: Platform.isIOS && Env.googleIosClientId.isNotEmpty ? Env.googleIosClientId : null,
     serverClientId: Env.googleClientId,
     scopes: const ['email', 'profile', 'openid'],
   );
@@ -40,6 +41,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithGoogle() async {
+    if (Platform.isIOS && Env.googleIosClientId.isEmpty) {
+      _showSnack('Google login is not configured for iOS yet.');
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       await _googleSignIn.signOut();
@@ -196,35 +201,33 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 15),
                       ],
-                      if (Platform.isAndroid) ...[
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: AppColors.surface,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
-                              side: const BorderSide(color: AppColors.border),
-                            ),
-                            onPressed: _isLoading ? null : _loginWithGoogle,
-                            icon: Image.network(
-                              'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
-                              height: 24,
-                            ),
-                            label: Text(
-                              'Sign in with Google',
-                              style: GoogleFonts.roboto(
-                                fontSize: 18,
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w700,
-                                height: 22 / 16,
-                                letterSpacing: 16 * 0.02,
-                              ),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: AppColors.surface,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          onPressed: _isLoading ? null : _loginWithGoogle,
+                          icon: Image.network(
+                            'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
+                            height: 24,
+                          ),
+                          label: Text(
+                            'Sign in with Google',
+                            style: GoogleFonts.roboto(
+                              fontSize: 18,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              height: 22 / 16,
+                              letterSpacing: 16 * 0.02,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 15),
-                      ],
+                      ),
+                      const SizedBox(height: 15),
                       // Facebook login
                       SizedBox(
                         width: double.infinity,

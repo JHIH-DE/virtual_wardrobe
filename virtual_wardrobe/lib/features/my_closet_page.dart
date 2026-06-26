@@ -8,6 +8,7 @@ import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../data/garment.dart';
 import '../app/theme/app_colors.dart';
+import 'widgets/bottom_search_bar.dart';
 import 'widgets/garment_upload_helper.dart';
 import 'widgets/page_app_bar.dart';
 import 'add_garment_page.dart';
@@ -65,6 +66,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       ),
       body: SafeArea(
         top: false,
+        bottom: false,
         child: Stack(
         children: [
           Column(
@@ -85,7 +87,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
               ),
             ],
           ),
-          _buildBottomSearchBar(),
+          BottomSearchBar(hint: 'Search in "${_selectedCategory.label}"'),
         ],
       ),
       ),
@@ -249,59 +251,6 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomSearchBar() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.25),
-        ),
-        child: Center(
-          child: Container(
-            width: 335,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 15,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.only(left: 24, right: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Search in "${_selectedCategory.label}"',
-                    style: AppTextStyle.bold16.copyWith(
-                      color: const Color(0xFF9E9E9E),
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Image.asset('assets/images/search.png', height: 28),
-                    onPressed: () {},
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

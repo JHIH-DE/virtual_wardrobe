@@ -8,7 +8,7 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
-import '../core/services/outfit_service.dart';
+import '../core/services/looks_service.dart';
 import '../data/look.dart';
 import '../data/garment.dart';
 import 'widgets/app_list_tile.dart';
@@ -42,8 +42,10 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
 
   List<Look> _filtered(List<Look> all) {
     return all.where((l) {
-      final okSeason = _selectedSeasons == 'All' || l.seasons == _selectedSeasons;
-      final okStyle = _selectedStyle == 'All' || l.style == _selectedStyle;
+      final okSeason = _selectedSeasons == 'All' ||
+          l.seasons.any((s) => s.toLowerCase() == _selectedSeasons.toLowerCase());
+      final okStyle = _selectedStyle == 'All' ||
+          l.style.any((s) => s.toLowerCase() == _selectedStyle.toLowerCase());
       return okSeason && okStyle;
     }).toList();
   }
@@ -207,7 +209,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${look.seasons} • ${look.style}',
+                        '${look.seasons.join(', ')} • ${look.style.join(', ')}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12.8, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
@@ -264,7 +266,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${look.seasons} • ${look.style}',
+                        '${look.seasons.join(', ')} • ${look.style.join(', ')}',
                         style: AppTextStyle.title18,
                       ),
                       const SizedBox(height: 12),
@@ -339,7 +341,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
 
   Future<void> _deleteLook(int id) async {
     try {
-      await OutfitService().deleteOutfit(id);
+      await LookService().deleteLook(id);
       ref.read(looksProvider.notifier).removeById(id);
     } on AuthExpiredException {
       if (!mounted) return;

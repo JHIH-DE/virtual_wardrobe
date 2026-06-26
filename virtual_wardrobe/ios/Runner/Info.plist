@@ -22,6 +22,12 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app uses the camera to photograph your clothing items.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app accesses your photo library to select clothing images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app saves outfit photos to your photo library.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -60,12 +66,20 @@
 	<string>3e281307e224cd8c8389aafc12e62469</string>
 	<key>FacebookDisplayName</key>
 	<string>Virtual Wardrobe</string>
+	<key>GIDClientID</key>
+	<string>223311252510-hp2vaahvon26n7slr2rhvto44oqts6p1.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>fb1407324407836979</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.223311252510-hp2vaahvon26n7slr2rhvto44oqts6p1</string>
 			</array>
 		</dict>
 	</array>

@@ -7,4 +7,8 @@ class Env {
   static const String googleClientId = String.fromEnvironment(
     'GOOGLE_CLIENT_ID',
   );
+
+  static const String googleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+  );
 }

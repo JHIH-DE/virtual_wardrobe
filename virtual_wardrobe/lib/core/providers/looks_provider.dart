@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/outfit_service.dart';
+import '../services/looks_service.dart';
 import '../../data/look.dart';
 
 final looksProvider =
@@ -7,11 +7,11 @@ final looksProvider =
 
 class LooksNotifier extends AsyncNotifier<List<Look>> {
   @override
-  Future<List<Look>> build() => OutfitService().getAllOutfits();
+  Future<List<Look>> build() => LookService().getAllLooks();
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => OutfitService().getAllOutfits());
+    state = await AsyncValue.guard(() => LookService().getAllLooks());
   }
 
   void add(Look look) {

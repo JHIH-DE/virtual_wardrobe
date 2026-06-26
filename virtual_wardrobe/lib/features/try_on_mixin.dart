@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../core/services/outfit_service.dart';
+import '../core/services/looks_service.dart';
 import '../core/services/auth_handler.dart';
 
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
@@ -27,7 +27,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     });
 
     try {
-      final jobResponse = await OutfitService().createOutfit(
+      final jobResponse = await LookService().createLook(
         garmentIds: garmentIds,
         type: type,
       );
@@ -77,7 +77,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         return;
       }
       try {
-        final statusRes = await OutfitService().getOutfit(jobId);
+        final statusRes = await LookService().getLook(jobId);
         final status = statusRes['status'];
         debugPrint('--- Try-On Job Id: $jobId ---');
         debugPrint('--- Try-On Job Status: $status ---');
@@ -136,7 +136,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> deleteOutfitJob(int jobId) async {
     try {
-      await OutfitService().deleteOutfit(jobId);
+      await LookService().deleteLook(jobId);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);

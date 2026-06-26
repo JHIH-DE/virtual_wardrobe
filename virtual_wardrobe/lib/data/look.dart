@@ -4,8 +4,8 @@ class Look {
   final int id;
   final List<int> garmentIds;
   final String imageUrl;
-  final String? seasons;
-  final String? style;
+  final List<String> seasons;
+  final List<String> style;
   final String? advice;
   final String? errorMessage;
   final DateTime createdAt;
@@ -15,8 +15,8 @@ class Look {
     required this.id,
     this.garmentIds = const [],
     required this.imageUrl,
-    this.seasons,
-    this.style,
+    this.seasons = const <String>[],
+    this.style = const <String>[],
     this.advice,
     this.errorMessage,
     DateTime? createdAt,
@@ -43,6 +43,12 @@ class Look {
       return [];
     }
 
+    List<String> parseStrings(dynamic v) {
+      if (v is List) return v.map((e) => e.toString()).toList();
+      if (v is String && v.isNotEmpty) return [v];
+      return [];
+    }
+
     return Look(
       id: parseId(json['job_id']),
       garmentIds: parseIds(json['garment_ids']),
@@ -50,8 +56,8 @@ class Look {
       errorMessage: json['error_message'],
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
       finishedAt: parseDate(json['finished_at']),
-      seasons: json['seasons'],
-      style: json['style'],
+      seasons: parseStrings(json['season']),
+      style: parseStrings(json['style']),
       advice: json['ai_notes'],
     );
   }
@@ -64,7 +70,7 @@ class Look {
       'error_message': errorMessage,
       'created_at': createdAt.toIso8601String(),
       'finished_at': finishedAt?.toIso8601String(),
-      'seasons': seasons,
+      'season': seasons,
       'style': style,
       'ai_notes': advice,
     };

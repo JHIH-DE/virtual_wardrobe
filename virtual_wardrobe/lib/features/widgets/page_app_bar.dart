@@ -46,7 +46,7 @@ class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
               icon: Container(
                 padding: const EdgeInsets.all(4),
                 child:
-                    Image.asset('assets/images/page_arrow_left.png', height: 28),
+                    Image.asset('assets/images/page_arrow_left.png', height: 40),
               ),
               onPressed: onBack ?? () => Navigator.pop(context),
             )

@@ -41,6 +41,7 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
   OutfitMode _mode = OutfitMode.my;
   OutfitSelection _manualOutfit = const OutfitSelection();
   Map<String, dynamic>? _selectedOutfit;
+  bool _lookSaved = false;
 
   @override
   void initState() {
@@ -496,13 +497,13 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
             category: GarmentCategory.top,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(top: g);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
             onClear: _manualOutfit.top == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(top: null);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -512,13 +513,13 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
             category: GarmentCategory.top,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(middle: g);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
             onClear: _manualOutfit.middle == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearMiddle: true);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -528,13 +529,13 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
             category: GarmentCategory.outer,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(outer: g);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
             onClear: _manualOutfit.outer == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearOuter: true);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -544,13 +545,13 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
             category: GarmentCategory.bottom,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(bottom: g);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
             onClear: _manualOutfit.bottom == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(bottom: null);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -560,13 +561,13 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
             category: GarmentCategory.shoes,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(shoes: g);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
             onClear: _manualOutfit.shoes == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearShoes: true);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
           ),
           const SizedBox(height: 10),
@@ -576,13 +577,13 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
             category: GarmentCategory.accessory,
             onPicked: (g) => setState(() {
               _manualOutfit = _manualOutfit.copyWith(accessory: g);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
             onClear: _manualOutfit.accessory == null
                 ? null
                 : () => setState(() {
               _manualOutfit = _manualOutfit.copyWith(clearAccessory: true);
-              _resetOutfitState(clearSelection: false);
+              _resetOutfitState(clearSelection: false, clearTryOnResult: false);
             }),
           ),
 
@@ -799,6 +800,11 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
         _selectedOutfit = null;
       });
     }
+    if (tryOnJobId != 0 && !_lookSaved) {
+      await deleteOutfitJob(tryOnJobId);
+      ref.read(looksProvider.notifier).removeById(tryOnJobId);
+    }
+    setState(() => _lookSaved = false);
     await performTryOn(ids, "outfit");
   }
 
@@ -813,18 +819,19 @@ class _ClosetOutfitTabState extends ConsumerState<ClosetOutfitTab> with TryOnMix
       Look look = Look(
         id: tryOnJobId,
         imageUrl: tryOnResultUrl!,
-        seasons: _selectedOccasion,
-        style: _selectedStyle,
+        seasons: const [],
+        style: [_selectedStyle],
         advice: tryOnAiAdvice,
       );
 
       ref.read(looksProvider.notifier).add(look);
+      setState(() => _lookSaved = true);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved ✅')));
     } catch (_) {}
   }
 
-  void _resetOutfitState({required bool clearSelection}) {
-    resetTryOnState();
+  void _resetOutfitState({required bool clearSelection, bool clearTryOnResult = true}) {
+    if (clearTryOnResult) resetTryOnState();
     if (clearSelection) {
       setState(() {
         _selectedOutfit = null;
