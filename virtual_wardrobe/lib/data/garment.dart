@@ -224,16 +224,18 @@ class OutfitSelection {
     Garment? bottom,
     Garment? shoes,
     Garment? accessory,
+    bool clearTop = false,
     bool clearMiddle = false,
     bool clearOuter = false,
+    bool clearBottom = false,
     bool clearShoes = false,
     bool clearAccessory = false,
   }) {
     return OutfitSelection(
-      top: top ?? this.top,
+      top: clearTop ? null : (top ?? this.top),
       middle: clearMiddle ? null : (middle ?? this.middle),
       outer: clearOuter ? null : (outer ?? this.outer),
-      bottom: bottom ?? this.bottom,
+      bottom: clearBottom ? null : (bottom ?? this.bottom),
       shoes: clearShoes ? null : (shoes ?? this.shoes),
       accessory: clearAccessory ? null : (accessory ?? this.accessory),
     );

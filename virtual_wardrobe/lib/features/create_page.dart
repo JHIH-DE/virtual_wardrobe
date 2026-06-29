@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/theme/app_colors.dart';
 import 'figure_setting_page.dart';
 import 'add_garment_page.dart';
-import 'fitting_room_page.dart';
+import 'manual_try_on_page.dart';
 import 'outfit_planner.dart';
 import 'widgets/app_card.dart';
 import 'widgets/page_app_bar.dart';
@@ -21,7 +21,7 @@ class CreatePage extends StatelessWidget {
         actions: [
           IconButton(
             icon: Container(
-              child: Image.asset('assets/images/personal_setting.png', height: 40),
+              child: Image.asset('assets/images/figure_setting.png', height: 40),
             ),
             onPressed: () async {
               await Navigator.push(
@@ -52,10 +52,7 @@ class CreatePage extends StatelessWidget {
             context,
             label: 'Manual Try-on',
             iconPath: 'assets/images/manul.png',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FittingRoomPage()),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManualTryOnPage())),
           ),
           const SizedBox(height: 18),
           _buildCard(

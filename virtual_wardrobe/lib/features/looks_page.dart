@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,27 +9,41 @@ import '../core/services/garments_service.dart';
 import '../core/services/looks_service.dart';
 import '../data/look.dart';
 import '../data/garment.dart';
-import 'widgets/app_list_tile.dart';
-import 'widgets/app_text_field.dart';
+import '../app/theme/app_dimens.dart';
+import 'manual_try_on_page.dart';
+import 'widgets/garment_image.dart';
+import 'widgets/look_card.dart';
+import 'widgets/page_app_bar.dart';
+import 'widgets/bottom_action_button.dart';
 
-class ClosetLooksTab extends ConsumerStatefulWidget {
-  const ClosetLooksTab({super.key});
+class LooksPage extends ConsumerStatefulWidget {
+  const LooksPage({super.key});
 
   @override
-  ConsumerState<ClosetLooksTab> createState() => _ClosetLooksTabState();
+  ConsumerState<LooksPage> createState() => _LooksPageState();
 }
 
-class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
+class _LooksPageState extends ConsumerState<LooksPage> {
   static const List<String> _seasons = ['All', 'Spring', 'Summer', 'Autumn', 'Winter'];
   static const List<String> _styles = ['All', 'Minimal', 'Street', 'Classic', 'Sporty'];
 
-  String _selectedSeasons = 'All';
-  String _selectedStyle = 'All';
+  Set<String> _selectedSeasons = {'All'};
+  Set<String> _selectedStyle = {'All'};
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final current = ref.read(looksProvider);
+      if (current.hasError && current.error is AuthExpiredException) {
+        AuthExpiredHandler.handle(context);
+        return;
+      }
+
+      ref.read(looksProvider.notifier).refresh();
+
       ref.listenManual(looksProvider, (_, next) {
         if (next.hasError && next.error is AuthExpiredException) {
           AuthExpiredHandler.handle(context);
@@ -40,12 +52,135 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
     });
   }
 
+  bool get _isFiltered => !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
+
+  void _openFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('Season', style: AppTextStyle.bold16),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _seasons.map((s) {
+                    final selected = _selectedSeasons.contains(s);
+                    return GestureDetector(
+                      onTap: () {
+                        setSheetState(() {});
+                        setState(() {
+                          if (s == 'All') {
+                            _selectedSeasons = {'All'};
+                          } else {
+                            _selectedSeasons.remove('All');
+                            if (_selectedSeasons.contains(s)) {
+                              _selectedSeasons.remove(s);
+                              if (_selectedSeasons.isEmpty) _selectedSeasons = {'All'};
+                            } else {
+                              _selectedSeasons.add(s);
+                            }
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selected ? AppColors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selected ? AppColors.primary : AppColors.border,
+                          ),
+                        ),
+                        child: Text(
+                          s,
+                          style: AppTextStyle.semibold14.copyWith(
+                            color: selected ? Colors.white : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+                Text('Style', style: AppTextStyle.bold16),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _styles.map((s) {
+                    final selected = _selectedStyle.contains(s);
+                    return GestureDetector(
+                      onTap: () {
+                        setSheetState(() {});
+                        setState(() {
+                          if (s == 'All') {
+                            _selectedStyle = {'All'};
+                          } else {
+                            _selectedStyle.remove('All');
+                            if (_selectedStyle.contains(s)) {
+                              _selectedStyle.remove(s);
+                              if (_selectedStyle.isEmpty) _selectedStyle = {'All'};
+                            } else {
+                              _selectedStyle.add(s);
+                            }
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selected ? AppColors.primary : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: selected ? AppColors.primary : AppColors.border,
+                          ),
+                        ),
+                        child: Text(
+                          s,
+                          style: AppTextStyle.semibold14.copyWith(
+                            color: selected ? Colors.white : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   List<Look> _filtered(List<Look> all) {
     return all.where((l) {
-      final okSeason = _selectedSeasons == 'All' ||
-          l.seasons.any((s) => s.toLowerCase() == _selectedSeasons.toLowerCase());
-      final okStyle = _selectedStyle == 'All' ||
-          l.style.any((s) => s.toLowerCase() == _selectedStyle.toLowerCase());
+      final okSeason = _selectedSeasons.contains('All') ||
+          l.seasons.any((s) => _selectedSeasons.any((sel) => sel.toLowerCase() == s.toLowerCase()));
+      final okStyle = _selectedStyle.contains('All') ||
+          l.style.any((s) => _selectedStyle.any((sel) => sel.toLowerCase() == s.toLowerCase()));
       return okSeason && okStyle;
     }).toList();
   }
@@ -54,47 +189,63 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
   Widget build(BuildContext context) {
     final looksAsync = ref.watch(looksProvider);
 
+    return Scaffold(
+        backgroundColor: AppColors.defaultBackground,
+        appBar: PageAppBar(
+          title: 'Looks',
+          backgroundColor: AppColors.surface,
+          actions: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.tune),
+                  onPressed: _openFilterSheet,
+                ),
+                if (_isFiltered)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        body: SafeArea(
+          top: false,
+          child: SizedBox.expand(
+            child: _buildManualTryOnTab(looksAsync),
+          ),
+        ),
+        bottomNavigationBar: BottomActionButton(
+          label: 'Create new look',
+          trailing: const Icon(Icons.add, size: 20),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManualTryOnPage())),
+        ),
+    );
+  }
+
+  Widget _buildManualTryOnTab(AsyncValue<List<Look>> looksAsync) {
     return Container(
       color: AppColors.defaultBackground,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppListTile(
-            title: 'Filters',
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedSeasons,
-                    items: _seasons
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedSeasons = v ?? _selectedSeasons),
-                    decoration: appInputDecoration(label: 'Seasons'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedStyle,
-                    items: _styles
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedStyle = v ?? _selectedStyle),
-                    decoration: appInputDecoration(label: 'Style'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
           Expanded(
             child: looksAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) {
                 if (e is AuthExpiredException) return const SizedBox.shrink();
-                return Center(child: Text(e.toString()));
+                return Center(child: Text(e.toString(), style: AppTextStyle.regular14));
               },
               data: (all) {
                 final looks = _filtered(all);
@@ -115,8 +266,11 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
     if (looks.isEmpty) {
       return Center(
         child: SingleChildScrollView(
-          physics: AlwaysScrollableScrollPhysics(),
-          child: Text('No looks yet.', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Text(
+            'No looks yet.',
+            style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+          ),
         ),
       );
     }
@@ -126,104 +280,26 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
       padding: const EdgeInsets.only(top: 4, bottom: 20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.72,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: AppDimens.lookCardWidth / AppDimens.lookCardHeight,
       ),
       itemCount: looks.length,
-      itemBuilder: (context, index) => _lookCard(context, looks[index]),
-    );
-  }
-
-  Widget _lookCard(BuildContext context, Look look) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: AppColors.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      itemBuilder: (context, index) {
+        final look = looks[index];
+        return LookCard(
+          look: look,
+          onTap: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: AppColors.surface,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            builder: (_) => _lookDetailSheet(look),
           ),
-          builder: (_) => _lookDetailSheet(look),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 6)),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Container(
-                      color: Colors.white,
-                      child: Image.network(
-                        look.imageUrl,
-                        fit: BoxFit.contain,
-                        loadingBuilder: (_, child, progress) =>
-                            progress == null ? child : const Center(child: CircularProgressIndicator()),
-                        errorBuilder: (_, __, ___) => Center(
-                          child: Text('Failed to load image', style: AppTextStyle.regular13.copyWith(color: AppColors.textSecondary)),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: InkWell(
-                        onTap: () => _confirmDelete(context, look),
-                        borderRadius: BorderRadius.circular(99),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(99),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: const Icon(Icons.delete_outline, size: 18, color: AppColors.textPrimary),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(top: BorderSide(color: AppColors.border)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${look.seasons.join(', ')} • ${look.style.join(', ')}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12.8, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.chevron_right, size: 18, color: AppColors.textSecondary),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -252,7 +328,7 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.5),
+                            color: AppColors.surface.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(99),
                           ),
                         ),
@@ -271,15 +347,22 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                       ),
                       const SizedBox(height: 12),
                       FutureBuilder<List<Garment>>(
-                        future: Future.wait(look.garmentIds.map((id) => GarmentService().getGarment(id))),
+                        future: Future.wait(
+                          look.garmentIds.map((id) => GarmentService().getGarment(id)),
+                        ),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return const SizedBox(height: 90, child: Center(child: CircularProgressIndicator()));
                           }
                           if (snapshot.hasError) {
-                            return const SizedBox(
+                            return SizedBox(
                               height: 90,
-                              child: Center(child: Text('Failed to load garments', style: TextStyle(color: Colors.red, fontSize: 12))),
+                              child: Center(
+                                child: Text(
+                                  'Failed to load garments',
+                                  style: AppTextStyle.regular12.copyWith(color: AppColors.error),
+                                ),
+                              ),
                             );
                           }
                           final garments = snapshot.data ?? [];
@@ -300,8 +383,8 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
-                                _deleteLook(look.id);
                                 Navigator.pop(context);
+                                _confirmDelete(context, look);
                               },
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.textPrimary,
@@ -359,7 +442,10 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Remove look?', style: AppTextStyle.bold16),
-        content: Text('This look will be removed from your Looks.', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
+        content: Text(
+          'This look will be removed from your Looks.',
+          style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
@@ -382,7 +468,6 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
     final imageUrl = (garment.imageUrl != null && garment.imageUrl!.isNotEmpty)
         ? garment.imageUrl!
         : garment.uploadUrl;
-    final isNetwork = imageUrl.startsWith('http');
 
     return InkWell(
       onTap: () => _showGarmentDetail(garment),
@@ -390,21 +475,18 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
       child: Container(
         width: 80,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.border),
         ),
         child: Column(
           children: [
             Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                child: isNetwork
-                    ? Image.network(imageUrl, fit: BoxFit.cover, width: double.infinity,
-                        filterQuality: FilterQuality.low,
-                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 20, color: AppColors.textSecondary)))
-                    : Image.file(File(imageUrl), fit: BoxFit.cover, width: double.infinity,
-                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 20, color: AppColors.textSecondary))),
+              child: GarmentImage(
+                url: imageUrl,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                borderRadius: 11,
               ),
             ),
             Container(
@@ -451,30 +533,37 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
               child: Container(
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(99)),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(99),
+                ),
               ),
             ),
             const SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: imageUrl.startsWith('http')
-                    ? Image.network(imageUrl, fit: BoxFit.contain)
-                    : Image.file(File(imageUrl), fit: BoxFit.contain),
+            AspectRatio(
+              aspectRatio: 1,
+              child: GarmentImage(
+                url: imageUrl,
+                fit: BoxFit.contain,
+                borderRadius: 16,
               ),
             ),
             const SizedBox(height: 20),
             Text(garment.name, style: AppTextStyle.title22),
             const SizedBox(height: 8),
-            Text('${garment.category.label} • ${garment.subCategory}',
-                style: AppTextStyle.semibold16.copyWith(color: AppColors.textSecondary)),
+            Text(
+              '${garment.category.label} • ${garment.subCategory}',
+              style: AppTextStyle.semibold16.copyWith(color: AppColors.textSecondary),
+            ),
             const Divider(height: 32),
             if (garment.brand != null) _infoRow('Brand', garment.brand!),
             if (garment.color != null) _infoRow('Color', garment.color!),
             if (garment.price != null) _infoRow('Price', '\$${garment.price!.toStringAsFixed(0)}'),
             if (garment.purchaseDate != null)
-              _infoRow('Purchased', '${garment.purchaseDate!.year}/${garment.purchaseDate!.month}/${garment.purchaseDate!.day}'),
+              _infoRow(
+                'Purchased',
+                '${garment.purchaseDate!.year}/${garment.purchaseDate!.month}/${garment.purchaseDate!.day}',
+              ),
             const SizedBox(height: 12),
           ],
         ),
@@ -488,11 +577,10 @@ class _ClosetLooksTabState extends ConsumerState<ClosetLooksTab> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+          Text(label, style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
           Text(value, style: AppTextStyle.bold14),
         ],
       ),
     );
   }
-
 }

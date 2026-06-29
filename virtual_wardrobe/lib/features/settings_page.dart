@@ -6,7 +6,7 @@ import '../core/services/profile_service.dart';
 import 'figure_setting_page.dart';
 import 'personal_details_page.dart';
 import '../app/theme/app_text_styles.dart';
-import 'widgets/app_list_tile.dart';
+import 'widgets/app_list_card.dart';
 import 'widgets/page_app_bar.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -173,47 +173,18 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildFigureCard() {
-    return AppListTile(
+    return AppListCard(
       onTap: _openFigureSetting,
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: AppColors.defaultBackground,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: const Icon(
-              Icons.accessibility_new_rounded,
-              color: AppColors.textSecondary,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Figure setting',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '$_weightLabel   $_heightLabel',
-                  style: AppTextStyle.regular13.copyWith(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          Image.asset('assets/images/page_arrow_right.png', width: 20, height: 20),
-        ],
+      leadingAsset: 'assets/images/figure_setting.png',
+      showArrow: true,
+      summary: '$_weightLabel   $_heightLabel',
+      child: const Text(
+        'Figure setting',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }

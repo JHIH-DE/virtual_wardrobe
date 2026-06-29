@@ -5,6 +5,7 @@ import '../../app/theme/app_colors.dart';
 class BottomActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
+  final bool enabled;
   final bool isLoading;
   final Widget? trailing;
   final Color buttonColor;
@@ -17,6 +18,7 @@ class BottomActionButton extends StatelessWidget {
     super.key,
     required this.label,
     this.onPressed,
+    this.enabled = true,
     this.isLoading = false,
     this.trailing,
     this.buttonColor = AppColors.defaultButton,
@@ -26,8 +28,12 @@ class BottomActionButton extends StatelessWidget {
     this.showShadow = true,
   });
 
+  bool get _isDisabled => !enabled || isLoading || onPressed == null;
+
   @override
   Widget build(BuildContext context) {
+    final iconColor = _isDisabled ? AppColors.textSecondary : textColor;
+
     return Container(
       decoration: BoxDecoration(
         color: panelColor,
@@ -51,11 +57,12 @@ class BottomActionButton extends StatelessWidget {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: isLoading ? null : onPressed,
+              onPressed: _isDisabled ? null : onPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: buttonColor,
-                disabledBackgroundColor: const Color(0xFFE0E0E0),
+                disabledBackgroundColor: AppColors.border,
                 foregroundColor: textColor,
+                disabledForegroundColor: AppColors.textSecondary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(100),
@@ -82,7 +89,10 @@ class BottomActionButton extends StatelessWidget {
                         ),
                         if (trailing != null) ...[
                           const SizedBox(width: 8),
-                          trailing!,
+                          IconTheme(
+                            data: IconThemeData(color: iconColor),
+                            child: trailing!,
+                          ),
                         ],
                       ],
                     ),

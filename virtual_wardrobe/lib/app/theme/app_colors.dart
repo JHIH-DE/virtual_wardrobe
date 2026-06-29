@@ -29,4 +29,6 @@ class AppColors {
   static const Color cardContent = textPrimary;
 
   static const Color textBoxBorder = Color(0xFF738FBD);
+
+  static const Color error = Color(0xFFD32F2F);
 }

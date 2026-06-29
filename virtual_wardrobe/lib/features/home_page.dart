@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
+import '../core/services/auth_storage.dart';
+import 'login_page.dart';
 import 'settings_page.dart';
 import 'my_closet_page.dart';
 import 'outfit_planner.dart';
-import 'fitting_room_page.dart';
+import 'looks_page.dart';
+import 'manual_try_on_page.dart';
 import 'widgets/app_card.dart';
 import 'create_page.dart';
 
@@ -39,6 +42,18 @@ class _HomePageState extends State<HomePage> {
           height: 60,
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: '登出',
+            onPressed: () async {
+              await AuthStorage.clear();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: InkWell(
@@ -126,11 +141,10 @@ class _HomePageState extends State<HomePage> {
                             } else if (feature == 'Planner') {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const OutfitPlannerPage()));
                             } else if (feature == 'Manual Try-on') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FittingRoomPage()));
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const ManualTryOnPage()));
                             } else if (feature == 'Looks') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FittingRoomPage()));
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const LooksPage()));
                             } else if (feature == 'Finance') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FittingRoomPage()));
                             }
                           },
                         );
