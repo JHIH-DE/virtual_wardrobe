@@ -9,7 +9,7 @@ import '../../app/theme/app_text_styles.dart';
 import '../../app/theme/app_colors.dart';
 
 class GarmentUploadHelper {
-  static void showAddClothingDialog(BuildContext context, {VoidCallback? onComplete}) {
+  static void showAddClothingDialog(BuildContext context, {VoidCallback? onComplete, void Function(Garment)? onAdded}) {
     showDialog(
       context: context,
       builder: (dialogCtx) => Dialog(
@@ -46,7 +46,7 @@ class GarmentUploadHelper {
                   'Camera',
                   style: AppTextStyle.bold16,
                 ),
-                onTap: () => _onPickImage(context, dialogCtx, ImageSource.camera, onComplete),
+                onTap: () => _onPickImage(context, dialogCtx, ImageSource.camera, onComplete, onAdded),
               ),
               const SizedBox(height: 16),
               _buildDialogOption(
@@ -59,7 +59,7 @@ class GarmentUploadHelper {
                   'Photo Album',
                   style: AppTextStyle.bold16,
                 ),
-                onTap: () => _onPickImage(context, dialogCtx, ImageSource.gallery, onComplete),
+                onTap: () => _onPickImage(context, dialogCtx, ImageSource.gallery, onComplete, onAdded),
               ),
               const SizedBox(height: 24),
               OutlinedButton.icon(
@@ -118,7 +118,7 @@ class GarmentUploadHelper {
     );
   }
 
-  static Future<void> _onPickImage(BuildContext context, BuildContext dialogContext, ImageSource source, VoidCallback? onComplete) async {
+  static Future<void> _onPickImage(BuildContext context, BuildContext dialogContext, ImageSource source, VoidCallback? onComplete, void Function(Garment)? onAdded) async {
     Navigator.pop(dialogContext); // 關閉彈窗
 
     String? imagePath;
@@ -146,7 +146,7 @@ class GarmentUploadHelper {
       // 2. 跳轉到新增頁面
       if (result != null) {
         if (!context.mounted) return;
-        await Navigator.push(
+        final newGarment = await Navigator.push<Garment>(
           context,
           MaterialPageRoute(
             builder: (_) => AddGarmentPage(
@@ -162,7 +162,9 @@ class GarmentUploadHelper {
             ),
           ),
         );
-        // 當使用者離開 AddGarmentPage 後，通知列表進行重新整理
+        if (newGarment != null) {
+          onAdded?.call(newGarment);
+        }
         onComplete?.call();
       }
     }

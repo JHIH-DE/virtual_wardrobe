@@ -400,7 +400,11 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   // AI Analysis Logic
   // ----------------------------
 
-  void _applyAnalysisData(Map<String, dynamic> analysisData) {
+  void _applyAnalysisData(Map<String, dynamic> analysisData, {String? processedImagePath}) {
+    if (processedImagePath != null) {
+      _imagePathOrUrl = processedImagePath;
+      _isImageChanged = true;
+    }
     if (analysisData['name'] != null) {
       _nameCtrl.text = analysisData['name'].toString();
     }
@@ -425,12 +429,12 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   }
 
   Future<void> _runAIAnalysis(String imagePath) async {
-    if (imagePath.startsWith('http')) return; 
+    if (imagePath.startsWith('http')) return;
     try {
       setState(() => _isAnalyzing = true);
-      final analysisData = await GarmentService().analyzeGarment(imagePath);
+      final result = await GarmentService().analyzeGarment(imagePath);
       setState(() {
-        _applyAnalysisData(analysisData);
+        _applyAnalysisData(result.metadata, processedImagePath: result.processedImagePath);
         _isAnalyzing = false;
       });
     } catch (e) {

@@ -15,6 +15,7 @@ class AppColors {
   static const Color textPrimary = Color(0xFF222325);    // 近黑
   static const Color textPrimaryInv = Color(0xFFFFFFFF); // 白
   static const Color textSecondary = Color(0xFF6F6F6F);  // 次要文字灰
+  static const Color defaultDivider = Color(0xFF18191B);
 
   // Social Colors
   static const Color facebook = Color(0xFF1877F2);       // Facebook Blue
@@ -28,7 +29,7 @@ class AppColors {
   static const Color card = surface;
   static const Color cardContent = textPrimary;
 
-  static const Color textBoxBorder = Color(0xFF738FBD);
+  static const Color textBoxBorder = Color(0xFFA0A4AB);
 
   static const Color error = Color(0xFFD32F2F);
 }

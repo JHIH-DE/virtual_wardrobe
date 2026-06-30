@@ -71,13 +71,16 @@ class _ImageEditPageState extends State<ImageEditPage> {
     if (widget.showAnalysis) {
       setState(() => _isAnalyzing = true);
       try {
-        final analysisData = await GarmentService().analyzeGarment(_currentPath!);
-        debugPrint('_handleConfirmed: $analysisData');
-        
+        final result = await GarmentService().analyzeGarment(_currentPath!);
+        debugPrint('_handleConfirmed: ${result.metadata}');
+
         if (!mounted) return;
 
         Navigator.of(context).pop(
-          ImageEditResult(imagePath: _currentPath!, analysisData: analysisData)
+          ImageEditResult(
+            imagePath: result.processedImagePath ?? _currentPath!,
+            analysisData: result.metadata,
+          ),
         );
       } on AuthExpiredException {
         if (!mounted) return;

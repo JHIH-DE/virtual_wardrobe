@@ -1,14 +1,14 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/theme/app_colors.dart';
+import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../data/garment.dart';
-import '../app/theme/app_colors.dart';
 import 'widgets/bottom_search_bar.dart';
+import 'widgets/garment_card.dart';
 import 'widgets/garment_upload_helper.dart';
 import 'widgets/page_app_bar.dart';
 import 'add_garment_page.dart';
@@ -57,7 +57,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
             onPressed: () {
               GarmentUploadHelper.showAddClothingDialog(
                 context,
-                onComplete: () => ref.read(garmentsProvider.notifier).refresh(),
+                onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
               );
             },
           ),
@@ -71,7 +71,6 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
         children: [
           Column(
             children: [
-              const SizedBox(height: 8),
               _buildCategorySelector(),
               const SizedBox(height: 16),
               Expanded(
@@ -122,10 +121,12 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       GarmentCategory.accessory,
     ];
 
-    return SizedBox(
-      height: 40,
+    return ColoredBox(
+      color: AppColors.surface,
+      child: SizedBox(
+      height: 60,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
@@ -157,6 +158,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           );
         },
       ),
+    ),
     );
   }
 
@@ -187,71 +189,13 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.75,
+        childAspectRatio: AppDimens.garmentCardWidth / AppDimens.garmentCardHeight,
       ),
       itemCount: garments.length,
-      itemBuilder: (context, index) => _buildGarmentCard(garments[index]),
-    );
-  }
-
-  Widget _buildGarmentCard(Garment garment) {
-    final img = garment.imageUrl;
-    final bool isLocal = img != null && !img.startsWith('http');
-
-    return GestureDetector(
-      onTap: () => _editGarment(garment),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: img != null
-                      ? (isLocal
-                          ? Image.file(File(img), fit: BoxFit.contain)
-                          : Image.network(img, fit: BoxFit.contain))
-                      : const Center(child: Icon(Icons.image, color: Colors.grey)),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    garment.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyle.bold14.copyWith(color: Colors.black),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    garment.color ?? garment.subCategory,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      itemBuilder: (context, index) => GarmentCard(
+        garment: garments[index],
+        showSelectionIndicator: false,
+        onTap: () => _editGarment(garments[index]),
       ),
     );
   }

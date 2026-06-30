@@ -4,6 +4,7 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
+import '../data/look.dart';
 import 'looks_details_page.dart';
 import 'try_on_mixin.dart';
 import '../data/garment.dart';
@@ -68,9 +69,13 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
         context,
         MaterialPageRoute(
           builder: (_) => LooksDetailsPage(
-            imageUrl: tryOnResultUrl!,
-            aiAdvice: tryOnAiAdvice,
-            jobId: tryOnJobId,
+            look: Look(
+              id: tryOnJobId,
+              imageUrl: tryOnResultUrl!,
+              advice: tryOnAiAdvice,
+              garmentIds: ids,
+            ),
+            isNew: true,
           ),
         ),
       );
@@ -226,6 +231,8 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
       child: Text(
         value == null ? title : value.name,
         style: AppTextStyle.bold16,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

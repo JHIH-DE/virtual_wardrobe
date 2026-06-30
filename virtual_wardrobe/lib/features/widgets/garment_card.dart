@@ -9,12 +9,14 @@ import 'garment_image.dart';
 class GarmentCard extends StatelessWidget {
   final Garment garment;
   final bool isSelected;
+  final bool showSelectionIndicator;
   final VoidCallback? onTap;
 
   const GarmentCard({
     super.key,
     required this.garment,
     this.isSelected = false,
+    this.showSelectionIndicator = true,
     this.onTap,
   });
 
@@ -26,6 +28,7 @@ class GarmentCard extends StatelessWidget {
         height: AppDimens.garmentCardHeight,
         child: Container(
           decoration: BoxDecoration(
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -57,7 +60,8 @@ class GarmentCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Positioned(
+                      if (showSelectionIndicator)
+                        Positioned(
                         top: 8,
                         right: 8,
                         child: AnimatedContainer(

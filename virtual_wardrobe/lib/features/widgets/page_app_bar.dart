@@ -25,7 +25,7 @@ class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(
-        kToolbarHeight + (bottom?.preferredSize.height ?? 0),
+        kToolbarHeight + (bottom?.preferredSize.height ?? 1),
       );
 
   @override
@@ -52,7 +52,10 @@ class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
       actions: actions,
-      bottom: bottom,
+      bottom: bottom ?? const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(height: 1, thickness: 1, color: AppColors.border),
+      ),
     );
   }
 }

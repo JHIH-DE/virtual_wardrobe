@@ -6,10 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:mime/mime.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../data/garment.dart';
 import '../config/app_config.dart';
 import 'base_service.dart';
+
+class AnalyzeGarmentResult {
+  final Map<String, dynamic> metadata;
+  final String? processedImagePath;
+
+  const AnalyzeGarmentResult({required this.metadata, this.processedImagePath});
+}
 
 class GarmentService with BaseService {
 
@@ -164,7 +172,7 @@ class GarmentService with BaseService {
     return updated;
   }
 
-  Future<Map<String, dynamic>> analyzeGarment(String localPath) async {
+  Future<AnalyzeGarmentResult> analyzeGarment(String localPath) async {
     debugPrint('--- analyzeGarment ---');
     final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/analyze-instant');
@@ -185,6 +193,19 @@ class GarmentService with BaseService {
     final res = await http.Response.fromStream(streamedRes);
 
     final envelope = decodeMap(res, op: 'analyzeInstantGarment');
-    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? {};
+    final metadata = (data['metadata'] as Map<String, dynamic>?) ?? {};
+
+    String? processedImagePath;
+    final base64Str = data['processed_image_base64'] as String?;
+    if (base64Str != null && base64Str.isNotEmpty) {
+      final bytes = base64Decode(base64Str);
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await file.writeAsBytes(bytes);
+      processedImagePath = file.path;
+    }
+
+    return AnalyzeGarmentResult(metadata: metadata, processedImagePath: processedImagePath);
   }
 }

@@ -31,7 +31,7 @@ class AppListCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (leading != null || leadingAsset != null) ...[
-          leading ?? Image.asset(leadingAsset!, width: 40, height: 40),
+          leading ?? Image.asset(leadingAsset!, width: 54, height: 54),
           const SizedBox(width: 18),
         ],
         Expanded(
@@ -68,8 +68,8 @@ class AppListCard extends StatelessWidget {
     );
 
     final card = Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      constraints: const BoxConstraints(minHeight: 70),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
