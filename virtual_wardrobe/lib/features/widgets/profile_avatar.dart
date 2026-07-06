@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 
 class ProfileAvatar extends StatelessWidget {
@@ -7,25 +8,16 @@ class ProfileAvatar extends StatelessWidget {
   final VoidCallback? onTap;
   final double size;
 
-  const ProfileAvatar({
-    super.key,
-    this.image,
-    this.onTap,
-    this.size = 120,
-  });
+  const ProfileAvatar({super.key, this.image, this.onTap, this.size = 120});
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Theme.of(context).colorScheme.primary;
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle),
         child: ClipOval(
           child: Stack(
             fit: StackFit.expand,
@@ -33,7 +25,7 @@ class ProfileAvatar extends StatelessWidget {
               image != null
                   ? Image(image: image!, fit: BoxFit.cover)
                   : const ColoredBox(
-                      color: Color(0xFFE0E0E0),
+                      color: AppColors.avatarPlaceholderBackground,
                       child: Icon(Icons.person, size: 64, color: Colors.white),
                     ),
               Positioned(

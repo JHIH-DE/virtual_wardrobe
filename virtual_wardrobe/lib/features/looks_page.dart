@@ -9,7 +9,7 @@ import '../core/services/auth_handler.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
 import 'manual_try_on_page.dart';
-import 'widgets/look_card.dart';
+import 'widgets/looks_grid_view.dart';
 import 'widgets/page_app_bar.dart';
 
 class LooksPage extends ConsumerStatefulWidget {
@@ -20,8 +20,20 @@ class LooksPage extends ConsumerStatefulWidget {
 }
 
 class _LooksPageState extends ConsumerState<LooksPage> {
-  static const List<String> _seasons = ['All', 'Spring', 'Summer', 'Autumn', 'Winter'];
-  static const List<String> _styles = ['All', 'Minimal', 'Street', 'Classic', 'Sporty'];
+  static const List<String> _seasons = [
+    'All',
+    'Spring',
+    'Summer',
+    'Autumn',
+    'Winter',
+  ];
+  static const List<String> _styles = [
+    'All',
+    'Minimal',
+    'Street',
+    'Classic',
+    'Sporty',
+  ];
 
   Set<String> _selectedSeasons = {'All'};
   Set<String> _selectedStyle = {'All'};
@@ -43,7 +55,8 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     });
   }
 
-  bool get _isFiltered => !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
+  bool get _isFiltered =>
+      !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
 
   void _openFilterSheet() {
     showModalBottomSheet(
@@ -88,7 +101,9 @@ class _LooksPageState extends ConsumerState<LooksPage> {
                             _selectedSeasons.remove('All');
                             if (_selectedSeasons.contains(s)) {
                               _selectedSeasons.remove(s);
-                              if (_selectedSeasons.isEmpty) _selectedSeasons = {'All'};
+                              if (_selectedSeasons.isEmpty) {
+                                _selectedSeasons = {'All'};
+                              }
                             } else {
                               _selectedSeasons.add(s);
                             }
@@ -96,18 +111,27 @@ class _LooksPageState extends ConsumerState<LooksPage> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: selected ? AppColors.primary : Colors.transparent,
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: selected ? AppColors.primary : AppColors.border,
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.border,
                           ),
                         ),
                         child: Text(
                           s,
                           style: AppTextStyle.semibold14.copyWith(
-                            color: selected ? Colors.white : AppColors.textPrimary,
+                            color: selected
+                                ? Colors.white
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -132,7 +156,9 @@ class _LooksPageState extends ConsumerState<LooksPage> {
                             _selectedStyle.remove('All');
                             if (_selectedStyle.contains(s)) {
                               _selectedStyle.remove(s);
-                              if (_selectedStyle.isEmpty) _selectedStyle = {'All'};
+                              if (_selectedStyle.isEmpty) {
+                                _selectedStyle = {'All'};
+                              }
                             } else {
                               _selectedStyle.add(s);
                             }
@@ -140,18 +166,27 @@ class _LooksPageState extends ConsumerState<LooksPage> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: selected ? AppColors.primary : Colors.transparent,
+                          color: selected
+                              ? AppColors.primary
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: selected ? AppColors.primary : AppColors.border,
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.border,
                           ),
                         ),
                         child: Text(
                           s,
                           style: AppTextStyle.semibold14.copyWith(
-                            color: selected ? Colors.white : AppColors.textPrimary,
+                            color: selected
+                                ? Colors.white
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -168,10 +203,20 @@ class _LooksPageState extends ConsumerState<LooksPage> {
 
   List<Look> _filtered(List<Look> all) {
     return all.where((l) {
-      final okSeason = _selectedSeasons.contains('All') ||
-          l.seasons.any((s) => _selectedSeasons.any((sel) => sel.toLowerCase() == s.toLowerCase()));
-      final okStyle = _selectedStyle.contains('All') ||
-          l.style.any((s) => _selectedStyle.any((sel) => sel.toLowerCase() == s.toLowerCase()));
+      final okSeason =
+          _selectedSeasons.contains('All') ||
+          l.seasons.any(
+            (s) => _selectedSeasons.any(
+              (sel) => sel.toLowerCase() == s.toLowerCase(),
+            ),
+          );
+      final okStyle =
+          _selectedStyle.contains('All') ||
+          l.style.any(
+            (s) => _selectedStyle.any(
+              (sel) => sel.toLowerCase() == s.toLowerCase(),
+            ),
+          );
       return okSeason && okStyle;
     }).toList();
   }
@@ -181,97 +226,67 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     final looksAsync = ref.watch(looksProvider);
 
     return Scaffold(
-        backgroundColor: AppColors.defaultBackground,
-        appBar: PageAppBar(
-          title: 'Looks',
-          backgroundColor: AppColors.surface,
-          onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
-          actions: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.tune),
-                  onPressed: _openFilterSheet,
-                ),
-                if (_isFiltered)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
+      backgroundColor: AppColors.defaultBackground,
+      appBar: PageAppBar(
+        title: 'Looks',
+        backgroundColor: AppColors.surface,
+        onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
+        actions: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.tune),
+                onPressed: _openFilterSheet,
+              ),
+              if (_isFiltered)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
                     ),
                   ),
-              ],
-            ),
-            IconButton(
-              icon: Image.asset('assets/images/plus.png', height: AppDimens.iconMediumSize),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ManualTryOnPage()),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: looksAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) {
-            if (e is AuthExpiredException) return const SizedBox.shrink();
-            return Center(child: Text(e.toString(), style: AppTextStyle.regular14));
-          },
-          data: (all) {
-            final looks = _filtered(all);
-            return RefreshIndicator(
-              onRefresh: () => ref.read(looksProvider.notifier).refresh(),
-              color: AppColors.primary,
-              child: _buildListContent(looks),
-            );
-          },
-        ),
-    );
-  }
-
-Widget _buildListContent(List<Look> looks) {
-    if (looks.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Text(
-            'No looks yet.',
-            style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+                ),
+            ],
           ),
-        ),
-      );
-    }
-
-    return GridView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        childAspectRatio: AppDimens.lookCardWidth / AppDimens.lookCardHeight,
+          IconButton(
+            icon: Image.asset(
+              'assets/images/plus.png',
+              height: AppDimens.iconMediumSize,
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ManualTryOnPage()),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      itemCount: looks.length,
-      itemBuilder: (context, index) {
-        final look = looks[index];
-        return LookCard(
-          look: look,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => LooksDetailsPage(look: look),
+      body: looksAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) {
+          if (e is AuthExpiredException) return const SizedBox.shrink();
+          return Center(
+            child: Text(e.toString(), style: AppTextStyle.regular14),
+          );
+        },
+        data: (all) {
+          final looks = _filtered(all);
+          return LooksGridView(
+            looks: looks,
+            onRefresh: () => ref.read(looksProvider.notifier).refresh(),
+            onTap: (look) => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

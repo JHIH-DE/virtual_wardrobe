@@ -41,10 +41,15 @@ class TripPlannerPage extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Plan Your Next Adventure', style: AppTextStyle.bold18),
+                        Text(
+                          'Plan Your Next Adventure',
+                          style: AppTextStyle.bold18,
+                        ),
                         Text(
                           'Add locations and see forecasts',
-                          style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+                          style: AppTextStyle.regular14.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -64,7 +69,9 @@ class TripPlannerPage extends ConsumerWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
@@ -76,13 +83,15 @@ class TripPlannerPage extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.beach_access, size: 64, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.beach_access,
+                            size: 64,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'No trips planned yet',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(color: AppColors.textSecondary),
                           ),
                         ],
@@ -98,7 +107,9 @@ class TripPlannerPage extends ConsumerWidget {
                           child: TripPlanCard(
                             key: ValueKey(trip.id),
                             trip: trip,
-                            onDelete: () => ref.read(tripsProvider.notifier).remove(trip.id),
+                            onDelete: () => ref
+                                .read(tripsProvider.notifier)
+                                .remove(trip.id),
                           ),
                         );
                       },

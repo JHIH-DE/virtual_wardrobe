@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import '../core/utils/debug_log.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -13,10 +12,11 @@ import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/looks_service.dart';
 import '../core/services/weekly_plans_service.dart';
+import '../core/utils/debug_log.dart';
+import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
 import '../data/trip_plan.dart';
-import '../core/utils/try_on_mixin.dart';
 import 'widgets/page_app_bar.dart';
 import 'widgets/today_outfit_idea.dart';
 
@@ -60,8 +60,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _fetchTripWeather() async {
-    final startOffset =
-        widget.trip.dateRange.start.difference(DateTime.now()).inDays;
+    final startOffset = widget.trip.dateRange.start
+        .difference(DateTime.now())
+        .inDays;
     final duration = widget.trip.dateRange.duration.inDays + 1;
     final lat = widget.trip.location.latitude;
     final lon = widget.trip.location.longitude;
@@ -79,10 +80,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         final data = json.decode(res.body);
         setState(() {
           _weatherCodes = List<int>.from(data['daily']['weathercode']);
-          _highTemps = List<double>.from(data['daily']['temperature_2m_max']
-              .map((t) => (t as num).toDouble()));
-          _lowTemps = List<double>.from(data['daily']['temperature_2m_min']
-              .map((t) => (t as num).toDouble()));
+          _highTemps = List<double>.from(
+            data['daily']['temperature_2m_max'].map(
+              (t) => (t as num).toDouble(),
+            ),
+          );
+          _lowTemps = List<double>.from(
+            data['daily']['temperature_2m_min'].map(
+              (t) => (t as num).toDouble(),
+            ),
+          );
         });
       }
     } catch (e) {
@@ -96,15 +103,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _getGarments() async {
-    final date =
-        widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex));
+    final date = widget.trip.dateRange.start.add(
+      Duration(days: _selectedDayIndex),
+    );
     final dayStr = DateFormat('yyyy-MM-dd').format(date);
     setState(() => _loadingOutfits = true);
     try {
       final list = await WeeklyPlansService().getGarments(dayStr);
       if (mounted) setState(() => _todayGarments = list);
     } catch (e) {
-      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
       debugLog('Failed to get trip garments: $e');
     } finally {
       if (mounted) setState(() => _loadingOutfits = false);
@@ -112,20 +123,25 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _getOutfits() async {
-    final date =
-        widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex));
+    final date = widget.trip.dateRange.start.add(
+      Duration(days: _selectedDayIndex),
+    );
     final dayStr = DateFormat('yyyy-MM-dd').format(date);
     try {
       final jobId = await WeeklyPlansService().getLook(dayStr);
       if (jobId != null) {
         final statusRes = await LookService().getLook(jobId);
-        if (mounted)
+        if (mounted) {
           setState(() => _todayLookImageUrl = statusRes['result_image_url']);
+        }
       } else {
         if (mounted) setState(() => _todayLookImageUrl = null);
       }
     } catch (e) {
-      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
       debugLog('Failed to get trip outfits: $e');
     }
   }
@@ -145,26 +161,26 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       body: SafeArea(
         top: false,
         child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildTripHeader(),
-          const SizedBox(height: 20),
-          _buildTripDaySelector(),
-          const SizedBox(height: 20),
-          _buildWardrobeSection(),
-          const SizedBox(height: 20),
-          TodayOutfitIdea(
-            onSave: _onSaveLook,
-            onGenerate: _handleGenerateLook,
-            imageUrl: tryOnResultUrl ?? _todayLookImageUrl,
-            isLoading: _loadingOutfits || isOutfitLoading,
-            jobStatus: isOutfitLoading
-                ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
-                : null,
-            errorMessage: tryOnErrorMessage,
-          ),
-        ],
-      ),
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildTripHeader(),
+            const SizedBox(height: 20),
+            _buildTripDaySelector(),
+            const SizedBox(height: 20),
+            _buildWardrobeSection(),
+            const SizedBox(height: 20),
+            TodayOutfitIdea(
+              onSave: _onSaveLook,
+              onGenerate: _handleGenerateLook,
+              imageUrl: tryOnResultUrl ?? _todayLookImageUrl,
+              isLoading: _loadingOutfits || isOutfitLoading,
+              jobStatus: isOutfitLoading
+                  ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
+                  : null,
+              errorMessage: tryOnErrorMessage,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -183,8 +199,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             children: [
               const Icon(Icons.location_on, color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
-              Text(widget.trip.location.name,
-                  style: AppTextStyle.bold16),
+              Text(widget.trip.location.name, style: AppTextStyle.bold16),
             ],
           ),
           const SizedBox(height: 4),
@@ -206,8 +221,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         scrollDirection: Axis.horizontal,
         itemCount: totalDays,
         itemBuilder: (context, index) {
-          final date =
-              widget.trip.dateRange.start.add(Duration(days: index));
+          final date = widget.trip.dateRange.start.add(Duration(days: index));
           final isSelected = index == _selectedDayIndex;
 
           return GestureDetector(
@@ -224,29 +238,35 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                     : AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.border,
-                    width: isSelected ? 2 : 1),
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                  width: isSelected ? 2 : 1,
+                ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     DateFormat('M/d').format(date),
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textSecondary),
+                    style: AppTextStyle.regular16.copyWith(
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   if (_weatherCodes.length > index)
                     Column(
                       children: [
-                        Icon(WeatherData.iconFromCondition(WeatherData.conditionFromCode(_weatherCodes[index])),
-                            size: 28, color: AppColors.textPrimary),
+                        Icon(
+                          WeatherData.iconFromCondition(
+                            WeatherData.conditionFromCode(_weatherCodes[index]),
+                          ),
+                          size: 28,
+                          color: AppColors.textPrimary,
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           "${_highTemps[index].round()}° / ${_lowTemps[index].round()}°",
@@ -265,12 +285,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   Widget _buildWardrobeSection() {
     final dateStr = DateFormat('EEEE, MMM d').format(
-        widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex)));
+      widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex)),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Wardrobe for $dateStr",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          "Wardrobe for $dateStr",
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         if (_loadingOutfits)
           const Center(child: CircularProgressIndicator())
@@ -303,8 +326,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         borderRadius: BorderRadius.circular(12),
         child: g.imageUrl != null && g.imageUrl!.isNotEmpty
             ? Image.network(g.imageUrl!, fit: BoxFit.cover)
-            : const Icon(Icons.inventory_2_outlined,
-                color: AppColors.textSecondary),
+            : const Icon(
+                Icons.inventory_2_outlined,
+                color: AppColors.textSecondary,
+              ),
       ),
     );
   }
@@ -314,29 +339,39 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       height: 100,
       width: double.infinity,
       decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Center(
-          child: Text(msg,
-              style: const TextStyle(color: AppColors.textSecondary))),
+        child: Text(
+          msg,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+      ),
     );
   }
 
   Future<void> _handleGenerateLook() async {
     if (_todayGarments.isEmpty) return;
-    final ids =
-        _todayGarments.where((g) => g.id != null).map((g) => g.id!).toList();
+    final ids = _todayGarments
+        .where((g) => g.id != null)
+        .map((g) => g.id!)
+        .toList();
     final int? jobId = await performTryOn(ids, "weekly");
 
     if (jobId != null) {
-      final date =
-          widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex));
+      final date = widget.trip.dateRange.start.add(
+        Duration(days: _selectedDayIndex),
+      );
       final dayStr = DateFormat('yyyy-MM-dd').format(date);
       try {
         await WeeklyPlansService().saveJobId(dayStr, jobId);
       } catch (e) {
-        if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+        if (e is AuthExpiredException) {
+          await AuthExpiredHandler.handle(context);
+          return;
+        }
         debugLog('Failed to save jobId: $e');
       }
     }
@@ -356,8 +391,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       );
       ref.read(looksProvider.notifier).add(look);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Saved to Closet ✅')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Saved to Closet ✅')));
       }
     } catch (e) {
       debugLog('Save error: $e');

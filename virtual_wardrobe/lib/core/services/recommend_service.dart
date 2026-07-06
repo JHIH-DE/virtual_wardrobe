@@ -1,24 +1,32 @@
 import 'dart:async';
 import 'dart:convert';
 
-import '../utils/debug_log.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../utils/debug_log.dart';
 import 'base_service.dart';
 
 class RecommendService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/recommendations';
 
-  Future<Map<String, dynamic>> getRecommend(String occasion, String style, int temperature) async {
+  Future<Map<String, dynamic>> getRecommend(
+    String occasion,
+    String style,
+    int temperature,
+  ) async {
     debugLog('--- getRecommend ---');
-    final uri = Uri.parse('$_baseUrl/outfits').replace(queryParameters: {
-      'occasion': occasion,
-      'style': style,
-      'temperature_c': temperature.toString(),
-    });
+    final uri = Uri.parse('$_baseUrl/outfits').replace(
+      queryParameters: {
+        'occasion': occasion,
+        'style': style,
+        'temperature_c': temperature.toString(),
+      },
+    );
 
-    final res = await withAuth((token) => http.get(uri, headers: authHeaders(token)));
+    final res = await withAuth(
+      (token) => http.get(uri, headers: authHeaders(token)),
+    );
     final envelope = decodeMap(res, op: 'getRecommend');
     final data = envelope['data'];
 
@@ -39,18 +47,23 @@ class RecommendService with BaseService {
       'title': recommend['outfit_name'] ?? '',
       'note': recommend['note'] ?? '',
       'reasoning': recommend['reason'] ?? '',
-      'items': (recommend['items'] as List<dynamic>?)?.map((item) => {
-        'garment_id': item['garment_id'],
-        'layer': item['layer'] ?? '',
-        'order': item['order'] ?? 0,
-      }).toList() ?? [],
+      'items':
+          (recommend['items'] as List<dynamic>?)
+              ?.map(
+                (item) => {
+                  'garment_id': item['garment_id'],
+                  'layer': item['layer'] ?? '',
+                  'order': item['order'] ?? 0,
+                },
+              )
+              .toList() ??
+          [],
     };
 
-    final res = await withAuth((token) => http.post(
-      uri,
-      headers: authHeaders(token),
-      body: jsonEncode(body),
-    ));
+    final res = await withAuth(
+      (token) =>
+          http.post(uri, headers: authHeaders(token), body: jsonEncode(body)),
+    );
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('saveRecommend failed (${res.statusCode}): ${res.body}');
     }

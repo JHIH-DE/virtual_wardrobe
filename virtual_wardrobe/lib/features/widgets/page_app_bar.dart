@@ -24,9 +24,8 @@ class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => Size.fromHeight(
-        kToolbarHeight + (bottom?.preferredSize.height ?? 1),
-      );
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 1));
 
   @override
   Widget build(BuildContext context) {
@@ -45,17 +44,21 @@ class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? IconButton(
               icon: Container(
                 padding: const EdgeInsets.all(4),
-                child:
-                    Image.asset('assets/images/page_arrow_left.png', height: 40),
+                child: Image.asset(
+                  'assets/images/page_arrow_left.png',
+                  height: 40,
+                ),
               ),
               onPressed: onBack ?? () => Navigator.pop(context),
             )
           : null,
       actions: actions,
-      bottom: bottom ?? const PreferredSize(
-        preferredSize: Size.fromHeight(1),
-        child: Divider(height: 1, thickness: 1, color: AppColors.border),
-      ),
+      bottom:
+          bottom ??
+          const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, thickness: 1, color: AppColors.border),
+          ),
     );
   }
 }

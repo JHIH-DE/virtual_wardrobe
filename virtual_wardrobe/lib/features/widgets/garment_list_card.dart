@@ -10,11 +10,7 @@ class GarmentListCard extends StatelessWidget {
   final Garment garment;
   final VoidCallback? onTap;
 
-  const GarmentListCard({
-    super.key,
-    required this.garment,
-    this.onTap,
-  });
+  const GarmentListCard({super.key, required this.garment, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +33,9 @@ class GarmentListCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(16),
+                ),
                 child: SizedBox(
                   width: 80,
                   child: Padding(
@@ -56,7 +54,10 @@ class GarmentListCard extends StatelessWidget {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -69,7 +70,8 @@ class GarmentListCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (garment.color != null && garment.color!.isNotEmpty) ...[
+                      if (garment.color != null &&
+                          garment.color!.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           garment.color!,

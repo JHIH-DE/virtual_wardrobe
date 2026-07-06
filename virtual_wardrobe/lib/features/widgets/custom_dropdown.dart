@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
+import '../../app/theme/app_text_styles.dart';
 
-const _kBorderColor = Color(0xFF2B3A8C);
 const _kBorderRadius = 18.0;
 const _kFieldHeight = 56.0;
 
@@ -40,9 +40,8 @@ class CustomDropdown<T> extends StatelessWidget {
             hint: hint != null
                 ? Text(
                     hint!,
-                    style: const TextStyle(
+                    style: AppTextStyle.regular14.copyWith(
                       color: AppColors.textSecondary,
-                      fontSize: 15,
                     ),
                   )
                 : null,
@@ -129,11 +128,10 @@ class DateDropdownField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     hasValue ? _label : (hint ?? ''),
-                    style: TextStyle(
+                    style: AppTextStyle.regular14.copyWith(
                       color: hasValue
                           ? AppColors.textPrimary
                           : AppColors.textSecondary,
-                      fontSize: 15,
                     ),
                   ),
                 ),
@@ -154,14 +152,14 @@ class DateDropdownField extends StatelessWidget {
 // ── Shared decoration ─────────────────────────────────────────────────────────
 
 InputDecoration _decoration() => const InputDecoration(
-      filled: true,
-      fillColor: AppColors.surface,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(_kBorderRadius)),
-        borderSide: BorderSide(color: _kBorderColor, width: 1.5),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(_kBorderRadius)),
-        borderSide: BorderSide(color: _kBorderColor, width: 2),
-      ),
-    );
+  filled: true,
+  fillColor: AppColors.surface,
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(_kBorderRadius)),
+    borderSide: BorderSide(color: AppColors.dropdownBorder, width: 1.5),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(_kBorderRadius)),
+    borderSide: BorderSide(color: AppColors.dropdownBorder, width: 2),
+  ),
+);

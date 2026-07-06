@@ -47,7 +47,9 @@ class TodayOutfitIdea extends StatelessWidget {
             )
           else if (hasImage)
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
               child: AspectRatio(
                 aspectRatio: 3 / 4,
                 child: Image.network(
@@ -81,7 +83,8 @@ class TodayOutfitIdea extends StatelessWidget {
                         foregroundColor: AppColors.textPrimary,
                         side: const BorderSide(color: AppColors.border),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -97,7 +100,8 @@ class TodayOutfitIdea extends StatelessWidget {
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -111,63 +115,80 @@ class TodayOutfitIdea extends StatelessWidget {
   }
 
   Widget _buildLoadingView() => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(jobStatus ?? 'Loading...',
-              style: const TextStyle(color: AppColors.textSecondary)),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      const CircularProgressIndicator(),
+      const SizedBox(height: 16),
+      Text(
+        jobStatus ?? 'Loading...',
+        style: const TextStyle(color: AppColors.textSecondary),
+      ),
+    ],
+  );
 
   Widget _buildErrorView() => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textPrimary)),
-          ),
-          const SizedBox(height: 16),
-          TextButton(onPressed: onGenerate, child: const Text('Try Again')),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Text(
+          errorMessage!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+      ),
+      const SizedBox(height: 16),
+      TextButton(onPressed: onGenerate, child: const Text('Try Again')),
+    ],
+  );
 
   Widget _buildPlaceholder() => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inventory_2_outlined,
-              size: 64, color: AppColors.textSecondary.withOpacity(0.3)),
-          const SizedBox(height: 16),
-          Text('Generating your look...',
-              style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(
+        Icons.inventory_2_outlined,
+        size: 64,
+        color: AppColors.textSecondary.withOpacity(0.3),
+      ),
+      const SizedBox(height: 16),
+      Text(
+        'Generating your look...',
+        style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+      ),
+    ],
+  );
 
   Widget _buildGenerateView() => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.auto_awesome,
-              size: 64, color: AppColors.primary.withOpacity(0.5)),
-          const SizedBox(height: 16),
-          Text('No look image yet',
-              style: AppTextStyle.dialogBody.copyWith(color: AppColors.textSecondary)),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: onGenerate,
-            icon: const Icon(Icons.brush_rounded, size: 20, color: Colors.white),
-            label: Text('Generate Look',
-                style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(
+        Icons.auto_awesome,
+        size: 64,
+        color: AppColors.primary.withOpacity(0.5),
+      ),
+      const SizedBox(height: 16),
+      Text(
+        'No look image yet',
+        style: AppTextStyle.dialogBody.copyWith(color: AppColors.textSecondary),
+      ),
+      const SizedBox(height: 20),
+      ElevatedButton.icon(
+        onPressed: onGenerate,
+        icon: const Icon(Icons.brush_rounded, size: 20, color: Colors.white),
+        label: Text(
+          'Generate Look',
+          style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 }

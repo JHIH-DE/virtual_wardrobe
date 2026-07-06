@@ -54,10 +54,7 @@ class GlobalErrorHandler {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              const Text(
-                '請重新啟動 App，若問題持續請聯繫客服。',
-                textAlign: TextAlign.center,
-              ),
+              const Text('請重新啟動 App，若問題持續請聯繫客服。', textAlign: TextAlign.center),
             ],
           ),
         ),

@@ -115,7 +115,9 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
     try {
       final init = await ProfileService().fullBodyInitUpload();
       await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final url = await ProfileService().fullBodyComplete(objectName: init.objectName);
+      final url = await ProfileService().fullBodyComplete(
+        objectName: init.objectName,
+      );
       if (mounted) {
         setState(() {
           _fullBodyUrl = url;
@@ -138,34 +140,34 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
         label: 'Save',
         onPressed: _loading ? null : _saveProfile,
         isLoading: _loading,
-        buttonColor: const Color(0xFF1A1A1A),
+        buttonColor: AppColors.nearBlack,
         textColor: Colors.white,
       ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  _error!,
-                  style: AppTextStyle.regular13.copyWith(color: Colors.red),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _error!,
+                    style: AppTextStyle.regular13.copyWith(color: Colors.red),
+                  ),
                 ),
-              ),
-            const Text('Full-body Photo', style: AppTextStyle.bold14),
-            const SizedBox(height: 10),
-            _buildPhotoUpload(),
-            const SizedBox(height: 24),
-            const Text('Figure Detail', style: AppTextStyle.bold14),
-            const SizedBox(height: 10),
-            _buildHeightWeightFields(),
-          ],
+              const Text('Full-body Photo', style: AppTextStyle.bold14),
+              const SizedBox(height: 10),
+              _buildPhotoUpload(),
+              const SizedBox(height: 24),
+              const Text('Figure Detail', style: AppTextStyle.bold14),
+              const SizedBox(height: 10),
+              _buildHeightWeightFields(),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -174,7 +176,9 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
     ImageProvider? provider;
     if (_fullBodyLocalPath != null) {
       provider = FileImage(File(_fullBodyLocalPath!));
-    } else if (_fullBodyUrl != null && _fullBodyUrl!.isNotEmpty && _fullBodyUrl != 'string') {
+    } else if (_fullBodyUrl != null &&
+        _fullBodyUrl!.isNotEmpty &&
+        _fullBodyUrl != 'string') {
       provider = NetworkImage(_fullBodyUrl!);
     }
 
@@ -200,27 +204,26 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
       onTap: _loading ? null : _changeFullBodyPhoto,
       child: CustomPaint(
         painter: _DashedBorderPainter(
-          color: const Color(0xFFBBBBBB),
+          color: AppColors.placeholderBorder,
           radius: 16,
         ),
         child: Container(
           width: double.infinity,
           height: 240,
           decoration: BoxDecoration(
-            color: const Color(0xFFEEEEEE),
+            color: AppColors.placeholderBackground,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                'Upload Image',
-                style: AppTextStyle.semibold16,
-              ),
+              Text('Upload Image', style: AppTextStyle.semibold16),
               const SizedBox(height: 6),
               Text(
                 'Please choose a clear, full-body photo.',
-                style: AppTextStyle.regular13.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyle.regular13.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -245,9 +248,13 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   Widget _buildHeightWeightFields() {
     return Row(
       children: [
-        Expanded(child: _unitField(_heightCtrl, hint: 'height', unit: 'cm')),
+        Expanded(
+          child: _unitField(_heightCtrl, hint: 'height', unit: 'cm'),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _unitField(_weightCtrl, hint: 'weight', unit: 'kg')),
+        Expanded(
+          child: _unitField(_weightCtrl, hint: 'weight', unit: 'kg'),
+        ),
       ],
     );
   }
@@ -262,7 +269,9 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
       hint: hint,
       suffixText: unit,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+      ],
     );
   }
 }
@@ -270,10 +279,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
 class _DashedBorderPainter extends CustomPainter {
   final Color color;
   final double radius;
-  const _DashedBorderPainter({
-    required this.color,
-    required this.radius,
-  });
+  const _DashedBorderPainter({required this.color, required this.radius});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -284,16 +290,21 @@ class _DashedBorderPainter extends CustomPainter {
 
     const sw = 1.5;
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(sw / 2, sw / 2, size.width - sw, size.height - sw),
-        Radius.circular(radius),
-      ));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(sw / 2, sw / 2, size.width - sw, size.height - sw),
+          Radius.circular(radius),
+        ),
+      );
 
     for (final metric in path.computeMetrics()) {
       double distance = 0;
       bool draw = true;
       while (distance < metric.length) {
-        final segmentEnd = (distance + (draw ? 8.0 : 5.0)).clamp(0.0, metric.length);
+        final segmentEnd = (distance + (draw ? 8.0 : 5.0)).clamp(
+          0.0,
+          metric.length,
+        );
         if (draw) {
           canvas.drawPath(metric.extractPath(distance, segmentEnd), paint);
         }

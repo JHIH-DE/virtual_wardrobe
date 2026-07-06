@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import '../core/utils/debug_log.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,8 +10,9 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/config/env.dart';
-import '../core/services/auth_storage.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/auth_storage.dart';
+import '../core/utils/debug_log.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -24,7 +24,9 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: Platform.isIOS && Env.googleIosClientId.isNotEmpty ? Env.googleIosClientId : null,
+    clientId: Platform.isIOS && Env.googleIosClientId.isNotEmpty
+        ? Env.googleIosClientId
+        : null,
     serverClientId: Env.googleClientId,
     scopes: const ['email', 'profile', 'openid'],
   );
@@ -83,7 +85,9 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       final idToken = credential.identityToken;
-      if (idToken == null) throw Exception('Apple login failed: missing idToken');
+      if (idToken == null) {
+        throw Exception('Apple login failed: missing idToken');
+      }
 
       final tokens = await AuthService().loginWithAppleIdToken(idToken);
       await AuthStorage.saveAccessToken(tokens.accessToken);
@@ -111,7 +115,9 @@ class _LoginPageState extends State<LoginPage> {
 
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
-        final tokens = await AuthService().loginWithFaceBookIdToken(accessToken.tokenString);
+        final tokens = await AuthService().loginWithFaceBookIdToken(
+          accessToken.tokenString,
+        );
         await AuthStorage.saveAccessToken(tokens.accessToken);
         await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
@@ -136,148 +142,158 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: AppColors.defaultBackground,
       body: SafeArea(
         child: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 60),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      height: 68,
-                    ),
-                    const SizedBox(height: 50),
-                    Image.asset(
-                      'assets/images/main-character.png',
-                      height: 422,
-                    ),
-                  ],
-                ),
-              ),
-              Transform.translate(
-                offset: const Offset(0, -30), // 這裡控制覆蓋的高度
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: AppColors.defaultBackground,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        spreadRadius: 0,
-                        offset: const Offset(0, -10), // 向上位移的陰影
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 60),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    children: [
+                      Image.asset('assets/images/logo.png', height: 68),
+                      const SizedBox(height: 50),
+                      Image.asset(
+                        'assets/images/main-character.png',
+                        height: 422,
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Log-In / Sign-in to get dressed!',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.roboto(
-                          fontSize: 18,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          height: 22 / 16,
-                          letterSpacing: 16 * 0.02,
+                ),
+                Transform.translate(
+                  offset: const Offset(0, -30), // 這裡控制覆蓋的高度
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 24,
+                      horizontal: 24,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.defaultBackground,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 20,
+                          spreadRadius: 0,
+                          offset: const Offset(0, -10), // 向上位移的陰影
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (Platform.isIOS) ...[
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Log-In / Sign-in to get dressed!',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontSize: 18,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            height: 22 / 16,
+                            letterSpacing: 16 * 0.02,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        if (Platform.isIOS) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                side: const BorderSide(color: AppColors.border),
+                              ),
+                              onPressed: _isLoading ? null : _loginWithApple,
+                              icon: const Icon(Icons.apple, size: 28),
+                              label: const Text(
+                                'Continue with Apple',
+                                style: AppTextStyle.semibold16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                        ],
                         SizedBox(
                           width: double.infinity,
-                          height: 50,
+                          height: 54,
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              backgroundColor: AppColors.surface,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(27),
+                              ),
                               side: const BorderSide(color: AppColors.border),
                             ),
-                            onPressed: _isLoading ? null : _loginWithApple,
-                            icon: const Icon(Icons.apple, size: 28),
-                            label: const Text(
-                              'Continue with Apple',
-                              style: AppTextStyle.semibold16,
+                            onPressed: _isLoading ? null : _loginWithGoogle,
+                            icon: Image.network(
+                              'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
+                              height: 24,
+                            ),
+                            label: Text(
+                              'Sign in with Google',
+                              style: GoogleFonts.roboto(
+                                fontSize: 18,
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                height: 22 / 16,
+                                letterSpacing: 16 * 0.02,
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 15),
-                      ],
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: AppColors.surface,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
-                            side: const BorderSide(color: AppColors.border),
-                          ),
-                          onPressed: _isLoading ? null : _loginWithGoogle,
-                          icon: Image.network(
-                            'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
-                            height: 24,
-                          ),
-                          label: Text(
-                            'Sign in with Google',
-                            style: GoogleFonts.roboto(
-                              fontSize: 18,
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              height: 22 / 16,
-                              letterSpacing: 16 * 0.02,
+                        // Facebook login
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: AppColors.facebook,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(27),
+                              ),
+                              side: const BorderSide(color: AppColors.border),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      // Facebook login
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: AppColors.facebook,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
-                            side: const BorderSide(color: AppColors.border),
-                          ),
-                          onPressed: _isLoading ? null : _loginWithFacebook,
-                          icon: const Icon(Icons.facebook, size: 28, color: AppColors.textPrimaryInv),
-                          label: Text(
-                            'Sign in with Facebook',
-                            style: GoogleFonts.roboto(
-                              fontSize: 18,
+                            onPressed: _isLoading ? null : _loginWithFacebook,
+                            icon: const Icon(
+                              Icons.facebook,
+                              size: 28,
                               color: AppColors.textPrimaryInv,
-                              fontWeight: FontWeight.w700,
-                              height: 22 / 16,
-                              letterSpacing: 16 * 0.02,
+                            ),
+                            label: Text(
+                              'Sign in with Facebook',
+                              style: GoogleFonts.roboto(
+                                fontSize: 18,
+                                color: AppColors.textPrimaryInv,
+                                fontWeight: FontWeight.w700,
+                                height: 22 / 16,
+                                letterSpacing: 16 * 0.02,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'copyright reserved to LUMI inc.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.roboto(
-                          fontSize: 16,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          height: 22 / 16,
-                          letterSpacing: 16 * 0.02,
+                        const SizedBox(height: 24),
+                        Text(
+                          'copyright reserved to LUMI inc.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            height: 22 / 16,
+                            letterSpacing: 16 * 0.02,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

@@ -22,7 +22,9 @@ class App extends StatelessWidget {
         future: _bootstrap(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
           return snapshot.data!;
         },

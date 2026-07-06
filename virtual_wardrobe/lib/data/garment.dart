@@ -1,15 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
-enum GarmentCategory {
-  top,
-  bottom,
-  outer,
-  dress,
-  shoes,
-  accessory,
-}
+enum GarmentCategory { top, bottom, outer, dress, shoes, accessory }
 
 extension GarmentCategoryX on GarmentCategory {
   String get label {
@@ -41,9 +32,24 @@ extension GarmentCategoryX on GarmentCategory {
   }
 }
 
-
 enum GarmentColor {
-  black, white, grey, beige, cream, brown, navy, blue, green, olive, khaki, red, burgundy, yellow, orange, pink, purple,
+  black,
+  white,
+  grey,
+  beige,
+  cream,
+  brown,
+  navy,
+  blue,
+  green,
+  olive,
+  khaki,
+  red,
+  burgundy,
+  yellow,
+  orange,
+  pink,
+  purple,
 }
 
 extension GarmentColorX on GarmentColor {
@@ -54,23 +60,40 @@ extension GarmentColorX on GarmentColor {
 
   Color get color {
     switch (this) {
-      case GarmentColor.black: return Colors.black;
-      case GarmentColor.white: return Colors.white;
-      case GarmentColor.grey: return Colors.grey;
-      case GarmentColor.beige: return const Color(0xFFF5F5DC);
-      case GarmentColor.cream: return const Color(0xFFFFFDD0);
-      case GarmentColor.brown: return Colors.brown;
-      case GarmentColor.navy: return const Color(0xFF1A237E);
-      case GarmentColor.blue: return Colors.blue;
-      case GarmentColor.green: return Colors.green;
-      case GarmentColor.olive: return const Color(0xFF556B2F);
-      case GarmentColor.red: return Colors.red;
-      case GarmentColor.burgundy: return const Color(0xFF800020);
-      case GarmentColor.yellow: return Colors.yellow;
-      case GarmentColor.orange: return Colors.orange;
-      case GarmentColor.pink: return Colors.pink;
-      case GarmentColor.purple: return Colors.purple;
-      case GarmentColor.khaki: return const Color(0xFFC3B091);
+      case GarmentColor.black:
+        return Colors.black;
+      case GarmentColor.white:
+        return Colors.white;
+      case GarmentColor.grey:
+        return Colors.grey;
+      case GarmentColor.beige:
+        return const Color(0xFFF5F5DC);
+      case GarmentColor.cream:
+        return const Color(0xFFFFFDD0);
+      case GarmentColor.brown:
+        return Colors.brown;
+      case GarmentColor.navy:
+        return const Color(0xFF1A237E);
+      case GarmentColor.blue:
+        return Colors.blue;
+      case GarmentColor.green:
+        return Colors.green;
+      case GarmentColor.olive:
+        return const Color(0xFF556B2F);
+      case GarmentColor.red:
+        return Colors.red;
+      case GarmentColor.burgundy:
+        return const Color(0xFF800020);
+      case GarmentColor.yellow:
+        return Colors.yellow;
+      case GarmentColor.orange:
+        return Colors.orange;
+      case GarmentColor.pink:
+        return Colors.pink;
+      case GarmentColor.purple:
+        return Colors.purple;
+      case GarmentColor.khaki:
+        return const Color(0xFFC3B091);
     }
   }
 
@@ -209,20 +232,22 @@ class Garment {
       imageUrl: imageUrl ?? this.imageUrl,
       color: clearColor ? null : (color ?? this.color),
       price: clearPrice ? null : (price ?? this.price),
-      purchaseDate: clearPurchaseDate ? null : (purchaseDate ?? this.purchaseDate),
+      purchaseDate: clearPurchaseDate
+          ? null
+          : (purchaseDate ?? this.purchaseDate),
       metadata: clearMetadata ? null : (metadata ?? this.metadata),
       isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
   factory Garment.fromJson(Map<String, dynamic> json) {
-    DateTime? _parseDate(dynamic v) {
+    DateTime? parseDate(dynamic v) {
       if (v == null) return null;
       if (v is String && v.isNotEmpty) return DateTime.tryParse(v);
       return null;
     }
 
-    double? _parseNum(dynamic v) {
+    double? parseNum(dynamic v) {
       if (v == null) return null;
       if (v is num) return v.toDouble();
       if (v is String) return double.tryParse(v);
@@ -235,10 +260,10 @@ class Garment {
       name: (json['name'] as String?) ?? '',
       brand: json['brand'] as String?,
       color: json['color'] as String?,
-      price: _parseNum(json['price']),
-      thickness: _parseNum(json['thickness']) ?? 0.0,
-      formality: _parseNum(json['formality']) ?? 0.0,
-      purchaseDate: _parseDate(json['purchase_date']),
+      price: parseNum(json['price']),
+      thickness: parseNum(json['thickness']) ?? 0.0,
+      formality: parseNum(json['formality']) ?? 0.0,
+      purchaseDate: parseDate(json['purchase_date']),
       category: GarmentCategoryX.fromApiValue(json['category'] as String?),
       subCategory: (json['sub_category'] as String?) ?? '',
       uploadUrl: (json['upload_url'] as String?) ?? '',

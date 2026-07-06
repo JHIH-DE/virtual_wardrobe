@@ -24,7 +24,8 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   final Set<String> _selectedColors = {};
   final Set<String> _selectedProductTypes = {};
 
-  bool get _isFiltered => _selectedColors.isNotEmpty || _selectedProductTypes.isNotEmpty;
+  bool get _isFiltered =>
+      _selectedColors.isNotEmpty || _selectedProductTypes.isNotEmpty;
 
   @override
   void initState() {
@@ -41,27 +42,39 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   List<Garment> _filtered(List<Garment> all) {
     return all.where((g) {
       if (g.category != _selectedCategory) return false;
-      final okColor = _selectedColors.isEmpty ||
+      final okColor =
+          _selectedColors.isEmpty ||
           (g.color != null &&
-              _selectedColors.any((c) => c.toLowerCase() == g.color!.toLowerCase()));
-      final okType = _selectedProductTypes.isEmpty ||
+              _selectedColors.any(
+                (c) => c.toLowerCase() == g.color!.toLowerCase(),
+              ));
+      final okType =
+          _selectedProductTypes.isEmpty ||
           _selectedProductTypes.contains(g.subCategory);
       return okColor && okType;
     }).toList();
   }
 
   void _openFilterSheet(List<Garment> allGarments) {
-    final categoryGarments = allGarments.where((g) => g.category == _selectedCategory).toList();
-    final availableColors = GarmentColor.values
-        .where((c) => categoryGarments.any((g) =>
-            g.color != null && g.color!.toLowerCase() == c.label.toLowerCase()))
+    final categoryGarments = allGarments
+        .where((g) => g.category == _selectedCategory)
         .toList();
-    final availableTypes = categoryGarments
-        .map((g) => g.subCategory)
-        .where((s) => s.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final availableColors = GarmentColor.values
+        .where(
+          (c) => categoryGarments.any(
+            (g) =>
+                g.color != null &&
+                g.color!.toLowerCase() == c.label.toLowerCase(),
+          ),
+        )
+        .toList();
+    final availableTypes =
+        categoryGarments
+            .map((g) => g.subCategory)
+            .where((s) => s.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
 
     showModalBottomSheet(
       context: context,
@@ -91,12 +104,19 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                 Text('Color', style: AppTextStyle.bold16),
                 const SizedBox(height: 10),
                 availableColors.isEmpty
-                    ? Text('No colors available', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary))
+                    ? Text(
+                        'No colors available',
+                        style: AppTextStyle.regular14.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      )
                     : Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: availableColors.map((c) {
-                          final selected = _selectedColors.contains(c.label.toLowerCase());
+                          final selected = _selectedColors.contains(
+                            c.label.toLowerCase(),
+                          );
                           return GestureDetector(
                             onTap: () {
                               setSheetState(() {});
@@ -109,18 +129,27 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: selected ? AppColors.primary : Colors.transparent,
+                                color: selected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: selected ? AppColors.primary : AppColors.border,
+                                  color: selected
+                                      ? AppColors.primary
+                                      : AppColors.border,
                                 ),
                               ),
                               child: Text(
                                 c.label,
                                 style: AppTextStyle.semibold14.copyWith(
-                                  color: selected ? Colors.white : AppColors.textPrimary,
+                                  color: selected
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
                                 ),
                               ),
                             ),
@@ -131,7 +160,12 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                 Text('Product Type', style: AppTextStyle.bold16),
                 const SizedBox(height: 10),
                 availableTypes.isEmpty
-                    ? Text('No types available', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary))
+                    ? Text(
+                        'No types available',
+                        style: AppTextStyle.regular14.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      )
                     : Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -149,18 +183,27 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: selected ? AppColors.primary : Colors.transparent,
+                                color: selected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: selected ? AppColors.primary : AppColors.border,
+                                  color: selected
+                                      ? AppColors.primary
+                                      : AppColors.border,
                                 ),
                               ),
                               child: Text(
                                 t,
                                 style: AppTextStyle.semibold14.copyWith(
-                                  color: selected ? Colors.white : AppColors.textPrimary,
+                                  color: selected
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
                                 ),
                               ),
                             ),
@@ -191,9 +234,8 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
             children: [
               IconButton(
                 icon: const Icon(Icons.tune),
-                onPressed: () => _openFilterSheet(
-                  garmentsAsync.valueOrNull ?? [],
-                ),
+                onPressed: () =>
+                    _openFilterSheet(garmentsAsync.valueOrNull ?? []),
               ),
               if (_isFiltered)
                 Positioned(
@@ -213,12 +255,16 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(4),
-              child: Image.asset('assets/images/plus.png', height: AppDimens.iconMediumSize),
+              child: Image.asset(
+                'assets/images/plus.png',
+                height: AppDimens.iconMediumSize,
+              ),
             ),
             onPressed: () {
               GarmentUploadHelper.showAddClothingDialog(
                 context,
-                onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
+                onAdded: (g) =>
+                    ref.read(garmentsProvider.notifier).addGarment(g),
               );
             },
           ),
@@ -236,7 +282,8 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => _buildError(e),
                 data: (all) => RefreshIndicator(
-                  onRefresh: () => ref.read(garmentsProvider.notifier).refresh(),
+                  onRefresh: () =>
+                      ref.read(garmentsProvider.notifier).refresh(),
                   color: Colors.black,
                   child: _buildGrid(_filtered(all)),
                 ),
@@ -296,12 +343,15 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                 _selectedProductTypes.clear();
               }),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF1A1A1A) : Colors.white,
+                  color: isSelected ? AppColors.nearBlack : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? const Color(0xFF1A1A1A) : Colors.black12,
+                    color: isSelected ? AppColors.nearBlack : Colors.black12,
                   ),
                 ),
                 child: Center(
@@ -329,11 +379,15 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           Center(
             child: Column(
               children: [
-                Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No garments in ${_selectedCategory.label}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                  style: AppTextStyle.regular16.copyWith(color: Colors.grey),
                 ),
               ],
             ),
@@ -348,7 +402,8 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: AppDimens.garmentCardWidth / AppDimens.garmentCardHeight,
+        childAspectRatio:
+            AppDimens.garmentCardWidth / AppDimens.garmentCardHeight,
       ),
       itemCount: garments.length,
       itemBuilder: (context, index) => GarmentCard(
@@ -362,7 +417,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   Future<void> _editGarment(Garment garment) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => AddGarmentPage(initialGarment: garment)),
+      MaterialPageRoute(
+        builder: (_) => AddGarmentPage(initialGarment: garment),
+      ),
     );
 
     if (result == 'deleted') {

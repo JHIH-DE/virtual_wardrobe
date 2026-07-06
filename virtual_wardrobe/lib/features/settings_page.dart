@@ -8,8 +8,8 @@ import '../core/services/auth_service.dart';
 import '../core/services/auth_storage.dart';
 import '../core/services/profile_service.dart';
 import '../core/utils/debug_log.dart';
-import 'daily_preferences_page.dart';
 import 'body_profile_page.dart';
+import 'daily_preferences_page.dart';
 import 'login_page.dart';
 import 'personal_details_page.dart';
 import 'widgets/app_list_card.dart';
@@ -46,8 +46,12 @@ class _SettingsPageState extends State<SettingsPage> {
         _name = profile['name'] as String?;
         _avatarUrl = profile['avatar_object_url'] as String?;
         _unitSystem = (profile['unit_system'] ?? 'metric') as String;
-        _weight = profile['weight'] != null ? (profile['weight'] as num).toDouble() : null;
-        _height = profile['height'] != null ? (profile['height'] as num).toDouble() : null;
+        _weight = profile['weight'] != null
+            ? (profile['weight'] as num).toDouble()
+            : null;
+        _height = profile['height'] != null
+            ? (profile['height'] as num).toDouble()
+            : null;
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -74,12 +78,18 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _openPersonalDetails() async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalDetailsPage()));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PersonalDetailsPage()),
+    );
     _loadProfile();
   }
 
   Future<void> _openFigureSetting() async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => const BodyProfilePage()));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BodyProfilePage()),
+    );
     _loadProfile();
   }
 
@@ -139,7 +149,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildProfileCard() {
     ImageProvider? avatarProvider;
-    if (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string') {
+    if (_avatarUrl != null &&
+        _avatarUrl!.isNotEmpty &&
+        _avatarUrl != 'string') {
       avatarProvider = NetworkImage(_avatarUrl!);
     }
     return Container(
@@ -157,7 +169,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   backgroundColor: AppColors.border,
                   backgroundImage: avatarProvider,
                   child: avatarProvider == null
-                      ? const Icon(Icons.person, size: 30, color: AppColors.textSecondary)
+                      ? const Icon(
+                          Icons.person,
+                          size: 30,
+                          color: AppColors.textSecondary,
+                        )
                       : null,
                 ),
                 const SizedBox(width: 20),
@@ -176,7 +192,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 GestureDetector(
                   onTap: _openPersonalDetails,
-                  child: Image.asset('assets/images/edit.png', height: AppDimens.iconMediumSize),
+                  child: Image.asset(
+                    'assets/images/edit.png',
+                    height: AppDimens.iconMediumSize,
+                  ),
                 ),
               ],
             ),
@@ -208,7 +227,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildDailyOutfitCard() {
     return AppListCard(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DailyPreferencesPage())),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DailyPreferencesPage()),
+      ),
       leadingAsset: 'assets/images/daily_planner.png',
       showArrow: true,
       child: const Text('Daily Preferences', style: AppTextStyle.bold16),

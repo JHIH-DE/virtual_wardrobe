@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import '../core/utils/debug_log.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -11,8 +10,10 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
+import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import '../data/image_edit_result.dart';
+import 'garment_looks_page.dart';
 import 'image_editor_page.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/app_text_field.dart';
@@ -95,7 +96,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
 
     if (widget.initialAnalysisData != null) {
       _applyAnalysisData(widget.initialAnalysisData!);
-    } else if (_id == null && _imagePathOrUrl != null && _imagePathOrUrl!.isNotEmpty) {
+    } else if (_id == null &&
+        _imagePathOrUrl != null &&
+        _imagePathOrUrl!.isNotEmpty) {
       _isImageChanged = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _runAIAnalysis(_imagePathOrUrl!);
@@ -109,7 +112,8 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   }
 
   void _checkModified() {
-    final changed = _isImageChanged ||
+    final changed =
+        _isImageChanged ||
         _nameCtrl.text != _initialName ||
         _category != _initialCategory ||
         _subCategory.text != _initialSub ||
@@ -154,7 +158,10 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
         if (!mounted) return;
         Navigator.pop(context, 'deleted');
       } catch (e) {
-        if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+        if (e is AuthExpiredException) {
+          await AuthExpiredHandler.handle(context);
+          return;
+        }
         setState(() => errorMessage = 'Delete failed: $e');
       }
     }
@@ -234,7 +241,10 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
               if (errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
 
               Padding(
@@ -245,9 +255,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
 
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                ),
+                decoration: const BoxDecoration(color: Colors.white),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -258,30 +266,38 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     AppTextField(
                       controller: _nameCtrl,
                       hint: 'Name the clothing',
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter name' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Please enter name'
+                          : null,
                     ),
 
                     const SizedBox(height: 20),
                     _sectionTitle('Clothing Category'),
                     const SizedBox(height: 8),
                     CustomDropdown<GarmentCategory>(
-                        value: _category,
-                        items: GarmentCategory.values
-                            .where((c) => c != GarmentCategory.dress || _userGender == 'Female')
-                            .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(
-                              c.label,
-                              style: const TextStyle(fontSize: 14.5, color: AppColors.textPrimary)
-                          ),
-                        ))
-                            .toList(),
-                        onChanged: (v) {
-                          if (v != null) {
-                            setState(() => _category = v);
-                            _checkModified();
-                          }
-                          },
+                      value: _category,
+                      items: GarmentCategory.values
+                          .where(
+                            (c) =>
+                                c != GarmentCategory.dress ||
+                                _userGender == 'Female',
+                          )
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(
+                                c.label,
+                                style: AppTextStyle.regular14,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() => _category = v);
+                          _checkModified();
+                        }
+                      },
                     ),
 
                     const SizedBox(height: 20),
@@ -290,7 +306,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     AppTextField(
                       controller: _subCategory,
                       hint: 'e.g. Top',
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter product type' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Please enter product type'
+                          : null,
                     ),
 
                     const SizedBox(height: 20),
@@ -312,7 +330,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     AppTextField(
                       controller: _priceCtrl,
                       hint: 'How much is this clothing?',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                     ),
 
                     const SizedBox(height: 20),
@@ -339,7 +359,10 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   // AI Analysis Logic
   // ----------------------------
 
-  void _applyAnalysisData(Map<String, dynamic> analysisData, {String? processedImagePath}) {
+  void _applyAnalysisData(
+    Map<String, dynamic> analysisData, {
+    String? processedImagePath,
+  }) {
     if (processedImagePath != null) {
       _imagePathOrUrl = processedImagePath;
       _isImageChanged = true;
@@ -350,7 +373,8 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     final String? catStr = analysisData['category']?.toString().toLowerCase();
     if (catStr != null) {
       for (var val in GarmentCategory.values) {
-        if (val.name.toLowerCase() == catStr || val.label.toLowerCase() == catStr) {
+        if (val.name.toLowerCase() == catStr ||
+            val.label.toLowerCase() == catStr) {
           _category = val;
           break;
         }
@@ -373,11 +397,17 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       setState(() => _isAnalyzing = true);
       final result = await GarmentService().analyzeGarment(imagePath);
       setState(() {
-        _applyAnalysisData(result.metadata, processedImagePath: result.processedImagePath);
+        _applyAnalysisData(
+          result.metadata,
+          processedImagePath: result.processedImagePath,
+        );
         _isAnalyzing = false;
       });
     } catch (e) {
-      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
       debugLog('AI Analysis failed: $e');
       setState(() => _isAnalyzing = false);
     }
@@ -403,7 +433,19 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
             child: _buildActionButton(
               icon: Icons.checkroom_outlined,
               label: 'Used in Looks',
-              onTap: () {},
+              onTap: () {
+                final gid = _editingGarment?.garmentId ?? _editingGarment?.id;
+                debugLog(
+                  'Used in Looks tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
+                );
+                if (gid == null) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GarmentLooksPage(garmentId: gid),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -426,7 +468,12 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
           children: [
             Icon(icon, size: 24, color: iconColor ?? AppColors.textPrimary),
             const SizedBox(height: 4),
-            Text(label, style: AppTextStyle.regular14.copyWith(color: AppColors.textPrimary)),
+            Text(
+              label,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
           ],
         ),
       ),
@@ -436,12 +483,20 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   Future<void> _toggleFavorite() async {
     if (_id == null) return;
     final next = !_isFavorite;
-    setState(() { _isFavorite = next; _isFavoriteLoading = true; });
+    setState(() {
+      _isFavorite = next;
+      _isFavoriteLoading = true;
+    });
     try {
       await GarmentService().setFavorite(_id!, isFavorite: next);
-      ref.read(garmentsProvider.notifier).updateFavorite(_id!, isFavorite: next);
+      ref
+          .read(garmentsProvider.notifier)
+          .updateFavorite(_id!, isFavorite: next);
     } catch (e) {
-      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
       if (mounted) setState(() => _isFavorite = !next);
     } finally {
       if (mounted) setState(() => _isFavoriteLoading = false);
@@ -464,7 +519,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                 color: selected?.color ?? Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected == null ? AppColors.border : Colors.transparent,
+                  color: selected == null
+                      ? AppColors.border
+                      : Colors.transparent,
                   width: 1.2,
                 ),
               ),
@@ -473,9 +530,10 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
             Expanded(
               child: Text(
                 selected?.label ?? 'Select a color',
-                style: TextStyle(
-                  color: selected == null ? AppColors.textSecondary : AppColors.textPrimary,
-                  fontSize: 14.5,
+                style: AppTextStyle.regular14.copyWith(
+                  color: selected == null
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
                 ),
               ),
             ),
@@ -505,28 +563,67 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(100))),
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Expanded(child: Text('Choose a color', style: AppTextStyle.bold16)),
-                  TextButton(onPressed: () { setState(() => _selectedColor = null); _checkModified(); Navigator.pop(context); }, child: const Text('Clear')),
+                  const Expanded(
+                    child: Text('Choose a color', style: AppTextStyle.bold16),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _selectedColor = null);
+                      _checkModified();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Clear'),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
               ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.45),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.45,
+                ),
                 child: SingleChildScrollView(
                   child: Wrap(
-                    spacing: 12, runSpacing: 12,
+                    spacing: 12,
+                    runSpacing: 12,
                     children: GarmentColor.values.map((c) {
                       final isSelected = c == _selectedColor;
                       return GestureDetector(
-                        onTap: () { setState(() => _selectedColor = c); _checkModified(); Navigator.pop(context); },
+                        onTap: () {
+                          setState(() => _selectedColor = c);
+                          _checkModified();
+                          Navigator.pop(context);
+                        },
                         child: Container(
-                          width: 44, height: 44,
-                          decoration: BoxDecoration(color: c.color, shape: BoxShape.circle, border: Border.all(color: isSelected ? AppColors.primary : Colors.black12, width: isSelected ? 2.5 : 1)),
-                          child: isSelected ? Icon(Icons.check, size: 20, color: c.preferredCheckColor) : null,
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: c.color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.black12,
+                              width: isSelected ? 2.5 : 1,
+                            ),
+                          ),
+                          child: isSelected
+                              ? Icon(
+                                  Icons.check,
+                                  size: 20,
+                                  color: c.preferredCheckColor,
+                                )
+                              : null,
                         ),
                       );
                     }).toList(),
@@ -545,7 +642,12 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       borderRadius: BorderRadius.circular(12),
       onTap: () async {
         final now = DateTime.now();
-        final picked = await showDatePicker(context: context, initialDate: _purchaseDate ?? now, firstDate: DateTime(2000), lastDate: DateTime(now.year + 2));
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _purchaseDate ?? now,
+          firstDate: DateTime(2000),
+          lastDate: DateTime(now.year + 2),
+        );
         if (picked != null) {
           setState(() => _purchaseDate = picked);
           _checkModified();
@@ -555,8 +657,23 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
         decoration: appInputDecoration(hint: ''),
         child: Row(
           children: [
-            Expanded(child: Text(_purchaseDate == null ? 'Select date' : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}', style: TextStyle(color: _purchaseDate == null ? AppColors.textSecondary : AppColors.textPrimary))),
-            const Icon(Icons.calendar_today, size: 18, color: AppColors.textSecondary),
+            Expanded(
+              child: Text(
+                _purchaseDate == null
+                    ? 'Select date'
+                    : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
+                style: TextStyle(
+                  color: _purchaseDate == null
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.calendar_today,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ),
@@ -568,20 +685,40 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     if (img == null || img.isEmpty) {
       return Container(
         width: double.infinity,
-        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
-        child: InkWell(onTap: _pickNewImage, child: const AspectRatio(aspectRatio: 1.35, child: Icon(Icons.add_photo_alternate_outlined, size: 40, color: AppColors.textSecondary))),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+        ),
+        child: InkWell(
+          onTap: _pickNewImage,
+          child: const AspectRatio(
+            aspectRatio: 1.35,
+            child: Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 40,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
       );
     }
 
     return Stack(
       children: [
         Container(
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: AspectRatio(
               aspectRatio: 1.1,
-              child: img.startsWith('http') ? Image.network(img, fit: BoxFit.contain) : Image.file(File(img), fit: BoxFit.contain),
+              child: img.startsWith('http')
+                  ? Image.network(img, fit: BoxFit.contain)
+                  : Image.file(File(img), fit: BoxFit.contain),
             ),
           ),
         ),
@@ -596,7 +733,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 4),
+                ],
               ),
               child: Row(
                 children: [
@@ -612,7 +751,17 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
           ),
         ),
         if (_isAnalyzing)
-          Positioned.fill(child: Container(decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(16)), child: const Center(child: CircularProgressIndicator(color: Colors.white)))),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -622,7 +771,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       setState(() {
         _imagePathOrUrl = result.imagePath;
         _isImageChanged = true;
-        if (result.analysisData != null) _applyAnalysisData(result.analysisData!);
+        if (result.analysisData != null) {
+          _applyAnalysisData(result.analysisData!);
+        }
       });
       _checkModified();
     }
@@ -636,7 +787,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     if (!mounted) return;
     final result = await Navigator.push<ImageEditResult>(
       context,
-      MaterialPageRoute(builder: (_) => ImageEditorPage(initialPath: xfile.path))
+      MaterialPageRoute(
+        builder: (_) => ImageEditorPage(initialPath: xfile.path),
+      ),
     );
     _handleImageEditResult(result);
   }
@@ -648,10 +801,8 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     final result = await Navigator.push<ImageEditResult>(
       context,
       MaterialPageRoute(
-        builder: (_) => ImageEditorPage(
-          initialPath: _imagePathOrUrl,
-          showAnalysis: false,
-        ),
+        builder: (_) =>
+            ImageEditorPage(initialPath: _imagePathOrUrl, showAnalysis: false),
       ),
     );
     _handleImageEditResult(result);
@@ -659,19 +810,30 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
 
   Future<void> _saveGarment() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() { uploading = true; errorMessage = null; });
+    setState(() {
+      uploading = true;
+      errorMessage = null;
+    });
 
     try {
       Garment result;
       // 當新增模式或圖片變更時執行上傳
       if (_isAddMode || _isImageChanged) {
         final initDate = await GarmentService().initUpload();
-        await GarmentService().uploadImage(initDate.uploadUrl, _imagePathOrUrl!);
+        await GarmentService().uploadImage(
+          initDate.uploadUrl,
+          _imagePathOrUrl!,
+        );
         final temp = Garment(
-          uploadUrl: initDate.uploadUrl, objectName: initDate.objectName,
-          category: _category, subCategory: _subCategory.text.trim(),
-          name: _nameCtrl.text.trim(), brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-          color: _selectedColor?.label, price: double.tryParse(_priceCtrl.text.trim()), purchaseDate: _purchaseDate,
+          uploadUrl: initDate.uploadUrl,
+          objectName: initDate.objectName,
+          category: _category,
+          subCategory: _subCategory.text.trim(),
+          name: _nameCtrl.text.trim(),
+          brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+          color: _selectedColor?.label,
+          price: double.tryParse(_priceCtrl.text.trim()),
+          purchaseDate: _purchaseDate,
         );
         // 如果是在編輯模式下更換圖片，先刪除舊紀錄
         if (!_isAddMode) await GarmentService().deleteGarment(_id!);
@@ -679,9 +841,13 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       } else {
         // 單純更新文字資料
         final updated = _editingGarment!.copyWith(
-          name: _nameCtrl.text.trim(), category: _category, subCategory: _subCategory.text.trim(),
+          name: _nameCtrl.text.trim(),
+          category: _category,
+          subCategory: _subCategory.text.trim(),
           brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-          color: _selectedColor?.label, price: double.tryParse(_priceCtrl.text.trim()), purchaseDate: _purchaseDate,
+          color: _selectedColor?.label,
+          price: double.tryParse(_priceCtrl.text.trim()),
+          purchaseDate: _purchaseDate,
         );
         result = await GarmentService().updateGarment(updated);
       }
@@ -696,9 +862,15 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       Navigator.of(context).pop(); // 關閉成功彈窗
       Navigator.of(context).pop(result); // 關閉 AddGarmentPage 並回傳結果
     } catch (e) {
-      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
       if (mounted) {
-        setState(() { errorMessage = e.toString(); uploading = false; });
+        setState(() {
+          errorMessage = e.toString();
+          uploading = false;
+        });
       }
     }
   }
@@ -710,13 +882,23 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       builder: (ctx) => Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-          child: const Column(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle, color: Color(0xFF00BFA5), size: 48),
-              SizedBox(height: 12),
-              Text('Changes Saved', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black, decoration: TextDecoration.none)),
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.success,
+                size: 48,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Changes Saved',
+                style: AppTextStyle.bold16.copyWith(color: Colors.black),
+              ),
             ],
           ),
         ),
@@ -728,7 +910,10 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     if (colorText == null) return null;
     final normalized = colorText.trim().toLowerCase();
     for (final c in GarmentColor.values) {
-      if (normalized.contains(c.name.toLowerCase()) || normalized.contains(c.label.toLowerCase())) return c;
+      if (normalized.contains(c.name.toLowerCase()) ||
+          normalized.contains(c.label.toLowerCase())) {
+        return c;
+      }
     }
     return null;
   }
@@ -736,5 +921,4 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   Widget _sectionTitle(String text) {
     return Text(text, style: AppTextStyle.bold14);
   }
-
 }

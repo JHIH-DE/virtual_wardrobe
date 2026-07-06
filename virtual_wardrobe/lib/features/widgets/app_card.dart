@@ -5,23 +5,23 @@ import '../../app/theme/app_text_styles.dart';
 
 const _kCardShadow = [
   BoxShadow(
-    color: Color(0xFFDDDDDD),
+    color: AppColors.cardShadowTop,
     offset: Offset(0, 2),
     blurRadius: 0,
   ),
   BoxShadow(
-    color: Color(0xFFCCCCCC),
+    color: AppColors.cardShadowBottom,
     offset: Offset(0, 4),
     blurRadius: 0,
   ),
 ];
 
 BoxShadow _softDropShadow() => BoxShadow(
-      color: Colors.black.withOpacity(0.18),
-      offset: const Offset(0, 10),
-      blurRadius: 20,
-      spreadRadius: 0,
-    );
+  color: Colors.black.withOpacity(0.18),
+  offset: const Offset(0, 10),
+  blurRadius: 20,
+  spreadRadius: 0,
+);
 
 /// 方形功能卡片（用於 GridView）
 class AppVerticalCard extends StatelessWidget {
@@ -56,20 +56,12 @@ class AppVerticalCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.defaultCard,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              ..._kCardShadow,
-              _softDropShadow(),
-            ],
+            boxShadow: [..._kCardShadow, _softDropShadow()],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                iconPath,
-                height: 80,
-                width: 80,
-                fit: BoxFit.contain,
-              ),
+              Image.asset(iconPath, height: 80, width: 80, fit: BoxFit.contain),
               const SizedBox(height: 16),
               Text(
                 label,
@@ -111,10 +103,7 @@ class AppHorizontalCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.defaultCard,
           borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            ..._kCardShadow,
-            _softDropShadow(),
-          ],
+          boxShadow: [..._kCardShadow, _softDropShadow()],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Row(
@@ -140,10 +129,7 @@ class AppHorizontalCard extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 16),
-            Text(
-              label,
-              style: AppTextStyle.bold18,
-            ),
+            Text(label, style: AppTextStyle.bold18),
           ],
         ),
       ),

@@ -15,10 +15,7 @@ class AppTheme {
         foregroundColor: AppColors.border,
         elevation: 4,
         centerTitle: true,
-        titleTextStyle: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-        ),
+        titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
       ),
     );
   }

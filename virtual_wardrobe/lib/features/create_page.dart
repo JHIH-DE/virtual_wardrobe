@@ -21,7 +21,10 @@ class CreatePage extends StatelessWidget {
         actions: [
           IconButton(
             icon: Container(
-              child: Image.asset('assets/images/figure_setting.png', height: 40),
+              child: Image.asset(
+                'assets/images/figure_setting.png',
+                height: 40,
+              ),
             ),
             onPressed: () async {
               await Navigator.push(
@@ -36,45 +39,53 @@ class CreatePage extends StatelessWidget {
       body: SafeArea(
         top: false,
         child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        children: [
-          _buildCard(
-            context,
-            label: 'Add Clothing',
-            iconPath: 'assets/images/add.png',
-            onTap: () => Navigator.push(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          children: [
+            _buildCard(
               context,
-              MaterialPageRoute(builder: (_) => const AddGarmentPage()),
+              label: 'Add Clothing',
+              iconPath: 'assets/images/add.png',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AddGarmentPage()),
+              ),
             ),
-          ),
-          const SizedBox(height: 18),
-          _buildCard(
-            context,
-            label: 'Manual Try-on',
-            iconPath: 'assets/images/manul.png',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ManualTryOnPage(onBack: () => Navigator.popUntil(context, (route) => route.isFirst)))),
-          ),
-          const SizedBox(height: 18),
-          _buildCard(
-            context,
-            label: 'Daily Planner',
-            iconPath: 'assets/images/daily_planner.png',
-            onTap: () => Navigator.push(
+            const SizedBox(height: 18),
+            _buildCard(
               context,
-              MaterialPageRoute(builder: (_) => const TripPlannerPage()),
+              label: 'Manual Try-on',
+              iconPath: 'assets/images/manul.png',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ManualTryOnPage(
+                    onBack: () =>
+                        Navigator.popUntil(context, (route) => route.isFirst),
+                  ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 18),
-          _buildCard(
-            context,
-            label: 'Trip Planner',
-            iconPath: 'assets/images/trip_planner.png',
-            onTap: () => Navigator.push(
+            const SizedBox(height: 18),
+            _buildCard(
               context,
-              MaterialPageRoute(builder: (_) => const TripPlannerPage()),
+              label: 'Daily Planner',
+              iconPath: 'assets/images/daily_planner.png',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TripPlannerPage()),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 18),
+            _buildCard(
+              context,
+              label: 'Trip Planner',
+              iconPath: 'assets/images/trip_planner.png',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TripPlannerPage()),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -71,15 +71,23 @@ class GarmentCard extends StatelessWidget {
                                 width: 22,
                                 height: 22,
                                 decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.primary : Colors.transparent,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.transparent,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: isSelected ? AppColors.primary : AppColors.border,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.border,
                                     width: 1.5,
                                   ),
                                 ),
                                 child: isSelected
-                                    ? const Icon(Icons.check, color: Colors.white, size: 13)
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 13,
+                                      )
                                     : null,
                               ),
                             ),
@@ -93,7 +101,10 @@ class GarmentCard extends StatelessWidget {
                       height: AppDimens.garmentCardInfoHeight,
                       color: Colors.white,
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -104,7 +115,8 @@ class GarmentCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (garment.color != null && garment.color!.isNotEmpty)
+                          if (garment.color != null &&
+                              garment.color!.isNotEmpty)
                             Text(
                               garment.color!,
                               style: AppTextStyle.regular14.copyWith(

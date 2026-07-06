@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../../app/theme/app_colors.dart';
-import '../../data/trip_plan.dart';
-import 'page_app_bar.dart';
+import '../app/theme/app_colors.dart';
+import '../data/trip_plan.dart';
+import 'widgets/page_app_bar.dart';
 
 class LocationPickerPage extends StatefulWidget {
   const LocationPickerPage({super.key});
@@ -23,18 +23,21 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     if (_controller.text.isEmpty) return;
     setState(() => _isLoading = true);
     final url = Uri.parse(
-        'https://geocoding-api.open-meteo.com/v1/search?name=${_controller.text}&count=5');
+      'https://geocoding-api.open-meteo.com/v1/search?name=${_controller.text}&count=5',
+    );
     try {
       final res = await http.get(url);
       final data = json.decode(res.body);
       if (data['results'] != null) {
         setState(() {
           _results = (data['results'] as List)
-              .map((r) => LocationResult(
-                    name: "${r['name']}, ${r['country']}",
-                    latitude: r['latitude'],
-                    longitude: r['longitude'],
-                  ))
+              .map(
+                (r) => LocationResult(
+                  name: "${r['name']}, ${r['country']}",
+                  latitude: r['latitude'],
+                  longitude: r['longitude'],
+                ),
+              )
               .toList();
         });
       }
@@ -63,8 +66,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 filled: true,
                 fillColor: AppColors.surface,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onSubmitted: (_) => _search(),
             ),

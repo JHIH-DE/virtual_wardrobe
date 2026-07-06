@@ -3,9 +3,9 @@ import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../data/trip_plan.dart';
+import '../location_picker_page.dart';
 import 'app_text_field.dart';
 import 'bottom_action_button.dart';
-import 'location_picker_page.dart';
 
 class CreateTripDialog extends StatefulWidget {
   const CreateTripDialog({super.key});
@@ -20,7 +20,12 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
   LocationResult? _location;
   String _selectedStyle = 'Casual';
   final List<String> _styleOptions = [
-    'Casual', 'Formal', 'Street', 'Vacation', 'Sporty', 'Chic'
+    'Casual',
+    'Formal',
+    'Street',
+    'Vacation',
+    'Sporty',
+    'Chic',
   ];
 
   @override
@@ -28,26 +33,30 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
     return AlertDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text("New Trip", style: TextStyle(fontWeight: FontWeight.bold)),
+      title: const Text(
+        "New Trip",
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppTextField(
-            controller: _tripNameController,
-            label: 'Trip Name',
-          ),
+          AppTextField(controller: _tripNameController, label: 'Trip Name'),
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(_dateRange == null
-                ? "Select Dates"
-                : "${DateFormat('MM/dd').format(_dateRange!.start)} - ${DateFormat('MM/dd').format(_dateRange!.end)}"),
+            title: Text(
+              _dateRange == null
+                  ? "Select Dates"
+                  : "${DateFormat('MM/dd').format(_dateRange!.start)} - ${DateFormat('MM/dd').format(_dateRange!.end)}",
+            ),
             leading: const Icon(Icons.calendar_today, color: AppColors.primary),
             onTap: _pickDateRange,
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(_location == null ? "Select Location" : _location!.name),
+            title: Text(
+              _location == null ? "Select Location" : _location!.name,
+            ),
             leading: const Icon(Icons.location_on, color: AppColors.primary),
             onTap: _pickLocation,
           ),
@@ -55,7 +64,11 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
             value: _selectedStyle,
             decoration: appInputDecoration(
               label: 'Default Style',
-              prefixIcon: const Icon(Icons.style, color: AppColors.primary, size: 20),
+              prefixIcon: const Icon(
+                Icons.style,
+                color: AppColors.primary,
+                size: 20,
+              ),
             ),
             items: _styleOptions
                 .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -78,8 +91,9 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel")),
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
       ],
     );
   }
@@ -105,8 +119,9 @@ class _CreateTripDialogState extends State<CreateTripDialog> {
     if (_tripNameController.text.isEmpty ||
         _dateRange == null ||
         _location == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please fill all fields")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
       return;
     }
     Navigator.pop(

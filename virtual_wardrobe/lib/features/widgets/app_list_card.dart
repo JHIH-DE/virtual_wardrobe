@@ -51,7 +51,9 @@ class AppListCard extends StatelessWidget {
                   summary!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.regular12.copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyle.regular12.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ],
@@ -59,11 +61,20 @@ class AppListCard extends StatelessWidget {
         ),
         if (status != null) ...[
           const SizedBox(width: 8),
-          Text(status!, style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary)),
+          Text(
+            status!,
+            style: AppTextStyle.regular14.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
         if (showArrow && onTap != null) ...[
           const SizedBox(width: 4),
-          Image.asset('assets/images/page_arrow_right.png', width: AppDimens.iconSmallSize, height: AppDimens.iconSmallSize),
+          Image.asset(
+            'assets/images/page_arrow_right.png',
+            width: AppDimens.iconSmallSize,
+            height: AppDimens.iconSmallSize,
+          ),
         ],
       ],
     );

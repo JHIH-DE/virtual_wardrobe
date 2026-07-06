@@ -4,14 +4,10 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../data/garment.dart';
+import '../data/select_garment_result.dart';
 import 'widgets/bottom_action_button.dart';
 import 'widgets/garment_card.dart';
 import 'widgets/page_app_bar.dart';
-
-class SelectGarmentResult {
-  final Garment? garment;
-  const SelectGarmentResult(this.garment);
-}
 
 class SelectGarmentPage extends StatefulWidget {
   final String title;
@@ -46,23 +42,25 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
       widget.garments.where((g) => g.category == widget.category).toList();
 
   List<String> get _availableColors {
-    final colors = _byCategory
-        .map((g) => g.color)
-        .whereType<String>()
-        .where((c) => c.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final colors =
+        _byCategory
+            .map((g) => g.color)
+            .whereType<String>()
+            .where((c) => c.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return ['All', ...colors];
   }
 
   List<String> get _availableTypes {
-    final types = _byCategory
-        .map((g) => g.subCategory)
-        .where((t) => t.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final types =
+        _byCategory
+            .map((g) => g.subCategory)
+            .where((t) => t.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return ['All', ...types];
   }
 
@@ -71,19 +69,26 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
 
   List<Garment> get _filtered {
     return _byCategory.where((g) {
-      final okColor = _selectedColors.contains('All') ||
+      final okColor =
+          _selectedColors.contains('All') ||
           (g.color != null &&
               _selectedColors.any(
-                  (c) => c.toLowerCase() == g.color!.toLowerCase()));
-      final okType = _selectedTypes.contains('All') ||
-          _selectedTypes
-              .any((t) => t.toLowerCase() == g.subCategory.toLowerCase());
+                (c) => c.toLowerCase() == g.color!.toLowerCase(),
+              ));
+      final okType =
+          _selectedTypes.contains('All') ||
+          _selectedTypes.any(
+            (t) => t.toLowerCase() == g.subCategory.toLowerCase(),
+          );
       return okColor && okType;
     }).toList();
   }
 
   void _toggleChip(
-      Set<String> set, String value, void Function(Set<String>) update) {
+    Set<String> set,
+    String value,
+    void Function(Set<String>) update,
+  ) {
     setState(() {
       if (value == 'All') {
         update({'All'});
@@ -109,14 +114,20 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
       ),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheetState) {
-          void toggle(Set<String> set, String value,
-              void Function(Set<String>) update) {
+          void toggle(
+            Set<String> set,
+            String value,
+            void Function(Set<String>) update,
+          ) {
             setSheetState(() {});
             _toggleChip(set, value, update);
           }
 
-          Widget chipRow(List<String> options, Set<String> selected,
-              void Function(Set<String>) update) {
+          Widget chipRow(
+            List<String> options,
+            Set<String> selected,
+            void Function(Set<String>) update,
+          ) {
             return Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -126,7 +137,9 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
                   onTap: () => toggle(selected, s, update),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: isSel ? AppColors.primary : Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
@@ -165,13 +178,19 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
                 const SizedBox(height: 20),
                 Text('Color', style: AppTextStyle.bold16),
                 const SizedBox(height: 10),
-                chipRow(_availableColors, _selectedColors,
-                    (v) => _selectedColors = v),
+                chipRow(
+                  _availableColors,
+                  _selectedColors,
+                  (v) => _selectedColors = v,
+                ),
                 const SizedBox(height: 20),
                 Text('Product Type', style: AppTextStyle.bold16),
                 const SizedBox(height: 10),
-                chipRow(_availableTypes, _selectedTypes,
-                    (v) => _selectedTypes = v),
+                chipRow(
+                  _availableTypes,
+                  _selectedTypes,
+                  (v) => _selectedTypes = v,
+                ),
               ],
             ),
           );
@@ -219,18 +238,19 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
             ? Center(
                 child: Text(
                   'No items found.',
-                  style: AppTextStyle.regular14
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               )
             : GridView.builder(
                 padding: const EdgeInsets.all(16),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: AppDimens.garmentCardWidth / AppDimens.garmentCardHeight,
+                  childAspectRatio:
+                      AppDimens.garmentCardWidth / AppDimens.garmentCardHeight,
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, i) {
@@ -238,7 +258,9 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
                   return GarmentCard(
                     garment: g,
                     isSelected: _pending?.id != null && _pending!.id == g.id,
-                    onTap: () => setState(() => _pending = (_pending?.id == g.id) ? null : g),
+                    onTap: () => setState(
+                      () => _pending = (_pending?.id == g.id) ? null : g,
+                    ),
                   );
                 },
               ),

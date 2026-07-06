@@ -32,7 +32,7 @@ class AuthExpiredHandler {
     // 彈窗關閉後，執行跳轉
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
+      (route) => false,
     );
   }
 }

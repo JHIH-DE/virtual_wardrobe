@@ -2,8 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/trip_plan.dart';
 
-final tripsProvider =
-    NotifierProvider<TripsNotifier, List<TripPlan>>(TripsNotifier.new);
+final tripsProvider = NotifierProvider<TripsNotifier, List<TripPlan>>(
+  TripsNotifier.new,
+);
 
 class TripsNotifier extends Notifier<List<TripPlan>> {
   @override

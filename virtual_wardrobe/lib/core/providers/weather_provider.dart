@@ -59,34 +59,37 @@ class WeatherData {
   }
 
   factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(
-        location: json['location'] as String,
-        temp: (json['temp'] as num).toDouble(),
-        high: json['high'] as int,
-        low: json['low'] as int,
-        condition: json['condition'] as String,
-        weeklyCodes: List<int>.from(json['weeklyCodes'] ?? []),
-        weeklyHighs: List<double>.from(
-            (json['weeklyHighs'] ?? []).map((t) => (t as num).toDouble())),
-        weeklyLows: List<double>.from(
-            (json['weeklyLows'] ?? []).map((t) => (t as num).toDouble())),
-        timestamp: json['timestamp'] as int,
-      );
+    location: json['location'] as String,
+    temp: (json['temp'] as num).toDouble(),
+    high: json['high'] as int,
+    low: json['low'] as int,
+    condition: json['condition'] as String,
+    weeklyCodes: List<int>.from(json['weeklyCodes'] ?? []),
+    weeklyHighs: List<double>.from(
+      (json['weeklyHighs'] ?? []).map((t) => (t as num).toDouble()),
+    ),
+    weeklyLows: List<double>.from(
+      (json['weeklyLows'] ?? []).map((t) => (t as num).toDouble()),
+    ),
+    timestamp: json['timestamp'] as int,
+  );
 
   Map<String, dynamic> toJson() => {
-        'location': location,
-        'temp': temp,
-        'high': high,
-        'low': low,
-        'condition': condition,
-        'weeklyCodes': weeklyCodes,
-        'weeklyHighs': weeklyHighs,
-        'weeklyLows': weeklyLows,
-        'timestamp': timestamp,
-      };
+    'location': location,
+    'temp': temp,
+    'high': high,
+    'low': low,
+    'condition': condition,
+    'weeklyCodes': weeklyCodes,
+    'weeklyHighs': weeklyHighs,
+    'weeklyLows': weeklyLows,
+    'timestamp': timestamp,
+  };
 }
 
-final weatherProvider =
-    AsyncNotifierProvider<WeatherNotifier, WeatherData>(WeatherNotifier.new);
+final weatherProvider = AsyncNotifierProvider<WeatherNotifier, WeatherData>(
+  WeatherNotifier.new,
+);
 
 class WeatherNotifier extends AsyncNotifier<WeatherData> {
   static const String _cacheKey = 'cached_weather';
@@ -134,16 +137,20 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
 
     final weeklyCodes = List<int>.from(raw['daily']['weathercode']);
     final weeklyHighs = List<double>.from(
-        raw['daily']['temperature_2m_max'].map((t) => (t as num).toDouble()));
+      raw['daily']['temperature_2m_max'].map((t) => (t as num).toDouble()),
+    );
     final weeklyLows = List<double>.from(
-        raw['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()));
+      raw['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()),
+    );
 
     final data = WeatherData(
       location: locationName,
       temp: (raw['current_weather']['temperature'] as num).toDouble(),
       high: weeklyHighs.isNotEmpty ? weeklyHighs[0].round() : 0,
       low: weeklyLows.isNotEmpty ? weeklyLows[0].round() : 0,
-      condition: WeatherData.conditionFromCode(raw['current_weather']['weathercode']),
+      condition: WeatherData.conditionFromCode(
+        raw['current_weather']['weathercode'],
+      ),
       weeklyCodes: weeklyCodes,
       weeklyHighs: weeklyHighs,
       weeklyLows: weeklyLows,

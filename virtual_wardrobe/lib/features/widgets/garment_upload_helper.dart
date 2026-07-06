@@ -11,7 +11,11 @@ import '../camera_capture_page.dart';
 import '../image_editor_page.dart';
 
 class GarmentUploadHelper {
-  static void showAddClothingDialog(BuildContext context, {VoidCallback? onComplete, void Function(Garment)? onAdded}) {
+  static void showAddClothingDialog(
+    BuildContext context, {
+    VoidCallback? onComplete,
+    void Function(Garment)? onAdded,
+  }) {
     showDialog(
       context: context,
       builder: (dialogCtx) => Dialog(
@@ -44,11 +48,14 @@ class GarmentUploadHelper {
                   'assets/images/camera.png',
                   height: AppDimens.iconMediumSize,
                 ),
-                label: const Text(
-                  'Camera',
-                  style: AppTextStyle.bold16,
+                label: const Text('Camera', style: AppTextStyle.bold16),
+                onTap: () => _onPickImage(
+                  context,
+                  dialogCtx,
+                  ImageSource.camera,
+                  onComplete,
+                  onAdded,
                 ),
-                onTap: () => _onPickImage(context, dialogCtx, ImageSource.camera, onComplete, onAdded),
               ),
               const SizedBox(height: 16),
               _buildDialogOption(
@@ -57,11 +64,14 @@ class GarmentUploadHelper {
                   'assets/images/album.png',
                   height: AppDimens.iconMediumSize,
                 ),
-                label: const Text(
-                  'Photo Album',
-                  style: AppTextStyle.bold16,
+                label: const Text('Photo Album', style: AppTextStyle.bold16),
+                onTap: () => _onPickImage(
+                  context,
+                  dialogCtx,
+                  ImageSource.gallery,
+                  onComplete,
+                  onAdded,
                 ),
-                onTap: () => _onPickImage(context, dialogCtx, ImageSource.gallery, onComplete, onAdded),
               ),
               const SizedBox(height: 24),
               OutlinedButton.icon(
@@ -73,14 +83,16 @@ class GarmentUploadHelper {
                     height: AppDimens.iconSmallSize,
                   ),
                 ),
-                label: Text(
-                  'Back',
-                  style: AppTextStyle.bold16,
-                ),
+                label: Text('Back', style: AppTextStyle.bold16),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),
-                  side: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  side: const BorderSide(
+                    color: AppColors.nearBlack,
+                    width: 1.5,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                 ),
               ),
             ],
@@ -90,8 +102,12 @@ class GarmentUploadHelper {
     );
   }
 
-  static Widget _buildDialogOption(BuildContext context,
-      {required Widget icon, required Widget label, required VoidCallback onTap}) {
+  static Widget _buildDialogOption(
+    BuildContext context, {
+    required Widget icon,
+    required Widget label,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -109,18 +125,18 @@ class GarmentUploadHelper {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            label,
-            const Spacer(),
-            icon,
-          ],
-        ),
+        child: Row(children: [label, const Spacer(), icon]),
       ),
     );
   }
 
-  static Future<void> _onPickImage(BuildContext context, BuildContext dialogContext, ImageSource source, VoidCallback? onComplete, void Function(Garment)? onAdded) async {
+  static Future<void> _onPickImage(
+    BuildContext context,
+    BuildContext dialogContext,
+    ImageSource source,
+    VoidCallback? onComplete,
+    void Function(Garment)? onAdded,
+  ) async {
     Navigator.pop(dialogContext); // 關閉彈窗
 
     String? imagePath;

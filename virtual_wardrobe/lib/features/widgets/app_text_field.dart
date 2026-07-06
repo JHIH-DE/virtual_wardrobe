@@ -17,9 +17,8 @@ InputDecoration appInputDecoration({
     hintStyle: const TextStyle(color: AppColors.textSecondary),
     labelStyle: const TextStyle(color: AppColors.textSecondary),
     suffixText: suffixText,
-    suffixStyle: const TextStyle(
+    suffixStyle: AppTextStyle.regular14.copyWith(
       color: AppColors.textSecondary,
-      fontSize: 14,
       fontWeight: FontWeight.w500,
     ),
     suffix: suffix,

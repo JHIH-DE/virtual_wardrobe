@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/look.dart';
 import '../services/looks_service.dart';
 
-final looksProvider =
-    AsyncNotifierProvider<LooksNotifier, List<Look>>(LooksNotifier.new);
+final looksProvider = AsyncNotifierProvider<LooksNotifier, List<Look>>(
+  LooksNotifier.new,
+);
 
 class LooksNotifier extends AsyncNotifier<List<Look>> {
   @override
@@ -35,7 +36,9 @@ class LooksNotifier extends AsyncNotifier<List<Look>> {
   void updateFavorite(int id, {required bool isFavorite}) {
     final current = state.valueOrNull ?? [];
     state = AsyncData(
-      current.map((l) => l.id == id ? l.copyWith(isFavorite: isFavorite) : l).toList(),
+      current
+          .map((l) => l.id == id ? l.copyWith(isFavorite: isFavorite) : l)
+          .toList(),
     );
   }
 }

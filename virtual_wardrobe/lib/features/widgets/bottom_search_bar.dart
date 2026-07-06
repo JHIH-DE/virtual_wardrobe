@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 
 class BottomSearchBar extends StatelessWidget {
-  const BottomSearchBar({
-    super.key,
-    required this.hint,
-    this.onTap,
-  });
+  const BottomSearchBar({super.key, required this.hint, this.onTap});
 
   final String hint;
   final VoidCallback? onTap;
@@ -23,9 +20,7 @@ class BottomSearchBar extends StatelessWidget {
       right: 0,
       child: Container(
         padding: EdgeInsets.fromLTRB(22, 22, 22, 8 + bottomInset),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.25),
-        ),
+        decoration: BoxDecoration(color: Colors.black.withOpacity(0.25)),
         child: Container(
           height: 56,
           decoration: BoxDecoration(
@@ -41,28 +36,31 @@ class BottomSearchBar extends StatelessWidget {
           ),
           padding: const EdgeInsets.only(left: 24, right: 6),
           child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    hint,
-                    style: AppTextStyle.bold16.copyWith(
-                      color: const Color(0xFF9E9E9E),
-                    ),
+            children: [
+              Expanded(
+                child: Text(
+                  hint,
+                  style: AppTextStyle.bold16.copyWith(
+                    color: AppColors.hintText,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Image.asset('assets/images/search.png', height: AppDimens.iconMediumSize),
-                    onPressed: onTap,
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Image.asset(
+                    'assets/images/search.png',
+                    height: AppDimens.iconMediumSize,
                   ),
+                  onPressed: onTap,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
     );
   }
 }

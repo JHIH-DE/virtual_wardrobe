@@ -8,6 +8,7 @@ class Look {
   final String? advice;
   final String? errorMessage;
   final bool isFavorite;
+  final bool isSaved;
   final DateTime createdAt;
   final DateTime? finishedAt;
 
@@ -21,11 +22,12 @@ class Look {
     this.advice,
     this.errorMessage,
     this.isFavorite = false,
+    this.isSaved = false,
     DateTime? createdAt,
     this.finishedAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  Look copyWith({bool? isFavorite, String? name}) {
+  Look copyWith({bool? isFavorite, bool? isSaved, String? name}) {
     return Look(
       id: id,
       name: name ?? this.name,
@@ -36,6 +38,7 @@ class Look {
       advice: advice,
       errorMessage: errorMessage,
       isFavorite: isFavorite ?? this.isFavorite,
+      isSaved: isSaved ?? this.isSaved,
       createdAt: createdAt,
       finishedAt: finishedAt,
     );
@@ -78,7 +81,8 @@ class Look {
       seasons: parseStrings(json['season']),
       style: parseStrings(json['style']),
       advice: json['ai_notes'],
-      isFavorite: json['is_favorite'] == true,
+      isFavorite: json['is_favorite'] == true || json['is_favorite'] == 1,
+      isSaved: json['is_saved'] == true || json['is_saved'] == 1,
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 
 class AppDialog extends StatefulWidget {
@@ -58,12 +59,17 @@ class _AppDialogState extends State<AppDialog> {
               ElevatedButton(
                 onPressed: widget.onPrimary,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A1A1A),
+                  backgroundColor: AppColors.nearBlack,
                   minimumSize: const Size(double.infinity, 54),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
-                child: Text(widget.primaryLabel, style: const TextStyle(color: Colors.white)),
+                child: Text(
+                  widget.primaryLabel,
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
               if (widget.secondaryLabel != null) ...[
                 const SizedBox(height: 16),
@@ -72,9 +78,14 @@ class _AppDialogState extends State<AppDialog> {
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.black, width: 1.6),
                     minimumSize: const Size(double.infinity, 54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: Text(widget.secondaryLabel!, style: const TextStyle(color: Colors.black)),
+                  child: Text(
+                    widget.secondaryLabel!,
+                    style: const TextStyle(color: Colors.black),
+                  ),
                 ),
               ],
               if (widget.tertiaryLabel != null) ...[
@@ -93,16 +104,17 @@ class _AppDialogState extends State<AppDialog> {
                       duration: const Duration(milliseconds: 100),
                       height: 38,
                       decoration: BoxDecoration(
-                        color: _tertiaryPressed ? const Color(0xFF1A1A1A) : Colors.white,
+                        color: _tertiaryPressed
+                            ? AppColors.nearBlack
+                            : Colors.white,
                         border: Border.all(color: Colors.black, width: 1.6),
                         borderRadius: BorderRadius.circular(19),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         widget.tertiaryLabel!,
-                        style: TextStyle(
+                        style: AppTextStyle.regular14.copyWith(
                           color: _tertiaryPressed ? Colors.white : Colors.black,
-                          fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

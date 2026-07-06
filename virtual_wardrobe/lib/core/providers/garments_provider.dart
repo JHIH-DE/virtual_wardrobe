@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/garment.dart';
 import '../services/garments_service.dart';
 
-final garmentsProvider =
-    AsyncNotifierProvider<GarmentsNotifier, List<Garment>>(GarmentsNotifier.new);
+final garmentsProvider = AsyncNotifierProvider<GarmentsNotifier, List<Garment>>(
+  GarmentsNotifier.new,
+);
 
 class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
   @override
@@ -22,7 +23,9 @@ class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
 
   void updateGarment(Garment garment) {
     final current = state.valueOrNull ?? [];
-    state = AsyncData(current.map((g) => g.id == garment.id ? garment : g).toList());
+    state = AsyncData(
+      current.map((g) => g.id == garment.id ? garment : g).toList(),
+    );
   }
 
   void removeGarment(int garmentId) {
@@ -33,7 +36,11 @@ class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
   void updateFavorite(int garmentId, {required bool isFavorite}) {
     final current = state.valueOrNull ?? [];
     state = AsyncData(
-      current.map((g) => g.id == garmentId ? g.copyWith(isFavorite: isFavorite) : g).toList(),
+      current
+          .map(
+            (g) => g.id == garmentId ? g.copyWith(isFavorite: isFavorite) : g,
+          )
+          .toList(),
     );
   }
 }

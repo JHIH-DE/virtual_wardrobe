@@ -37,25 +37,34 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
     final offset = prefs.getInt('temperature_offset') ?? 0;
     if (!mounted) return;
     if (saved != null && saved.length == 7) {
-      setState(() { _weeklyOccasions = saved; _temperatureOffset = offset; });
+      setState(() {
+        _weeklyOccasions = saved;
+        _temperatureOffset = offset;
+      });
     } else {
       final defaults = List.generate(7, (i) {
         final date = DateTime.now().add(Duration(days: i));
         return (date.weekday <= DateTime.friday) ? 'work' : 'casual_daily';
       });
-      setState(() { _weeklyOccasions = defaults; _temperatureOffset = offset; });
+      setState(() {
+        _weeklyOccasions = defaults;
+        _temperatureOffset = offset;
+      });
     }
   }
 
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('weekly_occasions', _weeklyOccasions);
-    await prefs.setString('occasions_last_saved', DateFormat('yyyy-MM-dd').format(DateTime.now()));
+    await prefs.setString(
+      'occasions_last_saved',
+      DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
     await prefs.setInt('temperature_offset', _temperatureOffset);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Settings saved')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Settings saved')));
   }
 
   @override
@@ -104,10 +113,17 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
                   value: _weeklyOccasions[index],
                   underline: const SizedBox(),
                   items: _occasionLabels.entries
-                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e.key,
+                          child: Text(e.value),
+                        ),
+                      )
                       .toList(),
                   onChanged: (val) {
-                    if (val != null) setState(() => _weeklyOccasions[index] = val);
+                    if (val != null) {
+                      setState(() => _weeklyOccasions[index] = val);
+                    }
                   },
                 ),
               );
@@ -121,9 +137,16 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                child: Text('Apply', style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv)),
+                child: Text(
+                  'Apply',
+                  style: AppTextStyle.bold16.copyWith(
+                    color: AppColors.textPrimaryInv,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -134,7 +157,10 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: AppTextStyle.bold16.copyWith(color: AppColors.textSecondary));
+    return Text(
+      title,
+      style: AppTextStyle.bold16.copyWith(color: AppColors.textSecondary),
+    );
   }
 
   Widget _buildTempAdjuster() {
@@ -148,13 +174,19 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
       child: Row(
         children: [
           const Expanded(
-            child: Text('Perceived temperature offset', style: AppTextStyle.regular14),
+            child: Text(
+              'Perceived temperature offset',
+              style: AppTextStyle.regular14,
+            ),
           ),
           IconButton(
             onPressed: () {
               if (_temperatureOffset > -5) setState(() => _temperatureOffset--);
             },
-            icon: const Icon(Icons.remove_circle_outline, color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.remove_circle_outline,
+              color: AppColors.textSecondary,
+            ),
           ),
           SizedBox(
             width: 50,
@@ -168,7 +200,10 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
             onPressed: () {
               if (_temperatureOffset < 5) setState(() => _temperatureOffset++);
             },
-            icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+            icon: const Icon(
+              Icons.add_circle_outline,
+              color: AppColors.primary,
+            ),
           ),
         ],
       ),

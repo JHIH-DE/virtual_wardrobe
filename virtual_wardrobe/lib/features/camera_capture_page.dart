@@ -1,9 +1,9 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import '../core/utils/debug_log.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../core/utils/debug_log.dart';
 
 class CameraCapturePage extends StatefulWidget {
   const CameraCapturePage({super.key});
@@ -76,9 +76,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       body: Stack(
         children: [
           // 1. Camera Preview
-          Positioned.fill(
-            child: CameraPreview(_controller!),
-          ),
+          Positioned.fill(child: CameraPreview(_controller!)),
 
           // 2. Dark Mask with Hole (遮罩與鏤空方框)
           ColorFiltered(
@@ -142,14 +140,19 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
-                   Expanded(
+                  Expanded(
                     child: Text(
                       'Camera',
                       textAlign: TextAlign.center,
-                      style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv),
+                      style: AppTextStyle.bold16.copyWith(
+                        color: AppColors.textPrimaryInv,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 48), // Spacer for center alignment

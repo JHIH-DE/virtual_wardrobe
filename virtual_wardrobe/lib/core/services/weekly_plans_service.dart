@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import '../utils/debug_log.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 
 import '../../data/garment.dart';
 import '../config/app_config.dart';
+import '../utils/debug_log.dart';
 import 'base_service.dart';
 
 class WeeklyPlansService with BaseService {
@@ -39,14 +39,13 @@ class WeeklyPlansService with BaseService {
       "force_regenerate": forceRegenerate,
     };
 
-    final res = await withAuth((token) => http.post(
-      uri,
-      headers: {
-        ...authHeaders(token),
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body),
-    ));
+    final res = await withAuth(
+      (token) => http.post(
+        uri,
+        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ),
+    );
 
     final envelope = decodeMap(res, op: 'createWeeklyPlan');
     final data = envelope['data'];
@@ -68,7 +67,10 @@ class WeeklyPlansService with BaseService {
     if (items is! List) {
       throw Exception('getGarments: items field is not a list');
     } else {
-      final ids = items.whereType<Map<String, dynamic>>().map((j) => j['garment_id']).toList();
+      final ids = items
+          .whereType<Map<String, dynamic>>()
+          .map((j) => j['garment_id'])
+          .toList();
       debugLog('--- getGarments ids: $ids ---');
     }
 
@@ -104,14 +106,13 @@ class WeeklyPlansService with BaseService {
     final uri = Uri.parse('$_baseUrl/options/$id/job');
     final body = {"job_id": jobId};
 
-    final res = await withAuth((token) => http.patch(
-      uri,
-      headers: {
-        ...authHeaders(token),
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body),
-    ));
+    final res = await withAuth(
+      (token) => http.patch(
+        uri,
+        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ),
+    );
 
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception('saveJobId failed: ${res.body}');
@@ -144,14 +145,13 @@ class WeeklyPlansService with BaseService {
       "clear_favorites": clearFavorites,
     };
 
-    final res = await withAuth((token) => http.post(
-      uri,
-      headers: {
-        ...authHeaders(token),
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body),
-    ));
+    final res = await withAuth(
+      (token) => http.post(
+        uri,
+        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ),
+    );
 
     final envelope = decodeMap(res, op: 'refreshWeeklyPlans');
     final data = envelope['data'];
@@ -162,12 +162,17 @@ class WeeklyPlansService with BaseService {
     return data;
   }
 
-  Future<Map<String, dynamic>?> _fetchDayData(String day, String operation) async {
+  Future<Map<String, dynamic>?> _fetchDayData(
+    String day,
+    String operation,
+  ) async {
     final uri = Uri.parse('$_baseUrl/day');
-    final res = await withAuth((token) => http.get(
-      uri.replace(queryParameters: {'day': day}),
-      headers: authHeaders(token),
-    ));
+    final res = await withAuth(
+      (token) => http.get(
+        uri.replace(queryParameters: {'day': day}),
+        headers: authHeaders(token),
+      ),
+    );
 
     final envelope = decodeMap(res, op: operation);
     final data = envelope['data'];

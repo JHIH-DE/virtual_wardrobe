@@ -12,15 +12,21 @@ class LabeledDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(thickness: 1, color: AppColors.defaultDivider)),
+        const Expanded(
+          child: Divider(thickness: 1, color: AppColors.defaultDivider),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             label,
-            style: AppTextStyle.bold16.copyWith(color: AppColors.defaultDivider),
+            style: AppTextStyle.bold16.copyWith(
+              color: AppColors.defaultDivider,
+            ),
           ),
         ),
-        const Expanded(child: Divider(thickness: 1, color: AppColors.defaultDivider)),
+        const Expanded(
+          child: Divider(thickness: 1, color: AppColors.defaultDivider),
+        ),
       ],
     );
   }

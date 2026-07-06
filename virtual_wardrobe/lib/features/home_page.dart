@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import '../core/services/auth_storage.dart';
 import 'create_page.dart';
-import 'login_page.dart';
 import 'looks_page.dart';
 import 'manual_try_on_page.dart';
 import 'my_closet_page.dart';
-import 'trip_planner_page.dart';
 import 'settings_page.dart';
+import 'trip_planner_page.dart';
 import 'widgets/app_card.dart';
 
 class HomePage extends StatefulWidget {
@@ -37,10 +35,7 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         centerTitle: false,
         backgroundColor: AppColors.backgroundLight,
-        title: Image.asset(
-          'assets/images/logo.png',
-          height: 60,
-        ),
+        title: Image.asset('assets/images/logo.png', height: 60),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
@@ -69,82 +64,107 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
       body: SafeArea(
         top: false,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 50),
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.backgroundLight,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(40),
-                  topRight: Radius.circular(40),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    spreadRadius: 0,
-                    offset: const Offset(0, -10),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 50),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundLight,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(40),
-                  topRight: Radius.circular(40),
-                ),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-                  children: [
-                    _buildQuickAddButton(context),
-                    const SizedBox(height: 18),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _features.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 18,
-                        mainAxisSpacing: 18,
-                        childAspectRatio: 1.0,
-                      ),
-                      itemBuilder: (context, index) {
-                        final feature = _features[index];
-                        return AppVerticalCard(
-                          label: feature,
-                          iconPath: _getIconPath(feature),
-                          isSelected: _selectedCardIndex == index,
-                          onTap: () {
-                            setState(() => _selectedCardIndex = index);
-                            if (feature == 'My Closet') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const MyClosetPage()));
-                            } else if (feature == 'Trip Planner') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const TripPlannerPage()));
-                            } else if (feature == 'Manual Try-on') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => ManualTryOnPage(onBack: () => Navigator.popUntil(context, (route) => route.isFirst))));
-                            } else if (feature == 'Looks') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const LooksPage()));
-                            } else if (feature == 'Finance') {
-                            }
-                          },
-                        );
-                      },
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 20,
+                      spreadRadius: 0,
+                      offset: const Offset(0, -10),
                     ),
                   ],
                 ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
+                  ),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                    children: [
+                      _buildQuickAddButton(context),
+                      const SizedBox(height: 18),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _features.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 18,
+                              mainAxisSpacing: 18,
+                              childAspectRatio: 1.0,
+                            ),
+                        itemBuilder: (context, index) {
+                          final feature = _features[index];
+                          return AppVerticalCard(
+                            label: feature,
+                            iconPath: _getIconPath(feature),
+                            isSelected: _selectedCardIndex == index,
+                            onTap: () {
+                              setState(() => _selectedCardIndex = index);
+                              if (feature == 'My Closet') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const MyClosetPage(),
+                                  ),
+                                );
+                              } else if (feature == 'Trip Planner') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const TripPlannerPage(),
+                                  ),
+                                );
+                              } else if (feature == 'Manual Try-on') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ManualTryOnPage(
+                                      onBack: () => Navigator.popUntil(
+                                        context,
+                                        (route) => route.isFirst,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else if (feature == 'Looks') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LooksPage(),
+                                  ),
+                                );
+                              } else if (feature == 'Finance') {}
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -153,7 +173,10 @@ class _HomePageState extends State<HomePage> {
     return AppHorizontalCard(
       label: 'Create',
       iconPath: 'assets/images/create.png',
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreatePage())),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CreatePage()),
+      ),
     );
   }
 

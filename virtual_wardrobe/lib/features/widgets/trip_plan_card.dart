@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
 import '../../data/trip_plan.dart';
 import '../trip_details_page.dart';
 import 'app_dialog.dart';
@@ -10,11 +11,7 @@ class TripPlanCard extends StatelessWidget {
   final TripPlan trip;
   final VoidCallback onDelete;
 
-  const TripPlanCard({
-    super.key,
-    required this.trip,
-    required this.onDelete,
-  });
+  const TripPlanCard({super.key, required this.trip, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +23,7 @@ class TripPlanCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => TripDetailsPage(trip: trip),
-          ),
+          MaterialPageRoute(builder: (context) => TripDetailsPage(trip: trip)),
         );
       },
       child: Container(
@@ -57,16 +52,11 @@ class TripPlanCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     trip.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyle.bold24.copyWith(color: Colors.white),
                   ),
                 ),
                 IconButton(
-                  icon:
-                      const Icon(Icons.delete_outline, color: Colors.white70),
+                  icon: const Icon(Icons.delete_outline, color: Colors.white70),
                   onPressed: () {
                     showDialog<bool>(
                       context: context,
@@ -93,7 +83,7 @@ class TripPlanCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     trip.location.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    style: AppTextStyle.regular16.copyWith(color: Colors.white),
                   ),
                 ),
               ],
@@ -101,30 +91,35 @@ class TripPlanCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.calendar_today,
-                    color: Colors.white70, size: 18),
+                const Icon(
+                  Icons.calendar_today,
+                  color: Colors.white70,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   dateStr,
-                  style:
-                      const TextStyle(color: Colors.white, fontSize: 16),
+                  style: AppTextStyle.regular16.copyWith(color: Colors.white),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
                   "View Plan",
-                  style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500),
+                  style: AppTextStyle.regular12.copyWith(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                SizedBox(width: 4),
-                Icon(Icons.arrow_forward_ios,
-                    color: Colors.white70, size: 12),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white70,
+                  size: 12,
+                ),
               ],
             ),
           ],

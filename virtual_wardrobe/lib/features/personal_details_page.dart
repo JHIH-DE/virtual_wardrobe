@@ -141,16 +141,15 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   }
 
   Future<void> _uploadAvatar(String localPath) => _uploadProfileImage(
-        localPath,
-        initUpload: ProfileService().avatarInitUpload,
-        complete: ProfileService().avatarComplete,
-        setLoading: (v) => setState(() => _loading = v),
-        onSuccess: (url) => setState(() {
-          _avatarUrl = url;
-          _avatarLocalPath = null;
-        }),
-      );
-
+    localPath,
+    initUpload: ProfileService().avatarInitUpload,
+    complete: ProfileService().avatarComplete,
+    setLoading: (v) => setState(() => _loading = v),
+    onSuccess: (url) => setState(() {
+      _avatarUrl = url;
+      _avatarLocalPath = null;
+    }),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -160,66 +159,78 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
       body: SafeArea(
         top: false,
         child: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_error != null)
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: Text(
+                          _error!,
+                          style: AppTextStyle.regular13.copyWith(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    _buildAvatarSection(),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: Text(_error!,
-                          style: AppTextStyle.regular13.copyWith(color: Colors.red)),
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _fieldLabel('Account Name'),
+                          const SizedBox(height: 8),
+                          AppTextField(
+                            controller: _nameCtrl,
+                            hint: 'Enter your name',
+                          ),
+                          const SizedBox(height: 20),
+                          _fieldLabel('Gender'),
+                          const SizedBox(height: 8),
+                          CustomDropdown<String>(
+                            value: _selectedGender,
+                            hint: 'Select gender',
+                            items: _genderOptions
+                                .map(
+                                  (g) => DropdownMenuItem(
+                                    value: g,
+                                    child: Text(g),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: _loading
+                                ? null
+                                : (v) => setState(() => _selectedGender = v),
+                          ),
+                          const SizedBox(height: 20),
+                          _fieldLabel('Birthday'),
+                          const SizedBox(height: 8),
+                          DateDropdownField(
+                            value: _selectedBirthDate,
+                            hint: 'Select birthday',
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                            onChanged: _loading
+                                ? null
+                                : (d) => setState(() => _selectedBirthDate = d),
+                          ),
+                        ],
+                      ),
                     ),
-                  _buildAvatarSection(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _fieldLabel('Account Name'),
-                        const SizedBox(height: 8),
-                        AppTextField(controller: _nameCtrl, hint: 'Enter your name'),
-                        const SizedBox(height: 20),
-                        _fieldLabel('Gender'),
-                        const SizedBox(height: 8),
-                        CustomDropdown<String>(
-                          value: _selectedGender,
-                          hint: 'Select gender',
-                          items: _genderOptions
-                              .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                              .toList(),
-                          onChanged: _loading
-                              ? null
-                              : (v) => setState(() => _selectedGender = v),
-                        ),
-                        const SizedBox(height: 20),
-                        _fieldLabel('Birthday'),
-                        const SizedBox(height: 8),
-                        DateDropdownField(
-                          value: _selectedBirthDate,
-                          hint: 'Select birthday',
-                          firstDate: DateTime(1900),
-                          lastDate: DateTime.now(),
-                          onChanged: _loading
-                              ? null
-                              : (d) => setState(() => _selectedBirthDate = d),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          BottomActionButton(
-            label: 'Save',
-            onPressed: _saveProfile,
-            isLoading: _loading,
-          ),
-        ],
-      ),
+            BottomActionButton(
+              label: 'Save',
+              onPressed: _saveProfile,
+              isLoading: _loading,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -229,9 +240,11 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   Widget _buildAvatarSection() {
     final avatarImage = _avatarLocalPath != null
         ? FileImage(File(_avatarLocalPath!)) as ImageProvider
-        : (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string'
-            ? NetworkImage(_avatarUrl!) as ImageProvider
-            : null);
+        : (_avatarUrl != null &&
+                  _avatarUrl!.isNotEmpty &&
+                  _avatarUrl != 'string'
+              ? NetworkImage(_avatarUrl!) as ImageProvider
+              : null);
 
     return Material(
       elevation: 4,
@@ -264,14 +277,10 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   Widget _fieldLabel(String label) {
     return Row(
       children: [
-        Text(
-          label,
-          style: AppTextStyle.semibold14,
-        ),
+        Text(label, style: AppTextStyle.semibold14),
         const SizedBox(width: 4),
         Text('*', style: AppTextStyle.regular12.copyWith(color: Colors.red)),
       ],
     );
   }
-
 }

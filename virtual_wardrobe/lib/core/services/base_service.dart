@@ -8,7 +8,6 @@ import 'auth_handler.dart';
 import 'auth_storage.dart';
 
 mixin BaseService {
-
   Map<String, String> authHeaders(String accessToken) {
     return {
       'Content-Type': 'application/json',
@@ -48,7 +47,9 @@ mixin BaseService {
       final data = body['data'] as Map<String, dynamic>?;
       final newAccessToken = data?['access_token'] as String?;
       final newRefreshToken = data?['refresh_token'] as String?;
-      if (newAccessToken == null || newRefreshToken == null) throw AuthExpiredException();
+      if (newAccessToken == null || newRefreshToken == null) {
+        throw AuthExpiredException();
+      }
 
       await AuthStorage.saveAccessToken(newAccessToken);
       await AuthStorage.saveRefreshToken(newRefreshToken);
@@ -75,8 +76,14 @@ mixin BaseService {
 
   Future<void> putJpegToSignedUrl(String uploadUrl, String localPath) async {
     final bytes = await File(localPath).readAsBytes();
-    final res = await http.put(Uri.parse(uploadUrl), headers: {'Content-Type': 'image/jpeg'}, body: bytes);
-    if (res.statusCode < 200 || res.statusCode >= 300) throw Exception('PUT failed');
+    final res = await http.put(
+      Uri.parse(uploadUrl),
+      headers: {'Content-Type': 'image/jpeg'},
+      body: bytes,
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw Exception('PUT failed');
+    }
   }
 }
 

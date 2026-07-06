@@ -28,7 +28,10 @@ class GarmentImage extends StatelessWidget {
     if (u.isEmpty) {
       image = Container(
         color: AppColors.border,
-        child: const Icon(Icons.image_not_supported, color: AppColors.textSecondary),
+        child: const Icon(
+          Icons.image_not_supported,
+          color: AppColors.textSecondary,
+        ),
       );
     } else if (u.startsWith('http')) {
       image = Image.network(
