@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 
 class BottomSearchBar extends StatelessWidget {
@@ -54,7 +55,7 @@ class BottomSearchBar extends StatelessWidget {
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    icon: Image.asset('assets/images/search.png', height: 28),
+                    icon: Image.asset('assets/images/search.png', height: AppDimens.iconMediumSize),
                     onPressed: onTap,
                   ),
                 ),

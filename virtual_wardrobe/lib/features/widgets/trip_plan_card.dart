@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_colors.dart';
 import '../../data/trip_plan.dart';
 import '../trip_details_page.dart';
+import 'app_dialog.dart';
 
 class TripPlanCard extends StatelessWidget {
   final TripPlan trip;
@@ -67,28 +68,19 @@ class TripPlanCard extends StatelessWidget {
                   icon:
                       const Icon(Icons.delete_outline, color: Colors.white70),
                   onPressed: () {
-                    showDialog(
+                    showDialog<bool>(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("Delete Trip"),
-                        content: const Text(
-                            "Are you sure you want to delete this trip?"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Cancel"),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              onDelete();
-                            },
-                            child: const Text("Delete",
-                                style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
+                      builder: (ctx) => AppDialog(
+                        title: 'Delete Trip',
+                        body: 'Are you sure you want to delete this trip?',
+                        primaryLabel: 'Delete',
+                        onPrimary: () => Navigator.pop(ctx, true),
+                        secondaryLabel: 'Cancel',
+                        onSecondary: () => Navigator.pop(ctx, false),
                       ),
-                    );
+                    ).then((confirmed) {
+                      if (confirmed == true) onDelete();
+                    });
                   },
                 ),
               ],

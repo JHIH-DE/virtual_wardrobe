@@ -8,6 +8,11 @@ import 'widgets/bottom_action_button.dart';
 import 'widgets/garment_card.dart';
 import 'widgets/page_app_bar.dart';
 
+class SelectGarmentResult {
+  final Garment? garment;
+  const SelectGarmentResult(this.garment);
+}
+
 class SelectGarmentPage extends StatefulWidget {
   final String title;
   final GarmentCategory category;
@@ -240,10 +245,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
       ),
       bottomNavigationBar: BottomActionButton(
         label: 'Confirm',
-        enabled: _pending != null,
-        onPressed: _pending != null
-            ? () => Navigator.pop(context, _pending)
-            : null,
+        onPressed: () => Navigator.pop(context, SelectGarmentResult(_pending)),
       ),
     );
   }

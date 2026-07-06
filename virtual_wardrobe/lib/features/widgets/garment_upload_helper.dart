@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
+import '../../app/theme/app_text_styles.dart';
 import '../../data/garment.dart';
+import '../../data/image_edit_result.dart';
 import '../add_garment_page.dart';
 import '../camera_capture_page.dart';
-import '../image_edit_page.dart';
-import '../../data/image_edit_result.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../../app/theme/app_colors.dart';
+import '../image_editor_page.dart';
 
 class GarmentUploadHelper {
   static void showAddClothingDialog(BuildContext context, {VoidCallback? onComplete, void Function(Garment)? onAdded}) {
@@ -27,7 +29,7 @@ class GarmentUploadHelper {
             children: [
               Image.asset(
                 'assets/images/add.png',
-                height: 64,
+                height: AppDimens.iconLargeSize,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -40,7 +42,7 @@ class GarmentUploadHelper {
                 dialogCtx,
                 icon: Image.asset(
                   'assets/images/camera.png',
-                  height: 28,
+                  height: AppDimens.iconMediumSize,
                 ),
                 label: const Text(
                   'Camera',
@@ -53,7 +55,7 @@ class GarmentUploadHelper {
                 dialogCtx,
                 icon: Image.asset(
                   'assets/images/album.png',
-                  height: 28,
+                  height: AppDimens.iconMediumSize,
                 ),
                 label: const Text(
                   'Photo Album',
@@ -68,7 +70,7 @@ class GarmentUploadHelper {
                   padding: const EdgeInsets.all(4),
                   child: Image.asset(
                     'assets/images/page_arrow_left.png',
-                    height: 20,
+                    height: AppDimens.iconSmallSize,
                   ),
                 ),
                 label: Text(
@@ -139,7 +141,7 @@ class GarmentUploadHelper {
       final result = await Navigator.push<ImageEditResult>(
         context,
         MaterialPageRoute(
-          builder: (_) => ImageEditPage(initialPath: imagePath),
+          builder: (_) => ImageEditorPage(initialPath: imagePath),
         ),
       );
 

@@ -14,6 +14,7 @@ class LookCard extends StatelessWidget {
   });
 
   String get _label {
+    if (look.name != null && look.name!.isNotEmpty) return look.name!;
     final parts = [...look.style, ...look.seasons].where((s) => s.isNotEmpty).toList();
     if (parts.isEmpty) return 'Look #${look.id}';
     return parts.map(_capitalize).join(' ');

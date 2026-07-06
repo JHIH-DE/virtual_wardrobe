@@ -1,18 +1,26 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import '../core/utils/debug_log.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../app/theme/app_text_styles.dart';
+
 import '../app/theme/app_colors.dart';
-import 'widgets/page_app_bar.dart';
-import 'widgets/bottom_action_button.dart';
+import '../app/theme/app_dimens.dart';
+import '../app/theme/app_text_styles.dart';
+import '../core/providers/garments_provider.dart';
+import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
 import '../data/garment.dart';
-import 'image_edit_page.dart';
 import '../data/image_edit_result.dart';
+import 'image_editor_page.dart';
+import 'widgets/app_dialog.dart';
 import 'widgets/app_text_field.dart';
+import 'widgets/bottom_action_button.dart';
 import 'widgets/custom_dropdown.dart';
+import 'widgets/page_app_bar.dart';
 
-class AddGarmentPage extends StatefulWidget {
+class AddGarmentPage extends ConsumerStatefulWidget {
   final Garment? initialGarment;
   final Map<String, dynamic>? initialAnalysisData;
 
@@ -23,10 +31,10 @@ class AddGarmentPage extends StatefulWidget {
   });
 
   @override
-  State<AddGarmentPage> createState() => _AddGarmentPageState();
+  ConsumerState<AddGarmentPage> createState() => _AddGarmentPageState();
 }
 
-class _AddGarmentPageState extends State<AddGarmentPage> {
+class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _subCategory = TextEditingController();
@@ -46,6 +54,9 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
 
+  bool _isFavorite = false;
+  bool _isFavoriteLoading = false;
+
   bool _isModified = false;
   late String _initialName;
   late GarmentCategory _initialCategory;
@@ -61,6 +72,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     _editingGarment = widget.initialGarment;
     _id = _editingGarment?.id;
     _imagePathOrUrl = _editingGarment?.imageUrl;
+    _isFavorite = _editingGarment?.isFavorite ?? false;
 
     // 初始化初始值，用於後續比較
     _initialName = _editingGarment?.name ?? '';
@@ -126,16 +138,13 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   Future<void> _handleDelete() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Garment'),
-        content: const Text('Are you sure you want to delete this garment?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
+      builder: (ctx) => AppDialog(
+        title: 'Delete Garment',
+        body: 'Are you sure you want to delete this garment?',
+        primaryLabel: 'Delete',
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: 'Cancel',
+        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
 
@@ -145,6 +154,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         if (!mounted) return;
         Navigator.pop(context, 'deleted');
       } catch (e) {
+        if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
         setState(() => errorMessage = 'Delete failed: $e');
       }
     }
@@ -155,88 +165,15 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          bool _dontSavePressed = false;
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            child: SizedBox(
-              width: 292,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'You have unsaved changes',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyle.dialogTitle,
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'If you leave this page, your changes will be lost.',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyle.dialogBody,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx, 'save'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1A1A),
-                        minimumSize: const Size(double.infinity, 54),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
-                        elevation: 0,
-                      ),
-                      child: const Text('Save', style: TextStyle(color: Colors.white)),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx, 'cancel'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.black, width: 1.6),
-                        minimumSize: const Size(double.infinity, 54),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
-                      ),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.black)),
-                    ),
-                    const SizedBox(height: 6),
-                    const Divider(thickness: 1, color: Colors.black12),
-                    SizedBox(
-                      width: 104,
-                      child: GestureDetector(
-                        onTapDown: (_) => setDialogState(() => _dontSavePressed = true),
-                        onTapUp: (_) {
-                          setDialogState(() => _dontSavePressed = false);
-                          Navigator.pop(ctx, 'discard');
-                        },
-                        onTapCancel: () => setDialogState(() => _dontSavePressed = false),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 100),
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: _dontSavePressed ? const Color(0xFF1A1A1A) : Colors.white,
-                            border: Border.all(color: Colors.black, width: 1.6),
-                            borderRadius: BorderRadius.circular(19),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Don\'t Save',
-                            style: TextStyle(
-                              color: _dontSavePressed ? Colors.white : Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+      builder: (ctx) => AppDialog(
+        title: 'You have unsaved changes',
+        body: 'If you leave this page, your changes will be lost.',
+        primaryLabel: 'Save',
+        onPrimary: () => Navigator.pop(ctx, 'save'),
+        secondaryLabel: 'Cancel',
+        onSecondary: () => Navigator.pop(ctx, 'cancel'),
+        tertiaryLabel: "Don't Save",
+        onTertiary: () => Navigator.pop(ctx, 'discard'),
       ),
     );
 
@@ -249,7 +186,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _isAddMode ? 'Add Clothing' : 'Edit Clothing';
+    final title = _isAddMode ? 'Add Clothing' : 'Clothing Details';
 
     return PopScope(
       canPop: false,
@@ -276,7 +213,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                   padding: const EdgeInsets.all(4),
                   child: Image.asset(
                     'assets/images/delete.png',
-                    height: 28,
+                    height: AppDimens.iconMediumSize,
                   ),
                 ),
                 onPressed: _handleDelete,
@@ -288,7 +225,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 110),
             children: [
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               if (uploading)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
@@ -301,19 +238,21 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                 ),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _imagePreview(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (!_isAddMode) _buildActionButtons(),
+                    const SizedBox(height: 8),
                     _sectionTitle('Clothing Name'),
                     const SizedBox(height: 8),
                     AppTextField(
@@ -438,7 +377,8 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
         _isAnalyzing = false;
       });
     } catch (e) {
-      debugPrint('AI Analysis failed: $e');
+      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      debugLog('AI Analysis failed: $e');
       setState(() => _isAnalyzing = false);
     }
   }
@@ -446,6 +386,67 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
   // ----------------------------
   // Widgets
   // ----------------------------
+
+  Widget _buildActionButtons() {
+    return IntrinsicHeight(
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildActionButton(
+              icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
+              iconColor: _isFavorite ? Colors.red : AppColors.textPrimary,
+              label: 'Favorite',
+              onTap: _isFavoriteLoading ? null : _toggleFavorite,
+            ),
+          ),
+          Expanded(
+            child: _buildActionButton(
+              icon: Icons.checkroom_outlined,
+              label: 'Used in Looks',
+              onTap: () {},
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    Color? iconColor,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 24, color: iconColor ?? AppColors.textPrimary),
+            const SizedBox(height: 4),
+            Text(label, style: AppTextStyle.regular14.copyWith(color: AppColors.textPrimary)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_id == null) return;
+    final next = !_isFavorite;
+    setState(() { _isFavorite = next; _isFavoriteLoading = true; });
+    try {
+      await GarmentService().setFavorite(_id!, isFavorite: next);
+      ref.read(garmentsProvider.notifier).updateFavorite(_id!, isFavorite: next);
+    } catch (e) {
+      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      if (mounted) setState(() => _isFavorite = !next);
+    } finally {
+      if (mounted) setState(() => _isFavoriteLoading = false);
+    }
+  }
 
   Widget _colorPicker() {
     final selected = _selectedColor;
@@ -480,7 +481,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
             ),
             Image.asset(
               'assets/images/arrow_down.png',
-              height: 20,
+              height: AppDimens.iconSmallSize,
             ),
           ],
         ),
@@ -603,7 +604,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
                   const SizedBox(width: 8),
                   Image.asset(
                     'assets/images/edit.png',
-                    height: 20,
+                    height: AppDimens.iconSmallSize,
                   ),
                 ],
               ),
@@ -635,7 +636,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     if (!mounted) return;
     final result = await Navigator.push<ImageEditResult>(
       context,
-      MaterialPageRoute(builder: (_) => ImageEditPage(initialPath: xfile.path))
+      MaterialPageRoute(builder: (_) => ImageEditorPage(initialPath: xfile.path))
     );
     _handleImageEditResult(result);
   }
@@ -647,7 +648,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
     final result = await Navigator.push<ImageEditResult>(
       context,
       MaterialPageRoute(
-        builder: (_) => ImageEditPage(
+        builder: (_) => ImageEditorPage(
           initialPath: _imagePathOrUrl,
           showAnalysis: false,
         ),
@@ -695,6 +696,7 @@ class _AddGarmentPageState extends State<AddGarmentPage> {
       Navigator.of(context).pop(); // 關閉成功彈窗
       Navigator.of(context).pop(result); // 關閉 AddGarmentPage 並回傳結果
     } catch (e) {
+      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
       if (mounted) {
         setState(() { errorMessage = e.toString(); uploading = false; });
       }

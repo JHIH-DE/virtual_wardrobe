@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import '../utils/debug_log.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 
@@ -20,9 +20,8 @@ class TripPlanService with BaseService {
     required String defaultOccasion,
     required List<Map<String, dynamic>> days,
   }) async {
-    debugPrint('--- createTripPlan ---');
+    debugLog('--- createTripPlan ---');
     final uri = Uri.parse(_baseUrl);
-    final token = await getSafeToken();
     final timezone = await FlutterTimezone.getLocalTimezone();
 
     final body = {
@@ -36,16 +35,14 @@ class TripPlanService with BaseService {
       "days": days,
     };
 
-    final res = await http.post(
+    final res = await withAuth((token) => http.post(
       uri,
       headers: {
         ...authHeaders(token),
         'Content-Type': 'application/json',
       },
       body: jsonEncode(body),
-    );
-
-    throwIfAuthExpired(res);
+    ));
 
     final envelope = decodeMap(res, op: 'createTripPlan');
     final data = envelope['data'];

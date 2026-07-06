@@ -4,18 +4,26 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
+import '../data/garment.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
-import 'try_on_mixin.dart';
-import '../data/garment.dart';
-import 'select_garment_page.dart';
+import 'select_garment_page.dart' show SelectGarmentPage, SelectGarmentResult;
+import '../core/utils/try_on_mixin.dart';
 import 'widgets/app_list_card.dart';
-import 'widgets/garment_image.dart';
-import 'widgets/page_app_bar.dart';
 import 'widgets/bottom_action_button.dart';
+import 'widgets/garment_image.dart';
+import 'widgets/loading_overlay.dart';
+import 'widgets/page_app_bar.dart';
 
 class ManualTryOnPage extends StatefulWidget {
-  const ManualTryOnPage({super.key});
+  final List<Garment> initialGarments;
+  final VoidCallback? onBack;
+
+  const ManualTryOnPage({
+    super.key,
+    this.initialGarments = const [],
+    this.onBack,
+  });
 
   @override
   State<ManualTryOnPage> createState() => _ManualTryOnPageState();
@@ -23,7 +31,8 @@ class ManualTryOnPage extends StatefulWidget {
 
 class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
   final List<Garment> _allGarments = [];
-  OutfitSelection _outfit = const OutfitSelection();
+  late OutfitSelection _outfit;
+  bool _isLoadingGarments = false;
 
   bool get _hasSelection =>
       _outfit.top != null ||
@@ -36,17 +45,36 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
   @override
   void initState() {
     super.initState();
+    _outfit = widget.initialGarments.isNotEmpty
+        ? _buildInitialOutfit(widget.initialGarments)
+        : const OutfitSelection();
     _loadGarments();
   }
 
+  OutfitSelection _buildInitialOutfit(List<Garment> garments) {
+    final tops = garments.where((g) => g.category == GarmentCategory.top).toList();
+    return OutfitSelection(
+      top: tops.isNotEmpty ? tops[0] : null,
+      middle: tops.length > 1 ? tops[1] : null,
+      outer: garments.where((g) => g.category == GarmentCategory.outer).firstOrNull,
+      bottom: garments.where((g) => g.category == GarmentCategory.bottom).firstOrNull,
+      shoes: garments.where((g) => g.category == GarmentCategory.shoes).firstOrNull,
+      accessory: garments.where((g) => g.category == GarmentCategory.accessory).firstOrNull,
+    );
+  }
+
   Future<void> _loadGarments() async {
+    setState(() => _isLoadingGarments = true);
     try {
       final list = await GarmentService().getGarments();
       if (mounted) setState(() => _allGarments..clear()..addAll(list));
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoadingGarments = false);
+    }
   }
 
   Future<void> _startTryOn() async {
@@ -90,14 +118,17 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
-      appBar: const PageAppBar(title: 'Manual Try-on'),
-      body: SafeArea(
-        top: false,
-        child: Stack(
-          children: [
-            ListView(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.defaultBackground,
+          appBar: PageAppBar(
+            title: 'Manual Try-on',
+            onBack: widget.onBack,
+          ),
+          body: SafeArea(
+            top: false,
+            child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
               children: [
                 Text(
@@ -161,34 +192,17 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
                 ),
               ],
             ),
-            if (isOutfitLoading)
-              Container(
-                color: AppColors.primary.withValues(alpha: 0.88),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      color: AppColors.textPrimaryInv,
-                      strokeWidth: 2,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Creating Looks...',
-                      style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+          ),
+          bottomNavigationBar: BottomActionButton(
+            label: 'Create Look',
+            trailing: const Icon(Icons.crop_free, size: 18),
+            onPressed: _startTryOn,
+            enabled: !isOutfitLoading && _hasSelection,
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomActionButton(
-        label: 'Create Look',
-        trailing: const Icon(Icons.crop_free, size: 18),
-        onPressed: _startTryOn,
-        enabled: !isOutfitLoading && _hasSelection,
-      ),
+        if (isOutfitLoading)
+          const Positioned.fill(child: LoadingOverlay(label: 'Creating Looks...')),
+      ],
     );
   }
 
@@ -205,10 +219,10 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
         : (value.color?.isNotEmpty == true ? value.color! : value.subCategory);
 
     return AppListCard(
-      onTap: isOutfitLoading
+      onTap: (isOutfitLoading || _isLoadingGarments)
           ? null
           : () async {
-              final picked = await Navigator.push<Garment>(
+              final result = await Navigator.push<SelectGarmentResult>(
                 context,
                 MaterialPageRoute(
                   builder: (_) => SelectGarmentPage(
@@ -219,7 +233,12 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
                   ),
                 ),
               );
-              if (picked != null) onPicked(picked);
+              if (result == null) return;
+              if (result.garment != null) {
+                onPicked(result.garment!);
+              } else {
+                onClear?.call();
+              }
             },
       showArrow: true,
       status: value == null ? 'select' : 'edit',

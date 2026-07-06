@@ -34,6 +34,14 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
+  static const TextStyle bold12 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
   static const TextStyle bold10 = TextStyle(
     fontFamily: 'text/EN',
     fontSize: 10,
@@ -78,6 +86,13 @@ class AppTextStyle {
     fontFamily: 'text/EN',
     fontSize: 24,
     fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle regular16 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 16,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );

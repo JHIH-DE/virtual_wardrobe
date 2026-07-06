@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'debug_log.dart';
 
 class GlobalErrorHandler {
   static void initialize() {
@@ -33,8 +34,7 @@ class GlobalErrorHandler {
   }
 
   static void _log(String source, Object error, StackTrace? stack) {
-    debugPrint('[ERROR][$source] $error');
-    if (stack != null) debugPrint('[ERROR][$source] $stack');
+    debugLog('[$source] $error', error: error, stackTrace: stack);
     // TODO: replace with Crashlytics.recordError(error, stack) before launch
   }
 

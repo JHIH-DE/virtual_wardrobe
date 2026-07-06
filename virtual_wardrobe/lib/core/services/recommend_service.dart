@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import '../utils/debug_log.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
@@ -11,18 +11,14 @@ class RecommendService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/recommendations';
 
   Future<Map<String, dynamic>> getRecommend(String occasion, String style, int temperature) async {
-    debugPrint('--- getRecommend ---');
-    final token = await getSafeToken();
-    
+    debugLog('--- getRecommend ---');
     final uri = Uri.parse('$_baseUrl/outfits').replace(queryParameters: {
       'occasion': occasion,
       'style': style,
       'temperature_c': temperature.toString(),
     });
-    
-    final res = await http.get(uri, headers: authHeaders(token));
-    throwIfAuthExpired(res);
-    
+
+    final res = await withAuth((token) => http.get(uri, headers: authHeaders(token)));
     final envelope = decodeMap(res, op: 'getRecommend');
     final data = envelope['data'];
 
@@ -33,10 +29,9 @@ class RecommendService with BaseService {
   }
 
   Future<void> saveRecommend(Map<String, dynamic> recommend) async {
-    debugPrint('--- saveRecommend ---');
-    final token = await getSafeToken();
+    debugLog('--- saveRecommend ---');
     final uri = Uri.parse('$_baseUrl/outfits');
-    
+
     final body = {
       'occasion': recommend['occasion'] ?? '',
       'style': recommend['style'] ?? '',
@@ -51,12 +46,11 @@ class RecommendService with BaseService {
       }).toList() ?? [],
     };
 
-    final res = await http.post(
+    final res = await withAuth((token) => http.post(
       uri,
       headers: authHeaders(token),
       body: jsonEncode(body),
-    );
-    throwIfAuthExpired(res);
+    ));
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('saveRecommend failed (${res.statusCode}): ${res.body}');
     }

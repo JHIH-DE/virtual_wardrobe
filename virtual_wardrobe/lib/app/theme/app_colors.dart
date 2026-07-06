@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   AppColors._();
-
   // Fashion Editorial base
-  static const Color defaultBackground = Color(0xFFF5F2EE);
+  static const Color defaultBackground = Color(0xFFF5F4F0);
   static const Color defaultToolBar = Color(0xFFFFFFFF);
   static const Color defaultButton = Color(0xFF222325);
   static const Color defaultButtonText = Color(0xFFFFFFFF);
   static const Color defaultCard = Color(0xFFFFFFFF);
-  static const Color backgroundLight = Color(0xFFF5F4F0);
+  static const Color backgroundLight = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);        // 卡片白
   static const Color border = Color(0xFFE6E6E6);         // 細邊框灰
   static const Color textPrimary = Color(0xFF222325);    // 近黑
   static const Color textPrimaryInv = Color(0xFFFFFFFF); // 白
   static const Color textSecondary = Color(0xFF6F6F6F);  // 次要文字灰
   static const Color defaultDivider = Color(0xFF18191B);
+  static const Color defaultMask = Color(0x5C181E2B); // #181E2B 36%
 
   // Social Colors
   static const Color facebook = Color(0xFF1877F2);       // Facebook Blue
@@ -32,4 +32,6 @@ class AppColors {
   static const Color textBoxBorder = Color(0xFFA0A4AB);
 
   static const Color error = Color(0xFFD32F2F);
+
+  static const Color statusClicked = Color(0x5CC6C0AB); // #C6C0AB 36%
 }

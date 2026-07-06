@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/login_page.dart';
+import '../../features/widgets/app_dialog.dart';
 import 'auth_storage.dart';
 
 class AuthExpiredException implements Exception {
@@ -14,20 +15,15 @@ class AuthExpiredHandler {
   static Future<void> handle(BuildContext context) async {
     await AuthStorage.clear();
 
-    if (!context.mounted) return;    await showDialog(
+    if (!context.mounted) return;
+    await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Session Expired'),
-        content: const Text('Your session has expired. Please log in again to continue.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
+      builder: (ctx) => AppDialog(
+        title: 'Session Expired',
+        body: 'Your session has expired. Please log in again to continue.',
+        primaryLabel: 'OK',
+        onPrimary: () => Navigator.of(ctx).pop(),
       ),
     );
 

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import '../utils/debug_log.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import 'package:mime/mime.dart';
@@ -29,14 +29,13 @@ class GarmentService with BaseService {
   final Map<int, Garment> _cache = {};
 
   Future<InitUploadResult> initUpload() async {
-    debugPrint('--- initUpload ---');
-    final token = await getSafeToken();
+    debugLog('--- initUpload ---');
     final uri = Uri.parse('$_baseUrl/init-upload');
-    final res = await http.post(
+    final res = await withAuth((token) => http.post(
       uri,
       headers: authHeaders(token),
       body: jsonEncode({'content_type': 'image/jpeg'}),
-    ).timeout(const Duration(seconds: 15));
+    ).timeout(const Duration(seconds: 15)));
 
     final envelope = decodeMap(res, op: 'initUpload');
     final data = envelope['data'] as Map<String, dynamic>?;
@@ -49,17 +48,15 @@ class GarmentService with BaseService {
   }
 
   Future<void> uploadImage(String uploadUrl, String localPath) async {
-    debugPrint('--- uploadImage ---');
+    debugLog('--- uploadImage ---');
     final file = File(localPath);
     final bytes = await file.readAsBytes();
     final uri = Uri.parse(uploadUrl);
     final res = await http.put(
-      uri, 
-      headers: {'Content-Type': 'image/jpeg'}, 
+      uri,
+      headers: {'Content-Type': 'image/jpeg'},
       body: bytes
-    ).timeout(const Duration(seconds: 45)); // Image upload can take longer
-    
-    throwIfAuthExpired(res);
+    ).timeout(const Duration(seconds: 45));
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('PUT to signed url failed: ${res.statusCode} ${res.body}');
@@ -67,8 +64,7 @@ class GarmentService with BaseService {
   }
 
   Future<Garment> completeUpload(Garment garment, Map<String, dynamic>? metaData) async {
-    debugPrint('--- completeUpload ---');
-    final token = await getSafeToken();
+    debugLog('--- completeUpload ---');
     final uri = Uri.parse('$_baseUrl/complete');
     final String? dateStr = garment.purchaseDate?.toIso8601String().split('T')[0];
 
@@ -86,11 +82,11 @@ class GarmentService with BaseService {
       'metadata': metaData,
     };
 
-    final res = await http.post(
+    final res = await withAuth((token) => http.post(
       uri,
       headers: authHeaders(token),
       body: jsonEncode(payload),
-    ).timeout(const Duration(seconds: 15));
+    ).timeout(const Duration(seconds: 15)));
 
     final envelope = decodeMap(res, op: 'completeUpload');
     final data = envelope['data'] as Map<String, dynamic>?;
@@ -102,11 +98,9 @@ class GarmentService with BaseService {
   }
 
   Future<List<Garment>> getGarments() async {
-    debugPrint('--- getGarments ---');
-    final token = await getSafeToken();
+    debugLog('--- getGarments ---');
     final uri = Uri.parse(_baseUrl);
-    final res = await http.get(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15));
-    throwIfAuthExpired(res);
+    final res = await withAuth((token) => http.get(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15)));
     final envelope = decodeMap(res, op: 'getGarments');
     final data = envelope['data'];
     if (data is! List) throw Exception('getGarments: response missing list data');
@@ -121,11 +115,9 @@ class GarmentService with BaseService {
   Future<Garment> getGarment(int garmentId) async {
     if (_cache.containsKey(garmentId)) return _cache[garmentId]!;
 
-    debugPrint('--- getGarment: $garmentId  ---');
-    final token = await getSafeToken();
+    debugLog('--- getGarment: $garmentId  ---');
     final uri = Uri.parse('$_baseUrl/$garmentId');
-    final res = await http.get(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15));
-    throwIfAuthExpired(res);
+    final res = await withAuth((token) => http.get(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15)));
     final envelope = decodeMap(res, op: 'getGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
 
@@ -139,11 +131,9 @@ class GarmentService with BaseService {
   }
 
   Future<void> deleteGarment(int garmentId) async {
-    debugPrint('--- deleteGarment: $garmentId ---');
-    final token = await getSafeToken();
+    debugLog('--- deleteGarment: $garmentId ---');
     final uri = Uri.parse('$_baseUrl/$garmentId');
-    final res = await http.delete(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15));
-    throwIfAuthExpired(res);
+    final res = await withAuth((token) => http.delete(uri, headers: authHeaders(token)).timeout(const Duration(seconds: 15)));
     if (res.statusCode == 200 || res.statusCode == 204 || res.statusCode == 404) {
       _cache.remove(garmentId);
       return;
@@ -152,17 +142,15 @@ class GarmentService with BaseService {
   }
 
   Future<Garment> updateGarment(Garment garment) async {
-    debugPrint('--- updateGarment ---');
+    debugLog('--- updateGarment ---');
     if (garment.id == null) throw Exception('updateGarment: missing id');
-    final token = await getSafeToken();
     final uri = Uri.parse('$_baseUrl/${garment.id}');
-    final res = await http.patch(
-      uri, 
-      headers: authHeaders(token), 
+    final res = await withAuth((token) => http.patch(
+      uri,
+      headers: authHeaders(token),
       body: jsonEncode(garment.toJson())
-    ).timeout(const Duration(seconds: 15));
-    
-    throwIfAuthExpired(res);
+    ).timeout(const Duration(seconds: 15)));
+
     final envelope = decodeMap(res, op: 'updateGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
     if (data == null) throw Exception('updateGarment: response missing data');
@@ -172,25 +160,28 @@ class GarmentService with BaseService {
     return updated;
   }
 
+  Future<void> setFavorite(int lookId, {required bool isFavorite}) async {
+    debugLog('--- setFavorite: $lookId / $isFavorite ---');
+    final uri = Uri.parse('$_baseUrl/$lookId');
+    final res = await withAuth((token) => http.patch(uri, headers: authHeaders(token), body: jsonEncode({'is_favorite': isFavorite})));
+    decodeMap(res, op: 'setFavorite');
+  }
+
   Future<AnalyzeGarmentResult> analyzeGarment(String localPath) async {
-    debugPrint('--- analyzeGarment ---');
-    final token = await getSafeToken();
+    debugLog('--- analyzeGarment ---');
     final uri = Uri.parse('$_baseUrl/analyze-instant');
-    final request = http.MultipartRequest('POST', uri);
-
-    request.headers.addAll({
-      'Authorization': 'Bearer $token',
+    final res = await withAuth((token) async {
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+      final mimeType = lookupMimeType(localPath) ?? 'image/jpeg';
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        localPath,
+        contentType: MediaType.parse(mimeType),
+      ));
+      final streamedRes = await request.send().timeout(const Duration(seconds: 30));
+      return http.Response.fromStream(streamedRes);
     });
-
-    final mimeType = lookupMimeType(localPath) ?? 'image/jpeg';
-    request.files.add(await http.MultipartFile.fromPath(
-      'file',
-      localPath,
-      contentType: MediaType.parse(mimeType),
-    ));
-
-    final streamedRes = await request.send().timeout(const Duration(seconds: 30));
-    final res = await http.Response.fromStream(streamedRes);
 
     final envelope = decodeMap(res, op: 'analyzeInstantGarment');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? {};

@@ -8,6 +8,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.defaultBackground,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
+        surfaceTint: Colors.transparent,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,

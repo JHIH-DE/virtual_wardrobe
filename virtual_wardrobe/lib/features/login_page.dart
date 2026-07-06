@@ -1,15 +1,18 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import '../core/utils/debug_log.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/config/env.dart';
-import '../core/services/login_service.dart';
 import '../core/services/auth_storage.dart';
+import '../core/services/auth_service.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -56,8 +59,9 @@ class _LoginPageState extends State<LoginPage> {
       if (idToken == null || idToken.isEmpty) {
         throw Exception('Google login failed: missing idToken');
       }
-      final token = await LoginService().loginWithGoogleIdToken(idToken);
-      await AuthStorage.saveAccessToken(token);
+      final tokens = await AuthService().loginWithGoogleIdToken(idToken);
+      await AuthStorage.saveAccessToken(tokens.accessToken);
+      await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
       Fluttertoast.showToast(msg: 'Google login success');
       await _goHome();
@@ -81,8 +85,9 @@ class _LoginPageState extends State<LoginPage> {
       final idToken = credential.identityToken;
       if (idToken == null) throw Exception('Apple login failed: missing idToken');
 
-      final token = await LoginService().loginWithAppleIdToken(idToken);
-      await AuthStorage.saveAccessToken(token);
+      final tokens = await AuthService().loginWithAppleIdToken(idToken);
+      await AuthStorage.saveAccessToken(tokens.accessToken);
+      await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
       Fluttertoast.showToast(msg: 'Apple login success');
       await _goHome();
@@ -100,14 +105,15 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _loginWithFacebook() async {
     setState(() => _isLoading = true);
     try {
-      debugPrint('--- _loginWithFacebook - Start ---');
+      debugLog('--- _loginWithFacebook - Start ---');
       final LoginResult result = await FacebookAuth.instance.login();
-      debugPrint('--- _loginWithFacebook - Status: ${result.status} ---');
+      debugLog('--- _loginWithFacebook - Status: ${result.status} ---');
 
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
-        final token = await LoginService().loginWithFaceBookIdToken(accessToken.tokenString);
-        await AuthStorage.saveAccessToken(token);
+        final tokens = await AuthService().loginWithFaceBookIdToken(accessToken.tokenString);
+        await AuthStorage.saveAccessToken(tokens.accessToken);
+        await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
         Fluttertoast.showToast(msg: 'Facebook login success');
         await _goHome();
@@ -117,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception('Facebook login failed: ${result.message}');
       }
     } catch (e) {
-      debugPrint('--- _loginWithFacebook - Error: $e ---');
+      debugLog('--- _loginWithFacebook - Error: $e ---');
       _showSnack(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);

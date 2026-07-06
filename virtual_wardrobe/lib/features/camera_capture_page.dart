@@ -1,5 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import '../core/utils/debug_log.dart';
+
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 
@@ -53,7 +55,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       if (!mounted) return;
       Navigator.pop(context, photo.path);
     } catch (e) {
-      debugPrint('Error taking picture: $e');
+      debugLog('Error taking picture: $e');
     }
   }
 

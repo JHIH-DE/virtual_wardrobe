@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import '../utils/debug_log.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,14 +17,13 @@ class WeeklyPlansService with BaseService {
     required List<String> occasions,
     bool forceRegenerate = false,
   }) async {
-    debugPrint('--- createWeeklyPlan - 0 (force: $forceRegenerate) ---');
+    debugLog('--- createWeeklyPlan - 0 (force: $forceRegenerate) ---');
     final uri = Uri.parse('$_baseUrl/rolling');
-    final token = await getSafeToken();
+    final timezoneData = await FlutterTimezone.getLocalTimezone();
+    final String effectiveTimezone = timezoneData.identifier;
     final String defaultOccasion = 'casual_daily';
     final String defaultStyle = 'minimal';
     final effectiveToday = DateTime.now().toIso8601String().split('T')[0];
-    final timezoneData = await FlutterTimezone.getLocalTimezone();
-    final String effectiveTimezone = timezoneData.identifier;
     final int alternativesPerDay = 2;
     final int wardrobeVersion = 0;
 
@@ -40,16 +39,14 @@ class WeeklyPlansService with BaseService {
       "force_regenerate": forceRegenerate,
     };
 
-    final res = await http.post(
+    final res = await withAuth((token) => http.post(
       uri,
       headers: {
         ...authHeaders(token),
         'Content-Type': 'application/json',
       },
       body: jsonEncode(body),
-    );
-
-    throwIfAuthExpired(res);
+    ));
 
     final envelope = decodeMap(res, op: 'createWeeklyPlan');
     final data = envelope['data'];
@@ -62,7 +59,7 @@ class WeeklyPlansService with BaseService {
 
   Future<List<Garment>> getGarments(String day) async {
     final data = await _fetchDayData(day, 'getGarments');
-    
+
     if (data == null || data['items'] == null) {
       throw Exception('getGarments: response missing items list');
     }
@@ -72,7 +69,7 @@ class WeeklyPlansService with BaseService {
       throw Exception('getGarments: items field is not a list');
     } else {
       final ids = items.whereType<Map<String, dynamic>>().map((j) => j['garment_id']).toList();
-      debugPrint('--- getGarments ids: $ids ---');
+      debugLog('--- getGarments ids: $ids ---');
     }
 
     return items
@@ -84,42 +81,37 @@ class WeeklyPlansService with BaseService {
   Future<int?> getId(String day) async {
     final data = await _fetchDayData(day, 'getId');
     final id = data?['id'] as int?;
-    debugPrint('--- getId id: $id ---');
+    debugLog('--- getId id: $id ---');
     return id;
   }
 
   Future<int?> getLook(String day) async {
     final data = await _fetchDayData(day, 'getLook');
     final jobId = data?['job_id'] as int?;
-    debugPrint('--- getLook job_id: $jobId ---');
+    debugLog('--- getLook job_id: $jobId ---');
     return jobId;
   }
 
   Future<void> saveJobId(String day, int jobId) async {
-    debugPrint('--- saveJobId ---');
+    debugLog('--- saveJobId ---');
     final id = await getId(day);
     if (id == null) {
       throw Exception('saveJobId: could not find plan ID for day $day');
     }
-    debugPrint('--- saveJobId id: $id');
-    debugPrint('--- saveJobId jobId: $jobId');
+    debugLog('--- saveJobId id: $id');
+    debugLog('--- saveJobId jobId: $jobId');
 
     final uri = Uri.parse('$_baseUrl/options/$id/job');
-    final token = await getSafeToken();
+    final body = {"job_id": jobId};
 
-    final body = {
-      "job_id": jobId,
-    };
-
-    final res = await http.patch(
+    final res = await withAuth((token) => http.patch(
       uri,
       headers: {
         ...authHeaders(token),
         'Content-Type': 'application/json',
       },
       body: jsonEncode(body),
-    );
-    throwIfAuthExpired(res);
+    ));
 
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception('saveJobId failed: ${res.body}');
@@ -131,9 +123,8 @@ class WeeklyPlansService with BaseService {
     required double temperatureC,
     required String occasion,
   }) async {
-    debugPrint('--- refreshWeeklyPlans ---');
+    debugLog('--- refreshWeeklyPlans ---');
     final uri = Uri.parse('$_baseUrl/day/refresh');
-    final token = await getSafeToken();
     final effectiveTimezone = await FlutterTimezone.getLocalTimezone();
     final String defaultOccasion = 'casual_daily';
     final String style = 'minimal';
@@ -153,16 +144,14 @@ class WeeklyPlansService with BaseService {
       "clear_favorites": clearFavorites,
     };
 
-    final res = await http.post(
+    final res = await withAuth((token) => http.post(
       uri,
       headers: {
         ...authHeaders(token),
         'Content-Type': 'application/json',
       },
       body: jsonEncode(body),
-    );
-
-    throwIfAuthExpired(res);
+    ));
 
     final envelope = decodeMap(res, op: 'refreshWeeklyPlans');
     final data = envelope['data'];
@@ -175,17 +164,12 @@ class WeeklyPlansService with BaseService {
 
   Future<Map<String, dynamic>?> _fetchDayData(String day, String operation) async {
     final uri = Uri.parse('$_baseUrl/day');
-    final token = await getSafeToken();
-
-    final res = await http.get(
+    final res = await withAuth((token) => http.get(
       uri.replace(queryParameters: {'day': day}),
       headers: authHeaders(token),
-    );
-    throwIfAuthExpired(res);
+    ));
 
     final envelope = decodeMap(res, op: operation);
-    //debugPrint('--- _fetchDayData day: $day');
-    //debugPrint('--- _fetchDayData ($operation) Response: ${jsonEncode(envelope)} ---');
     final data = envelope['data'];
     return data as Map<String, dynamic>?;
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../data/garment.dart';
+import 'category_tag.dart';
 import 'garment_image.dart';
 
 class GarmentListCard extends StatelessWidget {
@@ -60,7 +61,7 @@ class GarmentListCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildCategoryChip(),
+                      _buildCategoryTag(),
                       const SizedBox(height: 6),
                       Text(
                         garment.name,
@@ -88,17 +89,5 @@ class GarmentListCard extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        garment.category.label,
-        style: AppTextStyle.bold10.copyWith(color: Colors.white),
-      ),
-    );
-  }
+  Widget _buildCategoryTag() => CategoryTag(label: garment.category.label);
 }

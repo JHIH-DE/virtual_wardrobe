@@ -40,80 +40,92 @@ class GarmentCard extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
               children: [
-                // Upper — white background, image
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Container(
-                        color: Colors.white,
-                        width: double.infinity,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: GarmentImage(
-                            url: garment.imageUrl,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Upper — white background, image
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Container(
+                            color: Colors.white,
                             width: double.infinity,
-                            fit: BoxFit.contain,
-                            borderRadius: 0,
-                          ),
-                        ),
-                      ),
-                      if (showSelectionIndicator)
-                        Positioned(
-                        top: 8,
-                        right: 8,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppColors.primary : Colors.transparent,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected ? AppColors.primary : AppColors.border,
-                              width: 1.5,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: GarmentImage(
+                                url: garment.imageUrl,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                                borderRadius: 0,
+                              ),
                             ),
                           ),
-                          child: isSelected
-                              ? const Icon(Icons.check, color: Colors.white, size: 13)
-                              : null,
-                        ),
+                          if (showSelectionIndicator)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.primary : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.primary : AppColors.border,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: isSelected
+                                    ? const Icon(Icons.check, color: Colors.white, size: 13)
+                                    : null,
+                              ),
+                            ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                // Divider
-                Container(height: 1, color: AppColors.border),
-                // Lower — white background, text
-                Container(
-                  height: AppDimens.garmentCardInfoHeight,
-                  color: Colors.white,
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        garment.name,
-                        style: AppTextStyle.bold14,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (garment.color != null && garment.color!.isNotEmpty)
-                        Text(
-                          garment.color!,
-                          style: AppTextStyle.regular14.copyWith(
-                            color: AppColors.textSecondary,
+                    ),
+                    // Divider
+                    Container(height: 1, color: AppColors.border),
+                    // Lower — white background, text
+                    Container(
+                      height: AppDimens.garmentCardInfoHeight,
+                      color: Colors.white,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            garment.name,
+                            style: AppTextStyle.bold14,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  ),
+                          if (garment.color != null && garment.color!.isNotEmpty)
+                            Text(
+                              garment.color!,
+                              style: AppTextStyle.regular14.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+                if (isSelected)
+                  Positioned.fill(
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 150),
+                      opacity: 1.0,
+                      child: const ColoredBox(color: AppColors.statusClicked),
+                    ),
+                  ),
               ],
             ),
           ),

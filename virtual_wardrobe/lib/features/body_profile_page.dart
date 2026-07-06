@@ -8,19 +8,19 @@ import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
 import '../data/image_edit_result.dart';
-import 'image_edit_page.dart';
+import 'image_editor_page.dart';
 import 'widgets/app_text_field.dart';
 import 'widgets/bottom_action_button.dart';
 import 'widgets/page_app_bar.dart';
 
-class FigureSettingPage extends StatefulWidget {
-  const FigureSettingPage({super.key});
+class BodyProfilePage extends StatefulWidget {
+  const BodyProfilePage({super.key});
 
   @override
-  State<FigureSettingPage> createState() => _FigureSettingPageState();
+  State<BodyProfilePage> createState() => _BodyProfilePageState();
 }
 
-class _FigureSettingPageState extends State<FigureSettingPage> {
+class _BodyProfilePageState extends State<BodyProfilePage> {
   final _heightCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
 
@@ -99,7 +99,7 @@ class _FigureSettingPageState extends State<FigureSettingPage> {
     final result = await Navigator.push<ImageEditResult?>(
       context,
       MaterialPageRoute(
-        builder: (_) => ImageEditPage(
+        builder: (_) => ImageEditorPage(
           initialPath: _fullBodyLocalPath ?? _fullBodyUrl,
           showAnalysis: false,
         ),
@@ -133,7 +133,7 @@ class _FigureSettingPageState extends State<FigureSettingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const PageAppBar(title: 'Figure Setting'),
+      appBar: const PageAppBar(title: 'Body Profile'),
       bottomNavigationBar: BottomActionButton(
         label: 'Save',
         onPressed: _loading ? null : _saveProfile,

@@ -7,11 +7,10 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../data/garment.dart';
-import 'widgets/bottom_search_bar.dart';
+import 'add_garment_page.dart';
 import 'widgets/garment_card.dart';
 import 'widgets/garment_upload_helper.dart';
 import 'widgets/page_app_bar.dart';
-import 'add_garment_page.dart';
 
 class MyClosetPage extends ConsumerStatefulWidget {
   const MyClosetPage({super.key});
@@ -22,11 +21,14 @@ class MyClosetPage extends ConsumerStatefulWidget {
 
 class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   GarmentCategory _selectedCategory = GarmentCategory.top;
+  final Set<String> _selectedColors = {};
+  final Set<String> _selectedProductTypes = {};
+
+  bool get _isFiltered => _selectedColors.isNotEmpty || _selectedProductTypes.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
-    // 監聽 auth 過期，只需在頁面層處理一次
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listenManual(garmentsProvider, (_, next) {
         if (next.hasError && next.error is AuthExpiredException) {
@@ -36,8 +38,142 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     });
   }
 
-  List<Garment> _filtered(List<Garment> all) =>
-      all.where((g) => g.category == _selectedCategory).toList();
+  List<Garment> _filtered(List<Garment> all) {
+    return all.where((g) {
+      if (g.category != _selectedCategory) return false;
+      final okColor = _selectedColors.isEmpty ||
+          (g.color != null &&
+              _selectedColors.any((c) => c.toLowerCase() == g.color!.toLowerCase()));
+      final okType = _selectedProductTypes.isEmpty ||
+          _selectedProductTypes.contains(g.subCategory);
+      return okColor && okType;
+    }).toList();
+  }
+
+  void _openFilterSheet(List<Garment> allGarments) {
+    final categoryGarments = allGarments.where((g) => g.category == _selectedCategory).toList();
+    final availableColors = GarmentColor.values
+        .where((c) => categoryGarments.any((g) =>
+            g.color != null && g.color!.toLowerCase() == c.label.toLowerCase()))
+        .toList();
+    final availableTypes = categoryGarments
+        .map((g) => g.subCategory)
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('Color', style: AppTextStyle.bold16),
+                const SizedBox(height: 10),
+                availableColors.isEmpty
+                    ? Text('No colors available', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary))
+                    : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: availableColors.map((c) {
+                          final selected = _selectedColors.contains(c.label.toLowerCase());
+                          return GestureDetector(
+                            onTap: () {
+                              setSheetState(() {});
+                              setState(() {
+                                if (selected) {
+                                  _selectedColors.remove(c.label.toLowerCase());
+                                } else {
+                                  _selectedColors.add(c.label.toLowerCase());
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: selected ? AppColors.primary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: selected ? AppColors.primary : AppColors.border,
+                                ),
+                              ),
+                              child: Text(
+                                c.label,
+                                style: AppTextStyle.semibold14.copyWith(
+                                  color: selected ? Colors.white : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                const SizedBox(height: 20),
+                Text('Product Type', style: AppTextStyle.bold16),
+                const SizedBox(height: 10),
+                availableTypes.isEmpty
+                    ? Text('No types available', style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary))
+                    : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: availableTypes.map((t) {
+                          final selected = _selectedProductTypes.contains(t);
+                          return GestureDetector(
+                            onTap: () {
+                              setSheetState(() {});
+                              setState(() {
+                                if (selected) {
+                                  _selectedProductTypes.remove(t);
+                                } else {
+                                  _selectedProductTypes.add(t);
+                                }
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: selected ? AppColors.primary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: selected ? AppColors.primary : AppColors.border,
+                                ),
+                              ),
+                              child: Text(
+                                t,
+                                style: AppTextStyle.semibold14.copyWith(
+                                  color: selected ? Colors.white : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,11 +184,36 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       appBar: PageAppBar(
         title: 'My closet',
         backgroundColor: AppColors.defaultToolBar,
+        onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
         actions: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.tune),
+                onPressed: () => _openFilterSheet(
+                  garmentsAsync.valueOrNull ?? [],
+                ),
+              ),
+              if (_isFiltered)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(4),
-              child: Image.asset('assets/images/plus.png', height: 28),
+              child: Image.asset('assets/images/plus.png', height: AppDimens.iconMediumSize),
             ),
             onPressed: () {
               GarmentUploadHelper.showAddClothingDialog(
@@ -66,29 +227,23 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       ),
       body: SafeArea(
         top: false,
-        bottom: false,
-        child: Stack(
-        children: [
-          Column(
-            children: [
-              _buildCategorySelector(),
-              const SizedBox(height: 16),
-              Expanded(
-                child: garmentsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => _buildError(e),
-                  data: (all) => RefreshIndicator(
-                    onRefresh: () => ref.read(garmentsProvider.notifier).refresh(),
-                    color: Colors.black,
-                    child: _buildGrid(_filtered(all)),
-                  ),
+        child: Column(
+          children: [
+            _buildCategorySelector(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: garmentsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => _buildError(e),
+                data: (all) => RefreshIndicator(
+                  onRefresh: () => ref.read(garmentsProvider.notifier).refresh(),
+                  color: Colors.black,
+                  child: _buildGrid(_filtered(all)),
                 ),
               ),
-            ],
-          ),
-          BottomSearchBar(hint: 'Search in "${_selectedCategory.label}"'),
-        ],
-      ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -124,41 +279,45 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     return ColoredBox(
       color: AppColors.surface,
       child: SizedBox(
-      height: 60,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, i) {
-          final category = categories[i];
-          final isSelected = category == _selectedCategory;
+        height: 60,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          scrollDirection: Axis.horizontal,
+          itemCount: categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, i) {
+            final category = categories[i];
+            final isSelected = category == _selectedCategory;
 
-          return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = category),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF1A1A1A) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected ? const Color(0xFF1A1A1A) : Colors.black12,
+            return GestureDetector(
+              onTap: () => setState(() {
+                _selectedCategory = category;
+                _selectedColors.clear();
+                _selectedProductTypes.clear();
+              }),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF1A1A1A) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? const Color(0xFF1A1A1A) : Colors.black12,
+                  ),
                 ),
-              ),
-              child: Center(
-                child: Text(
-                  category.label,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyle.bold16.copyWith(
-                    color: isSelected ? Colors.white : Colors.black,
+                child: Center(
+                  child: Text(
+                    category.label,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.bold16.copyWith(
+                      color: isSelected ? Colors.white : Colors.black,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
-    ),
     );
   }
 
@@ -184,7 +343,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,

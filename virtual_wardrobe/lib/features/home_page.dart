@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
 import '../core/services/auth_storage.dart';
+import 'create_page.dart';
 import 'login_page.dart';
-import 'settings_page.dart';
-import 'my_closet_page.dart';
-import 'outfit_planner.dart';
 import 'looks_page.dart';
 import 'manual_try_on_page.dart';
+import 'my_closet_page.dart';
+import 'trip_planner_page.dart';
+import 'settings_page.dart';
 import 'widgets/app_card.dart';
-import 'create_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,7 +23,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<String> _features = [
     'My Closet',
-    'Planner',
+    'Trip Planner',
     'Manual Try-on',
     'Looks',
     'Finance',
@@ -42,18 +42,6 @@ class _HomePageState extends State<HomePage> {
           height: 60,
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: '登出',
-            onPressed: () async {
-              await AuthStorage.clear();
-              if (!context.mounted) return;
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
-            },
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: InkWell(
@@ -138,10 +126,10 @@ class _HomePageState extends State<HomePage> {
                             setState(() => _selectedCardIndex = index);
                             if (feature == 'My Closet') {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const MyClosetPage()));
-                            } else if (feature == 'Planner') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const OutfitPlannerPage()));
+                            } else if (feature == 'Trip Planner') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const TripPlannerPage()));
                             } else if (feature == 'Manual Try-on') {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const ManualTryOnPage()));
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => ManualTryOnPage(onBack: () => Navigator.popUntil(context, (route) => route.isFirst))));
                             } else if (feature == 'Looks') {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const LooksPage()));
                             } else if (feature == 'Finance') {
@@ -173,7 +161,7 @@ class _HomePageState extends State<HomePage> {
     switch (feature) {
       case 'My Closet':
         return 'assets/images/my_closet.png';
-      case 'Planner':
+      case 'Trip Planner':
         return 'assets/images/ai_planner.png';
       case 'Manual Try-on':
         return 'assets/images/manul.png';

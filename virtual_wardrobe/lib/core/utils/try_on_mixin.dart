@@ -1,7 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../core/services/looks_service.dart';
-import '../core/services/auth_handler.dart';
+import 'debug_log.dart';
+
+import '../services/auth_handler.dart';
+import '../services/looks_service.dart';
 
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   bool isOutfitLoading = false;
@@ -14,7 +17,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
 
   Future<int?> performTryOn(List<int> garmentIds, String type) async {
     if (garmentIds.isEmpty) return null;
-    debugPrint('--- performTryOn ---');
+    debugLog('--- performTryOn ---');
 
     pollTimer?.cancel();
     _tryOnCompleter = Completer<int?>();
@@ -79,8 +82,8 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       try {
         final statusRes = await LookService().getLook(jobId);
         final status = statusRes['status'];
-        debugPrint('--- Try-On Job Id: $jobId ---');
-        debugPrint('--- Try-On Job Status: $status ---');
+        debugLog('--- Try-On Job Id: $jobId ---');
+        debugLog('--- Try-On Job Status: $status ---');
 
         if (!mounted) {
           timer.cancel();
@@ -95,7 +98,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
             tryOnResultUrl = statusRes['result_image_url'];
             tryOnAiAdvice = statusRes['ai_notes'] ?? 'Looking good!';
           });
-          debugPrint('--- Try-On Job tryOnResultUrl: $tryOnResultUrl ---');
+          debugLog('--- Try-On Job tryOnResultUrl: $tryOnResultUrl ---');
           _tryOnCompleter?.complete(jobId);
         } else if (status == 'failed') {
           timer.cancel();
@@ -106,7 +109,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
           _tryOnCompleter?.complete(null);
         }
       } catch (e) {
-        debugPrint('Polling error: $e');
+        debugLog('Polling error: $e');
       }
     });
   }
@@ -141,7 +144,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
-      debugPrint('Delete outfit error: $e');
+      debugLog('Delete outfit error: $e');
     }
   }
 }

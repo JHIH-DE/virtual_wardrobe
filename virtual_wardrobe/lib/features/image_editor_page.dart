@@ -1,30 +1,37 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import '../core/utils/debug_log.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../app/theme/app_colors.dart';
+import '../app/theme/app_dimens.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garments_service.dart';
 import '../data/image_edit_result.dart';
 import 'camera_capture_page.dart';
-import '../app/theme/app_text_styles.dart';
-import '../app/theme/app_colors.dart';
-import 'widgets/page_app_bar.dart';
 import 'widgets/bottom_action_button.dart';
+import 'widgets/loading_overlay.dart';
+import 'widgets/page_app_bar.dart';
 
-class ImageEditPage extends StatefulWidget {
+class ImageEditorPage extends StatefulWidget {
   final String? initialPath;
   final bool showAnalysis;
 
-  const ImageEditPage({
+  const ImageEditorPage({
     super.key, 
     this.initialPath,
     this.showAnalysis = true,
   });
 
   @override
-  State<ImageEditPage> createState() => _ImageEditPageState();
+  State<ImageEditorPage> createState() => _ImageEditorPageState();
 }
 
-class _ImageEditPageState extends State<ImageEditPage> {
+class _ImageEditorPageState extends State<ImageEditorPage> {
   String? _currentPath;
   final TransformationController _transformationController = TransformationController();
   bool _isAnalyzing = false;
@@ -65,20 +72,49 @@ class _ImageEditPageState extends State<ImageEditPage> {
     }
   }
 
+  Future<String> _cropToSquare(String path) async {
+    final bytes = await File(path).readAsBytes();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+
+    final size = math.min(image.width, image.height);
+    final offsetX = (image.width - size) ~/ 2;
+    final offsetY = (image.height - size) ~/ 2;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(offsetX.toDouble(), offsetY.toDouble(), size.toDouble(), size.toDouble()),
+      Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+      Paint(),
+    );
+    final squareImage = await recorder.endRecording().toImage(size, size);
+    final byteData = await squareImage.toByteData(format: ui.ImageByteFormat.png);
+
+    final outPath = '${Directory.systemTemp.path}/sq_${DateTime.now().millisecondsSinceEpoch}.png';
+    await File(outPath).writeAsBytes(byteData!.buffer.asUint8List());
+    return outPath;
+  }
+
   Future<void> _handleConfirmed() async {
     if (_currentPath == null || _isAnalyzing) return;
-    
+
+    final isLocal = !_currentPath!.startsWith('http');
+    final processPath = isLocal ? await _cropToSquare(_currentPath!) : _currentPath!;
+
     if (widget.showAnalysis) {
       setState(() => _isAnalyzing = true);
       try {
-        final result = await GarmentService().analyzeGarment(_currentPath!);
-        debugPrint('_handleConfirmed: ${result.metadata}');
+        final result = await GarmentService().analyzeGarment(processPath);
+        debugLog('_handleConfirmed: ${result.metadata}');
 
         if (!mounted) return;
 
         Navigator.of(context).pop(
           ImageEditResult(
-            imagePath: result.processedImagePath ?? _currentPath!,
+            imagePath: result.processedImagePath ?? processPath,
             analysisData: result.metadata,
           ),
         );
@@ -86,14 +122,14 @@ class _ImageEditPageState extends State<ImageEditPage> {
         if (!mounted) return;
         await AuthExpiredHandler.handle(context);
       } catch (e) {
-        debugPrint('Analysis failed: $e');
+        debugLog('Analysis failed: $e');
         if (!mounted) return;
-        Navigator.of(context).pop(ImageEditResult(imagePath: _currentPath!));
+        Navigator.of(context).pop(ImageEditResult(imagePath: processPath));
       } finally {
         if (mounted) setState(() => _isAnalyzing = false);
       }
     } else {
-      Navigator.of(context).pop(ImageEditResult(imagePath: _currentPath!));
+      Navigator.of(context).pop(ImageEditResult(imagePath: processPath));
     }
   }
 
@@ -101,7 +137,9 @@ class _ImageEditPageState extends State<ImageEditPage> {
   Widget build(BuildContext context) {
     final hasImage = _currentPath != null && _currentPath!.isNotEmpty;
 
-    return Scaffold(
+    return Stack(
+      children: [
+        Scaffold(
       backgroundColor: AppColors.defaultBackground,
       appBar: PageAppBar(
         title: 'Edit',
@@ -111,8 +149,8 @@ class _ImageEditPageState extends State<ImageEditPage> {
         label: _isAnalyzing ? 'Analyzing...' : 'Confirmed',
         onPressed: (hasImage && !_isAnalyzing) ? _handleConfirmed : null,
         trailing: Image.asset(
-          'assets/images/AI.png',
-          height: 20,
+          'assets/images/ai_process.png',
+          height: AppDimens.iconSmallSize,
           color: Colors.white,
         ),
       ),
@@ -146,13 +184,13 @@ class _ImageEditPageState extends State<ImageEditPage> {
                               ? (_currentPath!.startsWith('http')
                                   ? InteractiveViewer(
                                       transformationController: _transformationController,
-                                      minScale: 1.0,
+                                      minScale: 0.5,
                                       maxScale: 4.0,
                                       child: Image.network(_currentPath!, fit: BoxFit.contain),
                                     )
                                   : InteractiveViewer(
                                       transformationController: _transformationController,
-                                      minScale: 1.0,
+                                      minScale: 0.5,
                                       maxScale: 4.0,
                                       child: Image.file(File(_currentPath!), fit: BoxFit.contain),
                                     ))
@@ -180,31 +218,11 @@ class _ImageEditPageState extends State<ImageEditPage> {
                                 const SizedBox(width: 8),
                                 Image.asset(
                                   'assets/images/reset.png',
-                                  height: 20,
+                                  height: AppDimens.iconSmallSize,
                                   color: Colors.white,
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                      ),
-                    if (_isAnalyzing)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(color: Colors.white),
-                              SizedBox(height: 16),
-                              Text(
-                                'AI Analyzing...',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ],
                           ),
                         ),
                       ),
@@ -265,6 +283,10 @@ class _ImageEditPageState extends State<ImageEditPage> {
             ),
           ),
       ),
+        ),
+        if (_isAnalyzing)
+          const Positioned.fill(child: LoadingOverlay(label: 'Analyzing Clothing...')),
+      ],
     );
   }
 

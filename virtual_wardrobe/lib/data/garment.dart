@@ -29,127 +29,18 @@ extension GarmentCategoryX on GarmentCategory {
     }
   }
 
-  String get apiValue {
-    switch (this) {
-      case GarmentCategory.top:
-        return 'top';
-      case GarmentCategory.bottom:
-        return 'bottom';
-      case GarmentCategory.outer:
-        return 'outer';
-      case GarmentCategory.dress:
-        return 'dress';
-      case GarmentCategory.shoes:
-        return 'shoes';
-      case GarmentCategory.accessory:
-        return 'accessory';
-    }
-  }
+  String get apiValue => label;
 
   static GarmentCategory fromApiValue(String? value) {
     if (value == null) return GarmentCategory.top;
+    final lower = value.toLowerCase();
     return GarmentCategory.values.firstWhere(
-      (e) => e.apiValue == value,
+      (e) => e.apiValue.toLowerCase() == lower,
       orElse: () => GarmentCategory.top,
     );
   }
 }
 
-enum GarmentSubCategory {
-  // Tops
-  tShirt,
-  shirt,
-  sweater,
-  hoodie,
-  tankTop,
-  polo,
-  blouse,
-
-  // Bottoms
-  pants,
-  jeans,
-  shorts,
-  skirt,
-  leggings,
-
-  // Outer
-  jacket,
-  coat,
-  blazer,
-  cardigan,
-  vest,
-
-  // Dress
-  dress,
-  jumpsuit,
-
-  // Shoes
-  sneakers,
-  boots,
-  sandals,
-  heels,
-  loafers,
-  flats,
-
-  // Accessories
-  hat,
-  bag,
-  belt,
-  scarf,
-  jewelry,
-  sunglasses,
-
-  other,
-}
-
-extension GarmentSubCategoryX on GarmentSubCategory {
-  String get label {
-    switch (this) {
-      case GarmentSubCategory.tShirt: return 'T-Shirt';
-      case GarmentSubCategory.shirt: return 'Shirt';
-      case GarmentSubCategory.sweater: return 'Sweater';
-      case GarmentSubCategory.hoodie: return 'Hoodie';
-      case GarmentSubCategory.tankTop: return 'Tank Top';
-      case GarmentSubCategory.polo: return 'Polo';
-      case GarmentSubCategory.blouse: return 'Blouse';
-      case GarmentSubCategory.pants: return 'Pants';
-      case GarmentSubCategory.jeans: return 'Jeans';
-      case GarmentSubCategory.shorts: return 'Shorts';
-      case GarmentSubCategory.skirt: return 'Skirt';
-      case GarmentSubCategory.leggings: return 'Leggings';
-      case GarmentSubCategory.jacket: return 'Jacket';
-      case GarmentSubCategory.coat: return 'Coat';
-      case GarmentSubCategory.blazer: return 'Blazer';
-      case GarmentSubCategory.cardigan: return 'Cardigan';
-      case GarmentSubCategory.vest: return 'Vest';
-      case GarmentSubCategory.dress: return 'Dress';
-      case GarmentSubCategory.jumpsuit: return 'Jumpsuit';
-      case GarmentSubCategory.sneakers: return 'Sneakers';
-      case GarmentSubCategory.boots: return 'Boots';
-      case GarmentSubCategory.sandals: return 'Sandals';
-      case GarmentSubCategory.heels: return 'Heels';
-      case GarmentSubCategory.loafers: return 'Loafers';
-      case GarmentSubCategory.flats: return 'Flats';
-      case GarmentSubCategory.hat: return 'Hat';
-      case GarmentSubCategory.bag: return 'Bag';
-      case GarmentSubCategory.belt: return 'Belt';
-      case GarmentSubCategory.scarf: return 'Scarf';
-      case GarmentSubCategory.jewelry: return 'Jewelry';
-      case GarmentSubCategory.sunglasses: return 'Sunglasses';
-      case GarmentSubCategory.other: return 'Other';
-    }
-  }
-
-  String get apiValue => name;
-
-  static GarmentSubCategory fromApiValue(String? value) {
-    if (value == null) return GarmentSubCategory.other;
-    return GarmentSubCategory.values.firstWhere(
-      (e) => e.apiValue == value,
-      orElse: () => GarmentSubCategory.other,
-    );
-  }
-}
 
 enum GarmentColor {
   black, white, grey, beige, cream, brown, navy, blue, green, olive, khaki, red, burgundy, yellow, orange, pink, purple,
@@ -258,6 +149,7 @@ class Garment {
   final String uploadUrl;
   final String objectName;
   final Map<String, dynamic>? metadata;
+  final bool isFavorite;
 
   const Garment({
     required this.name,
@@ -267,6 +159,7 @@ class Garment {
     required this.objectName,
     this.thickness = 0.0,
     this.formality = 0.0,
+    this.isFavorite = false,
     this.id,
     this.garmentId,
     this.brand,
@@ -293,6 +186,7 @@ class Garment {
     String? objectName,
     String? imageUrl,
     Map<String, dynamic>? metadata,
+    bool? isFavorite,
     bool clearId = false,
     bool clearGarmentId = false,
     bool clearBrand = false,
@@ -317,6 +211,7 @@ class Garment {
       price: clearPrice ? null : (price ?? this.price),
       purchaseDate: clearPurchaseDate ? null : (purchaseDate ?? this.purchaseDate),
       metadata: clearMetadata ? null : (metadata ?? this.metadata),
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
@@ -350,6 +245,7 @@ class Garment {
       objectName: (json['object_name'] as String?) ?? '',
       imageUrl: (json['image_url'] as String?) ?? '',
       metadata: json['metadata'] as Map<String, dynamic>?,
+      isFavorite: (json['is_favorite'] as bool?) ?? false,
     );
   }
 

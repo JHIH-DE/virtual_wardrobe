@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import 'figure_setting_page.dart';
 import 'add_garment_page.dart';
+import 'body_profile_page.dart';
 import 'manual_try_on_page.dart';
-import 'outfit_planner.dart';
+import 'trip_planner_page.dart';
 import 'widgets/app_card.dart';
 import 'widgets/page_app_bar.dart';
 
@@ -26,7 +26,7 @@ class CreatePage extends StatelessWidget {
             onPressed: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const FigureSettingPage()),
+                MaterialPageRoute(builder: (_) => const BodyProfilePage()),
               );
             },
           ),
@@ -52,7 +52,7 @@ class CreatePage extends StatelessWidget {
             context,
             label: 'Manual Try-on',
             iconPath: 'assets/images/manul.png',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManualTryOnPage())),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ManualTryOnPage(onBack: () => Navigator.popUntil(context, (route) => route.isFirst)))),
           ),
           const SizedBox(height: 18),
           _buildCard(
@@ -61,7 +61,7 @@ class CreatePage extends StatelessWidget {
             iconPath: 'assets/images/daily_planner.png',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const OutfitPlannerPage()),
+              MaterialPageRoute(builder: (_) => const TripPlannerPage()),
             ),
           ),
           const SizedBox(height: 18),
@@ -71,7 +71,7 @@ class CreatePage extends StatelessWidget {
             iconPath: 'assets/images/trip_planner.png',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const OutfitPlannerPage()),
+              MaterialPageRoute(builder: (_) => const TripPlannerPage()),
             ),
           ),
         ],

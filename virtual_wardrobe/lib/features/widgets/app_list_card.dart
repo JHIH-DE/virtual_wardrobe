@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 
 class AppListCard extends StatelessWidget {
@@ -31,7 +32,7 @@ class AppListCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (leading != null || leadingAsset != null) ...[
-          leading ?? Image.asset(leadingAsset!, width: 54, height: 54),
+          leading ?? Image.asset(leadingAsset!, width: 40, height: 40),
           const SizedBox(width: 18),
         ],
         Expanded(
@@ -62,7 +63,7 @@ class AppListCard extends StatelessWidget {
         ],
         if (showArrow && onTap != null) ...[
           const SizedBox(width: 4),
-          Image.asset('assets/images/page_arrow_right.png', width: 20, height: 20),
+          Image.asset('assets/images/page_arrow_right.png', width: AppDimens.iconSmallSize, height: AppDimens.iconSmallSize),
         ],
       ],
     );

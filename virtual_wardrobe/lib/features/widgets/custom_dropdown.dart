@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
 
 const _kBorderColor = Color(0xFF2B3A8C);
 const _kBorderRadius = 18.0;
@@ -62,11 +63,11 @@ class CustomDropdown<T> extends StatelessWidget {
               elevation: 4,
             ),
             iconStyleData: IconStyleData(
-              iconSize: 20,
+              iconSize: AppDimens.iconSmallSize,
               icon: Image.asset(
                 'assets/images/arrow_down.png',
-                width: 20,
-                height: 20,
+                width: AppDimens.iconSmallSize,
+                height: AppDimens.iconSmallSize,
               ),
             ),
           ),
@@ -138,8 +139,8 @@ class DateDropdownField extends StatelessWidget {
                 ),
                 Image.asset(
                   'assets/images/arrow_down.png',
-                  width: 20,
-                  height: 20,
+                  width: AppDimens.iconSmallSize,
+                  height: AppDimens.iconSmallSize,
                 ),
               ],
             ),

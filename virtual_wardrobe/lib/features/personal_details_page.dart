@@ -8,11 +8,12 @@ import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/base_service.dart';
 import '../core/services/profile_service.dart';
-import 'image_edit_page.dart';
-import 'widgets/custom_dropdown.dart';
-import 'widgets/page_app_bar.dart';
+import 'image_editor_page.dart';
 import 'widgets/app_text_field.dart';
 import 'widgets/bottom_action_button.dart';
+import 'widgets/custom_dropdown.dart';
+import 'widgets/page_app_bar.dart';
+import 'widgets/profile_avatar.dart';
 
 class PersonalDetailsPage extends StatefulWidget {
   const PersonalDetailsPage({super.key});
@@ -111,7 +112,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
       context,
       MaterialPageRoute(
         builder: (_) =>
-            ImageEditPage(initialPath: _avatarLocalPath ?? _avatarUrl),
+            ImageEditorPage(initialPath: _avatarLocalPath ?? _avatarUrl),
       ),
     );
     if (picked == null || picked.isEmpty) return;
@@ -162,45 +163,51 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_error != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                       child: Text(_error!,
                           style: AppTextStyle.regular13.copyWith(color: Colors.red)),
                     ),
-                  _buildAvatarBanner(),
-                  const SizedBox(height: 24),
-                  _fieldLabel('Account Name'),
-                  const SizedBox(height: 8),
-                  AppTextField(controller: _nameCtrl, hint: 'Enter your name'),
-                  const SizedBox(height: 20),
-                  _fieldLabel('Gender'),
-                  const SizedBox(height: 8),
-                  CustomDropdown<String>(
-                    value: _selectedGender,
-                    hint: 'Select gender',
-                    items: _genderOptions
-                        .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                        .toList(),
-                    onChanged: _loading
-                        ? null
-                        : (v) => setState(() => _selectedGender = v),
-                  ),
-                  const SizedBox(height: 20),
-                  _fieldLabel('Birthday'),
-                  const SizedBox(height: 8),
-                  DateDropdownField(
-                    value: _selectedBirthDate,
-                    hint: 'Select birthday',
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                    onChanged: _loading
-                        ? null
-                        : (d) => setState(() => _selectedBirthDate = d),
+                  _buildAvatarSection(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _fieldLabel('Account Name'),
+                        const SizedBox(height: 8),
+                        AppTextField(controller: _nameCtrl, hint: 'Enter your name'),
+                        const SizedBox(height: 20),
+                        _fieldLabel('Gender'),
+                        const SizedBox(height: 8),
+                        CustomDropdown<String>(
+                          value: _selectedGender,
+                          hint: 'Select gender',
+                          items: _genderOptions
+                              .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                              .toList(),
+                          onChanged: _loading
+                              ? null
+                              : (v) => setState(() => _selectedGender = v),
+                        ),
+                        const SizedBox(height: 20),
+                        _fieldLabel('Birthday'),
+                        const SizedBox(height: 8),
+                        DateDropdownField(
+                          value: _selectedBirthDate,
+                          hint: 'Select birthday',
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                          onChanged: _loading
+                              ? null
+                              : (d) => setState(() => _selectedBirthDate = d),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -219,84 +226,36 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
 
   // ── Avatar banner ──────────────────────────────────────────────────────────
 
-  Widget _buildAvatarBanner() {
-    ImageProvider? provider;
-    if (_avatarLocalPath != null) {
-      provider = FileImage(File(_avatarLocalPath!));
-    } else if (_avatarUrl != null &&
-        _avatarUrl!.isNotEmpty &&
-        _avatarUrl != 'string') {
-      provider = NetworkImage(_avatarUrl!);
-    }
+  Widget _buildAvatarSection() {
+    final avatarImage = _avatarLocalPath != null
+        ? FileImage(File(_avatarLocalPath!)) as ImageProvider
+        : (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string'
+            ? NetworkImage(_avatarUrl!) as ImageProvider
+            : null);
 
-    return GestureDetector(
-      onTap: _loading ? null : _changeAvatar,
-      child: Container(
+    return Material(
+      elevation: 4,
+      shadowColor: Colors.black26,
+      color: Colors.white,
+      child: SizedBox(
         width: double.infinity,
         height: 180,
-        decoration: BoxDecoration(
-          color: const Color(0xFFECF1FF),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF6B9BF5), width: 1.5),
-        ),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            ..._scatteredIcons(),
+            Image.asset(
+              'assets/images/personal_details_background.png',
+              fit: BoxFit.cover,
+            ),
             Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 44,
-                    backgroundColor: Colors.white,
-                    backgroundImage: provider,
-                    child: provider == null
-                        ? const Icon(Icons.person,
-                            size: 40, color: AppColors.textSecondary)
-                        : null,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Edit Photo',
-                      style: AppTextStyle.regular12.copyWith(color: Colors.white),
-                    ),
-                  ),
-                ],
+              child: ProfileAvatar(
+                image: avatarImage,
+                onTap: _loading ? null : _changeAvatar,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  List<Widget> _scatteredIcons() {
-    const color = Color(0xFF6B9BF5);
-    const ops = 0.3;
-    return [
-      _icon(Icons.checkroom_outlined, 22, 18, color, ops),
-      _icon(Icons.style_outlined, 260, 14, color, ops),
-      _icon(Icons.dry_cleaning_outlined, 12, 96, color, ops),
-      _icon(Icons.auto_awesome_outlined, 278, 88, color, ops),
-      _icon(Icons.face_outlined, 48, 144, color, ops),
-      _icon(Icons.storefront_outlined, 244, 140, color, ops),
-      _icon(Icons.star_outline, 146, 8, color, ops),
-      _icon(Icons.design_services_outlined, 136, 152, color, ops),
-    ];
-  }
-
-  Widget _icon(IconData icon, double left, double top, Color color, double opacity) {
-    return Positioned(
-      left: left,
-      top: top,
-      child: Icon(icon, size: 22, color: color.withOpacity(opacity)),
     );
   }
 
@@ -310,7 +269,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
           style: AppTextStyle.semibold14,
         ),
         const SizedBox(width: 4),
-        Text('✳', style: AppTextStyle.regular12.copyWith(color: Colors.red)),
+        Text('*', style: AppTextStyle.regular12.copyWith(color: Colors.red)),
       ],
     );
   }

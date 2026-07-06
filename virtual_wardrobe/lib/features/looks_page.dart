@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
-import '../app/theme/app_text_styles.dart';
 import '../app/theme/app_dimens.dart';
+import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../data/look.dart';
@@ -11,7 +11,6 @@ import 'looks_details_page.dart';
 import 'manual_try_on_page.dart';
 import 'widgets/look_card.dart';
 import 'widgets/page_app_bar.dart';
-import 'widgets/bottom_action_button.dart';
 
 class LooksPage extends ConsumerStatefulWidget {
   const LooksPage({super.key});
@@ -37,6 +36,10 @@ class _LooksPageState extends ConsumerState<LooksPage> {
           AuthExpiredHandler.handle(context);
         }
       });
+      final current = ref.read(looksProvider);
+      if (!current.isLoading && (!current.hasValue || current.value!.isEmpty)) {
+        ref.read(looksProvider.notifier).refresh();
+      }
     });
   }
 
@@ -182,6 +185,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
         appBar: PageAppBar(
           title: 'Looks',
           backgroundColor: AppColors.surface,
+          onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
           actions: [
             Stack(
               clipBehavior: Clip.none,
@@ -205,6 +209,14 @@ class _LooksPageState extends ConsumerState<LooksPage> {
                   ),
               ],
             ),
+            IconButton(
+              icon: Image.asset('assets/images/plus.png', height: AppDimens.iconMediumSize),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ManualTryOnPage()),
+              ),
+            ),
+            const SizedBox(width: 8),
           ],
         ),
         body: looksAsync.when(
@@ -221,11 +233,6 @@ class _LooksPageState extends ConsumerState<LooksPage> {
               child: _buildListContent(looks),
             );
           },
-        ),
-        bottomNavigationBar: BottomActionButton(
-          label: 'Create new look',
-          trailing: const Icon(Icons.add, size: 20),
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManualTryOnPage())),
         ),
     );
   }
@@ -267,5 +274,4 @@ Widget _buildListContent(List<Look> looks) {
       },
     );
   }
-
 }

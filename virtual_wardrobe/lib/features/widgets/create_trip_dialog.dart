@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../data/trip_plan.dart';
 import 'app_text_field.dart';
 import 'bottom_action_button.dart';
-import '../../data/trip_plan.dart';
 import 'location_picker_page.dart';
 
 class CreateTripDialog extends StatefulWidget {

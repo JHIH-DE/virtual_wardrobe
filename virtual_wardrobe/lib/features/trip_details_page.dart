@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../core/utils/debug_log.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -8,15 +9,16 @@ import 'package:intl/intl.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
-import '../core/services/weekly_plans_service.dart';
+import '../core/providers/weather_provider.dart';
+import '../core/services/auth_handler.dart';
 import '../core/services/looks_service.dart';
-import 'try_on_mixin.dart';
+import '../core/services/weekly_plans_service.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
-import '../core/providers/weather_provider.dart';
 import '../data/trip_plan.dart';
-import 'widgets/today_outfit_idea.dart';
+import '../core/utils/try_on_mixin.dart';
 import 'widgets/page_app_bar.dart';
+import 'widgets/today_outfit_idea.dart';
 
 class TripDetailsPage extends ConsumerStatefulWidget {
   final TripPlan trip;
@@ -51,7 +53,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       await _fetchTripWeather();
       await _loadDailyData();
     } catch (e) {
-      debugPrint('Trip initialization error: $e');
+      debugLog('Trip initialization error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -84,7 +86,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         });
       }
     } catch (e) {
-      debugPrint('Fetch trip weather failed: $e');
+      debugLog('Fetch trip weather failed: $e');
     }
   }
 
@@ -102,7 +104,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       final list = await WeeklyPlansService().getGarments(dayStr);
       if (mounted) setState(() => _todayGarments = list);
     } catch (e) {
-      debugPrint('Failed to get trip garments: $e');
+      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      debugLog('Failed to get trip garments: $e');
     } finally {
       if (mounted) setState(() => _loadingOutfits = false);
     }
@@ -122,7 +125,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         if (mounted) setState(() => _todayLookImageUrl = null);
       }
     } catch (e) {
-      debugPrint('Failed to get trip outfits: $e');
+      if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+      debugLog('Failed to get trip outfits: $e');
     }
   }
 
@@ -332,7 +336,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       try {
         await WeeklyPlansService().saveJobId(dayStr, jobId);
       } catch (e) {
-        debugPrint('Failed to save jobId: $e');
+        if (e is AuthExpiredException) { await AuthExpiredHandler.handle(context); return; }
+        debugLog('Failed to save jobId: $e');
       }
     }
   }
@@ -355,7 +360,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             .showSnackBar(const SnackBar(content: Text('Saved to Closet ✅')));
       }
     } catch (e) {
-      debugPrint('Save error: $e');
+      debugLog('Save error: $e');
     }
   }
 }
