@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/look.dart';
-import '../services/looks_service.dart';
+import '../services/look_service.dart';
 
 final looksProvider = AsyncNotifierProvider<LooksNotifier, List<Look>>(
   LooksNotifier.new,

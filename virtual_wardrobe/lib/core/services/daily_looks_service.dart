@@ -9,7 +9,7 @@ import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
-class WeeklyPlansService with BaseService {
+class DailyLookService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/weekly_plans';
 
   Future<Map<String, dynamic>> createWeeklyPlan({

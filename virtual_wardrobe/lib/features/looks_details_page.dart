@@ -6,8 +6,8 @@ import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/garments_service.dart';
-import '../core/services/looks_service.dart';
+import '../core/services/garment_service.dart';
+import '../core/services/look_service.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
 import 'full_screen_image_page.dart';
@@ -31,6 +31,7 @@ class LooksDetailsPage extends ConsumerStatefulWidget {
 
 class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   bool _isDeleting = false;
+  bool _isSaving = false;
   bool _isFavoriteLoading = false;
   late bool _isFavorite;
   bool _isSaved = false;
@@ -105,7 +106,11 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
           ),
         ),
         bottomNavigationBar: widget.isNew
-            ? null
+            ? BottomActionButton(
+                label: 'Save Look',
+                onPressed: _isSaving ? null : _saveLook,
+                isLoading: _isSaving,
+              )
             : BottomActionButton(
                 label: 'Remix Look',
                 trailing: const Icon(Icons.shuffle_rounded, size: 18),
@@ -286,7 +291,20 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
           ...(_garments!.map(
             (g) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: GarmentListCard(garment: g),
+              child: GarmentListCard(
+                garment: g,
+                onTap: (g.imageUrl?.isNotEmpty == true)
+                    ? () => Navigator.of(context).push(PageRouteBuilder(
+                          opaque: false,
+                          pageBuilder: (_, __, ___) => FullScreenImagePage(
+                            imageUrl: g.imageUrl!,
+                            backgroundColor: Colors.white,
+                            aspectRatio: 1.0,
+                            fit: BoxFit.contain,
+                          ),
+                        ))
+                    : null,
+              ),
             ),
           )),
       ],
@@ -396,6 +414,23 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _isFavoriteLoading = false);
+    }
+  }
+
+  Future<void> _saveLook() async {
+    setState(() => _isSaving = true);
+    try {
+      await LookService().setSaved(widget.look.id, isSaved: true);
+      await ref.read(looksProvider.notifier).refresh();
+      if (mounted) setState(() => _isSaved = true);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 

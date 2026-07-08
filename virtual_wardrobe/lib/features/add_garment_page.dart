@@ -9,7 +9,7 @@ import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/garments_service.dart';
+import '../core/services/garment_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import '../data/image_edit_result.dart';

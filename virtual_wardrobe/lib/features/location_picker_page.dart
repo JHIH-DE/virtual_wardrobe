@@ -36,6 +36,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   name: "${r['name']}, ${r['country']}",
                   latitude: r['latitude'],
                   longitude: r['longitude'],
+                  timezone: r['timezone'] ?? 'UTC',
                 ),
               )
               .toList();

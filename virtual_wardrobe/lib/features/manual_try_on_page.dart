@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/garments_service.dart';
+import '../core/services/garment_service.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';

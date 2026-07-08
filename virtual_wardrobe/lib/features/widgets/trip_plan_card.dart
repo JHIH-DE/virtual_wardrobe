@@ -4,14 +4,19 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../data/trip_plan.dart';
-import '../trip_details_page.dart';
 import 'app_dialog.dart';
 
 class TripPlanCard extends StatelessWidget {
   final TripPlan trip;
+  final VoidCallback onTap;
   final VoidCallback onDelete;
 
-  const TripPlanCard({super.key, required this.trip, required this.onDelete});
+  const TripPlanCard({
+    super.key,
+    required this.trip,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +25,7 @@ class TripPlanCard extends StatelessWidget {
         "${DateFormat('MMM d, yyyy').format(trip.dateRange.end)}";
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => TripDetailsPage(trip: trip)),
-        );
-      },
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(

@@ -10,19 +10,129 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/looks_service.dart';
-import '../core/services/weekly_plans_service.dart';
+import '../core/services/look_service.dart';
+import '../core/services/daily_looks_service.dart';
+import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
 import '../data/trip_plan.dart';
+import 'trip_suitcase_page.dart';
+import 'widgets/app_text_field.dart';
+import 'widgets/bottom_action_button.dart';
 import 'widgets/page_app_bar.dart';
 import 'widgets/today_outfit_idea.dart';
 
+class TripDetailsInitialData {
+  final List<int> weatherCodes;
+  final List<double> highTemps;
+  final List<double> lowTemps;
+  final List<Garment> todayGarments;
+  final String? todayLookImageUrl;
+
+  const TripDetailsInitialData({
+    required this.weatherCodes,
+    required this.highTemps,
+    required this.lowTemps,
+    required this.todayGarments,
+    required this.todayLookImageUrl,
+  });
+}
+
+class _WeatherForecast {
+  final List<int> codes;
+  final List<double> highs;
+  final List<double> lows;
+
+  const _WeatherForecast({
+    required this.codes,
+    required this.highs,
+    required this.lows,
+  });
+}
+
+Future<_WeatherForecast> _fetchWeather(TripPlan trip) async {
+  final startOffset = trip.dateRange.start.difference(DateTime.now()).inDays;
+  final duration = trip.dateRange.duration.inDays + 1;
+  final lat = trip.location.latitude;
+  final lon = trip.location.longitude;
+  int daysNeeded = startOffset + duration;
+  if (daysNeeded > 16) daysNeeded = 16;
+  if (daysNeeded < 7) daysNeeded = 7;
+  final url =
+      'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon'
+      '&daily=weathercode,temperature_2m_max,temperature_2m_min'
+      '&timezone=auto&forecast_days=$daysNeeded';
+
+  try {
+    final res = await http.get(Uri.parse(url));
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      return _WeatherForecast(
+        codes: List<int>.from(data['daily']['weathercode']),
+        highs: List<double>.from(
+          data['daily']['temperature_2m_max'].map(
+            (t) => (t as num).toDouble(),
+          ),
+        ),
+        lows: List<double>.from(
+          data['daily']['temperature_2m_min'].map(
+            (t) => (t as num).toDouble(),
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    debugLog('Fetch trip weather failed: $e');
+  }
+  return const _WeatherForecast(codes: [], highs: [], lows: []);
+}
+
 class TripDetailsPage extends ConsumerStatefulWidget {
   final TripPlan trip;
-  const TripDetailsPage({super.key, required this.trip});
+  final TripDetailsInitialData initialData;
+
+  const TripDetailsPage({
+    super.key,
+    required this.trip,
+    required this.initialData,
+  });
+
+  /// Fetches everything [TripDetailsPage] needs up front, so the page can be
+  /// pushed only once loading is complete (no in-page spinner on open).
+  static Future<TripDetailsInitialData> preload(TripPlan trip) async {
+    final weather = await _fetchWeather(trip);
+    final dayStr = DateFormat('yyyy-MM-dd').format(trip.dateRange.start);
+
+    List<Garment> garments = [];
+    try {
+      garments = await DailyLookService().getGarments(dayStr);
+    } catch (e) {
+      if (e is AuthExpiredException) rethrow;
+      debugLog('Failed to get trip garments: $e');
+    }
+
+    String? lookImageUrl;
+    try {
+      final jobId = await DailyLookService().getLook(dayStr);
+      if (jobId != null) {
+        final statusRes = await LookService().getLook(jobId);
+        lookImageUrl = statusRes['result_image_url'];
+      }
+    } catch (e) {
+      if (e is AuthExpiredException) rethrow;
+      debugLog('Failed to get trip outfits: $e');
+    }
+
+    return TripDetailsInitialData(
+      weatherCodes: weather.codes,
+      highTemps: weather.highs,
+      lowTemps: weather.lows,
+      todayGarments: garments,
+      todayLookImageUrl: lookImageUrl,
+    );
+  }
 
   @override
   ConsumerState<TripDetailsPage> createState() => _TripDetailsPageState();
@@ -30,70 +140,59 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 
 class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     with TryOnMixin {
-  bool _loading = true;
   int _selectedDayIndex = 0;
+  bool _savingTrip = false;
 
-  List<int> _weatherCodes = [];
-  List<double> _highTemps = [];
-  List<double> _lowTemps = [];
+  late final TextEditingController _nameController = TextEditingController(
+    text: widget.trip.name,
+  );
 
-  List<Garment> _todayGarments = [];
+  late final List<int> _weatherCodes = widget.initialData.weatherCodes;
+  late final List<double> _highTemps = widget.initialData.highTemps;
+  late final List<double> _lowTemps = widget.initialData.lowTemps;
+
+  late List<Garment> _todayGarments = widget.initialData.todayGarments;
   bool _loadingOutfits = false;
-  String? _todayLookImageUrl;
+  late String? _todayLookImageUrl = widget.initialData.todayLookImageUrl;
 
   @override
-  void initState() {
-    super.initState();
-    _initData();
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
-  Future<void> _initData() async {
-    setState(() => _loading = true);
-    try {
-      await _fetchTripWeather();
-      await _loadDailyData();
-    } catch (e) {
-      debugLog('Trip initialization error: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+  Future<void> _handleSaveTrip() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Trip name cannot be empty')));
+      return;
     }
-  }
 
-  Future<void> _fetchTripWeather() async {
-    final startOffset = widget.trip.dateRange.start
-        .difference(DateTime.now())
-        .inDays;
-    final duration = widget.trip.dateRange.duration.inDays + 1;
-    final lat = widget.trip.location.latitude;
-    final lon = widget.trip.location.longitude;
-    int daysNeeded = startOffset + duration;
-    if (daysNeeded > 16) daysNeeded = 16;
-    if (daysNeeded < 7) daysNeeded = 7;
-    final url =
-        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon'
-        '&daily=weathercode,temperature_2m_max,temperature_2m_min'
-        '&timezone=auto&forecast_days=$daysNeeded';
-
+    setState(() => _savingTrip = true);
     try {
-      final res = await http.get(Uri.parse(url));
-      if (res.statusCode == 200) {
-        final data = json.decode(res.body);
-        setState(() {
-          _weatherCodes = List<int>.from(data['daily']['weathercode']);
-          _highTemps = List<double>.from(
-            data['daily']['temperature_2m_max'].map(
-              (t) => (t as num).toDouble(),
-            ),
-          );
-          _lowTemps = List<double>.from(
-            data['daily']['temperature_2m_min'].map(
-              (t) => (t as num).toDouble(),
-            ),
-          );
-        });
-      }
+      await TripPlanService().updateTripPlan(
+        int.parse(widget.trip.id),
+        name: name,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Trip saved')));
     } catch (e) {
-      debugLog('Fetch trip weather failed: $e');
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to save trip: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to save trip')));
+      }
+    } finally {
+      if (mounted) setState(() => _savingTrip = false);
     }
   }
 
@@ -109,7 +208,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final dayStr = DateFormat('yyyy-MM-dd').format(date);
     setState(() => _loadingOutfits = true);
     try {
-      final list = await WeeklyPlansService().getGarments(dayStr);
+      final list = await DailyLookService().getGarments(dayStr);
       if (mounted) setState(() => _todayGarments = list);
     } catch (e) {
       if (e is AuthExpiredException) {
@@ -128,7 +227,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
     final dayStr = DateFormat('yyyy-MM-dd').format(date);
     try {
-      final jobId = await WeeklyPlansService().getLook(dayStr);
+      final jobId = await DailyLookService().getLook(dayStr);
       if (jobId != null) {
         final statusRes = await LookService().getLook(jobId);
         if (mounted) {
@@ -148,14 +247,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(
-        title: widget.trip.name,
+      appBar: const PageAppBar(
+        title: 'Trip Details',
         backgroundColor: AppColors.surface,
       ),
       body: SafeArea(
@@ -163,7 +258,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            AppTextField(controller: _nameController, label: 'Trip Name'),
+            const SizedBox(height: 20),
             _buildTripHeader(),
+            const SizedBox(height: 20),
+            _buildSuitcaseSection(),
             const SizedBox(height: 20),
             _buildTripDaySelector(),
             const SizedBox(height: 20),
@@ -181,6 +280,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomActionButton(
+        label: 'Save Trip',
+        onPressed: _handleSaveTrip,
+        isLoading: _savingTrip,
+        buttonColor: AppColors.primary,
+        textColor: Colors.white,
       ),
     );
   }
@@ -313,6 +419,50 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
+  Widget _buildSuitcaseSection() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TripSuitcasePage(trip: widget.trip),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.luggage_outlined, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Suitcase', style: AppTextStyle.bold16),
+                  Text(
+                    'Pack clothing for this trip',
+                    style: AppTextStyle.regular14.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildGarmentItem(Garment g) {
     return Container(
       width: 80,
@@ -366,7 +516,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       );
       final dayStr = DateFormat('yyyy-MM-dd').format(date);
       try {
-        await WeeklyPlansService().saveJobId(dayStr, jobId);
+        await DailyLookService().saveJobId(dayStr, jobId);
       } catch (e) {
         if (e is AuthExpiredException) {
           await AuthExpiredHandler.handle(context);

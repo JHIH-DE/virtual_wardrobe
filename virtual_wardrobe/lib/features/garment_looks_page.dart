@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/looks_service.dart';
+import '../core/services/look_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';

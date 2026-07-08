@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/garment.dart';
-import '../services/garments_service.dart';
+import '../services/garment_service.dart';
 
 final garmentsProvider = AsyncNotifierProvider<GarmentsNotifier, List<Garment>>(
   GarmentsNotifier.new,

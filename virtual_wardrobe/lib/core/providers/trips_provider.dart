@@ -1,16 +1,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/trip_plan.dart';
+import '../services/trip_plan_service.dart';
 
-final tripsProvider = NotifierProvider<TripsNotifier, List<TripPlan>>(
+final tripsProvider = AsyncNotifierProvider<TripsNotifier, List<TripPlan>>(
   TripsNotifier.new,
 );
 
-class TripsNotifier extends Notifier<List<TripPlan>> {
+class TripsNotifier extends AsyncNotifier<List<TripPlan>> {
   @override
-  List<TripPlan> build() => [];
+  Future<List<TripPlan>> build() => TripPlanService().getTripPlans();
 
-  void add(TripPlan trip) => state = [trip, ...state];
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => TripPlanService().getTripPlans());
+  }
 
-  void remove(String id) => state = state.where((t) => t.id != id).toList();
+  void add(TripPlan trip) {
+    final current = state.valueOrNull ?? [];
+    state = AsyncData([trip, ...current]);
+  }
+
+  void remove(String id) {
+    final current = state.valueOrNull ?? [];
+    state = AsyncData(current.where((t) => t.id != id).toList());
+  }
 }

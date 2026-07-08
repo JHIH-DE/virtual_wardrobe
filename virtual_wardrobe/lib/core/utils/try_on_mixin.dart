@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/auth_handler.dart';
-import '../services/looks_service.dart';
+import '../services/look_service.dart';
 import 'debug_log.dart';
 
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
