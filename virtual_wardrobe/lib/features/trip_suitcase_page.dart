@@ -11,6 +11,7 @@ import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import '../data/trip_plan.dart';
 import 'trip_garment_selection_page.dart';
+import 'widgets/app_dialog.dart';
 import 'widgets/garment_card.dart';
 import 'widgets/loading_overlay.dart';
 import 'widgets/page_app_bar.dart';
@@ -29,8 +30,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     GarmentCategory.top,
     GarmentCategory.bottom,
     GarmentCategory.outer,
-    GarmentCategory.dress,
+    GarmentCategory.onePiece,
     GarmentCategory.shoes,
+    GarmentCategory.socks,
     GarmentCategory.accessory,
   ];
 
@@ -49,6 +51,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           AuthExpiredHandler.handle(context);
         }
       });
+      ref.read(garmentsProvider.notifier).refreshIfNeeded();
     });
     _loadPackedItems();
   }
@@ -80,11 +83,15 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   }
 
   Future<void> _handleAddGarment(List<Garment> allGarments) async {
+    await ref.read(garmentsProvider.notifier).refreshIfNeeded();
+    if (!mounted) return;
+    final garments = ref.read(garmentsProvider).valueOrNull ?? allGarments;
+
     final result = await Navigator.push<Set<int>>(
       context,
       MaterialPageRoute(
         builder: (_) => TripGarmentSelectionPage(
-          garments: allGarments,
+          garments: garments,
           initiallySelectedIds: _packedIds,
         ),
       ),
@@ -115,9 +122,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       }
       debugLog('Failed to update suitcase: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to update suitcase')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update suitcase')),
+        );
       }
     } finally {
       if (mounted) {
@@ -127,6 +134,22 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         });
       }
     }
+  }
+
+  Future<void> _confirmRemoveGarment(Garment garment) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: 'Remove garment?',
+        body: '${garment.name} will be removed from your suitcase.',
+        primaryLabel: 'Remove',
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: 'Cancel',
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await _removeGarment(garment);
   }
 
   Future<void> _removeGarment(Garment garment) async {
@@ -187,7 +210,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   }
 
   Widget _buildBody(List<Garment> allGarments) {
-    final byId = {for (final g in allGarments) if (g.id != null) g.id!: g};
+    final byId = {
+      for (final g in allGarments)
+        if (g.id != null) g.id!: g,
+    };
     final packedGarments = _packedIds
         .map((id) => byId[id])
         .whereType<Garment>()
@@ -247,7 +273,37 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         itemCount: garments.length,
         itemBuilder: (context, i) {
           final g = garments[i];
-          return GarmentCard(garment: g, onTap: () => _removeGarment(g));
+          return Stack(
+            children: [
+              GarmentCard(garment: g, showSelectionIndicator: false),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () => _confirmRemoveGarment(g),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      size: 14,
+                      color: AppColors.nearBlack,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
         },
       ),
       const SizedBox(height: 20),

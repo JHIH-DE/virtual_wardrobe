@@ -48,10 +48,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
           AuthExpiredHandler.handle(context);
         }
       });
-      final current = ref.read(looksProvider);
-      if (!current.isLoading && (!current.hasValue || current.value!.isEmpty)) {
-        ref.read(looksProvider.notifier).refresh();
-      }
+      ref.read(looksProvider.notifier).refreshIfNeeded();
     });
   }
 

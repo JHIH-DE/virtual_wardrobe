@@ -36,12 +36,33 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           AuthExpiredHandler.handle(context);
         }
       });
+      ref.read(garmentsProvider.notifier).refreshIfNeeded();
     });
   }
 
-  List<Garment> _filtered(List<Garment> all) {
+  static const _allCategories = [
+    GarmentCategory.top,
+    GarmentCategory.bottom,
+    GarmentCategory.outer,
+    GarmentCategory.onePiece,
+    GarmentCategory.shoes,
+    GarmentCategory.socks,
+    GarmentCategory.accessory,
+  ];
+
+  List<GarmentCategory> _availableCategories(List<Garment> allGarments) =>
+      _allCategories
+          .where((c) => allGarments.any((g) => g.category == c))
+          .toList();
+
+  GarmentCategory _effectiveCategory(List<GarmentCategory> available) {
+    if (available.contains(_selectedCategory)) return _selectedCategory;
+    return available.isNotEmpty ? available.first : _selectedCategory;
+  }
+
+  List<Garment> _filtered(List<Garment> all, GarmentCategory category) {
     return all.where((g) {
-      if (g.category != _selectedCategory) return false;
+      if (g.category != category) return false;
       final okColor =
           _selectedColors.isEmpty ||
           (g.color != null &&
@@ -273,23 +294,37 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       ),
       body: SafeArea(
         top: false,
-        child: Column(
-          children: [
-            _buildCategorySelector(),
-            const SizedBox(height: 16),
-            Expanded(
-              child: garmentsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => _buildError(e),
-                data: (all) => RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(garmentsProvider.notifier).refresh(),
-                  color: Colors.black,
-                  child: _buildGrid(_filtered(all)),
+        child: garmentsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => _buildError(e),
+          data: (all) {
+            final available = _availableCategories(all);
+            final effectiveCategory = _effectiveCategory(available);
+            if (effectiveCategory != _selectedCategory) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() => _selectedCategory = effectiveCategory);
+                }
+              });
+            }
+            return Column(
+              children: [
+                _buildCategorySelector(available, effectiveCategory),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () =>
+                        ref.read(garmentsProvider.notifier).refresh(),
+                    color: Colors.black,
+                    child: _buildGrid(
+                      _filtered(all, effectiveCategory),
+                      effectiveCategory,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -314,15 +349,10 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     );
   }
 
-  Widget _buildCategorySelector() {
-    final categories = [
-      GarmentCategory.top,
-      GarmentCategory.bottom,
-      GarmentCategory.outer,
-      GarmentCategory.shoes,
-      GarmentCategory.accessory,
-    ];
-
+  Widget _buildCategorySelector(
+    List<GarmentCategory> categories,
+    GarmentCategory selectedCategory,
+  ) {
     return ColoredBox(
       color: AppColors.surface,
       child: SizedBox(
@@ -334,7 +364,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemBuilder: (context, i) {
             final category = categories[i];
-            final isSelected = category == _selectedCategory;
+            final isSelected = category == selectedCategory;
 
             return GestureDetector(
               onTap: () => setState(() {
@@ -371,7 +401,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     );
   }
 
-  Widget _buildGrid(List<Garment> garments) {
+  Widget _buildGrid(List<Garment> garments, GarmentCategory category) {
     if (garments.isEmpty) {
       return ListView(
         children: [
@@ -386,7 +416,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No garments in ${_selectedCategory.label}',
+                  'No garments in ${category.label}',
                   style: AppTextStyle.regular16.copyWith(color: Colors.grey),
                 ),
               ],

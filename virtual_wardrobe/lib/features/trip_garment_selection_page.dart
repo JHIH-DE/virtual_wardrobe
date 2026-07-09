@@ -28,8 +28,9 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     GarmentCategory.top,
     GarmentCategory.bottom,
     GarmentCategory.outer,
-    GarmentCategory.dress,
+    GarmentCategory.onePiece,
     GarmentCategory.shoes,
+    GarmentCategory.socks,
     GarmentCategory.accessory,
   ];
 

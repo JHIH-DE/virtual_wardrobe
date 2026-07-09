@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum GarmentCategory { top, bottom, outer, dress, shoes, accessory }
+enum GarmentCategory { top, bottom, outer, onePiece, socks, shoes, accessory }
 
 extension GarmentCategoryX on GarmentCategory {
   String get label {
@@ -11,8 +11,10 @@ extension GarmentCategoryX on GarmentCategory {
         return 'Bottom';
       case GarmentCategory.outer:
         return 'Outer';
-      case GarmentCategory.dress:
-        return 'Dress';
+      case GarmentCategory.onePiece:
+        return 'One-piece';
+      case GarmentCategory.socks:
+        return 'Socks';
       case GarmentCategory.shoes:
         return 'Shoes';
       case GarmentCategory.accessory:
@@ -116,7 +118,9 @@ class OutfitSelection {
   final Garment? middle;
   final Garment? outer;
   final Garment? bottom;
+  final Garment? onePiece;
   final Garment? shoes;
+  final Garment? socks;
   final Garment? accessory;
 
   const OutfitSelection({
@@ -124,7 +128,9 @@ class OutfitSelection {
     this.middle,
     this.outer,
     this.bottom,
+    this.onePiece,
     this.shoes,
+    this.socks,
     this.accessory,
   });
 
@@ -136,13 +142,17 @@ class OutfitSelection {
     Garment? middle,
     Garment? outer,
     Garment? bottom,
+    Garment? onePiece,
     Garment? shoes,
+    Garment? socks,
     Garment? accessory,
     bool clearTop = false,
     bool clearMiddle = false,
     bool clearOuter = false,
     bool clearBottom = false,
+    bool clearOnePiece = false,
     bool clearShoes = false,
+    bool clearSocks = false,
     bool clearAccessory = false,
   }) {
     return OutfitSelection(
@@ -150,7 +160,9 @@ class OutfitSelection {
       middle: clearMiddle ? null : (middle ?? this.middle),
       outer: clearOuter ? null : (outer ?? this.outer),
       bottom: clearBottom ? null : (bottom ?? this.bottom),
+      onePiece: clearOnePiece ? null : (onePiece ?? this.onePiece),
       shoes: clearShoes ? null : (shoes ?? this.shoes),
+      socks: clearSocks ? null : (socks ?? this.socks),
       accessory: clearAccessory ? null : (accessory ?? this.accessory),
     );
   }

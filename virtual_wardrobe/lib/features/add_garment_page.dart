@@ -47,7 +47,6 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   bool uploading = false;
   int? _id;
   String? errorMessage;
-  String? _userGender;
   String? _imagePathOrUrl;
   GarmentColor? _selectedColor;
   GarmentCategory _category = GarmentCategory.top;
@@ -277,11 +276,6 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     CustomDropdown<GarmentCategory>(
                       value: _category,
                       items: GarmentCategory.values
-                          .where(
-                            (c) =>
-                                c != GarmentCategory.dress ||
-                                _userGender == 'Female',
-                          )
                           .map(
                             (c) => DropdownMenuItem(
                               value: c,
