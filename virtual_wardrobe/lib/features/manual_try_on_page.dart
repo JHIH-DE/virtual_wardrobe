@@ -11,21 +11,27 @@ import '../data/look.dart';
 import '../data/select_garment_result.dart';
 import 'looks_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
-import 'widgets/app_list_card.dart';
-import 'widgets/bottom_action_button.dart';
-import 'widgets/garment_image.dart';
-import 'widgets/loading_overlay.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/app_list_card.dart';
+import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/garment/garment_image.dart';
 
 class ManualTryOnPage extends StatefulWidget {
   final List<Garment> initialGarments;
+  final List<Garment>? preloadedGarments;
   final VoidCallback? onBack;
 
   const ManualTryOnPage({
     super.key,
     this.initialGarments = const [],
+    this.preloadedGarments,
     this.onBack,
   });
+
+  /// Fetches the closet garments up front, so the page can be pushed only
+  /// once loading is complete (no in-page spinner on open).
+  static Future<List<Garment>> preload() => GarmentService().getGarments();
 
   @override
   State<ManualTryOnPage> createState() => _ManualTryOnPageState();
@@ -63,7 +69,11 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
     _outfit = widget.initialGarments.isNotEmpty
         ? _buildInitialOutfit(widget.initialGarments)
         : const OutfitSelection();
-    _loadGarments();
+    if (widget.preloadedGarments != null) {
+      _allGarments.addAll(widget.preloadedGarments!);
+    } else {
+      _loadGarments();
+    }
   }
 
   OutfitSelection _buildInitialOutfit(List<Garment> garments) {

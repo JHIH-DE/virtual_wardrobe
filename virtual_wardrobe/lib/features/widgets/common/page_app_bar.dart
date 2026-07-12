@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
+import '../../../app/theme/app_text_styles.dart';
 
 class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -46,7 +47,7 @@ class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
                 padding: const EdgeInsets.all(4),
                 child: Image.asset(
                   'assets/images/page_arrow_left.png',
-                  height: 40,
+                  height: AppDimens.iconMediumSize,
                 ),
               ),
               onPressed: onBack ?? () => Navigator.pop(context),

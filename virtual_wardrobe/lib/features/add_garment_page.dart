@@ -11,15 +11,21 @@ import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../core/utils/debug_log.dart';
+import '../core/utils/signed_url.dart';
 import '../data/garment.dart';
 import '../data/image_edit_result.dart';
 import 'garment_looks_page.dart';
 import 'image_editor_page.dart';
-import 'widgets/app_dialog.dart';
-import 'widgets/app_text_field.dart';
-import 'widgets/bottom_action_button.dart';
-import 'widgets/custom_dropdown.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/action_button.dart';
+import 'widgets/common/app_dialog.dart';
+import 'widgets/common/app_text_field.dart';
+import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/custom_dropdown.dart';
+import 'widgets/common/filter_sheet_scaffold.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/pill_button.dart';
+import 'widgets/common/section_title.dart';
+import 'widgets/common/tappable_field_decorator.dart';
 
 class AddGarmentPage extends ConsumerStatefulWidget {
   final Garment? initialGarment;
@@ -108,6 +114,24 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     _subCategory.addListener(_checkModified);
     _brandCtrl.addListener(_checkModified);
     _priceCtrl.addListener(_checkModified);
+
+    if (_id != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensureFreshImage());
+    }
+  }
+
+  /// Re-fetches the garment if its signed image URL has expired, so the
+  /// preview (and any edit flow launched from it) doesn't show a stale link.
+  Future<void> _ensureFreshImage() async {
+    final url = _imagePathOrUrl;
+    if (_id == null || url == null || !url.startsWith('http')) return;
+    if (!isSignedUrlExpired(url)) return;
+    try {
+      final fresh = await GarmentService().getGarment(_id!);
+      if (mounted) setState(() => _imagePathOrUrl = fresh.imageUrl);
+    } catch (_) {
+      // Leave the existing URL; errorBuilder covers the fallback UI.
+    }
   }
 
   void _checkModified() {
@@ -260,7 +284,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                   children: [
                     if (!_isAddMode) _buildActionButtons(),
                     const SizedBox(height: 8),
-                    _sectionTitle('Clothing Name'),
+                    SectionTitle('Clothing Name'),
                     const SizedBox(height: 8),
                     AppTextField(
                       controller: _nameCtrl,
@@ -271,7 +295,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     ),
 
                     const SizedBox(height: 20),
-                    _sectionTitle('Clothing Category'),
+                    SectionTitle('Clothing Category'),
                     const SizedBox(height: 8),
                     CustomDropdown<GarmentCategory>(
                       value: _category,
@@ -295,7 +319,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     ),
 
                     const SizedBox(height: 20),
-                    _sectionTitle('Product Type'),
+                    SectionTitle('Product Type'),
                     const SizedBox(height: 8),
                     AppTextField(
                       controller: _subCategory,
@@ -306,12 +330,12 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     ),
 
                     const SizedBox(height: 20),
-                    _sectionTitle('Color'),
+                    SectionTitle('Color'),
                     const SizedBox(height: 8),
                     _colorPicker(),
 
                     const SizedBox(height: 20),
-                    _sectionTitle('Brand (optional)'),
+                    SectionTitle('Brand (optional)'),
                     const SizedBox(height: 8),
                     AppTextField(
                       controller: _brandCtrl,
@@ -319,7 +343,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     ),
 
                     const SizedBox(height: 20),
-                    _sectionTitle('Price (optional)'),
+                    SectionTitle('Price (optional)'),
                     const SizedBox(height: 8),
                     AppTextField(
                       controller: _priceCtrl,
@@ -330,7 +354,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                     ),
 
                     const SizedBox(height: 20),
-                    _sectionTitle('Purchase date'),
+                    SectionTitle('Purchase date'),
                     const SizedBox(height: 8),
                     _purchaseDateField(context),
                   ],
@@ -412,65 +436,32 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   // ----------------------------
 
   Widget _buildActionButtons() {
-    return IntrinsicHeight(
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildActionButton(
-              icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-              iconColor: _isFavorite ? Colors.red : AppColors.textPrimary,
-              label: 'Favorite',
-              onTap: _isFavoriteLoading ? null : _toggleFavorite,
-            ),
-          ),
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.checkroom_outlined,
-              label: 'Used in Looks',
-              onTap: () {
-                final gid = _editingGarment?.garmentId ?? _editingGarment?.id;
-                debugLog(
-                  'Used in Looks tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
-                );
-                if (gid == null) return;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => GarmentLooksPage(garmentId: gid),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    Color? iconColor,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 24, color: iconColor ?? AppColors.textPrimary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
+    return ActionButtonRow(
+      buttons: [
+        ActionButton(
+          icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
+          iconColor: _isFavorite ? Colors.red : AppColors.textPrimary,
+          label: 'Favorite',
+          onTap: _isFavoriteLoading ? null : _toggleFavorite,
         ),
-      ),
+        ActionButton(
+          icon: Icons.checkroom_outlined,
+          label: 'Used in Looks',
+          onTap: () {
+            final gid = _editingGarment?.garmentId ?? _editingGarment?.id;
+            debugLog(
+              'Used in Looks tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
+            );
+            if (gid == null) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => GarmentLooksPage(garmentId: gid),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -499,141 +490,110 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
 
   Widget _colorPicker() {
     final selected = _selectedColor;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
+    return TappableFieldDecorator(
       onTap: _openColorPickerSheet,
-      child: InputDecorator(
-        decoration: appInputDecoration(hint: ''),
-        child: Row(
-          children: [
-            Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                color: selected?.color ?? Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected == null
-                      ? AppColors.border
-                      : Colors.transparent,
-                  width: 1.2,
-                ),
-              ),
+      children: [
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: selected?.color ?? Colors.transparent,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: selected == null ? AppColors.border : Colors.transparent,
+              width: 1.2,
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                selected?.label ?? 'Select a color',
-                style: AppTextStyle.regular14.copyWith(
-                  color: selected == null
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
-                ),
-              ),
-            ),
-            Image.asset(
-              'assets/images/arrow_down.png',
-              height: AppDimens.iconSmallSize,
-            ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            selected?.label ?? 'Select a color',
+            style: AppTextStyle.regular14.copyWith(
+              color: selected == null
+                  ? AppColors.textSecondary
+                  : AppColors.textPrimary,
+            ),
+          ),
+        ),
+        Image.asset(
+          'assets/images/arrow_down.png',
+          height: AppDimens.iconSmallSize,
+        ),
+      ],
     );
   }
 
   void _openColorPickerSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    showAppFilterSheet(
+      context,
+      builder: (_) => FilterSheetContent(
+        children: [
+          Row(
             children: [
-              Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black12,
-                  borderRadius: BorderRadius.circular(100),
-                ),
+              const Expanded(
+                child: Text('Choose a color', style: AppTextStyle.bold16),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text('Choose a color', style: AppTextStyle.bold16),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() => _selectedColor = null);
-                      _checkModified();
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Clear'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.45,
-                ),
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: GarmentColor.values.map((c) {
-                      final isSelected = c == _selectedColor;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _selectedColor = c);
-                          _checkModified();
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: c.color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : Colors.black12,
-                              width: isSelected ? 2.5 : 1,
-                            ),
-                          ),
-                          child: isSelected
-                              ? Icon(
-                                  Icons.check,
-                                  size: 20,
-                                  color: c.preferredCheckColor,
-                                )
-                              : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
+              TextButton(
+                onPressed: () {
+                  setState(() => _selectedColor = null);
+                  _checkModified();
+                  Navigator.pop(context);
+                },
+                child: const Text('Clear'),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.45,
+            ),
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: GarmentColor.values.map((c) {
+                  final isSelected = c == _selectedColor;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedColor = c);
+                      _checkModified();
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: c.color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.black12,
+                          width: isSelected ? 2.5 : 1,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Icon(
+                              Icons.check,
+                              size: 20,
+                              color: c.preferredCheckColor,
+                            )
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _purchaseDateField(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
+    return TappableFieldDecorator(
       onTap: () async {
         final now = DateTime.now();
         final picked = await showDatePicker(
@@ -647,30 +607,25 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
           _checkModified();
         }
       },
-      child: InputDecorator(
-        decoration: appInputDecoration(hint: ''),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                _purchaseDate == null
-                    ? 'Select date'
-                    : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
-                style: TextStyle(
-                  color: _purchaseDate == null
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
-                ),
-              ),
+      children: [
+        Expanded(
+          child: Text(
+            _purchaseDate == null
+                ? 'Select date'
+                : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
+            style: TextStyle(
+              color: _purchaseDate == null
+                  ? AppColors.textSecondary
+                  : AppColors.textPrimary,
             ),
-            const Icon(
-              Icons.calendar_today,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
-          ],
+          ),
         ),
-      ),
+        const Icon(
+          Icons.calendar_today,
+          size: 18,
+          color: AppColors.textSecondary,
+        ),
+      ],
     );
   }
 
@@ -711,7 +666,16 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
             child: AspectRatio(
               aspectRatio: 1.1,
               child: img.startsWith('http')
-                  ? Image.network(img, fit: BoxFit.contain)
+                  ? Image.network(
+                      img,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(
+                          Icons.broken_image,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    )
                   : Image.file(File(img), fit: BoxFit.contain),
             ),
           ),
@@ -720,28 +684,13 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
         Positioned(
           bottom: 12,
           right: 12,
-          child: GestureDetector(
-            onTap: _editCurrentImage,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 4),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Text('Edit image', style: AppTextStyle.bold16),
-                  const SizedBox(width: 8),
-                  Image.asset(
-                    'assets/images/edit.png',
-                    height: AppDimens.iconSmallSize,
-                  ),
-                ],
-              ),
+          child: PillButton.floating(
+            label: 'Edit image',
+            icon: Image.asset(
+              'assets/images/edit.png',
+              height: AppDimens.iconSmallSize,
             ),
+            onTap: _editCurrentImage,
           ),
         ),
         if (_isAnalyzing)
@@ -791,6 +740,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
   Future<void> _editCurrentImage() async {
     if (_imagePathOrUrl == null) return;
 
+    await _ensureFreshImage();
     if (!mounted) return;
     final result = await Navigator.push<ImageEditResult>(
       context,
@@ -912,7 +862,4 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     return null;
   }
 
-  Widget _sectionTitle(String text) {
-    return Text(text, style: AppTextStyle.bold14);
-  }
 }

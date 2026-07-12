@@ -19,10 +19,12 @@ import '../data/garment.dart';
 import '../data/look.dart';
 import '../data/trip_plan.dart';
 import 'trip_suitcase_page.dart';
-import 'widgets/app_text_field.dart';
-import 'widgets/bottom_action_button.dart';
-import 'widgets/page_app_bar.dart';
-import 'widgets/today_outfit_idea.dart';
+import 'widgets/common/app_list_card.dart';
+import 'widgets/common/empty_state_placeholder.dart';
+import 'widgets/common/info_banner.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/today_outfit_idea.dart';
+import 'widgets/garment/garment_image.dart';
 
 class TripDetailsInitialData {
   final List<int> weatherCodes;
@@ -52,11 +54,13 @@ class _WeatherForecast {
   });
 }
 
-Future<_WeatherForecast> _fetchWeather(TripPlan trip) async {
-  final startOffset = trip.dateRange.start.difference(DateTime.now()).inDays;
-  final duration = trip.dateRange.duration.inDays + 1;
-  final lat = trip.location.latitude;
-  final lon = trip.location.longitude;
+/// Fetches the full (unsliced) forecast for a single leg, covering exactly
+/// that leg's own date range.
+Future<_WeatherForecast> _fetchLegWeather(TripLeg leg) async {
+  final startOffset = leg.dateRange.start.difference(DateTime.now()).inDays;
+  final duration = leg.dateRange.duration.inDays + 1;
+  final lat = leg.location.latitude;
+  final lon = leg.location.longitude;
   int daysNeeded = startOffset + duration;
   if (daysNeeded > 16) daysNeeded = 16;
   if (daysNeeded < 7) daysNeeded = 7;
@@ -72,21 +76,65 @@ Future<_WeatherForecast> _fetchWeather(TripPlan trip) async {
       return _WeatherForecast(
         codes: List<int>.from(data['daily']['weathercode']),
         highs: List<double>.from(
-          data['daily']['temperature_2m_max'].map(
-            (t) => (t as num).toDouble(),
-          ),
+          data['daily']['temperature_2m_max'].map((t) => (t as num).toDouble()),
         ),
         lows: List<double>.from(
-          data['daily']['temperature_2m_min'].map(
-            (t) => (t as num).toDouble(),
-          ),
+          data['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()),
         ),
       );
     }
   } catch (e) {
-    debugLog('Fetch trip weather failed: $e');
+    debugLog('Fetch leg weather failed: $e');
   }
   return const _WeatherForecast(codes: [], highs: [], lows: []);
+}
+
+/// Builds one weather entry per day of the whole trip by looking up, for
+/// each day, which leg covers it and pulling that leg's forecast for that
+/// day. Robust to legs being entered out of chronological order.
+Future<_WeatherForecast> _fetchWeather(TripPlan trip) async {
+  final legForecasts = <_WeatherForecast>[];
+  for (final leg in trip.legs) {
+    legForecasts.add(await _fetchLegWeather(leg));
+  }
+
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  final totalDays = trip.dateRange.duration.inDays + 1;
+  final codes = <int>[];
+  final highs = <double>[];
+  final lows = <double>[];
+  for (int i = 0; i < totalDays; i++) {
+    final date = trip.dateRange.start.add(Duration(days: i));
+    final leg = trip.legForDate(date);
+    final legIndex = leg == null ? -1 : trip.legs.indexOf(leg);
+    if (legIndex == -1) {
+      // No leg covers this day (gap between legs); no data to show.
+      codes.add(0);
+      highs.add(0);
+      lows.add(0);
+      continue;
+    }
+    final forecast = legForecasts[legIndex];
+    // Open-Meteo's response always starts at "today", regardless of which
+    // leg it's for, so every leg's array is indexed the same way.
+    final dayOffset = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).difference(today).inDays;
+    if (dayOffset >= 0 && dayOffset < forecast.codes.length) {
+      codes.add(forecast.codes[dayOffset]);
+      highs.add(forecast.highs[dayOffset]);
+      lows.add(forecast.lows[dayOffset]);
+    } else {
+      codes.add(0);
+      highs.add(0);
+      lows.add(0);
+    }
+  }
+  return _WeatherForecast(codes: codes, highs: highs, lows: lows);
 }
 
 class TripDetailsPage extends ConsumerStatefulWidget {
@@ -141,11 +189,6 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     with TryOnMixin {
   int _selectedDayIndex = 0;
-  bool _savingTrip = false;
-
-  late final TextEditingController _nameController = TextEditingController(
-    text: widget.trip.name,
-  );
 
   late final List<int> _weatherCodes = widget.initialData.weatherCodes;
   late final List<double> _highTemps = widget.initialData.highTemps;
@@ -155,44 +198,32 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   bool _loadingOutfits = false;
   late String? _todayLookImageUrl = widget.initialData.todayLookImageUrl;
 
+  bool _loadingPackingAdvice = false;
+  String? _packingAdvice;
+
   @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadPackingAdvice();
   }
 
-  Future<void> _handleSaveTrip() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Trip name cannot be empty')));
-      return;
-    }
-
-    setState(() => _savingTrip = true);
+  Future<void> _loadPackingAdvice() async {
+    setState(() => _loadingPackingAdvice = true);
     try {
-      await TripPlanService().updateTripPlan(
+      final data = await TripPlanService().getTripSuggestion(
         int.parse(widget.trip.id),
-        name: name,
       );
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Trip saved')));
+      if (mounted) {
+        setState(() => _packingAdvice = data['overall_advice'] as String?);
+      }
     } catch (e) {
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;
       }
-      debugLog('Failed to save trip: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to save trip')));
-      }
+      debugLog('Failed to analyze trip plan: $e');
     } finally {
-      if (mounted) setState(() => _savingTrip = false);
+      if (mounted) setState(() => _loadingPackingAdvice = false);
     }
   }
 
@@ -249,8 +280,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const PageAppBar(
-        title: 'Trip Details',
+      appBar: PageAppBar(
+        title: widget.trip.name,
         backgroundColor: AppColors.surface,
       ),
       body: SafeArea(
@@ -258,9 +289,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            AppTextField(controller: _nameController, label: 'Trip Name'),
-            const SizedBox(height: 20),
             _buildTripHeader(),
+            const SizedBox(height: 20),
+            _buildPackingAdviceSection(),
             const SizedBox(height: 20),
             _buildSuitcaseSection(),
             const SizedBox(height: 20),
@@ -281,13 +312,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           ],
         ),
       ),
-      bottomNavigationBar: BottomActionButton(
-        label: 'Save Trip',
-        onPressed: _handleSaveTrip,
-        isLoading: _savingTrip,
-        buttonColor: AppColors.primary,
-        textColor: Colors.white,
-      ),
     );
   }
 
@@ -301,21 +325,40 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              Text(widget.trip.location.name, style: AppTextStyle.bold16),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "${DateFormat('MMM d').format(widget.trip.dateRange.start)} - "
-            "${DateFormat('MMM d, yyyy').format(widget.trip.dateRange.end)}",
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
+          for (int i = 0; i < widget.trip.legs.length; i++) ...[
+            if (i > 0) _buildLegDivider(),
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.trip.legs[i].location.name,
+                    style: AppTextStyle.bold16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "${DateFormat('MMM d').format(widget.trip.legs[i].dateRange.start)} - "
+                  "${DateFormat('MMM d').format(widget.trip.legs[i].dateRange.end)}",
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildLegDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      child: Divider(height: 1, thickness: 1, color: AppColors.defaultDivider),
     );
   }
 
@@ -404,7 +447,17 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         if (_loadingOutfits)
           const Center(child: CircularProgressIndicator())
         else if (_todayGarments.isEmpty)
-          _buildEmptyState("No items planned")
+          const EmptyStatePlaceholder(
+            message: "No items planned",
+            height: 100,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+              border: Border.fromBorderSide(
+                BorderSide(color: AppColors.border),
+              ),
+            ),
+          )
         else
           SizedBox(
             height: 100,
@@ -419,46 +472,49 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
-  Widget _buildSuitcaseSection() {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TripSuitcasePage(trip: widget.trip),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.luggage_outlined, color: AppColors.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Suitcase', style: AppTextStyle.bold16),
-                  Text(
-                    'Pack clothing for this trip',
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+  Widget _buildPackingAdviceSection() {
+    if (!_loadingPackingAdvice &&
+        (_packingAdvice == null || _packingAdvice!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+    return InfoBanner(
+      iconSize: 24,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('LUMI', style: AppTextStyle.bold16),
+          const SizedBox(height: 6),
+          if (_loadingPackingAdvice)
+            const SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Text(
+              _packingAdvice!,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
-          ],
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuitcaseSection() {
+    return AppListCard(
+      title: 'Suitcase',
+      leading: const Icon(Icons.luggage_outlined, color: AppColors.primary),
+      showArrow: true,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: widget.trip)),
+      ),
+      child: Text(
+        'Pack clothing for this trip',
+        style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
       ),
     );
   }
@@ -472,33 +528,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: g.imageUrl != null && g.imageUrl!.isNotEmpty
-            ? Image.network(g.imageUrl!, fit: BoxFit.cover)
-            : const Icon(
-                Icons.inventory_2_outlined,
-                color: AppColors.textSecondary,
-              ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(String msg) {
-    return Container(
-      height: 100,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Center(
-        child: Text(
-          msg,
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-      ),
+      child: GarmentImage(url: g.imageUrl, fit: BoxFit.cover, borderRadius: 12),
     );
   }
 

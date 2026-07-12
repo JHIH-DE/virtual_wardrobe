@@ -9,8 +9,13 @@ import '../core/services/auth_handler.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
 import 'manual_try_on_page.dart';
-import 'widgets/looks_grid_view.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/filter_icon_button.dart';
+import 'widgets/common/filter_sheet_scaffold.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/looks_grid_view.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/selectable_chip.dart';
 
 class LooksPage extends ConsumerStatefulWidget {
   const LooksPage({super.key});
@@ -20,6 +25,8 @@ class LooksPage extends ConsumerStatefulWidget {
 }
 
 class _LooksPageState extends ConsumerState<LooksPage> {
+  bool _openingTryOn = false;
+
   static const List<String> _seasons = [
     'All',
     'Spring',
@@ -56,142 +63,76 @@ class _LooksPageState extends ConsumerState<LooksPage> {
       !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
 
   void _openFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    showAppFilterSheet(
+      context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheetState) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text('Season', style: AppTextStyle.bold16),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _seasons.map((s) {
-                    final selected = _selectedSeasons.contains(s);
-                    return GestureDetector(
-                      onTap: () {
-                        setSheetState(() {});
-                        setState(() {
-                          if (s == 'All') {
-                            _selectedSeasons = {'All'};
-                          } else {
-                            _selectedSeasons.remove('All');
-                            if (_selectedSeasons.contains(s)) {
-                              _selectedSeasons.remove(s);
-                              if (_selectedSeasons.isEmpty) {
-                                _selectedSeasons = {'All'};
-                              }
-                            } else {
-                              _selectedSeasons.add(s);
+          return FilterSheetContent(
+            children: [
+              Text('Season', style: AppTextStyle.bold16),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _seasons.map((s) {
+                  final selected = _selectedSeasons.contains(s);
+                  return SelectableChip(
+                    label: s,
+                    selected: selected,
+                    onTap: () {
+                      setSheetState(() {});
+                      setState(() {
+                        if (s == 'All') {
+                          _selectedSeasons = {'All'};
+                        } else {
+                          _selectedSeasons.remove('All');
+                          if (_selectedSeasons.contains(s)) {
+                            _selectedSeasons.remove(s);
+                            if (_selectedSeasons.isEmpty) {
+                              _selectedSeasons = {'All'};
                             }
-                          }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: selected
-                                ? AppColors.primary
-                                : AppColors.border,
-                          ),
-                        ),
-                        child: Text(
-                          s,
-                          style: AppTextStyle.semibold14.copyWith(
-                            color: selected
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
-                Text('Style', style: AppTextStyle.bold16),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _styles.map((s) {
-                    final selected = _selectedStyle.contains(s);
-                    return GestureDetector(
-                      onTap: () {
-                        setSheetState(() {});
-                        setState(() {
-                          if (s == 'All') {
-                            _selectedStyle = {'All'};
                           } else {
-                            _selectedStyle.remove('All');
-                            if (_selectedStyle.contains(s)) {
-                              _selectedStyle.remove(s);
-                              if (_selectedStyle.isEmpty) {
-                                _selectedStyle = {'All'};
-                              }
-                            } else {
-                              _selectedStyle.add(s);
-                            }
+                            _selectedSeasons.add(s);
                           }
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: selected
-                                ? AppColors.primary
-                                : AppColors.border,
-                          ),
-                        ),
-                        child: Text(
-                          s,
-                          style: AppTextStyle.semibold14.copyWith(
-                            color: selected
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              Text('Style', style: AppTextStyle.bold16),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _styles.map((s) {
+                  final selected = _selectedStyle.contains(s);
+                  return SelectableChip(
+                    label: s,
+                    selected: selected,
+                    onTap: () {
+                      setSheetState(() {});
+                      setState(() {
+                        if (s == 'All') {
+                          _selectedStyle = {'All'};
+                        } else {
+                          _selectedStyle.remove('All');
+                          if (_selectedStyle.contains(s)) {
+                            _selectedStyle.remove(s);
+                            if (_selectedStyle.isEmpty) {
+                              _selectedStyle = {'All'};
+                            }
+                          } else {
+                            _selectedStyle.add(s);
+                          }
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
           );
         },
       ),
@@ -222,68 +163,84 @@ class _LooksPageState extends ConsumerState<LooksPage> {
   Widget build(BuildContext context) {
     final looksAsync = ref.watch(looksProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(
-        title: 'Looks',
-        backgroundColor: AppColors.surface,
-        onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
-        actions: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.tune),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.defaultBackground,
+          appBar: PageAppBar(
+            title: 'Looks',
+            backgroundColor: AppColors.surface,
+            onBack: () =>
+                Navigator.popUntil(context, (route) => route.isFirst),
+            actions: [
+              FilterIconButton(
+                isFiltered: _isFiltered,
                 onPressed: _openFilterSheet,
               ),
-              if (_isFiltered)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+              IconButton(
+                icon: Image.asset(
+                  'assets/images/plus.png',
+                  height: AppDimens.iconMediumSize,
                 ),
+                onPressed: () => _handleOpenManualTryOn(context),
+              ),
+              const SizedBox(width: 8),
             ],
           ),
-          IconButton(
-            icon: Image.asset(
-              'assets/images/plus.png',
-              height: AppDimens.iconMediumSize,
+          body: looksAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => ErrorStateWidget(
+              error: e,
+              onRetry: () => ref.read(looksProvider.notifier).refresh(),
             ),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ManualTryOnPage()),
-            ),
+            data: (all) {
+              final looks = _filtered(all);
+              return LooksGridView(
+                looks: looks,
+                onRefresh: () => ref.read(looksProvider.notifier).refresh(),
+                onTap: (look) => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LooksDetailsPage(look: look),
+                  ),
+                ),
+              );
+            },
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: looksAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) {
-          if (e is AuthExpiredException) return const SizedBox.shrink();
-          return Center(
-            child: Text(e.toString(), style: AppTextStyle.regular14),
-          );
-        },
-        data: (all) {
-          final looks = _filtered(all);
-          return LooksGridView(
-            looks: looks,
-            onRefresh: () => ref.read(looksProvider.notifier).refresh(),
-            onTap: (look) => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
-            ),
-          );
-        },
-      ),
+        ),
+        if (_openingTryOn)
+          const Positioned.fill(
+            child: LoadingOverlay(label: 'Loading Garments...'),
+          ),
+      ],
     );
+  }
+
+  Future<void> _handleOpenManualTryOn(BuildContext context) async {
+    setState(() => _openingTryOn = true);
+    try {
+      final garments = await ManualTryOnPage.preload();
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ManualTryOnPage(preloadedGarments: garments),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load garments')),
+        );
+      }
+    }
   }
 }

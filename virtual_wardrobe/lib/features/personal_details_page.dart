@@ -9,11 +9,12 @@ import '../core/services/auth_handler.dart';
 import '../core/services/base_service.dart';
 import '../core/services/profile_service.dart';
 import 'image_editor_page.dart';
-import 'widgets/app_text_field.dart';
-import 'widgets/bottom_action_button.dart';
-import 'widgets/custom_dropdown.dart';
-import 'widgets/page_app_bar.dart';
-import 'widgets/profile_avatar.dart';
+import 'widgets/common/app_text_field.dart';
+import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/custom_dropdown.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/profile_avatar.dart';
+import 'widgets/common/required_field_label.dart';
 
 class PersonalDetailsPage extends StatefulWidget {
   const PersonalDetailsPage({super.key});
@@ -181,14 +182,14 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _fieldLabel('Account Name'),
+                          RequiredFieldLabel('Account Name'),
                           const SizedBox(height: 8),
                           AppTextField(
                             controller: _nameCtrl,
                             hint: 'Enter your name',
                           ),
                           const SizedBox(height: 20),
-                          _fieldLabel('Gender'),
+                          RequiredFieldLabel('Gender'),
                           const SizedBox(height: 8),
                           CustomDropdown<String>(
                             value: _selectedGender,
@@ -206,7 +207,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
                                 : (v) => setState(() => _selectedGender = v),
                           ),
                           const SizedBox(height: 20),
-                          _fieldLabel('Birthday'),
+                          RequiredFieldLabel('Birthday'),
                           const SizedBox(height: 8),
                           DateDropdownField(
                             value: _selectedBirthDate,
@@ -274,13 +275,4 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
 
   // ── Form helpers ───────────────────────────────────────────────────────────
 
-  Widget _fieldLabel(String label) {
-    return Row(
-      children: [
-        Text(label, style: AppTextStyle.semibold14),
-        const SizedBox(width: 4),
-        Text('*', style: AppTextStyle.regular12.copyWith(color: Colors.red)),
-      ],
-    );
-  }
 }

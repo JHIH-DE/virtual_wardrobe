@@ -2,9 +2,10 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
+import '../../../app/theme/app_text_styles.dart';
+import 'app_text_field.dart';
 
 const _kBorderRadius = 18.0;
 const _kFieldHeight = 56.0;
@@ -151,15 +152,9 @@ class DateDropdownField extends StatelessWidget {
 
 // ── Shared decoration ─────────────────────────────────────────────────────────
 
-InputDecoration _decoration() => const InputDecoration(
-  filled: true,
-  fillColor: AppColors.surface,
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.all(Radius.circular(_kBorderRadius)),
-    borderSide: BorderSide(color: AppColors.dropdownBorder, width: 1.5),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.all(Radius.circular(_kBorderRadius)),
-    borderSide: BorderSide(color: AppColors.dropdownBorder, width: 2),
-  ),
+InputDecoration _decoration() => appInputDecoration(
+  borderRadius: _kBorderRadius,
+  borderColor: AppColors.dropdownBorder,
+  focusedBorderColor: AppColors.dropdownBorder,
+  focusedBorderWidth: 2,
 );

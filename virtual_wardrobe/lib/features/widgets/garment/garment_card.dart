@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../../data/garment.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
+import '../../../app/theme/app_text_styles.dart';
+import '../../../data/garment.dart';
 import 'garment_image.dart';
 
 class GarmentCard extends StatelessWidget {

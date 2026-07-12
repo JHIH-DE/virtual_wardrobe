@@ -12,8 +12,9 @@ import 'body_profile_page.dart';
 import 'daily_preferences_page.dart';
 import 'login_page.dart';
 import 'personal_details_page.dart';
-import 'widgets/app_list_card.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/app_list_card.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/profile_avatar.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -164,17 +165,11 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: AppColors.border,
-                  backgroundImage: avatarProvider,
-                  child: avatarProvider == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 30,
-                          color: AppColors.textSecondary,
-                        )
-                      : null,
+                ProfileAvatar(
+                  image: avatarProvider,
+                  size: 72,
+                  showEditLabel: false,
+                  fallbackIconSize: 30,
                 ),
                 const SizedBox(width: 20),
                 Expanded(

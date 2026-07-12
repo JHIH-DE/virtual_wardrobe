@@ -11,10 +11,14 @@ import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import '../data/trip_plan.dart';
 import 'trip_garment_selection_page.dart';
-import 'widgets/app_dialog.dart';
-import 'widgets/garment_card.dart';
-import 'widgets/loading_overlay.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/app_dialog.dart';
+import 'widgets/common/card_corner_badge.dart';
+import 'widgets/common/empty_state_placeholder.dart';
+import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/primary_action_button.dart';
+import 'widgets/garment/garment_card.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
   final TripPlan trip;
@@ -91,6 +95,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       context,
       MaterialPageRoute(
         builder: (_) => TripGarmentSelectionPage(
+          tripId: _tripId,
           garments: garments,
           initiallySelectedIds: _packedIds,
         ),
@@ -196,7 +201,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             top: false,
             child: garmentsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => _buildError(e),
+              error: (e, _) => ErrorStateWidget(
+                error: e,
+                onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
+              ),
               data: (all) => _buildBody(all),
             ),
           ),
@@ -224,22 +232,19 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ElevatedButton.icon(
+          PrimaryActionButton(
+            label: 'Add Garment',
+            icon: Icons.add,
+            fullWidth: true,
             onPressed: () => _handleAddGarment(allGarments),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Garment'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
           ),
           const SizedBox(height: 20),
           if (packedGarments.isEmpty)
-            _buildEmptyState()
+            const EmptyStatePlaceholder(
+              message: 'No garments packed yet',
+              icon: Icons.luggage_outlined,
+              padding: EdgeInsets.only(top: 80),
+            )
           else
             for (final category in _categoryOrder)
               ..._buildCategorySection(
@@ -266,9 +271,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio:
-              AppDimens.garmentCardWidth / AppDimens.garmentCardHeight,
+          mainAxisSpacing: 8,
+          mainAxisExtent: AppDimens.garmentCardHeight,
         ),
         itemCount: garments.length,
         itemBuilder: (context, i) {
@@ -279,27 +283,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
               Positioned(
                 top: 8,
                 right: 8,
-                child: GestureDetector(
+                child: CardCornerBadge(
+                  icon: Icons.delete_outline,
                   onTap: () => _confirmRemoveGarment(g),
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.delete_outline,
-                      size: 14,
-                      color: AppColors.nearBlack,
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -310,46 +296,4 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     ];
   }
 
-  Widget _buildEmptyState() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 80),
-      child: Center(
-        child: Column(
-          children: [
-            const Icon(
-              Icons.luggage_outlined,
-              size: 64,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No garments packed yet',
-              style: AppTextStyle.regular16.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildError(Object e) {
-    if (e is AuthExpiredException) return const SizedBox.shrink();
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-          const SizedBox(height: 12),
-          Text(e.toString(), style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () => ref.read(garmentsProvider.notifier).refresh(),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
 }

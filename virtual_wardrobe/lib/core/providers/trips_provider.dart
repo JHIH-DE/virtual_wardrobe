@@ -25,4 +25,9 @@ class TripsNotifier extends AsyncNotifier<List<TripPlan>> {
     final current = state.valueOrNull ?? [];
     state = AsyncData(current.where((t) => t.id != id).toList());
   }
+
+  void updateTrip(TripPlan trip) {
+    final current = state.valueOrNull ?? [];
+    state = AsyncData(current.map((t) => t.id == trip.id ? trip : t).toList());
+  }
 }

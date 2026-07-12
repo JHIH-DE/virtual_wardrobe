@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 
+/// Shared "input field chrome" — filled, rounded, bordered — used by
+/// [AppTextField] as well as the dropdown/date-picker fields in
+/// `custom_dropdown.dart`. The border radius/color and focused-border
+/// color/width are overridable so callers can match their own field style.
 InputDecoration appInputDecoration({
   String? hint,
   String? label,
   String? suffixText,
   Widget? prefixIcon,
   Widget? suffix,
+  double borderRadius = 14,
+  Color borderColor = AppColors.textBoxBorder,
+  Color focusedBorderColor = AppColors.primary,
+  double focusedBorderWidth = 1.5,
 }) {
   return InputDecoration(
     hintText: hint,
@@ -27,19 +35,22 @@ InputDecoration appInputDecoration({
     fillColor: AppColors.surface,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.textBoxBorder, width: 1.5),
+      borderRadius: BorderRadius.circular(borderRadius),
+      borderSide: BorderSide(color: borderColor, width: 1.5),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      borderRadius: BorderRadius.circular(borderRadius),
+      borderSide: BorderSide(
+        color: focusedBorderColor,
+        width: focusedBorderWidth,
+      ),
     ),
     errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(borderRadius),
       borderSide: const BorderSide(color: Colors.red),
     ),
     focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(borderRadius),
       borderSide: const BorderSide(color: Colors.red, width: 1.5),
     ),
   );

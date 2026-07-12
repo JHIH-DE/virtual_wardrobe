@@ -1,18 +1,40 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
+import '../core/services/auth_handler.dart';
+import '../core/utils/debug_log.dart';
 import 'add_garment_page.dart';
 import 'body_profile_page.dart';
 import 'manual_try_on_page.dart';
 import 'trip_planner_page.dart';
-import 'widgets/app_card.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/app_card.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/page_app_bar.dart';
 
-class CreatePage extends StatelessWidget {
+class CreatePage extends StatefulWidget {
   const CreatePage({super.key});
 
   @override
+  State<CreatePage> createState() => _CreatePageState();
+}
+
+class _CreatePageState extends State<CreatePage> {
+  bool _openingTryOn = false;
+
+  @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _buildScaffold(context),
+        if (_openingTryOn)
+          const Positioned.fill(
+            child: LoadingOverlay(label: 'Loading Garments...'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: PageAppBar(
@@ -55,15 +77,7 @@ class CreatePage extends StatelessWidget {
               context,
               label: 'Manual Try-on',
               iconPath: 'assets/images/manul.png',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ManualTryOnPage(
-                    onBack: () =>
-                        Navigator.popUntil(context, (route) => route.isFirst),
-                  ),
-                ),
-              ),
+              onTap: () => _handleOpenManualTryOn(context),
             ),
             const SizedBox(height: 18),
             _buildCard(
@@ -89,6 +103,39 @@ class CreatePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _handleOpenManualTryOn(BuildContext context) async {
+    setState(() => _openingTryOn = true);
+    try {
+      final garments = await ManualTryOnPage.preload();
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ManualTryOnPage(
+            preloadedGarments: garments,
+            onBack: () =>
+                Navigator.popUntil(context, (route) => route.isFirst),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to load garments: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load garments')),
+        );
+      }
+    }
   }
 
   Widget _buildCard(

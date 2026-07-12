@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../data/garment.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
+import '../utils/signed_url.dart';
 import 'base_service.dart';
 
 class AnalyzeGarmentResult {
@@ -130,7 +131,12 @@ class GarmentService with BaseService {
   }
 
   Future<Garment> getGarment(int garmentId) async {
-    if (_cache.containsKey(garmentId)) return _cache[garmentId]!;
+    final cached = _cache[garmentId];
+    if (cached != null) {
+      final url = cached.imageUrl;
+      final stale = url != null && url.isNotEmpty && isSignedUrlExpired(url);
+      if (!stale) return cached;
+    }
 
     debugLog('--- getGarment: $garmentId  ---');
     final uri = Uri.parse('$_baseUrl/$garmentId');

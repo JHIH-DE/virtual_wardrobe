@@ -8,9 +8,16 @@ import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../data/garment.dart';
 import 'add_garment_page.dart';
-import 'widgets/garment_card.dart';
-import 'widgets/garment_upload_helper.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/category_selector.dart';
+import 'widgets/common/empty_state_placeholder.dart';
+import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/filter_icon_button.dart';
+import 'widgets/common/filter_sheet_scaffold.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/selectable_chip.dart';
+import 'widgets/garment/garment_card.dart';
+import 'widgets/garment/garment_upload_helper.dart';
 
 class MyClosetPage extends ConsumerStatefulWidget {
   const MyClosetPage({super.key});
@@ -97,142 +104,76 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
             .toList()
           ..sort();
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    showAppFilterSheet(
+      context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheetState) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(99),
+          return FilterSheetContent(
+            children: [
+              Text('Color', style: AppTextStyle.bold16),
+              const SizedBox(height: 10),
+              availableColors.isEmpty
+                  ? Text(
+                      'No colors available',
+                      style: AppTextStyle.regular14.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: availableColors.map((c) {
+                        final selected = _selectedColors.contains(
+                          c.label.toLowerCase(),
+                        );
+                        return SelectableChip(
+                          label: c.label,
+                          selected: selected,
+                          onTap: () {
+                            setSheetState(() {});
+                            setState(() {
+                              if (selected) {
+                                _selectedColors.remove(c.label.toLowerCase());
+                              } else {
+                                _selectedColors.add(c.label.toLowerCase());
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text('Color', style: AppTextStyle.bold16),
-                const SizedBox(height: 10),
-                availableColors.isEmpty
-                    ? Text(
-                        'No colors available',
-                        style: AppTextStyle.regular14.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      )
-                    : Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: availableColors.map((c) {
-                          final selected = _selectedColors.contains(
-                            c.label.toLowerCase(),
-                          );
-                          return GestureDetector(
-                            onTap: () {
-                              setSheetState(() {});
-                              setState(() {
-                                if (selected) {
-                                  _selectedColors.remove(c.label.toLowerCase());
-                                } else {
-                                  _selectedColors.add(c.label.toLowerCase());
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? AppColors.primary
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: selected
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                ),
-                              ),
-                              child: Text(
-                                c.label,
-                                style: AppTextStyle.semibold14.copyWith(
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+              const SizedBox(height: 20),
+              Text('Product Type', style: AppTextStyle.bold16),
+              const SizedBox(height: 10),
+              availableTypes.isEmpty
+                  ? Text(
+                      'No types available',
+                      style: AppTextStyle.regular14.copyWith(
+                        color: AppColors.textSecondary,
                       ),
-                const SizedBox(height: 20),
-                Text('Product Type', style: AppTextStyle.bold16),
-                const SizedBox(height: 10),
-                availableTypes.isEmpty
-                    ? Text(
-                        'No types available',
-                        style: AppTextStyle.regular14.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      )
-                    : Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: availableTypes.map((t) {
-                          final selected = _selectedProductTypes.contains(t);
-                          return GestureDetector(
-                            onTap: () {
-                              setSheetState(() {});
-                              setState(() {
-                                if (selected) {
-                                  _selectedProductTypes.remove(t);
-                                } else {
-                                  _selectedProductTypes.add(t);
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? AppColors.primary
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: selected
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                ),
-                              ),
-                              child: Text(
-                                t,
-                                style: AppTextStyle.semibold14.copyWith(
-                                  color: selected
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-              ],
-            ),
+                    )
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: availableTypes.map((t) {
+                        final selected = _selectedProductTypes.contains(t);
+                        return SelectableChip(
+                          label: t,
+                          selected: selected,
+                          onTap: () {
+                            setSheetState(() {});
+                            setState(() {
+                              if (selected) {
+                                _selectedProductTypes.remove(t);
+                              } else {
+                                _selectedProductTypes.add(t);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+            ],
           );
         },
       ),
@@ -250,28 +191,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
         backgroundColor: AppColors.defaultToolBar,
         onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
         actions: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.tune),
-                onPressed: () =>
-                    _openFilterSheet(garmentsAsync.valueOrNull ?? []),
-              ),
-              if (_isFiltered)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
+          FilterIconButton(
+            isFiltered: _isFiltered,
+            onPressed: () => _openFilterSheet(garmentsAsync.valueOrNull ?? []),
           ),
           IconButton(
             icon: Container(
@@ -295,8 +217,11 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       body: SafeArea(
         top: false,
         child: garmentsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => _buildError(e),
+          loading: () => const LoadingOverlay(label: 'Loading Closet...'),
+          error: (e, _) => ErrorStateWidget(
+            error: e,
+            onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
+          ),
           data: (all) {
             final available = _availableCategories(all);
             final effectiveCategory = _effectiveCategory(available);
@@ -309,7 +234,15 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
             }
             return Column(
               children: [
-                _buildCategorySelector(available, effectiveCategory),
+                CategorySelector(
+                  categories: available,
+                  selectedCategory: effectiveCategory,
+                  onSelected: (category) => setState(() {
+                    _selectedCategory = category;
+                    _selectedColors.clear();
+                    _selectedProductTypes.clear();
+                  }),
+                ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: RefreshIndicator(
@@ -330,97 +263,14 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     );
   }
 
-  Widget _buildError(Object e) {
-    if (e is AuthExpiredException) return const SizedBox.shrink();
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-          const SizedBox(height: 12),
-          Text(e.toString(), style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () => ref.read(garmentsProvider.notifier).refresh(),
-            child: const Text('重試'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategorySelector(
-    List<GarmentCategory> categories,
-    GarmentCategory selectedCategory,
-  ) {
-    return ColoredBox(
-      color: AppColors.surface,
-      child: SizedBox(
-        height: 60,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          scrollDirection: Axis.horizontal,
-          itemCount: categories.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (context, i) {
-            final category = categories[i];
-            final isSelected = category == selectedCategory;
-
-            return GestureDetector(
-              onTap: () => setState(() {
-                _selectedCategory = category;
-                _selectedColors.clear();
-                _selectedProductTypes.clear();
-              }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.nearBlack : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? AppColors.nearBlack : Colors.black12,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    category.label,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyle.bold16.copyWith(
-                      color: isSelected ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildGrid(List<Garment> garments, GarmentCategory category) {
     if (garments.isEmpty) {
       return ListView(
         children: [
-          const SizedBox(height: 100),
-          Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.inventory_2_outlined,
-                  size: 64,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No garments in ${category.label}',
-                  style: AppTextStyle.regular16.copyWith(color: Colors.grey),
-                ),
-              ],
-            ),
+          EmptyStatePlaceholder(
+            message: 'No garments in ${category.label}',
+            icon: Icons.inventory_2_outlined,
+            padding: const EdgeInsets.only(top: 100),
           ),
         ],
       );

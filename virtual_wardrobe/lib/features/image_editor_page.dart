@@ -13,9 +13,10 @@ import '../core/services/garment_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/image_edit_result.dart';
 import 'camera_capture_page.dart';
-import 'widgets/bottom_action_button.dart';
-import 'widgets/loading_overlay.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/pill_button.dart';
 
 class ImageEditorPage extends StatefulWidget {
   final String? initialPath;
@@ -203,6 +204,14 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                                           child: Image.network(
                                             _currentPath!,
                                             fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) =>
+                                                const Center(
+                                                  child: Icon(
+                                                    Icons.broken_image,
+                                                    size: 50,
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
                                           ),
                                         )
                                       : InteractiveViewer(
@@ -284,7 +293,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildActionBtn(
+                        child: PillButton(
                           label: const Text(
                             'Retake',
                             style: AppTextStyle.bold16,
@@ -298,7 +307,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: _buildActionBtn(
+                        child: PillButton(
                           label: const Text(
                             'Album',
                             style: AppTextStyle.bold16,
@@ -325,34 +334,4 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     );
   }
 
-  Widget _buildActionBtn({
-    required Widget label,
-    required Widget icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.black12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [label, icon],
-        ),
-      ),
-    );
-  }
 }

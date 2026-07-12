@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
@@ -10,10 +9,13 @@ import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/trip_plan.dart';
 import 'trip_details_page.dart';
-import 'widgets/trip_plan_create_dialog.dart';
-import 'widgets/loading_overlay.dart';
-import 'widgets/page_app_bar.dart';
-import 'widgets/trip_plan_card.dart';
+import 'widgets/common/empty_state_placeholder.dart';
+import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/primary_action_button.dart';
+import 'widgets/trip/trip_plan_card.dart';
+import 'widgets/trip/trip_plan_create_dialog.dart';
 
 class TripPlannerPage extends ConsumerStatefulWidget {
   const TripPlannerPage({super.key});
@@ -94,17 +96,10 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                       ],
                     ),
                   ),
-                  ElevatedButton.icon(
+                  PrimaryActionButton(
+                    label: 'New Trip',
+                    icon: Icons.add,
                     onPressed: () => _handleCreateTrip(context, ref),
-                    icon: const Icon(Icons.add),
-                    label: const Text('New Trip'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -112,37 +107,19 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
             Expanded(
               child: tripsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => _buildError(e),
+                error: (e, _) => ErrorStateWidget(
+                  error: e,
+                  onRetry: () => ref.read(tripsProvider.notifier).refresh(),
+                ),
                 data: (trips) => RefreshIndicator(
                   onRefresh: () => ref.read(tripsProvider.notifier).refresh(),
                   child: trips.isEmpty
                       ? ListView(
                           children: [
-                            SizedBox(
-                              height:
-                                  MediaQuery.of(context).size.height * 0.6,
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.beach_access,
-                                      size: 64,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No trips planned yet',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            color: AppColors.textSecondary,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            EmptyStatePlaceholder(
+                              message: 'No trips planned yet',
+                              icon: Icons.beach_access,
+                              height: MediaQuery.of(context).size.height * 0.6,
                             ),
                           ],
                         )
@@ -157,6 +134,25 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
                                 key: ValueKey(trip.id),
                                 trip: trip,
                                 onTap: () => _handleOpenTrip(context, trip),
+                                onNameChanged: (name) => _handleUpdateTrip(
+                                  context,
+                                  ref,
+                                  trip,
+                                  updated: trip.copyWith(name: name),
+                                ),
+                                onLegsChanged: (legs) => _handleUpdateTrip(
+                                  context,
+                                  ref,
+                                  trip,
+                                  updated: trip.copyWith(legs: legs),
+                                ),
+                                onPurposeChanged: (purpose) =>
+                                    _handleUpdateTrip(
+                                      context,
+                                      ref,
+                                      trip,
+                                      updated: trip.copyWith(purpose: purpose),
+                                    ),
                                 onDelete: () =>
                                     _handleDeleteTrip(context, ref, trip),
                               ),
@@ -168,25 +164,6 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildError(Object e) {
-    if (e is AuthExpiredException) return const SizedBox.shrink();
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-          const SizedBox(height: 12),
-          Text(e.toString(), style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () => ref.read(tripsProvider.notifier).refresh(),
-            child: const Text('Retry'),
-          ),
-        ],
       ),
     );
   }
@@ -208,22 +185,20 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     try {
       final id = await TripPlanService().createTripPlan(
         name: input.name,
-        location: input.location.name,
-        startDate: DateFormat('yyyy-MM-dd').format(input.dateRange.start),
-        endDate: DateFormat('yyyy-MM-dd').format(input.dateRange.end),
-        timezone: input.location.timezone,
+        legs: input.legs,
         purpose: input.purpose,
         days: const [],
       );
 
       if (!context.mounted) return;
       Navigator.pop(context); // close loading indicator
-      ref.read(tripsProvider.notifier).add(
+      ref
+          .read(tripsProvider.notifier)
+          .add(
             TripPlan(
               id: id.toString(),
               name: input.name,
-              dateRange: input.dateRange,
-              location: input.location,
+              legs: input.legs,
               purpose: input.purpose,
             ),
           );
@@ -238,6 +213,35 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Failed to create trip')));
+    }
+  }
+
+  Future<void> _handleUpdateTrip(
+    BuildContext context,
+    WidgetRef ref,
+    TripPlan trip, {
+    required TripPlan updated,
+  }) async {
+    try {
+      await TripPlanService().updateTripPlan(
+        int.parse(trip.id),
+        name: updated.name != trip.name ? updated.name : null,
+        legs: updated.legs,
+        purpose: updated.purpose != trip.purpose ? updated.purpose : null,
+      );
+
+      if (!context.mounted) return;
+      ref.read(tripsProvider.notifier).updateTrip(updated);
+    } catch (e) {
+      if (!context.mounted) return;
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to update trip: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to update trip')));
     }
   }
 

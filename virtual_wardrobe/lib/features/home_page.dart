@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
+import '../core/providers/garments_provider.dart';
+import '../core/services/auth_handler.dart';
+import '../core/utils/debug_log.dart';
 import 'create_page.dart';
 import 'looks_page.dart';
 import 'manual_try_on_page.dart';
 import 'my_closet_page.dart';
 import 'settings_page.dart';
 import 'trip_planner_page.dart';
-import 'widgets/app_card.dart';
+import 'widgets/common/app_card.dart';
+import 'widgets/common/loading_overlay.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   int? _selectedCardIndex;
+  bool _openingCloset = false;
+  bool _openingTryOn = false;
 
   final List<String> _features = [
     'My Closet',
@@ -29,6 +36,22 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _buildScaffold(context),
+        if (_openingCloset)
+          const Positioned.fill(
+            child: LoadingOverlay(label: 'Loading Closet...'),
+          ),
+        if (_openingTryOn)
+          const Positioned.fill(
+            child: LoadingOverlay(label: 'Loading Garments...'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
@@ -121,12 +144,7 @@ class _HomePageState extends State<HomePage> {
                             onTap: () {
                               setState(() => _selectedCardIndex = index);
                               if (feature == 'My Closet') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const MyClosetPage(),
-                                  ),
-                                );
+                                _handleOpenMyCloset(context);
                               } else if (feature == 'Trip Planner') {
                                 Navigator.push(
                                   context,
@@ -135,17 +153,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 );
                               } else if (feature == 'Manual Try-on') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ManualTryOnPage(
-                                      onBack: () => Navigator.popUntil(
-                                        context,
-                                        (route) => route.isFirst,
-                                      ),
-                                    ),
-                                  ),
-                                );
+                                _handleOpenManualTryOn(context);
                               } else if (feature == 'Looks') {
                                 Navigator.push(
                                   context,
@@ -167,6 +175,66 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleOpenMyCloset(BuildContext context) async {
+    setState(() => _openingCloset = true);
+    try {
+      await ref.read(garmentsProvider.future);
+      if (!mounted) return;
+      setState(() => _openingCloset = false);
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MyClosetPage()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _openingCloset = false);
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to load closet: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to load closet')));
+      }
+    }
+  }
+
+  Future<void> _handleOpenManualTryOn(BuildContext context) async {
+    setState(() => _openingTryOn = true);
+    try {
+      final garments = await ManualTryOnPage.preload();
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ManualTryOnPage(
+            preloadedGarments: garments,
+            onBack: () =>
+                Navigator.popUntil(context, (route) => route.isFirst),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to load garments: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load garments')),
+        );
+      }
+    }
   }
 
   Widget _buildQuickAddButton(BuildContext context) {

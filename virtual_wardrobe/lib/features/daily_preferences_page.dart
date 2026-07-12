@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/number_stepper.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/section_title.dart';
 
 class DailyPreferencesPage extends StatefulWidget {
   const DailyPreferencesPage({super.key});
@@ -78,11 +80,21 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           children: [
             const SizedBox(height: 16),
-            _buildSectionTitle('Comfort Adjustment'),
+            SectionTitle(
+              'Comfort Adjustment',
+              style: AppTextStyle.bold16.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 12),
             _buildTempAdjuster(),
             const SizedBox(height: 24),
-            _buildSectionTitle('Daily Occasions'),
+            SectionTitle(
+              'Daily Occasions',
+              style: AppTextStyle.bold16.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 8),
             ...List.generate(7, (index) {
               final date = DateTime.now().add(Duration(days: index));
@@ -156,57 +168,16 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: AppTextStyle.bold16.copyWith(color: AppColors.textSecondary),
-    );
-  }
-
   Widget _buildTempAdjuster() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'Perceived temperature offset',
-              style: AppTextStyle.regular14,
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              if (_temperatureOffset > -5) setState(() => _temperatureOffset--);
-            },
-            icon: const Icon(
-              Icons.remove_circle_outline,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(
-            width: 50,
-            child: Text(
-              '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°',
-              textAlign: TextAlign.center,
-              style: AppTextStyle.bold18,
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              if (_temperatureOffset < 5) setState(() => _temperatureOffset++);
-            },
-            icon: const Icon(
-              Icons.add_circle_outline,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
+    return NumberStepper(
+      label: 'Perceived temperature offset',
+      valueLabel: '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°',
+      onDecrement: () {
+        if (_temperatureOffset > -5) setState(() => _temperatureOffset--);
+      },
+      onIncrement: () {
+        if (_temperatureOffset < 5) setState(() => _temperatureOffset++);
+      },
     );
   }
 }

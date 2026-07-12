@@ -9,6 +9,6 @@ abstract class AppDimens {
   static const double garmentCardInfoHeight = 70;
 
   static const double iconSmallSize = 20;
-  static const double iconMediumSize = 28;
+  static const double iconMediumSize = 24;
   static const double iconLargeSize = 64;
 }

@@ -12,12 +12,14 @@ import '../data/garment.dart';
 import '../data/look.dart';
 import 'full_screen_image_page.dart';
 import 'manual_try_on_page.dart';
-import 'widgets/app_dialog.dart';
-import 'widgets/bottom_action_button.dart';
-import 'widgets/category_tag.dart';
-import 'widgets/garment_list_card.dart';
-import 'widgets/labeled_divider.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/action_button.dart';
+import 'widgets/common/app_dialog.dart';
+import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/category_tag.dart';
+import 'widgets/common/labeled_divider.dart';
+import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/garment/garment_list_card.dart';
 
 class LooksDetailsPage extends ConsumerStatefulWidget {
   final Look look;
@@ -40,6 +42,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   List<String>? _style;
   List<Garment>? _garments;
   bool _loadingGarments = false;
+  bool _openingTryOn = false;
 
   List<String> get _effectiveSeasons => _seasons ?? widget.look.seasons;
   List<String> get _effectiveStyle => _style ?? widget.look.style;
@@ -55,6 +58,18 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _buildScaffold(context),
+        if (_openingTryOn)
+          const Positioned.fill(
+            child: LoadingOverlay(label: 'Loading Garments...'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return PopScope(
       canPop: !widget.isNew,
       onPopInvokedWithResult: (didPop, _) {
@@ -114,8 +129,8 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
             : BottomActionButton(
                 label: 'Remix Look',
                 trailing: const Icon(Icons.shuffle_rounded, size: 18),
-                onPressed: _remixLook,
-                enabled: !_loadingGarments,
+                onPressed: () => _remixLook(context),
+                enabled: !_loadingGarments && !_openingTryOn,
               ),
       ),
     );
@@ -174,66 +189,29 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
         const Spacer(),
         GestureDetector(
           onTap: _showEditNameDialog,
-          child: const Icon(
-            Icons.edit_outlined,
-            size: 20,
-            color: AppColors.textSecondary,
-          ),
+          child: Image.asset('assets/images/edit.png', width: 20, height: 20),
         ),
       ],
     );
   }
 
   Widget _buildActionButtons() {
-    return IntrinsicHeight(
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildActionButton(
-              icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-              iconColor: _isFavorite ? Colors.red : AppColors.textPrimary,
-              label: 'Favorite',
-              onTap: _isFavoriteLoading
-                  ? null
-                  : (widget.isNew ? _saveWithFavorite : _toggleFavorite),
-            ),
-          ),
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.share_outlined,
-              label: 'Share',
-              onTap: _shareLook,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    Color? iconColor,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 24, color: iconColor ?? AppColors.textPrimary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
+    return ActionButtonRow(
+      buttons: [
+        ActionButton(
+          icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
+          iconColor: _isFavorite ? Colors.red : AppColors.textPrimary,
+          label: 'Favorite',
+          onTap: _isFavoriteLoading
+              ? null
+              : (widget.isNew ? _saveWithFavorite : _toggleFavorite),
         ),
-      ),
+        ActionButton(
+          icon: Icons.share_outlined,
+          label: 'Share',
+          onTap: _shareLook,
+        ),
+      ],
     );
   }
 
@@ -365,13 +343,35 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     }
   }
 
-  void _remixLook() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ManualTryOnPage(initialGarments: _garments ?? []),
-      ),
-    );
+  Future<void> _remixLook(BuildContext context) async {
+    setState(() => _openingTryOn = true);
+    try {
+      final garments = await ManualTryOnPage.preload();
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (!context.mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ManualTryOnPage(
+            initialGarments: _garments ?? [],
+            preloadedGarments: garments,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _openingTryOn = false);
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load garments')),
+        );
+      }
+    }
   }
 
   Future<void> _saveWithFavorite() async {
@@ -510,72 +510,27 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     final controller = TextEditingController(text: _name ?? '');
     final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: SizedBox(
-          width: 292,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Edit Name',
-                  style: AppTextStyle.dialogTitle,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: 'Enter look name',
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.nearBlack,
-                    minimumSize: const Size(double.infinity, 54),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(27),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Save',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black, width: 1.6),
-                    minimumSize: const Size(double.infinity, 54),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(27),
-                    ),
-                  ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
-              ],
+      builder: (ctx) => AppDialog(
+        title: 'Edit Name',
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: 'Enter look name',
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
+        primaryLabel: 'Save',
+        onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
+        secondaryLabel: 'Cancel',
+        onSecondary: () => Navigator.pop(ctx),
       ),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());

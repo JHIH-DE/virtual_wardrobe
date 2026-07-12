@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../../data/garment.dart';
-import '../../data/image_edit_result.dart';
-import '../add_garment_page.dart';
-import '../camera_capture_page.dart';
-import '../image_editor_page.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
+import '../../../app/theme/app_text_styles.dart';
+import '../../../data/garment.dart';
+import '../../../data/image_edit_result.dart';
+import '../../add_garment_page.dart';
+import '../../camera_capture_page.dart';
+import '../../image_editor_page.dart';
 
 class GarmentUploadHelper {
   static void showAddClothingDialog(

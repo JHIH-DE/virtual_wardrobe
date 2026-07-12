@@ -13,10 +13,7 @@ class TripPlanService with BaseService {
 
   Future<int> createTripPlan({
     required String name,
-    required String location,
-    required String startDate,
-    required String endDate,
-    required String timezone,
+    required List<TripLeg> legs,
     required String purpose,
     required List<Map<String, dynamic>> days,
   }) async {
@@ -25,10 +22,7 @@ class TripPlanService with BaseService {
 
     final body = {
       "name": name,
-      "location": location,
-      "start_date": startDate,
-      "end_date": endDate,
-      "timezone": timezone,
+      "legs": legs.map((l) => l.toJson()).toList(),
       "purpose": purpose,
       "days": days,
     };
@@ -86,10 +80,8 @@ class TripPlanService with BaseService {
   Future<void> updateTripPlan(
     int tripId, {
     String? name,
-    String? location,
-    String? startDate,
-    String? endDate,
-    String? timezone,
+    List<TripLeg>? legs,
+    String? purpose,
     String? defaultOccasion,
     String? style,
     List<Map<String, dynamic>>? days,
@@ -99,10 +91,8 @@ class TripPlanService with BaseService {
 
     final body = <String, dynamic>{
       if (name != null) 'name': name,
-      if (location != null) 'location': location,
-      if (startDate != null) 'start_date': startDate,
-      if (endDate != null) 'end_date': endDate,
-      if (timezone != null) 'timezone': timezone,
+      if (legs != null) 'legs': legs.map((l) => l.toJson()).toList(),
+      if (purpose != null) 'purpose': purpose,
       if (defaultOccasion != null) 'default_occasion': defaultOccasion,
       if (style != null) 'style': style,
       if (days != null) 'days': days,
@@ -124,7 +114,7 @@ class TripPlanService with BaseService {
     final uri = Uri.parse(_baseUrl);
 
     final res = await withAuth(
-          (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http.get(uri, headers: authHeaders(token)),
     );
 
     final envelope = decodeMap(res, op: 'getTripPlans');
@@ -147,7 +137,7 @@ class TripPlanService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId');
 
     final res = await withAuth(
-          (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http.get(uri, headers: authHeaders(token)),
     );
 
     final envelope = decodeMap(res, op: 'getTripPlan');
@@ -195,16 +185,50 @@ class TripPlanService with BaseService {
     decodeMap(res, op: 'deleteTripPlan');
   }
 
+  Future<Map<String, dynamic>> analyzeTripPlan(int tripId) async {
+    debugLog('--- analyzeTripPlan id=$tripId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
+
+    final res = await withAuth(
+      (token) => http.post(uri, headers: authHeaders(token)),
+    );
+
+    final envelope = decodeMap(res, op: 'analyzeTripPlan');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('analyzeTripPlan: response missing data object');
+    }
+    return data;
+  }
+
+  Future<Map<String, dynamic>> getTripSuggestion(int tripId) async {
+    debugLog('--- getTripSuggestion id=$tripId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
+
+    final res = await withAuth(
+          (token) => http.get(uri, headers: authHeaders(token)),
+    );
+
+    final envelope = decodeMap(res, op: 'getTripSuggestion');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('getTripSuggestion: response missing data object');
+    }
+    return data;
+  }
+
   Future<Map<String, dynamic>> setTryonJobToOption(
-      int jobId, {
-        required int optionId,
-        required int tripId,
-      }) async {
-    debugLog('--- setTryonJobToOption tripId=$tripId optionId=$optionId jobId=$jobId ---');
+    int jobId, {
+    required int optionId,
+    required int tripId,
+  }) async {
+    debugLog(
+      '--- setTryonJobToOption tripId=$tripId optionId=$optionId jobId=$jobId ---',
+    );
     final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/job');
 
     final res = await withAuth(
-          (token) => http.patch(
+      (token) => http.patch(
         uri,
         headers: {...authHeaders(token), 'Content-Type': 'application/json'},
         body: jsonEncode({'job_id': jobId}),

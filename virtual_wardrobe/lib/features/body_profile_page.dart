@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
@@ -9,9 +8,10 @@ import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
 import '../data/image_edit_result.dart';
 import 'image_editor_page.dart';
-import 'widgets/app_text_field.dart';
-import 'widgets/bottom_action_button.dart';
-import 'widgets/page_app_bar.dart';
+import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/numeric_unit_field.dart';
+import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/photo_upload_field.dart';
 
 class BodyProfilePage extends StatefulWidget {
   const BodyProfilePage({super.key});
@@ -182,66 +182,10 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
       provider = NetworkImage(_fullBodyUrl!);
     }
 
-    if (provider != null) {
-      return Center(
-        child: FractionallySizedBox(
-          widthFactor: 0.85,
-          child: GestureDetector(
-            onTap: _loading ? null : _changeFullBodyPhoto,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 3 / 4,
-                child: Image(image: provider, fit: BoxFit.cover),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return GestureDetector(
+    return PhotoUploadField(
+      imageProvider: provider,
       onTap: _loading ? null : _changeFullBodyPhoto,
-      child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: AppColors.placeholderBorder,
-          radius: 16,
-        ),
-        child: Container(
-          width: double.infinity,
-          height: 240,
-          decoration: BoxDecoration(
-            color: AppColors.placeholderBackground,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Upload Image', style: AppTextStyle.semibold16),
-              const SizedBox(height: 6),
-              Text(
-                'Please choose a clear, full-body photo.',
-                style: AppTextStyle.regular13.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: _loading ? null : _changeFullBodyPhoto,
-                icon: const Icon(Icons.upload, size: 16),
-                label: const Text('Choose photo'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  side: const BorderSide(color: AppColors.textPrimary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      subtitle: 'Please choose a clear, full-body photo.',
     );
   }
 
@@ -249,72 +193,21 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
     return Row(
       children: [
         Expanded(
-          child: _unitField(_heightCtrl, hint: 'height', unit: 'cm'),
+          child: NumericUnitField(
+            controller: _heightCtrl,
+            hint: 'height',
+            unit: 'cm',
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _unitField(_weightCtrl, hint: 'weight', unit: 'kg'),
+          child: NumericUnitField(
+            controller: _weightCtrl,
+            hint: 'weight',
+            unit: 'kg',
+          ),
         ),
       ],
     );
   }
-
-  Widget _unitField(
-    TextEditingController ctrl, {
-    required String hint,
-    required String unit,
-  }) {
-    return AppTextField(
-      controller: ctrl,
-      hint: hint,
-      suffixText: unit,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-      ],
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    const sw = 1.5;
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(sw / 2, sw / 2, size.width - sw, size.height - sw),
-          Radius.circular(radius),
-        ),
-      );
-
-    for (final metric in path.computeMetrics()) {
-      double distance = 0;
-      bool draw = true;
-      while (distance < metric.length) {
-        final segmentEnd = (distance + (draw ? 8.0 : 5.0)).clamp(
-          0.0,
-          metric.length,
-        );
-        if (draw) {
-          canvas.drawPath(metric.extractPath(distance, segmentEnd), paint);
-        }
-        distance = segmentEnd;
-        draw = !draw;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
 }

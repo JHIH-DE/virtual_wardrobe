@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
-import '../../data/look.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
+import '../../../app/theme/app_text_styles.dart';
+import '../../../data/look.dart';
+import 'empty_state_placeholder.dart';
 
 class LooksGridView extends StatelessWidget {
   final List<Look> looks;
@@ -25,11 +26,7 @@ class LooksGridView extends StatelessWidget {
       return Center(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Text(
-            emptyMessage,
-            textAlign: TextAlign.center,
-            style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
-          ),
+          child: EmptyStatePlaceholder(message: emptyMessage),
         ),
       );
     }

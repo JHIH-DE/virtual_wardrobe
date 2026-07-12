@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_text_styles.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 
 class AppDialog extends StatefulWidget {
   final String title;
-  final String body;
+  final String? body;
+  final Widget? content;
   final String primaryLabel;
   final VoidCallback onPrimary;
   final String? secondaryLabel;
@@ -16,14 +17,18 @@ class AppDialog extends StatefulWidget {
   const AppDialog({
     super.key,
     required this.title,
-    required this.body,
+    this.body,
+    this.content,
     required this.primaryLabel,
     required this.onPrimary,
     this.secondaryLabel,
     this.onSecondary,
     this.tertiaryLabel,
     this.onTertiary,
-  });
+  }) : assert(
+         body != null || content != null,
+         'AppDialog requires either body or content',
+       );
 
   @override
   State<AppDialog> createState() => _AppDialogState();
@@ -50,11 +55,12 @@ class _AppDialogState extends State<AppDialog> {
                 style: AppTextStyle.dialogTitle,
               ),
               const SizedBox(height: 8),
-              Text(
-                widget.body,
-                textAlign: TextAlign.center,
-                style: AppTextStyle.dialogBody,
-              ),
+              widget.content ??
+                  Text(
+                    widget.body!,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.dialogBody,
+                  ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: widget.onPrimary,
