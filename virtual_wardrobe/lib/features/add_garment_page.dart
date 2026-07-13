@@ -19,10 +19,10 @@ import 'image_editor_page.dart';
 import 'widgets/common/action_button.dart';
 import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_text_field.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/custom_dropdown.dart';
 import 'widgets/common/filter_sheet_scaffold.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/pill_button.dart';
 import 'widgets/common/section_title.dart';
 import 'widgets/common/tappable_field_decorator.dart';
@@ -230,7 +230,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       child: Scaffold(
         backgroundColor: AppColors.defaultBackground,
         extendBody: true,
-        appBar: PageAppBar(
+        appBar: AppToolBar(
           title: title,
           onBack: () async {
             final shouldPop = await _onWillPop();

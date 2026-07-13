@@ -3,19 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
-import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
+import '../core/services/look_service.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
 import 'manual_try_on_page.dart';
+import 'widgets/common/app_tool_bar.dart';
+import 'widgets/common/deletable_card.dart';
+import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
-import 'widgets/common/filter_icon_button.dart';
-import 'widgets/common/filter_sheet_scaffold.dart';
+import 'widgets/common/filter_button.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/looks_grid_view.dart';
-import 'widgets/common/page_app_bar.dart';
-import 'widgets/common/selectable_chip.dart';
+import 'widgets/look/look_card.dart';
 
 class LooksPage extends ConsumerStatefulWidget {
   const LooksPage({super.key});
@@ -26,6 +26,7 @@ class LooksPage extends ConsumerStatefulWidget {
 
 class _LooksPageState extends ConsumerState<LooksPage> {
   bool _openingTryOn = false;
+  final _deleteGroup = DeletableCardGroup();
 
   static const List<String> _seasons = [
     'All',
@@ -62,83 +63,6 @@ class _LooksPageState extends ConsumerState<LooksPage> {
   bool get _isFiltered =>
       !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
 
-  void _openFilterSheet() {
-    showAppFilterSheet(
-      context,
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          return FilterSheetContent(
-            children: [
-              Text('Season', style: AppTextStyle.bold16),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _seasons.map((s) {
-                  final selected = _selectedSeasons.contains(s);
-                  return SelectableChip(
-                    label: s,
-                    selected: selected,
-                    onTap: () {
-                      setSheetState(() {});
-                      setState(() {
-                        if (s == 'All') {
-                          _selectedSeasons = {'All'};
-                        } else {
-                          _selectedSeasons.remove('All');
-                          if (_selectedSeasons.contains(s)) {
-                            _selectedSeasons.remove(s);
-                            if (_selectedSeasons.isEmpty) {
-                              _selectedSeasons = {'All'};
-                            }
-                          } else {
-                            _selectedSeasons.add(s);
-                          }
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-              Text('Style', style: AppTextStyle.bold16),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _styles.map((s) {
-                  final selected = _selectedStyle.contains(s);
-                  return SelectableChip(
-                    label: s,
-                    selected: selected,
-                    onTap: () {
-                      setSheetState(() {});
-                      setState(() {
-                        if (s == 'All') {
-                          _selectedStyle = {'All'};
-                        } else {
-                          _selectedStyle.remove('All');
-                          if (_selectedStyle.contains(s)) {
-                            _selectedStyle.remove(s);
-                            if (_selectedStyle.isEmpty) {
-                              _selectedStyle = {'All'};
-                            }
-                          } else {
-                            _selectedStyle.add(s);
-                          }
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   List<Look> _filtered(List<Look> all) {
     return all.where((l) {
       final okSeason =
@@ -167,15 +91,37 @@ class _LooksPageState extends ConsumerState<LooksPage> {
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: PageAppBar(
+          appBar: AppToolBar(
             title: 'Looks',
             backgroundColor: AppColors.surface,
-            onBack: () =>
-                Navigator.popUntil(context, (route) => route.isFirst),
+            onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
             actions: [
-              FilterIconButton(
+              FilterButton(
                 isFiltered: _isFiltered,
-                onPressed: _openFilterSheet,
+                groups: [
+                  FilterGroup(
+                    label: 'Season',
+                    options: _seasons,
+                    selected: () => _selectedSeasons,
+                    onToggle: (s) => setState(
+                      () => _selectedSeasons = FilterButton.toggleWithAll(
+                        _selectedSeasons,
+                        s,
+                      ),
+                    ),
+                  ),
+                  FilterGroup(
+                    label: 'Style',
+                    options: _styles,
+                    selected: () => _selectedStyle,
+                    onToggle: (s) => setState(
+                      () => _selectedStyle = FilterButton.toggleWithAll(
+                        _selectedStyle,
+                        s,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               IconButton(
                 icon: Image.asset(
@@ -193,19 +139,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
               error: e,
               onRetry: () => ref.read(looksProvider.notifier).refresh(),
             ),
-            data: (all) {
-              final looks = _filtered(all);
-              return LooksGridView(
-                looks: looks,
-                onRefresh: () => ref.read(looksProvider.notifier).refresh(),
-                onTap: (look) => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LooksDetailsPage(look: look),
-                  ),
-                ),
-              );
-            },
+            data: (all) => _buildLooksGrid(_filtered(all)),
           ),
         ),
         if (_openingTryOn)
@@ -214,6 +148,65 @@ class _LooksPageState extends ConsumerState<LooksPage> {
           ),
       ],
     );
+  }
+
+  Widget _buildLooksGrid(List<Look> looks) {
+    if (looks.isEmpty) {
+      return Center(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: const EmptyStatePlaceholder(message: 'No looks yet.'),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(looksProvider.notifier).refresh(),
+      color: AppColors.primary,
+      child: GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          mainAxisExtent: AppDimens.lookCardHeight,
+        ),
+        itemCount: looks.length,
+        itemBuilder: (context, index) {
+          final look = looks[index];
+          return DeletableCard(
+            group: _deleteGroup,
+            borderRadius: BorderRadius.circular(20),
+            onDelete: () => _deleteLook(look),
+            child: LookCard(
+              look: look,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteLook(Look look) async {
+    try {
+      await LookService().deleteLook(look.id);
+      ref.read(looksProvider.notifier).removeById(look.id);
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to delete look')));
+      }
+    }
   }
 
   Future<void> _handleOpenManualTryOn(BuildContext context) async {

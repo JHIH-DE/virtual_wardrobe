@@ -9,10 +9,10 @@ import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/trip_plan.dart';
 import 'trip_details_page.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/primary_action_button.dart';
 import 'widgets/trip/trip_plan_card.dart';
 import 'widgets/trip/trip_plan_create_dialog.dart';
@@ -60,7 +60,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   ) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const PageAppBar(title: 'Trip Planner'),
+      appBar: const AppToolBar(title: 'Trip Planner'),
       body: SafeArea(
         top: false,
         child: Column(

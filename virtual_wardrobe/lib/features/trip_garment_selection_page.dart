@@ -4,16 +4,18 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
+import '../core/services/garment_service.dart';
 import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/card_corner_badge.dart';
 import 'widgets/common/category_selector.dart';
+import 'widgets/common/deletable_card.dart';
+import 'widgets/common/filter_button.dart';
 import 'widgets/common/info_banner.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/garment/garment_card.dart';
-import 'widgets/garment/garment_filter_button.dart';
 
 class _CategoryAdvice {
   final int recommendedQuantity;
@@ -65,6 +67,8 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   final Map<GarmentCategory, _CategoryAdvice> _adviceByCategory = {};
   bool _loadingAdvice = true;
   bool _reasoningExpanded = false;
+  late List<Garment> _garments;
+  final _deleteGroup = DeletableCardGroup();
 
   Set<String> _selectedColors = {'All'};
   Set<String> _selectedTypes = {'All'};
@@ -72,6 +76,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   @override
   void initState() {
     super.initState();
+    _garments = [...widget.garments];
     _loadAdvice();
   }
 
@@ -87,9 +92,8 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
           );
           final suggestedIds = item['suggested_garment_ids'];
           _adviceByCategory[category] = _CategoryAdvice(
-            recommendedQuantity: (item['recommended_quantity'] as num?)
-                    ?.toInt() ??
-                0,
+            recommendedQuantity:
+                (item['recommended_quantity'] as num?)?.toInt() ?? 0,
             reasoning: item['reasoning'] as String? ?? '',
             suggestedGarmentIds: suggestedIds is List
                 ? suggestedIds.whereType<int>().toSet()
@@ -121,7 +125,30 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   }
 
   List<Garment> get _byCategory =>
-      widget.garments.where((g) => g.category == _selectedCategory).toList();
+      _garments.where((g) => g.category == _selectedCategory).toList();
+
+  Future<void> _deleteGarment(Garment garment) async {
+    final id = garment.id;
+    if (id == null) return;
+    try {
+      await GarmentService().deleteGarment(id);
+      if (!mounted) return;
+      setState(() {
+        _garments.removeWhere((g) => g.id == id);
+        _selectedIds.remove(id);
+      });
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete garment')),
+        );
+      }
+    }
+  }
 
   List<String> get _availableColors {
     final colors =
@@ -183,17 +210,35 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(
+      appBar: AppToolBar(
         title: 'Select Garments',
         actions: [
-          GarmentFilterButton(
+          FilterButton(
             isFiltered: _isFiltered,
-            availableColors: _availableColors,
-            availableTypes: _availableTypes,
-            selectedColors: () => _selectedColors,
-            selectedTypes: () => _selectedTypes,
-            onColorsChanged: (v) => setState(() => _selectedColors = v),
-            onTypesChanged: (v) => setState(() => _selectedTypes = v),
+            groups: [
+              FilterGroup(
+                label: 'Color',
+                options: _availableColors,
+                selected: () => _selectedColors,
+                onToggle: (v) => setState(
+                  () => _selectedColors = FilterButton.toggleWithAll(
+                    _selectedColors,
+                    v,
+                  ),
+                ),
+              ),
+              FilterGroup(
+                label: 'Product Type',
+                options: _availableTypes,
+                selected: () => _selectedTypes,
+                onToggle: (v) => setState(
+                  () => _selectedTypes = FilterButton.toggleWithAll(
+                    _selectedTypes,
+                    v,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -237,36 +282,38 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
                         final g = items[i];
                         final selected = _selectedIds.contains(g.id);
                         final suggested =
-                            advice?.suggestedGarmentIds.contains(g.id) ??
-                            false;
-                        return Stack(
-                          children: [
-                            GarmentCard(
-                              garment: g,
-                              isSelected: selected,
-                              onTap: () => _toggle(g),
-                            ),
-                            if (suggested)
-                              Positioned(
-                                top: 8,
-                                left: 8,
-                                child: CardCornerBadge(
-                                  icon: Icons.auto_awesome,
-                                  backgroundColor: AppColors.primary,
-                                  iconColor: Colors.white,
-                                  onTap: () => ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        advice?.reasoning ??
-                                            'Suggested by AI',
-                                      ),
-                                    ),
+                            advice?.suggestedGarmentIds.contains(g.id) ?? false;
+                        return DeletableCard(
+                          group: _deleteGroup,
+                          onDelete: () => _deleteGarment(g),
+                          child: Stack(
+                            children: [
+                              GarmentCard(
+                                garment: g,
+                                isSelected: selected,
+                                onTap: () => _toggle(g),
+                              ),
+                              if (suggested)
+                                Positioned(
+                                  top: 8,
+                                  left: 8,
+                                  child: CardCornerBadge(
+                                    icon: Icons.auto_awesome,
+                                    backgroundColor: AppColors.primary,
+                                    iconColor: Colors.white,
+                                    onTap: () => ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              advice?.reasoning ??
+                                                  'Suggested by AI',
+                                            ),
+                                          ),
+                                        ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         );
                       },
                     ),

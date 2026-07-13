@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/number_stepper.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/section_title.dart';
 
 class DailyPreferencesPage extends StatefulWidget {
@@ -73,7 +73,7 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const PageAppBar(title: 'Daily Preferences'),
+      appBar: const AppToolBar(title: 'Daily Preferences'),
       body: SafeArea(
         top: false,
         child: ListView(

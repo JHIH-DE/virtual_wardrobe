@@ -10,8 +10,8 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
+import '../core/services/daily_look_service.dart';
 import '../core/services/look_service.dart';
-import '../core/services/daily_looks_service.dart';
 import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/try_on_mixin.dart';
@@ -20,9 +20,9 @@ import '../data/look.dart';
 import '../data/trip_plan.dart';
 import 'trip_suitcase_page.dart';
 import 'widgets/common/app_list_card.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/info_banner.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/today_outfit_idea.dart';
 import 'widgets/garment/garment_image.dart';
 
@@ -280,7 +280,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(
+      appBar: AppToolBar(
         title: widget.trip.name,
         backgroundColor: AppColors.surface,
       ),

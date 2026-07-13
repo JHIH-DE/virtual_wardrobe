@@ -1,7 +1,6 @@
 abstract class AppDimens {
   // Look Card
-  static const double lookCardWidth = 165;
-  static const double lookCardHeight = 210;
+  static const double lookCardHeight = 235;
 
   // Garment Card
   static const double garmentCardWidth = 165;

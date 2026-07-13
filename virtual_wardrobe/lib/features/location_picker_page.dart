@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../app/theme/app_colors.dart';
 import '../data/trip_plan.dart';
-import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/app_tool_bar.dart';
 
 class LocationPickerPage extends StatefulWidget {
   const LocationPickerPage({super.key});
@@ -51,7 +51,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(
+      appBar: AppToolBar(
         title: 'Search Location',
         backgroundColor: AppColors.surface,
       ),

@@ -4,7 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 
-class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
+class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final Color? backgroundColor;
   final VoidCallback? onBack;
@@ -13,7 +13,7 @@ class PageAppBar extends StatelessWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
   final bool centerTitle;
 
-  const PageAppBar({
+  const AppToolBar({
     super.key,
     required this.title,
     this.backgroundColor,

@@ -10,9 +10,9 @@ import '../core/services/base_service.dart';
 import '../core/services/profile_service.dart';
 import 'image_editor_page.dart';
 import 'widgets/common/app_text_field.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/custom_dropdown.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/profile_avatar.dart';
 import 'widgets/common/required_field_label.dart';
 
@@ -156,7 +156,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(title: 'Personal Details'),
+      appBar: AppToolBar(title: 'Personal Details'),
       body: SafeArea(
         top: false,
         child: Column(

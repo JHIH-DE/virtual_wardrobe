@@ -11,12 +11,11 @@ import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import '../data/trip_plan.dart';
 import 'trip_garment_selection_page.dart';
-import 'widgets/common/app_dialog.dart';
-import 'widgets/common/card_corner_badge.dart';
+import 'widgets/common/app_tool_bar.dart';
+import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/primary_action_button.dart';
 import 'widgets/garment/garment_card.dart';
 
@@ -43,6 +42,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   bool _loading = true;
   Set<int> _packedIds = {};
   final Set<int> _pendingIds = {};
+  final _deleteGroup = DeletableCardGroup();
 
   int get _tripId => int.parse(widget.trip.id);
 
@@ -141,22 +141,6 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     }
   }
 
-  Future<void> _confirmRemoveGarment(Garment garment) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: 'Remove garment?',
-        body: '${garment.name} will be removed from your suitcase.',
-        primaryLabel: 'Remove',
-        onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: 'Cancel',
-        onSecondary: () => Navigator.pop(ctx, false),
-      ),
-    );
-    if (ok != true || !mounted) return;
-    await _removeGarment(garment);
-  }
-
   Future<void> _removeGarment(Garment garment) async {
     final id = garment.id;
     if (id == null || _pendingIds.contains(id)) return;
@@ -193,7 +177,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: PageAppBar(
+          appBar: AppToolBar(
             title: '${widget.trip.name} Suitcase',
             backgroundColor: AppColors.surface,
           ),
@@ -271,29 +255,20 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 12,
-          mainAxisSpacing: 8,
+          mainAxisSpacing: 12,
           mainAxisExtent: AppDimens.garmentCardHeight,
         ),
         itemCount: garments.length,
         itemBuilder: (context, i) {
           final g = garments[i];
-          return Stack(
-            children: [
-              GarmentCard(garment: g, showSelectionIndicator: false),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: CardCornerBadge(
-                  icon: Icons.delete_outline,
-                  onTap: () => _confirmRemoveGarment(g),
-                ),
-              ),
-            ],
+          return DeletableCard(
+            group: _deleteGroup,
+            onDelete: () => _removeGarment(g),
+            child: GarmentCard(garment: g, showSelectionIndicator: false),
           );
         },
       ),
       const SizedBox(height: 20),
     ];
   }
-
 }

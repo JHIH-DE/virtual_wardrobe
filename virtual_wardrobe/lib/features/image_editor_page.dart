@@ -13,9 +13,9 @@ import '../core/services/garment_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/image_edit_result.dart';
 import 'camera_capture_page.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/pill_button.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -153,7 +153,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: PageAppBar(
+          appBar: AppToolBar(
             title: 'Edit',
             onBack: () {
               if (!_isAnalyzing) Navigator.pop(context);

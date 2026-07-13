@@ -4,66 +4,19 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/look.dart';
-import 'empty_state_placeholder.dart';
 
-class LooksGridView extends StatelessWidget {
-  final List<Look> looks;
-  final Future<void> Function() onRefresh;
-  final void Function(Look look) onTap;
-  final String emptyMessage;
-
-  const LooksGridView({
-    super.key,
-    required this.looks,
-    required this.onRefresh,
-    required this.onTap,
-    this.emptyMessage = 'No looks yet.',
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (looks.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: EmptyStatePlaceholder(message: emptyMessage),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      color: AppColors.primary,
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          childAspectRatio: AppDimens.lookCardWidth / AppDimens.lookCardHeight,
-        ),
-        itemCount: looks.length,
-        itemBuilder: (context, index) {
-          final look = looks[index];
-          return _LookCard(look: look, onTap: () => onTap(look));
-        },
-      ),
-    );
-  }
-}
-
-class _LookCard extends StatelessWidget {
+class LookCard extends StatelessWidget {
   final Look look;
   final VoidCallback onTap;
 
-  const _LookCard({required this.look, required this.onTap});
+  const LookCard({super.key, required this.look, required this.onTap});
 
   String get _label {
     if (look.name != null && look.name!.isNotEmpty) return look.name!;
-    final parts = [...look.style, ...look.seasons]
-        .where((s) => s.isNotEmpty)
-        .toList();
+    final parts = [
+      ...look.style,
+      ...look.seasons,
+    ].where((s) => s.isNotEmpty).toList();
     if (parts.isEmpty) return 'Look #${look.id}';
     return parts.map(_capitalize).join(' ');
   }
@@ -76,7 +29,6 @@ class _LookCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: AppDimens.lookCardWidth,
         height: AppDimens.lookCardHeight,
         child: Container(
           decoration: BoxDecoration(
@@ -105,10 +57,12 @@ class _LookCard extends StatelessWidget {
                             alignment: Alignment.topCenter,
                             loadingBuilder: (_, child, progress) =>
                                 progress == null
-                                    ? child
-                                    : const Center(
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      ),
+                                ? child
+                                : const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
                             errorBuilder: (_, __, ___) => const Center(
                               child: Icon(
                                 Icons.broken_image_outlined,
@@ -132,7 +86,9 @@ class _LookCard extends StatelessWidget {
                     _label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyle.bold14.copyWith(color: AppColors.nearBlack),
+                    style: AppTextStyle.bold14.copyWith(
+                      color: AppColors.nearBlack,
+                    ),
                   ),
                 ),
               ],

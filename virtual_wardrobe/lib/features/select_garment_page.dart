@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
+import '../core/services/auth_handler.dart';
+import '../core/services/garment_service.dart';
 import '../data/garment.dart';
 import '../data/select_garment_result.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/deletable_card.dart';
+import 'widgets/common/filter_button.dart';
 import 'widgets/garment/garment_card.dart';
-import 'widgets/garment/garment_filter_button.dart';
 
 class SelectGarmentPage extends StatefulWidget {
   final String title;
@@ -32,15 +35,18 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
   Set<String> _selectedColors = {'All'};
   Set<String> _selectedTypes = {'All'};
   Garment? _pending;
+  late List<Garment> _garments;
+  final _deleteGroup = DeletableCardGroup();
 
   @override
   void initState() {
     super.initState();
     _pending = widget.selected;
+    _garments = [...widget.garments];
   }
 
   List<Garment> get _byCategory =>
-      widget.garments.where((g) => g.category == widget.category).toList();
+      _garments.where((g) => g.category == widget.category).toList();
 
   List<String> get _availableColors {
     final colors =
@@ -91,17 +97,35 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
 
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(
+      appBar: AppToolBar(
         title: widget.title,
         actions: [
-          GarmentFilterButton(
+          FilterButton(
             isFiltered: _isFiltered,
-            availableColors: _availableColors,
-            availableTypes: _availableTypes,
-            selectedColors: () => _selectedColors,
-            selectedTypes: () => _selectedTypes,
-            onColorsChanged: (v) => setState(() => _selectedColors = v),
-            onTypesChanged: (v) => setState(() => _selectedTypes = v),
+            groups: [
+              FilterGroup(
+                label: 'Color',
+                options: _availableColors,
+                selected: () => _selectedColors,
+                onToggle: (v) => setState(
+                  () => _selectedColors = FilterButton.toggleWithAll(
+                    _selectedColors,
+                    v,
+                  ),
+                ),
+              ),
+              FilterGroup(
+                label: 'Product Type',
+                options: _availableTypes,
+                selected: () => _selectedTypes,
+                onToggle: (v) => setState(
+                  () => _selectedTypes = FilterButton.toggleWithAll(
+                    _selectedTypes,
+                    v,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -121,17 +145,21 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
-                  mainAxisSpacing: 8,
+                  mainAxisSpacing: 12,
                   mainAxisExtent: AppDimens.garmentCardHeight,
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, i) {
                   final g = items[i];
-                  return GarmentCard(
-                    garment: g,
-                    isSelected: _pending?.id != null && _pending!.id == g.id,
-                    onTap: () => setState(
-                      () => _pending = (_pending?.id == g.id) ? null : g,
+                  return DeletableCard(
+                    group: _deleteGroup,
+                    onDelete: () => _deleteGarment(g),
+                    child: GarmentCard(
+                      garment: g,
+                      isSelected: _pending?.id != null && _pending!.id == g.id,
+                      onTap: () => setState(
+                        () => _pending = (_pending?.id == g.id) ? null : g,
+                      ),
                     ),
                   );
                 },
@@ -142,5 +170,28 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
         onPressed: () => Navigator.pop(context, SelectGarmentResult(_pending)),
       ),
     );
+  }
+
+  Future<void> _deleteGarment(Garment garment) async {
+    final id = garment.id;
+    if (id == null) return;
+    try {
+      await GarmentService().deleteGarment(id);
+      if (!mounted) return;
+      setState(() {
+        _garments.removeWhere((g) => g.id == id);
+        if (_pending?.id == id) _pending = null;
+      });
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete garment')),
+        );
+      }
+    }
   }
 }

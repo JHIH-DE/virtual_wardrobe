@@ -8,8 +8,8 @@ import 'body_profile_page.dart';
 import 'manual_try_on_page.dart';
 import 'trip_planner_page.dart';
 import 'widgets/common/app_card.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/page_app_bar.dart';
 
 class CreatePage extends StatefulWidget {
   const CreatePage({super.key});
@@ -37,7 +37,7 @@ class _CreatePageState extends State<CreatePage> {
   Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: PageAppBar(
+      appBar: AppToolBar(
         title: 'Create',
         backgroundColor: AppColors.defaultToolBar,
         actions: [

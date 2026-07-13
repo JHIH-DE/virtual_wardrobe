@@ -13,7 +13,7 @@ import 'daily_preferences_page.dart';
 import 'login_page.dart';
 import 'personal_details_page.dart';
 import 'widgets/common/app_list_card.dart';
-import 'widgets/common/page_app_bar.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/profile_avatar.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -113,7 +113,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const PageAppBar(title: 'Settings'),
+      appBar: const AppToolBar(title: 'Settings'),
       body: SafeArea(
         top: false,
         child: _loading

@@ -8,9 +8,9 @@ import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
 import '../data/image_edit_result.dart';
 import 'image_editor_page.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/numeric_unit_field.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/common/photo_upload_field.dart';
 
 class BodyProfilePage extends StatefulWidget {
@@ -135,7 +135,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const PageAppBar(title: 'Body Profile'),
+      appBar: const AppToolBar(title: 'Body Profile'),
       bottomNavigationBar: BottomActionButton(
         label: 'Save',
         onPressed: _loading ? null : _saveProfile,

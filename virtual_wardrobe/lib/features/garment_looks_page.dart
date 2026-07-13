@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
-import '../app/theme/app_text_styles.dart';
+import '../app/theme/app_dimens.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/look_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
+import 'widgets/common/app_tool_bar.dart';
+import 'widgets/common/deletable_card.dart';
+import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
-import 'widgets/common/filter_icon_button.dart';
-import 'widgets/common/filter_sheet_scaffold.dart';
-import 'widgets/common/looks_grid_view.dart';
-import 'widgets/common/page_app_bar.dart';
-import 'widgets/common/selectable_chip.dart';
+import 'widgets/common/filter_button.dart';
+import 'widgets/look/look_card.dart';
 
 class GarmentLooksPage extends StatefulWidget {
   final int garmentId;
@@ -24,8 +24,20 @@ class GarmentLooksPage extends StatefulWidget {
 }
 
 class _GarmentLooksPageState extends State<GarmentLooksPage> {
-  static const List<String> _seasons = ['All', 'Spring', 'Summer', 'Autumn', 'Winter'];
-  static const List<String> _styles = ['All', 'Minimal', 'Street', 'Classic', 'Sporty'];
+  static const List<String> _seasons = [
+    'All',
+    'Spring',
+    'Summer',
+    'Autumn',
+    'Winter',
+  ];
+  static const List<String> _styles = [
+    'All',
+    'Minimal',
+    'Street',
+    'Classic',
+    'Sporty',
+  ];
 
   Set<String> _selectedSeasons = {'All'};
   Set<String> _selectedStyle = {'All'};
@@ -33,6 +45,7 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
   List<Look> _allLooks = [];
   bool _loading = true;
   String? _error;
+  final _deleteGroup = DeletableCardGroup();
 
   bool get _isFiltered =>
       !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
@@ -52,9 +65,13 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
       debugLog('getLooksByGarments garmentId=${widget.garmentId}');
       final result = await LookService().getLooksByGarments([widget.garmentId]);
       final saved = result.where((l) => l.isSaved).toList();
-      debugLog('API returned ${result.length} looks, ${saved.length} isSaved=true');
+      debugLog(
+        'API returned ${result.length} looks, ${saved.length} isSaved=true',
+      );
       for (final l in result) {
-        debugLog('  look id=${l.id} isSaved=${l.isSaved} imageUrl=${l.imageUrl}');
+        debugLog(
+          '  look id=${l.id} isSaved=${l.isSaved} imageUrl=${l.imageUrl}',
+        );
       }
       if (!mounted) return;
       setState(() => _allLooks = saved);
@@ -71,98 +88,57 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
 
   List<Look> _filtered() {
     return _allLooks.where((l) {
-      final okSeason = _selectedSeasons.contains('All') ||
-          l.seasons.any((s) => _selectedSeasons.any((sel) => sel.toLowerCase() == s.toLowerCase()));
-      final okStyle = _selectedStyle.contains('All') ||
-          l.style.any((s) => _selectedStyle.any((sel) => sel.toLowerCase() == s.toLowerCase()));
+      final okSeason =
+          _selectedSeasons.contains('All') ||
+          l.seasons.any(
+            (s) => _selectedSeasons.any(
+              (sel) => sel.toLowerCase() == s.toLowerCase(),
+            ),
+          );
+      final okStyle =
+          _selectedStyle.contains('All') ||
+          l.style.any(
+            (s) => _selectedStyle.any(
+              (sel) => sel.toLowerCase() == s.toLowerCase(),
+            ),
+          );
       return okSeason && okStyle;
     }).toList();
   }
-
-  void _openFilterSheet() {
-    showAppFilterSheet(
-      context,
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          return FilterSheetContent(
-            children: [
-              Text('Season', style: AppTextStyle.bold16),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _seasons.map((s) {
-                  final selected = _selectedSeasons.contains(s);
-                  return SelectableChip(
-                    label: s,
-                    selected: selected,
-                    onTap: () {
-                      setSheetState(() {});
-                      setState(() {
-                        if (s == 'All') {
-                          _selectedSeasons = {'All'};
-                        } else {
-                          _selectedSeasons.remove('All');
-                          if (_selectedSeasons.contains(s)) {
-                            _selectedSeasons.remove(s);
-                            if (_selectedSeasons.isEmpty) _selectedSeasons = {'All'};
-                          } else {
-                            _selectedSeasons.add(s);
-                          }
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-              Text('Style', style: AppTextStyle.bold16),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _styles.map((s) {
-                  final selected = _selectedStyle.contains(s);
-                  return SelectableChip(
-                    label: s,
-                    selected: selected,
-                    onTap: () {
-                      setSheetState(() {});
-                      setState(() {
-                        if (s == 'All') {
-                          _selectedStyle = {'All'};
-                        } else {
-                          _selectedStyle.remove('All');
-                          if (_selectedStyle.contains(s)) {
-                            _selectedStyle.remove(s);
-                            if (_selectedStyle.isEmpty) _selectedStyle = {'All'};
-                          } else {
-                            _selectedStyle.add(s);
-                          }
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: PageAppBar(
+      appBar: AppToolBar(
         title: 'Used in Looks',
         actions: [
-          FilterIconButton(
+          FilterButton(
             isFiltered: _isFiltered,
-            onPressed: _openFilterSheet,
+            groups: [
+              FilterGroup(
+                label: 'Season',
+                options: _seasons,
+                selected: () => _selectedSeasons,
+                onToggle: (s) => setState(
+                  () => _selectedSeasons = FilterButton.toggleWithAll(
+                    _selectedSeasons,
+                    s,
+                  ),
+                ),
+              ),
+              FilterGroup(
+                label: 'Style',
+                options: _styles,
+                selected: () => _selectedStyle,
+                onToggle: (s) => setState(
+                  () => _selectedStyle = FilterButton.toggleWithAll(
+                    _selectedStyle,
+                    s,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -171,17 +147,71 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-                ? ErrorStateWidget(error: _error!, onRetry: _load)
-                : LooksGridView(
-                    looks: _filtered(),
-                    onRefresh: _load,
-                    onTap: (look) => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
-                    ),
-                    emptyMessage: 'This item has not been used in any looks yet.',
-                  ),
+            ? ErrorStateWidget(error: _error!, onRetry: _load)
+            : _buildLooksGrid(_filtered()),
       ),
     );
+  }
+
+  Widget _buildLooksGrid(List<Look> looks) {
+    if (looks.isEmpty) {
+      return Center(
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: const EmptyStatePlaceholder(
+            message: 'This item has not been used in any looks yet.',
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppColors.primary,
+      child: GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          mainAxisExtent: AppDimens.lookCardHeight,
+        ),
+        itemCount: looks.length,
+        itemBuilder: (context, index) {
+          final look = looks[index];
+          return DeletableCard(
+            group: _deleteGroup,
+            borderRadius: BorderRadius.circular(20),
+            onDelete: () => _deleteLook(look),
+            child: LookCard(
+              look: look,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteLook(Look look) async {
+    try {
+      await LookService().deleteLook(look.id);
+      if (!mounted) return;
+      setState(() => _allLooks.removeWhere((l) => l.id == look.id));
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to delete look')));
+      }
+    }
   }
 }

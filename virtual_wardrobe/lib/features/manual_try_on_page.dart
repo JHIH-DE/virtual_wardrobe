@@ -12,9 +12,9 @@ import '../data/select_garment_result.dart';
 import 'looks_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 import 'widgets/common/app_list_card.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/garment/garment_image.dart';
 
 class ManualTryOnPage extends StatefulWidget {
@@ -171,7 +171,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: PageAppBar(title: 'Manual Try-on', onBack: widget.onBack),
+          appBar: AppToolBar(title: 'Manual Try-on', onBack: widget.onBack),
           body: SafeArea(
             top: false,
             child: ListView(

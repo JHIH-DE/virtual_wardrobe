@@ -14,12 +14,12 @@ import 'full_screen_image_page.dart';
 import 'manual_try_on_page.dart';
 import 'widgets/common/action_button.dart';
 import 'widgets/common/app_dialog.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/category_tag.dart';
-import 'widgets/common/labeled_divider.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/page_app_bar.dart';
 import 'widgets/garment/garment_list_card.dart';
+import 'widgets/look/labeled_divider.dart';
 
 class LooksDetailsPage extends ConsumerStatefulWidget {
   final Look look;
@@ -78,7 +78,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       },
       child: Scaffold(
         backgroundColor: AppColors.defaultBackground,
-        appBar: PageAppBar(
+        appBar: AppToolBar(
           title: 'Details',
           onBack: widget.isNew ? _showLeaveDialog : null,
           actions: [

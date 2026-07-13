@@ -3,19 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
-import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
+import '../core/services/garment_service.dart';
 import '../data/garment.dart';
 import 'add_garment_page.dart';
+import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/category_selector.dart';
+import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
-import 'widgets/common/filter_icon_button.dart';
-import 'widgets/common/filter_sheet_scaffold.dart';
+import 'widgets/common/filter_button.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/page_app_bar.dart';
-import 'widgets/common/selectable_chip.dart';
 import 'widgets/garment/garment_card.dart';
 import 'widgets/garment/garment_upload_helper.dart';
 
@@ -30,6 +29,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   GarmentCategory _selectedCategory = GarmentCategory.top;
   final Set<String> _selectedColors = {};
   final Set<String> _selectedProductTypes = {};
+  final _deleteGroup = DeletableCardGroup();
 
   bool get _isFiltered =>
       _selectedColors.isNotEmpty || _selectedProductTypes.isNotEmpty;
@@ -83,7 +83,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     }).toList();
   }
 
-  void _openFilterSheet(List<Garment> allGarments) {
+  Widget _buildFilterButton(List<Garment> allGarments) {
     final categoryGarments = allGarments
         .where((g) => g.category == _selectedCategory)
         .toList();
@@ -104,79 +104,36 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
             .toList()
           ..sort();
 
-    showAppFilterSheet(
-      context,
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          return FilterSheetContent(
-            children: [
-              Text('Color', style: AppTextStyle.bold16),
-              const SizedBox(height: 10),
-              availableColors.isEmpty
-                  ? Text(
-                      'No colors available',
-                      style: AppTextStyle.regular14.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    )
-                  : Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: availableColors.map((c) {
-                        final selected = _selectedColors.contains(
-                          c.label.toLowerCase(),
-                        );
-                        return SelectableChip(
-                          label: c.label,
-                          selected: selected,
-                          onTap: () {
-                            setSheetState(() {});
-                            setState(() {
-                              if (selected) {
-                                _selectedColors.remove(c.label.toLowerCase());
-                              } else {
-                                _selectedColors.add(c.label.toLowerCase());
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-              const SizedBox(height: 20),
-              Text('Product Type', style: AppTextStyle.bold16),
-              const SizedBox(height: 10),
-              availableTypes.isEmpty
-                  ? Text(
-                      'No types available',
-                      style: AppTextStyle.regular14.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    )
-                  : Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: availableTypes.map((t) {
-                        final selected = _selectedProductTypes.contains(t);
-                        return SelectableChip(
-                          label: t,
-                          selected: selected,
-                          onTap: () {
-                            setSheetState(() {});
-                            setState(() {
-                              if (selected) {
-                                _selectedProductTypes.remove(t);
-                              } else {
-                                _selectedProductTypes.add(t);
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-            ],
-          );
-        },
-      ),
+    return FilterButton(
+      isFiltered: _isFiltered,
+      groups: [
+        FilterGroup(
+          label: 'Color',
+          options: availableColors.map((c) => c.label).toList(),
+          selected: () => _selectedColors,
+          emptyMessage: 'No colors available',
+          onToggle: (v) => setState(() {
+            if (_selectedColors.contains(v)) {
+              _selectedColors.remove(v);
+            } else {
+              _selectedColors.add(v);
+            }
+          }),
+        ),
+        FilterGroup(
+          label: 'Product Type',
+          options: availableTypes,
+          selected: () => _selectedProductTypes,
+          emptyMessage: 'No types available',
+          onToggle: (v) => setState(() {
+            if (_selectedProductTypes.contains(v)) {
+              _selectedProductTypes.remove(v);
+            } else {
+              _selectedProductTypes.add(v);
+            }
+          }),
+        ),
+      ],
     );
   }
 
@@ -186,15 +143,12 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: PageAppBar(
+      appBar: AppToolBar(
         title: 'My closet',
         backgroundColor: AppColors.defaultToolBar,
         onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
         actions: [
-          FilterIconButton(
-            isFiltered: _isFiltered,
-            onPressed: () => _openFilterSheet(garmentsAsync.valueOrNull ?? []),
-          ),
+          _buildFilterButton(garmentsAsync.valueOrNull ?? []),
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(4),
@@ -277,21 +231,43 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio:
-            AppDimens.garmentCardWidth / AppDimens.garmentCardHeight,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: AppDimens.garmentCardHeight,
       ),
       itemCount: garments.length,
-      itemBuilder: (context, index) => GarmentCard(
-        garment: garments[index],
-        showSelectionIndicator: false,
-        onTap: () => _editGarment(garments[index]),
+      itemBuilder: (context, index) => DeletableCard(
+        group: _deleteGroup,
+        onDelete: () => _deleteGarment(garments[index]),
+        child: GarmentCard(
+          garment: garments[index],
+          showSelectionIndicator: false,
+          onTap: () => _editGarment(garments[index]),
+        ),
       ),
     );
+  }
+
+  Future<void> _deleteGarment(Garment garment) async {
+    final id = garment.id;
+    if (id == null) return;
+    try {
+      await GarmentService().deleteGarment(id);
+      ref.read(garmentsProvider.notifier).removeGarment(id);
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete garment')),
+        );
+      }
+    }
   }
 
   Future<void> _editGarment(Garment garment) async {
