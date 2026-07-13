@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -11,6 +12,12 @@ class GarmentImage extends StatelessWidget {
   final BoxFit fit;
   final double borderRadius;
 
+  /// Stable identity for this image's cache entry — use something that
+  /// only changes when the underlying photo does (e.g. the garment's
+  /// `objectName`), since [url] is a signed URL that rotates on every
+  /// fetch and would otherwise defeat the cache.
+  final String? cacheKey;
+
   const GarmentImage({
     super.key,
     required this.url,
@@ -18,6 +25,7 @@ class GarmentImage extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius = 0,
+    this.cacheKey,
   });
 
   @override
@@ -34,12 +42,20 @@ class GarmentImage extends StatelessWidget {
         ),
       );
     } else if (u.startsWith('http')) {
-      image = Image.network(
-        u,
+      // An empty cacheKey (e.g. a garment whose objectName wasn't
+      // populated by the backend) must not be passed through as-is —
+      // cached_network_image would then treat every such image as the
+      // same cache entry, showing one garment's photo for all of them.
+      final effectiveCacheKey = (cacheKey != null && cacheKey!.isNotEmpty)
+          ? cacheKey
+          : null;
+      image = CachedNetworkImage(
+        imageUrl: u,
+        cacheKey: effectiveCacheKey,
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (_, __, ___) => const Center(
+        errorWidget: (_, __, ___) => const Center(
           child: Icon(Icons.broken_image, color: AppColors.textSecondary),
         ),
       );

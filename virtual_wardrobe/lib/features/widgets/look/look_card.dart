@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -51,19 +52,15 @@ class LookCard extends StatelessWidget {
                   child: Container(
                     color: Colors.white,
                     child: look.imageUrl.isNotEmpty
-                        ? Image.network(
-                            look.imageUrl,
+                        ? CachedNetworkImage(
+                            imageUrl: look.imageUrl,
+                            cacheKey: 'look_${look.id}',
                             fit: BoxFit.cover,
                             alignment: Alignment.topCenter,
-                            loadingBuilder: (_, child, progress) =>
-                                progress == null
-                                ? child
-                                : const Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                            errorBuilder: (_, __, ___) => const Center(
+                            placeholder: (_, __) => const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            errorWidget: (_, __, ___) => const Center(
                               child: Icon(
                                 Icons.broken_image_outlined,
                                 size: 36,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
+import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/utils/debug_log.dart';
 import 'add_garment_page.dart';
@@ -11,14 +13,14 @@ import 'widgets/common/app_card.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/loading_overlay.dart';
 
-class CreatePage extends StatefulWidget {
+class CreatePage extends ConsumerStatefulWidget {
   const CreatePage({super.key});
 
   @override
-  State<CreatePage> createState() => _CreatePageState();
+  ConsumerState<CreatePage> createState() => _CreatePageState();
 }
 
-class _CreatePageState extends State<CreatePage> {
+class _CreatePageState extends ConsumerState<CreatePage> {
   bool _openingTryOn = false;
 
   @override
@@ -108,7 +110,7 @@ class _CreatePageState extends State<CreatePage> {
   Future<void> _handleOpenManualTryOn(BuildContext context) async {
     setState(() => _openingTryOn = true);
     try {
-      final garments = await ManualTryOnPage.preload();
+      final garments = await ref.read(garmentsProvider.future);
       if (!mounted) return;
       setState(() => _openingTryOn = false);
       if (!context.mounted) return;
@@ -117,8 +119,7 @@ class _CreatePageState extends State<CreatePage> {
         MaterialPageRoute(
           builder: (_) => ManualTryOnPage(
             preloadedGarments: garments,
-            onBack: () =>
-                Navigator.popUntil(context, (route) => route.isFirst),
+            onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
           ),
         ),
       );

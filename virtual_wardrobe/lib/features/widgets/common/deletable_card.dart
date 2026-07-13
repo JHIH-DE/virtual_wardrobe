@@ -113,7 +113,7 @@ class _DeletableCardState extends State<DeletableCard> with RouteAware {
                               vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.85),
+                              color: Colors.white.withValues(alpha: 0.65),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(

@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
+import '../core/providers/garments_provider.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
@@ -226,8 +228,10 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       onTap: () => Navigator.of(context).push(
         PageRouteBuilder(
           opaque: false,
-          pageBuilder: (_, __, ___) =>
-              FullScreenImagePage(imageUrl: widget.look.imageUrl),
+          pageBuilder: (_, __, ___) => FullScreenImagePage(
+            imageUrl: widget.look.imageUrl,
+            cacheKey: 'look_${widget.look.id}',
+          ),
         ),
       ),
       child: ClipRRect(
@@ -236,13 +240,13 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
           aspectRatio: 3 / 4,
           child: Hero(
             tag: 'outfit_image_${widget.look.id}',
-            child: Image.network(
-              widget.look.imageUrl,
+            child: CachedNetworkImage(
+              imageUrl: widget.look.imageUrl,
+              cacheKey: 'look_${widget.look.id}',
               fit: BoxFit.cover,
-              loadingBuilder: (_, child, progress) => progress == null
-                  ? child
-                  : const Center(child: CircularProgressIndicator()),
-              errorBuilder: (_, __, ___) => Center(
+              placeholder: (_, __) =>
+                  const Center(child: CircularProgressIndicator()),
+              errorWidget: (_, __, ___) => Center(
                 child: Text(
                   'Failed to load image',
                   style: AppTextStyle.regular14.copyWith(
@@ -272,15 +276,18 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
               child: GarmentListCard(
                 garment: g,
                 onTap: (g.imageUrl?.isNotEmpty == true)
-                    ? () => Navigator.of(context).push(PageRouteBuilder(
+                    ? () => Navigator.of(context).push(
+                        PageRouteBuilder(
                           opaque: false,
                           pageBuilder: (_, __, ___) => FullScreenImagePage(
                             imageUrl: g.imageUrl!,
+                            cacheKey: g.objectName,
                             backgroundColor: Colors.white,
                             aspectRatio: 1.0,
                             fit: BoxFit.contain,
                           ),
-                        ))
+                        ),
+                      )
                     : null,
               ),
             ),
@@ -346,7 +353,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   Future<void> _remixLook(BuildContext context) async {
     setState(() => _openingTryOn = true);
     try {
-      final garments = await ManualTryOnPage.preload();
+      final garments = await ref.read(garmentsProvider.future);
       if (!mounted) return;
       setState(() => _openingTryOn = false);
       if (!context.mounted) return;
@@ -428,7 +435,9 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -522,9 +531,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
               horizontal: 16,
               vertical: 12,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         primaryLabel: 'Save',

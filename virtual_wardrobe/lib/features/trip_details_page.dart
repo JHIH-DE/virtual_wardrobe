@@ -528,7 +528,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),
-      child: GarmentImage(url: g.imageUrl, fit: BoxFit.cover, borderRadius: 12),
+      child: GarmentImage(
+        url: g.imageUrl,
+        cacheKey: g.objectName,
+        fit: BoxFit.cover,
+        borderRadius: 12,
+      ),
     );
   }
 

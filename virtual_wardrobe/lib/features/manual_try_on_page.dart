@@ -29,10 +29,6 @@ class ManualTryOnPage extends StatefulWidget {
     this.onBack,
   });
 
-  /// Fetches the closet garments up front, so the page can be pushed only
-  /// once loading is complete (no in-page spinner on open).
-  static Future<List<Garment>> preload() => GarmentService().getGarments();
-
   @override
   State<ManualTryOnPage> createState() => _ManualTryOnPageState();
 }
@@ -379,6 +375,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
       leading: value != null
           ? GarmentImage(
               url: value.imageUrl,
+              cacheKey: value.objectName,
               width: 40,
               height: 40,
               borderRadius: 8,

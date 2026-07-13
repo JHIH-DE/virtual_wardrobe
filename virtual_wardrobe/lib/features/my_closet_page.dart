@@ -14,6 +14,7 @@ import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
+import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_card.dart';
 import 'widgets/garment/garment_upload_helper.dart';
@@ -141,6 +142,15 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   Widget build(BuildContext context) {
     final garmentsAsync = ref.watch(garmentsProvider);
 
+    return Stack(
+      children: [
+        _buildScaffold(garmentsAsync),
+        const FloatingNavBar(current: AppTab.closet),
+      ],
+    );
+  }
+
+  Widget _buildScaffold(AsyncValue<List<Garment>> garmentsAsync) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppToolBar(

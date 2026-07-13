@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
+import '../core/providers/garments_provider.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/look_service.dart';
@@ -14,6 +15,7 @@ import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
+import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/look/look_card.dart';
 
@@ -146,6 +148,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
           const Positioned.fill(
             child: LoadingOverlay(label: 'Loading Garments...'),
           ),
+        const FloatingNavBar(current: AppTab.looks),
       ],
     );
   }
@@ -212,7 +215,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
   Future<void> _handleOpenManualTryOn(BuildContext context) async {
     setState(() => _openingTryOn = true);
     try {
-      final garments = await ManualTryOnPage.preload();
+      final garments = await ref.read(garmentsProvider.future);
       if (!mounted) return;
       setState(() => _openingTryOn = false);
       if (!context.mounted) return;

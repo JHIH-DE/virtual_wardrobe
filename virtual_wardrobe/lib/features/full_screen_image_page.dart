@@ -1,7 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class FullScreenImagePage extends StatelessWidget {
   final String imageUrl;
+
+  /// Stable identity for this image's cache entry — pass the same key
+  /// used elsewhere for this image (e.g. a garment's `objectName` or
+  /// `'look_${id}'`) so this zoomed view reuses that cache.
+  final String? cacheKey;
   final Color backgroundColor;
   final double? aspectRatio;
   final BoxFit fit;
@@ -9,6 +15,7 @@ class FullScreenImagePage extends StatelessWidget {
   const FullScreenImagePage({
     super.key,
     required this.imageUrl,
+    this.cacheKey,
     this.backgroundColor = Colors.black,
     this.aspectRatio = 0.6,
     this.fit = BoxFit.cover,
@@ -16,8 +23,9 @@ class FullScreenImagePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = Image.network(
-      imageUrl,
+    final image = CachedNetworkImage(
+      imageUrl: imageUrl,
+      cacheKey: cacheKey,
       fit: fit,
       alignment: Alignment.center,
     );

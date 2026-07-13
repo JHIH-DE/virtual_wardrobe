@@ -64,6 +64,24 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
+  /// Watches an already-created try-on job (e.g. a daily-look option's
+  /// `job_id` returned by the backend) without creating a new one.
+  Future<int?> watchJob(int jobId) {
+    pollTimer?.cancel();
+    _tryOnCompleter = Completer<int?>();
+
+    setState(() {
+      isOutfitLoading = true;
+      tryOnErrorMessage = null;
+      tryOnResultUrl = null;
+      tryOnAiAdvice = null;
+      tryOnJobId = jobId;
+    });
+
+    _startPolling(jobId);
+    return _tryOnCompleter!.future;
+  }
+
   void _startPolling(int jobId) {
     int attempts = 0;
     pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
