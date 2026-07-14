@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_shadows.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip_plan.dart';
 import '../common/app_dialog.dart';
@@ -38,19 +39,9 @@ class TripPlanCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: AppColors.defaultCard,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          boxShadow: [...AppShadows.card, AppShadows.softDrop],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,14 +49,12 @@ class TripPlanCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    trip.name,
-                    style: AppTextStyle.bold24.copyWith(color: Colors.white),
-                  ),
-                ),
+                Expanded(child: Text(trip.name, style: AppTextStyle.bold24)),
                 PopupMenuButton<_TripCardAction>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white70),
+                  icon: const Icon(
+                    Icons.more_vert,
+                    color: AppColors.textSecondary,
+                  ),
                   color: AppColors.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -115,12 +104,16 @@ class TripPlanCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.location_on, color: Colors.white70, size: 18),
+                const Icon(
+                  Icons.location_on,
+                  color: AppColors.textSecondary,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     trip.locationSummary,
-                    style: AppTextStyle.regular16.copyWith(color: Colors.white),
+                    style: AppTextStyle.regular16,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -132,14 +125,11 @@ class TripPlanCard extends StatelessWidget {
               children: [
                 const Icon(
                   Icons.calendar_today,
-                  color: Colors.white70,
+                  color: AppColors.textSecondary,
                   size: 18,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  dateStr,
-                  style: AppTextStyle.regular16.copyWith(color: Colors.white),
-                ),
+                Text(dateStr, style: AppTextStyle.regular16),
               ],
             ),
             const SizedBox(height: 12),
@@ -149,14 +139,14 @@ class TripPlanCard extends StatelessWidget {
                 Text(
                   "View Plan",
                   style: AppTextStyle.regular12.copyWith(
-                    color: Colors.white70,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(width: 4),
                 const Icon(
                   Icons.arrow_forward_ios,
-                  color: Colors.white70,
+                  color: AppColors.textSecondary,
                   size: 12,
                 ),
               ],

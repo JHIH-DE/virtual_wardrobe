@@ -8,10 +8,8 @@ import 'package:intl/intl.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
-import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/daily_look_service.dart';
-import '../core/services/look_service.dart';
+import '../core/services/garment_service.dart';
 import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/try_on_mixin.dart';
@@ -25,20 +23,30 @@ import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/info_banner.dart';
 import 'widgets/common/today_outfit_idea.dart';
 import 'widgets/garment/garment_image.dart';
+import 'widgets/trip/trip_day_card.dart';
+
+/// One trip day's primary outfit option, as returned embedded in
+/// `TripPlanService.getTripPlan`'s `days[].options[]` — no separate
+/// per-day fetch needed once the trip has been loaded.
+class TripDayOutfit {
+  final int? optionId;
+  final List<Garment> garments;
+  final int? jobId;
+
+  const TripDayOutfit({this.optionId, this.garments = const [], this.jobId});
+}
 
 class TripDetailsInitialData {
   final List<int> weatherCodes;
   final List<double> highTemps;
   final List<double> lowTemps;
-  final List<Garment> todayGarments;
-  final String? todayLookImageUrl;
+  final List<TripDayOutfit> dayOutfits;
 
   const TripDetailsInitialData({
     required this.weatherCodes,
     required this.highTemps,
     required this.lowTemps,
-    required this.todayGarments,
-    required this.todayLookImageUrl,
+    required this.dayOutfits,
   });
 }
 
@@ -151,34 +159,53 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   /// pushed only once loading is complete (no in-page spinner on open).
   static Future<TripDetailsInitialData> preload(TripPlan trip) async {
     final weather = await _fetchWeather(trip);
-    final dayStr = DateFormat('yyyy-MM-dd').format(trip.dateRange.start);
 
-    List<Garment> garments = [];
+    List<TripDayOutfit> dayOutfits = [];
     try {
-      garments = await DailyLookService().getGarments(dayStr);
+      final tripData = await TripPlanService().getTripPlan(int.parse(trip.id));
+      final allGarments = await GarmentService().getGarments();
+      final garmentsById = {
+        for (final g in allGarments)
+          if (g.id != null) g.id!: g,
+      };
+
+      final rawDays = (tripData['days'] as List?) ?? [];
+      dayOutfits = rawDays.whereType<Map<String, dynamic>>().map((day) {
+        final options =
+            ((day['options'] as List?) ?? [])
+                .whereType<Map<String, dynamic>>()
+                .toList()
+              ..sort(
+                (a, b) => ((a['order_index'] as num?) ?? 0).compareTo(
+                  (b['order_index'] as num?) ?? 0,
+                ),
+              );
+        if (options.isEmpty) return const TripDayOutfit();
+
+        final primary = options.first;
+        final items = ((primary['items'] as List?) ?? [])
+            .whereType<Map<String, dynamic>>();
+        final garments = items
+            .map((i) => garmentsById[(i['garment_id'] as num?)?.toInt()])
+            .whereType<Garment>()
+            .toList();
+
+        return TripDayOutfit(
+          optionId: (primary['id'] as num?)?.toInt(),
+          garments: garments,
+          jobId: (primary['job_id'] as num?)?.toInt(),
+        );
+      }).toList();
     } catch (e) {
       if (e is AuthExpiredException) rethrow;
-      debugLog('Failed to get trip garments: $e');
-    }
-
-    String? lookImageUrl;
-    try {
-      final jobId = await DailyLookService().getLook(dayStr);
-      if (jobId != null) {
-        final statusRes = await LookService().getLook(jobId);
-        lookImageUrl = statusRes['result_image_url'];
-      }
-    } catch (e) {
-      if (e is AuthExpiredException) rethrow;
-      debugLog('Failed to get trip outfits: $e');
+      debugLog('Failed to load trip outfits: $e');
     }
 
     return TripDetailsInitialData(
       weatherCodes: weather.codes,
       highTemps: weather.highs,
       lowTemps: weather.lows,
-      todayGarments: garments,
-      todayLookImageUrl: lookImageUrl,
+      dayOutfits: dayOutfits,
     );
   }
 
@@ -193,18 +220,27 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   late final List<int> _weatherCodes = widget.initialData.weatherCodes;
   late final List<double> _highTemps = widget.initialData.highTemps;
   late final List<double> _lowTemps = widget.initialData.lowTemps;
-
-  late List<Garment> _todayGarments = widget.initialData.todayGarments;
-  bool _loadingOutfits = false;
-  late String? _todayLookImageUrl = widget.initialData.todayLookImageUrl;
+  late final List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
 
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
+
+  TripDayOutfit? get _currentDayOutfit => _selectedDayIndex < _dayOutfits.length
+      ? _dayOutfits[_selectedDayIndex]
+      : null;
+
+  List<Garment> get _todayGarments => _currentDayOutfit?.garments ?? const [];
 
   @override
   void initState() {
     super.initState();
     _loadPackingAdvice();
+    _loadOutfitImage();
+  }
+
+  Future<void> _loadOutfitImage() async {
+    final jobId = _currentDayOutfit?.jobId;
+    if (jobId != null && jobId != 0) await watchJob(jobId);
   }
 
   Future<void> _loadPackingAdvice() async {
@@ -228,52 +264,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _loadDailyData() async {
-    await _getGarments();
-    await _getOutfits();
-  }
-
-  Future<void> _getGarments() async {
-    final date = widget.trip.dateRange.start.add(
-      Duration(days: _selectedDayIndex),
-    );
-    final dayStr = DateFormat('yyyy-MM-dd').format(date);
-    setState(() => _loadingOutfits = true);
-    try {
-      final list = await DailyLookService().getGarments(dayStr);
-      if (mounted) setState(() => _todayGarments = list);
-    } catch (e) {
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to get trip garments: $e');
-    } finally {
-      if (mounted) setState(() => _loadingOutfits = false);
-    }
-  }
-
-  Future<void> _getOutfits() async {
-    final date = widget.trip.dateRange.start.add(
-      Duration(days: _selectedDayIndex),
-    );
-    final dayStr = DateFormat('yyyy-MM-dd').format(date);
-    try {
-      final jobId = await DailyLookService().getLook(dayStr);
-      if (jobId != null) {
-        final statusRes = await LookService().getLook(jobId);
-        if (mounted) {
-          setState(() => _todayLookImageUrl = statusRes['result_image_url']);
-        }
-      } else {
-        if (mounted) setState(() => _todayLookImageUrl = null);
-      }
-    } catch (e) {
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to get trip outfits: $e');
-    }
+    resetTryOnState();
+    await _loadOutfitImage();
   }
 
   AppToolBar _buildAppBar() {
@@ -291,27 +283,42 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       body: SafeArea(
         top: false,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-            _buildTripHeader(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildTripHeader(),
+            ),
             const SizedBox(height: 20),
-            _buildPackingAdviceSection(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildPackingAdviceSection(),
+            ),
             const SizedBox(height: 20),
-            _buildSuitcaseSection(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildSuitcaseSection(),
+            ),
             const SizedBox(height: 20),
             _buildTripDaySelector(),
             const SizedBox(height: 20),
-            _buildWardrobeSection(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildWardrobeSection(),
+            ),
             const SizedBox(height: 20),
-            TodayOutfitIdea(
-              onSave: _onSaveLook,
-              onGenerate: _handleGenerateLook,
-              imageUrl: tryOnResultUrl ?? _todayLookImageUrl,
-              isLoading: _loadingOutfits || isOutfitLoading,
-              jobStatus: isOutfitLoading
-                  ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
-                  : null,
-              errorMessage: tryOnErrorMessage,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TodayOutfitIdea(
+                onSave: _onSaveLook,
+                onGenerate: _handleGenerateLook,
+                imageUrl: tryOnResultUrl,
+                isLoading: isOutfitLoading,
+                jobStatus: isOutfitLoading
+                    ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
+                    : null,
+                errorMessage: tryOnErrorMessage,
+              ),
             ),
           ],
         ),
@@ -369,91 +376,24 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   Widget _buildTripDaySelector() {
     final int totalDays = widget.trip.dateRange.duration.inDays + 1;
     return SizedBox(
-      height: 168,
+      height: 102,
       child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: totalDays,
         itemBuilder: (context, index) {
           final date = widget.trip.dateRange.start.add(Duration(days: index));
-          final isSelected = index == _selectedDayIndex;
-
-          return GestureDetector(
+          final hasWeather = _weatherCodes.length > index;
+          return TripDayCard(
+            date: date,
+            isSelected: index == _selectedDayIndex,
             onTap: () {
               setState(() => _selectedDayIndex = index);
               _loadDailyData();
             },
-            child: Container(
-              width: 132,
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: isSelected
-                    ? Border.all(color: AppColors.dateAccent, width: 2)
-                    : null,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: AppColors.dateAccent,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '${date.day}',
-                          style: AppTextStyle.bold16.copyWith(
-                            color: AppColors.textPrimaryInv,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        width: 1,
-                        height: 24,
-                        color: AppColors.dividerSubtle,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        DateFormat('E').format(date),
-                        style: AppTextStyle.bold20.copyWith(
-                          color: AppColors.dateAccent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (_weatherCodes.length > index) ...[
-                    Icon(
-                      WeatherData.iconFromCondition(
-                        WeatherData.conditionFromCode(_weatherCodes[index]),
-                      ),
-                      size: 32,
-                      color: AppColors.textPrimary,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "${_lowTemps[index].round()}°C - ${_highTemps[index].round()}°C",
-                      style: AppTextStyle.regular16,
-                    ),
-                  ],
-                ],
-              ),
-            ),
+            weatherCode: hasWeather ? _weatherCodes[index] : null,
+            lowTemp: hasWeather ? _lowTemps[index] : null,
+            highTemp: hasWeather ? _highTemps[index] : null,
           );
         },
       ),
@@ -472,9 +412,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        if (_loadingOutfits)
-          const Center(child: CircularProgressIndicator())
-        else if (_todayGarments.isEmpty)
+        if (_todayGarments.isEmpty)
           const EmptyStatePlaceholder(
             message: "No items planned",
             height: 100,
@@ -562,6 +500,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   Future<void> _handleGenerateLook() async {
     if (_todayGarments.isEmpty) return;
+    final optionId = _currentDayOutfit?.optionId;
+    if (optionId == null) return;
+
     final ids = _todayGarments
         .where((g) => g.id != null)
         .map((g) => g.id!)
@@ -569,12 +510,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final int? jobId = await performTryOn(ids, "weekly");
 
     if (jobId != null) {
-      final date = widget.trip.dateRange.start.add(
-        Duration(days: _selectedDayIndex),
-      );
-      final dayStr = DateFormat('yyyy-MM-dd').format(date);
       try {
-        await DailyLookService().saveJobId(dayStr, jobId);
+        await TripPlanService().setTryonJobToOption(
+          jobId,
+          optionId: optionId,
+          tripId: int.parse(widget.trip.id),
+        );
       } catch (e) {
         if (e is AuthExpiredException) {
           await AuthExpiredHandler.handle(context);
@@ -586,7 +527,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _onSaveLook() async {
-    final url = tryOnResultUrl ?? _todayLookImageUrl;
+    final url = tryOnResultUrl;
     if (url == null) return;
 
     try {

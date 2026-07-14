@@ -52,7 +52,4 @@ class AppColors {
   static const Color placeholderIcon = Color(0xFFBDBDBD);
   static const Color avatarPlaceholderBackground = Color(0xFFE0E0E0);
   static const Color dropdownBorder = Color(0xFF2B3A8C);
-
-  // Trip Details day-selector card accent (date badge + weekday label)
-  static const Color dateAccent = Color(0xFF6B5B4D);
 }
