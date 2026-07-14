@@ -14,7 +14,8 @@ class AppColors {
   static const Color textPrimary = Color(0xFF222325); // 近黑
   static const Color textPrimaryInv = Color(0xFFFFFFFF); // 白
   static const Color textSecondary = Color(0xFF6F6F6F); // 次要文字灰
-  static const Color defaultDivider = Color(0xFF18191B);
+  static const Color dividerStrong = Color(0xFF18191B);
+  static const Color dividerSubtle = Color(0xFFE6E6E6);
   static const Color defaultMask = Color(0x5C181E2B); // #181E2B 36%
 
   // Social Colors
@@ -51,4 +52,7 @@ class AppColors {
   static const Color placeholderIcon = Color(0xFFBDBDBD);
   static const Color avatarPlaceholderBackground = Color(0xFFE0E0E0);
   static const Color dropdownBorder = Color(0xFF2B3A8C);
+
+  // Trip Details day-selector card accent (date badge + weekday label)
+  static const Color dateAccent = Color(0xFF6B5B4D);
 }

@@ -131,11 +131,15 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
     }
   }
 
+  AppToolBar _buildAppBar() {
+    return const AppToolBar(title: 'Body Profile');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const AppToolBar(title: 'Body Profile'),
+      appBar: _buildAppBar(),
       bottomNavigationBar: BottomActionButton(
         label: 'Save',
         onPressed: _loading ? null : _saveProfile,

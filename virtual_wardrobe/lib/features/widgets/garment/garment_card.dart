@@ -56,7 +56,6 @@ class GarmentCard extends StatelessWidget {
                               padding: const EdgeInsets.all(12),
                               child: GarmentImage(
                                 url: garment.imageUrl,
-                                cacheKey: garment.objectName,
                                 width: double.infinity,
                                 fit: BoxFit.contain,
                                 borderRadius: 0,
@@ -79,7 +78,7 @@ class GarmentCard extends StatelessWidget {
                                   border: Border.all(
                                     color: isSelected
                                         ? AppColors.primary
-                                        : AppColors.border,
+                                        : AppColors.dividerSubtle,
                                     width: 1.5,
                                   ),
                                 ),
@@ -96,7 +95,7 @@ class GarmentCard extends StatelessWidget {
                       ),
                     ),
                     // Divider
-                    Container(height: 1, color: AppColors.border),
+                    Container(height: 1, color: AppColors.dividerSubtle),
                     // Lower — white background, text
                     Container(
                       height: AppDimens.garmentCardInfoHeight,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/services/auth_storage.dart';
-import '../features/home_page.dart';
 import '../features/login_page.dart';
+import 'main_shell.dart';
 import 'route_observer.dart';
 
 class App extends StatelessWidget {
@@ -11,7 +11,7 @@ class App extends StatelessWidget {
   Future<Widget> _bootstrap() async {
     final token = await AuthStorage.getAccessToken();
     if (token != null && token.isNotEmpty) {
-      return const HomePage();
+      return const MainShell();
     }
     return const LoginPage();
   }

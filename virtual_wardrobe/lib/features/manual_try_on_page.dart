@@ -161,13 +161,17 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
     }
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(title: 'Manual Try-on', onBack: widget.onBack);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: AppToolBar(title: 'Manual Try-on', onBack: widget.onBack),
+          appBar: _buildAppBar(),
           body: SafeArea(
             top: false,
             child: ListView(
@@ -375,7 +379,6 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
       leading: value != null
           ? GarmentImage(
               url: value.imageUrl,
-              cacheKey: value.objectName,
               width: 40,
               height: 40,
               borderRadius: 8,

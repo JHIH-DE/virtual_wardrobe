@@ -28,7 +28,9 @@ class PillButton extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 16),
     this.mainAxisAlignment = MainAxisAlignment.spaceBetween,
     this.gap = 0,
-    this.border = const Border.fromBorderSide(BorderSide(color: Colors.black12)),
+    this.border = const Border.fromBorderSide(
+      BorderSide(color: Colors.black12),
+    ),
     this.boxShadow = const [
       BoxShadow(color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 4)),
     ],

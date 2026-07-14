@@ -152,11 +152,15 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     }),
   );
 
+  AppToolBar _buildAppBar() {
+    return const AppToolBar(title: 'Personal Details');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: AppToolBar(title: 'Personal Details'),
+      appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
         child: Column(
@@ -274,5 +278,4 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   }
 
   // ── Form helpers ───────────────────────────────────────────────────────────
-
 }

@@ -47,14 +47,18 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(
+      title: 'Search Location',
+      backgroundColor: AppColors.surface,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: AppToolBar(
-        title: 'Search Location',
-        backgroundColor: AppColors.surface,
-      ),
+      appBar: _buildAppBar(),
       body: Column(
         children: [
           Padding(

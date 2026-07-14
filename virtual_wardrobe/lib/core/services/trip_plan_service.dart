@@ -206,7 +206,7 @@ class TripPlanService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
     final res = await withAuth(
-          (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http.get(uri, headers: authHeaders(token)),
     );
 
     final envelope = decodeMap(res, op: 'getTripSuggestion');

@@ -39,6 +39,7 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
       occupiedRanges: _legs.map((l) => l.dateRange).toList(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      initialVisibleMonth: _legs.isEmpty ? null : _legs.last.dateRange.end,
     );
     if (range == null) return;
 
@@ -97,7 +98,7 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.dividerSubtle),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

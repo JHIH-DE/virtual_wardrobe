@@ -276,14 +276,18 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(
+      title: widget.trip.name,
+      backgroundColor: AppColors.surface,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: AppToolBar(
-        title: widget.trip.name,
-        backgroundColor: AppColors.surface,
-      ),
+      appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -358,14 +362,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   Widget _buildLegDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      child: Divider(height: 1, thickness: 1, color: AppColors.defaultDivider),
+      child: Divider(height: 1, thickness: 1, color: AppColors.dividerStrong),
     );
   }
 
   Widget _buildTripDaySelector() {
     final int totalDays = widget.trip.dateRange.duration.inDays + 1;
     return SizedBox(
-      height: 120,
+      height: 168,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: totalDays,
@@ -379,50 +383,74 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               _loadDailyData();
             },
             child: Container(
-              width: 100,
+              width: 132,
               margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary.withOpacity(0.1)
-                    : AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.border,
-                  width: isSelected ? 2 : 1,
-                ),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: isSelected
+                    ? Border.all(color: AppColors.dateAccent, width: 2)
+                    : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    DateFormat('M/d').format(date),
-                    style: AppTextStyle.regular16.copyWith(
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.w500,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (_weatherCodes.length > index)
-                    Column(
-                      children: [
-                        Icon(
-                          WeatherData.iconFromCondition(
-                            WeatherData.conditionFromCode(_weatherCodes[index]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.dateAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${date.day}',
+                          style: AppTextStyle.bold16.copyWith(
+                            color: AppColors.textPrimaryInv,
                           ),
-                          size: 28,
-                          color: AppColors.textPrimary,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "${_highTemps[index].round()}° / ${_lowTemps[index].round()}°",
-                          style: AppTextStyle.semibold14,
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        width: 1,
+                        height: 24,
+                        color: AppColors.dividerSubtle,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        DateFormat('E').format(date),
+                        style: AppTextStyle.bold20.copyWith(
+                          color: AppColors.dateAccent,
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_weatherCodes.length > index) ...[
+                    Icon(
+                      WeatherData.iconFromCondition(
+                        WeatherData.conditionFromCode(_weatherCodes[index]),
+                      ),
+                      size: 32,
+                      color: AppColors.textPrimary,
                     ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "${_lowTemps[index].round()}°C - ${_highTemps[index].round()}°C",
+                      style: AppTextStyle.regular16,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -454,7 +482,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               color: AppColors.surface,
               borderRadius: BorderRadius.all(Radius.circular(16)),
               border: Border.fromBorderSide(
-                BorderSide(color: AppColors.border),
+                BorderSide(color: AppColors.dividerSubtle),
               ),
             ),
           )
@@ -526,14 +554,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.dividerSubtle),
       ),
-      child: GarmentImage(
-        url: g.imageUrl,
-        cacheKey: g.objectName,
-        fit: BoxFit.cover,
-        borderRadius: 12,
-      ),
+      child: GarmentImage(url: g.imageUrl, fit: BoxFit.cover, borderRadius: 12),
     );
   }
 

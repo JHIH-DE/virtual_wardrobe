@@ -12,7 +12,7 @@ class AppTheme {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.border,
+        foregroundColor: AppColors.dividerSubtle,
         elevation: 4,
         centerTitle: true,
         titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),

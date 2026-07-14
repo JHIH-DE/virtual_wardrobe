@@ -9,6 +9,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   final Color? backgroundColor;
   final VoidCallback? onBack;
   final bool showBackButton;
+  final Widget? leading;
   final List<Widget>? actions;
   final PreferredSizeWidget? bottom;
   final bool centerTitle;
@@ -19,6 +20,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     this.backgroundColor,
     this.onBack,
     this.showBackButton = true,
+    this.leading,
     this.actions,
     this.bottom,
     this.centerTitle = true,
@@ -41,24 +43,30 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         textScaler: TextScaler.noScaling,
         style: AppTextStyle.bold16,
       ),
-      leading: showBackButton
-          ? IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(4),
-                child: Image.asset(
-                  'assets/images/page_arrow_left.png',
-                  height: AppDimens.iconMediumSize,
-                ),
-              ),
-              onPressed: onBack ?? () => Navigator.pop(context),
-            )
-          : null,
+      leading:
+          leading ??
+          (showBackButton
+              ? IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Image.asset(
+                      'assets/images/page_arrow_left.png',
+                      height: AppDimens.iconMediumSize,
+                    ),
+                  ),
+                  onPressed: onBack ?? () => Navigator.pop(context),
+                )
+              : null),
       actions: actions,
       bottom:
           bottom ??
           const PreferredSize(
             preferredSize: Size.fromHeight(1),
-            child: Divider(height: 1, thickness: 1, color: AppColors.border),
+            child: Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.dividerSubtle,
+            ),
           ),
     );
   }

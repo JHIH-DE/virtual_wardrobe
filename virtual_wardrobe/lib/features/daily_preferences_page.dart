@@ -69,11 +69,15 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
     ).showSnackBar(const SnackBar(content: Text('Settings saved')));
   }
 
+  AppToolBar _buildAppBar() {
+    return const AppToolBar(title: 'Daily Preferences');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const AppToolBar(title: 'Daily Preferences'),
+      appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
         child: ListView(

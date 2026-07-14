@@ -2,7 +2,10 @@
 /// `X-Goog-Expires` query params) whose expiry has passed, or is about to
 /// pass within [buffer]. Non-signed URLs (missing those params) are treated
 /// as never expiring.
-bool isSignedUrlExpired(String url, {Duration buffer = const Duration(seconds: 30)}) {
+bool isSignedUrlExpired(
+  String url, {
+  Duration buffer = const Duration(seconds: 30),
+}) {
   final uri = Uri.tryParse(url);
   if (uri == null) return false;
 

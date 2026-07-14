@@ -106,42 +106,46 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
     }).toList();
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(
+      title: 'Used in Looks',
+      actions: [
+        FilterButton(
+          isFiltered: _isFiltered,
+          groups: [
+            FilterGroup(
+              label: 'Season',
+              options: _seasons,
+              selected: () => _selectedSeasons,
+              onToggle: (s) => setState(
+                () => _selectedSeasons = FilterButton.toggleWithAll(
+                  _selectedSeasons,
+                  s,
+                ),
+              ),
+            ),
+            FilterGroup(
+              label: 'Style',
+              options: _styles,
+              selected: () => _selectedStyle,
+              onToggle: (s) => setState(
+                () => _selectedStyle = FilterButton.toggleWithAll(
+                  _selectedStyle,
+                  s,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: AppToolBar(
-        title: 'Used in Looks',
-        actions: [
-          FilterButton(
-            isFiltered: _isFiltered,
-            groups: [
-              FilterGroup(
-                label: 'Season',
-                options: _seasons,
-                selected: () => _selectedSeasons,
-                onToggle: (s) => setState(
-                  () => _selectedSeasons = FilterButton.toggleWithAll(
-                    _selectedSeasons,
-                    s,
-                  ),
-                ),
-              ),
-              FilterGroup(
-                label: 'Style',
-                options: _styles,
-                selected: () => _selectedStyle,
-                onToggle: (s) => setState(
-                  () => _selectedStyle = FilterButton.toggleWithAll(
-                    _selectedStyle,
-                    s,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
         child: _loading

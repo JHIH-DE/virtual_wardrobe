@@ -174,9 +174,7 @@ class TripPlanCard extends StatelessWidget {
   ) {
     return PopupMenuItem(
       value: value,
-      child: Row(
-        children: [icon, const SizedBox(width: 12), Text(label)],
-      ),
+      child: Row(children: [icon, const SizedBox(width: 12), Text(label)]),
     );
   }
 

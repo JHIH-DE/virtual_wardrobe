@@ -71,6 +71,23 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     );
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(
+      title: 'Details',
+      onBack: widget.isNew ? _showLeaveDialog : null,
+      actions: [
+        if (!widget.isNew)
+          IconButton(
+            icon: Image.asset(
+              'assets/images/delete.png',
+              height: AppDimens.iconMediumSize,
+            ),
+            onPressed: _isDeleting ? null : _deleteLook,
+          ),
+      ],
+    );
+  }
+
   Widget _buildScaffold(BuildContext context) {
     return PopScope(
       canPop: !widget.isNew,
@@ -80,20 +97,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       },
       child: Scaffold(
         backgroundColor: AppColors.defaultBackground,
-        appBar: AppToolBar(
-          title: 'Details',
-          onBack: widget.isNew ? _showLeaveDialog : null,
-          actions: [
-            if (!widget.isNew)
-              IconButton(
-                icon: Image.asset(
-                  'assets/images/delete.png',
-                  height: AppDimens.iconMediumSize,
-                ),
-                onPressed: _isDeleting ? null : _deleteLook,
-              ),
-          ],
-        ),
+        appBar: _buildAppBar(),
         body: SafeArea(
           top: false,
           child: ListView(
@@ -104,13 +108,13 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
               const Divider(
                 height: 1,
                 thickness: 6,
-                color: AppColors.defaultDivider,
+                color: AppColors.dividerStrong,
               ),
               _buildInfoCard(),
               const Divider(
                 height: 1,
                 thickness: 2,
-                color: AppColors.defaultDivider,
+                color: AppColors.dividerStrong,
               ),
               const SizedBox(height: 16),
               _buildOutfitImage(),
@@ -166,7 +170,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
             ),
             Container(
               width: 1,
-              color: AppColors.defaultDivider,
+              color: AppColors.dividerStrong,
               margin: const EdgeInsets.symmetric(horizontal: 16),
             ),
             Column(
@@ -228,10 +232,8 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       onTap: () => Navigator.of(context).push(
         PageRouteBuilder(
           opaque: false,
-          pageBuilder: (_, __, ___) => FullScreenImagePage(
-            imageUrl: widget.look.imageUrl,
-            cacheKey: 'look_${widget.look.id}',
-          ),
+          pageBuilder: (_, __, ___) =>
+              FullScreenImagePage(imageUrl: widget.look.imageUrl),
         ),
       ),
       child: ClipRRect(
@@ -242,7 +244,6 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
             tag: 'outfit_image_${widget.look.id}',
             child: CachedNetworkImage(
               imageUrl: widget.look.imageUrl,
-              cacheKey: 'look_${widget.look.id}',
               fit: BoxFit.cover,
               placeholder: (_, __) =>
                   const Center(child: CircularProgressIndicator()),
@@ -281,7 +282,6 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
                           opaque: false,
                           pageBuilder: (_, __, ___) => FullScreenImagePage(
                             imageUrl: g.imageUrl!,
-                            cacheKey: g.objectName,
                             backgroundColor: Colors.white,
                             aspectRatio: 1.0,
                             fit: BoxFit.contain,
@@ -319,8 +319,20 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   Future<void> _loadGarments() async {
     setState(() => _loadingGarments = true);
     try {
+      // Reuse whatever My Closet has already loaded into garmentsProvider
+      // instead of always hitting the network per garment.
+      final cached = ref.read(garmentsProvider).valueOrNull ?? const [];
+      final cachedById = {
+        for (final g in cached)
+          if (g.id != null) g.id!: g,
+      };
+
       final results = await Future.wait(
-        widget.look.garmentIds.map((id) => GarmentService().getGarment(id)),
+        widget.look.garmentIds.map(
+          (id) => cachedById[id] != null
+              ? Future.value(cachedById[id]!)
+              : GarmentService().getGarment(id),
+        ),
       );
       if (mounted) setState(() => _garments = results);
     } catch (_) {

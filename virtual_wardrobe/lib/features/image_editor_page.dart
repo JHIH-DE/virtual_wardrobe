@@ -145,6 +145,15 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     }
   }
 
+  AppToolBar _buildAppBar(BuildContext context) {
+    return AppToolBar(
+      title: 'Edit',
+      onBack: () {
+        if (!_isAnalyzing) Navigator.pop(context);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasImage = _currentPath != null && _currentPath!.isNotEmpty;
@@ -153,12 +162,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: AppToolBar(
-            title: 'Edit',
-            onBack: () {
-              if (!_isAnalyzing) Navigator.pop(context);
-            },
-          ),
+          appBar: _buildAppBar(context),
           bottomNavigationBar: BottomActionButton(
             label: _isAnalyzing ? 'Analyzing...' : 'Confirmed',
             onPressed: (hasImage && !_isAnalyzing) ? _handleConfirmed : null,
@@ -333,5 +337,4 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       ],
     );
   }
-
 }

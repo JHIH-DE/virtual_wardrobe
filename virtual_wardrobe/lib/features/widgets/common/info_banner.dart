@@ -33,7 +33,7 @@ class InfoBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor ?? AppColors.border),
+        border: Border.all(color: borderColor ?? AppColors.dividerSubtle),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

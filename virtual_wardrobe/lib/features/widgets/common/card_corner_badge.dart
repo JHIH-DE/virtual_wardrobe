@@ -29,7 +29,10 @@ class CardCornerBadge extends StatelessWidget {
           color: backgroundColor,
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 4,
+            ),
           ],
         ),
         child: Icon(icon, size: 14, color: iconColor),

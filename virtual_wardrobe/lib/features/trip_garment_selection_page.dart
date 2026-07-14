@@ -193,6 +193,41 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     }).toList();
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(
+      title: 'Select Garments',
+      actions: [
+        FilterButton(
+          isFiltered: _isFiltered,
+          groups: [
+            FilterGroup(
+              label: 'Color',
+              options: _availableColors,
+              selected: () => _selectedColors,
+              onToggle: (v) => setState(
+                () => _selectedColors = FilterButton.toggleWithAll(
+                  _selectedColors,
+                  v,
+                ),
+              ),
+            ),
+            FilterGroup(
+              label: 'Product Type',
+              options: _availableTypes,
+              selected: () => _selectedTypes,
+              onToggle: (v) => setState(
+                () => _selectedTypes = FilterButton.toggleWithAll(
+                  _selectedTypes,
+                  v,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final advice = _adviceByCategory[_selectedCategory];
@@ -210,38 +245,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: AppToolBar(
-        title: 'Select Garments',
-        actions: [
-          FilterButton(
-            isFiltered: _isFiltered,
-            groups: [
-              FilterGroup(
-                label: 'Color',
-                options: _availableColors,
-                selected: () => _selectedColors,
-                onToggle: (v) => setState(
-                  () => _selectedColors = FilterButton.toggleWithAll(
-                    _selectedColors,
-                    v,
-                  ),
-                ),
-              ),
-              FilterGroup(
-                label: 'Product Type',
-                options: _availableTypes,
-                selected: () => _selectedTypes,
-                onToggle: (v) => setState(
-                  () => _selectedTypes = FilterButton.toggleWithAll(
-                    _selectedTypes,
-                    v,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
         child: Column(

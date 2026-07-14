@@ -91,44 +91,48 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
     }).toList();
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(
+      title: widget.title,
+      actions: [
+        FilterButton(
+          isFiltered: _isFiltered,
+          groups: [
+            FilterGroup(
+              label: 'Color',
+              options: _availableColors,
+              selected: () => _selectedColors,
+              onToggle: (v) => setState(
+                () => _selectedColors = FilterButton.toggleWithAll(
+                  _selectedColors,
+                  v,
+                ),
+              ),
+            ),
+            FilterGroup(
+              label: 'Product Type',
+              options: _availableTypes,
+              selected: () => _selectedTypes,
+              onToggle: (v) => setState(
+                () => _selectedTypes = FilterButton.toggleWithAll(
+                  _selectedTypes,
+                  v,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = _filtered;
 
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: AppToolBar(
-        title: widget.title,
-        actions: [
-          FilterButton(
-            isFiltered: _isFiltered,
-            groups: [
-              FilterGroup(
-                label: 'Color',
-                options: _availableColors,
-                selected: () => _selectedColors,
-                onToggle: (v) => setState(
-                  () => _selectedColors = FilterButton.toggleWithAll(
-                    _selectedColors,
-                    v,
-                  ),
-                ),
-              ),
-              FilterGroup(
-                label: 'Product Type',
-                options: _availableTypes,
-                selected: () => _selectedTypes,
-                onToggle: (v) => setState(
-                  () => _selectedTypes = FilterButton.toggleWithAll(
-                    _selectedTypes,
-                    v,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
         child: items.isEmpty

@@ -7,14 +7,13 @@ import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../data/garment.dart';
-import 'add_garment_page.dart';
+import 'edit_garment_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/category_selector.dart';
 import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
-import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_card.dart';
 import 'widgets/garment/garment_upload_helper.dart';
@@ -138,46 +137,43 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final garmentsAsync = ref.watch(garmentsProvider);
-
-    return Stack(
-      children: [
-        _buildScaffold(garmentsAsync),
-        const FloatingNavBar(current: AppTab.closet),
+  AppToolBar _buildAppBar(
+    BuildContext context,
+    AsyncValue<List<Garment>> garmentsAsync,
+  ) {
+    return AppToolBar(
+      title: 'My Closet',
+      backgroundColor: AppColors.defaultToolBar,
+      showBackButton: false,
+      leading: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(4),
+          child: Image.asset(
+            'assets/images/plus.png',
+            height: AppDimens.iconMediumSize,
+          ),
+        ),
+        onPressed: () {
+          GarmentUploadHelper.showAddClothingDialog(
+            context,
+            onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
+          );
+        },
+      ),
+      actions: [
+        _buildFilterButton(garmentsAsync.valueOrNull ?? []),
+        const SizedBox(width: 8),
       ],
     );
   }
 
-  Widget _buildScaffold(AsyncValue<List<Garment>> garmentsAsync) {
+  @override
+  Widget build(BuildContext context) {
+    final garmentsAsync = ref.watch(garmentsProvider);
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      appBar: AppToolBar(
-        title: 'My closet',
-        backgroundColor: AppColors.defaultToolBar,
-        onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
-        actions: [
-          _buildFilterButton(garmentsAsync.valueOrNull ?? []),
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(4),
-              child: Image.asset(
-                'assets/images/plus.png',
-                height: AppDimens.iconMediumSize,
-              ),
-            ),
-            onPressed: () {
-              GarmentUploadHelper.showAddClothingDialog(
-                context,
-                onAdded: (g) =>
-                    ref.read(garmentsProvider.notifier).addGarment(g),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      backgroundColor: AppColors.defaultBackground,
+      appBar: _buildAppBar(context, garmentsAsync),
       body: SafeArea(
         top: false,
         child: garmentsAsync.when(
@@ -284,7 +280,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddGarmentPage(initialGarment: garment),
+        builder: (_) => EditGarmentPage(initialGarment: garment),
       ),
     );
 

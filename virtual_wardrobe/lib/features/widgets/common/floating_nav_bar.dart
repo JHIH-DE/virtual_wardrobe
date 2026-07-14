@@ -1,40 +1,42 @@
 import 'package:flutter/material.dart';
 
-import '../../finance_page.dart';
-import '../../looks_page.dart';
-import '../../my_closet_page.dart';
+enum AppTab { home, closet, looks, tripPlanner, finance }
 
-enum AppTab { home, closet, looks, finance }
+/// Lets any descendant page switch the active tab in the persistent
+/// `MainShell` above it — e.g. after creating a trip, jump to the Trip
+/// Planner tab so "back" lands there instead of wherever the creation flow
+/// was started from.
+class MainShellScope extends InheritedWidget {
+  final ValueChanged<AppTab> selectTab;
+
+  const MainShellScope({
+    super.key,
+    required this.selectTab,
+    required super.child,
+  });
+
+  static MainShellScope? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<MainShellScope>();
+
+  @override
+  bool updateShouldNotify(MainShellScope oldWidget) =>
+      selectTab != oldWidget.selectTab;
+}
 
 /// Floating rounded nav bar shown on the app's main tabs (Home, My Closet,
-/// Looks, Finance). Highlights [current] so the user always knows which
-/// page they're on, and jumps directly to any other tab from anywhere.
+/// Looks, Trip Planner, Finance). Highlights [current] so the user always
+/// knows which page they're on. Purely presentational — [onSelect] is
+/// called with the tapped tab and the host (e.g. a persistent IndexedStack
+/// shell) decides how to switch to it.
 class FloatingNavBar extends StatelessWidget {
   final AppTab current;
+  final ValueChanged<AppTab> onSelect;
 
-  const FloatingNavBar({super.key, required this.current});
-
-  /// Tapping Home pops back to the app's root; every other tab resets the
-  /// stack to [root page, target page] so hopping between tabs repeatedly
-  /// can't pile up an ever-growing back stack.
-  void _goTo(BuildContext context, AppTab tab) {
-    if (tab == current) return;
-    if (tab == AppTab.home) {
-      Navigator.popUntil(context, (route) => route.isFirst);
-      return;
-    }
-    final Widget page = switch (tab) {
-      AppTab.closet => const MyClosetPage(),
-      AppTab.looks => const LooksPage(),
-      AppTab.finance => const FinancePage(),
-      AppTab.home => const SizedBox.shrink(),
-    };
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => page),
-      (route) => route.isFirst,
-    );
-  }
+  const FloatingNavBar({
+    super.key,
+    required this.current,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,7 @@ class FloatingNavBar extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(32),
@@ -65,28 +67,30 @@ class FloatingNavBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _tab(
-                    context,
                     AppTab.home,
                     activeIcon: Icons.home_rounded,
                     inactiveIcon: Icons.home_outlined,
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
                   _tab(
-                    context,
                     AppTab.closet,
                     activeIcon: Icons.checkroom_rounded,
                     inactiveIcon: Icons.checkroom_outlined,
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
                   _tab(
-                    context,
                     AppTab.looks,
                     activeIcon: Icons.style_rounded,
                     inactiveIcon: Icons.style_outlined,
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
                   _tab(
-                    context,
+                    AppTab.tripPlanner,
+                    activeIcon: Icons.luggage_rounded,
+                    inactiveIcon: Icons.luggage_outlined,
+                  ),
+                  const SizedBox(width: 16),
+                  _tab(
                     AppTab.finance,
                     activeIcon: Icons.account_balance_wallet_rounded,
                     inactiveIcon: Icons.account_balance_wallet_outlined,
@@ -101,14 +105,13 @@ class FloatingNavBar extends StatelessWidget {
   }
 
   Widget _tab(
-    BuildContext context,
     AppTab tab, {
     required IconData activeIcon,
     required IconData inactiveIcon,
   }) {
     final isActive = tab == current;
     return InkWell(
-      onTap: () => _goTo(context, tab),
+      onTap: () => onSelect(tab),
       customBorder: const CircleBorder(),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),

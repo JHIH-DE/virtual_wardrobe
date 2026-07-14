@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
-import '../app/theme/app_text_styles.dart';
+import '../app/theme/app_dimens.dart';
 import '../core/providers/trips_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/trip_plan_service.dart';
@@ -16,8 +16,8 @@ import 'trip_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/primary_action_button.dart';
 import 'widgets/trip/trip_plan_card.dart';
 import 'widgets/trip/trip_plan_create_dialog.dart';
 
@@ -123,17 +123,87 @@ Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(
 
   final totalDays = trip.dateRange.duration.inDays + 1;
 
+  // Only include dates actually covered by a leg — the backend rejects
+  // `days` entries for gap dates between legs.
   final days = <Map<String, dynamic>>[];
   for (int i = 0; i < totalDays; i++) {
     final date = trip.dateRange.start.add(Duration(days: i));
-    final dateStr = _dateFmt.format(date);
     final leg = trip.legForDate(date);
-    final legIndex = leg == null ? -1 : trip.legs.indexOf(leg);
-    final temp = legIndex == -1 ? 0.0 : (legTemps[legIndex][dateStr] ?? 0.0);
+    if (leg == null) continue;
+
+    final dateStr = _dateFmt.format(date);
+    final legIndex = trip.legs.indexOf(leg);
+    final temp = legTemps[legIndex][dateStr] ?? 0.0;
 
     days.add({'date': dateStr, 'temperature_c': temp.round()});
   }
   return days;
+}
+
+/// Shows the "New Trip" creation flow (location/date form, then weather
+/// prefetch + create call) and adds the result to [tripsProvider]. Shared
+/// between [TripPlannerPage]'s own "+" and any other entry point (e.g. the
+/// Home page's quick-actions menu).
+Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
+  final input = await showDialog<TripPlan>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const TripPlanCreateDialog(),
+  );
+  if (input == null || !context.mounted) return;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    useSafeArea: false,
+    builder: (_) => const LoadingOverlay(label: 'Creating Trip...'),
+  );
+
+  try {
+    final days = await _fetchDailyTemperatures(input);
+    debugLog('createTrip days: $days');
+    final id = await TripPlanService().createTripPlan(
+      name: input.name,
+      legs: input.legs,
+      purpose: input.purpose,
+      days: days,
+    );
+
+    final newTrip = TripPlan(
+      id: id.toString(),
+      name: input.name,
+      legs: input.legs,
+      purpose: input.purpose,
+    );
+    ref.read(tripsProvider.notifier).add(newTrip);
+
+    final initialData = await TripDetailsPage.preload(newTrip);
+
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    // Jump the shell to the Trip Planner tab so that popping back off of
+    // Trip Details always lands there, regardless of where trip creation
+    // was started from (e.g. Home's quick-actions menu).
+    MainShellScope.of(context)?.selectTab(AppTab.tripPlanner);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            TripDetailsPage(trip: newTrip, initialData: initialData),
+      ),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    if (e is AuthExpiredException) {
+      await AuthExpiredHandler.handle(context);
+      return;
+    }
+    debugLog('Failed to create trip: $e');
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Failed to create trip')));
+  }
 }
 
 class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
@@ -166,168 +236,88 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     );
   }
 
+  AppToolBar _buildAppBar(BuildContext context) {
+    return AppToolBar(
+      title: 'Trip Planner',
+      showBackButton: false,
+      leading: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(4),
+          child: Image.asset(
+            'assets/images/plus.png',
+            height: AppDimens.iconMediumSize,
+          ),
+        ),
+        onPressed: () => handleCreateTrip(context, ref),
+      ),
+    );
+  }
+
   Widget _buildScaffold(
     BuildContext context,
     AsyncValue<List<TripPlan>> tripsAsync,
   ) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const AppToolBar(title: 'Trip Planner'),
+      appBar: _buildAppBar(context),
       body: SafeArea(
         top: false,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Plan Your Next Adventure',
-                          style: AppTextStyle.bold18,
-                        ),
-                        Text(
-                          'Add locations and see forecasts',
-                          style: AppTextStyle.regular14.copyWith(
-                            color: AppColors.textSecondary,
+        child: tripsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => ErrorStateWidget(
+            error: e,
+            onRetry: () => ref.read(tripsProvider.notifier).refresh(),
+          ),
+          data: (trips) => RefreshIndicator(
+            onRefresh: () => ref.read(tripsProvider.notifier).refresh(),
+            child: trips.isEmpty
+                ? ListView(
+                    children: [
+                      EmptyStatePlaceholder(
+                        message: 'No trips planned yet',
+                        icon: Icons.beach_access,
+                        height: MediaQuery.of(context).size.height * 0.6,
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: trips.length,
+                    itemBuilder: (context, index) {
+                      final trip = trips[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: TripPlanCard(
+                          key: ValueKey(trip.id),
+                          trip: trip,
+                          onTap: () => _handleOpenTrip(context, trip),
+                          onNameChanged: (name) => _handleUpdateTrip(
+                            context,
+                            ref,
+                            trip,
+                            updated: trip.copyWith(name: name),
                           ),
+                          onLegsChanged: (legs) => _handleUpdateTrip(
+                            context,
+                            ref,
+                            trip,
+                            updated: trip.copyWith(legs: legs),
+                          ),
+                          onPurposeChanged: (purpose) => _handleUpdateTrip(
+                            context,
+                            ref,
+                            trip,
+                            updated: trip.copyWith(purpose: purpose),
+                          ),
+                          onDelete: () => _handleDeleteTrip(context, ref, trip),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                  PrimaryActionButton(
-                    label: 'New Trip',
-                    icon: Icons.add,
-                    onPressed: () => _handleCreateTrip(context, ref),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: tripsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => ErrorStateWidget(
-                  error: e,
-                  onRetry: () => ref.read(tripsProvider.notifier).refresh(),
-                ),
-                data: (trips) => RefreshIndicator(
-                  onRefresh: () => ref.read(tripsProvider.notifier).refresh(),
-                  child: trips.isEmpty
-                      ? ListView(
-                          children: [
-                            EmptyStatePlaceholder(
-                              message: 'No trips planned yet',
-                              icon: Icons.beach_access,
-                              height: MediaQuery.of(context).size.height * 0.6,
-                            ),
-                          ],
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: trips.length,
-                          itemBuilder: (context, index) {
-                            final trip = trips[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: TripPlanCard(
-                                key: ValueKey(trip.id),
-                                trip: trip,
-                                onTap: () => _handleOpenTrip(context, trip),
-                                onNameChanged: (name) => _handleUpdateTrip(
-                                  context,
-                                  ref,
-                                  trip,
-                                  updated: trip.copyWith(name: name),
-                                ),
-                                onLegsChanged: (legs) => _handleUpdateTrip(
-                                  context,
-                                  ref,
-                                  trip,
-                                  updated: trip.copyWith(legs: legs),
-                                ),
-                                onPurposeChanged: (purpose) =>
-                                    _handleUpdateTrip(
-                                      context,
-                                      ref,
-                                      trip,
-                                      updated: trip.copyWith(purpose: purpose),
-                                    ),
-                                onDelete: () =>
-                                    _handleDeleteTrip(context, ref, trip),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
-  }
-
-  Future<void> _handleCreateTrip(BuildContext context, WidgetRef ref) async {
-    final input = await showDialog<TripPlan>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const TripPlanCreateDialog(),
-    );
-    if (input == null || !context.mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final days = await _fetchDailyTemperatures(input);
-      debugLog('createTrip days: $days');
-      final id = await TripPlanService().createTripPlan(
-        name: input.name,
-        legs: input.legs,
-        purpose: input.purpose,
-        days: days,
-      );
-
-      if (!context.mounted) return;
-      Navigator.pop(context); // close loading indicator
-      ref
-          .read(tripsProvider.notifier)
-          .add(
-            TripPlan(
-              id: id.toString(),
-              name: input.name,
-              legs: input.legs,
-              purpose: input.purpose,
-            ),
-          );
-    } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context); // close loading indicator
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to create trip: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to create trip')));
-    }
   }
 
   Future<void> _handleUpdateTrip(

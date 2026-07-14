@@ -27,21 +27,21 @@ import 'widgets/common/pill_button.dart';
 import 'widgets/common/section_title.dart';
 import 'widgets/common/tappable_field_decorator.dart';
 
-class AddGarmentPage extends ConsumerStatefulWidget {
+class EditGarmentPage extends ConsumerStatefulWidget {
   final Garment? initialGarment;
   final Map<String, dynamic>? initialAnalysisData;
 
-  const AddGarmentPage({
+  const EditGarmentPage({
     super.key,
     this.initialGarment,
     this.initialAnalysisData,
   });
 
   @override
-  ConsumerState<AddGarmentPage> createState() => _AddGarmentPageState();
+  ConsumerState<EditGarmentPage> createState() => _AddGarmentPageState();
 }
 
-class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
+class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _subCategory = TextEditingController();
@@ -214,10 +214,32 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     return result == 'discard';
   }
 
+  AppToolBar _buildAppBar(BuildContext context) {
+    final title = _isAddMode ? 'Add Clothing' : 'Details';
+    return AppToolBar(
+      title: title,
+      onBack: () async {
+        final shouldPop = await _onWillPop();
+        if (shouldPop && mounted) Navigator.pop(context);
+      },
+      actions: [
+        if (!_isAddMode)
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(4),
+              child: Image.asset(
+                'assets/images/delete.png',
+                height: AppDimens.iconMediumSize,
+              ),
+            ),
+            onPressed: _handleDelete,
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title = _isAddMode ? 'Add Clothing' : 'Clothing Details';
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -230,26 +252,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
       child: Scaffold(
         backgroundColor: AppColors.defaultBackground,
         extendBody: true,
-        appBar: AppToolBar(
-          title: title,
-          onBack: () async {
-            final shouldPop = await _onWillPop();
-            if (shouldPop && mounted) Navigator.pop(context);
-          },
-          actions: [
-            if (!_isAddMode)
-              IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(4),
-                  child: Image.asset(
-                    'assets/images/delete.png',
-                    height: AppDimens.iconMediumSize,
-                  ),
-                ),
-                onPressed: _handleDelete,
-              ),
-          ],
-        ),
+        appBar: _buildAppBar(context),
         body: Form(
           key: _formKey,
           child: ListView(
@@ -284,6 +287,12 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
                   children: [
                     if (!_isAddMode) _buildActionButtons(),
                     const SizedBox(height: 8),
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: AppColors.dividerSubtle,
+                    ),
+                    const SizedBox(height: 16),
                     SectionTitle('Clothing Name'),
                     const SizedBox(height: 8),
                     AppTextField(
@@ -500,7 +509,9 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
             color: selected?.color ?? Colors.transparent,
             shape: BoxShape.circle,
             border: Border.all(
-              color: selected == null ? AppColors.border : Colors.transparent,
+              color: selected == null
+                  ? AppColors.dividerSubtle
+                  : Colors.transparent,
               width: 1.2,
             ),
           ),
@@ -637,7 +648,10 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+          border: Border.all(
+            color: AppColors.dividerSubtle,
+            style: BorderStyle.solid,
+          ),
         ),
         child: InkWell(
           onTap: _pickNewImage,
@@ -659,7 +673,7 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.dividerSubtle),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
@@ -861,5 +875,4 @@ class _AddGarmentPageState extends ConsumerState<AddGarmentPage> {
     }
     return null;
   }
-
 }

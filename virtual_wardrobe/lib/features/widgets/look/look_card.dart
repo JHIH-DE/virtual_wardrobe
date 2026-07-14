@@ -54,7 +54,6 @@ class LookCard extends StatelessWidget {
                     child: look.imageUrl.isNotEmpty
                         ? CachedNetworkImage(
                             imageUrl: look.imageUrl,
-                            cacheKey: 'look_${look.id}',
                             fit: BoxFit.cover,
                             alignment: Alignment.topCenter,
                             placeholder: (_, __) => const Center(

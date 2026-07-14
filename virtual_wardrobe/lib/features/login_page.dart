@@ -12,8 +12,8 @@ import '../app/theme/app_text_styles.dart';
 import '../core/config/env.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/auth_storage.dart';
+import '../app/main_shell.dart';
 import '../core/utils/debug_log.dart';
-import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
+      MaterialPageRoute(builder: (_) => const MainShell()),
     );
   }
 
@@ -203,7 +203,9 @@ class _LoginPageState extends State<LoginPage> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
-                                side: const BorderSide(color: AppColors.border),
+                                side: const BorderSide(
+                                  color: AppColors.dividerSubtle,
+                                ),
                               ),
                               onPressed: _isLoading ? null : _loginWithApple,
                               icon: const Icon(Icons.apple, size: 28),
@@ -224,7 +226,9 @@ class _LoginPageState extends State<LoginPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(27),
                               ),
-                              side: const BorderSide(color: AppColors.border),
+                              side: const BorderSide(
+                                color: AppColors.dividerSubtle,
+                              ),
                             ),
                             onPressed: _isLoading ? null : _loginWithGoogle,
                             icon: Image.network(
@@ -254,7 +258,9 @@ class _LoginPageState extends State<LoginPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(27),
                               ),
-                              side: const BorderSide(color: AppColors.border),
+                              side: const BorderSide(
+                                color: AppColors.dividerSubtle,
+                              ),
                             ),
                             onPressed: _isLoading ? null : _loginWithFacebook,
                             icon: const Icon(

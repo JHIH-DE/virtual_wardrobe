@@ -39,10 +39,7 @@ class CategorySelector extends StatelessWidget {
               unselectedBorderColor: Colors.black12,
               unselectedTextColor: Colors.black,
               textStyle: AppTextStyle.bold16,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             );
           },
         ),

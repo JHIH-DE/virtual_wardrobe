@@ -13,6 +13,7 @@ Future<DateTimeRange?> showTripLegDateRangePicker({
   DateTimeRange? initialDateRange,
   required DateTime firstDate,
   required DateTime lastDate,
+  DateTime? initialVisibleMonth,
 }) {
   return showDialog<DateTimeRange>(
     context: context,
@@ -21,6 +22,7 @@ Future<DateTimeRange?> showTripLegDateRangePicker({
       initialDateRange: initialDateRange,
       firstDate: firstDate,
       lastDate: lastDate,
+      initialVisibleMonth: initialVisibleMonth,
     ),
   );
 }
@@ -32,12 +34,14 @@ class _TripLegDateRangePickerDialog extends StatefulWidget {
   final DateTimeRange? initialDateRange;
   final DateTime firstDate;
   final DateTime lastDate;
+  final DateTime? initialVisibleMonth;
 
   const _TripLegDateRangePickerDialog({
     required this.occupiedRanges,
     required this.initialDateRange,
     required this.firstDate,
     required this.lastDate,
+    this.initialVisibleMonth,
   });
 
   @override
@@ -60,7 +64,11 @@ class _TripLegDateRangePickerDialogState
     _rangeEnd = widget.initialDateRange == null
         ? null
         : _dateOnly(widget.initialDateRange!.end);
-    final anchor = _rangeStart ?? _dateOnly(widget.firstDate);
+    final anchor =
+        _rangeStart ??
+        (widget.initialVisibleMonth != null
+            ? _dateOnly(widget.initialVisibleMonth!)
+            : _dateOnly(widget.firstDate));
     _visibleMonth = DateTime(anchor.year, anchor.month);
   }
 
@@ -161,7 +169,7 @@ class _TripLegDateRangePickerDialogState
             const SizedBox(height: 12),
             Row(
               children: [
-                _legendDot(AppColors.border, 'Booked'),
+                _legendDot(AppColors.dividerSubtle, 'Booked'),
                 const SizedBox(width: 16),
                 _legendDot(AppColors.primary, 'Selected'),
               ],
@@ -196,7 +204,7 @@ class _TripLegDateRangePickerDialogState
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.nearBlack,
-                      disabledBackgroundColor: AppColors.border,
+                      disabledBackgroundColor: AppColors.dividerSubtle,
                       minimumSize: const Size(double.infinity, 48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
@@ -280,7 +288,7 @@ class _TripLegDateRangePickerDialogState
     Color? background;
     Color textColor = Colors.black;
     if (occupied) {
-      background = AppColors.border;
+      background = AppColors.dividerSubtle;
       textColor = AppColors.textSecondary;
     } else if (isStart || isEnd) {
       background = AppColors.primary;

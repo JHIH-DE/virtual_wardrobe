@@ -109,11 +109,15 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  AppToolBar _buildAppBar() {
+    return const AppToolBar(title: 'Settings');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.defaultBackground,
-      appBar: const AppToolBar(title: 'Settings'),
+      appBar: _buildAppBar(),
       body: SafeArea(
         top: false,
         child: _loading
@@ -160,7 +164,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(height: 1, color: AppColors.border),
+          Container(height: 1, color: AppColors.dividerSubtle),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
@@ -195,7 +199,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
-          Container(height: 1, color: AppColors.border),
+          Container(height: 1, color: AppColors.dividerSubtle),
         ],
       ),
     );

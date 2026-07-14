@@ -51,9 +51,7 @@ class ActionButtonRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IntrinsicHeight(
-      child: Row(
-        children: [for (final b in buttons) Expanded(child: b)],
-      ),
+      child: Row(children: [for (final b in buttons) Expanded(child: b)]),
     );
   }
 }

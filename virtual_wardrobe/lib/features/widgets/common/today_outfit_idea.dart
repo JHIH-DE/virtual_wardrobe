@@ -30,7 +30,7 @@ class TodayOutfitIdea extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.dividerSubtle),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -81,7 +81,7 @@ class TodayOutfitIdea extends StatelessWidget {
                       label: const Text('Regenerate'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textPrimary,
-                        side: const BorderSide(color: AppColors.border),
+                        side: const BorderSide(color: AppColors.dividerSubtle),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

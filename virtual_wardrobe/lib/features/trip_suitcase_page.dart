@@ -169,6 +169,13 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     }
   }
 
+  AppToolBar _buildAppBar() {
+    return AppToolBar(
+      title: '${widget.trip.name} Suitcase',
+      backgroundColor: AppColors.surface,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final garmentsAsync = ref.watch(garmentsProvider);
@@ -177,10 +184,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: AppToolBar(
-            title: '${widget.trip.name} Suitcase',
-            backgroundColor: AppColors.surface,
-          ),
+          appBar: _buildAppBar(),
           body: SafeArea(
             top: false,
             child: garmentsAsync.when(

@@ -23,7 +23,7 @@ class BottomActionButton extends StatelessWidget {
     this.trailing,
     this.buttonColor = AppColors.defaultButton,
     this.textColor = AppColors.defaultButtonText,
-    this.panelColor = AppColors.defaultToolBar,
+    this.panelColor = AppColors.defaultBackground,
     this.panelPadding = const EdgeInsets.fromLTRB(22, 22, 22, 8),
     this.showShadow = true,
   });
@@ -40,7 +40,7 @@ class BottomActionButton extends StatelessWidget {
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 12,
                   offset: const Offset(0, -4),
                 ),
@@ -60,7 +60,7 @@ class BottomActionButton extends StatelessWidget {
               onPressed: _isDisabled ? null : onPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: buttonColor,
-                disabledBackgroundColor: AppColors.border,
+                disabledBackgroundColor: AppColors.dividerSubtle,
                 foregroundColor: textColor,
                 disabledForegroundColor: AppColors.textSecondary,
                 elevation: 0,

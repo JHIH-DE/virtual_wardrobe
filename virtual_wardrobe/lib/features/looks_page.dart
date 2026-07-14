@@ -15,7 +15,6 @@ import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
-import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/look/look_card.dart';
 
@@ -85,6 +84,51 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     }).toList();
   }
 
+  AppToolBar _buildAppBar(BuildContext context) {
+    return AppToolBar(
+      title: 'Looks',
+      backgroundColor: AppColors.surface,
+      showBackButton: false,
+      leading: IconButton(
+        icon: Image.asset(
+          'assets/images/plus.png',
+          height: AppDimens.iconMediumSize,
+        ),
+        onPressed: () => _handleOpenManualTryOn(context),
+      ),
+      actions: [
+        FilterButton(
+          isFiltered: _isFiltered,
+          groups: [
+            FilterGroup(
+              label: 'Season',
+              options: _seasons,
+              selected: () => _selectedSeasons,
+              onToggle: (s) => setState(
+                () => _selectedSeasons = FilterButton.toggleWithAll(
+                  _selectedSeasons,
+                  s,
+                ),
+              ),
+            ),
+            FilterGroup(
+              label: 'Style',
+              options: _styles,
+              selected: () => _selectedStyle,
+              onToggle: (s) => setState(
+                () => _selectedStyle = FilterButton.toggleWithAll(
+                  _selectedStyle,
+                  s,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final looksAsync = ref.watch(looksProvider);
@@ -93,48 +137,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
       children: [
         Scaffold(
           backgroundColor: AppColors.defaultBackground,
-          appBar: AppToolBar(
-            title: 'Looks',
-            backgroundColor: AppColors.surface,
-            onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
-            actions: [
-              FilterButton(
-                isFiltered: _isFiltered,
-                groups: [
-                  FilterGroup(
-                    label: 'Season',
-                    options: _seasons,
-                    selected: () => _selectedSeasons,
-                    onToggle: (s) => setState(
-                      () => _selectedSeasons = FilterButton.toggleWithAll(
-                        _selectedSeasons,
-                        s,
-                      ),
-                    ),
-                  ),
-                  FilterGroup(
-                    label: 'Style',
-                    options: _styles,
-                    selected: () => _selectedStyle,
-                    onToggle: (s) => setState(
-                      () => _selectedStyle = FilterButton.toggleWithAll(
-                        _selectedStyle,
-                        s,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: Image.asset(
-                  'assets/images/plus.png',
-                  height: AppDimens.iconMediumSize,
-                ),
-                onPressed: () => _handleOpenManualTryOn(context),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
+          appBar: _buildAppBar(context),
           body: looksAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => ErrorStateWidget(
@@ -148,7 +151,6 @@ class _LooksPageState extends ConsumerState<LooksPage> {
           const Positioned.fill(
             child: LoadingOverlay(label: 'Loading Garments...'),
           ),
-        const FloatingNavBar(current: AppTab.looks),
       ],
     );
   }

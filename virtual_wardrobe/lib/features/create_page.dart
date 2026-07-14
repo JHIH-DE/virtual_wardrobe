@@ -5,7 +5,7 @@ import '../app/theme/app_colors.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/utils/debug_log.dart';
-import 'add_garment_page.dart';
+import 'edit_garment_page.dart';
 import 'body_profile_page.dart';
 import 'manual_try_on_page.dart';
 import 'trip_planner_page.dart';
@@ -36,30 +36,31 @@ class _CreatePageState extends ConsumerState<CreatePage> {
     );
   }
 
+  AppToolBar _buildAppBar(BuildContext context) {
+    return AppToolBar(
+      title: 'Create',
+      backgroundColor: AppColors.defaultToolBar,
+      actions: [
+        IconButton(
+          icon: Container(
+            child: Image.asset('assets/images/figure_setting.png', height: 40),
+          ),
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BodyProfilePage()),
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
   Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: AppToolBar(
-        title: 'Create',
-        backgroundColor: AppColors.defaultToolBar,
-        actions: [
-          IconButton(
-            icon: Container(
-              child: Image.asset(
-                'assets/images/figure_setting.png',
-                height: 40,
-              ),
-            ),
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BodyProfilePage()),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: _buildAppBar(context),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -71,7 +72,7 @@ class _CreatePageState extends ConsumerState<CreatePage> {
               iconPath: 'assets/images/add.png',
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const AddGarmentPage()),
+                MaterialPageRoute(builder: (_) => const EditGarmentPage()),
               ),
             ),
             const SizedBox(height: 18),

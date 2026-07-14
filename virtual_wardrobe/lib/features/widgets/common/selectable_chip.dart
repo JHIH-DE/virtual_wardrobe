@@ -25,7 +25,7 @@ class SelectableChip extends StatelessWidget {
     this.onTap,
     this.selectedColor = AppColors.primary,
     this.unselectedFillColor = Colors.transparent,
-    this.unselectedBorderColor = AppColors.border,
+    this.unselectedBorderColor = AppColors.dividerSubtle,
     this.selectedTextColor = Colors.white,
     this.unselectedTextColor = AppColors.textPrimary,
     this.textStyle = AppTextStyle.semibold14,

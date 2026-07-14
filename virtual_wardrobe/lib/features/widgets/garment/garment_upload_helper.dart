@@ -6,7 +6,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../data/image_edit_result.dart';
-import '../../add_garment_page.dart';
+import '../../edit_garment_page.dart';
 import '../../camera_capture_page.dart';
 import '../../image_editor_page.dart';
 
@@ -167,7 +167,7 @@ class GarmentUploadHelper {
         final newGarment = await Navigator.push<Garment>(
           context,
           MaterialPageRoute(
-            builder: (_) => AddGarmentPage(
+            builder: (_) => EditGarmentPage(
               initialGarment: Garment(
                 name: '',
                 category: GarmentCategory.top,
