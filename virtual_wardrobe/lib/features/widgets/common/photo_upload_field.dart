@@ -48,14 +48,14 @@ class PhotoUploadField extends StatelessWidget {
       onTap: onTap,
       child: CustomPaint(
         painter: _DashedBorderPainter(
-          color: AppColors.placeholderBorder,
+          color: AppColors.borderStrong,
           radius: 16,
         ),
         child: Container(
           width: double.infinity,
           height: 240,
           decoration: BoxDecoration(
-            color: AppColors.placeholderBackground,
+            color: AppColors.placeholderSurface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(

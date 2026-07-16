@@ -1,55 +1,76 @@
 import 'package:flutter/material.dart';
 
+/// Warm cream base, monochrome ink for actions/selection, and uniformly
+/// black icons. Every screen should pull colors from here; nothing else in
+/// `lib/` should reference `Colors.*` or a raw `Color(0x...)` literal.
 class AppColors {
   AppColors._();
-  // Fashion Editorial base
-  static const Color defaultBackground = Color(0xFFF5F4F0);
-  static const Color defaultToolBar = Color(0xFFFFFFFF);
-  static const Color defaultButton = Color(0xFF222325);
-  static const Color defaultButtonText = Color(0xFFFFFFFF);
-  static const Color defaultCard = Color(0xFFFFFFFF);
-  static const Color backgroundLight = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFFFFFFF); // 卡片白
-  static const Color border = Color(0xFFE6E6E6); // 細邊框灰
-  static const Color textPrimary = Color(0xFF222325); // 近黑
-  static const Color textPrimaryInv = Color(0xFFFFFFFF); // 白
-  static const Color textSecondary = Color(0xFF6F6F6F); // 次要文字灰
-  static const Color dividerStrong = Color(0xFF18191B);
-  static const Color dividerSubtle = Color(0xFFE6E6E6);
-  static const Color defaultMask = Color(0x5C181E2B); // #181E2B 36%
 
-  // Social Colors
-  static const Color facebook = Color(0xFF1877F2); // Facebook Blue
-  static const Color google = Color(0xFF4285F4); // Google Blue (optional)
+  // Surfaces
+  static const Color pageBackground = Color(0xFFEFECEB); // warm cream wash
+  static const Color surface = Color(0xFFFFFFFF); // cards, toolbars, sheets
+  static const Color placeholderSurface = Color(
+    0xFFEDEAE3,
+  ); // empty photo/avatar wells
+  static const Color toolbarBackground = Color(0xFFFFFFFF);
+  static const Color interactiveArea = Color(0xFFF8F7F4);
 
-  // Accent (Editorial 常用：Deep Navy)
-  static const Color primary = Color(0xFF1C2A3A);
-  static const Color textFacebookIconBackground = Color(0xFF6F6F6F);
+  // Text & icons
+  static const Color textPrimary = Color(0xFF262420);
+  static const Color textSecondary = Color(0xFF6E6A62);
+  static const Color textOnPrimary = Color(0xFFFFFFFF);
+  static const Color hintText = Color(0xFF9C978C);
+  static const Color icon = textPrimary;
 
-  // 你原本用到的命名：保留，讓現有 code 不用大改
-  static const Color card = surface;
-  static const Color cardContent = textPrimary;
+  // Borders & dividers
+  static const Color borderStrong = Color(0xFFB7AFA0);
+  static const Color borderSubtle = Color(0xFFE7E3DA);
+  static const Color dividerStrong = Color(0xFF322F2A);
+  static const Color dividerSubtle = Color(0xFFF1F1F1);
+  static const Color placeholderIcon = Color(0xFFB6AFA2);
 
-  static const Color textBoxBorder = Color(0xFFA0A4AB);
+  // Brand — near-black for actions/selection
+  static const Color primary = Color(0xFF1A1A1A);
 
-  static const Color error = Color(0xFFD32F2F);
-  static const Color success = Color(0xFF00BFA5);
+  // Social sign-in (fixed brand colors, do not retint)
+  static const Color facebook = Color(0xFF1877F2);
+  static const Color google = Color(0xFF4285F4);
 
-  static const Color statusClicked = Color(0x5CC6C0AB); // #C6C0AB 36%
+  // State
+  static const Color error = Color(0xFFE4483F);
+  static const Color success = Color(0xFF1FAE79);
 
-  // Solid black accent used for primary buttons / selected states
-  static const Color nearBlack = Color(0xFF1A1A1A);
+  // Filled-heart color when a look/garment is marked favorite
+  static const Color favorite = Color(0xFFE53935);
 
-  // Empty-state upload placeholder (Body Profile photo picker)
-  static const Color placeholderBorder = Color(0xFFBBBBBB);
-  static const Color placeholderBackground = Color(0xFFEEEEEE);
+  // Trip status dots (TripPlannerPage's Ongoing/Upcoming/Past section headers)
+  static const Color statusOngoing = Color(0xFF4CAF50);
+  static const Color statusUpcoming = Color(0xFF4F7FFF);
+  static const Color statusPast = Color(0xFF9E9E9E);
 
   // AppCard drop shadow (two-tone hard shadow)
-  static const Color cardShadowTop = Color(0xFFDDDDDD);
-  static const Color cardShadowBottom = Color(0xFFCCCCCC);
+  static const Color cardShadowTop = Color(0xFFE9E5DC);
+  static const Color cardShadowBottom = Color(0xFFD6CFC0);
 
-  static const Color hintText = Color(0xFF9E9E9E);
-  static const Color placeholderIcon = Color(0xFFBDBDBD);
-  static const Color avatarPlaceholderBackground = Color(0xFFE0E0E0);
-  static const Color dropdownBorder = Color(0xFF2B3A8C);
+  // LumiInsightCard — the AI-output call-out's gradient background tint
+  static const Color lumiCardTint = Color(0xFFF3EFE6);
+
+  // Overlays — composed as base color + alpha so the opacity is explicit
+  static const Color overlayScrim = Color(
+    0x5C262420,
+  ); // full-screen loading mask, ink @36%
+  static const Color selectionTint = Color(
+    0x5C1A1A1A,
+  ); // selected-card highlight, primary @36%
+
+  // Shared shadow/backdrop tiers (replaces ad hoc Colors.black.withOpacity(...) literals)
+  static const Color shadowResting = Color(
+    0x0F000000,
+  ); // resting card shadow, black @6%
+  static const Color overlaySubtle = Color(
+    0x1F000000,
+  ); // light overlay/shadow, black @12%
+  static const Color scrimBackdrop = Color(
+    0xA6000000,
+  ); // full-screen dark backdrop, black @65%
 }

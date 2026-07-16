@@ -87,7 +87,6 @@ class _LooksPageState extends ConsumerState<LooksPage> {
   AppToolBar _buildAppBar(BuildContext context) {
     return AppToolBar(
       title: 'Looks',
-      backgroundColor: AppColors.surface,
       showBackButton: false,
       leading: IconButton(
         icon: Image.asset(
@@ -131,27 +130,30 @@ class _LooksPageState extends ConsumerState<LooksPage> {
 
   @override
   Widget build(BuildContext context) {
-    final looksAsync = ref.watch(looksProvider);
-
     return Stack(
       children: [
-        Scaffold(
-          backgroundColor: AppColors.defaultBackground,
-          appBar: _buildAppBar(context),
-          body: looksAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => ErrorStateWidget(
-              error: e,
-              onRetry: () => ref.read(looksProvider.notifier).refresh(),
-            ),
-            data: (all) => _buildLooksGrid(_filtered(all)),
-          ),
-        ),
+        _buildScaffold(context),
         if (_openingTryOn)
           const Positioned.fill(
             child: LoadingOverlay(label: 'Loading Garments...'),
           ),
       ],
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
+    final looksAsync = ref.watch(looksProvider);
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      appBar: _buildAppBar(context),
+      body: looksAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.read(looksProvider.notifier).refresh(),
+        ),
+        data: (all) => _buildLooksGrid(_filtered(all)),
+      ),
     );
   }
 
@@ -170,7 +172,12 @@ class _LooksPageState extends ConsumerState<LooksPage> {
       color: AppColors.primary,
       child: GridView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          AppDimens.floatingNavBarClearance,
+        ),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 12,
@@ -178,21 +185,22 @@ class _LooksPageState extends ConsumerState<LooksPage> {
           mainAxisExtent: AppDimens.lookCardHeight,
         ),
         itemCount: looks.length,
-        itemBuilder: (context, index) {
-          final look = looks[index];
-          return DeletableCard(
-            group: _deleteGroup,
-            borderRadius: BorderRadius.circular(20),
-            onDelete: () => _deleteLook(look),
-            child: LookCard(
-              look: look,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
-              ),
-            ),
-          );
-        },
+        itemBuilder: (context, index) => _buildLookCard(context, looks[index]),
+      ),
+    );
+  }
+
+  Widget _buildLookCard(BuildContext context, Look look) {
+    return DeletableCard(
+      group: _deleteGroup,
+      borderRadius: BorderRadius.circular(20),
+      onDelete: () => _deleteLook(look),
+      child: LookCard(
+        look: look,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
+        ),
       ),
     );
   }

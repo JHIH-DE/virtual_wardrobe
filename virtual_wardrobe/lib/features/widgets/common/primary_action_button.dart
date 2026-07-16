@@ -25,7 +25,7 @@ class PrimaryActionButton extends StatelessWidget {
       label: Text(label),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.textOnPrimary,
         minimumSize: fullWidth ? const Size(double.infinity, 48) : null,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

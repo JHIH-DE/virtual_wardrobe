@@ -38,11 +38,11 @@ class TripDayCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0x5CC6C0AB) : AppColors.surface,
+          color: isSelected ? AppColors.selectionTint : AppColors.surface,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: AppColors.shadowResting,
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -66,12 +66,12 @@ class TripDayCard extends StatelessWidget {
                   child: Text(
                     '${date.day}',
                     style: AppTextStyle.bold14.copyWith(
-                      color: AppColors.textPrimaryInv,
+                      color: AppColors.textOnPrimary,
                     ),
                   ),
                 ),
                 const SizedBox(width: 6),
-                Container(width: 1, height: 24, color: AppColors.dividerSubtle),
+                Container(width: 1, height: 24, color: AppColors.borderSubtle),
                 const SizedBox(width: 6),
                 Text(
                   DateFormat('E').format(date),

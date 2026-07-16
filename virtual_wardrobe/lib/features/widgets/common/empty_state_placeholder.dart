@@ -33,7 +33,7 @@ class EmptyStatePlaceholder extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 64, color: AppColors.textSecondary),
+              Icon(icon, size: 64, color: AppColors.icon),
               const SizedBox(height: 16),
             ],
             Text(

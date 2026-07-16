@@ -28,11 +28,11 @@ class GarmentCard extends StatelessWidget {
         height: AppDimens.garmentCardHeight,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.07),
+                color: AppColors.shadowResting,
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -50,7 +50,7 @@ class GarmentCard extends StatelessWidget {
                       child: Stack(
                         children: [
                           Container(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             width: double.infinity,
                             child: Padding(
                               padding: const EdgeInsets.all(12),
@@ -78,14 +78,14 @@ class GarmentCard extends StatelessWidget {
                                   border: Border.all(
                                     color: isSelected
                                         ? AppColors.primary
-                                        : AppColors.dividerSubtle,
+                                        : AppColors.borderSubtle,
                                     width: 1.5,
                                   ),
                                 ),
                                 child: isSelected
                                     ? const Icon(
                                         Icons.check,
-                                        color: Colors.white,
+                                        color: AppColors.textOnPrimary,
                                         size: 13,
                                       )
                                     : null,
@@ -95,11 +95,11 @@ class GarmentCard extends StatelessWidget {
                       ),
                     ),
                     // Divider
-                    Container(height: 1, color: AppColors.dividerSubtle),
+                    Container(height: 1, color: AppColors.borderSubtle),
                     // Lower — white background, text
                     Container(
                       height: AppDimens.garmentCardInfoHeight,
-                      color: Colors.white,
+                      color: AppColors.surface,
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -135,7 +135,7 @@ class GarmentCard extends StatelessWidget {
                     child: AnimatedOpacity(
                       duration: const Duration(milliseconds: 150),
                       opacity: 1.0,
-                      child: const ColoredBox(color: AppColors.statusClicked),
+                      child: const ColoredBox(color: AppColors.selectionTint),
                     ),
                   ),
               ],

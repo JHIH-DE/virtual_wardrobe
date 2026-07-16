@@ -20,7 +20,7 @@ import 'trip_suitcase_page.dart';
 import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/info_banner.dart';
+import 'widgets/common/lumi_insight_card.dart';
 import 'widgets/common/today_outfit_idea.dart';
 import 'widgets/garment/garment_image.dart';
 import 'widgets/trip/trip_day_card.dart';
@@ -145,6 +145,38 @@ Future<_WeatherForecast> _fetchWeather(TripPlan trip) async {
   return _WeatherForecast(codes: codes, highs: highs, lows: lows);
 }
 
+/// Picks the primary (lowest `order_index`) outfit option for one trip day
+/// and resolves its garment ids against [garmentsById].
+TripDayOutfit _parseTripDayOutfit(
+  Map<String, dynamic> day,
+  Map<int, Garment> garmentsById,
+) {
+  final options =
+      ((day['options'] as List?) ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList()
+        ..sort(
+          (a, b) => ((a['order_index'] as num?) ?? 0).compareTo(
+            (b['order_index'] as num?) ?? 0,
+          ),
+        );
+  if (options.isEmpty) return const TripDayOutfit();
+
+  final primary = options.first;
+  final items = ((primary['items'] as List?) ?? [])
+      .whereType<Map<String, dynamic>>();
+  final garments = items
+      .map((i) => garmentsById[(i['garment_id'] as num?)?.toInt()])
+      .whereType<Garment>()
+      .toList();
+
+  return TripDayOutfit(
+    optionId: (primary['id'] as num?)?.toInt(),
+    garments: garments,
+    jobId: (primary['job_id'] as num?)?.toInt(),
+  );
+}
+
 class TripDetailsPage extends ConsumerStatefulWidget {
   final TripPlan trip;
   final TripDetailsInitialData initialData;
@@ -170,32 +202,10 @@ class TripDetailsPage extends ConsumerStatefulWidget {
       };
 
       final rawDays = (tripData['days'] as List?) ?? [];
-      dayOutfits = rawDays.whereType<Map<String, dynamic>>().map((day) {
-        final options =
-            ((day['options'] as List?) ?? [])
-                .whereType<Map<String, dynamic>>()
-                .toList()
-              ..sort(
-                (a, b) => ((a['order_index'] as num?) ?? 0).compareTo(
-                  (b['order_index'] as num?) ?? 0,
-                ),
-              );
-        if (options.isEmpty) return const TripDayOutfit();
-
-        final primary = options.first;
-        final items = ((primary['items'] as List?) ?? [])
-            .whereType<Map<String, dynamic>>();
-        final garments = items
-            .map((i) => garmentsById[(i['garment_id'] as num?)?.toInt()])
-            .whereType<Garment>()
-            .toList();
-
-        return TripDayOutfit(
-          optionId: (primary['id'] as num?)?.toInt(),
-          garments: garments,
-          jobId: (primary['job_id'] as num?)?.toInt(),
-        );
-      }).toList();
+      dayOutfits = rawDays
+          .whereType<Map<String, dynamic>>()
+          .map((day) => _parseTripDayOutfit(day, garmentsById))
+          .toList();
     } catch (e) {
       if (e is AuthExpiredException) rethrow;
       debugLog('Failed to load trip outfits: $e');
@@ -269,60 +279,50 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(
-      title: widget.trip.name,
-      backgroundColor: AppColors.surface,
-    );
+    return AppToolBar(title: widget.trip.name);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildTripHeader(),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildPackingAdviceSection(),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildSuitcaseSection(),
-            ),
-            const SizedBox(height: 20),
-            _buildTripDaySelector(),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildWardrobeSection(),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TodayOutfitIdea(
-                onSave: _onSaveLook,
-                onGenerate: _handleGenerateLook,
-                imageUrl: tryOnResultUrl,
-                isLoading: isOutfitLoading,
-                jobStatus: isOutfitLoading
-                    ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
-                    : null,
-                errorMessage: tryOnErrorMessage,
-              ),
-            ),
-          ],
-        ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        children: [
+          _paddedSection(_buildTripHeader()),
+          const SizedBox(height: 20),
+          _paddedSection(_buildPackingAdviceSection()),
+          const SizedBox(height: 20),
+          _paddedSection(_buildSuitcaseSection()),
+          const SizedBox(height: 20),
+          _buildTripDaySelector(),
+          const SizedBox(height: 20),
+          _paddedSection(_buildWardrobeSection()),
+          const SizedBox(height: 20),
+          _paddedSection(_buildOutfitSection()),
+        ],
       ),
+    );
+  }
+
+  Widget _paddedSection(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: child,
+    );
+  }
+
+  Widget _buildOutfitSection() {
+    return TodayOutfitIdea(
+      onSave: _onSaveLook,
+      onGenerate: _handleGenerateLook,
+      imageUrl: tryOnResultUrl,
+      isLoading: isOutfitLoading,
+      jobStatus: isOutfitLoading
+          ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
+          : null,
+      errorMessage: tryOnErrorMessage,
     );
   }
 
@@ -330,7 +330,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
+        color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -340,11 +340,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             if (i > 0) _buildLegDivider(),
             Row(
               children: [
-                const Icon(
-                  Icons.location_on,
-                  color: AppColors.primary,
-                  size: 18,
-                ),
+                const Icon(Icons.location_on, color: AppColors.icon, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -420,7 +416,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               color: AppColors.surface,
               borderRadius: BorderRadius.all(Radius.circular(16)),
               border: Border.fromBorderSide(
-                BorderSide(color: AppColors.dividerSubtle),
+                BorderSide(color: AppColors.borderSubtle),
               ),
             ),
           )
@@ -443,36 +439,38 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         (_packingAdvice == null || _packingAdvice!.isEmpty)) {
       return const SizedBox.shrink();
     }
-    return InfoBanner(
-      iconSize: 24,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('LUMI', style: AppTextStyle.bold16),
-          const SizedBox(height: 6),
-          if (_loadingPackingAdvice)
-            const SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+    return LumiInsightCard(
+      child: _loadingPackingAdvice
+          ? Row(
+              children: [
+                const SizedBox(
+                  height: 14,
+                  width: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Thinking...',
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             )
-          else
-            Text(
+          : Text(
               _packingAdvice!,
               style: AppTextStyle.regular14.copyWith(
                 color: AppColors.textSecondary,
+                height: 1.5,
               ),
             ),
-        ],
-      ),
     );
   }
 
   Widget _buildSuitcaseSection() {
     return AppListCard(
       title: 'Suitcase',
-      leading: const Icon(Icons.luggage_outlined, color: AppColors.primary),
+      leading: const Icon(Icons.luggage_outlined, color: AppColors.icon),
       showArrow: true,
       onTap: () => Navigator.push(
         context,
@@ -492,7 +490,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.dividerSubtle),
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: GarmentImage(url: g.imageUrl, fit: BoxFit.cover, borderRadius: 12),
     );

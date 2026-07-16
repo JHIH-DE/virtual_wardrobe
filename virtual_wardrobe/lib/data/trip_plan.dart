@@ -84,8 +84,11 @@ class TripPlan {
   /// First leg's location, for call sites that only care about one place.
   LocationResult get location => legs.first.location;
 
-  /// "Netherlands" or "Netherlands → Belgium → Austria" for multi-leg trips.
-  String get locationSummary => legs.map((l) => l.location.name).join(' → ');
+  /// "Tokyo • Yokohama • Kamakura" (stripping country if present).
+  String get locationSummary => legs.map((l) {
+        final name = l.location.name;
+        return name.contains(',') ? name.split(',').first.trim() : name;
+      }).join(' • ');
 
   /// The leg active on [date], if any.
   TripLeg? legForDate(DateTime date) {

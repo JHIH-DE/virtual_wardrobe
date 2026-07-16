@@ -25,7 +25,7 @@ class NumberStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.dividerSubtle),
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Row(
         children: [
@@ -34,7 +34,7 @@ class NumberStepper extends StatelessWidget {
             onPressed: onDecrement,
             icon: const Icon(
               Icons.remove_circle_outline,
-              color: AppColors.textSecondary,
+              color: AppColors.icon,
             ),
           ),
           SizedBox(
@@ -47,10 +47,7 @@ class NumberStepper extends StatelessWidget {
           ),
           IconButton(
             onPressed: onIncrement,
-            icon: const Icon(
-              Icons.add_circle_outline,
-              color: AppColors.primary,
-            ),
+            icon: const Icon(Icons.add_circle_outline, color: AppColors.icon),
           ),
         ],
       ),

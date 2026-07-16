@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../app/theme/app_colors.dart';
 import 'debug_log.dart';
 
 class GlobalErrorHandler {
@@ -47,7 +48,7 @@ class GlobalErrorHandler {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.icon),
               const SizedBox(height: 16),
               const Text(
                 '發生了一點問題',

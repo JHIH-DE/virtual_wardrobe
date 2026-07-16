@@ -8,24 +8,17 @@ class FinancePage extends StatelessWidget {
   const FinancePage({super.key});
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(
-      title: 'Finance',
-      backgroundColor: AppColors.defaultBackground,
-      showBackButton: false,
-    );
+    return AppToolBar(title: 'Finance', showBackButton: false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: const SafeArea(
-        top: false,
-        child: EmptyStatePlaceholder(
-          message: 'Finance is coming soon',
-          icon: Icons.account_balance_wallet_outlined,
-        ),
+      body: const EmptyStatePlaceholder(
+        message: 'Finance is coming soon',
+        icon: Icons.account_balance_wallet_outlined,
       ),
     );
   }

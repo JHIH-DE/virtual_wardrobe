@@ -12,13 +12,13 @@ class LoadingOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.defaultMask,
+      color: AppColors.overlayScrim,
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const CircularProgressIndicator(
-            color: AppColors.textPrimaryInv,
+            color: AppColors.textOnPrimary,
             strokeWidth: 5,
           ),
           const SizedBox(height: 20),
@@ -34,7 +34,7 @@ class LoadingOverlay extends StatelessWidget {
               Text(
                 label,
                 style: AppTextStyle.bold16.copyWith(
-                  color: AppColors.textPrimaryInv,
+                  color: AppColors.textOnPrimary,
                   decoration: TextDecoration.none,
                 ),
               ),

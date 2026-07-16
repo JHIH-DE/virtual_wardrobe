@@ -76,97 +76,90 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          children: [
-            const SizedBox(height: 16),
-            SectionTitle(
-              'Comfort Adjustment',
-              style: AppTextStyle.bold16.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildTempAdjuster(),
-            const SizedBox(height: 24),
-            SectionTitle(
-              'Daily Occasions',
-              style: AppTextStyle.bold16.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...List.generate(7, (index) {
-              final date = DateTime.now().add(Duration(days: index));
-              final isToday = index == 0;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: isToday
-                      ? AppColors.primary
-                      : AppColors.primary.withValues(alpha: 0.1),
-                  child: Text(
-                    DateFormat('E').format(date)[0],
-                    style: TextStyle(
-                      color: isToday ? Colors.white : AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  isToday
-                      ? '${DateFormat('EEEE').format(date)} (Today)'
-                      : DateFormat('EEEE').format(date),
-                  style: TextStyle(
-                    fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                trailing: DropdownButton<String>(
-                  value: _weeklyOccasions[index],
-                  underline: const SizedBox(),
-                  items: _occasionLabels.entries
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _weeklyOccasions[index] = val);
-                    }
-                  },
-                ),
-              );
-            }),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  'Apply',
-                  style: AppTextStyle.bold16.copyWith(
-                    color: AppColors.textPrimaryInv,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          const SizedBox(height: 16),
+          _buildSectionTitle('Comfort Adjustment'),
+          const SizedBox(height: 12),
+          _buildTempAdjuster(),
+          const SizedBox(height: 24),
+          _buildSectionTitle('Daily Occasions'),
+          const SizedBox(height: 8),
+          ...List.generate(7, _buildOccasionTile),
+          const SizedBox(height: 24),
+          _buildApplyButton(),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String label) {
+    return SectionTitle(
+      label,
+      style: AppTextStyle.bold16.copyWith(color: AppColors.textSecondary),
+    );
+  }
+
+  Widget _buildOccasionTile(int index) {
+    final date = DateTime.now().add(Duration(days: index));
+    final isToday = index == 0;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: isToday
+            ? AppColors.primary
+            : AppColors.primary.withValues(alpha: 0.1),
+        child: Text(
+          DateFormat('E').format(date)[0],
+          style: TextStyle(
+            color: isToday ? AppColors.textOnPrimary : AppColors.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      title: Text(
+        isToday
+            ? '${DateFormat('EEEE').format(date)} (Today)'
+            : DateFormat('EEEE').format(date),
+        style: TextStyle(
+          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: DropdownButton<String>(
+        value: _weeklyOccasions[index],
+        underline: const SizedBox(),
+        items: _occasionLabels.entries
+            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+            .toList(),
+        onChanged: (val) {
+          if (val != null) {
+            setState(() => _weeklyOccasions[index] = val);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildApplyButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _save,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          'Apply',
+          style: AppTextStyle.bold16.copyWith(color: AppColors.textOnPrimary),
         ),
       ),
     );

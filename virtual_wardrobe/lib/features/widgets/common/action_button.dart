@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 
-/// Icon-over-label tap target, e.g. Favorite / Share / Used in Looks.
+/// Icon+label tap target, e.g. Favorite / Share / Used in Looks. Stacked
+/// (icon above label) by default; set [horizontal] for icon-beside-label.
 class ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color? iconColor;
   final VoidCallback? onTap;
+  final bool horizontal;
 
   const ActionButton({
     super.key,
@@ -16,27 +18,31 @@ class ActionButton extends StatelessWidget {
     required this.label,
     this.iconColor,
     this.onTap,
+    this.horizontal = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final iconWidget = Icon(icon, size: 24, color: iconColor ?? AppColors.icon);
+    final labelWidget = Text(
+      label,
+      style: AppTextStyle.regular14.copyWith(color: AppColors.textPrimary),
+    );
+
     return GestureDetector(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 24, color: iconColor ?? AppColors.textPrimary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textPrimary,
+        child: horizontal
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [iconWidget, const SizedBox(width: 8), labelWidget],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [iconWidget, const SizedBox(height: 4), labelWidget],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -159,83 +159,38 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: Text(
-                          _error!,
-                          style: AppTextStyle.regular13.copyWith(
-                            color: Colors.red,
-                          ),
-                        ),
-                      ),
-                    _buildAvatarSection(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RequiredFieldLabel('Account Name'),
-                          const SizedBox(height: 8),
-                          AppTextField(
-                            controller: _nameCtrl,
-                            hint: 'Enter your name',
-                          ),
-                          const SizedBox(height: 20),
-                          RequiredFieldLabel('Gender'),
-                          const SizedBox(height: 8),
-                          CustomDropdown<String>(
-                            value: _selectedGender,
-                            hint: 'Select gender',
-                            items: _genderOptions
-                                .map(
-                                  (g) => DropdownMenuItem(
-                                    value: g,
-                                    child: Text(g),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: _loading
-                                ? null
-                                : (v) => setState(() => _selectedGender = v),
-                          ),
-                          const SizedBox(height: 20),
-                          RequiredFieldLabel('Birthday'),
-                          const SizedBox(height: 8),
-                          DateDropdownField(
-                            value: _selectedBirthDate,
-                            hint: 'Select birthday',
-                            firstDate: DateTime(1900),
-                            lastDate: DateTime.now(),
-                            onChanged: _loading
-                                ? null
-                                : (d) => setState(() => _selectedBirthDate = d),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_error != null) _buildErrorBanner(),
+                  _buildAvatarSection(),
+                  _buildFormFields(),
+                ],
               ),
             ),
-            BottomActionButton(
-              label: 'Save',
-              onPressed: _saveProfile,
-              isLoading: _loading,
-            ),
-          ],
-        ),
+          ),
+          BottomActionButton(
+            label: 'Save',
+            onPressed: _saveProfile,
+            isLoading: _loading,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Text(
+        _error!,
+        style: AppTextStyle.regular13.copyWith(color: AppColors.error),
       ),
     );
   }
@@ -253,8 +208,8 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
 
     return Material(
       elevation: 4,
-      shadowColor: Colors.black26,
-      color: Colors.white,
+      shadowColor: Colors.black.withValues(alpha: 0.26),
+      color: AppColors.surface,
       child: SizedBox(
         width: double.infinity,
         height: 180,
@@ -278,4 +233,70 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   }
 
   // ── Form helpers ───────────────────────────────────────────────────────────
+
+  Widget _buildFormFields() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildNameField(),
+          const SizedBox(height: 20),
+          _buildGenderField(),
+          const SizedBox(height: 20),
+          _buildBirthdayField(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNameField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RequiredFieldLabel('Account Name'),
+        const SizedBox(height: 8),
+        AppTextField(controller: _nameCtrl, hint: 'Enter your name'),
+      ],
+    );
+  }
+
+  Widget _buildGenderField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RequiredFieldLabel('Gender'),
+        const SizedBox(height: 8),
+        CustomDropdown<String>(
+          value: _selectedGender,
+          hint: 'Select gender',
+          items: _genderOptions
+              .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+              .toList(),
+          onChanged: _loading
+              ? null
+              : (v) => setState(() => _selectedGender = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBirthdayField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RequiredFieldLabel('Birthday'),
+        const SizedBox(height: 8),
+        DateDropdownField(
+          value: _selectedBirthDate,
+          hint: 'Select birthday',
+          firstDate: DateTime(1900),
+          lastDate: DateTime.now(),
+          onChanged: _loading
+              ? null
+              : (d) => setState(() => _selectedBirthDate = d),
+        ),
+      ],
+    );
+  }
 }

@@ -33,11 +33,11 @@ class LookCard extends StatelessWidget {
         height: AppDimens.lookCardHeight,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: AppColors.shadowResting,
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -50,7 +50,7 @@ class LookCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Container(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     child: look.imageUrl.isNotEmpty
                         ? CachedNetworkImage(
                             imageUrl: look.imageUrl,
@@ -63,7 +63,7 @@ class LookCard extends StatelessWidget {
                               child: Icon(
                                 Icons.broken_image_outlined,
                                 size: 36,
-                                color: AppColors.placeholderIcon,
+                                color: AppColors.icon,
                               ),
                             ),
                           )
@@ -71,7 +71,7 @@ class LookCard extends StatelessWidget {
                             child: Icon(
                               Icons.image_outlined,
                               size: 36,
-                              color: AppColors.placeholderIcon,
+                              color: AppColors.icon,
                             ),
                           ),
                   ),
@@ -83,7 +83,7 @@ class LookCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyle.bold14.copyWith(
-                      color: AppColors.nearBlack,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),

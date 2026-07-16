@@ -116,39 +116,36 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        top: false,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                children: [
-                  _buildProfileCard(),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildFigureCard(),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildOutfitStyleCard(),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildDailyOutfitCard(),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildLogoutCard(),
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                _buildProfileCard(),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildFigureCard(),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildOutfitStyleCard(),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildDailyOutfitCard(),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildLogoutCard(),
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
     );
   }
 
@@ -164,7 +161,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(height: 1, color: AppColors.dividerSubtle),
+          Container(height: 1, color: AppColors.borderSubtle),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
@@ -199,7 +196,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
-          Container(height: 1, color: AppColors.dividerSubtle),
+          Container(height: 1, color: AppColors.borderSubtle),
         ],
       ),
     );

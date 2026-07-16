@@ -63,17 +63,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   Future<void> _loadPackedItems() async {
     try {
       final data = await TripPlanService().getTripPlan(_tripId);
-      final ids = <int>{};
-      final rawItems = data['suitcase_items'];
-      if (rawItems is List) {
-        for (final item in rawItems) {
-          if (item is Map && item['garment_id'] is int) {
-            ids.add(item['garment_id'] as int);
-          } else if (item is int) {
-            ids.add(item);
-          }
-        }
-      }
+      final ids = _parseSuitcaseItemIds(data['suitcase_items']);
       if (mounted) setState(() => _packedIds = ids);
     } catch (e) {
       if (e is AuthExpiredException) {
@@ -84,6 +74,20 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Set<int> _parseSuitcaseItemIds(dynamic rawItems) {
+    final ids = <int>{};
+    if (rawItems is List) {
+      for (final item in rawItems) {
+        if (item is Map && item['garment_id'] is int) {
+          ids.add(item['garment_id'] as int);
+        } else if (item is int) {
+          ids.add(item);
+        }
+      }
+    }
+    return ids;
   }
 
   Future<void> _handleAddGarment(List<Garment> allGarments) async {
@@ -170,10 +174,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(
-      title: '${widget.trip.name} Suitcase',
-      backgroundColor: AppColors.surface,
-    );
+    return AppToolBar(title: '${widget.trip.name} Suitcase');
   }
 
   @override
@@ -183,18 +184,15 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: AppColors.defaultBackground,
+          backgroundColor: AppColors.pageBackground,
           appBar: _buildAppBar(),
-          body: SafeArea(
-            top: false,
-            child: garmentsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => ErrorStateWidget(
-                error: e,
-                onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
-              ),
-              data: (all) => _buildBody(all),
+          body: garmentsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => ErrorStateWidget(
+              error: e,
+              onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
             ),
+            data: (all) => _buildBody(all),
           ),
         ),
         if (_loading)
@@ -206,10 +204,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   }
 
   Widget _buildBody(List<Garment> allGarments) {
-    final byId = {
-      for (final g in allGarments)
-        if (g.id != null) g.id!: g,
-    };
+    final byId = _indexGarmentsById(allGarments);
     final packedGarments = _packedIds
         .map((id) => byId[id])
         .whereType<Garment>()
@@ -244,6 +239,13 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
+  Map<int, Garment> _indexGarmentsById(List<Garment> garments) {
+    return {
+      for (final g in garments)
+        if (g.id != null) g.id!: g,
+    };
+  }
+
   List<Widget> _buildCategorySection(
     GarmentCategory category,
     List<Garment> garments,
@@ -263,16 +265,17 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           mainAxisExtent: AppDimens.garmentCardHeight,
         ),
         itemCount: garments.length,
-        itemBuilder: (context, i) {
-          final g = garments[i];
-          return DeletableCard(
-            group: _deleteGroup,
-            onDelete: () => _removeGarment(g),
-            child: GarmentCard(garment: g, showSelectionIndicator: false),
-          );
-        },
+        itemBuilder: (context, i) => _buildGarmentCard(garments[i]),
       ),
       const SizedBox(height: 20),
     ];
+  }
+
+  Widget _buildGarmentCard(Garment g) {
+    return DeletableCard(
+      group: _deleteGroup,
+      onDelete: () => _removeGarment(g),
+      child: GarmentCard(garment: g, showSelectionIndicator: false),
+    );
   }
 }

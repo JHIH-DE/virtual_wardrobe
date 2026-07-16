@@ -98,12 +98,12 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.dividerSubtle),
+        border: Border.all(color: AppColors.borderSubtle),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.location_on, color: AppColors.primary, size: 18),
+          const Icon(Icons.location_on, color: AppColors.icon, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Column(

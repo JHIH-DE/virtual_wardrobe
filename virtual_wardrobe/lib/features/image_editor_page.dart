@@ -156,184 +156,173 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final hasImage = _currentPath != null && _currentPath!.isNotEmpty;
-
     return Stack(
       children: [
-        Scaffold(
-          backgroundColor: AppColors.defaultBackground,
-          appBar: _buildAppBar(context),
-          bottomNavigationBar: BottomActionButton(
-            label: _isAnalyzing ? 'Analyzing...' : 'Confirmed',
-            onPressed: (hasImage && !_isAnalyzing) ? _handleConfirmed : null,
-            trailing: Image.asset(
-              'assets/images/ai_process.png',
-              height: AppDimens.iconSmallSize,
-              color: Colors.white,
-            ),
-          ),
-          body: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Stack(
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 1.0,
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: hasImage
-                                ? (_currentPath!.startsWith('http')
-                                      ? InteractiveViewer(
-                                          transformationController:
-                                              _transformationController,
-                                          minScale: 0.5,
-                                          maxScale: 4.0,
-                                          child: Image.network(
-                                            _currentPath!,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (_, __, ___) =>
-                                                const Center(
-                                                  child: Icon(
-                                                    Icons.broken_image,
-                                                    size: 50,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                          ),
-                                        )
-                                      : InteractiveViewer(
-                                          transformationController:
-                                              _transformationController,
-                                          minScale: 0.5,
-                                          maxScale: 4.0,
-                                          child: Image.file(
-                                            File(_currentPath!),
-                                            fit: BoxFit.contain,
-                                          ),
-                                        ))
-                                : const Center(
-                                    child: Icon(
-                                      Icons.image,
-                                      size: 50,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                      if (hasImage && !_isAnalyzing)
-                        Positioned(
-                          top: 16,
-                          right: 16,
-                          child: GestureDetector(
-                            onTap: _resetImage,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    'Reset',
-                                    style: AppTextStyle.bold16.copyWith(
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Image.asset(
-                                    'assets/images/reset.png',
-                                    height: AppDimens.iconSmallSize,
-                                    color: Colors.white,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        child: Image.asset(
-                          'assets/images/pinch.png',
-                          height: 54,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'Pinch to zoom the image to make sure the picture have the whole details.',
-                          style: AppTextStyle.bold16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PillButton(
-                          label: const Text(
-                            'Retake',
-                            style: AppTextStyle.bold16,
-                          ),
-                          icon: Image.asset(
-                            'assets/images/camera.png',
-                            height: 32,
-                          ),
-                          onTap: _isAnalyzing ? () {} : _handleRetake,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: PillButton(
-                          label: const Text(
-                            'Album',
-                            style: AppTextStyle.bold16,
-                          ),
-                          icon: Image.asset(
-                            'assets/images/album.png',
-                            height: 32,
-                          ),
-                          onTap: _isAnalyzing ? () {} : _handleAlbum,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        _buildScaffold(context),
         if (_isAnalyzing)
           const Positioned.fill(
             child: LoadingOverlay(label: 'Analyzing Clothing...'),
           ),
+      ],
+    );
+  }
+
+  bool get _hasImage => _currentPath != null && _currentPath!.isNotEmpty;
+
+  Widget _buildScaffold(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      appBar: _buildAppBar(context),
+      bottomNavigationBar: _buildConfirmButton(),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            _buildImagePreview(),
+            const SizedBox(height: 24),
+            _buildPinchHint(),
+            const SizedBox(height: 32),
+            _buildActionButtons(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfirmButton() {
+    return BottomActionButton(
+      label: _isAnalyzing ? 'Analyzing...' : 'Confirmed',
+      onPressed: (_hasImage && !_isAnalyzing) ? _handleConfirmed : null,
+      trailing: Image.asset(
+        'assets/images/ai_process.png',
+        height: AppDimens.iconSmallSize,
+        color: AppColors.textOnPrimary,
+      ),
+    );
+  }
+
+  Widget _buildImagePreview() {
+    return Stack(
+      children: [
+        AspectRatio(
+          aspectRatio: 1.0,
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadowResting,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: _buildImageContent(),
+            ),
+          ),
+        ),
+        if (_hasImage && !_isAnalyzing) _buildResetButton(),
+      ],
+    );
+  }
+
+  Widget _buildImageContent() {
+    if (!_hasImage) {
+      return const Center(
+        child: Icon(Icons.image, size: 50, color: AppColors.icon),
+      );
+    }
+    final image = _currentPath!.startsWith('http')
+        ? Image.network(
+            _currentPath!,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Center(
+              child: Icon(Icons.broken_image, size: 50, color: AppColors.icon),
+            ),
+          )
+        : Image.file(File(_currentPath!), fit: BoxFit.contain);
+    return InteractiveViewer(
+      transformationController: _transformationController,
+      minScale: 0.5,
+      maxScale: 4.0,
+      child: image,
+    );
+  }
+
+  Widget _buildResetButton() {
+    return Positioned(
+      top: 16,
+      right: 16,
+      child: GestureDetector(
+        onTap: _resetImage,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.scrimBackdrop,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Text(
+                'Reset',
+                style: AppTextStyle.bold16.copyWith(
+                  color: AppColors.textOnPrimary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Image.asset(
+                'assets/images/reset.png',
+                height: AppDimens.iconSmallSize,
+                color: AppColors.textOnPrimary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPinchHint() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          child: Image.asset('assets/images/pinch.png', height: 54),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Text(
+            'Pinch to zoom the image to make sure the picture have the whole details.',
+            style: AppTextStyle.bold16,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: PillButton(
+            label: const Text('Retake', style: AppTextStyle.bold16),
+            icon: Image.asset('assets/images/camera.png', height: 32),
+            onTap: _isAnalyzing ? () {} : _handleRetake,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: PillButton(
+            label: const Text('Album', style: AppTextStyle.bold16),
+            icon: Image.asset('assets/images/album.png', height: 32),
+            onTap: _isAnalyzing ? () {} : _handleAlbum,
+          ),
+        ),
       ],
     );
   }

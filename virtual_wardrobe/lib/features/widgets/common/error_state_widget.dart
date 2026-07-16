@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_colors.dart';
 import '../../../core/services/auth_handler.dart';
 
 /// Centered error message with a retry button. Renders nothing for
@@ -24,9 +25,12 @@ class ErrorStateWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+          const Icon(Icons.error_outline, size: 48, color: AppColors.icon),
           const SizedBox(height: 12),
-          Text(error.toString(), style: const TextStyle(color: Colors.grey)),
+          Text(
+            error.toString(),
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
           const SizedBox(height: 12),
           ElevatedButton(onPressed: onRetry, child: Text(retryLabel)),
         ],

@@ -138,40 +138,40 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
       bottomNavigationBar: BottomActionButton(
         label: 'Save',
         onPressed: _loading ? null : _saveProfile,
         isLoading: _loading,
-        buttonColor: AppColors.nearBlack,
-        textColor: Colors.white,
+        buttonColor: AppColors.primary,
+        textColor: AppColors.textOnPrimary,
       ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    _error!,
-                    style: AppTextStyle.regular13.copyWith(color: Colors.red),
-                  ),
-                ),
-              const Text('Full-body Photo', style: AppTextStyle.bold14),
-              const SizedBox(height: 10),
-              _buildPhotoUpload(),
-              const SizedBox(height: 24),
-              const Text('Figure Detail', style: AppTextStyle.bold14),
-              const SizedBox(height: 10),
-              _buildHeightWeightFields(),
-            ],
-          ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_error != null) _buildErrorBanner(),
+            const Text('Full-body Photo', style: AppTextStyle.bold14),
+            const SizedBox(height: 10),
+            _buildPhotoUpload(),
+            const SizedBox(height: 24),
+            const Text('Figure Detail', style: AppTextStyle.bold14),
+            const SizedBox(height: 10),
+            _buildHeightWeightFields(),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        _error!,
+        style: AppTextStyle.regular13.copyWith(color: AppColors.error),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 /// White rounded pill with a shadow, label and icon.
@@ -29,10 +30,14 @@ class PillButton extends StatelessWidget {
     this.mainAxisAlignment = MainAxisAlignment.spaceBetween,
     this.gap = 0,
     this.border = const Border.fromBorderSide(
-      BorderSide(color: Colors.black12),
+      BorderSide(color: AppColors.borderSubtle),
     ),
     this.boxShadow = const [
-      BoxShadow(color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 4)),
+      BoxShadow(
+        color: AppColors.shadowResting,
+        blurRadius: 8,
+        offset: Offset(0, 4),
+      ),
     ],
   });
 
@@ -52,7 +57,9 @@ class PillButton extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       gap: 8,
       border: null,
-      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+      boxShadow: const [
+        BoxShadow(color: AppColors.overlaySubtle, blurRadius: 4),
+      ],
     );
   }
 
@@ -65,7 +72,7 @@ class PillButton extends StatelessWidget {
         height: height,
         padding: padding,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: border,
           boxShadow: boxShadow,

@@ -30,7 +30,7 @@ class TodayOutfitIdea extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.dividerSubtle),
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -81,7 +81,7 @@ class TodayOutfitIdea extends StatelessWidget {
                       label: const Text('Regenerate'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textPrimary,
-                        side: const BorderSide(color: AppColors.dividerSubtle),
+                        side: const BorderSide(color: AppColors.borderSubtle),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -97,7 +97,7 @@ class TodayOutfitIdea extends StatelessWidget {
                       label: const Text('Save'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.textOnPrimary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -129,7 +129,7 @@ class TodayOutfitIdea extends StatelessWidget {
   Widget _buildErrorView() => Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+      const Icon(Icons.error_outline, size: 48, color: AppColors.icon),
       const SizedBox(height: 12),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -150,7 +150,7 @@ class TodayOutfitIdea extends StatelessWidget {
       Icon(
         Icons.inventory_2_outlined,
         size: 64,
-        color: AppColors.textSecondary.withOpacity(0.3),
+        color: AppColors.icon.withValues(alpha: 0.3),
       ),
       const SizedBox(height: 16),
       Text(
@@ -166,7 +166,7 @@ class TodayOutfitIdea extends StatelessWidget {
       Icon(
         Icons.auto_awesome,
         size: 64,
-        color: AppColors.primary.withOpacity(0.5),
+        color: AppColors.icon.withValues(alpha: 0.5),
       ),
       const SizedBox(height: 16),
       Text(
@@ -176,10 +176,14 @@ class TodayOutfitIdea extends StatelessWidget {
       const SizedBox(height: 20),
       ElevatedButton.icon(
         onPressed: onGenerate,
-        icon: const Icon(Icons.brush_rounded, size: 20, color: Colors.white),
+        icon: const Icon(
+          Icons.brush_rounded,
+          size: 20,
+          color: AppColors.textOnPrimary,
+        ),
         label: Text(
           'Generate Look',
-          style: AppTextStyle.bold16.copyWith(color: AppColors.textPrimaryInv),
+          style: AppTextStyle.bold16.copyWith(color: AppColors.textOnPrimary),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,

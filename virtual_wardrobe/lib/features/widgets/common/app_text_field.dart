@@ -15,7 +15,7 @@ InputDecoration appInputDecoration({
   Widget? prefixIcon,
   Widget? suffix,
   double borderRadius = 14,
-  Color borderColor = AppColors.textBoxBorder,
+  Color borderColor = AppColors.borderStrong,
   Color focusedBorderColor = AppColors.primary,
   double focusedBorderWidth = 1.5,
 }) {
@@ -47,11 +47,11 @@ InputDecoration appInputDecoration({
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(borderRadius),
-      borderSide: const BorderSide(color: Colors.red),
+      borderSide: const BorderSide(color: AppColors.error),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(borderRadius),
-      borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
     ),
   );
 }

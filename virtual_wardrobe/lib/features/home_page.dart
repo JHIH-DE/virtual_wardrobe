@@ -99,49 +99,8 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
   AppToolBar _buildAppBar(BuildContext context) {
     return AppToolBar(
       title: 'Home',
-      backgroundColor: AppColors.backgroundLight,
       showBackButton: false,
-      leading: PopupMenuButton<_QuickAction>(
-        icon: Container(
-          padding: const EdgeInsets.all(4),
-          child: Image.asset(
-            'assets/images/plus.png',
-            height: AppDimens.iconMediumSize,
-          ),
-        ),
-        color: AppColors.surface,
-        elevation: 8,
-        padding: EdgeInsets.zero,
-        offset: const Offset(0, 57),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        onSelected: (action) => _handleQuickAction(context, action),
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            enabled: false,
-            padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
-            height: 0,
-            child: Text('Quick Actions', style: AppTextStyle.regular12),
-          ),
-          _buildQuickActionItem(
-            value: _QuickAction.addClothing,
-            label: 'Add Clothing',
-            icon: Icons.checkroom_outlined,
-            showDivider: true,
-          ),
-          _buildQuickActionItem(
-            value: _QuickAction.manualTryOn,
-            label: 'Manual Try-on',
-            icon: Icons.accessibility_new_outlined,
-            showDivider: true,
-          ),
-          _buildQuickActionItem(
-            value: _QuickAction.newTrip,
-            label: 'New Trip',
-            icon: Icons.luggage_outlined,
-            showDivider: false,
-          ),
-        ],
-      ),
+      leading: _buildPopupMenuButton(context),
       actions: [
         InkWell(
           onTap: () {
@@ -161,31 +120,72 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     );
   }
 
+  PopupMenuButton<_QuickAction> _buildPopupMenuButton(BuildContext context) {
+    return PopupMenuButton<_QuickAction>(
+      icon: Container(
+        padding: const EdgeInsets.all(4),
+        child: Image.asset(
+          'assets/images/plus.png',
+          height: AppDimens.iconMediumSize,
+        ),
+      ),
+      color: AppColors.surface,
+      elevation: 8,
+      padding: EdgeInsets.zero,
+      offset: const Offset(0, 57),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      onSelected: (action) => _handleQuickAction(context, action),
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          enabled: false,
+          padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
+          height: 0,
+          child: Text('Quick Actions', style: AppTextStyle.regular12),
+        ),
+        _buildQuickActionItem(
+          value: _QuickAction.addClothing,
+          label: 'Add Clothing',
+          icon: Icons.checkroom_outlined,
+          showDivider: true,
+        ),
+        _buildQuickActionItem(
+          value: _QuickAction.manualTryOn,
+          label: 'Manual Try-on',
+          icon: Icons.accessibility_new_outlined,
+          showDivider: true,
+        ),
+        _buildQuickActionItem(
+          value: _QuickAction.newTrip,
+          label: 'New Trip',
+          icon: Icons.luggage_outlined,
+          showDivider: false,
+        ),
+      ],
+    );
+  }
+
   Widget _buildScaffold(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildGreeting(),
-                  const SizedBox(height: 16),
-                  _buildOutfitImageCard(),
-                  const SizedBox(height: 12),
-                  _buildOutfitMetaRow(),
-                ],
-              ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildGreeting(),
+                const SizedBox(height: 16),
+                _buildOutfitImageCard(),
+                const SizedBox(height: 12),
+                _buildOutfitMetaRow(),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -210,7 +210,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                     Icon(
                       WeatherData.iconFromCondition(w.condition),
                       size: 18,
-                      color: AppColors.textSecondary,
+                      color: AppColors.icon,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -246,11 +246,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
               ? const Center(child: CircularProgressIndicator())
               : (imageUrl == null || imageUrl.isEmpty)
               ? Center(
-                  child: Icon(
-                    Icons.checkroom,
-                    size: 48,
-                    color: AppColors.textSecondary,
-                  ),
+                  child: Icon(Icons.checkroom, size: 48, color: AppColors.icon),
                 )
               : CachedNetworkImage(
                   imageUrl: imageUrl,
@@ -259,7 +255,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                     child: Icon(
                       Icons.broken_image_outlined,
                       size: 48,
-                      color: AppColors.textSecondary,
+                      color: AppColors.icon,
                     ),
                   ),
                 ),
@@ -290,7 +286,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
         decoration: showDivider
             ? const BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: AppColors.dividerSubtle, width: 1),
+                  bottom: BorderSide(color: AppColors.borderSubtle, width: 1),
                 ),
               )
             : null,
@@ -298,7 +294,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: AppTextStyle.regular16),
-            Icon(icon, size: 20, color: AppColors.textPrimary),
+            Icon(icon, size: 20, color: AppColors.icon),
           ],
         ),
       ),

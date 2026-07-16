@@ -22,7 +22,7 @@ class GarmentListCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: AppColors.shadowResting,
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -50,7 +50,7 @@ class GarmentListCard extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Container(width: 1, color: AppColors.dividerSubtle),
+                child: Container(width: 1, color: AppColors.borderSubtle),
               ),
               Expanded(
                 child: Padding(

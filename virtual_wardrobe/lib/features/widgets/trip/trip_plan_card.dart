@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_shadows.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip_plan.dart';
 import '../common/app_dialog.dart';
@@ -37,119 +36,169 @@ class TripPlanCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(20),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.defaultCard,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [...AppShadows.card, AppShadows.softDrop],
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadowResting,
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: Text(trip.name, style: AppTextStyle.bold24)),
-                PopupMenuButton<_TripCardAction>(
-                  icon: const Icon(
-                    Icons.more_vert,
-                    color: AppColors.textSecondary,
-                  ),
-                  color: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  onSelected: (action) => _handleAction(context, action),
-                  itemBuilder: (context) => [
-                    _menuItem(
-                      _TripCardAction.editName,
-                      Image.asset(
-                        'assets/images/edit.png',
-                        width: 20,
-                        height: 20,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          trip.name,
+                          style: AppTextStyle.bold24,
+                        ),
                       ),
-                      'Edit Trip Name',
-                    ),
-                    _menuItem(
-                      _TripCardAction.editLegs,
-                      const Icon(Icons.map_outlined, color: AppColors.primary),
-                      'Edit Trip Legs',
-                    ),
-                    _menuItem(
-                      _TripCardAction.editPurpose,
-                      const Icon(
-                        Icons.flight_takeoff,
-                        color: AppColors.primary,
-                      ),
-                      'Edit Trip Purpose',
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem(
-                      value: _TripCardAction.delete,
-                      child: const Row(
-                        children: [
-                          Icon(Icons.delete_outline, color: Colors.red),
-                          SizedBox(width: 12),
-                          Text(
-                            'Delete Trip',
-                            style: TextStyle(color: Colors.red),
+                      Transform.translate(
+                        offset: const Offset(18, 0),
+                        child: PopupMenuButton<_TripCardAction>(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: AppColors.icon,
                           ),
-                        ],
+                          color: AppColors.surface,
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          onSelected: (action) =>
+                              _handleAction(context, action),
+                          itemBuilder: (context) => [
+                            _menuItem(
+                              _TripCardAction.editName,
+                              Image.asset(
+                                'assets/images/edit.png',
+                                width: 20,
+                                height: 20,
+                              ),
+                              'Edit Trip Name',
+                            ),
+                            _menuItem(
+                              _TripCardAction.editLegs,
+                              const Icon(
+                                Icons.map_outlined,
+                                color: AppColors.icon,
+                              ),
+                              'Edit Trip Legs',
+                            ),
+                            _menuItem(
+                              _TripCardAction.editPurpose,
+                              const Icon(
+                                Icons.flight_takeoff,
+                                color: AppColors.icon,
+                              ),
+                              'Edit Trip Purpose',
+                            ),
+                            const PopupMenuDivider(),
+                            const PopupMenuItem(
+                              value: _TripCardAction.delete,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    color: AppColors.icon,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Delete Trip',
+                                    style: TextStyle(
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        color: AppColors.icon,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          trip.locationSummary,
+                          style: AppTextStyle.regular16,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        color: AppColors.icon,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        dateStr,
+                        style: AppTextStyle.regular16,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.dividerSubtle,
+            ),
+
+            // 全寬 View Plan 區域
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 14,
+              ),
+              color: AppColors.interactiveArea,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'View Plan',
+                    style: AppTextStyle.regular12.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.location_on,
-                  color: AppColors.textSecondary,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    trip.locationSummary,
-                    style: AppTextStyle.regular16,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today,
-                  color: AppColors.textSecondary,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(dateStr, style: AppTextStyle.regular16),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  "View Plan",
-                  style: AppTextStyle.regular12.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.icon,
+                    size: 12,
                   ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: AppColors.textSecondary,
-                  size: 12,
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -255,7 +304,7 @@ class TripPlanCard extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 title: Text(label),
                 trailing: label == currentLabel
-                    ? const Icon(Icons.check, color: AppColors.primary)
+                    ? const Icon(Icons.check, color: AppColors.icon)
                     : null,
                 onTap: () => Navigator.pop(ctx, label),
               ),

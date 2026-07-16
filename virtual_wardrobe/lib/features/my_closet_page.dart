@@ -143,7 +143,6 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   ) {
     return AppToolBar(
       title: 'My Closet',
-      backgroundColor: AppColors.defaultToolBar,
       showBackButton: false,
       leading: IconButton(
         icon: Container(
@@ -172,54 +171,57 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     final garmentsAsync = ref.watch(garmentsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context, garmentsAsync),
-      body: SafeArea(
-        top: false,
-        child: garmentsAsync.when(
-          loading: () => const LoadingOverlay(label: 'Loading Closet...'),
-          error: (e, _) => ErrorStateWidget(
-            error: e,
-            onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
-          ),
-          data: (all) {
-            final available = _availableCategories(all);
-            final effectiveCategory = _effectiveCategory(available);
-            if (effectiveCategory != _selectedCategory) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() => _selectedCategory = effectiveCategory);
-                }
-              });
-            }
-            return Column(
-              children: [
-                CategorySelector(
-                  categories: available,
-                  selectedCategory: effectiveCategory,
-                  onSelected: (category) => setState(() {
-                    _selectedCategory = category;
-                    _selectedColors.clear();
-                    _selectedProductTypes.clear();
-                  }),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () =>
-                        ref.read(garmentsProvider.notifier).refresh(),
-                    color: Colors.black,
-                    child: _buildGrid(
-                      _filtered(all, effectiveCategory),
-                      effectiveCategory,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+      body: garmentsAsync.when(
+        loading: () => const LoadingOverlay(label: 'Loading Closet...'),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
         ),
+        data: _buildBody,
       ),
+    );
+  }
+
+  Widget _buildBody(List<Garment> all) {
+    final available = _availableCategories(all);
+    final effectiveCategory = _effectiveCategory(available);
+    _scheduleCategoryFix(effectiveCategory);
+    return Column(
+      children: [
+        CategorySelector(
+          categories: available,
+          selectedCategory: effectiveCategory,
+          onSelected: (category) => setState(() {
+            _selectedCategory = category;
+            _selectedColors.clear();
+            _selectedProductTypes.clear();
+          }),
+        ),
+        Expanded(child: _buildGarmentGridSection(all, effectiveCategory)),
+      ],
+    );
+  }
+
+  /// If the previously-selected category has no garments left (e.g. after a
+  /// delete), the effective category silently falls back to another one —
+  /// this syncs `_selectedCategory` to match after the current frame.
+  void _scheduleCategoryFix(GarmentCategory effectiveCategory) {
+    if (effectiveCategory == _selectedCategory) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _selectedCategory = effectiveCategory);
+    });
+  }
+
+  Widget _buildGarmentGridSection(
+    List<Garment> all,
+    GarmentCategory effectiveCategory,
+  ) {
+    return RefreshIndicator(
+      onRefresh: () => ref.read(garmentsProvider.notifier).refresh(),
+      color: AppColors.primary,
+      child: _buildGrid(_filtered(all, effectiveCategory), effectiveCategory),
     );
   }
 
@@ -237,7 +239,12 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        AppDimens.floatingNavBarClearance,
+      ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12,
@@ -245,14 +252,18 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
         mainAxisExtent: AppDimens.garmentCardHeight,
       ),
       itemCount: garments.length,
-      itemBuilder: (context, index) => DeletableCard(
-        group: _deleteGroup,
-        onDelete: () => _deleteGarment(garments[index]),
-        child: GarmentCard(
-          garment: garments[index],
-          showSelectionIndicator: false,
-          onTap: () => _editGarment(garments[index]),
-        ),
+      itemBuilder: (context, index) => _buildGarmentCard(garments[index]),
+    );
+  }
+
+  Widget _buildGarmentCard(Garment garment) {
+    return DeletableCard(
+      group: _deleteGroup,
+      onDelete: () => _deleteGarment(garment),
+      child: GarmentCard(
+        garment: garment,
+        showSelectionIndicator: false,
+        onTap: () => _editGarment(garment),
       ),
     );
   }

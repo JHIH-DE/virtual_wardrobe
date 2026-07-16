@@ -28,11 +28,8 @@ class GarmentImage extends StatelessWidget {
     Widget image;
     if (u.isEmpty) {
       image = Container(
-        color: AppColors.dividerSubtle,
-        child: const Icon(
-          Icons.image_not_supported,
-          color: AppColors.textSecondary,
-        ),
+        color: AppColors.borderSubtle,
+        child: const Icon(Icons.image_not_supported, color: AppColors.icon),
       );
     } else if (u.startsWith('http')) {
       image = CachedNetworkImage(
@@ -41,7 +38,7 @@ class GarmentImage extends StatelessWidget {
         height: height,
         fit: fit,
         errorWidget: (_, __, ___) => const Center(
-          child: Icon(Icons.broken_image, color: AppColors.textSecondary),
+          child: Icon(Icons.broken_image, color: AppColors.icon),
         ),
       );
     } else if (u.startsWith('file://')) {

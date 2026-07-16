@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_colors.dart';
+
 enum AppTab { home, closet, looks, tripPlanner, finance }
 
 /// Lets any descendant page switch the active tab in the persistent
@@ -51,7 +53,7 @@ class FloatingNavBar extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.65),
+              color: AppColors.scrimBackdrop,
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
@@ -117,12 +119,13 @@ class FloatingNavBar extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.transparent,
+          color: isActive ? AppColors.surface : Colors.transparent,
           shape: BoxShape.circle,
         ),
         child: Icon(
           isActive ? activeIcon : inactiveIcon,
-          color: isActive ? Colors.black : Colors.white,
+          // inactive icon stays light — it sits on the dark frosted pill background
+          color: isActive ? AppColors.icon : AppColors.textOnPrimary,
           size: 24,
         ),
       ),

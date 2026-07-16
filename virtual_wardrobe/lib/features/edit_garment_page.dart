@@ -250,128 +250,10 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.defaultBackground,
+        backgroundColor: AppColors.pageBackground,
         extendBody: true,
         appBar: _buildAppBar(context),
-        body: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 110),
-            children: [
-              const SizedBox(height: 20),
-              if (uploading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: LinearProgressIndicator(),
-                ),
-              if (errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Text(
-                    errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _imagePreview(),
-              ),
-              const SizedBox(height: 20),
-
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-                decoration: const BoxDecoration(color: Colors.white),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!_isAddMode) _buildActionButtons(),
-                    const SizedBox(height: 8),
-                    const Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: AppColors.dividerSubtle,
-                    ),
-                    const SizedBox(height: 16),
-                    SectionTitle('Clothing Name'),
-                    const SizedBox(height: 8),
-                    AppTextField(
-                      controller: _nameCtrl,
-                      hint: 'Name the clothing',
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Please enter name'
-                          : null,
-                    ),
-
-                    const SizedBox(height: 20),
-                    SectionTitle('Clothing Category'),
-                    const SizedBox(height: 8),
-                    CustomDropdown<GarmentCategory>(
-                      value: _category,
-                      items: GarmentCategory.values
-                          .map(
-                            (c) => DropdownMenuItem(
-                              value: c,
-                              child: Text(
-                                c.label,
-                                style: AppTextStyle.regular14,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setState(() => _category = v);
-                          _checkModified();
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-                    SectionTitle('Product Type'),
-                    const SizedBox(height: 8),
-                    AppTextField(
-                      controller: _subCategory,
-                      hint: 'e.g. Top',
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Please enter product type'
-                          : null,
-                    ),
-
-                    const SizedBox(height: 20),
-                    SectionTitle('Color'),
-                    const SizedBox(height: 8),
-                    _colorPicker(),
-
-                    const SizedBox(height: 20),
-                    SectionTitle('Brand (optional)'),
-                    const SizedBox(height: 8),
-                    AppTextField(
-                      controller: _brandCtrl,
-                      hint: 'What is the brand of this clothing?',
-                    ),
-
-                    const SizedBox(height: 20),
-                    SectionTitle('Price (optional)'),
-                    const SizedBox(height: 8),
-                    AppTextField(
-                      controller: _priceCtrl,
-                      hint: 'How much is this clothing?',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-                    SectionTitle('Purchase date'),
-                    const SizedBox(height: 8),
-                    _purchaseDateField(context),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        body: _buildForm(context),
         // 固定在底部的儲存按鈕
         bottomNavigationBar: BottomActionButton(
           label: _isAddMode ? 'Add to Closet' : 'Save',
@@ -379,6 +261,183 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           isLoading: uploading,
         ),
       ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 110),
+        children: [
+          const SizedBox(height: 20),
+          if (uploading) _buildUploadProgress(),
+          if (errorMessage != null) _buildErrorBanner(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _imagePreview(),
+          ),
+          const SizedBox(height: 20),
+          _buildDetailsSection(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUploadProgress() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: LinearProgressIndicator(),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Text(
+        errorMessage!,
+        style: const TextStyle(color: AppColors.error),
+      ),
+    );
+  }
+
+  Widget _buildDetailsSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+      decoration: const BoxDecoration(color: AppColors.surface),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!_isAddMode) _buildActionButtons(),
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
+          const SizedBox(height: 16),
+          _buildNameField(),
+          const SizedBox(height: 20),
+          _buildCategoryField(),
+          const SizedBox(height: 20),
+          _buildSubCategoryField(),
+          const SizedBox(height: 20),
+          _buildColorField(),
+          const SizedBox(height: 20),
+          _buildBrandField(),
+          const SizedBox(height: 20),
+          _buildPriceField(),
+          const SizedBox(height: 20),
+          _buildPurchaseDateSection(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNameField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle('Clothing Name'),
+        const SizedBox(height: 8),
+        AppTextField(
+          controller: _nameCtrl,
+          hint: 'Name the clothing',
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Please enter name' : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle('Clothing Category'),
+        const SizedBox(height: 8),
+        CustomDropdown<GarmentCategory>(
+          value: _category,
+          items: GarmentCategory.values
+              .map(
+                (c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(c.label, style: AppTextStyle.regular14),
+                ),
+              )
+              .toList(),
+          onChanged: (v) {
+            if (v != null) {
+              setState(() => _category = v);
+              _checkModified();
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle('Product Type'),
+        const SizedBox(height: 8),
+        AppTextField(
+          controller: _subCategory,
+          hint: 'e.g. Top',
+          validator: (v) => (v == null || v.trim().isEmpty)
+              ? 'Please enter product type'
+              : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildColorField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle('Color'),
+        const SizedBox(height: 8),
+        _colorPicker(),
+      ],
+    );
+  }
+
+  Widget _buildBrandField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle('Brand (optional)'),
+        const SizedBox(height: 8),
+        AppTextField(
+          controller: _brandCtrl,
+          hint: 'What is the brand of this clothing?',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle('Price (optional)'),
+        const SizedBox(height: 8),
+        AppTextField(
+          controller: _priceCtrl,
+          hint: 'How much is this clothing?',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPurchaseDateSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle('Purchase date'),
+        const SizedBox(height: 8),
+        _purchaseDateField(context),
+      ],
     );
   }
 
@@ -449,7 +508,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       buttons: [
         ActionButton(
           icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-          iconColor: _isFavorite ? Colors.red : AppColors.textPrimary,
+          iconColor: AppColors.icon,
           label: 'Favorite',
           onTap: _isFavoriteLoading ? null : _toggleFavorite,
         ),
@@ -510,7 +569,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             shape: BoxShape.circle,
             border: Border.all(
               color: selected == null
-                  ? AppColors.dividerSubtle
+                  ? AppColors.borderSubtle
                   : Colors.transparent,
               width: 1.2,
             ),
@@ -540,65 +599,71 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       context,
       builder: (_) => FilterSheetContent(
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text('Choose a color', style: AppTextStyle.bold16),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() => _selectedColor = null);
-                  _checkModified();
-                  Navigator.pop(context);
-                },
-                child: const Text('Clear'),
-              ),
-            ],
-          ),
+          _buildColorPickerHeader(),
           const SizedBox(height: 10),
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.45,
-            ),
-            child: SingleChildScrollView(
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: GarmentColor.values.map((c) {
-                  final isSelected = c == _selectedColor;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedColor = c);
-                      _checkModified();
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: c.color,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.black12,
-                          width: isSelected ? 2.5 : 1,
-                        ),
-                      ),
-                      child: isSelected
-                          ? Icon(
-                              Icons.check,
-                              size: 20,
-                              color: c.preferredCheckColor,
-                            )
-                          : null,
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
+          _buildColorGrid(context),
         ],
+      ),
+    );
+  }
+
+  Widget _buildColorPickerHeader() {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text('Choose a color', style: AppTextStyle.bold16),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() => _selectedColor = null);
+            _checkModified();
+            Navigator.pop(context);
+          },
+          child: const Text('Clear'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildColorGrid(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.45,
+      ),
+      child: SingleChildScrollView(
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: GarmentColor.values
+              .map((c) => _buildColorSwatch(c))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorSwatch(GarmentColor c) {
+    final isSelected = c == _selectedColor;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedColor = c);
+        _checkModified();
+        Navigator.pop(context);
+      },
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: c.color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.borderSubtle,
+            width: isSelected ? 2.5 : 1,
+          ),
+        ),
+        child: isSelected
+            ? Icon(Icons.check, size: 20, color: c.preferredCheckColor)
+            : null,
       ),
     );
   }
@@ -631,11 +696,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             ),
           ),
         ),
-        const Icon(
-          Icons.calendar_today,
-          size: 18,
-          color: AppColors.textSecondary,
-        ),
+        const Icon(Icons.calendar_today, size: 18, color: AppColors.icon),
       ],
     );
   }
@@ -649,7 +710,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.dividerSubtle,
+            color: AppColors.borderSubtle,
             style: BorderStyle.solid,
           ),
         ),
@@ -660,7 +721,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             child: Icon(
               Icons.add_photo_alternate_outlined,
               size: 40,
-              color: AppColors.textSecondary,
+              color: AppColors.icon,
             ),
           ),
         ),
@@ -673,7 +734,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.dividerSubtle),
+            border: Border.all(color: AppColors.borderSubtle),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
@@ -684,10 +745,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
                       img,
                       fit: BoxFit.contain,
                       errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(
-                          Icons.broken_image,
-                          color: AppColors.textSecondary,
-                        ),
+                        child: Icon(Icons.broken_image, color: AppColors.icon),
                       ),
                     )
                   : Image.file(File(img), fit: BoxFit.contain),
@@ -711,11 +769,11 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black12,
+                color: AppColors.overlaySubtle,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
             ),
           ),
@@ -774,51 +832,13 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     });
 
     try {
-      Garment result;
-      // 當新增模式或圖片變更時執行上傳
-      if (_isAddMode || _isImageChanged) {
-        final initDate = await GarmentService().initUpload();
-        await GarmentService().uploadImage(
-          initDate.uploadUrl,
-          _imagePathOrUrl!,
-        );
-        final temp = Garment(
-          uploadUrl: initDate.uploadUrl,
-          objectName: initDate.objectName,
-          category: _category,
-          subCategory: _subCategory.text.trim(),
-          name: _nameCtrl.text.trim(),
-          brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-          color: _selectedColor?.label,
-          price: double.tryParse(_priceCtrl.text.trim()),
-          purchaseDate: _purchaseDate,
-        );
-        // 如果是在編輯模式下更換圖片，先刪除舊紀錄
-        if (!_isAddMode) await GarmentService().deleteGarment(_id!);
-        result = await GarmentService().completeUpload(temp, _metaData);
-      } else {
-        // 單純更新文字資料
-        final updated = _editingGarment!.copyWith(
-          name: _nameCtrl.text.trim(),
-          category: _category,
-          subCategory: _subCategory.text.trim(),
-          brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-          color: _selectedColor?.label,
-          price: double.tryParse(_priceCtrl.text.trim()),
-          purchaseDate: _purchaseDate,
-        );
-        result = await GarmentService().updateGarment(updated);
-      }
+      // 當新增模式或圖片變更時執行上傳；否則單純更新文字資料
+      final result = (_isAddMode || _isImageChanged)
+          ? await _uploadNewGarment()
+          : await _updateGarmentFields();
 
       if (!mounted) return;
-      _showSuccessOverlay();
-
-      // 延遲一段時間讓使用者看到成功訊息，然後關閉彈窗並返回上一頁
-      await Future.delayed(const Duration(milliseconds: 1500));
-      if (!mounted) return;
-
-      Navigator.of(context).pop(); // 關閉成功彈窗
-      Navigator.of(context).pop(result); // 關閉 AddGarmentPage 並回傳結果
+      await _finishSaveSuccess(result);
     } catch (e) {
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
@@ -833,6 +853,52 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     }
   }
 
+  /// Uploads the (new or edited) image, then creates the garment record.
+  /// In edit mode this replaces the previous record entirely, since the
+  /// backend has no "update image" endpoint.
+  Future<Garment> _uploadNewGarment() async {
+    final initDate = await GarmentService().initUpload();
+    await GarmentService().uploadImage(initDate.uploadUrl, _imagePathOrUrl!);
+    final temp = Garment(
+      uploadUrl: initDate.uploadUrl,
+      objectName: initDate.objectName,
+      category: _category,
+      subCategory: _subCategory.text.trim(),
+      name: _nameCtrl.text.trim(),
+      brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+      color: _selectedColor?.label,
+      price: double.tryParse(_priceCtrl.text.trim()),
+      purchaseDate: _purchaseDate,
+    );
+    // 如果是在編輯模式下更換圖片，先刪除舊紀錄
+    if (!_isAddMode) await GarmentService().deleteGarment(_id!);
+    return GarmentService().completeUpload(temp, _metaData);
+  }
+
+  /// Updates just the text fields of an existing garment (image unchanged).
+  Future<Garment> _updateGarmentFields() async {
+    final updated = _editingGarment!.copyWith(
+      name: _nameCtrl.text.trim(),
+      category: _category,
+      subCategory: _subCategory.text.trim(),
+      brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+      color: _selectedColor?.label,
+      price: double.tryParse(_priceCtrl.text.trim()),
+      purchaseDate: _purchaseDate,
+    );
+    return GarmentService().updateGarment(updated);
+  }
+
+  /// Shows the success overlay, gives the user a moment to see it, then
+  /// closes both the overlay and this page, returning [result] to the caller.
+  Future<void> _finishSaveSuccess(Garment result) async {
+    _showSuccessOverlay();
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    Navigator.of(context).pop(); // 關閉成功彈窗
+    Navigator.of(context).pop(result); // 關閉 AddGarmentPage 並回傳結果
+  }
+
   void _showSuccessOverlay() {
     showDialog(
       context: context,
@@ -841,21 +907,19 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.check_circle,
-                color: AppColors.success,
-                size: 48,
-              ),
+              const Icon(Icons.check_circle, color: AppColors.icon, size: 48),
               const SizedBox(height: 12),
               Text(
                 'Changes Saved',
-                style: AppTextStyle.bold16.copyWith(color: Colors.black),
+                style: AppTextStyle.bold16.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
             ],
           ),

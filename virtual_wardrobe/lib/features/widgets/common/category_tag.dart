@@ -23,7 +23,7 @@ class CategoryTag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTextStyle.bold12.copyWith(color: Colors.white),
+        style: AppTextStyle.bold12.copyWith(color: AppColors.textOnPrimary),
       ),
     );
   }

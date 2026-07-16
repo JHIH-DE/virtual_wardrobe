@@ -10,11 +10,10 @@ import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/card_corner_badge.dart';
 import 'widgets/common/category_selector.dart';
 import 'widgets/common/deletable_card.dart';
 import 'widgets/common/filter_button.dart';
-import 'widgets/common/info_banner.dart';
+import 'widgets/common/lumi_insight_card.dart';
 import 'widgets/garment/garment_card.dart';
 
 class _CategoryAdvice {
@@ -87,18 +86,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       if (categories is List) {
         for (final item in categories) {
           if (item is! Map) continue;
-          final category = GarmentCategoryX.fromApiValue(
-            item['category'] as String?,
-          );
-          final suggestedIds = item['suggested_garment_ids'];
-          _adviceByCategory[category] = _CategoryAdvice(
-            recommendedQuantity:
-                (item['recommended_quantity'] as num?)?.toInt() ?? 0,
-            reasoning: item['reasoning'] as String? ?? '',
-            suggestedGarmentIds: suggestedIds is List
-                ? suggestedIds.whereType<int>().toSet()
-                : {},
-          );
+          _applyCategoryAdvice(item);
         }
       }
     } catch (e) {
@@ -110,6 +98,18 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     } finally {
       if (mounted) setState(() => _loadingAdvice = false);
     }
+  }
+
+  void _applyCategoryAdvice(Map item) {
+    final category = GarmentCategoryX.fromApiValue(item['category'] as String?);
+    final suggestedIds = item['suggested_garment_ids'];
+    _adviceByCategory[category] = _CategoryAdvice(
+      recommendedQuantity: (item['recommended_quantity'] as num?)?.toInt() ?? 0,
+      reasoning: item['reasoning'] as String? ?? '',
+      suggestedGarmentIds: suggestedIds is List
+          ? suggestedIds.whereType<int>().toSet()
+          : {},
+    );
   }
 
   void _toggle(Garment garment) {
@@ -228,102 +228,45 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
+  /// Suggested garments (per the AI packing advice) sort to the front of
+  /// their category's grid.
+  List<Garment> _sortedItemsForCategory(_CategoryAdvice? advice) {
+    final items = _filtered;
+    if (advice == null) return items;
+    items.sort((a, b) {
+      final aSuggested = advice.suggestedGarmentIds.contains(a.id) ? 0 : 1;
+      final bSuggested = advice.suggestedGarmentIds.contains(b.id) ? 0 : 1;
+      return aSuggested.compareTo(bSuggested);
+    });
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     final advice = _adviceByCategory[_selectedCategory];
-    final items = _filtered;
-    if (advice != null) {
-      items.sort((a, b) {
-        final aSuggested = advice.suggestedGarmentIds.contains(a.id) ? 0 : 1;
-        final bSuggested = advice.suggestedGarmentIds.contains(b.id) ? 0 : 1;
-        return aSuggested.compareTo(bSuggested);
-      });
-    }
+    final items = _sortedItemsForCategory(advice);
     final selectedInCategory = _byCategory
         .where((g) => _selectedIds.contains(g.id))
         .length;
 
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            CategorySelector(
-              categories: _availableCategories,
-              selectedCategory: _selectedCategory,
-              onSelected: (category) => setState(() {
-                _selectedCategory = category;
-                _selectedColors = {'All'};
-                _selectedTypes = {'All'};
-                _reasoningExpanded = false;
-              }),
+      body: Column(
+        children: [
+          _buildCategorySelector(),
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                if (_loadingAdvice || advice != null)
+                  SliverToBoxAdapter(
+                    child: _buildAdviceBanner(advice, selectedInCategory),
+                  ),
+                _buildGridSliver(items, advice),
+              ],
             ),
-            if (_loadingAdvice || advice != null)
-              _buildAdviceBanner(advice, selectedInCategory),
-            Expanded(
-              child: items.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No garments in ${_selectedCategory.label}',
-                        style: AppTextStyle.regular16.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    )
-                  : GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            mainAxisExtent: AppDimens.garmentCardHeight,
-                          ),
-                      itemCount: items.length,
-                      itemBuilder: (context, i) {
-                        final g = items[i];
-                        final selected = _selectedIds.contains(g.id);
-                        final suggested =
-                            advice?.suggestedGarmentIds.contains(g.id) ?? false;
-                        return DeletableCard(
-                          group: _deleteGroup,
-                          onDelete: () => _deleteGarment(g),
-                          child: Stack(
-                            children: [
-                              GarmentCard(
-                                garment: g,
-                                isSelected: selected,
-                                onTap: () => _toggle(g),
-                              ),
-                              if (suggested)
-                                Positioned(
-                                  top: 8,
-                                  left: 8,
-                                  child: CardCornerBadge(
-                                    icon: Icons.auto_awesome,
-                                    backgroundColor: AppColors.primary,
-                                    iconColor: Colors.white,
-                                    onTap: () => ScaffoldMessenger.of(context)
-                                        .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              advice?.reasoning ??
-                                                  'Suggested by AI',
-                                            ),
-                                          ),
-                                        ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomActionButton(
         label: 'Confirm',
@@ -332,11 +275,88 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
+  Widget _buildCategorySelector() {
+    return CategorySelector(
+      categories: _availableCategories,
+      selectedCategory: _selectedCategory,
+      onSelected: (category) => setState(() {
+        _selectedCategory = category;
+        _selectedColors = {'All'};
+        _selectedTypes = {'All'};
+        _reasoningExpanded = false;
+      }),
+    );
+  }
+
+  Widget _buildGridSliver(List<Garment> items, _CategoryAdvice? advice) {
+    if (items.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Text(
+            'No garments in ${_selectedCategory.label}',
+            style: AppTextStyle.regular16.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          mainAxisExtent: AppDimens.garmentCardHeight,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, i) => _buildGarmentGridItem(items[i], advice),
+          childCount: items.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGarmentGridItem(Garment g, _CategoryAdvice? advice) {
+    final selected = _selectedIds.contains(g.id);
+    final suggested = advice?.suggestedGarmentIds.contains(g.id) ?? false;
+    return DeletableCard(
+      group: _deleteGroup,
+      onDelete: () => _deleteGarment(g),
+      child: Stack(
+        children: [
+          GarmentCard(
+            garment: g,
+            isSelected: selected,
+            onTap: () => _toggle(g),
+          ),
+          if (suggested) _buildSuggestedBadge(advice),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestedBadge(_CategoryAdvice? advice) {
+    return Positioned(
+      top: 8,
+      left: 8,
+      child: GestureDetector(
+        onTap: () {
+          final snackBar = SnackBar(
+            content: Text(advice?.reasoning ?? 'Suggested by AI'),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+        },
+        child: const Icon(Icons.auto_awesome, size: 18, color: AppColors.icon),
+      ),
+    );
+  }
+
   Widget _buildAdviceBanner(_CategoryAdvice? advice, int selectedInCategory) {
-    return InfoBanner(
+    return LumiInsightCard(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      backgroundColor: AppColors.primary.withValues(alpha: 0.08),
-      borderColor: AppColors.primary.withValues(alpha: 0.2),
       child: _loadingAdvice
           ? Text(
               'Loading packing suggestions...',
@@ -373,7 +393,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
                   child: const Icon(
                     Icons.keyboard_arrow_down,
                     size: 20,
-                    color: AppColors.primary,
+                    color: AppColors.icon,
                   ),
                 ),
             ],

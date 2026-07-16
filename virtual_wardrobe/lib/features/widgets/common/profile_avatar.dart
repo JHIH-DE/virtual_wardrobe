@@ -34,11 +34,11 @@ class ProfileAvatar extends StatelessWidget {
               image != null
                   ? Image(image: image!, fit: BoxFit.cover)
                   : ColoredBox(
-                      color: AppColors.avatarPlaceholderBackground,
+                      color: AppColors.placeholderSurface,
                       child: Icon(
                         Icons.person,
                         size: fallbackIconSize,
-                        color: Colors.white,
+                        color: AppColors.icon,
                       ),
                     ),
               if (showEditLabel)
@@ -48,11 +48,13 @@ class ProfileAvatar extends StatelessWidget {
                   right: 0,
                   child: Container(
                     padding: const EdgeInsets.only(top: 4, bottom: 13),
-                    color: Colors.black54,
+                    color: Colors.black.withValues(alpha: 0.54),
                     child: Text(
                       'Edit Photo',
                       textAlign: TextAlign.center,
-                      style: AppTextStyle.bold12.copyWith(color: Colors.white),
+                      style: AppTextStyle.bold12.copyWith(
+                        color: AppColors.textOnPrimary,
+                      ),
                     ),
                   ),
                 ),

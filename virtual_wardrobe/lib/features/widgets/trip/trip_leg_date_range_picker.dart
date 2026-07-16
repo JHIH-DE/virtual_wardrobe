@@ -125,7 +125,7 @@ class _TripLegDateRangePickerDialogState
   Widget build(BuildContext context) {
     final canConfirm = _rangeStart != null && _rangeEnd != null;
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Padding(
@@ -169,7 +169,7 @@ class _TripLegDateRangePickerDialogState
             const SizedBox(height: 12),
             Row(
               children: [
-                _legendDot(AppColors.dividerSubtle, 'Booked'),
+                _legendDot(AppColors.borderSubtle, 'Booked'),
                 const SizedBox(width: 16),
                 _legendDot(AppColors.primary, 'Selected'),
               ],
@@ -181,7 +181,10 @@ class _TripLegDateRangePickerDialogState
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.black, width: 1.6),
+                      side: const BorderSide(
+                        color: AppColors.textPrimary,
+                        width: 1.6,
+                      ),
                       minimumSize: const Size(double.infinity, 48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
@@ -189,7 +192,7 @@ class _TripLegDateRangePickerDialogState
                     ),
                     child: const Text(
                       'Cancel',
-                      style: TextStyle(color: Colors.black),
+                      style: TextStyle(color: AppColors.textPrimary),
                     ),
                   ),
                 ),
@@ -203,8 +206,8 @@ class _TripLegDateRangePickerDialogState
                           )
                         : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.nearBlack,
-                      disabledBackgroundColor: AppColors.dividerSubtle,
+                      backgroundColor: AppColors.primary,
+                      disabledBackgroundColor: AppColors.borderSubtle,
                       minimumSize: const Size(double.infinity, 48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
@@ -213,7 +216,7 @@ class _TripLegDateRangePickerDialogState
                     ),
                     child: const Text(
                       'Confirm',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: AppColors.textOnPrimary),
                     ),
                   ),
                 ),
@@ -286,13 +289,13 @@ class _TripLegDateRangePickerDialogState
         day.isBefore(_rangeEnd!);
 
     Color? background;
-    Color textColor = Colors.black;
+    Color textColor = AppColors.textPrimary;
     if (occupied) {
-      background = AppColors.dividerSubtle;
+      background = AppColors.borderSubtle;
       textColor = AppColors.textSecondary;
     } else if (isStart || isEnd) {
       background = AppColors.primary;
-      textColor = Colors.white;
+      textColor = AppColors.textOnPrimary;
     } else if (inRange) {
       background = AppColors.primary.withValues(alpha: 0.15);
     }

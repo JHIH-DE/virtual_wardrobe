@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
@@ -19,9 +20,9 @@ import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/category_tag.dart';
+import 'widgets/common/labeled_divider.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_list_card.dart';
-import 'widgets/look/labeled_divider.dart';
 
 class LooksDetailsPage extends ConsumerStatefulWidget {
   final Look look;
@@ -96,49 +97,55 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
         _showLeaveDialog();
       },
       child: Scaffold(
-        backgroundColor: AppColors.defaultBackground,
+        backgroundColor: AppColors.pageBackground,
         appBar: _buildAppBar(),
-        body: SafeArea(
-          top: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: [
-              _buildTitleRow(),
-              const SizedBox(height: 12),
-              const Divider(
-                height: 1,
-                thickness: 6,
-                color: AppColors.dividerStrong,
-              ),
-              _buildInfoCard(),
-              const Divider(
-                height: 1,
-                thickness: 2,
-                color: AppColors.dividerStrong,
-              ),
-              const SizedBox(height: 16),
-              _buildOutfitImage(),
-              const SizedBox(height: 16),
-              _buildActionButtons(),
-              if (widget.look.garmentIds.isNotEmpty) ...[
-                _buildGarmentSection(),
-              ],
-            ],
-          ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          children: [
+            _buildTitleRow(),
+            const SizedBox(height: 12),
+            const Divider(
+              height: 1,
+              thickness: 6,
+              color: AppColors.dividerStrong,
+            ),
+            _buildInfoCard(),
+            const Divider(
+              height: 1,
+              thickness: 2,
+              color: AppColors.dividerStrong,
+            ),
+            const SizedBox(height: 16),
+            _buildOutfitImage(),
+            const SizedBox(height: 12),
+            _buildActionButtons(),
+            if (widget.look.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
+            const SizedBox(height: 12),
+            _buildCreateDateFooter(),
+          ],
         ),
-        bottomNavigationBar: widget.isNew
-            ? BottomActionButton(
-                label: 'Save Look',
-                onPressed: _isSaving ? null : _saveLook,
-                isLoading: _isSaving,
-              )
-            : BottomActionButton(
-                label: 'Remix Look',
-                trailing: const Icon(Icons.shuffle_rounded, size: 18),
-                onPressed: () => _remixLook(context),
-                enabled: !_loadingGarments && !_openingTryOn,
-              ),
+        bottomNavigationBar: _buildBottomBar(context),
       ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context) {
+    if (widget.isNew) {
+      return BottomActionButton(
+        label: 'Save Look',
+        onPressed: _isSaving ? null : _saveLook,
+        isLoading: _isSaving,
+      );
+    }
+    return BottomActionButton(
+      label: 'Remix Look',
+      leading: Image.asset(
+        'assets/images/ai_process_inv.png',
+        width: 18,
+        height: 18,
+      ),
+      onPressed: () => _remixLook(context),
+      enabled: !_loadingGarments && !_openingTryOn,
     );
   }
 
@@ -150,41 +157,33 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: AppColors.shadowResting,
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Expanded(
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: tags.isNotEmpty
-                    ? tags.map((t) => CategoryTag(label: t)).toList()
-                    : [const CategoryTag(label: 'My Collection')],
-              ),
-            ),
-            Container(
-              width: 1,
-              color: AppColors.dividerStrong,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Create Date', style: AppTextStyle.bold16),
-                const SizedBox(height: 2),
-                Text(_formattedDate, style: AppTextStyle.bold16),
-              ],
-            ),
-          ],
-        ),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: tags.isNotEmpty
+            ? tags.map((t) => CategoryTag(label: t)).toList()
+            : [const CategoryTag(label: 'My Collection')],
       ),
+    );
+  }
+
+  Widget _buildCreateDateFooter() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1, thickness: 1, color: AppColors.borderStrong),
+        const SizedBox(height: 16),
+        Text(
+          'Created on $_formattedDate',
+          style: AppTextStyle.bold14.copyWith(color: AppColors.textSecondary),
+        ),
+      ],
     );
   }
 
@@ -206,8 +205,9 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       buttons: [
         ActionButton(
           icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-          iconColor: _isFavorite ? Colors.red : AppColors.textPrimary,
+          iconColor: _isFavorite ? AppColors.favorite : AppColors.icon,
           label: 'Favorite',
+          horizontal: true,
           onTap: _isFavoriteLoading
               ? null
               : (widget.isNew ? _saveWithFavorite : _toggleFavorite),
@@ -215,6 +215,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
         ActionButton(
           icon: Icons.share_outlined,
           label: 'Share',
+          horizontal: true,
           onTap: _shareLook,
         ),
       ],
@@ -266,33 +267,38 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LabeledDivider(label: 'Garment List'),
+        LabeledDivider(
+          label:
+              'Garment List (${_garments?.length ?? widget.look.garmentIds.length})',
+        ),
         const SizedBox(height: 16),
         if (_loadingGarments)
           const Center(child: CircularProgressIndicator())
         else if (_garments != null)
-          ...(_garments!.map(
-            (g) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: GarmentListCard(
-                garment: g,
-                onTap: (g.imageUrl?.isNotEmpty == true)
-                    ? () => Navigator.of(context).push(
-                        PageRouteBuilder(
-                          opaque: false,
-                          pageBuilder: (_, __, ___) => FullScreenImagePage(
-                            imageUrl: g.imageUrl!,
-                            backgroundColor: Colors.white,
-                            aspectRatio: 1.0,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-          )),
+          ..._garments!.map(_buildGarmentCard),
       ],
+    );
+  }
+
+  Widget _buildGarmentCard(Garment g) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GarmentListCard(
+        garment: g,
+        onTap: (g.imageUrl?.isNotEmpty == true)
+            ? () => Navigator.of(context).push(
+                PageRouteBuilder(
+                  opaque: false,
+                  pageBuilder: (_, __, ___) => FullScreenImagePage(
+                    imageUrl: g.imageUrl!,
+                    backgroundColor: AppColors.surface,
+                    aspectRatio: 1.0,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              )
+            : null,
+      ),
     );
   }
 
@@ -300,20 +306,27 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     try {
       final data = await LookService().getLook(widget.look.id);
       if (!mounted) return;
-      List<String> parseStrings(dynamic v) {
-        if (v is List) return v.map((e) => e.toString()).toList();
-        if (v is String && v.isNotEmpty) return [v];
-        return [];
-      }
-
       setState(() {
         _name = (data['name'] as String?)?.isNotEmpty == true
             ? data['name'] as String
             : _name;
-        _seasons = parseStrings(data['season']);
-        _style = parseStrings(data['style']);
+        _seasons = _parseStringList(data['season']);
+        _style = _parseStringList(data['style']);
       });
     } catch (_) {}
+  }
+
+  List<String> _parseStringList(dynamic v) {
+    if (v is List) return v.map((e) => e.toString()).toList();
+    if (v is String && v.isNotEmpty) return [v];
+    return [];
+  }
+
+  Map<int, Garment> _indexGarmentsById(List<Garment> garments) {
+    return {
+      for (final g in garments)
+        if (g.id != null) g.id!: g,
+    };
   }
 
   Future<void> _loadGarments() async {
@@ -322,10 +335,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       // Reuse whatever My Closet has already loaded into garmentsProvider
       // instead of always hitting the network per garment.
       final cached = ref.read(garmentsProvider).valueOrNull ?? const [];
-      final cachedById = {
-        for (final g in cached)
-          if (g.id != null) g.id!: g,
-      };
+      final cachedById = _indexGarmentsById(cached);
 
       final results = await Future.wait(
         widget.look.garmentIds.map(
@@ -571,8 +581,6 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     }
   }
 
-  String get _formattedDate {
-    final d = widget.look.createdAt;
-    return '${d.year}/${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
-  }
+  String get _formattedDate =>
+      DateFormat('MMM d, yyyy').format(widget.look.createdAt);
 }

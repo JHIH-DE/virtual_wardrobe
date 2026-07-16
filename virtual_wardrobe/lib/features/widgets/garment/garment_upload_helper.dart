@@ -25,7 +25,7 @@ class GarmentUploadHelper {
           height: 402,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(32),
           ),
           child: Column(
@@ -86,10 +86,7 @@ class GarmentUploadHelper {
                 label: Text('Back', style: AppTextStyle.bold16),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 56),
-                  side: const BorderSide(
-                    color: AppColors.nearBlack,
-                    width: 1.5,
-                  ),
+                  side: const BorderSide(color: AppColors.primary, width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28),
                   ),
@@ -115,11 +112,11 @@ class GarmentUploadHelper {
         height: 60,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: AppColors.shadowResting,
               offset: const Offset(0, 4),
               blurRadius: 12,
             ),

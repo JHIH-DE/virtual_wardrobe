@@ -17,6 +17,7 @@ import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/floating_nav_bar.dart';
+import 'widgets/common/labeled_divider.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/trip/trip_plan_card.dart';
 import 'widgets/trip/trip_plan_create_dialog.dart';
@@ -31,6 +32,16 @@ class TripPlannerPage extends ConsumerStatefulWidget {
 final _dateFmt = DateFormat('yyyy-MM-dd');
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+enum _TripStatus { ongoing, upcoming, past }
+
+_TripStatus _tripStatus(TripPlan trip, DateTime today) {
+  final start = _dateOnly(trip.dateRange.start);
+  final end = _dateOnly(trip.dateRange.end);
+  if (today.isBefore(start)) return _TripStatus.upcoming;
+  if (today.isAfter(end)) return _TripStatus.past;
+  return _TripStatus.ongoing;
+}
 
 /// Fetches per-day mean temperature for a leg, keyed by "yyyy-MM-dd".
 /// Legs within Open-Meteo's ~16-day forecast horizon use live forecast
@@ -160,38 +171,13 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
   );
 
   try {
-    final days = await _fetchDailyTemperatures(input);
-    debugLog('createTrip days: $days');
-    final id = await TripPlanService().createTripPlan(
-      name: input.name,
-      legs: input.legs,
-      purpose: input.purpose,
-      days: days,
-    );
-
-    final newTrip = TripPlan(
-      id: id.toString(),
-      name: input.name,
-      legs: input.legs,
-      purpose: input.purpose,
-    );
+    final newTrip = await _createTripPlan(input);
     ref.read(tripsProvider.notifier).add(newTrip);
-
     final initialData = await TripDetailsPage.preload(newTrip);
 
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
-    // Jump the shell to the Trip Planner tab so that popping back off of
-    // Trip Details always lands there, regardless of where trip creation
-    // was started from (e.g. Home's quick-actions menu).
-    MainShellScope.of(context)?.selectTab(AppTab.tripPlanner);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            TripDetailsPage(trip: newTrip, initialData: initialData),
-      ),
-    );
+    _goToNewTripDetails(context, newTrip, initialData);
   } catch (e) {
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
@@ -204,6 +190,40 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
       context,
     ).showSnackBar(const SnackBar(content: Text('Failed to create trip')));
   }
+}
+
+/// Fetches the per-day weather needed by the backend, then creates the trip
+/// plan record and returns it as a [TripPlan].
+Future<TripPlan> _createTripPlan(TripPlan input) async {
+  final days = await _fetchDailyTemperatures(input);
+  debugLog('createTrip days: $days');
+  final id = await TripPlanService().createTripPlan(
+    name: input.name,
+    legs: input.legs,
+    purpose: input.purpose,
+    days: days,
+  );
+  return TripPlan(
+    id: id.toString(),
+    name: input.name,
+    legs: input.legs,
+    purpose: input.purpose,
+  );
+}
+
+/// Jumps the shell to the Trip Planner tab so that popping back off of Trip
+/// Details always lands there, regardless of where trip creation was
+/// started from (e.g. Home's quick-actions menu), then pushes Trip Details.
+void _goToNewTripDetails(
+  BuildContext context,
+  TripPlan trip,
+  TripDetailsInitialData initialData,
+) {
+  MainShellScope.of(context)?.selectTab(AppTab.tripPlanner);
+  final route = MaterialPageRoute(
+    builder: (_) => TripDetailsPage(trip: trip, initialData: initialData),
+  );
+  Navigator.push(context, route);
 }
 
 class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
@@ -258,64 +278,119 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     AsyncValue<List<TripPlan>> tripsAsync,
   ) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context),
-      body: SafeArea(
-        top: false,
-        child: tripsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => ErrorStateWidget(
-            error: e,
-            onRetry: () => ref.read(tripsProvider.notifier).refresh(),
-          ),
-          data: (trips) => RefreshIndicator(
-            onRefresh: () => ref.read(tripsProvider.notifier).refresh(),
-            child: trips.isEmpty
-                ? ListView(
-                    children: [
-                      EmptyStatePlaceholder(
-                        message: 'No trips planned yet',
-                        icon: Icons.beach_access,
-                        height: MediaQuery.of(context).size.height * 0.6,
-                      ),
-                    ],
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: trips.length,
-                    itemBuilder: (context, index) {
-                      final trip = trips[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: TripPlanCard(
-                          key: ValueKey(trip.id),
-                          trip: trip,
-                          onTap: () => _handleOpenTrip(context, trip),
-                          onNameChanged: (name) => _handleUpdateTrip(
-                            context,
-                            ref,
-                            trip,
-                            updated: trip.copyWith(name: name),
-                          ),
-                          onLegsChanged: (legs) => _handleUpdateTrip(
-                            context,
-                            ref,
-                            trip,
-                            updated: trip.copyWith(legs: legs),
-                          ),
-                          onPurposeChanged: (purpose) => _handleUpdateTrip(
-                            context,
-                            ref,
-                            trip,
-                            updated: trip.copyWith(purpose: purpose),
-                          ),
-                          onDelete: () => _handleDeleteTrip(context, ref, trip),
-                        ),
-                      );
-                    },
-                  ),
-          ),
+      body: tripsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.read(tripsProvider.notifier).refresh(),
         ),
+        data: (trips) => _buildTripList(context, trips),
+      ),
+    );
+  }
+
+  Widget _buildTripList(BuildContext context, List<TripPlan> trips) {
+    return RefreshIndicator(
+      onRefresh: () => ref.read(tripsProvider.notifier).refresh(),
+      child: trips.isEmpty
+          ? _buildEmptyState(context)
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                AppDimens.floatingNavBarClearance,
+              ),
+              children: _buildGroupedTripItems(context, trips),
+            ),
+    );
+  }
+
+  /// Splits [trips] into Ongoing / Upcoming / Past sections (each ordered
+  /// by how soon they happen — Ongoing/Upcoming ascending by start date,
+  /// Past descending so the most recently finished trip shows first), and
+  /// interleaves a [LabeledDivider] header before each non-empty section.
+  List<Widget> _buildGroupedTripItems(
+    BuildContext context,
+    List<TripPlan> trips,
+  ) {
+    final today = _dateOnly(DateTime.now());
+
+    final ongoing = <TripPlan>[];
+    final upcoming = <TripPlan>[];
+    final past = <TripPlan>[];
+    for (final trip in trips) {
+      switch (_tripStatus(trip, today)) {
+        case _TripStatus.ongoing:
+          ongoing.add(trip);
+        case _TripStatus.upcoming:
+          upcoming.add(trip);
+        case _TripStatus.past:
+          past.add(trip);
+      }
+    }
+    ongoing.sort((a, b) => a.dateRange.start.compareTo(b.dateRange.start));
+    upcoming.sort((a, b) => a.dateRange.start.compareTo(b.dateRange.start));
+    past.sort((a, b) => b.dateRange.end.compareTo(a.dateRange.end));
+
+    final items = <Widget>[];
+    void addSection(String label, List<TripPlan> group, Color dotColor) {
+      if (group.isEmpty) return;
+      if (items.isNotEmpty) items.add(const SizedBox(height: 8));
+      items.add(LabeledDivider(label: label, dotColor: dotColor));
+      items.add(const SizedBox(height: 16));
+      for (final trip in group) {
+        items.add(_buildTripCard(context, trip));
+      }
+    }
+
+    addSection('Ongoing', ongoing, AppColors.statusOngoing);
+    addSection('Upcoming', upcoming, AppColors.statusUpcoming);
+    addSection('Past', past, AppColors.statusPast);
+
+    return items;
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return ListView(
+      children: [
+        EmptyStatePlaceholder(
+          message: 'No trips planned yet',
+          icon: Icons.beach_access,
+          height: MediaQuery.of(context).size.height * 0.6,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTripCard(BuildContext context, TripPlan trip) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TripPlanCard(
+        key: ValueKey(trip.id),
+        trip: trip,
+        onTap: () => _handleOpenTrip(context, trip),
+        onNameChanged: (name) => _handleUpdateTrip(
+          context,
+          ref,
+          trip,
+          updated: trip.copyWith(name: name),
+        ),
+        onLegsChanged: (legs) => _handleUpdateTrip(
+          context,
+          ref,
+          trip,
+          updated: trip.copyWith(legs: legs),
+        ),
+        onPurposeChanged: (purpose) => _handleUpdateTrip(
+          context,
+          ref,
+          trip,
+          updated: trip.copyWith(purpose: purpose),
+        ),
+        onDelete: () => _handleDeleteTrip(context, ref, trip),
       ),
     );
   }

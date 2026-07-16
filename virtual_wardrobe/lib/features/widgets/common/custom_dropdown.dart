@@ -154,7 +154,7 @@ class DateDropdownField extends StatelessWidget {
 
 InputDecoration _decoration() => appInputDecoration(
   borderRadius: _kBorderRadius,
-  borderColor: AppColors.dropdownBorder,
-  focusedBorderColor: AppColors.dropdownBorder,
+  borderColor: AppColors.borderStrong,
+  focusedBorderColor: AppColors.borderStrong,
   focusedBorderWidth: 2,
 );

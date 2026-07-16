@@ -40,7 +40,7 @@ class _AppDialogState extends State<AppDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: SizedBox(
         width: 292,
@@ -65,7 +65,7 @@ class _AppDialogState extends State<AppDialog> {
               ElevatedButton(
                 onPressed: widget.onPrimary,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.nearBlack,
+                  backgroundColor: AppColors.primary,
                   minimumSize: const Size(double.infinity, 54),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -74,7 +74,7 @@ class _AppDialogState extends State<AppDialog> {
                 ),
                 child: Text(
                   widget.primaryLabel,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: AppColors.textOnPrimary),
                 ),
               ),
               if (widget.secondaryLabel != null) ...[
@@ -82,7 +82,10 @@ class _AppDialogState extends State<AppDialog> {
                 OutlinedButton(
                   onPressed: widget.onSecondary,
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black, width: 1.6),
+                    side: const BorderSide(
+                      color: AppColors.textPrimary,
+                      width: 1.6,
+                    ),
                     minimumSize: const Size(double.infinity, 54),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -90,13 +93,13 @@ class _AppDialogState extends State<AppDialog> {
                   ),
                   child: Text(
                     widget.secondaryLabel!,
-                    style: const TextStyle(color: Colors.black),
+                    style: const TextStyle(color: AppColors.textPrimary),
                   ),
                 ),
               ],
               if (widget.tertiaryLabel != null) ...[
                 const SizedBox(height: 6),
-                const Divider(thickness: 1, color: Colors.black12),
+                const Divider(thickness: 1, color: AppColors.borderSubtle),
                 SizedBox(
                   width: 104,
                   child: GestureDetector(
@@ -111,16 +114,21 @@ class _AppDialogState extends State<AppDialog> {
                       height: 38,
                       decoration: BoxDecoration(
                         color: _tertiaryPressed
-                            ? AppColors.nearBlack
-                            : Colors.white,
-                        border: Border.all(color: Colors.black, width: 1.6),
+                            ? AppColors.primary
+                            : AppColors.surface,
+                        border: Border.all(
+                          color: AppColors.textPrimary,
+                          width: 1.6,
+                        ),
                         borderRadius: BorderRadius.circular(19),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         widget.tertiaryLabel!,
                         style: AppTextStyle.regular14.copyWith(
-                          color: _tertiaryPressed ? Colors.white : Colors.black,
+                          color: _tertiaryPressed
+                              ? AppColors.textOnPrimary
+                              : AppColors.textPrimary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

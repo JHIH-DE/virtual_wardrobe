@@ -20,15 +20,15 @@ class BottomSearchBar extends StatelessWidget {
       right: 0,
       child: Container(
         padding: EdgeInsets.fromLTRB(22, 22, 22, 8 + bottomInset),
-        decoration: BoxDecoration(color: Colors.black.withOpacity(0.25)),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.25)),
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: AppColors.shadowResting,
                 blurRadius: 15,
                 offset: const Offset(0, 4),
               ),

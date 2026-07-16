@@ -120,17 +120,21 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
     }
   }
 
-  Future<void> _startTryOn() async {
-    final ids = <int>[];
-    if (_outfit.top?.id != null) ids.add(_outfit.top!.id!);
-    if (_outfit.middle?.id != null) ids.add(_outfit.middle!.id!);
-    if (_outfit.outer?.id != null) ids.add(_outfit.outer!.id!);
-    if (_outfit.bottom?.id != null) ids.add(_outfit.bottom!.id!);
-    if (_outfit.onePiece?.id != null) ids.add(_outfit.onePiece!.id!);
-    if (_outfit.shoes?.id != null) ids.add(_outfit.shoes!.id!);
-    if (_outfit.socks?.id != null) ids.add(_outfit.socks!.id!);
-    if (_outfit.accessory?.id != null) ids.add(_outfit.accessory!.id!);
+  List<int> _selectedGarmentIds() {
+    return [
+      _outfit.top,
+      _outfit.middle,
+      _outfit.outer,
+      _outfit.bottom,
+      _outfit.onePiece,
+      _outfit.shoes,
+      _outfit.socks,
+      _outfit.accessory,
+    ].whereType<Garment>().map((g) => g.id).whereType<int>().toList();
+  }
 
+  Future<void> _startTryOn() async {
+    final ids = _selectedGarmentIds();
     if (ids.isEmpty) return;
     if (tryOnJobId != 0) await deleteOutfitJob(tryOnJobId);
 
@@ -138,27 +142,31 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
     if (!mounted) return;
 
     if (tryOnResultUrl != null) {
-      await Navigator.push<void>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => LooksDetailsPage(
-            look: Look(
-              id: tryOnJobId,
-              imageUrl: tryOnResultUrl!,
-              advice: tryOnAiAdvice,
-              garmentIds: ids,
-            ),
-            isNew: true,
-          ),
-        ),
-      );
-      if (mounted) resetTryOnState();
+      await _showTryOnResult(ids);
     } else if (tryOnErrorMessage != null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(tryOnErrorMessage!)));
       resetTryOnState();
     }
+  }
+
+  Future<void> _showTryOnResult(List<int> garmentIds) async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LooksDetailsPage(
+          look: Look(
+            id: tryOnJobId,
+            imageUrl: tryOnResultUrl!,
+            advice: tryOnAiAdvice,
+            garmentIds: garmentIds,
+          ),
+          isNew: true,
+        ),
+      ),
+    );
+    if (mounted) resetTryOnState();
   }
 
   AppToolBar _buildAppBar() {
@@ -169,160 +177,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Scaffold(
-          backgroundColor: AppColors.defaultBackground,
-          appBar: _buildAppBar(),
-          body: SafeArea(
-            top: false,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-              children: [
-                Text(
-                  'Select the clothing combinations you\'d like to try, then click "Create Look" to see your try-on results!',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (_hasCategory(GarmentCategory.top)) ...[
-                  _slotRow(
-                    title: 'Top',
-                    iconAsset: 'assets/images/top.png',
-                    value: _outfit.top,
-                    category: GarmentCategory.top,
-                    onPicked: (g) =>
-                        setState(() => _outfit = _outfit.copyWith(top: g)),
-                    onClear: _outfit.top == null
-                        ? null
-                        : () => setState(
-                            () => _outfit = _outfit.copyWith(clearTop: true),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                  _slotRow(
-                    title: 'Mid Layer',
-                    iconAsset: 'assets/images/outer.png',
-                    value: _outfit.middle,
-                    category: GarmentCategory.top,
-                    onPicked: (g) =>
-                        setState(() => _outfit = _outfit.copyWith(middle: g)),
-                    onClear: _outfit.middle == null
-                        ? null
-                        : () => setState(
-                            () => _outfit = _outfit.copyWith(clearMiddle: true),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (_hasCategory(GarmentCategory.outer)) ...[
-                  _slotRow(
-                    title: 'Outerwear',
-                    iconAsset: 'assets/images/outer.png',
-                    value: _outfit.outer,
-                    category: GarmentCategory.outer,
-                    onPicked: (g) =>
-                        setState(() => _outfit = _outfit.copyWith(outer: g)),
-                    onClear: _outfit.outer == null
-                        ? null
-                        : () => setState(
-                            () => _outfit = _outfit.copyWith(clearOuter: true),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (_hasCategory(GarmentCategory.bottom)) ...[
-                  _slotRow(
-                    title: 'Bottom',
-                    iconAsset: 'assets/images/buttom.png',
-                    value: _outfit.bottom,
-                    category: GarmentCategory.bottom,
-                    onPicked: (g) =>
-                        setState(() => _outfit = _outfit.copyWith(bottom: g)),
-                    onClear: _outfit.bottom == null
-                        ? null
-                        : () => setState(
-                            () => _outfit = _outfit.copyWith(clearBottom: true),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (_hasCategory(GarmentCategory.onePiece)) ...[
-                  _slotRow(
-                    title: 'One-piece',
-                    iconData: Icons.checkroom,
-                    value: _outfit.onePiece,
-                    category: GarmentCategory.onePiece,
-                    onPicked: (g) =>
-                        setState(() => _outfit = _outfit.copyWith(onePiece: g)),
-                    onClear: _outfit.onePiece == null
-                        ? null
-                        : () => setState(
-                            () =>
-                                _outfit = _outfit.copyWith(clearOnePiece: true),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (_hasCategory(GarmentCategory.shoes)) ...[
-                  _slotRow(
-                    title: 'Shoes',
-                    iconAsset: 'assets/images/shoes.png',
-                    value: _outfit.shoes,
-                    category: GarmentCategory.shoes,
-                    onPicked: (g) =>
-                        setState(() => _outfit = _outfit.copyWith(shoes: g)),
-                    onClear: _outfit.shoes == null
-                        ? null
-                        : () => setState(
-                            () => _outfit = _outfit.copyWith(clearShoes: true),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (_hasCategory(GarmentCategory.socks)) ...[
-                  _slotRow(
-                    title: 'Socks',
-                    iconData: Icons.dry_cleaning,
-                    value: _outfit.socks,
-                    category: GarmentCategory.socks,
-                    onPicked: (g) =>
-                        setState(() => _outfit = _outfit.copyWith(socks: g)),
-                    onClear: _outfit.socks == null
-                        ? null
-                        : () => setState(
-                            () => _outfit = _outfit.copyWith(clearSocks: true),
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (_hasCategory(GarmentCategory.accessory))
-                  _slotRow(
-                    title: 'Accessory',
-                    iconAsset: 'assets/images/accessory.png',
-                    value: _outfit.accessory,
-                    category: GarmentCategory.accessory,
-                    onPicked: (g) => setState(
-                      () => _outfit = _outfit.copyWith(accessory: g),
-                    ),
-                    onClear: _outfit.accessory == null
-                        ? null
-                        : () => setState(
-                            () => _outfit = _outfit.copyWith(
-                              clearAccessory: true,
-                            ),
-                          ),
-                  ),
-              ],
-            ),
-          ),
-          bottomNavigationBar: BottomActionButton(
-            label: 'Create Look',
-            trailing: const Icon(Icons.crop_free, size: 18),
-            onPressed: _startTryOn,
-            enabled: !isOutfitLoading && _hasSelection,
-          ),
-        ),
+        _buildScaffold(),
         if (isOutfitLoading)
           const Positioned.fill(
             child: LoadingOverlay(label: 'Creating Looks...'),
@@ -332,6 +187,185 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
             child: LoadingOverlay(label: 'Loading Closet...'),
           ),
       ],
+    );
+  }
+
+  Widget _buildScaffold() {
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      appBar: _buildAppBar(),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+        children: [
+          _buildInstructions(),
+          const SizedBox(height: 24),
+          ..._buildTopSlots(),
+          ..._buildOuterSlot(),
+          ..._buildBottomSlot(),
+          ..._buildOnePieceSlot(),
+          ..._buildShoesSlot(),
+          ..._buildSocksSlot(),
+          ..._buildAccessorySlot(),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildInstructions() {
+    return Text(
+      'Select the clothing combinations you\'d like to try, then click "Create Look" to see your try-on results!',
+      textAlign: TextAlign.center,
+      style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+    );
+  }
+
+  List<Widget> _buildTopSlots() {
+    if (!_hasCategory(GarmentCategory.top)) return const [];
+    return [
+      _slotRow(
+        title: 'Top',
+        iconAsset: 'assets/images/top.png',
+        value: _outfit.top,
+        category: GarmentCategory.top,
+        onPicked: (g) => setState(() => _outfit = _outfit.copyWith(top: g)),
+        onClear: _outfit.top == null
+            ? null
+            : () => setState(() => _outfit = _outfit.copyWith(clearTop: true)),
+      ),
+      const SizedBox(height: 12),
+      _slotRow(
+        title: 'Mid Layer',
+        iconAsset: 'assets/images/outer.png',
+        value: _outfit.middle,
+        category: GarmentCategory.top,
+        onPicked: (g) => setState(() => _outfit = _outfit.copyWith(middle: g)),
+        onClear: _outfit.middle == null
+            ? null
+            : () =>
+                  setState(() => _outfit = _outfit.copyWith(clearMiddle: true)),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildOuterSlot() {
+    if (!_hasCategory(GarmentCategory.outer)) return const [];
+    return [
+      _slotRow(
+        title: 'Outerwear',
+        iconAsset: 'assets/images/outer.png',
+        value: _outfit.outer,
+        category: GarmentCategory.outer,
+        onPicked: (g) => setState(() => _outfit = _outfit.copyWith(outer: g)),
+        onClear: _outfit.outer == null
+            ? null
+            : () =>
+                  setState(() => _outfit = _outfit.copyWith(clearOuter: true)),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildBottomSlot() {
+    if (!_hasCategory(GarmentCategory.bottom)) return const [];
+    return [
+      _slotRow(
+        title: 'Bottom',
+        iconAsset: 'assets/images/buttom.png',
+        value: _outfit.bottom,
+        category: GarmentCategory.bottom,
+        onPicked: (g) => setState(() => _outfit = _outfit.copyWith(bottom: g)),
+        onClear: _outfit.bottom == null
+            ? null
+            : () =>
+                  setState(() => _outfit = _outfit.copyWith(clearBottom: true)),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildOnePieceSlot() {
+    if (!_hasCategory(GarmentCategory.onePiece)) return const [];
+    return [
+      _slotRow(
+        title: 'One-piece',
+        iconData: Icons.checkroom,
+        value: _outfit.onePiece,
+        category: GarmentCategory.onePiece,
+        onPicked: (g) =>
+            setState(() => _outfit = _outfit.copyWith(onePiece: g)),
+        onClear: _outfit.onePiece == null
+            ? null
+            : () => setState(
+                () => _outfit = _outfit.copyWith(clearOnePiece: true),
+              ),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildShoesSlot() {
+    if (!_hasCategory(GarmentCategory.shoes)) return const [];
+    return [
+      _slotRow(
+        title: 'Shoes',
+        iconAsset: 'assets/images/shoes.png',
+        value: _outfit.shoes,
+        category: GarmentCategory.shoes,
+        onPicked: (g) => setState(() => _outfit = _outfit.copyWith(shoes: g)),
+        onClear: _outfit.shoes == null
+            ? null
+            : () =>
+                  setState(() => _outfit = _outfit.copyWith(clearShoes: true)),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildSocksSlot() {
+    if (!_hasCategory(GarmentCategory.socks)) return const [];
+    return [
+      _slotRow(
+        title: 'Socks',
+        iconData: Icons.dry_cleaning,
+        value: _outfit.socks,
+        category: GarmentCategory.socks,
+        onPicked: (g) => setState(() => _outfit = _outfit.copyWith(socks: g)),
+        onClear: _outfit.socks == null
+            ? null
+            : () =>
+                  setState(() => _outfit = _outfit.copyWith(clearSocks: true)),
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _buildAccessorySlot() {
+    if (!_hasCategory(GarmentCategory.accessory)) return const [];
+    return [
+      _slotRow(
+        title: 'Accessory',
+        iconAsset: 'assets/images/accessory.png',
+        value: _outfit.accessory,
+        category: GarmentCategory.accessory,
+        onPicked: (g) =>
+            setState(() => _outfit = _outfit.copyWith(accessory: g)),
+        onClear: _outfit.accessory == null
+            ? null
+            : () => setState(
+                () => _outfit = _outfit.copyWith(clearAccessory: true),
+              ),
+      ),
+    ];
+  }
+
+  Widget _buildBottomBar() {
+    return BottomActionButton(
+      label: 'Create Look',
+      trailing: const Icon(Icons.crop_free, size: 18),
+      onPressed: _startTryOn,
+      enabled: !isOutfitLoading && _hasSelection,
     );
   }
 
@@ -385,7 +419,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
               fit: BoxFit.cover,
             )
           : (iconData != null
-                ? Icon(iconData, size: 28, color: AppColors.textSecondary)
+                ? Icon(iconData, size: 28, color: AppColors.icon)
                 : null),
       summary: detail?.isNotEmpty == true ? detail : null,
       child: Text(

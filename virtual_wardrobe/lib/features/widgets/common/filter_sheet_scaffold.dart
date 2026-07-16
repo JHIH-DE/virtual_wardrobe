@@ -21,7 +21,7 @@ class FilterSheetContent extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.12),
+                color: AppColors.overlaySubtle,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),

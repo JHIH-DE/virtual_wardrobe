@@ -84,8 +84,8 @@ class _DeletableCardState extends State<DeletableCard> with RouteAware {
           right: 8,
           child: CardCornerBadge(
             icon: Icons.close,
-            backgroundColor: AppColors.nearBlack,
-            iconColor: Colors.white,
+            backgroundColor: AppColors.primary,
+            iconColor: AppColors.textOnPrimary,
             onTap: _open,
           ),
         ),
@@ -94,7 +94,7 @@ class _DeletableCardState extends State<DeletableCard> with RouteAware {
             child: ClipRRect(
               borderRadius: widget.borderRadius,
               child: Container(
-                color: Colors.black.withValues(alpha: 0.75),
+                color: AppColors.scrimBackdrop,
                 padding: const EdgeInsets.all(12),
                 child: Center(
                   child: FittedBox(
@@ -119,7 +119,7 @@ class _DeletableCardState extends State<DeletableCard> with RouteAware {
                             child: Text(
                               'DELETE',
                               style: AppTextStyle.bold16.copyWith(
-                                color: Colors.black,
+                                color: AppColors.textPrimary,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -131,9 +131,9 @@ class _DeletableCardState extends State<DeletableCard> with RouteAware {
                           child: Text(
                             'cancel',
                             style: AppTextStyle.regular16.copyWith(
-                              color: Colors.white,
+                              color: AppColors.textOnPrimary,
                               decoration: TextDecoration.underline,
-                              decorationColor: Colors.white,
+                              decorationColor: AppColors.textOnPrimary,
                             ),
                           ),
                         ),

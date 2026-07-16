@@ -45,7 +45,7 @@ class _TripPlanCreateDialogState extends State<TripPlanCreateDialog> {
                 label: 'Trip Purpose',
                 prefixIcon: const Icon(
                   Icons.flight_takeoff,
-                  color: AppColors.primary,
+                  color: AppColors.icon,
                   size: 20,
                 ),
               ),

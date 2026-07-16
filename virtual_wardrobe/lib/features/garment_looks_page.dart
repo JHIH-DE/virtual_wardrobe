@@ -144,16 +144,13 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        top: false,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? ErrorStateWidget(error: _error!, onRetry: _load)
-            : _buildLooksGrid(_filtered()),
-      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? ErrorStateWidget(error: _error!, onRetry: _load)
+          : _buildLooksGrid(_filtered()),
     );
   }
 
@@ -182,21 +179,22 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
           mainAxisExtent: AppDimens.lookCardHeight,
         ),
         itemCount: looks.length,
-        itemBuilder: (context, index) {
-          final look = looks[index];
-          return DeletableCard(
-            group: _deleteGroup,
-            borderRadius: BorderRadius.circular(20),
-            onDelete: () => _deleteLook(look),
-            child: LookCard(
-              look: look,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
-              ),
-            ),
-          );
-        },
+        itemBuilder: (context, index) => _buildLookCard(context, looks[index]),
+      ),
+    );
+  }
+
+  Widget _buildLookCard(BuildContext context, Look look) {
+    return DeletableCard(
+      group: _deleteGroup,
+      borderRadius: BorderRadius.circular(20),
+      onDelete: () => _deleteLook(look),
+      child: LookCard(
+        look: look,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
+        ),
       ),
     );
   }

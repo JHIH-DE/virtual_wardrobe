@@ -48,49 +48,56 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(
-      title: 'Search Location',
-      backgroundColor: AppColors.surface,
-    );
+    return AppToolBar(title: 'Search Location');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                hintText: "City name...",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: AppColors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onSubmitted: (_) => _search(),
-            ),
-          ),
+          _buildSearchField(),
           if (_isLoading) const LinearProgressIndicator(),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _results.length,
-              itemBuilder: (context, i) => ListTile(
-                title: Text(_results[i].name),
-                onTap: () => Navigator.pop(context, _results[i]),
-              ),
-            ),
-          ),
+          Expanded(child: _buildResultsList()),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        controller: _controller,
+        decoration: InputDecoration(
+          hintText: "City name...",
+          prefixIcon: const Icon(Icons.search),
+          filled: true,
+          fillColor: AppColors.surface,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        onSubmitted: (_) => _search(),
+      ),
+    );
+  }
+
+  Widget _buildResultsList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: _results.length,
+      itemBuilder: (context, i) => _buildResultTile(context, i),
+    );
+  }
+
+  Widget _buildResultTile(BuildContext context, int i) {
+    return ListTile(
+      title: Text(_results[i].name),
+      onTap: () => Navigator.pop(context, _results[i]),
     );
   }
 }

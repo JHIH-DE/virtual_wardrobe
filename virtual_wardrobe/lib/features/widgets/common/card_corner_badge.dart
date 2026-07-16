@@ -13,8 +13,8 @@ class CardCornerBadge extends StatelessWidget {
   const CardCornerBadge({
     super.key,
     required this.icon,
-    this.backgroundColor = Colors.white,
-    this.iconColor = AppColors.nearBlack,
+    this.backgroundColor = AppColors.surface,
+    this.iconColor = AppColors.icon,
     this.onTap,
   });
 

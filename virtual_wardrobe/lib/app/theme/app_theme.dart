@@ -5,15 +5,15 @@ class AppTheme {
   static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.defaultBackground,
+      scaffoldBackgroundColor: AppColors.pageBackground,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         surfaceTint: Colors.transparent,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.dividerSubtle,
-        elevation: 4,
+        foregroundColor: AppColors.textOnPrimary,
+        elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
       ),

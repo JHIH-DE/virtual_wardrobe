@@ -6,7 +6,6 @@ import '../../../app/theme/app_text_styles.dart';
 
 class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final Color? backgroundColor;
   final VoidCallback? onBack;
   final bool showBackButton;
   final Widget? leading;
@@ -17,7 +16,6 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   const AppToolBar({
     super.key,
     required this.title,
-    this.backgroundColor,
     this.onBack,
     this.showBackButton = true,
     this.leading,
@@ -33,7 +31,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: backgroundColor ?? AppColors.defaultToolBar,
+      backgroundColor: AppColors.toolbarBackground,
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
@@ -65,7 +63,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
             child: Divider(
               height: 1,
               thickness: 1,
-              color: AppColors.dividerSubtle,
+              color: AppColors.borderSubtle,
             ),
           ),
     );

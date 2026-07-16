@@ -128,51 +128,60 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _filtered;
-
     return Scaffold(
-      backgroundColor: AppColors.defaultBackground,
+      backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: SafeArea(
-        top: false,
-        child: items.isEmpty
-            ? Center(
-                child: Text(
-                  'No items found.',
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              )
-            : GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  mainAxisExtent: AppDimens.garmentCardHeight,
-                ),
-                itemCount: items.length,
-                itemBuilder: (context, i) {
-                  final g = items[i];
-                  return DeletableCard(
-                    group: _deleteGroup,
-                    onDelete: () => _deleteGarment(g),
-                    child: GarmentCard(
-                      garment: g,
-                      isSelected: _pending?.id != null && _pending!.id == g.id,
-                      onTap: () => setState(
-                        () => _pending = (_pending?.id == g.id) ? null : g,
-                      ),
-                    ),
-                  );
-                },
-              ),
+      body: _buildBody(),
+      bottomNavigationBar: _buildBottomBar(context),
+    );
+  }
+
+  Widget _buildBody() {
+    final items = _filtered;
+    if (items.isEmpty) return _buildEmptyState();
+    return _buildGrid(items);
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Text(
+        'No items found.',
+        style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
       ),
-      bottomNavigationBar: BottomActionButton(
-        label: 'Confirm',
-        onPressed: () => Navigator.pop(context, SelectGarmentResult(_pending)),
+    );
+  }
+
+  Widget _buildGrid(List<Garment> items) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: AppDimens.garmentCardHeight,
       ),
+      itemCount: items.length,
+      itemBuilder: (context, i) => _buildGarmentCard(items[i]),
+    );
+  }
+
+  Widget _buildGarmentCard(Garment g) {
+    return DeletableCard(
+      group: _deleteGroup,
+      onDelete: () => _deleteGarment(g),
+      child: GarmentCard(
+        garment: g,
+        isSelected: _pending?.id != null && _pending!.id == g.id,
+        onTap: () =>
+            setState(() => _pending = (_pending?.id == g.id) ? null : g),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context) {
+    return BottomActionButton(
+      label: 'Confirm',
+      onPressed: () => Navigator.pop(context, SelectGarmentResult(_pending)),
     );
   }
 

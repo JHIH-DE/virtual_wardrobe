@@ -7,6 +7,7 @@ class BottomActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool enabled;
   final bool isLoading;
+  final Widget? leading;
   final Widget? trailing;
   final Color buttonColor;
   final Color textColor;
@@ -20,10 +21,11 @@ class BottomActionButton extends StatelessWidget {
     this.onPressed,
     this.enabled = true,
     this.isLoading = false,
+    this.leading,
     this.trailing,
-    this.buttonColor = AppColors.defaultButton,
-    this.textColor = AppColors.defaultButtonText,
-    this.panelColor = AppColors.defaultBackground,
+    this.buttonColor = AppColors.primary,
+    this.textColor = AppColors.textOnPrimary,
+    this.panelColor = AppColors.pageBackground,
     this.panelPadding = const EdgeInsets.fromLTRB(22, 22, 22, 8),
     this.showShadow = true,
   });
@@ -60,7 +62,7 @@ class BottomActionButton extends StatelessWidget {
               onPressed: _isDisabled ? null : onPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: buttonColor,
-                disabledBackgroundColor: AppColors.dividerSubtle,
+                disabledBackgroundColor: AppColors.borderSubtle,
                 foregroundColor: textColor,
                 disabledForegroundColor: AppColors.textSecondary,
                 elevation: 0,
@@ -69,17 +71,24 @@ class BottomActionButton extends StatelessWidget {
                 ),
               ),
               child: isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: textColor,
                         strokeWidth: 2,
                       ),
                     )
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (leading != null) ...[
+                          IconTheme(
+                            data: IconThemeData(color: iconColor),
+                            child: leading!,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         Text(
                           label,
                           style: const TextStyle(
