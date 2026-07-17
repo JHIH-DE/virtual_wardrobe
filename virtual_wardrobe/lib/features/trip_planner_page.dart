@@ -257,20 +257,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   }
 
   AppToolBar _buildAppBar(BuildContext context) {
-    return AppToolBar(
-      title: 'Trip Planner',
-      showBackButton: false,
-      leading: IconButton(
-        icon: Container(
-          padding: const EdgeInsets.all(4),
-          child: Image.asset(
-            'assets/images/plus.png',
-            height: AppDimens.iconMediumSize,
-          ),
-        ),
-        onPressed: () => handleCreateTrip(context, ref),
-      ),
-    );
+    return AppToolBar(title: 'Trip Planner', showBackButton: false);
   }
 
   Widget _buildScaffold(

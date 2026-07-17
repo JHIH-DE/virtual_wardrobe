@@ -32,6 +32,11 @@ class AppColors {
   // Brand — near-black for actions/selection
   static const Color primary = Color(0xFF1A1A1A);
 
+  // Warm attention-grabbing accent — nav bar's raised center button, primary
+  // dialog actions, and anywhere else that needs to stand out from the
+  // monochrome ink/cream palette.
+  static const Color accent = Color(0xFFD97757);
+
   // Social sign-in (fixed brand colors, do not retint)
   static const Color facebook = Color(0xFF1877F2);
   static const Color google = Color(0xFF4285F4);
@@ -73,4 +78,7 @@ class AppColors {
   static const Color scrimBackdrop = Color(
     0xA6000000,
   ); // full-screen dark backdrop, black @65%
+  static const Color dividerOnDark = Color(
+    0x26FFFFFF,
+  ); // divider on dark surfaces (e.g. nav bar's quick-action menu), white @15%
 }

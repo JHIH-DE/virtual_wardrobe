@@ -65,7 +65,7 @@ class _AppDialogState extends State<AppDialog> {
               ElevatedButton(
                 onPressed: widget.onPrimary,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.accent,
                   minimumSize: const Size(double.infinity, 54),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -114,7 +114,7 @@ class _AppDialogState extends State<AppDialog> {
                       height: 38,
                       decoration: BoxDecoration(
                         color: _tertiaryPressed
-                            ? AppColors.primary
+                            ? AppColors.accent
                             : AppColors.surface,
                         border: Border.all(
                           color: AppColors.textPrimary,

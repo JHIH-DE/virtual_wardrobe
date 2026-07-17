@@ -178,7 +178,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
     return Stack(
       children: [
         _buildScaffold(),
-        if (isOutfitLoading)
+        if (isLookLoading)
           const Positioned.fill(
             child: LoadingOverlay(label: 'Creating Looks...'),
           ),
@@ -365,7 +365,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
       label: 'Create Look',
       trailing: const Icon(Icons.crop_free, size: 18),
       onPressed: _startTryOn,
-      enabled: !isOutfitLoading && _hasSelection,
+      enabled: !isLookLoading && _hasSelection,
     );
   }
 
@@ -384,7 +384,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
         : (value.color?.isNotEmpty == true ? value.color! : value.subCategory);
 
     return AppListCard(
-      onTap: (isOutfitLoading || _isLoadingGarments)
+      onTap: (isLookLoading || _isLoadingGarments)
           ? null
           : () async {
               await _ensureFreshGarments();

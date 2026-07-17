@@ -16,7 +16,6 @@ import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_card.dart';
-import 'widgets/garment/garment_upload_helper.dart';
 
 class MyClosetPage extends ConsumerStatefulWidget {
   const MyClosetPage({super.key});
@@ -144,21 +143,6 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     return AppToolBar(
       title: 'My Closet',
       showBackButton: false,
-      leading: IconButton(
-        icon: Container(
-          padding: const EdgeInsets.all(4),
-          child: Image.asset(
-            'assets/images/plus.png',
-            height: AppDimens.iconMediumSize,
-          ),
-        ),
-        onPressed: () {
-          GarmentUploadHelper.showAddClothingDialog(
-            context,
-            onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
-          );
-        },
-      ),
       actions: [
         _buildFilterButton(garmentsAsync.valueOrNull ?? []),
         const SizedBox(width: 8),

@@ -28,7 +28,18 @@ class LooksDetailsPage extends ConsumerStatefulWidget {
   final Look look;
   final bool isNew;
 
-  const LooksDetailsPage({super.key, required this.look, this.isNew = false});
+  /// When [isNew] is true, back normally prompts to save/discard before
+  /// leaving. Set this to false to skip that prompt and pop straight back
+  /// (e.g. when the look is a daily outfit that already exists server-side,
+  /// so there's nothing unsaved to lose).
+  final bool confirmLeaveOnBack;
+
+  const LooksDetailsPage({
+    super.key,
+    required this.look,
+    this.isNew = false,
+    this.confirmLeaveOnBack = true,
+  });
 
   @override
   ConsumerState<LooksDetailsPage> createState() => _LooksDetailsPageState();
@@ -49,6 +60,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
 
   List<String> get _effectiveSeasons => _seasons ?? widget.look.seasons;
   List<String> get _effectiveStyle => _style ?? widget.look.style;
+  bool get _shouldConfirmLeave => widget.isNew && widget.confirmLeaveOnBack;
 
   @override
   void initState() {
@@ -75,7 +87,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: 'Details',
-      onBack: widget.isNew ? _showLeaveDialog : null,
+      onBack: _shouldConfirmLeave ? _showLeaveDialog : null,
       actions: [
         if (!widget.isNew)
           IconButton(
@@ -91,7 +103,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
 
   Widget _buildScaffold(BuildContext context) {
     return PopScope(
-      canPop: !widget.isNew,
+      canPop: !_shouldConfirmLeave,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         _showLeaveDialog();

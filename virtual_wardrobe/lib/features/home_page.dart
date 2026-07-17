@@ -6,20 +6,16 @@ import 'package:intl/intl.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
-import '../core/providers/garments_provider.dart';
 import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/daily_look_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/try_on_mixin.dart';
-import 'manual_try_on_page.dart';
+import '../data/look.dart';
+import 'looks_details_page.dart';
 import 'settings_page.dart';
-import 'trip_planner_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/loading_overlay.dart';
-import 'widgets/garment/garment_upload_helper.dart';
-
-enum _QuickAction { addClothing, manualTryOn, newTrip }
+import 'widgets/common/lumi_insight_card.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -29,10 +25,9 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
-  bool _openingTryOn = false;
-
-  bool _loadingOutfit = true;
-  String? _stylingTips;
+  bool _loadingLook = true;
+  String? _reasoning;
+  List<int> _garmentIds = [];
 
   @override
   void initState() {
@@ -41,11 +36,18 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
   }
 
   Future<void> _loadDailyLook() async {
-    setState(() => _loadingOutfit = true);
+    setState(() => _loadingLook = true);
     try {
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       var look = await DailyLookService().getDailyLook(today);
-      look ??= await DailyLookService().generateDailyLook(date: today);
+      if (look == null) {
+        final optionId = await DailyLookService().generateDailyLook(
+          date: today,
+        );
+        await DailyLookService().createTryOnForOption(optionId);
+        look = await DailyLookService().getDailyLook(today);
+      }
+      if (look == null) return;
 
       final options =
           ((look['options'] as List?) ?? [])
@@ -58,13 +60,27 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
             );
 
       if (options.isEmpty) {
-        if (mounted) setState(() => _stylingTips = null);
+        if (mounted) setState(() => _reasoning = null);
         return;
       }
 
       final option = options.first;
+      final items = ((option['items'] as List?) ?? [])
+          .whereType<Map<String, dynamic>>();
+      final garmentIds = items
+          .map((i) => (i['garment_id'] as num?)?.toInt())
+          .whereType<int>()
+          .toList();
       if (mounted) {
-        setState(() => _stylingTips = option['styling_tips'] as String?);
+        final rawReasoning = option['reasoning'];
+        setState(() {
+          _garmentIds = garmentIds;
+          if (rawReasoning is List) {
+            _reasoning = rawReasoning.map((e) => '• $e').join('\n');
+          } else {
+            _reasoning = rawReasoning as String?;
+          }
+        });
       }
 
       final jobId = option['job_id'] as int?;
@@ -79,28 +95,19 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
       }
       debugLog('Failed to load daily look: $e');
     } finally {
-      if (mounted) setState(() => _loadingOutfit = false);
+      if (mounted) setState(() => _loadingLook = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        _buildScaffold(context),
-        if (_openingTryOn)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Loading Garments...'),
-          ),
-      ],
-    );
+    return _buildScaffold(context);
   }
 
   AppToolBar _buildAppBar(BuildContext context) {
     return AppToolBar(
       title: 'Home',
       showBackButton: false,
-      leading: _buildPopupMenuButton(context),
       actions: [
         InkWell(
           onTap: () {
@@ -120,50 +127,6 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     );
   }
 
-  PopupMenuButton<_QuickAction> _buildPopupMenuButton(BuildContext context) {
-    return PopupMenuButton<_QuickAction>(
-      icon: Container(
-        padding: const EdgeInsets.all(4),
-        child: Image.asset(
-          'assets/images/plus.png',
-          height: AppDimens.iconMediumSize,
-        ),
-      ),
-      color: AppColors.surface,
-      elevation: 8,
-      padding: EdgeInsets.zero,
-      offset: const Offset(0, 57),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      onSelected: (action) => _handleQuickAction(context, action),
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          enabled: false,
-          padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
-          height: 0,
-          child: Text('Quick Actions', style: AppTextStyle.regular12),
-        ),
-        _buildQuickActionItem(
-          value: _QuickAction.addClothing,
-          label: 'Add Clothing',
-          icon: Icons.checkroom_outlined,
-          showDivider: true,
-        ),
-        _buildQuickActionItem(
-          value: _QuickAction.manualTryOn,
-          label: 'Manual Try-on',
-          icon: Icons.accessibility_new_outlined,
-          showDivider: true,
-        ),
-        _buildQuickActionItem(
-          value: _QuickAction.newTrip,
-          label: 'New Trip',
-          icon: Icons.luggage_outlined,
-          showDivider: false,
-        ),
-      ],
-    );
-  }
-
   Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
@@ -177,11 +140,11 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildGreeting(),
+                _buildHeader(),
                 const SizedBox(height: 16),
-                _buildOutfitImageCard(),
+                _buildLookImageCard(),
                 const SizedBox(height: 12),
-                _buildOutfitMetaRow(),
+                _buildLumiInsightCard(),
               ],
             ),
           ),
@@ -190,41 +153,64 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     );
   }
 
-  Widget _buildGreeting() {
+  Widget _buildHeader() {
     final weatherAsync = ref.watch(weatherProvider);
     final dateStr = DateFormat('EEEE, MMM d').format(DateTime.now());
+
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Image.asset('assets/images/ai-today.png', width: 49, height: 49),
-        const SizedBox(width: 10),
+        SizedBox(
+          width: 72,
+          height: 72,
+          child: Image.asset('assets/images/ai-today.png', fit: BoxFit.contain),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(dateStr, style: AppTextStyle.bold16),
-              const SizedBox(height: 4),
-              weatherAsync.when(
-                data: (w) => Row(
-                  children: [
-                    Icon(
-                      WeatherData.iconFromCondition(w.condition),
-                      size: 18,
-                      color: AppColors.icon,
+              Text(dateStr, style: AppTextStyle.title22),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  weatherAsync.when(
+                    data: (w) => _headerChip(
+                      icon: Icon(
+                        WeatherData.iconFromCondition(w.condition),
+                        size: 16,
+                        color: AppColors.statusUpcoming,
+                      ),
+                      label: '${w.low}°C - ${w.high}°C',
+                      tint: AppColors.statusUpcoming,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${w.low}°C - ${w.high}°C',
-                      style: AppTextStyle.regular14,
+                    loading: () => _headerChip(
+                      icon: const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      label: 'Loading weather...',
+                      tint: AppColors.statusUpcoming,
                     ),
-                  ],
-                ),
-                loading: () => const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                error: (_, __) => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                  weatherAsync.maybeWhen(
+                    data: (w) => _headerChip(
+                      icon: const Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: AppColors.statusOngoing,
+                      ),
+                      label: w.location,
+                      tint: AppColors.statusOngoing,
+                    ),
+                    orElse: () => const SizedBox.shrink(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -233,120 +219,107 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     );
   }
 
-  Widget _buildOutfitImageCard() {
-    final loading = _loadingOutfit || isOutfitLoading;
-    final imageUrl = tryOnResultUrl;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: AspectRatio(
-        aspectRatio: 1 / 1.15,
-        child: Container(
-          color: AppColors.surface,
-          child: loading
-              ? const Center(child: CircularProgressIndicator())
-              : (imageUrl == null || imageUrl.isEmpty)
-              ? Center(
-                  child: Icon(Icons.checkroom, size: 48, color: AppColors.icon),
-                )
-              : CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => Center(
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      size: 48,
-                      color: AppColors.icon,
-                    ),
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOutfitMetaRow() {
-    if (_stylingTips == null || _stylingTips!.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Text(_stylingTips!, style: AppTextStyle.regular14);
-  }
-
-  PopupMenuItem<_QuickAction> _buildQuickActionItem({
-    required _QuickAction value,
+  Widget _headerChip({
+    required Widget icon,
     required String label,
-    required IconData icon,
-    required bool showDivider,
+    required Color tint,
   }) {
-    return PopupMenuItem(
-      value: value,
-      padding: EdgeInsets.zero,
-      child: Container(
-        width: 220,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: showDivider
-            ? const BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: AppColors.borderSubtle, width: 1),
-                ),
-              )
-            : null,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: AppTextStyle.regular16),
-            Icon(icon, size: 20, color: AppColors.icon),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          icon,
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTextStyle.bold14.copyWith(color: AppColors.textPrimary),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _handleQuickAction(
-    BuildContext context,
-    _QuickAction action,
-  ) async {
-    switch (action) {
-      case _QuickAction.addClothing:
-        GarmentUploadHelper.showAddClothingDialog(
-          context,
-          onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
-        );
-      case _QuickAction.manualTryOn:
-        await _handleOpenManualTryOn(context);
-      case _QuickAction.newTrip:
-        await handleCreateTrip(context, ref);
-    }
-  }
-
-  Future<void> _handleOpenManualTryOn(BuildContext context) async {
-    setState(() => _openingTryOn = true);
-    try {
-      final garments = await ref.read(garmentsProvider.future);
-      if (!mounted) return;
-      setState(() => _openingTryOn = false);
-      if (!context.mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ManualTryOnPage(
-            preloadedGarments: garments,
-            onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
+  Widget _buildLookImageCard() {
+    final loading = _loadingLook || isLookLoading;
+    final imageUrl = tryOnResultUrl;
+    final hasResult = !loading && imageUrl != null && imageUrl.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Today's Look", style: AppTextStyle.bold16),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: hasResult ? _openLookDetails : null,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: AspectRatio(
+              aspectRatio: 1 / 1.15,
+              child: Container(
+                color: AppColors.surface,
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : (imageUrl == null || imageUrl.isEmpty)
+                    ? Center(
+                        child: Icon(
+                          Icons.checkroom,
+                          size: 48,
+                          color: AppColors.icon,
+                        ),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Center(
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            size: 48,
+                            color: AppColors.icon,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
           ),
         ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _openingTryOn = false);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to load garments: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load garments')),
-        );
-      }
+      ],
+    );
+  }
+
+  void _openLookDetails() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LooksDetailsPage(
+          look: Look(
+            id: tryOnJobId,
+            imageUrl: tryOnResultUrl!,
+            advice: tryOnAiAdvice,
+            garmentIds: _garmentIds,
+          ),
+          isNew: true,
+          confirmLeaveOnBack: false,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLumiInsightCard() {
+    if (_reasoning == null || _reasoning!.isEmpty) {
+      return const SizedBox.shrink();
     }
+    return LumiInsightCard(
+      child: Text(
+        _reasoning!,
+        style: AppTextStyle.regular14.copyWith(
+          color: AppColors.textSecondary,
+          height: 1.5,
+        ),
+      ),
+    );
   }
 }

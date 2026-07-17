@@ -7,7 +7,7 @@ import '../services/look_service.dart';
 import 'debug_log.dart';
 
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
-  bool isOutfitLoading = false;
+  bool isLookLoading = false;
   String? tryOnErrorMessage;
   String? tryOnResultUrl;
   String? tryOnAiAdvice;
@@ -23,7 +23,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     _tryOnCompleter = Completer<int?>();
 
     setState(() {
-      isOutfitLoading = true;
+      isLookLoading = true;
       tryOnErrorMessage = null;
       tryOnResultUrl = null;
       tryOnAiAdvice = null;
@@ -55,7 +55,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          isOutfitLoading = false;
+          isLookLoading = false;
           tryOnErrorMessage = 'Failed: $e';
         });
       }
@@ -71,7 +71,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     _tryOnCompleter = Completer<int?>();
 
     setState(() {
-      isOutfitLoading = true;
+      isLookLoading = true;
       tryOnErrorMessage = null;
       tryOnResultUrl = null;
       tryOnAiAdvice = null;
@@ -90,7 +90,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         timer.cancel();
         if (mounted) {
           setState(() {
-            isOutfitLoading = false;
+            isLookLoading = false;
             tryOnErrorMessage = 'Timeout.';
           });
         }
@@ -112,7 +112,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         if (status == 'completed') {
           timer.cancel();
           setState(() {
-            isOutfitLoading = false;
+            isLookLoading = false;
             tryOnResultUrl = statusRes['result_image_url'];
             tryOnAiAdvice = statusRes['ai_notes'] ?? 'Looking good!';
           });
@@ -121,7 +121,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         } else if (status == 'failed') {
           timer.cancel();
           setState(() {
-            isOutfitLoading = false;
+            isLookLoading = false;
             tryOnErrorMessage = 'Failed on server.';
           });
           _tryOnCompleter?.complete(null);
@@ -138,7 +138,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       _tryOnCompleter?.complete(null);
     }
     setState(() {
-      isOutfitLoading = false;
+      isLookLoading = false;
       tryOnErrorMessage = null;
       tryOnResultUrl = null;
       tryOnAiAdvice = null;

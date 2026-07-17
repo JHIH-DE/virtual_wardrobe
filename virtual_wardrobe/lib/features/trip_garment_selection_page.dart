@@ -103,9 +103,19 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   void _applyCategoryAdvice(Map item) {
     final category = GarmentCategoryX.fromApiValue(item['category'] as String?);
     final suggestedIds = item['suggested_garment_ids'];
+
+    // Robust reasoning parsing to handle both String and List from API
+    final rawReasoning = item['reasoning'];
+    String reasoning = '';
+    if (rawReasoning is List) {
+      reasoning = rawReasoning.join('\n');
+    } else if (rawReasoning is String) {
+      reasoning = rawReasoning;
+    }
+
     _adviceByCategory[category] = _CategoryAdvice(
       recommendedQuantity: (item['recommended_quantity'] as num?)?.toInt() ?? 0,
-      reasoning: item['reasoning'] as String? ?? '',
+      reasoning: reasoning,
       suggestedGarmentIds: suggestedIds is List
           ? suggestedIds.whereType<int>().toSet()
           : {},
@@ -260,7 +270,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
               slivers: [
                 if (_loadingAdvice || advice != null)
                   SliverToBoxAdapter(
-                    child: _buildAdviceBanner(advice, selectedInCategory),
+                    child: _buildLumiInsightCard(advice, selectedInCategory),
                   ),
                 _buildGridSliver(items, advice),
               ],
@@ -354,7 +364,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  Widget _buildAdviceBanner(_CategoryAdvice? advice, int selectedInCategory) {
+  Widget _buildLumiInsightCard(_CategoryAdvice? advice, int selectedInCategory) {
     return LumiInsightCard(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: _loadingAdvice

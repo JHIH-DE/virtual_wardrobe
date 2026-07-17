@@ -22,7 +22,6 @@ import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/custom_dropdown.dart';
-import 'widgets/common/filter_sheet_scaffold.dart';
 import 'widgets/common/pill_button.dart';
 import 'widgets/common/section_title.dart';
 import 'widgets/common/tappable_field_decorator.dart';
@@ -595,14 +594,34 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   }
 
   void _openColorPickerSheet() {
-    showAppFilterSheet(
-      context,
-      builder: (_) => FilterSheetContent(
-        children: [
-          _buildColorPickerHeader(),
-          const SizedBox(height: 10),
-          _buildColorGrid(context),
-        ],
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.overlaySubtle,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildColorPickerHeader(),
+            const SizedBox(height: 10),
+            _buildColorGrid(context),
+          ],
+        ),
       ),
     );
   }

@@ -3,19 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
-import '../core/providers/garments_provider.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/look_service.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
-import 'manual_try_on_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
-import 'widgets/common/loading_overlay.dart';
 import 'widgets/look/look_card.dart';
 
 class LooksPage extends ConsumerStatefulWidget {
@@ -26,7 +23,6 @@ class LooksPage extends ConsumerStatefulWidget {
 }
 
 class _LooksPageState extends ConsumerState<LooksPage> {
-  bool _openingTryOn = false;
   final _deleteGroup = DeletableCardGroup();
 
   static const List<String> _seasons = [
@@ -88,13 +84,6 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     return AppToolBar(
       title: 'Looks',
       showBackButton: false,
-      leading: IconButton(
-        icon: Image.asset(
-          'assets/images/plus.png',
-          height: AppDimens.iconMediumSize,
-        ),
-        onPressed: () => _handleOpenManualTryOn(context),
-      ),
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
@@ -130,15 +119,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        _buildScaffold(context),
-        if (_openingTryOn)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Loading Garments...'),
-          ),
-      ],
-    );
+    return _buildScaffold(context);
   }
 
   Widget _buildScaffold(BuildContext context) {
@@ -222,31 +203,4 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     }
   }
 
-  Future<void> _handleOpenManualTryOn(BuildContext context) async {
-    setState(() => _openingTryOn = true);
-    try {
-      final garments = await ref.read(garmentsProvider.future);
-      if (!mounted) return;
-      setState(() => _openingTryOn = false);
-      if (!context.mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ManualTryOnPage(preloadedGarments: garments),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _openingTryOn = false);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load garments')),
-        );
-      }
-    }
-  }
 }

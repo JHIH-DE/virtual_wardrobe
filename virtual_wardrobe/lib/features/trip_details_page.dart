@@ -81,14 +81,25 @@ Future<_WeatherForecast> _fetchLegWeather(TripLeg leg) async {
     final res = await http.get(Uri.parse(url));
     if (res.statusCode == 200) {
       final data = json.decode(res.body);
+      final daily = data['daily'];
+      if (daily == null) {
+        return const _WeatherForecast(codes: [], highs: [], lows: []);
+      }
+
+      // Robust parsing: handle nulls or missing values in API response
       return _WeatherForecast(
-        codes: List<int>.from(data['daily']['weathercode']),
-        highs: List<double>.from(
-          data['daily']['temperature_2m_max'].map((t) => (t as num).toDouble()),
-        ),
-        lows: List<double>.from(
-          data['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()),
-        ),
+        codes: (daily['weathercode'] as List?)
+                ?.map((v) => (v as num?)?.toInt() ?? 0)
+                .toList() ??
+            [],
+        highs: (daily['temperature_2m_max'] as List?)
+                ?.map((v) => (v as num?)?.toDouble() ?? 0.0)
+                .toList() ??
+            [],
+        lows: (daily['temperature_2m_min'] as List?)
+                ?.map((v) => (v as num?)?.toDouble() ?? 0.0)
+                .toList() ??
+            [],
       );
     }
   } catch (e) {
@@ -287,20 +298,27 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+      body: Column(
         children: [
+          const SizedBox(height: 20),
           _paddedSection(_buildTripHeader()),
           const SizedBox(height: 20),
-          _paddedSection(_buildPackingAdviceSection()),
+          _paddedSection(_buildLumiInsightCard()),
           const SizedBox(height: 20),
           _paddedSection(_buildSuitcaseSection()),
           const SizedBox(height: 20),
           _buildTripDaySelector(),
           const SizedBox(height: 20),
-          _paddedSection(_buildWardrobeSection()),
-          const SizedBox(height: 20),
-          _paddedSection(_buildOutfitSection()),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 32),
+              children: [
+                _paddedSection(_buildWardrobeSection()),
+                const SizedBox(height: 20),
+                _paddedSection(_buildOutfitSection()),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -318,8 +336,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       onSave: _onSaveLook,
       onGenerate: _handleGenerateLook,
       imageUrl: tryOnResultUrl,
-      isLoading: isOutfitLoading,
-      jobStatus: isOutfitLoading
+      isLoading: isLookLoading,
+      jobStatus: isLookLoading
           ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
           : null,
       errorMessage: tryOnErrorMessage,
@@ -434,7 +452,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
-  Widget _buildPackingAdviceSection() {
+  Widget _buildLumiInsightCard() {
     if (!_loadingPackingAdvice &&
         (_packingAdvice == null || _packingAdvice!.isEmpty)) {
       return const SizedBox.shrink();

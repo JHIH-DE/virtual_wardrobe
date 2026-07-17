@@ -50,8 +50,9 @@ class DailyLookService with BaseService {
   }
 
   /// Generates a look plan for any single date (not limited to a rolling
-  /// window). Always replaces any existing options for that date.
-  Future<Map<String, dynamic>> generateDailyLook({
+  /// window). Always replaces any existing options for that date. Returns
+  /// the primary option's id (lowest `order_index`).
+  Future<int> generateDailyLook({
     required String date,
     String? timezone,
     String? occasion,
@@ -80,10 +81,37 @@ class DailyLookService with BaseService {
 
     final envelope = decodeMap(res, op: 'generateDailyLook');
     final data = envelope['data'] as Map<String, dynamic>?;
-    if (data == null) {
-      throw Exception('generateDailyLook: response missing data');
+    final options =
+        ((data?['options'] as List?) ?? [])
+            .whereType<Map<String, dynamic>>()
+            .toList()
+          ..sort(
+            (a, b) => ((a['order_index'] as num?) ?? 0).compareTo(
+              (b['order_index'] as num?) ?? 0,
+            ),
+          );
+    final id = options.isEmpty ? null : options.first['id'] as int?;
+    if (id == null) {
+      throw Exception('generateDailyLook: response missing options[0].id');
     }
-    return data;
+    return id;
+  }
+
+  /// Creates a try-on render job for one look option, using the garments
+  /// already selected on that option (from a prior [generateDailyLook]
+  /// call), and queues the render in the background. Returns the new job id.
+  Future<int?> createTryOnForOption(int optionId) async {
+    debugLog('--- createTryOnForOption: $optionId ---');
+    final uri = Uri.parse('$_baseUrl/options/$optionId/tryon');
+    final res = await withAuth(
+      (token) => http.post(uri, headers: authHeaders(token)),
+    );
+
+    final envelope = decodeMap(res, op: 'createTryOnForOption');
+    final data = envelope['data'] as Map<String, dynamic>?;
+    final jobId = data?['job_id'] as int?;
+    debugLog('--- createTryOnForOption job_id: $jobId ---');
+    return jobId;
   }
 
   /// Fetches the existing look plan for [targetDate]. Returns null data if
