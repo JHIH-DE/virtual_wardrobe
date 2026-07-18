@@ -10,7 +10,7 @@ class CategoryTag extends StatelessWidget {
   const CategoryTag({
     super.key,
     required this.label,
-    this.color = AppColors.primary,
+    this.color = AppColors.tagBackground,
   });
 
   @override
@@ -23,7 +23,7 @@ class CategoryTag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTextStyle.bold12.copyWith(color: AppColors.textOnPrimary),
+        style: AppTextStyle.bold12.copyWith(color: AppColors.tagText),
       ),
     );
   }

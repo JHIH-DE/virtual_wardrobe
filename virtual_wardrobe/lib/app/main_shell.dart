@@ -6,7 +6,7 @@ import '../core/services/auth_handler.dart';
 import '../core/utils/debug_log.dart';
 import '../features/home_page.dart';
 import '../features/looks_page.dart';
-import '../features/manual_try_on_page.dart';
+import '../features/add_look_page.dart';
 import '../features/my_closet_page.dart';
 import '../features/trip_planner_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
@@ -20,9 +20,9 @@ import '../features/widgets/garment/garment_upload_helper.dart';
 /// once here rather than per-page — so switching tabs is a plain `setState`
 /// with no route transition to animate, and the bar never flickers.
 ///
-/// Also owns the nav bar's raised center button (add clothing / manual
-/// try-on / new trip) — it lives here rather than on a single page since
-/// it needs to work the same regardless of which tab is active.
+/// Also owns the nav bar's raised center button (add clothing / add look /
+/// new trip) — it lives here rather than on a single page since it needs
+/// to work the same regardless of which tab is active.
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
 
@@ -59,14 +59,14 @@ class _MainShellState extends ConsumerState<MainShell> {
           context,
           onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
         );
-      case QuickAction.manualTryOn:
-        await _openManualTryOn();
+      case QuickAction.addLook:
+        await _openAddLook();
       case QuickAction.newTrip:
         await handleCreateTrip(context, ref);
     }
   }
 
-  Future<void> _openManualTryOn() async {
+  Future<void> _openAddLook() async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -80,7 +80,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ManualTryOnPage(
+          builder: (_) => AddLookPage(
             preloadedGarments: garments,
             onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
           ),

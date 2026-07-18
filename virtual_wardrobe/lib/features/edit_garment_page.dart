@@ -267,7 +267,6 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 110),
         children: [
           const SizedBox(height: 20),
           if (uploading) _buildUploadProgress(),
@@ -302,8 +301,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
 
   Widget _buildDetailsSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-      decoration: const BoxDecoration(color: AppColors.surface),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      decoration: const BoxDecoration(color: AppColors.pageBackground),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -498,10 +497,6 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     }
   }
 
-  // ----------------------------
-  // Widgets
-  // ----------------------------
-
   Widget _buildActionButtons() {
     return ActionButtonRow(
       buttons: [
@@ -638,6 +633,11 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             _checkModified();
             Navigator.pop(context);
           },
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
           child: const Text('Clear'),
         ),
       ],
@@ -645,17 +645,21 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   }
 
   Widget _buildColorGrid(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.45,
-      ),
-      child: SingleChildScrollView(
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: GarmentColor.values
-              .map((c) => _buildColorSwatch(c))
-              .toList(),
+    return SizedBox(
+      width: double.infinity,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.45,
+        ),
+        child: SingleChildScrollView(
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
+            children: GarmentColor.values
+                .map((c) => _buildColorSwatch(c))
+                .toList(),
+          ),
         ),
       ),
     );

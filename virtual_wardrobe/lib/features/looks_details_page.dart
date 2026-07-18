@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
-import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/providers/looks_provider.dart';
@@ -13,16 +12,18 @@ import '../core/services/garment_service.dart';
 import '../core/services/look_service.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
+import 'add_look_page.dart';
 import 'full_screen_image_page.dart';
-import 'manual_try_on_page.dart';
-import 'widgets/common/action_button.dart';
 import 'widgets/common/app_dialog.dart';
+import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/category_tag.dart';
+import 'widgets/common/card_corner_badge.dart';
 import 'widgets/common/labeled_divider.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_list_card.dart';
+
+enum _LookMenuAction { rename, share, delete }
 
 class LooksDetailsPage extends ConsumerStatefulWidget {
   final Look look;
@@ -90,15 +91,65 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       onBack: _shouldConfirmLeave ? _showLeaveDialog : null,
       actions: [
         if (!widget.isNew)
-          IconButton(
-            icon: Image.asset(
-              'assets/images/delete.png',
-              height: AppDimens.iconMediumSize,
+          PopupMenuButton<_LookMenuAction>(
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.more_vert, color: AppColors.icon),
+            color: AppColors.surface,
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            onPressed: _isDeleting ? null : _deleteLook,
+            onSelected: _handleMenuAction,
+            itemBuilder: (context) => [
+              _menuItem(_LookMenuAction.rename, Icons.edit_outlined, 'Rename'),
+              _menuItem(_LookMenuAction.share, Icons.share_outlined, 'Share'),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: _LookMenuAction.delete,
+                enabled: !_isDeleting,
+                child: const Row(
+                  children: [
+                    Icon(Icons.delete_outline, color: AppColors.icon),
+                    SizedBox(width: 12),
+                    Text('Delete', style: TextStyle(color: AppColors.error)),
+                  ],
+                ),
+              ),
+            ],
           ),
       ],
     );
+  }
+
+  PopupMenuItem<_LookMenuAction> _menuItem(
+    _LookMenuAction value,
+    IconData icon,
+    String label,
+  ) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.icon),
+          const SizedBox(width: 12),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  void _handleMenuAction(_LookMenuAction action) {
+    switch (action) {
+      case _LookMenuAction.rename:
+        _showEditNameDialog();
+        break;
+      case _LookMenuAction.share:
+        _shareLook();
+        break;
+      case _LookMenuAction.delete:
+        _deleteLook();
+        break;
+    }
   }
 
   Widget _buildScaffold(BuildContext context) {
@@ -110,27 +161,17 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       },
       child: Scaffold(
         backgroundColor: AppColors.pageBackground,
+        extendBody: true,
         appBar: _buildAppBar(),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
           children: [
             _buildTitleRow(),
             const SizedBox(height: 12),
-            const Divider(
-              height: 1,
-              thickness: 6,
-              color: AppColors.dividerStrong,
-            ),
-            _buildInfoCard(),
-            const Divider(
-              height: 1,
-              thickness: 2,
-              color: AppColors.dividerStrong,
-            ),
-            const SizedBox(height: 16),
             _buildOutfitImage(),
+            const SizedBox(height: 16),
+            _buildInfoCard(),
             const SizedBox(height: 12),
-            _buildActionButtons(),
             if (widget.look.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
             const SizedBox(height: 12),
             _buildCreateDateFooter(),
@@ -158,30 +199,40 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       ),
       onPressed: () => _remixLook(context),
       enabled: !_loadingGarments && !_openingTryOn,
+      height: 48,
+      panelPadding: const EdgeInsets.fromLTRB(22, 22, 22, 8),
     );
   }
 
+  String _titleCase(String s) => s
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+
   Widget _buildInfoCard() {
-    final tags = [..._effectiveSeasons, ..._effectiveStyle];
+    final seasons = _effectiveSeasons.map(_titleCase).toList();
+    final styles = _effectiveStyle.map(_titleCase).toList();
+    final hasTags = seasons.isNotEmpty || styles.isNotEmpty;
+    final tagStyle = AppTextStyle.regular14.copyWith(
+      color: AppColors.textSecondary,
+    );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowResting,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: tags.isNotEmpty
-            ? tags.map((t) => CategoryTag(label: t)).toList()
-            : [const CategoryTag(label: 'My Collection')],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: hasTags
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (seasons.isNotEmpty)
+                  Text(seasons.join(' • '), style: tagStyle),
+                if (seasons.isNotEmpty && styles.isNotEmpty)
+                  const SizedBox(height: 4),
+                if (styles.isNotEmpty)
+                  Text(styles.join(' • '), style: tagStyle),
+              ],
+            )
+          : Text('My Collection', style: tagStyle),
     );
   }
 
@@ -192,7 +243,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
         const Divider(height: 1, thickness: 1, color: AppColors.borderStrong),
         const SizedBox(height: 16),
         Text(
-          'Created on $_formattedDate',
+          'Created $_formattedDate',
           style: AppTextStyle.bold14.copyWith(color: AppColors.textSecondary),
         ),
       ],
@@ -200,37 +251,10 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   }
 
   Widget _buildTitleRow() {
-    return Row(
-      children: [
-        Text(_title, style: AppTextStyle.title22),
-        const Spacer(),
-        GestureDetector(
-          onTap: _showEditNameDialog,
-          child: Image.asset('assets/images/edit.png', width: 20, height: 20),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return ActionButtonRow(
-      buttons: [
-        ActionButton(
-          icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-          iconColor: _isFavorite ? AppColors.favorite : AppColors.icon,
-          label: 'Favorite',
-          horizontal: true,
-          onTap: _isFavoriteLoading
-              ? null
-              : (widget.isNew ? _saveWithFavorite : _toggleFavorite),
-        ),
-        ActionButton(
-          icon: Icons.share_outlined,
-          label: 'Share',
-          horizontal: true,
-          onTap: _shareLook,
-        ),
-      ],
+    return Text(
+      _title,
+      textAlign: TextAlign.center,
+      style: AppTextStyle.title22,
     );
   }
 
@@ -241,37 +265,52 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   }
 
   Widget _buildOutfitImage() {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        PageRouteBuilder(
-          opaque: false,
-          pageBuilder: (_, __, ___) =>
-              FullScreenImagePage(imageUrl: widget.look.imageUrl),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: AspectRatio(
-          aspectRatio: 3 / 4,
-          child: Hero(
-            tag: 'outfit_image_${widget.look.id}',
-            child: CachedNetworkImage(
-              imageUrl: widget.look.imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (_, __) =>
-                  const Center(child: CircularProgressIndicator()),
-              errorWidget: (_, __, ___) => Center(
-                child: Text(
-                  'Failed to load image',
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            PageRouteBuilder(
+              opaque: false,
+              pageBuilder: (_, __, ___) =>
+                  FullScreenImagePage(imageUrl: widget.look.imageUrl),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: AspectRatio(
+              aspectRatio: 3 / 4,
+              child: Hero(
+                tag: 'outfit_image_${widget.look.id}',
+                child: CachedNetworkImage(
+                  imageUrl: widget.look.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) =>
+                      const Center(child: CircularProgressIndicator()),
+                  errorWidget: (_, __, ___) => Center(
+                    child: Text(
+                      'Failed to load image',
+                      style: AppTextStyle.regular14.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
+        Positioned(
+          top: 12,
+          right: 12,
+          child: CardCornerBadge(
+            icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
+            iconColor: _isFavorite ? AppColors.favorite : AppColors.icon,
+            onTap: _isFavoriteLoading
+                ? null
+                : (widget.isNew ? _saveWithFavorite : _toggleFavorite),
+          ),
+        ),
+      ],
     );
   }
 
@@ -281,7 +320,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       children: [
         LabeledDivider(
           label:
-              'Garment List (${_garments?.length ?? widget.look.garmentIds.length})',
+              'Garments (${_garments?.length ?? widget.look.garmentIds.length})',
         ),
         const SizedBox(height: 16),
         if (_loadingGarments)
@@ -394,7 +433,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ManualTryOnPage(
+          builder: (_) => AddLookPage(
             initialGarments: _garments ?? [],
             preloadedGarments: garments,
           ),
@@ -559,14 +598,8 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            hintText: 'Enter look name',
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+          style: AppTextStyle.bold16,
+          decoration: appInputDecoration(hint: 'Enter look name'),
         ),
         primaryLabel: 'Save',
         onPrimary: () => Navigator.pop(ctx, controller.text.trim()),

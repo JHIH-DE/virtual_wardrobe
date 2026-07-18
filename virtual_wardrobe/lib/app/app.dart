@@ -4,6 +4,7 @@ import '../core/services/auth_storage.dart';
 import '../features/login_page.dart';
 import 'main_shell.dart';
 import 'route_observer.dart';
+import 'theme/app_theme.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -19,6 +20,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: AppTheme.light(),
       navigatorObservers: [routeObserver],
       home: FutureBuilder<Widget>(
         future: _bootstrap(),

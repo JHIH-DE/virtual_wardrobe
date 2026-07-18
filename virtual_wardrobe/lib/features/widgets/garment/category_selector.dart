@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
-import 'selectable_chip.dart';
+import '../common/selectable_chip.dart';
 
 class CategorySelector extends StatelessWidget {
   final List<GarmentCategory> categories;

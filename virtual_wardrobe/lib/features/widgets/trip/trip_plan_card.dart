@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip_plan.dart';
 import '../common/app_dialog.dart';
+import '../common/app_text_field.dart';
 import 'trip_legs_editor.dart';
 
 enum _TripCardAction { editName, editLegs, editPurpose, delete }
@@ -33,153 +34,141 @@ class TripPlanCard extends StatelessWidget {
         "${DateFormat('MMM d').format(trip.dateRange.start)} - "
         "${DateFormat('MMM d, yyyy').format(trip.dateRange.end)}";
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowResting,
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          trip.name,
-                          style: AppTextStyle.bold24,
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowResting,
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(trip.name, style: AppTextStyle.bold24),
+                    ),
+                    Transform.translate(
+                      offset: const Offset(18, 0),
+                      child: PopupMenuButton<_TripCardAction>(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(
+                          Icons.more_vert,
+                          color: AppColors.icon,
                         ),
-                      ),
-                      Transform.translate(
-                        offset: const Offset(18, 0),
-                        child: PopupMenuButton<_TripCardAction>(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(
-                            Icons.more_vert,
-                            color: AppColors.icon,
+                        color: AppColors.surface,
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        onSelected: (action) => _handleAction(context, action),
+                        itemBuilder: (context) => [
+                          _menuItem(
+                            _TripCardAction.editName,
+                            Image.asset(
+                              'assets/images/edit.png',
+                              width: 20,
+                              height: 20,
+                            ),
+                            'Edit Trip Name',
                           ),
-                          color: AppColors.surface,
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                          _menuItem(
+                            _TripCardAction.editLegs,
+                            const Icon(
+                              Icons.map_outlined,
+                              color: AppColors.icon,
+                            ),
+                            'Edit Destinations',
                           ),
-                          onSelected: (action) =>
-                              _handleAction(context, action),
-                          itemBuilder: (context) => [
-                            _menuItem(
-                              _TripCardAction.editName,
-                              Image.asset(
-                                'assets/images/edit.png',
-                                width: 20,
-                                height: 20,
-                              ),
-                              'Edit Trip Name',
+                          _menuItem(
+                            _TripCardAction.editPurpose,
+                            const Icon(
+                              Icons.flight_takeoff,
+                              color: AppColors.icon,
                             ),
-                            _menuItem(
-                              _TripCardAction.editLegs,
-                              const Icon(
-                                Icons.map_outlined,
-                                color: AppColors.icon,
-                              ),
-                              'Edit Trip Legs',
+                            'Edit Trip Purpose',
+                          ),
+                          const PopupMenuDivider(),
+                          const PopupMenuItem(
+                            value: _TripCardAction.delete,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.icon,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Delete Trip',
+                                  style: TextStyle(color: AppColors.error),
+                                ),
+                              ],
                             ),
-                            _menuItem(
-                              _TripCardAction.editPurpose,
-                              const Icon(
-                                Icons.flight_takeoff,
-                                color: AppColors.icon,
-                              ),
-                              'Edit Trip Purpose',
-                            ),
-                            const PopupMenuDivider(),
-                            const PopupMenuItem(
-                              value: _TripCardAction.delete,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.delete_outline,
-                                    color: AppColors.icon,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Delete Trip',
-                                    style: TextStyle(
-                                      color: AppColors.error,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: AppColors.icon,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          trip.locationSummary,
-                          style: AppTextStyle.regular16,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        color: AppColors.icon,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        dateStr,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: AppColors.icon,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        trip.locationSummary,
                         style: AppTextStyle.regular16,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today,
+                      color: AppColors.icon,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(dateStr, style: AppTextStyle.regular16),
+                  ],
+                ),
+              ],
             ),
-            const Divider(
-              height: 1,
-              thickness: 1,
-              color: AppColors.dividerSubtle,
-            ),
+          ),
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: AppColors.dividerSubtle,
+          ),
 
-            // 全寬 View Plan 區域
-            Container(
+          // 全寬 View Plan 區域
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               color: AppColors.interactiveArea,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -200,8 +189,8 @@ class TripPlanCard extends StatelessWidget {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -244,14 +233,8 @@ class TripPlanCard extends StatelessWidget {
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            hintText: 'Enter trip name',
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+          style: AppTextStyle.bold16,
+          decoration: appInputDecoration(hint: 'Enter trip name'),
         ),
         primaryLabel: 'Save',
         onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
@@ -270,12 +253,13 @@ class TripPlanCard extends StatelessWidget {
     final result = await showDialog<List<TripLeg>>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Edit Trip Legs',
+        title: 'Edit Destinations',
         content: TripLegsEditor(legsNotifier: legsNotifier),
         primaryLabel: 'Save',
         onPrimary: () => Navigator.pop(ctx, legsNotifier.value),
         secondaryLabel: 'Cancel',
         onSecondary: () => Navigator.pop(ctx),
+        width: 320,
       ),
     );
     legsNotifier.dispose();
@@ -302,9 +286,16 @@ class TripPlanCard extends StatelessWidget {
             for (final label in kTripPurposeOptions.keys)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(label),
+                title: Text(
+                  label,
+                  style: label == currentLabel
+                      ? AppTextStyle.semibold16.copyWith(
+                          color: AppColors.accent,
+                        )
+                      : AppTextStyle.regular16,
+                ),
                 trailing: label == currentLabel
-                    ? const Icon(Icons.check, color: AppColors.icon)
+                    ? const Icon(Icons.check, color: AppColors.accent)
                     : null,
                 onTap: () => Navigator.pop(ctx, label),
               ),
@@ -312,6 +303,7 @@ class TripPlanCard extends StatelessWidget {
         ),
         primaryLabel: 'Cancel',
         onPrimary: () => Navigator.pop(ctx),
+        primaryIsTextButton: true,
       ),
     );
 

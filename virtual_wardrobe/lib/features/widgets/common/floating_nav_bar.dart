@@ -6,7 +6,7 @@ import '../../../app/theme/app_text_styles.dart';
 enum AppTab { home, closet, looks, tripPlanner }
 
 /// The three actions behind the nav bar's raised center button.
-enum QuickAction { addClothing, manualTryOn, newTrip }
+enum QuickAction { addClothing, addLook, newTrip }
 
 /// Lets any descendant page switch the active tab in the persistent
 /// `MainShell` above it — e.g. after creating a trip, jump to the Trip
@@ -206,8 +206,8 @@ class FloatingNavBar extends StatelessWidget {
                     ),
                     _quickActionItem(
                       context,
-                      value: QuickAction.manualTryOn,
-                      label: 'Manual Try-on',
+                      value: QuickAction.addLook,
+                      label: 'Add Look',
                       icon: Icons.accessibility_new_outlined,
                       showDivider: true,
                     ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
-import 'filter_icon_button.dart';
 import 'selectable_chip.dart';
 
 /// One labeled row of selectable chips inside a [FilterButton]'s sheet.
@@ -171,9 +170,24 @@ class _FilterButtonState extends State<FilterButton> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: FilterIconButton(
-        isFiltered: widget.isFiltered,
-        onPressed: _toggle,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          IconButton(icon: const Icon(Icons.filter_list), onPressed: _toggle),
+          if (widget.isFiltered)
+            Positioned(
+              right: 8,
+              top: 8,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

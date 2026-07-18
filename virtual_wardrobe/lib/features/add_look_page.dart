@@ -17,12 +17,12 @@ import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_image.dart';
 
-class ManualTryOnPage extends StatefulWidget {
+class AddLookPage extends StatefulWidget {
   final List<Garment> initialGarments;
   final List<Garment>? preloadedGarments;
   final VoidCallback? onBack;
 
-  const ManualTryOnPage({
+  const AddLookPage({
     super.key,
     this.initialGarments = const [],
     this.preloadedGarments,
@@ -30,12 +30,13 @@ class ManualTryOnPage extends StatefulWidget {
   });
 
   @override
-  State<ManualTryOnPage> createState() => _ManualTryOnPageState();
+  State<AddLookPage> createState() => _AddLookPageState();
 }
 
-class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
+class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
   final List<Garment> _allGarments = [];
   late OutfitSelection _outfit;
+  late OutfitSelection _initialOutfit;
   bool _isLoadingGarments = false;
 
   bool _hasCategory(GarmentCategory category) =>
@@ -59,12 +60,25 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
       _outfit.socks != null ||
       _outfit.accessory != null;
 
+  bool get _isModified {
+    bool sameSlot(Garment? a, Garment? b) => a?.id == b?.id;
+    return !(sameSlot(_outfit.top, _initialOutfit.top) &&
+        sameSlot(_outfit.middle, _initialOutfit.middle) &&
+        sameSlot(_outfit.outer, _initialOutfit.outer) &&
+        sameSlot(_outfit.bottom, _initialOutfit.bottom) &&
+        sameSlot(_outfit.onePiece, _initialOutfit.onePiece) &&
+        sameSlot(_outfit.shoes, _initialOutfit.shoes) &&
+        sameSlot(_outfit.socks, _initialOutfit.socks) &&
+        sameSlot(_outfit.accessory, _initialOutfit.accessory));
+  }
+
   @override
   void initState() {
     super.initState();
     _outfit = widget.initialGarments.isNotEmpty
         ? _buildInitialOutfit(widget.initialGarments)
         : const OutfitSelection();
+    _initialOutfit = _outfit;
     if (widget.preloadedGarments != null) {
       _allGarments.addAll(widget.preloadedGarments!);
     } else {
@@ -170,7 +184,7 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: 'Manual Try-on', onBack: widget.onBack);
+    return AppToolBar(title: 'Add Look', onBack: widget.onBack);
   }
 
   @override
@@ -193,9 +207,10 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
   Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
+      extendBody: true,
       appBar: _buildAppBar(),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 110),
         children: [
           _buildInstructions(),
           const SizedBox(height: 24),
@@ -363,9 +378,13 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
   Widget _buildBottomBar() {
     return BottomActionButton(
       label: 'Create Look',
-      trailing: const Icon(Icons.crop_free, size: 18),
+      leading: Image.asset(
+        'assets/images/ai_process_inv.png',
+        width: 18,
+        height: 18,
+      ),
       onPressed: _startTryOn,
-      enabled: !isLookLoading && _hasSelection,
+      enabled: !isLookLoading && _hasSelection && _isModified,
     );
   }
 
@@ -408,7 +427,6 @@ class _ManualTryOnPageState extends State<ManualTryOnPage> with TryOnMixin {
               }
             },
       showArrow: true,
-      status: value == null ? 'select' : 'edit',
       leadingAsset: (value == null && iconData == null) ? iconAsset : null,
       leading: value != null
           ? GarmentImage(

@@ -77,15 +77,23 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (int i = 0; i < _legs.length; i++) _buildLegRow(i),
-        OutlinedButton.icon(
+        for (int i = 0; i < _legs.length; i++) ...[
+          if (i != 0) const SizedBox(height: 12),
+          _buildLegRow(i),
+        ],
+        const SizedBox(height: 12),
+        TextButton.icon(
           onPressed: _addLeg,
-          icon: const Icon(Icons.add),
+          icon: const Icon(Icons.add, size: 18, color: AppColors.accent),
           label: const Text('Add Location'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 48),
-            side: const BorderSide(color: AppColors.primary),
-            foregroundColor: AppColors.primary,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.accent,
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 32),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: AppTextStyle.regular14.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -95,34 +103,31 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
   Widget _buildLegRow(int index) {
     final leg = _legs[index];
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.borderSubtle),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          const Icon(Icons.location_on, color: AppColors.icon, size: 18),
-          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   leg.location.name,
-                  style: AppTextStyle.bold14,
+                  style: AppTextStyle.semibold14,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
                 GestureDetector(
                   onTap: () => _editLegDate(index),
                   child: Text(
                     "${DateFormat('MM/dd').format(leg.dateRange.start)} - "
                     "${DateFormat('MM/dd').format(leg.dateRange.end)}",
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.primary,
-                      decoration: TextDecoration.underline,
+                    style: AppTextStyle.regular13.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -130,7 +135,13 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 18),
+            icon: const Icon(
+              Icons.close,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             onPressed: _legs.length > 1 ? () => _removeLeg(index) : null,
           ),
         ],

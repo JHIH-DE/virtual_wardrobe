@@ -174,53 +174,42 @@ class _TripLegDateRangePickerDialogState
                 _legendDot(AppColors.primary, 'Selected'),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: AppColors.textPrimary,
-                        width: 1.6,
-                      ),
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: AppColors.textPrimary),
-                    ),
-                  ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: canConfirm
+                  ? () => Navigator.pop(
+                      context,
+                      DateTimeRange(start: _rangeStart!, end: _rangeEnd!),
+                    )
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                disabledBackgroundColor: AppColors.borderSubtle,
+                minimumSize: const Size(double.infinity, 54),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: canConfirm
-                        ? () => Navigator.pop(
-                            context,
-                            DateTimeRange(start: _rangeStart!, end: _rangeEnd!),
-                          )
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      disabledBackgroundColor: AppColors.borderSubtle,
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Confirm',
-                      style: TextStyle(color: AppColors.textOnPrimary),
-                    ),
-                  ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Confirm',
+                style: TextStyle(color: AppColors.textOnPrimary),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                minimumSize: const Size(double.infinity, 40),
+              ),
+              child: Text(
+                'Cancel',
+                style: AppTextStyle.regular14.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
+              ),
             ),
           ],
         ),

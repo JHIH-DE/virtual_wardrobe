@@ -35,7 +35,7 @@ class AppColors {
   // Warm attention-grabbing accent — nav bar's raised center button, primary
   // dialog actions, and anywhere else that needs to stand out from the
   // monochrome ink/cream palette.
-  static const Color accent = Color(0xFFD97757);
+  static const Color accent = Color(0xFFE9B949);
 
   // Social sign-in (fixed brand colors, do not retint)
   static const Color facebook = Color(0xFF1877F2);
@@ -59,6 +59,10 @@ class AppColors {
 
   // LumiInsightCard — the AI-output call-out's gradient background tint
   static const Color lumiCardTint = Color(0xFFF3EFE6);
+
+  // CategoryTag (season/style/collection chips)
+  static const Color tagBackground = Color(0xFFEFEAE2);
+  static const Color tagText = Color(0xFF6F655A);
 
   // Overlays — composed as base color + alpha so the opacity is explicit
   static const Color overlayScrim = Color(

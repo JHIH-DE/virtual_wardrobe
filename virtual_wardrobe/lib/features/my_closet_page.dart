@@ -9,7 +9,7 @@ import '../core/services/garment_service.dart';
 import '../data/garment.dart';
 import 'edit_garment_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/category_selector.dart';
+import 'widgets/garment/category_selector.dart';
 import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';

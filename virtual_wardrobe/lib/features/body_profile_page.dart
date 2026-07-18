@@ -139,16 +139,15 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
+      extendBody: true,
       appBar: _buildAppBar(),
       bottomNavigationBar: BottomActionButton(
         label: 'Save',
         onPressed: _loading ? null : _saveProfile,
         isLoading: _loading,
-        buttonColor: AppColors.primary,
-        textColor: AppColors.textOnPrimary,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -21,7 +21,7 @@ import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/lumi_insight_card.dart';
-import 'widgets/common/today_outfit_idea.dart';
+import 'widgets/trip/today_outfit_idea.dart';
 import 'widgets/garment/garment_image.dart';
 import 'widgets/trip/trip_day_card.dart';
 

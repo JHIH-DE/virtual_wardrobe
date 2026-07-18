@@ -160,6 +160,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
+      extendBody: true,
       appBar: _buildAppBar(),
       body: Column(
         children: [

@@ -172,6 +172,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
+      extendBody: true,
       appBar: _buildAppBar(context),
       bottomNavigationBar: _buildConfirmButton(),
       body: Padding(

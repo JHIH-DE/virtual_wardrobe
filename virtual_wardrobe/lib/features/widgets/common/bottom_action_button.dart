@@ -14,6 +14,8 @@ class BottomActionButton extends StatelessWidget {
   final Color panelColor;
   final EdgeInsets panelPadding;
   final bool showShadow;
+  final BorderSide? borderSide;
+  final double height;
 
   const BottomActionButton({
     super.key,
@@ -23,11 +25,13 @@ class BottomActionButton extends StatelessWidget {
     this.isLoading = false,
     this.leading,
     this.trailing,
-    this.buttonColor = AppColors.primary,
+    this.buttonColor = AppColors.accent,
     this.textColor = AppColors.textOnPrimary,
-    this.panelColor = AppColors.pageBackground,
+    this.panelColor = Colors.transparent,
     this.panelPadding = const EdgeInsets.fromLTRB(22, 22, 22, 8),
-    this.showShadow = true,
+    this.showShadow = false,
+    this.borderSide,
+    this.height = 56,
   });
 
   bool get _isDisabled => !enabled || isLoading || onPressed == null;
@@ -57,7 +61,7 @@ class BottomActionButton extends StatelessWidget {
           right: false,
           child: SizedBox(
             width: double.infinity,
-            height: 56,
+            height: height,
             child: ElevatedButton(
               onPressed: _isDisabled ? null : onPressed,
               style: ElevatedButton.styleFrom(
@@ -66,6 +70,7 @@ class BottomActionButton extends StatelessWidget {
                 foregroundColor: textColor,
                 disabledForegroundColor: AppColors.textSecondary,
                 elevation: 0,
+                side: borderSide,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(100),
                 ),
