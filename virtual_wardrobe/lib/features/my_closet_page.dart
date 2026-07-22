@@ -7,6 +7,8 @@ import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../data/garment.dart';
+import '../l10n/garment_localization.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'edit_garment_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/garment/category_selector.dart';
@@ -102,14 +104,14 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
             .toList()
           ..sort();
 
+    final l10n = AppLocalizations.of(context);
     return FilterButton(
       isFiltered: _isFiltered,
       groups: [
         FilterGroup(
-          label: 'Color',
+          label: l10n.color,
           options: availableColors.map((c) => c.label).toList(),
           selected: () => _selectedColors,
-          emptyMessage: 'No colors available',
           onToggle: (v) => setState(() {
             if (_selectedColors.contains(v)) {
               _selectedColors.remove(v);
@@ -119,10 +121,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           }),
         ),
         FilterGroup(
-          label: 'Product Type',
+          label: l10n.productType,
           options: availableTypes,
           selected: () => _selectedProductTypes,
-          emptyMessage: 'No types available',
           onToggle: (v) => setState(() {
             if (_selectedProductTypes.contains(v)) {
               _selectedProductTypes.remove(v);
@@ -140,7 +141,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     AsyncValue<List<Garment>> garmentsAsync,
   ) {
     return AppToolBar(
-      title: 'Closet',
+      title: AppLocalizations.of(context).navCloset,
       showBackButton: false,
       actions: [
         _buildFilterButton(garmentsAsync.valueOrNull ?? []),
@@ -157,7 +158,8 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context, garmentsAsync),
       body: garmentsAsync.when(
-        loading: () => const LoadingOverlay(label: 'Loading Closet...'),
+        loading: () =>
+            LoadingOverlay(label: AppLocalizations.of(context).loadingClosetEllipsis),
         error: (e, _) => ErrorStateWidget(
           error: e,
           onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
@@ -213,7 +215,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       return ListView(
         children: [
           EmptyStatePlaceholder(
-            message: 'No garments in ${category.label}',
+            message: AppLocalizations.of(
+              context,
+            ).noGarmentsInCategory(category.localizedLabel(context)),
             icon: Icons.inventory_2_outlined,
             padding: const EdgeInsets.only(top: 100),
           ),
@@ -266,7 +270,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update favorite')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).failedToUpdateFavorite),
+          ),
         );
       }
     }

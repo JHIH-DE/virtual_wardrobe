@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
+import '../../../l10n/garment_localization.dart';
 import '../common/selectable_chip.dart';
 
 class CategorySelector extends StatelessWidget {
@@ -31,7 +32,7 @@ class CategorySelector extends StatelessWidget {
           itemBuilder: (context, i) {
             final category = categories[i];
             return SelectableChip(
-              label: category.label,
+              label: category.localizedLabel(context),
               selected: category == selectedCategory,
               onTap: () => onSelected(category),
               selectedColor: AppColors.primary,

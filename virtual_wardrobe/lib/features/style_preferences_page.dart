@@ -6,42 +6,48 @@ import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
+import '../data/style_type.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../l10n/style_type_localization.dart';
 import 'personal_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 
-/// Style label -> its illustration, per gender bucket — Male and Female
-/// need different photos for the same style label (e.g. "Streetwear" shows
-/// a male model under 'Male', a female model under 'Female'). Missing
-/// entries (no matching asset shot for that gender yet) fall back to
+/// Maximum number of styles a user may select at once.
+const int _maxSelectedStyles = 3;
+
+/// Style -> its illustration, per gender bucket — Male and Female need
+/// different photos for the same style (e.g. Streetwear shows a male model
+/// under 'Male', a female model under 'Female'). Missing entries (no
+/// matching asset shot for that gender yet) fall back to
 /// [_stylePlaceholderImage].
-const Map<String, Map<String, String>> _styleImagesByGender = {
+const Map<String, Map<StyleType, String>> _styleImagesByGender = {
   // The only photoshoot so far is male-modeled, so these are the 'Male' set.
   'Male': {
-    'Minimalist': 'assets/images/male_minimalist.png',
-    'City Boy': 'assets/images/male_city_boy.png',
-    'Streetwear': 'assets/images/male_streetwear.png',
-    'Smart Casual': 'assets/images/male_smart_casual.png',
-    'Workwear': 'assets/images/male_workwear.png',
-    'Athleisure': 'assets/images/male_athleisure.png',
-    'Old Money': 'assets/images/male_old_money.png',
-    'Vintage': 'assets/images/male_vintage.png',
-    'Outdoor': 'assets/images/male_outdoor.png',
-    'Techwear': 'assets/images/male_techwear.png',
+    StyleType.minimalist: 'assets/images/male_minimalist.png',
+    StyleType.cityBoy: 'assets/images/male_city_boy.png',
+    StyleType.streetwear: 'assets/images/male_streetwear.png',
+    StyleType.smartCasual: 'assets/images/male_smart_casual.png',
+    StyleType.workwear: 'assets/images/male_workwear.png',
+    StyleType.athleisure: 'assets/images/male_athleisure.png',
+    StyleType.oldMoney: 'assets/images/male_old_money.png',
+    StyleType.vintage: 'assets/images/male_vintage.png',
+    StyleType.outdoor: 'assets/images/male_outdoor.png',
+    StyleType.techwear: 'assets/images/male_techwear.png',
   },
   // No female-modeled shoot yet — every entry falls back to the
   // placeholder until dedicated assets exist.
   'Female': {
-    'Minimalist': 'assets/images/female_minimalist.png',
-    'Korean': 'assets/images/female_korean.png',
-    'Streetwear': 'assets/images/female_streetwear.png',
-    'Smart Casual': 'assets/images/female_smart_casual.png',
-    'Chic': 'assets/images/female_chic.png',
-    'Athleisure': 'assets/images/female_athleisure.png',
-    'Old Money': 'assets/images/female_old_money.png',
-    'Romantic': 'assets/images/female_romantic.png',
-    'Vintage': 'assets/images/female_vintage.png',
-    'Bohemian': 'assets/images/female_bohemian.png',
+    StyleType.minimalist: 'assets/images/female_minimalist.png',
+    StyleType.korean: 'assets/images/female_korean.png',
+    StyleType.streetwear: 'assets/images/female_streetwear.png',
+    StyleType.smartCasual: 'assets/images/female_smart_casual.png',
+    StyleType.chic: 'assets/images/female_chic.png',
+    StyleType.athleisure: 'assets/images/female_athleisure.png',
+    StyleType.oldMoney: 'assets/images/female_old_money.png',
+    StyleType.romantic: 'assets/images/female_romantic.png',
+    StyleType.vintage: 'assets/images/female_vintage.png',
+    StyleType.bohemian: 'assets/images/female_bohemian.png',
   },
   // See the Other-bucket note below before adding assets here.
   'Other': {},
@@ -49,47 +55,47 @@ const Map<String, Map<String, String>> _styleImagesByGender = {
 
 const String _stylePlaceholderImage = 'assets/images/vintage.png';
 
-String _imageForStyle(String? styleGender, String style) =>
+String _imageForStyle(String? styleGender, StyleType style) =>
     _styleImagesByGender[styleGender]?[style] ?? _stylePlaceholderImage;
 
-/// Style tags shown per gender. Editorial placeholder list — swap in
-/// whatever taxonomy the backend actually wants to store/recommend against.
-const Map<String, List<String>> _styleOptionsByGender = {
+/// Styles shown per gender. Editorial placeholder list — swap in whatever
+/// taxonomy the backend actually wants to store/recommend against.
+const Map<String, List<StyleType>> _styleOptionsByGender = {
   'Male': [
-    'Minimalist',
-    'City Boy',
-    'Streetwear',
-    'Smart Casual',
-    'Workwear',
-    'Athleisure',
-    'Old Money',
-    'Vintage',
-    'Outdoor',
-    'Techwear',
+    StyleType.minimalist,
+    StyleType.cityBoy,
+    StyleType.streetwear,
+    StyleType.smartCasual,
+    StyleType.workwear,
+    StyleType.athleisure,
+    StyleType.oldMoney,
+    StyleType.vintage,
+    StyleType.outdoor,
+    StyleType.techwear,
   ],
 
   'Female': [
-    'Minimalist',
-    'Korean',
-    'Streetwear',
-    'Smart Casual',
-    'Chic',
-    'Athleisure',
-    'Old Money',
-    'Romantic',
-    'Vintage',
-    'Bohemian',
+    StyleType.minimalist,
+    StyleType.korean,
+    StyleType.streetwear,
+    StyleType.smartCasual,
+    StyleType.chic,
+    StyleType.athleisure,
+    StyleType.oldMoney,
+    StyleType.romantic,
+    StyleType.vintage,
+    StyleType.bohemian,
   ],
 
   'Other': [
-    'Minimalist',
-    'Streetwear',
-    'Smart Casual',
-    'Athleisure',
-    'Vintage',
-    'Workwear',
-    'Techwear',
-    'Outdoor',
+    StyleType.minimalist,
+    StyleType.streetwear,
+    StyleType.smartCasual,
+    StyleType.athleisure,
+    StyleType.vintage,
+    StyleType.workwear,
+    StyleType.techwear,
+    StyleType.outdoor,
   ],
 };
 
@@ -123,12 +129,12 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
   bool _saving = false;
   String? _error;
   String? _profileGender;
-  Set<String> _selectedStyles = {};
-  Set<String> _initialStyles = {};
+  Set<StyleType> _selectedStyles = {};
+  Set<StyleType> _initialStyles = {};
 
   String? get _styleGender => _styleGenderFor(_profileGender);
 
-  List<String> get _availableStyles =>
+  List<StyleType> get _availableStyles =>
       _styleOptionsByGender[_styleGender] ?? const [];
 
   bool get _isModified => !setEquals(_selectedStyles, _initialStyles);
@@ -151,9 +157,12 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
       setState(() {
         _profileGender = profile['gender'] as String?;
         final validStyles = _styleOptionsByGender[_styleGender] ?? const [];
-        _selectedStyles = savedStyle != null
-            ? savedStyle.toSet().intersection(validStyles.toSet())
-            : {};
+        final savedStyleTypes =
+            savedStyle?.map(styleTypeFromApiValue).whereType<StyleType>() ??
+            const [];
+        _selectedStyles = savedStyleTypes.toSet().intersection(
+          validStyles.toSet(),
+        );
         _initialStyles = Set.of(_selectedStyles);
       });
     } on AuthExpiredException {
@@ -173,7 +182,9 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
       _error = null;
     });
     try {
-      await ProfileService().updateMyProfile(style: _selectedStyles.toList());
+      await ProfileService().updateMyProfile(
+        style: _selectedStyles.map((s) => s.apiValue).toList(),
+      );
       if (!mounted) return;
       Navigator.pop(context);
     } on AuthExpiredException {
@@ -197,35 +208,36 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
     _loadProfile();
   }
 
-  void _toggleStyle(String style) {
+  void _toggleStyle(StyleType style) {
     setState(() {
       if (_selectedStyles.contains(style)) {
         _selectedStyles.remove(style);
-      } else {
+      } else if (_selectedStyles.length < _maxSelectedStyles) {
         _selectedStyles.add(style);
       }
     });
   }
 
-  AppToolBar _buildAppBar() {
-    return const AppToolBar(title: 'Personal Style');
+  AppToolBar _buildAppBar(AppLocalizations l10n) {
+    return AppToolBar(title: l10n.findYourStyle);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       extendBody: true,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(l10n),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _styleGender == null
-          ? _buildNoGenderState()
-          : _buildStyleForm(),
+          ? _buildNoGenderState(l10n)
+          : _buildStyleForm(l10n),
       bottomNavigationBar: _loading || _styleGender == null
           ? null
           : BottomActionButton(
-              label: 'Save',
+              label: l10n.save,
               onPressed: _save,
               isLoading: _saving,
               enabled: _isModified,
@@ -233,7 +245,7 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
     );
   }
 
-  Widget _buildNoGenderState() {
+  Widget _buildNoGenderState(AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -243,8 +255,7 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
             const Icon(Icons.style_outlined, size: 40, color: AppColors.icon),
             const SizedBox(height: 16),
             Text(
-              'Set your gender in Personal Details first — style tags are '
-              'picked based on it.',
+              l10n.setGenderFirstMessage,
               textAlign: TextAlign.center,
               style: AppTextStyle.regular14.copyWith(
                 color: AppColors.textSecondary,
@@ -253,7 +264,7 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
             const SizedBox(height: 20),
             OutlinedButton(
               onPressed: _openPersonalDetails,
-              child: const Text('Open Personal Details'),
+              child: Text(l10n.openPersonalDetails),
             ),
           ],
         ),
@@ -261,7 +272,7 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
     );
   }
 
-  Widget _buildStyleForm() {
+  Widget _buildStyleForm(AppLocalizations l10n) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: Column(
@@ -269,9 +280,19 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
         children: [
           if (_error != null) _buildErrorBanner(),
           Text(
-            'Pick the styles you like — we\'ll personalize your recommendations.',
+            l10n.styleSelectionInstruction,
             textAlign: TextAlign.center,
-            style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyle.regular14.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.styleSelectionDescription,
+            textAlign: TextAlign.center,
+            style: AppTextStyle.regular14.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 24),
           _buildStyleChips(),
@@ -308,7 +329,7 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
   // Mirrors LookCard's look (see widgets/look/look_card.dart) — full-bleed
   // image over a label — with a GarmentCard-style selection badge added on
   // top for the Create Look-style picking interaction.
-  Widget _buildStyleCard(String style) {
+  Widget _buildStyleCard(StyleType style) {
     final isSelected = _selectedStyles.contains(style);
 
     return GestureDetector(
@@ -383,10 +404,12 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
                 child: Text(
-                  style,
+                  style.localizedName(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.bold14.copyWith(color: AppColors.primary),
+                  style: AppTextStyle.bold14.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],

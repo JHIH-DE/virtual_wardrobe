@@ -6,6 +6,7 @@ import '../core/services/auth_handler.dart';
 import '../core/services/look_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/look.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'looks_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
@@ -106,14 +107,15 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
   }
 
   AppToolBar _buildAppBar() {
+    final l10n = AppLocalizations.of(context);
     return AppToolBar(
-      title: 'Used in Looks',
+      title: l10n.usedInLooks,
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
           groups: [
             FilterGroup(
-              label: 'Season',
+              label: l10n.seasonLabel,
               options: _seasons,
               selected: () => _selectedSeasons,
               onToggle: (s) => setState(
@@ -124,7 +126,7 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
               ),
             ),
             FilterGroup(
-              label: 'Style',
+              label: l10n.styleLabel,
               options: _styles,
               selected: () => _selectedStyle,
               onToggle: (s) => setState(
@@ -158,8 +160,8 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
       return Center(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: const EmptyStatePlaceholder(
-            message: 'This item has not been used in any looks yet.',
+          child: EmptyStatePlaceholder(
+            message: AppLocalizations.of(context).itemNotUsedInLooksYet,
           ),
         ),
       );
@@ -218,7 +220,9 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update favorite')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).failedToUpdateFavorite),
+        ),
       );
     }
   }

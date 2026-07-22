@@ -17,6 +17,7 @@ import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
 import '../data/trip_plan.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'trip_suitcase_page.dart';
 import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
@@ -250,6 +251,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
 
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
   TripDayOutfit? get _currentDayOutfit => _selectedDayIndex < _dayOutfits.length
       ? _dayOutfits[_selectedDayIndex]
       : null;
@@ -384,7 +387,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       imageUrl: tryOnResultUrl,
       isLoading: isLookLoading,
       jobStatus: isLookLoading
-          ? (tryOnJobId == 0 ? 'Creating...' : 'Generating...')
+          ? (tryOnJobId == 0 ? _l10n.creatingEllipsis : _l10n.generatingEllipsis)
           : null,
       errorMessage: tryOnErrorMessage,
     );
@@ -468,13 +471,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Wardrobe for $dateStr",
+          _l10n.wardrobeForDate(dateStr),
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (_todayGarments.isEmpty)
-          const EmptyStatePlaceholder(
-            message: "No items planned",
+          EmptyStatePlaceholder(
+            message: _l10n.noItemsPlanned,
             height: 100,
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -514,7 +517,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Thinking...',
+                  _l10n.thinkingEllipsis,
                   style: AppTextStyle.regular14.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -533,7 +536,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   Widget _buildSuitcaseSection() {
     return AppListCard(
-      title: 'Suitcase',
+      title: _l10n.suitcaseLabel,
       leading: const Icon(Icons.luggage_outlined, color: AppColors.icon),
       showArrow: true,
       onTap: () => Navigator.push(
@@ -541,7 +544,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: widget.trip)),
       ),
       child: Text(
-        'Pack clothing for this trip',
+        _l10n.packClothingHint,
         style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
       ),
     );
@@ -604,7 +607,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Saved to Closet ✅')));
+        ).showSnackBar(SnackBar(content: Text(_l10n.savedToCloset)));
       }
     } catch (e) {
       debugLog('Save error: $e');

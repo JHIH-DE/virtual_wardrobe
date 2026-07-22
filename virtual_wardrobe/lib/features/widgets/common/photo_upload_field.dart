@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Photo preview when [imageProvider] is set, otherwise a dashed-border
 /// "Upload Image" placeholder with a choose-photo button.
@@ -9,22 +10,23 @@ class PhotoUploadField extends StatelessWidget {
   final ImageProvider? imageProvider;
   final VoidCallback? onTap;
   final double aspectRatio;
-  final String title;
-  final String subtitle;
-  final String buttonLabel;
+  final String? title;
+  final String? subtitle;
+  final String? buttonLabel;
 
   const PhotoUploadField({
     super.key,
     required this.imageProvider,
     required this.onTap,
     this.aspectRatio = 3 / 4,
-    this.title = 'Upload Image',
-    this.subtitle = 'Please choose a clear photo.',
-    this.buttonLabel = 'Choose photo',
+    this.title,
+    this.subtitle,
+    this.buttonLabel,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final provider = imageProvider;
     if (provider != null) {
       return Center(
@@ -61,10 +63,10 @@ class PhotoUploadField extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(title, style: AppTextStyle.semibold16),
+              Text(title ?? l10n.uploadImage, style: AppTextStyle.semibold16),
               const SizedBox(height: 6),
               Text(
-                subtitle,
+                subtitle ?? l10n.chooseClearPhotoHint,
                 style: AppTextStyle.regular13.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -73,7 +75,7 @@ class PhotoUploadField extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onTap,
                 icon: const Icon(Icons.upload, size: 16),
-                label: Text(buttonLabel),
+                label: Text(buttonLabel ?? l10n.choosePhoto),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.textPrimary,
                   side: const BorderSide(color: AppColors.textPrimary),

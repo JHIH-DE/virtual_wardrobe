@@ -14,6 +14,7 @@ import '../core/services/auth_service.dart';
 import '../core/services/auth_storage.dart';
 import '../app/main_shell.dart';
 import '../core/utils/debug_log.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -33,6 +34,8 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
 
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
   Future<void> _goHome() async {
     if (!mounted) return;
     Navigator.pushReplacement(
@@ -47,7 +50,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _loginWithGoogle() async {
     if (Platform.isIOS && Env.googleIosClientId.isEmpty) {
-      _showSnack('Google login is not configured for iOS yet.');
+      _showSnack(_l10n.googleLoginNotConfiguredIOS);
       return;
     }
     setState(() => _isLoading = true);
@@ -65,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
       await AuthStorage.saveAccessToken(tokens.accessToken);
       await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
-      Fluttertoast.showToast(msg: 'Google login success');
+      Fluttertoast.showToast(msg: _l10n.googleLoginSuccess);
       await _goHome();
     } catch (e) {
       _showSnack(e.toString().replaceFirst('Exception: ', ''));
@@ -93,7 +96,7 @@ class _LoginPageState extends State<LoginPage> {
       await AuthStorage.saveAccessToken(tokens.accessToken);
       await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
-      Fluttertoast.showToast(msg: 'Apple login success');
+      Fluttertoast.showToast(msg: _l10n.appleLoginSuccess);
       await _goHome();
     } catch (e) {
       if (e is SignInWithAppleAuthorizationException &&
@@ -121,7 +124,7 @@ class _LoginPageState extends State<LoginPage> {
         await AuthStorage.saveAccessToken(tokens.accessToken);
         await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
-        Fluttertoast.showToast(msg: 'Facebook login success');
+        Fluttertoast.showToast(msg: _l10n.facebookLoginSuccess);
         await _goHome();
       } else if (result.status == LoginStatus.cancelled) {
         return;
@@ -207,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildHeading() {
     return Text(
-      'Log-In / Sign-in to get dressed!',
+      _l10n.loginHeading,
       textAlign: TextAlign.center,
       style: GoogleFonts.roboto(
         fontSize: 18,
@@ -232,10 +235,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         onPressed: _isLoading ? null : _loginWithApple,
         icon: const Icon(Icons.apple, size: 28),
-        label: const Text(
-          'Continue with Apple',
-          style: AppTextStyle.semibold16,
-        ),
+        label: Text(_l10n.continueWithApple, style: AppTextStyle.semibold16),
       ),
     );
   }
@@ -258,7 +258,7 @@ class _LoginPageState extends State<LoginPage> {
           height: 24,
         ),
         label: Text(
-          'Sign in with Google',
+          _l10n.signInWithGoogle,
           style: GoogleFonts.roboto(
             fontSize: 18,
             color: AppColors.textPrimary,
@@ -290,7 +290,7 @@ class _LoginPageState extends State<LoginPage> {
           color: AppColors.textOnPrimary,
         ),
         label: Text(
-          'Sign in with Facebook',
+          _l10n.signInWithFacebook,
           style: GoogleFonts.roboto(
             fontSize: 18,
             color: AppColors.textOnPrimary,
@@ -305,7 +305,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildCopyrightText() {
     return Text(
-      'copyright reserved to LUMI inc.',
+      _l10n.copyrightText,
       textAlign: TextAlign.center,
       style: GoogleFonts.roboto(
         fontSize: 16,

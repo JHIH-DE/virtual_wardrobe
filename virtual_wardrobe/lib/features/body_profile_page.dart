@@ -7,6 +7,7 @@ import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
 import '../data/image_edit_result.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'image_editor_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
@@ -30,6 +31,8 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   String? _fullBodyLocalPath;
   String _initialHeight = '';
   String _initialWeight = '';
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   bool get _isModified =>
       _heightCtrl.text != _initialHeight || _weightCtrl.text != _initialWeight;
@@ -145,7 +148,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   }
 
   AppToolBar _buildAppBar() {
-    return const AppToolBar(title: 'Body Profile');
+    return AppToolBar(title: _l10n.bodyProfile);
   }
 
   @override
@@ -155,7 +158,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
       extendBody: true,
       appBar: _buildAppBar(),
       bottomNavigationBar: BottomActionButton(
-        label: 'Save',
+        label: _l10n.save,
         onPressed: _saveProfile,
         isLoading: _loading,
         enabled: _isModified,
@@ -166,11 +169,11 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_error != null) _buildErrorBanner(),
-            const Text('Full-body Photo', style: AppTextStyle.bold14),
+            Text(_l10n.fullBodyPhotoLabel, style: AppTextStyle.bold14),
             const SizedBox(height: 10),
             _buildPhotoUpload(),
             const SizedBox(height: 24),
-            const Text('Figure Detail', style: AppTextStyle.bold14),
+            Text(_l10n.figureDetailLabel, style: AppTextStyle.bold14),
             const SizedBox(height: 10),
             _buildHeightWeightFields(),
           ],
@@ -202,7 +205,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
     return PhotoUploadField(
       imageProvider: provider,
       onTap: _loading ? null : _changeFullBodyPhoto,
-      subtitle: 'Please choose a clear, full-body photo.',
+      subtitle: _l10n.chooseClearFullBodyPhotoHint,
     );
   }
 
@@ -212,7 +215,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
         Expanded(
           child: NumericUnitField(
             controller: _heightCtrl,
-            hint: 'height',
+            hint: _l10n.heightHint,
             unit: 'cm',
           ),
         ),
@@ -220,7 +223,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
         Expanded(
           child: NumericUnitField(
             controller: _weightCtrl,
-            hint: 'weight',
+            hint: _l10n.weightHint,
             unit: 'kg',
           ),
         ),

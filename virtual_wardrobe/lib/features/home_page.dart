@@ -12,6 +12,7 @@ import '../core/services/daily_look_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/look.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'looks_details_page.dart';
 import 'settings_page.dart';
 import 'widgets/common/app_tool_bar.dart';
@@ -107,7 +108,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
 
   AppToolBar _buildAppBar(BuildContext context) {
     return AppToolBar(
-      title: 'Home',
+      title: AppLocalizations.of(context).navHome,
       titleWidget: Image.asset('assets/images/logo.png', height: 20),
       showBackButton: false,
       actions: [
@@ -156,6 +157,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context);
     final weatherAsync = ref.watch(weatherProvider);
     final dateStr = DateFormat('EEEE, MMM d').format(DateTime.now());
 
@@ -195,7 +197,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                      label: 'Loading weather...',
+                      label: l10n.loadingWeatherEllipsis,
                       tint: AppColors.statusUpcoming,
                     ),
                     error: (_, __) => const SizedBox.shrink(),
@@ -247,13 +249,14 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
   }
 
   Widget _buildLookImageCard() {
+    final l10n = AppLocalizations.of(context);
     final loading = _loadingLook || isLookLoading;
     final imageUrl = tryOnResultUrl;
     final hasResult = !loading && imageUrl != null && imageUrl.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Today's Look", style: AppTextStyle.bold16),
+        Text(l10n.todaysLook, style: AppTextStyle.bold16),
         const SizedBox(height: 8),
         Stack(
           children: [
@@ -292,7 +295,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                 right: 12,
                 bottom: 12,
                 child: PillButton.floating(
-                  label: 'View Details',
+                  label: l10n.viewDetails,
                   icon: const Icon(
                     Icons.arrow_forward_ios,
                     size: 10,

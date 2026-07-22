@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../app/theme/app_colors.dart';
 import '../data/location_result.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'widgets/common/app_tool_bar.dart';
 
 class LocationPickerPage extends StatefulWidget {
@@ -48,7 +49,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: 'Search Location');
+    return AppToolBar(title: AppLocalizations.of(context).searchLocationTitle);
   }
 
   @override
@@ -72,7 +73,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       child: TextField(
         controller: _controller,
         decoration: InputDecoration(
-          hintText: "City name...",
+          hintText: AppLocalizations.of(context).cityNameHint,
           prefixIcon: const Icon(Icons.search),
           filled: true,
           fillColor: AppColors.surface,

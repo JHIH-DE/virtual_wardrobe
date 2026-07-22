@@ -8,6 +8,8 @@ import '../core/services/auth_handler.dart';
 import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
+import '../l10n/garment_localization.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/garment/category_selector.dart';
@@ -179,14 +181,15 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   }
 
   AppToolBar _buildAppBar() {
+    final l10n = AppLocalizations.of(context);
     return AppToolBar(
-      title: 'Select Garments',
+      title: l10n.selectGarmentsTitle,
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
           groups: [
             FilterGroup(
-              label: 'Color',
+              label: l10n.color,
               options: _availableColors,
               selected: () => _selectedColors,
               onToggle: (v) => setState(
@@ -197,7 +200,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
               ),
             ),
             FilterGroup(
-              label: 'Product Type',
+              label: l10n.productType,
               options: _availableTypes,
               selected: () => _selectedTypes,
               onToggle: (v) => setState(
@@ -255,7 +258,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
         ],
       ),
       bottomNavigationBar: BottomActionButton(
-        label: 'Confirm',
+        label: AppLocalizations.of(context).confirm,
         onPressed: () => Navigator.pop(context, _selectedIds),
         enabled: _isModified,
       ),
@@ -281,7 +284,9 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
         hasScrollBody: false,
         child: Center(
           child: Text(
-            'No garments in ${_selectedCategory.label}',
+            AppLocalizations.of(context).noGarmentsInCategory(
+              _selectedCategory.localizedLabel(context),
+            ),
             style: AppTextStyle.regular16.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -324,7 +329,9 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       child: GestureDetector(
         onTap: () {
           final snackBar = SnackBar(
-            content: Text(advice?.reasoning ?? 'Suggested by AI'),
+            content: Text(
+              advice?.reasoning ?? AppLocalizations.of(context).suggestedByAi,
+            ),
           );
           ScaffoldMessenger.of(context).showSnackBar(snackBar);
         },
@@ -341,7 +348,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: _loadingAdvice
           ? Text(
-              'Loading packing suggestions...',
+              AppLocalizations.of(context).loadingPackingSuggestions,
               style: AppTextStyle.regular14.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -363,8 +370,10 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
             children: [
               Expanded(
                 child: Text(
-                  'Recommended ${advice.recommendedQuantity} · '
-                  'Selected $selectedInCategory',
+                  AppLocalizations.of(context).recommendedSelectedCount(
+                    advice.recommendedQuantity,
+                    selectedInCategory,
+                  ),
                   style: AppTextStyle.bold14,
                 ),
               ),

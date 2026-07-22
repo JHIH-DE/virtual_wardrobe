@@ -5,6 +5,7 @@ import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../data/garment.dart';
 import '../data/select_garment_result.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/filter_button.dart';
@@ -90,6 +91,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
   }
 
   AppToolBar _buildAppBar() {
+    final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: widget.title,
       actions: [
@@ -97,7 +99,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
           isFiltered: _isFiltered,
           groups: [
             FilterGroup(
-              label: 'Color',
+              label: l10n.color,
               options: _availableColors,
               selected: () => _selectedColors,
               onToggle: (v) => setState(
@@ -108,7 +110,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
               ),
             ),
             FilterGroup(
-              label: 'Product Type',
+              label: l10n.productType,
               options: _availableTypes,
               selected: () => _selectedTypes,
               onToggle: (v) => setState(
@@ -144,7 +146,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
   Widget _buildEmptyState() {
     return Center(
       child: Text(
-        'No items found.',
+        AppLocalizations.of(context).noItemsFound,
         style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
       ),
     );
@@ -174,7 +176,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
 
   Widget _buildBottomBar(BuildContext context) {
     return BottomActionButton(
-      label: 'Confirm',
+      label: AppLocalizations.of(context).confirm,
       onPressed: () => Navigator.pop(context, SelectGarmentResult(_pending)),
       enabled: _isModified,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Call-out reserved for LUMI's AI-generated text output (packing advice,
 /// styling tips, etc.) so users can tell "the AI said this" at a glance: a
@@ -16,6 +17,7 @@ class LumiInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       margin: margin,
@@ -57,7 +59,7 @@ class LumiInsightCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'LUMI',
+                l10n.appTitle,
                 style: AppTextStyle.bold16.copyWith(letterSpacing: 1.5),
               ),
               const SizedBox(width: 6),
@@ -68,7 +70,7 @@ class LumiInsightCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  'AI',
+                  l10n.aiTag,
                   style: AppTextStyle.bold12.copyWith(
                     color: AppColors.textSecondary,
                     letterSpacing: 1,

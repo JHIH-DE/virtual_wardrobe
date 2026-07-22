@@ -9,6 +9,7 @@ import '../core/services/auth_handler.dart';
 import '../core/services/base_service.dart';
 import '../core/services/profile_service.dart';
 import '../data/location_result.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'image_editor_page.dart';
 import 'location_picker_page.dart';
 import 'widgets/common/app_text_field.dart';
@@ -48,6 +49,26 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     'Other',
     'Prefer not to say',
   ];
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
+  // These map the stable English values stored/sent to the backend to
+  // display text — the stored gender value itself must stay in English so
+  // style_preferences_page.dart's gender-based lookup keeps working.
+  String _genderDisplayLabel(String value) {
+    switch (value) {
+      case 'Male':
+        return _l10n.genderMale;
+      case 'Female':
+        return _l10n.genderFemale;
+      case 'Other':
+        return _l10n.genderOther;
+      case 'Prefer not to say':
+        return _l10n.genderPreferNotToSay;
+      default:
+        return value;
+    }
+  }
 
   bool get _isModified =>
       _nameCtrl.text.trim() != _initialName ||
@@ -179,7 +200,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   );
 
   AppToolBar _buildAppBar() {
-    return const AppToolBar(title: 'Personal Details');
+    return AppToolBar(title: _l10n.personalDetailsTitle);
   }
 
   @override
@@ -203,7 +224,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
             ),
           ),
           BottomActionButton(
-            label: 'Save',
+            label: _l10n.save,
             onPressed: _saveProfile,
             isLoading: _loading,
             enabled: _isModified,
@@ -284,9 +305,9 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel('Account Name'),
+        RequiredFieldLabel(_l10n.accountNameLabel),
         const SizedBox(height: 8),
-        AppTextField(controller: _nameCtrl, hint: 'Enter your name'),
+        AppTextField(controller: _nameCtrl, hint: _l10n.enterYourNameHint),
       ],
     );
   }
@@ -295,13 +316,18 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel('Gender'),
+        RequiredFieldLabel(_l10n.genderLabel),
         const SizedBox(height: 8),
         CustomDropdown<String>(
           value: _selectedGender,
-          hint: 'Select gender',
+          hint: _l10n.selectGenderHint,
           items: _genderOptions
-              .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+              .map(
+                (g) => DropdownMenuItem(
+                  value: g,
+                  child: Text(_genderDisplayLabel(g)),
+                ),
+              )
               .toList(),
           onChanged: _loading
               ? null
@@ -315,11 +341,11 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel('Birthday'),
+        RequiredFieldLabel(_l10n.birthdayLabel),
         const SizedBox(height: 8),
         DateDropdownField(
           value: _selectedBirthDate,
-          hint: 'Select birthday',
+          hint: _l10n.selectBirthdayHint,
           firstDate: DateTime(1900),
           lastDate: DateTime.now(),
           onChanged: _loading
@@ -334,14 +360,14 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel('Home Location'),
+        RequiredFieldLabel(_l10n.homeLocationLabel),
         const SizedBox(height: 8),
         TappableFieldDecorator(
           onTap: _pickHomeLocation,
           children: [
             Expanded(
               child: Text(
-                _homeLocation ?? 'Select your city',
+                _homeLocation ?? _l10n.selectYourCityHint,
                 style: TextStyle(
                   color: _homeLocation == null
                       ? AppColors.textSecondary

@@ -2,17 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'location_result.dart';
 
-/// Display label -> raw API value, shared between trip creation and editing.
-const Map<String, String> kTripPurposeOptions = {
-  'Leisure Travel': 'leisure_travel',
-  'Business Trip': 'business_trip',
-  'Family Trip': 'family_trip',
-  'Outdoor Trip': 'outdoor_trip',
-  'City Trip': 'city_trip',
-  'Resort / Vacation': 'resort_vacation',
-  'Mixed': 'mixed',
-};
-
 /// One leg of a trip: a single location for a sub-range of the trip's dates.
 /// A single-destination trip just has one leg.
 class TripLeg {

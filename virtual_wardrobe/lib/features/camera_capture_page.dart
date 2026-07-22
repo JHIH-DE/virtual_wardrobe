@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../core/utils/debug_log.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class CameraCapturePage extends StatefulWidget {
   const CameraCapturePage({super.key});
@@ -160,7 +161,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
             ),
             Expanded(
               child: Text(
-                'Camera',
+                AppLocalizations.of(context).camera,
                 textAlign: TextAlign.center,
                 style: AppTextStyle.bold16.copyWith(
                   color: AppColors.textOnPrimary,

@@ -13,6 +13,7 @@ import '../core/services/look_service.dart';
 import '../core/utils/signed_url.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'add_look_page.dart';
 import 'full_screen_image_page.dart';
 import 'widgets/common/app_dialog.dart';
@@ -61,6 +62,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   List<String> get _effectiveSeasons => _seasons ?? widget.look.seasons;
   List<String> get _effectiveStyle => _style ?? widget.look.style;
   bool get _shouldConfirmLeave => widget.isNew && widget.confirmLeaveOnBack;
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void initState() {
@@ -96,8 +98,8 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       children: [
         _buildScaffold(context),
         if (_openingTryOn)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Loading Garments...'),
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.loadingGarments),
           ),
       ],
     );
@@ -105,7 +107,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: 'Details',
+      title: _l10n.details,
       onBack: _shouldConfirmLeave ? _showLeaveDialog : null,
       actions: [
         if (!widget.isNew)
@@ -119,17 +121,28 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
             ),
             onSelected: _handleMenuAction,
             itemBuilder: (context) => [
-              _menuItem(_LookMenuAction.rename, Icons.edit_outlined, 'Rename'),
-              _menuItem(_LookMenuAction.share, Icons.share_outlined, 'Share'),
+              _menuItem(
+                _LookMenuAction.rename,
+                Icons.edit_outlined,
+                _l10n.rename,
+              ),
+              _menuItem(
+                _LookMenuAction.share,
+                Icons.share_outlined,
+                _l10n.share,
+              ),
               const PopupMenuDivider(),
               PopupMenuItem(
                 value: _LookMenuAction.delete,
                 enabled: !_isDeleting,
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.delete_outline, color: AppColors.icon),
-                    SizedBox(width: 12),
-                    Text('Delete', style: TextStyle(color: AppColors.error)),
+                    const Icon(Icons.delete_outline, color: AppColors.icon),
+                    const SizedBox(width: 12),
+                    Text(
+                      _l10n.delete,
+                      style: const TextStyle(color: AppColors.error),
+                    ),
                   ],
                 ),
               ),
@@ -203,13 +216,13 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   Widget _buildBottomBar(BuildContext context) {
     if (widget.isNew) {
       return BottomActionButton(
-        label: 'Save Look',
+        label: _l10n.saveLook,
         onPressed: _isSaving ? null : _saveLook,
         isLoading: _isSaving,
       );
     }
     return BottomActionButton(
-      label: 'Remix Look',
+      label: _l10n.remixLook,
       leading: Image.asset(
         'assets/images/ai_process_inv.png',
         width: 18,
@@ -250,7 +263,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
                   Text(styles.join(' • '), style: tagStyle),
               ],
             )
-          : Text('My Collection', style: tagStyle),
+          : Text(_l10n.myCollection, style: tagStyle),
     );
   }
 
@@ -261,7 +274,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
         const Divider(height: 1, thickness: 1, color: AppColors.borderStrong),
         const SizedBox(height: 16),
         Text(
-          'Created $_formattedDate',
+          _l10n.createdOnDate(_formattedDate),
           style: AppTextStyle.bold14.copyWith(color: AppColors.textSecondary),
         ),
       ],
@@ -279,7 +292,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   void _shareLook() {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Share coming soon')));
+    ).showSnackBar(SnackBar(content: Text(_l10n.shareComingSoon)));
   }
 
   Widget _buildOutfitImage() {
@@ -303,7 +316,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
                   const Center(child: CircularProgressIndicator()),
               errorWidget: (_, __, ___) => Center(
                 child: Text(
-                  'Failed to load image',
+                  _l10n.failedToLoadImage,
                   style: AppTextStyle.regular14.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -321,8 +334,9 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LabeledDivider(
-          label:
-              'Garments (${_garments?.length ?? widget.look.garmentIds.length})',
+          label: _l10n.garmentsCount(
+            _garments?.length ?? widget.look.garmentIds.length,
+          ),
         ),
         const SizedBox(height: 16),
         if (_loadingGarments)
@@ -437,9 +451,9 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
         return;
       }
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load garments')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.failedToLoadGarments)));
       }
     }
   }
@@ -471,11 +485,11 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     final save = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Save this look?',
-        body: 'Would you like to save this look to your collection?',
-        primaryLabel: 'Save',
+        title: _l10n.saveThisLookTitle,
+        body: _l10n.saveThisLookBody,
+        primaryLabel: _l10n.save,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: 'Discard',
+        secondaryLabel: _l10n.discard,
         onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
@@ -496,11 +510,11 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Remove look?',
-        body: 'This look will be removed from your Looks.',
-        primaryLabel: 'Remove',
+        title: _l10n.removeLookTitle,
+        body: _l10n.removeLookBody,
+        primaryLabel: _l10n.remove,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: 'Cancel',
+        secondaryLabel: _l10n.cancel,
         onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
@@ -527,12 +541,12 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   String get _title {
     if (_name != null && _name!.isNotEmpty) return _name!;
     final parts = [..._effectiveSeasons, ..._effectiveStyle];
-    if (parts.isEmpty) return 'My Look';
+    if (parts.isEmpty) return _l10n.myLook;
     final word = parts.first;
     final capitalized = word.isEmpty
         ? word
         : '${word[0].toUpperCase()}${word.substring(1)}';
-    return '$capitalized Outfit';
+    return _l10n.outfitTitle(capitalized);
   }
 
   Future<void> _showEditNameDialog() async {
@@ -540,17 +554,17 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Rename Look',
+        title: _l10n.renameLook,
         content: TextField(
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
           style: AppTextStyle.bold16,
-          decoration: appInputDecoration(hint: 'Enter look name'),
+          decoration: appInputDecoration(hint: _l10n.lookNameLabel),
         ),
-        primaryLabel: 'Save',
+        primaryLabel: _l10n.save,
         onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
-        secondaryLabel: 'Cancel',
+        secondaryLabel: _l10n.cancel,
         onSecondary: () => Navigator.pop(ctx),
       ),
     );

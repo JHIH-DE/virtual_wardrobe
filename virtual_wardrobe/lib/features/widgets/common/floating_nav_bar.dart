@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 enum AppTab { home, closet, looks, tripPlanner }
 
@@ -52,6 +53,7 @@ class FloatingNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Positioned(
       left: 0,
       right: 0,
@@ -91,26 +93,26 @@ class FloatingNavBar extends StatelessWidget {
                               AppTab.home,
                               activeIcon: Icons.home_rounded,
                               inactiveIcon: Icons.home_outlined,
-                              label: 'Home',
+                              label: l10n.navHome,
                             ),
                             _tab(
                               AppTab.closet,
                               activeIcon: Icons.checkroom_rounded,
                               inactiveIcon: Icons.checkroom_outlined,
-                              label: 'Closet',
+                              label: l10n.navCloset,
                             ),
                             const SizedBox(width: _centerButtonSize),
                             _tab(
                               AppTab.looks,
                               activeIcon: Icons.style_rounded,
                               inactiveIcon: Icons.style_outlined,
-                              label: 'Looks',
+                              label: l10n.navLooks,
                             ),
                             _tab(
                               AppTab.tripPlanner,
                               activeIcon: Icons.luggage_rounded,
                               inactiveIcon: Icons.luggage_outlined,
-                              label: 'Trips',
+                              label: l10n.navTrips,
                             ),
                           ],
                         ),
@@ -174,10 +176,11 @@ class FloatingNavBar extends StatelessWidget {
   /// Shows the quick-action menu centered horizontally on screen (not
   /// anchored to the button), directly above the nav bar.
   Future<void> _showQuickActionMenu(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final action = await showGeneralDialog<QuickAction>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Quick Actions',
+      barrierLabel: l10n.quickActions,
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 150),
       pageBuilder: (context, _, __) => SafeArea(
@@ -200,21 +203,21 @@ class FloatingNavBar extends StatelessWidget {
                     _quickActionItem(
                       context,
                       value: QuickAction.addClothing,
-                      label: 'Add Clothing',
+                      label: l10n.quickActionAddClothing,
                       icon: Icons.checkroom_outlined,
                       showDivider: true,
                     ),
                     _quickActionItem(
                       context,
                       value: QuickAction.addLook,
-                      label: 'Add Look',
+                      label: l10n.quickActionAddLook,
                       icon: Icons.accessibility_new_outlined,
                       showDivider: true,
                     ),
                     _quickActionItem(
                       context,
                       value: QuickAction.newTrip,
-                      label: 'New Trip',
+                      label: l10n.newTrip,
                       icon: Icons.luggage_outlined,
                       showDivider: false,
                     ),

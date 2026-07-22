@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/number_stepper.dart';
 import 'widgets/common/section_title.dart';
@@ -19,12 +20,14 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
   List<String> _weeklyOccasions = List.generate(7, (_) => 'casual_daily');
   int _temperatureOffset = 0;
 
-  final Map<String, String> _occasionLabels = {
-    'casual_daily': '🏠 Daily',
-    'work': '💼 Work',
-    'date': '❤️ Date',
-    'sport': '🏃 Sport',
-    'formal': '👔 Formal',
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
+  Map<String, String> get _occasionLabels => {
+    'casual_daily': _l10n.occasionDaily,
+    'work': _l10n.occasionWork,
+    'date': _l10n.occasionDate,
+    'sport': _l10n.occasionSport,
+    'formal': _l10n.occasionFormal,
   };
 
   @override
@@ -66,11 +69,11 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Settings saved')));
+    ).showSnackBar(SnackBar(content: Text(_l10n.settingsSaved)));
   }
 
   AppToolBar _buildAppBar() {
-    return const AppToolBar(title: 'Daily Preferences');
+    return AppToolBar(title: _l10n.dailyPreferences);
   }
 
   @override
@@ -82,11 +85,11 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 16),
-          _buildSectionTitle('Comfort Adjustment'),
+          _buildSectionTitle(_l10n.comfortAdjustment),
           const SizedBox(height: 12),
           _buildTempAdjuster(),
           const SizedBox(height: 24),
-          _buildSectionTitle('Daily Occasions'),
+          _buildSectionTitle(_l10n.dailyOccasions),
           const SizedBox(height: 8),
           ...List.generate(7, _buildOccasionTile),
           const SizedBox(height: 24),
@@ -123,7 +126,7 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
       ),
       title: Text(
         isToday
-            ? '${DateFormat('EEEE').format(date)} (Today)'
+            ? _l10n.dayWithTodaySuffix(DateFormat('EEEE').format(date))
             : DateFormat('EEEE').format(date),
         style: TextStyle(
           fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
@@ -158,7 +161,7 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
           ),
         ),
         child: Text(
-          'Apply',
+          _l10n.apply,
           style: AppTextStyle.bold16.copyWith(color: AppColors.textOnPrimary),
         ),
       ),
@@ -167,7 +170,7 @@ class _DailyPreferencesPageState extends State<DailyPreferencesPage> {
 
   Widget _buildTempAdjuster() {
     return NumberStepper(
-      label: 'Perceived temperature offset',
+      label: _l10n.perceivedTempOffset,
       valueLabel: '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°',
       onDecrement: () {
         if (_temperatureOffset > -5) setState(() => _temperatureOffset--);

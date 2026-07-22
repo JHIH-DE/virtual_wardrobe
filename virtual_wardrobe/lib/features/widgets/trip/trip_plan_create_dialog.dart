@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../data/trip_plan.dart';
+import '../../../data/trip_purpose.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/trip_purpose_localization.dart';
 import '../common/app_dialog.dart';
 import '../common/app_text_field.dart';
 import 'trip_legs_editor.dart';
@@ -16,8 +19,7 @@ class TripPlanCreateDialog extends StatefulWidget {
 class _TripPlanCreateDialogState extends State<TripPlanCreateDialog> {
   final TextEditingController _tripNameController = TextEditingController();
   final ValueNotifier<List<TripLeg>> _legsNotifier = ValueNotifier([]);
-  String _selectedPurpose = 'Leisure Travel';
-  final Map<String, String> _purposeOptions = kTripPurposeOptions;
+  TripPurpose _selectedPurpose = TripPurpose.leisureTravel;
 
   @override
   void dispose() {
@@ -28,31 +30,37 @@ class _TripPlanCreateDialogState extends State<TripPlanCreateDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopScope(
       canPop: false,
       child: AppDialog(
-        title: 'New Trip',
+        title: l10n.newTrip,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppTextField(controller: _tripNameController, label: 'Trip Name'),
+            AppTextField(
+              controller: _tripNameController,
+              label: l10n.tripNameLabel,
+            ),
             const SizedBox(height: 16),
             TripLegsEditor(legsNotifier: _legsNotifier),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<TripPurpose>(
               value: _selectedPurpose,
               decoration: appInputDecoration(
-                label: 'Trip Purpose',
+                label: l10n.tripPurposeLabel,
                 prefixIcon: const Icon(
                   Icons.flight_takeoff,
                   color: AppColors.icon,
                   size: 20,
                 ),
               ),
-              items: _purposeOptions.keys
+              items: TripPurpose.values
                   .map(
-                    (label) =>
-                        DropdownMenuItem(value: label, child: Text(label)),
+                    (purpose) => DropdownMenuItem(
+                      value: purpose,
+                      child: Text(purpose.localizedLabel(context)),
+                    ),
                   )
                   .toList(),
               onChanged: (v) {
@@ -61,19 +69,20 @@ class _TripPlanCreateDialogState extends State<TripPlanCreateDialog> {
             ),
           ],
         ),
-        primaryLabel: 'Create',
+        primaryLabel: l10n.create,
         onPrimary: _submit,
-        secondaryLabel: 'Cancel',
+        secondaryLabel: l10n.cancel,
         onSecondary: () => Navigator.pop(context),
       ),
     );
   }
 
   void _submit() {
+    final l10n = AppLocalizations.of(context);
     if (_tripNameController.text.isEmpty || _legsNotifier.value.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+      ).showSnackBar(SnackBar(content: Text(l10n.fillAllFieldsError)));
       return;
     }
     Navigator.pop(
@@ -82,7 +91,7 @@ class _TripPlanCreateDialogState extends State<TripPlanCreateDialog> {
         id: '',
         name: _tripNameController.text,
         legs: _legsNotifier.value,
-        purpose: _purposeOptions[_selectedPurpose]!,
+        purpose: _selectedPurpose.apiValue,
       ),
     );
   }

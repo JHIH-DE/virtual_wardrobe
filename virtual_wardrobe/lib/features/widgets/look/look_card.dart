@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/look.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class LookCard extends StatelessWidget {
   final Look look;
@@ -12,13 +13,13 @@ class LookCard extends StatelessWidget {
 
   const LookCard({super.key, required this.look, required this.onTap});
 
-  String get _label {
+  String _label(AppLocalizations l10n) {
     if (look.name != null && look.name!.isNotEmpty) return look.name!;
     final parts = [
       ...look.style,
       ...look.seasons,
     ].where((s) => s.isNotEmpty).toList();
-    if (parts.isEmpty) return 'Look #${look.id}';
+    if (parts.isEmpty) return l10n.lookFallbackTitle(look.id);
     return parts.map(_capitalize).join(' ');
   }
 
@@ -45,6 +46,7 @@ class LookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -79,16 +81,19 @@ class LookCard extends StatelessWidget {
                             ),
                             errorWidget: (_, __, ___) => _buildImageFallback(
                               Icons.broken_image_outlined,
-                              'Failed to Load',
+                              l10n.failedToLoad,
                             ),
                           )
-                        : _buildImageFallback(Icons.image_outlined, 'No Image'),
+                        : _buildImageFallback(
+                            Icons.image_outlined,
+                            l10n.noImage,
+                          ),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
                   child: Text(
-                    _label,
+                    _label(l10n),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyle.bold14.copyWith(

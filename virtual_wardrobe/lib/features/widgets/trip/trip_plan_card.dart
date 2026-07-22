@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip_plan.dart';
+import '../../../data/trip_purpose.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/trip_purpose_localization.dart';
 import '../common/app_dialog.dart';
 import '../common/app_text_field.dart';
 import 'trip_legs_editor.dart';
@@ -30,6 +33,7 @@ class TripPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final dateStr =
         "${DateFormat('MMM d').format(trip.dateRange.start)} - "
         "${DateFormat('MMM d, yyyy').format(trip.dateRange.end)}";
@@ -83,7 +87,7 @@ class TripPlanCard extends StatelessWidget {
                               width: 20,
                               height: 20,
                             ),
-                            'Edit Trip Name',
+                            l10n.editTripName,
                           ),
                           _menuItem(
                             _TripCardAction.editLegs,
@@ -91,7 +95,7 @@ class TripPlanCard extends StatelessWidget {
                               Icons.map_outlined,
                               color: AppColors.icon,
                             ),
-                            'Edit Destinations',
+                            l10n.editDestinations,
                           ),
                           _menuItem(
                             _TripCardAction.editPurpose,
@@ -99,21 +103,23 @@ class TripPlanCard extends StatelessWidget {
                               Icons.flight_takeoff,
                               color: AppColors.icon,
                             ),
-                            'Edit Trip Purpose',
+                            l10n.editTripPurpose,
                           ),
                           const PopupMenuDivider(),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: _TripCardAction.delete,
                             child: Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.delete_outline,
                                   color: AppColors.icon,
                                 ),
-                                SizedBox(width: 12),
+                                const SizedBox(width: 12),
                                 Text(
-                                  'Delete Trip',
-                                  style: TextStyle(color: AppColors.error),
+                                  l10n.deleteTrip,
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                  ),
                                 ),
                               ],
                             ),
@@ -174,7 +180,7 @@ class TripPlanCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    'View Plan',
+                    l10n.viewPlan,
                     style: AppTextStyle.regular12.copyWith(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
@@ -224,21 +230,22 @@ class TripPlanCard extends StatelessWidget {
   }
 
   Future<void> _editName(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: trip.name);
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Edit Trip Name',
+        title: l10n.editTripName,
         content: TextField(
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
           style: AppTextStyle.bold16,
-          decoration: appInputDecoration(hint: 'Enter trip name'),
+          decoration: appInputDecoration(hint: l10n.enterTripName),
         ),
-        primaryLabel: 'Save',
+        primaryLabel: l10n.save,
         onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
-        secondaryLabel: 'Cancel',
+        secondaryLabel: l10n.cancel,
         onSecondary: () => Navigator.pop(ctx),
       ),
     );
@@ -249,15 +256,16 @@ class TripPlanCard extends StatelessWidget {
   }
 
   Future<void> _editLegs(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final legsNotifier = ValueNotifier<List<TripLeg>>(List.of(trip.legs));
     final result = await showDialog<List<TripLeg>>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Edit Destinations',
+        title: l10n.editDestinations,
         content: TripLegsEditor(legsNotifier: legsNotifier),
-        primaryLabel: 'Save',
+        primaryLabel: l10n.save,
         onPrimary: () => Navigator.pop(ctx, legsNotifier.value),
-        secondaryLabel: 'Cancel',
+        secondaryLabel: l10n.cancel,
         onSecondary: () => Navigator.pop(ctx),
         width: 320,
       ),
@@ -269,58 +277,55 @@ class TripPlanCard extends StatelessWidget {
   }
 
   Future<void> _editPurpose(BuildContext context) async {
-    final currentLabel = kTripPurposeOptions.entries
-        .firstWhere(
-          (e) => e.value == trip.purpose,
-          orElse: () => kTripPurposeOptions.entries.first,
-        )
-        .key;
+    final l10n = AppLocalizations.of(context);
+    final currentPurpose =
+        tripPurposeFromApiValue(trip.purpose) ?? TripPurpose.values.first;
 
-    final result = await showDialog<String>(
+    final result = await showDialog<TripPurpose>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Edit Trip Purpose',
+        title: l10n.editTripPurpose,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final label in kTripPurposeOptions.keys)
+            for (final purpose in TripPurpose.values)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(
-                  label,
-                  style: label == currentLabel
+                  purpose.localizedLabel(context),
+                  style: purpose == currentPurpose
                       ? AppTextStyle.semibold16.copyWith(
                           color: AppColors.accent,
                         )
                       : AppTextStyle.regular16,
                 ),
-                trailing: label == currentLabel
+                trailing: purpose == currentPurpose
                     ? const Icon(Icons.check, color: AppColors.accent)
                     : null,
-                onTap: () => Navigator.pop(ctx, label),
+                onTap: () => Navigator.pop(ctx, purpose),
               ),
           ],
         ),
-        primaryLabel: 'Cancel',
+        primaryLabel: l10n.cancel,
         onPrimary: () => Navigator.pop(ctx),
         primaryIsTextButton: true,
       ),
     );
 
-    if (result == null || result == currentLabel) return;
-    final rawValue = kTripPurposeOptions[result];
-    if (rawValue != null) onPurposeChanged(rawValue);
+    if (result == null || result == currentPurpose) return;
+    onPurposeChanged(result.apiValue);
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Delete Trip',
-        body: 'Are you sure you want to delete this trip?',
-        primaryLabel: 'Delete',
+        title: l10n.deleteTrip,
+        body: l10n.deleteTripConfirmation,
+        primaryLabel: l10n.delete,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: 'Cancel',
+        secondaryLabel: l10n.cancel,
         onSecondary: () => Navigator.pop(ctx, false),
       ),
     );

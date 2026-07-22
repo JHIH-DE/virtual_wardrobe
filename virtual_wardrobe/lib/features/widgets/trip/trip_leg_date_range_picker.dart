@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// A date-range picker that greys out and disables any day already covered
 /// by [occupiedRanges] (e.g. another trip leg), so the user can see at a
@@ -123,6 +124,7 @@ class _TripLegDateRangePickerDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final canConfirm = _rangeStart != null && _rangeEnd != null;
     return Dialog(
       backgroundColor: AppColors.surface,
@@ -133,13 +135,13 @@ class _TripLegDateRangePickerDialogState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Select Dates', style: AppTextStyle.dialogTitle),
+            Text(l10n.selectDates, style: AppTextStyle.dialogTitle),
             const SizedBox(height: 6),
             Text(
               _rangeStart == null
-                  ? 'Start Date – End Date'
+                  ? '${l10n.startDatePlaceholder} – ${l10n.endDatePlaceholder}'
                   : _rangeEnd == null
-                  ? '${_fmt(_rangeStart!)} – End Date'
+                  ? '${_fmt(_rangeStart!)} – ${l10n.endDatePlaceholder}'
                   : '${_fmt(_rangeStart!)} – ${_fmt(_rangeEnd!)}',
               style: AppTextStyle.regular14.copyWith(
                 color: AppColors.textSecondary,
@@ -163,15 +165,15 @@ class _TripLegDateRangePickerDialogState
                 ),
               ],
             ),
-            _buildWeekdayHeader(),
+            _buildWeekdayHeader(context),
             const SizedBox(height: 4),
             _buildMonthGrid(),
             const SizedBox(height: 12),
             Row(
               children: [
-                _legendDot(AppColors.borderSubtle, 'Booked'),
+                _legendDot(AppColors.borderSubtle, l10n.booked),
                 const SizedBox(width: 16),
-                _legendDot(AppColors.primary, 'Selected'),
+                _legendDot(AppColors.primary, l10n.selected),
               ],
             ),
             const SizedBox(height: 20),
@@ -191,9 +193,9 @@ class _TripLegDateRangePickerDialogState
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Confirm',
-                style: TextStyle(color: AppColors.textOnPrimary),
+              child: Text(
+                l10n.confirm,
+                style: const TextStyle(color: AppColors.textOnPrimary),
               ),
             ),
             const SizedBox(height: 12),
@@ -204,7 +206,7 @@ class _TripLegDateRangePickerDialogState
                 minimumSize: const Size(double.infinity, 40),
               ),
               child: Text(
-                'Cancel',
+                l10n.cancel,
                 style: AppTextStyle.regular14.copyWith(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
@@ -217,8 +219,8 @@ class _TripLegDateRangePickerDialogState
     );
   }
 
-  Widget _buildWeekdayHeader() {
-    const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  Widget _buildWeekdayHeader(BuildContext context) {
+    final labels = MaterialLocalizations.of(context).narrowWeekdays;
     return Row(
       children: labels
           .map(

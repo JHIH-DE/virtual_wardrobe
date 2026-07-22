@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Centered error message with a retry button. Renders nothing for
 /// [AuthExpiredException] since that's handled by the auth-expiry listener
@@ -9,13 +10,13 @@ import '../../../core/services/auth_handler.dart';
 class ErrorStateWidget extends StatelessWidget {
   final Object error;
   final VoidCallback onRetry;
-  final String retryLabel;
+  final String? retryLabel;
 
   const ErrorStateWidget({
     super.key,
     required this.error,
     required this.onRetry,
-    this.retryLabel = 'Retry',
+    this.retryLabel,
   });
 
   @override
@@ -32,7 +33,10 @@ class ErrorStateWidget extends StatelessWidget {
             style: const TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: onRetry, child: Text(retryLabel)),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: Text(retryLabel ?? AppLocalizations.of(context).retry),
+          ),
         ],
       ),
     );

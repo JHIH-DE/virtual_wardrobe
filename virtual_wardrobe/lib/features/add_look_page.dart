@@ -9,6 +9,8 @@ import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
 import '../data/select_garment_result.dart';
+import '../l10n/garment_localization.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'looks_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 import 'widgets/common/app_list_card.dart';
@@ -93,6 +95,8 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
   late _OutfitSelection _outfit;
   late _OutfitSelection _initialOutfit;
   bool _isLoadingGarments = false;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   bool _hasCategory(GarmentCategory category) =>
       _allGarments.any((g) => g.category == category);
@@ -239,7 +243,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: 'Add Look', onBack: widget.onBack);
+    return AppToolBar(title: _l10n.quickActionAddLook, onBack: widget.onBack);
   }
 
   @override
@@ -248,12 +252,12 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
       children: [
         _buildScaffold(),
         if (isLookLoading)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Creating Looks...'),
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.creatingLooksEllipsis),
           ),
         if (_isLoadingGarments)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Loading Closet...'),
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.loadingClosetEllipsis),
           ),
       ],
     );
@@ -284,7 +288,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
 
   Widget _buildInstructions() {
     return Text(
-      'Select the clothing combinations you\'d like to try, then click "Create Look" to see your try-on results!',
+      _l10n.selectCombinationsInstruction,
       textAlign: TextAlign.center,
       style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
     );
@@ -294,7 +298,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (!_hasCategory(GarmentCategory.top)) return const [];
     return [
       _slotRow(
-        title: 'Top',
+        title: GarmentCategory.top.localizedLabel(context),
         iconAsset: 'assets/images/top.png',
         value: _outfit.top,
         category: GarmentCategory.top,
@@ -305,7 +309,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
       ),
       const SizedBox(height: 12),
       _slotRow(
-        title: 'Mid Layer',
+        title: _l10n.midLayer,
         iconAsset: 'assets/images/outer.png',
         value: _outfit.middle,
         category: GarmentCategory.top,
@@ -323,7 +327,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (!_hasCategory(GarmentCategory.outer)) return const [];
     return [
       _slotRow(
-        title: 'Outerwear',
+        title: _l10n.outerwear,
         iconAsset: 'assets/images/outer.png',
         value: _outfit.outer,
         category: GarmentCategory.outer,
@@ -341,7 +345,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (!_hasCategory(GarmentCategory.bottom)) return const [];
     return [
       _slotRow(
-        title: 'Bottom',
+        title: GarmentCategory.bottom.localizedLabel(context),
         iconAsset: 'assets/images/buttom.png',
         value: _outfit.bottom,
         category: GarmentCategory.bottom,
@@ -359,7 +363,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (!_hasCategory(GarmentCategory.onePiece)) return const [];
     return [
       _slotRow(
-        title: 'One-piece',
+        title: GarmentCategory.onePiece.localizedLabel(context),
         iconData: Icons.checkroom,
         value: _outfit.onePiece,
         category: GarmentCategory.onePiece,
@@ -379,7 +383,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (!_hasCategory(GarmentCategory.shoes)) return const [];
     return [
       _slotRow(
-        title: 'Shoes',
+        title: GarmentCategory.shoes.localizedLabel(context),
         iconAsset: 'assets/images/shoes.png',
         value: _outfit.shoes,
         category: GarmentCategory.shoes,
@@ -397,7 +401,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (!_hasCategory(GarmentCategory.socks)) return const [];
     return [
       _slotRow(
-        title: 'Socks',
+        title: GarmentCategory.socks.localizedLabel(context),
         iconData: Icons.dry_cleaning,
         value: _outfit.socks,
         category: GarmentCategory.socks,
@@ -415,7 +419,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (!_hasCategory(GarmentCategory.accessory)) return const [];
     return [
       _slotRow(
-        title: 'Accessory',
+        title: GarmentCategory.accessory.localizedLabel(context),
         iconAsset: 'assets/images/accessory.png',
         value: _outfit.accessory,
         category: GarmentCategory.accessory,
@@ -432,7 +436,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
 
   Widget _buildBottomBar() {
     return BottomActionButton(
-      label: 'Create Look',
+      label: _l10n.createLook,
       leading: Image.asset(
         'assets/images/ai_process_inv.png',
         width: 18,

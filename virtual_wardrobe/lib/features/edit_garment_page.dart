@@ -15,6 +15,8 @@ import '../core/utils/debug_log.dart';
 import '../core/utils/signed_url.dart';
 import '../data/garment.dart';
 import '../data/image_edit_result.dart';
+import '../l10n/garment_localization.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'garment_looks_page.dart';
 import 'image_editor_page.dart';
 import 'widgets/common/app_dialog.dart';
@@ -69,6 +71,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   late String _initialPrice;
   GarmentColor? _initialColor;
   DateTime? _initialDate;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void initState() {
@@ -180,11 +184,11 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Delete Garment',
-        body: 'Are you sure you want to delete this garment?',
-        primaryLabel: 'Delete',
+        title: _l10n.deleteGarment,
+        body: _l10n.deleteGarmentConfirmation,
+        primaryLabel: _l10n.delete,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: 'Cancel',
+        secondaryLabel: _l10n.cancel,
         onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
@@ -199,7 +203,9 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           await AuthExpiredHandler.handle(context);
           return;
         }
-        setState(() => errorMessage = 'Delete failed: $e');
+        setState(
+          () => errorMessage = _l10n.deleteFailedPrefix(e.toString()),
+        );
       }
     }
   }
@@ -210,13 +216,13 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'You have unsaved changes',
-        body: 'If you leave this page, your changes will be lost.',
-        primaryLabel: 'Save',
+        title: _l10n.unsavedChangesTitle,
+        body: _l10n.unsavedChangesBody,
+        primaryLabel: _l10n.save,
         onPrimary: () => Navigator.pop(ctx, 'save'),
-        secondaryLabel: 'Cancel',
+        secondaryLabel: _l10n.cancel,
         onSecondary: () => Navigator.pop(ctx, 'cancel'),
-        tertiaryLabel: "Don't Save",
+        tertiaryLabel: _l10n.dontSave,
         onTertiary: () => Navigator.pop(ctx, 'discard'),
       ),
     );
@@ -229,7 +235,9 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   }
 
   AppToolBar _buildAppBar(BuildContext context) {
-    final title = _isAddMode ? 'Add Clothing' : 'Details';
+    final title = _isAddMode
+        ? _l10n.quickActionAddClothing
+        : _l10n.details;
     return AppToolBar(
       title: title,
       onBack: () async {
@@ -270,7 +278,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         body: _buildForm(context),
         // 固定在底部的儲存按鈕
         bottomNavigationBar: BottomActionButton(
-          label: _isAddMode ? 'Add to Closet' : 'Save',
+          label: _isAddMode ? _l10n.addToCloset : _l10n.save,
           onPressed: _isModified ? _saveGarment : null,
           isLoading: uploading,
         ),
@@ -348,16 +356,13 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         children: [
           Text(
             combos > 0
-                ? '$combos outfit combinations possible'
-                : 'Add a few more pieces to unlock outfit ideas',
+                ? _l10n.outfitCombosPossible(combos)
+                : _l10n.addMorePiecesHint,
             style: AppTextStyle.bold14,
           ),
           const SizedBox(height: 6),
           Text(
-            'Based on the $tops top${tops == 1 ? '' : 's'}, $bottoms '
-            'bottom${bottoms == 1 ? '' : 's'} and $shoes pair${shoes == 1 ? '' : 's'} '
-            'of shoes already in your closet — a good sign this piece '
-            'will earn its keep.',
+            _l10n.outfitComboBasis(tops, bottoms, shoes),
             style: AppTextStyle.regular14.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -419,13 +424,14 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle('Clothing Name'),
+        SectionTitle(_l10n.clothingNameLabel),
         const SizedBox(height: 8),
         AppTextField(
           controller: _nameCtrl,
-          hint: 'Name the clothing',
-          validator: (v) =>
-              (v == null || v.trim().isEmpty) ? 'Please enter name' : null,
+          hint: _l10n.nameTheClothingHint,
+          validator: (v) => (v == null || v.trim().isEmpty)
+              ? _l10n.pleaseEnterNameError
+              : null,
         ),
       ],
     );
@@ -435,7 +441,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle('Clothing Category'),
+        SectionTitle(_l10n.clothingCategoryLabel),
         const SizedBox(height: 8),
         CustomDropdown<GarmentCategory>(
           value: _category,
@@ -443,7 +449,10 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
               .map(
                 (c) => DropdownMenuItem(
                   value: c,
-                  child: Text(c.label, style: AppTextStyle.regular14),
+                  child: Text(
+                    c.localizedLabel(context),
+                    style: AppTextStyle.regular14,
+                  ),
                 ),
               )
               .toList(),
@@ -462,13 +471,13 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle('Product Type'),
+        SectionTitle(_l10n.productType),
         const SizedBox(height: 8),
         AppTextField(
           controller: _subCategory,
-          hint: 'e.g. Top',
+          hint: _l10n.productTypeHint,
           validator: (v) => (v == null || v.trim().isEmpty)
-              ? 'Please enter product type'
+              ? _l10n.pleaseEnterProductTypeError
               : null,
         ),
       ],
@@ -479,7 +488,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle('Color'),
+        SectionTitle(_l10n.color),
         const SizedBox(height: 8),
         _colorPicker(),
       ],
@@ -490,12 +499,9 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle('Brand (optional)'),
+        SectionTitle(_l10n.brandOptionalLabel),
         const SizedBox(height: 8),
-        AppTextField(
-          controller: _brandCtrl,
-          hint: 'What is the brand of this clothing?',
-        ),
+        AppTextField(controller: _brandCtrl, hint: _l10n.brandHint),
       ],
     );
   }
@@ -504,11 +510,11 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle('Price (optional)'),
+        SectionTitle(_l10n.priceOptionalLabel),
         const SizedBox(height: 8),
         AppTextField(
           controller: _priceCtrl,
-          hint: 'How much is this clothing?',
+          hint: _l10n.priceHint,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
         ),
       ],
@@ -519,7 +525,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle('Purchase date'),
+        SectionTitle(_l10n.purchaseDateLabel),
         const SizedBox(height: 8),
         _purchaseDateField(context),
       ],
@@ -611,7 +617,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  zero ? 'Not used in any looks yet' : 'Used in Looks',
+                  zero ? _l10n.notUsedInLooksYet : _l10n.usedInLooks,
                   style: AppTextStyle.regular14.copyWith(
                     color: zero
                         ? AppColors.textSecondary
@@ -679,7 +685,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         const SizedBox(width: 10),
         Expanded(
           child: Text(
-            selected?.label ?? 'Select a color',
+            selected?.localizedLabel(context) ?? _l10n.selectAColor,
             style: AppTextStyle.regular14.copyWith(
               color: selected == null
                   ? AppColors.textSecondary
@@ -731,8 +737,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   Widget _buildColorPickerHeader() {
     return Row(
       children: [
-        const Expanded(
-          child: Text('Choose a color', style: AppTextStyle.bold16),
+        Expanded(
+          child: Text(_l10n.chooseColorTitle, style: AppTextStyle.bold16),
         ),
         TextButton(
           onPressed: () {
@@ -745,7 +751,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text('Clear'),
+          child: Text(_l10n.clear),
         ),
       ],
     );
@@ -817,7 +823,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         Expanded(
           child: Text(
             _purchaseDate == null
-                ? 'Select date'
+                ? _l10n.selectDate
                 : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
             style: TextStyle(
               color: _purchaseDate == null
@@ -887,7 +893,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           bottom: 12,
           right: 12,
           child: PillButton.floating(
-            label: 'Edit image',
+            label: _l10n.editImage,
             icon: Image.asset(
               'assets/images/edit.png',
               height: AppDimens.iconSmallSize,
@@ -1046,7 +1052,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
               const Icon(Icons.check_circle, color: AppColors.icon, size: 48),
               const SizedBox(height: 12),
               Text(
-                'Changes Saved',
+                _l10n.changesSaved,
                 style: AppTextStyle.bold16.copyWith(
                   color: AppColors.textPrimary,
                 ),

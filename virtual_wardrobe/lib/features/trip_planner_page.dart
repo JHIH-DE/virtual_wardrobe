@@ -12,6 +12,7 @@ import '../core/services/auth_handler.dart';
 import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/trip_plan.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'trip_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
@@ -156,6 +157,7 @@ Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(
 /// between [TripPlannerPage]'s own "+" and any other entry point (e.g. the
 /// Home page's quick-actions menu).
 Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context);
   final input = await showDialog<TripPlan>(
     context: context,
     barrierDismissible: false,
@@ -167,7 +169,7 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
     context: context,
     barrierDismissible: false,
     useSafeArea: false,
-    builder: (_) => const LoadingOverlay(label: 'Creating Trip...'),
+    builder: (_) => LoadingOverlay(label: l10n.creatingTripEllipsis),
   );
 
   try {
@@ -188,7 +190,7 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
     debugLog('Failed to create trip: $e');
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Failed to create trip')));
+    ).showSnackBar(SnackBar(content: Text(l10n.failedToCreateTrip)));
   }
 }
 
@@ -249,15 +251,20 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       children: [
         _buildScaffold(context, tripsAsync),
         if (_openingTrip)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Loading Trip...'),
+          Positioned.fill(
+            child: LoadingOverlay(
+              label: AppLocalizations.of(context).loadingTripEllipsis,
+            ),
           ),
       ],
     );
   }
 
   AppToolBar _buildAppBar(BuildContext context) {
-    return AppToolBar(title: 'Trip Planner', showBackButton: false);
+    return AppToolBar(
+      title: AppLocalizations.of(context).tripPlannerTitle,
+      showBackButton: false,
+    );
   }
 
   Widget _buildScaffold(
@@ -303,6 +310,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     BuildContext context,
     List<TripPlan> trips,
   ) {
+    final l10n = AppLocalizations.of(context);
     final today = _dateOnly(DateTime.now());
 
     final ongoing = <TripPlan>[];
@@ -333,9 +341,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       }
     }
 
-    addSection('Ongoing', ongoing, AppColors.statusOngoing);
-    addSection('Upcoming', upcoming, AppColors.statusUpcoming);
-    addSection('Past', past, AppColors.statusPast);
+    addSection(l10n.statusOngoing, ongoing, AppColors.statusOngoing);
+    addSection(l10n.statusUpcoming, upcoming, AppColors.statusUpcoming);
+    addSection(l10n.statusPast, past, AppColors.statusPast);
 
     return items;
   }
@@ -344,7 +352,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     return ListView(
       children: [
         EmptyStatePlaceholder(
-          message: 'No trips planned yet',
+          message: AppLocalizations.of(context).noTripsPlannedYet,
           icon: Icons.beach_access,
           height: MediaQuery.of(context).size.height * 0.6,
         ),
@@ -405,9 +413,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
         return;
       }
       debugLog('Failed to update trip: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to update trip')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).failedToUpdateTrip)),
+      );
     }
   }
 
@@ -436,9 +444,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
         return;
       }
       debugLog('Failed to delete trip: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to delete trip')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).failedToDeleteTrip)),
+      );
     }
   }
 
@@ -466,7 +474,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       debugLog('Failed to load trip details: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load trip details')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).failedToLoadTripDetails),
+          ),
         );
       }
     }

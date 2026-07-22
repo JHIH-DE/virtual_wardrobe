@@ -12,6 +12,7 @@ import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/image_edit_result.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'camera_capture_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
@@ -37,6 +38,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   final TransformationController _transformationController =
       TransformationController();
   bool _isAnalyzing = false;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void initState() {
@@ -147,7 +150,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   AppToolBar _buildAppBar(BuildContext context) {
     return AppToolBar(
-      title: 'Edit',
+      title: _l10n.edit,
       onBack: () {
         if (!_isAnalyzing) Navigator.pop(context);
       },
@@ -160,8 +163,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       children: [
         _buildScaffold(context),
         if (_isAnalyzing)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Analyzing Clothing...'),
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.analyzingClothingEllipsis),
           ),
       ],
     );
@@ -193,7 +196,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   Widget _buildConfirmButton() {
     return BottomActionButton(
-      label: _isAnalyzing ? 'Analyzing...' : 'Confirmed',
+      label: _isAnalyzing ? _l10n.analyzingEllipsis : _l10n.confirmed,
       onPressed: (_hasImage && !_isAnalyzing) ? _handleConfirmed : null,
       trailing: Image.asset(
         'assets/images/ai_process.png',
@@ -270,7 +273,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           child: Row(
             children: [
               Text(
-                'Reset',
+                _l10n.reset,
                 style: AppTextStyle.bold16.copyWith(
                   color: AppColors.textOnPrimary,
                 ),
@@ -296,11 +299,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           child: Image.asset('assets/images/pinch.png', height: 54),
         ),
         const SizedBox(width: 12),
-        const Expanded(
-          child: Text(
-            'Pinch to zoom the image to make sure the picture have the whole details.',
-            style: AppTextStyle.bold16,
-          ),
+        Expanded(
+          child: Text(_l10n.pinchToZoomHint, style: AppTextStyle.bold16),
         ),
       ],
     );
@@ -311,7 +311,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       children: [
         Expanded(
           child: PillButton(
-            label: const Text('Retake', style: AppTextStyle.bold16),
+            label: Text(_l10n.retake, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/camera.png', height: 32),
             onTap: _isAnalyzing ? () {} : _handleRetake,
           ),
@@ -319,7 +319,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         const SizedBox(width: 16),
         Expanded(
           child: PillButton(
-            label: const Text('Album', style: AppTextStyle.bold16),
+            label: Text(_l10n.album, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/album.png', height: 32),
             onTap: _isAnalyzing ? () {} : _handleAlbum,
           ),

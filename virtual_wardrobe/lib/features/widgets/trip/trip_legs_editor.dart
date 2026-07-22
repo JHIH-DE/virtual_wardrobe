@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/location_result.dart';
 import '../../../data/trip_plan.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../location_picker_page.dart';
 import 'trip_leg_date_range_picker.dart';
 
@@ -74,6 +75,7 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +88,7 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
         TextButton.icon(
           onPressed: _addLeg,
           icon: const Icon(Icons.add, size: 18, color: AppColors.accent),
-          label: const Text('Add Location'),
+          label: Text(l10n.addLocation),
           style: TextButton.styleFrom(
             foregroundColor: AppColors.accent,
             padding: EdgeInsets.zero,

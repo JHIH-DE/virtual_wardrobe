@@ -8,6 +8,7 @@ import '../core/services/auth_service.dart';
 import '../core/services/auth_storage.dart';
 import '../core/services/profile_service.dart';
 import '../core/utils/debug_log.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'body_profile_page.dart';
 import 'daily_preferences_page.dart';
 import 'login_page.dart';
@@ -110,39 +111,40 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  AppToolBar _buildAppBar() {
-    return const AppToolBar(title: 'Settings');
+  AppToolBar _buildAppBar(AppLocalizations l10n) {
+    return AppToolBar(title: l10n.settings);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(l10n),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                _buildProfileCard(),
+                _buildProfileCard(l10n),
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildFigureCard(),
+                  child: _buildFigureCard(l10n),
                 ),
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildOutfitStyleCard(),
+                  child: _buildOutfitStyleCard(l10n),
                 ),
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildDailyOutfitCard(),
+                  child: _buildDailyOutfitCard(l10n),
                 ),
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildLogoutCard(),
+                  child: _buildLogoutCard(l10n),
                 ),
                 const SizedBox(height: 32),
               ],
@@ -150,7 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(AppLocalizations l10n) {
     ImageProvider? avatarProvider;
     if (_avatarUrl != null &&
         _avatarUrl!.isNotEmpty &&
@@ -178,7 +180,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Account name', style: AppTextStyle.bold14),
+                      Text(l10n.accountNameLabel, style: AppTextStyle.bold14),
                       const SizedBox(height: 3),
                       Text(
                         (_name != null && _name!.isNotEmpty) ? _name! : '---',
@@ -203,17 +205,17 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildFigureCard() {
+  Widget _buildFigureCard(AppLocalizations l10n) {
     return AppListCard(
       onTap: _openFigureSetting,
       leadingAsset: 'assets/images/figure_setting.png',
       showArrow: true,
       summary: '$_weightLabel   $_heightLabel',
-      child: const Text('Body Profile', style: AppTextStyle.bold16),
+      child: Text(l10n.bodyProfile, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildOutfitStyleCard() {
+  Widget _buildOutfitStyleCard(AppLocalizations l10n) {
     return AppListCard(
       onTap: () => Navigator.push(
         context,
@@ -221,11 +223,11 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       leading: const Icon(Icons.style_outlined, color: AppColors.icon),
       showArrow: true,
-      child: const Text('Personal Style', style: AppTextStyle.bold16),
+      child: Text(l10n.styleProfile, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildDailyOutfitCard() {
+  Widget _buildDailyOutfitCard(AppLocalizations l10n) {
     return AppListCard(
       onTap: () => Navigator.push(
         context,
@@ -233,15 +235,15 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       leadingAsset: 'assets/images/daily_planner.png',
       showArrow: true,
-      child: const Text('Daily Preferences', style: AppTextStyle.bold16),
+      child: Text(l10n.dailyPreferences, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildLogoutCard() {
+  Widget _buildLogoutCard(AppLocalizations l10n) {
     return AppListCard(
       onTap: _logout,
       leadingAsset: 'assets/images/logout.png',
-      child: const Text('Logout', style: AppTextStyle.bold16),
+      child: Text(l10n.logout, style: AppTextStyle.bold16),
     );
   }
 }

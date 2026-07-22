@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class ProfileAvatar extends StatelessWidget {
   final ImageProvider? image;
@@ -50,7 +51,7 @@ class ProfileAvatar extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4, bottom: 13),
                     color: Colors.black.withValues(alpha: 0.54),
                     child: Text(
-                      'Edit Photo',
+                      AppLocalizations.of(context).editPhoto,
                       textAlign: TextAlign.center,
                       style: AppTextStyle.bold12.copyWith(
                         color: AppColors.textOnPrimary,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/route_observer.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'card_corner_badge.dart';
 
 /// Coordinates a group of [RemovableCard]s (e.g. all cards in one grid) so
@@ -76,6 +77,7 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Stack(
       children: [
         widget.child,
@@ -117,7 +119,7 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              'REMOVE',
+                              l10n.remove.toUpperCase(),
                               style: AppTextStyle.bold16.copyWith(
                                 color: AppColors.textPrimary,
                                 letterSpacing: 0.5,
@@ -129,7 +131,7 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
                         GestureDetector(
                           onTap: _close,
                           child: Text(
-                            'cancel',
+                            l10n.cancel.toLowerCase(),
                             style: AppTextStyle.regular16.copyWith(
                               color: AppColors.textOnPrimary,
                               decoration: TextDecoration.underline,

@@ -10,6 +10,8 @@ import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import '../data/trip_plan.dart';
+import '../l10n/garment_localization.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'trip_garment_selection_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/removable_card.dart';
@@ -45,6 +47,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   final _deleteGroup = RemovableCardGroup();
 
   int get _tripId => int.parse(widget.trip.id);
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void initState() {
@@ -132,7 +135,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       debugLog('Failed to update suitcase: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update suitcase')),
+          SnackBar(content: Text(_l10n.failedToUpdateSuitcase)),
         );
       }
     } finally {
@@ -166,7 +169,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to remove item')));
+        ).showSnackBar(SnackBar(content: Text(_l10n.failedToRemoveItem)));
       }
     } finally {
       if (mounted) setState(() => _pendingIds.remove(id));
@@ -174,7 +177,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: '${widget.trip.name} Suitcase');
+    return AppToolBar(title: _l10n.suitcaseTitleWithName(widget.trip.name));
   }
 
   @override
@@ -196,8 +199,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           ),
         ),
         if (_loading)
-          const Positioned.fill(
-            child: LoadingOverlay(label: 'Loading Suitcase...'),
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.loadingSuitcaseEllipsis),
           ),
       ],
     );
@@ -216,15 +219,15 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         padding: const EdgeInsets.all(16),
         children: [
           PrimaryActionButton(
-            label: 'Add Garment',
+            label: _l10n.addGarment,
             icon: Icons.add,
             fullWidth: true,
             onPressed: () => _handleAddGarment(allGarments),
           ),
           const SizedBox(height: 20),
           if (packedGarments.isEmpty)
-            const EmptyStatePlaceholder(
-              message: 'No garments packed yet',
+            EmptyStatePlaceholder(
+              message: _l10n.noGarmentsPackedYet,
               icon: Icons.luggage_outlined,
               padding: EdgeInsets.only(top: 80),
             )
@@ -252,7 +255,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   ) {
     if (garments.isEmpty) return const [];
     return [
-      Text(category.label, style: AppTextStyle.bold16),
+      Text(category.localizedLabel(context), style: AppTextStyle.bold16),
       const SizedBox(height: 12),
       GridView.builder(
         shrinkWrap: true,

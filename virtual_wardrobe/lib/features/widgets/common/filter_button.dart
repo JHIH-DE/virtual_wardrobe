@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'selectable_chip.dart';
 
 /// One labeled row of selectable chips inside a [FilterButton]'s sheet.
@@ -13,15 +14,15 @@ class FilterGroup {
   final List<String> options;
   final Set<String> Function() selected;
   final void Function(String option) onToggle;
-  final String emptyMessage;
+  final String? emptyMessage;
 
   FilterGroup({
     required this.label,
     required this.options,
     required this.selected,
     required this.onToggle,
-    String? emptyMessage,
-  }) : emptyMessage = emptyMessage ?? 'No ${label.toLowerCase()} available';
+    this.emptyMessage,
+  });
 }
 
 /// Filter icon button that opens a dropdown menu built from [groups],
@@ -115,6 +116,7 @@ class _FilterButtonState extends State<FilterButton> {
   }
 
   Widget _buildPanel() {
+    final l10n = AppLocalizations.of(context);
     return Material(
       color: AppColors.surface,
       elevation: 8,
@@ -134,7 +136,10 @@ class _FilterButtonState extends State<FilterButton> {
                   const SizedBox(height: 10),
                   widget.groups[i].options.isEmpty
                       ? Text(
-                          widget.groups[i].emptyMessage,
+                          widget.groups[i].emptyMessage ??
+                              l10n.noOptionsAvailable(
+                                widget.groups[i].label.toLowerCase(),
+                              ),
                           style: AppTextStyle.regular14.copyWith(
                             color: AppColors.textSecondary,
                           ),

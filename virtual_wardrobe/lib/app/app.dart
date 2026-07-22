@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/services/auth_storage.dart';
 import '../features/login_page.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'main_shell.dart';
 import 'route_observer.dart';
 import 'theme/app_theme.dart';
@@ -22,6 +23,8 @@ class App extends StatelessWidget {
     return MaterialApp(
       theme: AppTheme.light(),
       navigatorObservers: [routeObserver],
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: FutureBuilder<Widget>(
         future: _bootstrap(),
         builder: (context, snapshot) {

@@ -1,0 +1,367 @@
+{
+  "@@locale": "en",
+  "appTitle": "LUMI",
+  "@appTitle": {
+    "description": "The application title"
+  },
+
+  "settings": "Settings",
+  "bodyProfile": "Body Profile",
+  "styleProfile": "Style Profile",
+  "dailyPreferences": "Daily Preferences",
+  "logout": "Logout",
+
+  "findYourStyle": "Find Your Style",
+  "styleSelectionInstruction": "Choose up to 3 styles that best match your everyday wardrobe.",
+  "styleSelectionDescription": "We'll personalize your outfit recommendations based on your selections.",
+
+  "save": "Save",
+  "cancel": "Cancel",
+  "remove": "Remove",
+  "discard": "Discard",
+  "rename": "Rename",
+  "share": "Share",
+  "delete": "Delete",
+  "details": "Details",
+
+  "renameLook": "Rename Look",
+  "lookNameLabel": "Name of this look",
+  "remixLook": "Remix Look",
+  "saveLook": "Save Look",
+  "loadingGarments": "Loading Garments…",
+  "myCollection": "My Collection",
+  "myLook": "My Look",
+  "shareComingSoon": "Share coming soon",
+  "failedToLoadImage": "Failed to load image",
+  "failedToLoadGarments": "Failed to load garments",
+
+  "saveThisLookTitle": "Save this look?",
+  "saveThisLookBody": "Would you like to save this look to your collection?",
+  "removeLookTitle": "Remove look?",
+  "removeLookBody": "This look will be removed from your Looks.",
+
+  "createdOnDate": "Created {date}",
+  "@createdOnDate": {
+    "description": "Footer showing the creation date of a look",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+
+  "outfitTitle": "{style} Outfit",
+  "@outfitTitle": {
+    "description": "Auto-generated look title built from its first season/style tag",
+    "placeholders": {
+      "style": {
+        "type": "String"
+      }
+    }
+  },
+
+  "garmentsCount": "Garments ({count})",
+  "@garmentsCount": {
+    "description": "Section header showing how many garments are in a look",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "setGenderFirstMessage": "Set your gender in Personal Details first — style tags are picked based on it.",
+  "openPersonalDetails": "Open Personal Details",
+
+  "styleMinimalist": "Minimalist",
+  "styleKorean": "Korean",
+  "styleStreetwear": "Streetwear",
+  "styleSmartCasual": "Smart Casual",
+  "styleChic": "Chic",
+  "styleAthleisure": "Athleisure",
+  "styleOldMoney": "Old Money",
+  "styleRomantic": "Romantic",
+  "styleVintage": "Vintage",
+  "styleBohemian": "Bohemian",
+  "styleCityBoy": "City Boy",
+  "styleAmericanCasual": "American Casual",
+  "styleWorkwear": "Workwear",
+  "styleGorpcore": "Gorpcore",
+  "styleTechwear": "Techwear",
+  "styleOutdoor": "Outdoor",
+
+  "navHome": "Home",
+  "navCloset": "Closet",
+  "navLooks": "Looks",
+  "navTrips": "Trips",
+  "quickActions": "Quick Actions",
+  "quickActionAddClothing": "Add Clothing",
+  "quickActionAddLook": "Add Look",
+  "newTrip": "New Trip",
+
+  "retry": "Retry",
+  "aiTag": "AI",
+  "editPhoto": "Edit Photo",
+
+  "uploadImage": "Upload Image",
+  "chooseClearPhotoHint": "Please choose a clear photo.",
+  "choosePhoto": "Choose photo",
+
+  "noOptionsAvailable": "No {label} available",
+  "@noOptionsAvailable": {
+    "description": "Empty state for a filter group with no selectable options",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+
+  "editTripName": "Edit Trip Name",
+  "editDestinations": "Edit Destinations",
+  "enterTripName": "Enter trip name",
+  "editTripPurpose": "Edit Trip Purpose",
+  "deleteTrip": "Delete Trip",
+  "deleteTripConfirmation": "Are you sure you want to delete this trip?",
+  "viewPlan": "View Plan",
+  "tripNameLabel": "Trip Name",
+  "tripPurposeLabel": "Trip Purpose",
+  "create": "Create",
+  "fillAllFieldsError": "Please fill all fields",
+
+  "regenerate": "Regenerate",
+  "loading": "Loading…",
+  "tryAgain": "Try Again",
+  "generatingLookEllipsis": "Generating your look…",
+  "noLookImageYet": "No look image yet",
+  "generateLook": "Generate Look",
+
+  "selectDates": "Select Dates",
+  "startDatePlaceholder": "Start Date",
+  "endDatePlaceholder": "End Date",
+  "booked": "Booked",
+  "selected": "Selected",
+  "confirm": "Confirm",
+  "addLocation": "Add Location",
+
+  "addClothingPrompt": "How would you like to add a new clothing?",
+  "camera": "Camera",
+  "photoAlbum": "Photo Album",
+  "back": "Back",
+
+  "lookFallbackTitle": "Look #{id}",
+  "@lookFallbackTitle": {
+    "description": "Fallback look card title when the look has no name or tags",
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLoad": "Failed to Load",
+  "noImage": "No Image",
+
+  "tripPurposeLeisureTravel": "Leisure Travel",
+  "tripPurposeBusinessTrip": "Business Trip",
+  "tripPurposeFamilyTrip": "Family Trip",
+  "tripPurposeOutdoorTrip": "Outdoor Trip",
+  "tripPurposeCityTrip": "City Trip",
+  "tripPurposeResortVacation": "Resort / Vacation",
+  "tripPurposeMixed": "Mixed",
+
+  "categoryTop": "Top",
+  "categoryBottom": "Bottom",
+  "categoryOuter": "Outer",
+  "categoryOnePiece": "One-piece",
+  "categorySocks": "Socks",
+  "categoryShoes": "Shoes",
+  "categoryAccessory": "Accessory",
+
+  "colorBlack": "Black",
+  "colorWhite": "White",
+  "colorGrey": "Grey",
+  "colorBeige": "Beige",
+  "colorCream": "Cream",
+  "colorBrown": "Brown",
+  "colorNavy": "Navy",
+  "colorBlue": "Blue",
+  "colorGreen": "Green",
+  "colorOlive": "Olive",
+  "colorKhaki": "Khaki",
+  "colorRed": "Red",
+  "colorBurgundy": "Burgundy",
+  "colorYellow": "Yellow",
+  "colorOrange": "Orange",
+  "colorPink": "Pink",
+  "colorPurple": "Purple",
+
+  "deleteGarment": "Delete Garment",
+  "deleteGarmentConfirmation": "Are you sure you want to delete this garment?",
+  "deleteFailedPrefix": "Delete failed: {error}",
+  "@deleteFailedPrefix": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "unsavedChangesTitle": "You have unsaved changes",
+  "unsavedChangesBody": "If you leave this page, your changes will be lost.",
+  "dontSave": "Don't Save",
+  "addToCloset": "Add to Closet",
+  "outfitCombosPossible": "{combos} outfit combinations possible",
+  "@outfitCombosPossible": {
+    "placeholders": { "combos": { "type": "int" } }
+  },
+  "addMorePiecesHint": "Add a few more pieces to unlock outfit ideas",
+  "outfitComboBasis": "Based on the {tops} top(s), {bottoms} bottom(s) and {shoes} pair(s) of shoes already in your closet — a good sign this piece will earn its keep.",
+  "@outfitComboBasis": {
+    "placeholders": {
+      "tops": { "type": "int" },
+      "bottoms": { "type": "int" },
+      "shoes": { "type": "int" }
+    }
+  },
+  "clothingNameLabel": "Clothing Name",
+  "nameTheClothingHint": "Name the clothing",
+  "pleaseEnterNameError": "Please enter name",
+  "clothingCategoryLabel": "Clothing Category",
+  "productType": "Product Type",
+  "productTypeHint": "e.g. Top",
+  "pleaseEnterProductTypeError": "Please enter product type",
+  "color": "Color",
+  "brandOptionalLabel": "Brand (optional)",
+  "brandHint": "What is the brand of this clothing?",
+  "priceOptionalLabel": "Price (optional)",
+  "priceHint": "How much is this clothing?",
+  "purchaseDateLabel": "Purchase date",
+  "notUsedInLooksYet": "Not used in any looks yet",
+  "usedInLooks": "Used in Looks",
+  "selectAColor": "Select a color",
+  "chooseColorTitle": "Choose a color",
+  "clear": "Clear",
+  "selectDate": "Select date",
+  "editImage": "Edit image",
+  "changesSaved": "Changes Saved",
+
+  "midLayer": "Mid Layer",
+  "outerwear": "Outerwear",
+  "createLook": "Create Look",
+  "selectCombinationsInstruction": "Select the clothing combinations you'd like to try, then click \"Create Look\" to see your try-on results!",
+  "creatingLooksEllipsis": "Creating Looks…",
+  "loadingClosetEllipsis": "Loading Closet…",
+
+  "personalDetailsTitle": "Personal Details",
+  "genderMale": "Male",
+  "genderFemale": "Female",
+  "genderOther": "Other",
+  "genderPreferNotToSay": "Prefer not to say",
+  "accountNameLabel": "Account Name",
+  "enterYourNameHint": "Enter your name",
+  "genderLabel": "Gender",
+  "selectGenderHint": "Select gender",
+  "birthdayLabel": "Birthday",
+  "selectBirthdayHint": "Select birthday",
+  "homeLocationLabel": "Home Location",
+  "selectYourCityHint": "Select your city",
+
+  "seasonLabel": "Season",
+  "styleLabel": "Style",
+  "noLooksYet": "No looks yet.",
+  "itemNotUsedInLooksYet": "This item has not been used in any looks yet.",
+  "failedToUpdateFavorite": "Failed to update favorite",
+
+  "creatingTripEllipsis": "Creating Trip…",
+  "failedToCreateTrip": "Failed to create trip",
+  "tripPlannerTitle": "Trip Planner",
+  "loadingTripEllipsis": "Loading Trip…",
+  "noTripsPlannedYet": "No trips planned yet",
+  "statusOngoing": "Ongoing",
+  "statusUpcoming": "Upcoming",
+  "statusPast": "Past",
+  "failedToUpdateTrip": "Failed to update trip",
+  "failedToDeleteTrip": "Failed to delete trip",
+  "failedToLoadTripDetails": "Failed to load trip details",
+
+  "creatingEllipsis": "Creating…",
+  "generatingEllipsis": "Generating…",
+  "wardrobeForDate": "Wardrobe for {date}",
+  "@wardrobeForDate": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "noItemsPlanned": "No items planned",
+  "thinkingEllipsis": "Thinking…",
+  "suitcaseLabel": "Suitcase",
+  "packClothingHint": "Pack clothing for this trip",
+  "savedToCloset": "Saved to Closet ✅",
+
+  "selectGarmentsTitle": "Select Garments",
+  "noGarmentsInCategory": "No garments in {category}",
+  "@noGarmentsInCategory": {
+    "placeholders": { "category": { "type": "String" } }
+  },
+  "suggestedByAi": "Suggested by AI",
+  "loadingPackingSuggestions": "Loading packing suggestions…",
+  "recommendedSelectedCount": "Recommended {recommended} · Selected {selected}",
+  "@recommendedSelectedCount": {
+    "placeholders": {
+      "recommended": { "type": "int" },
+      "selected": { "type": "int" }
+    }
+  },
+
+  "failedToUpdateSuitcase": "Failed to update suitcase",
+  "failedToRemoveItem": "Failed to remove item",
+  "suitcaseTitleWithName": "{name} Suitcase",
+  "@suitcaseTitleWithName": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "loadingSuitcaseEllipsis": "Loading Suitcase…",
+  "addGarment": "Add Garment",
+  "noGarmentsPackedYet": "No garments packed yet",
+
+  "occasionDaily": "🏠 Daily",
+  "occasionWork": "💼 Work",
+  "occasionDate": "❤️ Date",
+  "occasionSport": "🏃 Sport",
+  "occasionFormal": "👔 Formal",
+  "settingsSaved": "Settings saved",
+  "comfortAdjustment": "Comfort Adjustment",
+  "dailyOccasions": "Daily Occasions",
+  "dayWithTodaySuffix": "{day} (Today)",
+  "@dayWithTodaySuffix": {
+    "placeholders": { "day": { "type": "String" } }
+  },
+  "apply": "Apply",
+  "perceivedTempOffset": "Perceived temperature offset",
+
+  "todaysLook": "Today's Look",
+  "loadingWeatherEllipsis": "Loading weather…",
+  "viewDetails": "View Details",
+
+  "googleLoginNotConfiguredIOS": "Google login is not configured for iOS yet.",
+  "googleLoginSuccess": "Google login success",
+  "appleLoginSuccess": "Apple login success",
+  "facebookLoginSuccess": "Facebook login success",
+  "loginHeading": "Log-In / Sign-in to get dressed!",
+  "continueWithApple": "Continue with Apple",
+  "signInWithGoogle": "Sign in with Google",
+  "signInWithFacebook": "Sign in with Facebook",
+  "copyrightText": "copyright reserved to LUMI inc.",
+
+  "noItemsFound": "No items found.",
+
+  "edit": "Edit",
+  "analyzingClothingEllipsis": "Analyzing Clothing…",
+  "analyzingEllipsis": "Analyzing…",
+  "confirmed": "Confirmed",
+  "reset": "Reset",
+  "pinchToZoomHint": "Pinch to zoom the image to make sure the picture have the whole details.",
+  "retake": "Retake",
+  "album": "Album",
+
+  "fullBodyPhotoLabel": "Full-body Photo",
+  "figureDetailLabel": "Figure Detail",
+  "chooseClearFullBodyPhotoHint": "Please choose a clear, full-body photo.",
+  "heightHint": "height",
+  "weightHint": "weight",
+
+  "searchLocationTitle": "Search Location",
+  "cityNameHint": "City name..."
+}
