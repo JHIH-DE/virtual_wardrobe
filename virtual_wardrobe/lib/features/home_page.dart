@@ -16,6 +16,7 @@ import 'looks_details_page.dart';
 import 'settings_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/lumi_insight_card.dart';
+import 'widgets/common/pill_button.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -107,6 +108,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
   AppToolBar _buildAppBar(BuildContext context) {
     return AppToolBar(
       title: 'Home',
+      titleWidget: Image.asset('assets/images/logo.png', height: 20),
       showBackButton: false,
       actions: [
         InkWell(
@@ -253,38 +255,53 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
       children: [
         Text("Today's Look", style: AppTextStyle.bold16),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: hasResult ? _openLookDetails : null,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: AspectRatio(
-              aspectRatio: 1 / 1.15,
-              child: Container(
-                color: AppColors.surface,
-                child: loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : (imageUrl == null || imageUrl.isEmpty)
-                    ? Center(
-                        child: Icon(
-                          Icons.checkroom,
-                          size: 48,
-                          color: AppColors.icon,
-                        ),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Center(
+        Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: AspectRatio(
+                aspectRatio: 1 / 1.15,
+                child: Container(
+                  color: AppColors.surface,
+                  child: loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : (imageUrl == null || imageUrl.isEmpty)
+                      ? Center(
                           child: Icon(
-                            Icons.broken_image_outlined,
+                            Icons.checkroom,
                             size: 48,
                             color: AppColors.icon,
                           ),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              size: 48,
+                              color: AppColors.icon,
+                            ),
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
-          ),
+            if (hasResult)
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: PillButton.floating(
+                  label: 'View Details',
+                  icon: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 10,
+                    color: AppColors.icon,
+                  ),
+                  onTap: _openLookDetails,
+                ),
+              ),
+          ],
         ),
       ],
     );

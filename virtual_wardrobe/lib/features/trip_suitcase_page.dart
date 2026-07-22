@@ -12,7 +12,7 @@ import '../data/garment.dart';
 import '../data/trip_plan.dart';
 import 'trip_garment_selection_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/deletable_card.dart';
+import 'widgets/common/removable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/loading_overlay.dart';
@@ -42,7 +42,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   bool _loading = true;
   Set<int> _packedIds = {};
   final Set<int> _pendingIds = {};
-  final _deleteGroup = DeletableCardGroup();
+  final _deleteGroup = RemovableCardGroup();
 
   int get _tripId => int.parse(widget.trip.id);
 
@@ -272,7 +272,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   }
 
   Widget _buildGarmentCard(Garment g) {
-    return DeletableCard(
+    return RemovableCard(
       group: _deleteGroup,
       onDelete: () => _removeGarment(g),
       child: GarmentCard(garment: g, showSelectionIndicator: false),

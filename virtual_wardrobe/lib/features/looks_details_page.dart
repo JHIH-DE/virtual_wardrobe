@@ -10,6 +10,7 @@ import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../core/services/look_service.dart';
+import '../core/utils/signed_url.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
 import 'add_look_page.dart';
@@ -18,7 +19,6 @@ import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/card_corner_badge.dart';
 import 'widgets/common/labeled_divider.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_list_card.dart';
@@ -49,8 +49,6 @@ class LooksDetailsPage extends ConsumerStatefulWidget {
 class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   bool _isDeleting = false;
   bool _isSaving = false;
-  bool _isFavoriteLoading = false;
-  late bool _isFavorite;
   bool _isSaved = false;
   String? _name;
   List<String>? _seasons;
@@ -58,6 +56,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   List<Garment>? _garments;
   bool _loadingGarments = false;
   bool _openingTryOn = false;
+  late String _imageUrl;
 
   List<String> get _effectiveSeasons => _seasons ?? widget.look.seasons;
   List<String> get _effectiveStyle => _style ?? widget.look.style;
@@ -66,10 +65,29 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _isFavorite = widget.look.isFavorite;
     _name = widget.look.name;
+    _imageUrl = widget.look.imageUrl;
     if (widget.look.garmentIds.isNotEmpty) _loadGarments();
     if (widget.isNew) _fetchLookDetails();
+    // A freshly-created look's URL was just signed, but one opened from a
+    // list (looks_page.dart, garment_looks_page.dart) may have sat in
+    // memory long enough for its signed URL to expire.
+    if (!widget.isNew) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _ensureFreshOutfitImage(),
+      );
+    }
+  }
+
+  Future<void> _ensureFreshOutfitImage() async {
+    if (!isSignedUrlExpired(_imageUrl)) return;
+    try {
+      final data = await LookService().getLook(widget.look.id);
+      final fresh = Look.fromJson(data);
+      if (mounted) setState(() => _imageUrl = fresh.imageUrl);
+    } catch (_) {
+      // Leave the existing URL; the image's errorWidget covers the fallback.
+    }
   }
 
   @override
@@ -265,52 +283,36 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   }
 
   Widget _buildOutfitImage() {
-    return Stack(
-      children: [
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            PageRouteBuilder(
-              opaque: false,
-              pageBuilder: (_, __, ___) =>
-                  FullScreenImagePage(imageUrl: widget.look.imageUrl),
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: AspectRatio(
-              aspectRatio: 3 / 4,
-              child: Hero(
-                tag: 'outfit_image_${widget.look.id}',
-                child: CachedNetworkImage(
-                  imageUrl: widget.look.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) =>
-                      const Center(child: CircularProgressIndicator()),
-                  errorWidget: (_, __, ___) => Center(
-                    child: Text(
-                      'Failed to load image',
-                      style: AppTextStyle.regular14.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        PageRouteBuilder(
+          opaque: false,
+          pageBuilder: (_, __, ___) => FullScreenImagePage(imageUrl: _imageUrl),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: AspectRatio(
+          aspectRatio: 3 / 4,
+          child: Hero(
+            tag: 'outfit_image_${widget.look.id}',
+            child: CachedNetworkImage(
+              imageUrl: _imageUrl,
+              fit: BoxFit.cover,
+              placeholder: (_, __) =>
+                  const Center(child: CircularProgressIndicator()),
+              errorWidget: (_, __, ___) => Center(
+                child: Text(
+                  'Failed to load image',
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
             ),
           ),
         ),
-        Positioned(
-          top: 12,
-          right: 12,
-          child: CardCornerBadge(
-            icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-            iconColor: _isFavorite ? AppColors.favorite : AppColors.icon,
-            onTap: _isFavoriteLoading
-                ? null
-                : (widget.isNew ? _saveWithFavorite : _toggleFavorite),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -384,42 +386,30 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     setState(() => _loadingGarments = true);
     try {
       // Reuse whatever My Closet has already loaded into garmentsProvider
-      // instead of always hitting the network per garment.
+      // instead of always hitting the network per garment — but skip stale
+      // cache entries whose signed image URL has expired, so photos don't
+      // render as broken images.
       final cached = ref.read(garmentsProvider).valueOrNull ?? const [];
       final cachedById = _indexGarmentsById(cached);
 
       final results = await Future.wait(
-        widget.look.garmentIds.map(
-          (id) => cachedById[id] != null
-              ? Future.value(cachedById[id]!)
-              : GarmentService().getGarment(id),
-        ),
+        widget.look.garmentIds.map((id) {
+          final cachedGarment = cachedById[id];
+          final imageUrl = cachedGarment?.imageUrl;
+          final isFresh =
+              cachedGarment != null &&
+              (imageUrl == null ||
+                  imageUrl.isEmpty ||
+                  !isSignedUrlExpired(imageUrl));
+          return isFresh
+              ? Future.value(cachedGarment)
+              : GarmentService().getGarment(id);
+        }),
       );
       if (mounted) setState(() => _garments = results);
     } catch (_) {
     } finally {
       if (mounted) setState(() => _loadingGarments = false);
-    }
-  }
-
-  Future<void> _toggleFavorite() async {
-    final next = !_isFavorite;
-    setState(() {
-      _isFavorite = next;
-      _isFavoriteLoading = true;
-    });
-    try {
-      await LookService().setFavorite(widget.look.id, isFavorite: next);
-      ref
-          .read(looksProvider.notifier)
-          .updateFavorite(widget.look.id, isFavorite: next);
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (_) {
-      if (mounted) setState(() => _isFavorite = !next);
-    } finally {
-      if (mounted) setState(() => _isFavoriteLoading = false);
     }
   }
 
@@ -451,49 +441,6 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
           const SnackBar(content: Text('Failed to load garments')),
         );
       }
-    }
-  }
-
-  Future<void> _saveWithFavorite() async {
-    if (_isSaved) {
-      _toggleFavorite();
-      return;
-    }
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: 'Save this look?',
-        body:
-            'This look will be saved to your collection and marked as favorite.',
-        primaryLabel: 'Save',
-        onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: 'Cancel',
-        onSecondary: () => Navigator.pop(ctx, false),
-      ),
-    );
-    if (ok != true || !mounted) return;
-
-    setState(() => _isFavoriteLoading = true);
-    try {
-      await LookService().setSaved(widget.look.id, isSaved: true);
-      await LookService().setFavorite(widget.look.id, isFavorite: true);
-      await ref.read(looksProvider.notifier).refresh();
-      if (mounted) {
-        setState(() {
-          _isFavorite = true;
-          _isSaved = true;
-        });
-      }
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      if (mounted) setState(() => _isFavoriteLoading = false);
     }
   }
 
@@ -593,7 +540,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Edit Name',
+        title: 'Rename Look',
         content: TextField(
           controller: controller,
           autofocus: true,

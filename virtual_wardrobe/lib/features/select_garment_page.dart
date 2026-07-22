@@ -32,12 +32,16 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
   Set<String> _selectedColors = {'All'};
   Set<String> _selectedTypes = {'All'};
   Garment? _pending;
+  late final int? _initialSelectedId;
 
   @override
   void initState() {
     super.initState();
     _pending = widget.selected;
+    _initialSelectedId = widget.selected?.id;
   }
+
+  bool get _isModified => _pending?.id != _initialSelectedId;
 
   List<Garment> get _byCategory =>
       widget.garments.where((g) => g.category == widget.category).toList();
@@ -172,6 +176,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
     return BottomActionButton(
       label: 'Confirm',
       onPressed: () => Navigator.pop(context, SelectGarmentResult(_pending)),
+      enabled: _isModified,
     );
   }
 }

@@ -12,6 +12,7 @@ import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../core/services/trip_plan_service.dart';
 import '../core/utils/debug_log.dart';
+import '../core/utils/signed_url.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
@@ -88,15 +89,18 @@ Future<_WeatherForecast> _fetchLegWeather(TripLeg leg) async {
 
       // Robust parsing: handle nulls or missing values in API response
       return _WeatherForecast(
-        codes: (daily['weathercode'] as List?)
+        codes:
+            (daily['weathercode'] as List?)
                 ?.map((v) => (v as num?)?.toInt() ?? 0)
                 .toList() ??
             [],
-        highs: (daily['temperature_2m_max'] as List?)
+        highs:
+            (daily['temperature_2m_max'] as List?)
                 ?.map((v) => (v as num?)?.toDouble() ?? 0.0)
                 .toList() ??
             [],
-        lows: (daily['temperature_2m_min'] as List?)
+        lows:
+            (daily['temperature_2m_min'] as List?)
                 ?.map((v) => (v as num?)?.toDouble() ?? 0.0)
                 .toList() ??
             [],
@@ -241,7 +245,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   late final List<int> _weatherCodes = widget.initialData.weatherCodes;
   late final List<double> _highTemps = widget.initialData.highTemps;
   late final List<double> _lowTemps = widget.initialData.lowTemps;
-  late final List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
+  late List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
 
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
@@ -257,11 +261,53 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     super.initState();
     _loadPackingAdvice();
     _loadOutfitImage();
+    // preload() fetched fresh garment image URLs, but if this page instance
+    // stays open long enough for them to expire (e.g. backgrounded, or the
+    // trip was preloaded a while before the user actually opened it), there
+    // was previously no way to recover — the day outfits were immutable.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _ensureFreshDayGarments(),
+    );
   }
 
   Future<void> _loadOutfitImage() async {
     final jobId = _currentDayOutfit?.jobId;
     if (jobId != null && jobId != 0) await watchJob(jobId);
+  }
+
+  bool get _hasStaleGarmentImages => _dayOutfits.any(
+    (day) => day.garments.any((g) {
+      final url = g.imageUrl;
+      return url != null && url.isNotEmpty && isSignedUrlExpired(url);
+    }),
+  );
+
+  Future<void> _ensureFreshDayGarments() async {
+    if (!_hasStaleGarmentImages) return;
+    try {
+      final fresh = await GarmentService().getGarments();
+      final freshById = {
+        for (final g in fresh)
+          if (g.id != null) g.id!: g,
+      };
+      if (!mounted) return;
+      setState(() {
+        _dayOutfits = _dayOutfits
+            .map(
+              (day) => TripDayOutfit(
+                optionId: day.optionId,
+                jobId: day.jobId,
+                garments: day.garments
+                    .map((g) => freshById[g.id] ?? g)
+                    .toList(),
+              ),
+            )
+            .toList();
+      });
+    } catch (_) {
+      // Leave the existing URLs; GarmentImage's errorWidget covers the
+      // fallback if they've truly expired.
+    }
   }
 
   Future<void> _loadPackingAdvice() async {

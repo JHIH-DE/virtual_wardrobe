@@ -82,7 +82,7 @@ class GarmentCard extends StatelessWidget {
                             height: 24,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? AppColors.primary
+                                  ? AppColors.styleSelected
                                   : AppColors.surface,
                               shape: BoxShape.circle,
                               boxShadow: [

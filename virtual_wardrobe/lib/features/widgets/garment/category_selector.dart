@@ -20,7 +20,7 @@ class CategorySelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.surface,
+      color: AppColors.toolbarBackground,
       child: SizedBox(
         height: 60,
         child: ListView.separated(

@@ -10,18 +10,19 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
+import '../core/services/look_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/signed_url.dart';
 import '../data/garment.dart';
 import '../data/image_edit_result.dart';
 import 'garment_looks_page.dart';
 import 'image_editor_page.dart';
-import 'widgets/common/action_button.dart';
 import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/custom_dropdown.dart';
+import 'widgets/common/lumi_insight_card.dart';
 import 'widgets/common/pill_button.dart';
 import 'widgets/common/section_title.dart';
 import 'widgets/common/tappable_field_decorator.dart';
@@ -58,9 +59,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
-
-  bool _isFavorite = false;
-  bool _isFavoriteLoading = false;
+  int? _lookCount;
 
   bool _isModified = false;
   late String _initialName;
@@ -77,7 +76,6 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     _editingGarment = widget.initialGarment;
     _id = _editingGarment?.id;
     _imagePathOrUrl = _editingGarment?.imageUrl;
-    _isFavorite = _editingGarment?.isFavorite ?? false;
 
     // 初始化初始值，用於後續比較
     _initialName = _editingGarment?.name ?? '';
@@ -116,6 +114,23 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
 
     if (_id != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _ensureFreshImage());
+      _loadLookCount();
+    }
+  }
+
+  int? get _garmentIdForLooks =>
+      _editingGarment?.garmentId ?? _editingGarment?.id;
+
+  Future<void> _loadLookCount() async {
+    final gid = _garmentIdForLooks;
+    if (gid == null) return;
+    try {
+      final looks = await LookService().getLooksByGarments([gid]);
+      final count = looks.where((l) => l.isSaved).length;
+      if (mounted) setState(() => _lookCount = count);
+    } catch (_) {
+      // Tile just stays in its loading state; not worth surfacing an error
+      // for a secondary count that the user can still reach via the tap.
     }
   }
 
@@ -275,7 +290,13 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
           ),
-          const SizedBox(height: 20),
+          if (_isAddMode) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildOutfitPotentialCard(),
+            ),
+          ],
           _buildDetailsSection(context),
         ],
       ),
@@ -299,6 +320,74 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     );
   }
 
+  // UI mockup only — combo count is a rough client-side estimate from
+  // whatever's already loaded in garmentsProvider, not a real AI analysis.
+  Widget _buildOutfitPotentialCard() {
+    final closet = ref.watch(garmentsProvider).valueOrNull ?? const [];
+    final tops = closet.where((g) => g.category == GarmentCategory.top).length;
+    final bottoms = closet
+        .where((g) => g.category == GarmentCategory.bottom)
+        .length;
+    final outers = closet
+        .where((g) => g.category == GarmentCategory.outer)
+        .length;
+    final shoes = closet
+        .where((g) => g.category == GarmentCategory.shoes)
+        .length;
+
+    final combos = _estimateOutfitCombos(
+      tops: tops,
+      bottoms: bottoms,
+      outers: outers,
+      shoes: shoes,
+    );
+
+    return LumiInsightCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            combos > 0
+                ? '$combos outfit combinations possible'
+                : 'Add a few more pieces to unlock outfit ideas',
+            style: AppTextStyle.bold14,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Based on the $tops top${tops == 1 ? '' : 's'}, $bottoms '
+            'bottom${bottoms == 1 ? '' : 's'} and $shoes pair${shoes == 1 ? '' : 's'} '
+            'of shoes already in your closet — a good sign this piece '
+            'will earn its keep.',
+            style: AppTextStyle.regular14.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _estimateOutfitCombos({
+    required int tops,
+    required int bottoms,
+    required int outers,
+    required int shoes,
+  }) {
+    final shoeFactor = shoes == 0 ? 1 : shoes;
+    switch (_category) {
+      case GarmentCategory.top:
+        return bottoms * shoeFactor;
+      case GarmentCategory.bottom:
+        return tops * shoeFactor;
+      case GarmentCategory.outer:
+        return tops * bottoms;
+      case GarmentCategory.shoes:
+        return tops * bottoms;
+      default:
+        return (tops + bottoms) * shoeFactor;
+    }
+  }
+
   Widget _buildDetailsSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -306,10 +395,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_isAddMode) _buildActionButtons(),
-          const SizedBox(height: 8),
-          const Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
-          const SizedBox(height: 16),
+          if (!_isAddMode) _buildUsedInLooksTile(),
+          const Divider(height: 24, thickness: 1, color: AppColors.borderSubtle),
           _buildNameField(),
           const SizedBox(height: 20),
           _buildCategoryField(),
@@ -497,57 +584,77 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     }
   }
 
-  Widget _buildActionButtons() {
-    return ActionButtonRow(
-      buttons: [
-        ActionButton(
-          icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
-          iconColor: AppColors.icon,
-          label: 'Favorite',
-          onTap: _isFavoriteLoading ? null : _toggleFavorite,
-        ),
-        ActionButton(
-          icon: Icons.checkroom_outlined,
-          label: 'Used in Looks',
-          onTap: () {
-            final gid = _editingGarment?.garmentId ?? _editingGarment?.id;
-            debugLog(
-              'Used in Looks tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
-            );
-            if (gid == null) return;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => GarmentLooksPage(garmentId: gid),
+  Widget _buildUsedInLooksTile() {
+    final count = _lookCount;
+    final loading = count == null;
+    final zero = count == 0;
+    final navigable = !zero;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onTap: navigable ? _openUsedInLooks : null,
+        child: Container(
+          height: 60,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.checkroom_outlined,
+                size: 24,
+                color: AppColors.icon,
               ),
-            );
-          },
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  zero ? 'Not used in any looks yet' : 'Used in Looks',
+                  style: AppTextStyle.regular14.copyWith(
+                    color: zero
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              if (loading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else if (navigable) ...[
+                Text(
+                  '$count',
+                  style: AppTextStyle.bold14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 
-  Future<void> _toggleFavorite() async {
-    if (_id == null) return;
-    final next = !_isFavorite;
-    setState(() {
-      _isFavorite = next;
-      _isFavoriteLoading = true;
-    });
-    try {
-      await GarmentService().setFavorite(_id!, isFavorite: next);
-      ref
-          .read(garmentsProvider.notifier)
-          .updateFavorite(_id!, isFavorite: next);
-    } catch (e) {
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      if (mounted) setState(() => _isFavorite = !next);
-    } finally {
-      if (mounted) setState(() => _isFavoriteLoading = false);
-    }
+  void _openUsedInLooks() {
+    final gid = _garmentIdForLooks;
+    debugLog(
+      'Used in Looks tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
+    );
+    if (gid == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => GarmentLooksPage(garmentId: gid)),
+    );
   }
 
   Widget _colorPicker() {

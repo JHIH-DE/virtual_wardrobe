@@ -12,7 +12,7 @@ class AppColors {
   static const Color placeholderSurface = Color(
     0xFFEDEAE3,
   ); // empty photo/avatar wells
-  static const Color toolbarBackground = Color(0xFFFFFFFF);
+  static const Color toolbarBackground = Color(0xFFEFECEB);
   static const Color interactiveArea = Color(0xFFF8F7F4);
 
   // Text & icons
@@ -35,7 +35,7 @@ class AppColors {
   // Warm attention-grabbing accent — nav bar's raised center button, primary
   // dialog actions, and anywhere else that needs to stand out from the
   // monochrome ink/cream palette.
-  static const Color accent = Color(0xFFE9B949);
+  static const Color accent = Color(0xFF9966CC);
 
   // Social sign-in (fixed brand colors, do not retint)
   static const Color facebook = Color(0xFF1877F2);
@@ -63,6 +63,9 @@ class AppColors {
   // CategoryTag (season/style/collection chips)
   static const Color tagBackground = Color(0xFFEFEAE2);
   static const Color tagText = Color(0xFF6F655A);
+
+  // StylePreferencesPage — selected card's checkmark badge fill
+  static const Color styleSelected = accent;
 
   // Overlays — composed as base color + alpha so the opacity is explicit
   static const Color overlayScrim = Color(

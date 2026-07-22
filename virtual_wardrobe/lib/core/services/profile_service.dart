@@ -114,6 +114,19 @@ class ProfileService with BaseService {
     return data['full_body_object_url']?.toString();
   }
 
+  Future<List<String>?> getMyStyle() async {
+    debugLog('--- getMyStyle ---');
+    final uri = Uri.parse(_baseUrl);
+    final res = await withAuth(
+      (token) => http.get(uri, headers: authHeaders(token)),
+    );
+    if (res.statusCode == 404) return null;
+    final envelope = decodeMap(res, op: 'getMyStyle');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    final style = data['style'];
+    return style is List ? style.map((e) => e.toString()).toList() : null;
+  }
+
   Future<Map<String, dynamic>> updateMyProfile({
     String? name,
     String? gender,
@@ -121,6 +134,8 @@ class ProfileService with BaseService {
     num? height,
     num? weight,
     String? unitSystem,
+    String? location,
+    List<String>? style,
   }) async {
     debugLog('--- updateMyProfile ---');
     final uri = Uri.parse(_baseUrl);
@@ -132,6 +147,10 @@ class ProfileService with BaseService {
     if (height != null) payload['height'] = height;
     if (weight != null) payload['weight'] = weight;
     if (unitSystem != null) payload['unit_system'] = unitSystem;
+    if (location != null) payload['location'] = location;
+    if (style != null) {
+      payload['style'] = style;
+    }
 
     final res = await withAuth(
       (token) => http.patch(

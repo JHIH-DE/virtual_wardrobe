@@ -28,12 +28,23 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   String? _error;
   String? _fullBodyUrl;
   String? _fullBodyLocalPath;
+  String _initialHeight = '';
+  String _initialWeight = '';
+
+  bool get _isModified =>
+      _heightCtrl.text != _initialHeight || _weightCtrl.text != _initialWeight;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    // Typing doesn't rebuild this widget on its own — force one so
+    // _isModified gets re-evaluated as the user edits either field.
+    _heightCtrl.addListener(_onFieldChanged);
+    _weightCtrl.addListener(_onFieldChanged);
   }
+
+  void _onFieldChanged() => setState(() {});
 
   @override
   void dispose() {
@@ -61,6 +72,8 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
         if (h != null) _heightCtrl.text = (h as num).toStringAsFixed(0);
         if (w != null) _weightCtrl.text = (w as num).toStringAsFixed(0);
         _fullBodyUrl = fullBodyUrl;
+        _initialHeight = _heightCtrl.text;
+        _initialWeight = _weightCtrl.text;
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -143,8 +156,9 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
       appBar: _buildAppBar(),
       bottomNavigationBar: BottomActionButton(
         label: 'Save',
-        onPressed: _loading ? null : _saveProfile,
+        onPressed: _saveProfile,
         isLoading: _loading,
+        enabled: _isModified,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),

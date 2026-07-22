@@ -12,6 +12,7 @@ import 'body_profile_page.dart';
 import 'daily_preferences_page.dart';
 import 'login_page.dart';
 import 'personal_details_page.dart';
+import 'style_preferences_page.dart';
 import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/profile_avatar.dart';
@@ -157,7 +158,7 @@ class _SettingsPageState extends State<SettingsPage> {
       avatarProvider = NetworkImage(_avatarUrl!);
     }
     return Container(
-      color: AppColors.surface,
+      color: AppColors.pageBackground,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -177,7 +178,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Account', style: AppTextStyle.bold14),
+                      const Text('Account name', style: AppTextStyle.bold14),
                       const SizedBox(height: 3),
                       Text(
                         (_name != null && _name!.isNotEmpty) ? _name! : '---',
@@ -214,10 +215,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildOutfitStyleCard() {
     return AppListCard(
-      onTap: _openFigureSetting,
-      leadingAsset: 'assets/images/figure_setting.png',
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const StylePreferencesPage()),
+      ),
+      leading: const Icon(Icons.style_outlined, color: AppColors.icon),
       showArrow: true,
-      child: const Text('Style Preferences', style: AppTextStyle.bold16),
+      child: const Text('Personal Style', style: AppTextStyle.bold16),
     );
   }
 

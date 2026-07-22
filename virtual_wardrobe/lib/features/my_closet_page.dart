@@ -10,8 +10,8 @@ import '../data/garment.dart';
 import 'edit_garment_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/garment/category_selector.dart';
-import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
+import 'widgets/common/favorite_card.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/common/loading_overlay.dart';
@@ -28,7 +28,6 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   GarmentCategory _selectedCategory = GarmentCategory.top;
   final Set<String> _selectedColors = {};
   final Set<String> _selectedProductTypes = {};
-  final _deleteGroup = DeletableCardGroup();
 
   bool get _isFiltered =>
       _selectedColors.isNotEmpty || _selectedProductTypes.isNotEmpty;
@@ -141,7 +140,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     AsyncValue<List<Garment>> garmentsAsync,
   ) {
     return AppToolBar(
-      title: 'My Closet',
+      title: 'Closet',
       showBackButton: false,
       actions: [
         _buildFilterButton(garmentsAsync.valueOrNull ?? []),
@@ -225,7 +224,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(
         16,
-        16,
+        0,
         16,
         AppDimens.floatingNavBarClearance,
       ),
@@ -241,9 +240,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   }
 
   Widget _buildGarmentCard(Garment garment) {
-    return DeletableCard(
-      group: _deleteGroup,
-      onDelete: () => _deleteGarment(garment),
+    return FavoriteCard(
+      isFavorite: garment.isFavorite,
+      onToggle: () => _toggleFavorite(garment),
       child: GarmentCard(
         garment: garment,
         showSelectionIndicator: false,
@@ -252,20 +251,22 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     );
   }
 
-  Future<void> _deleteGarment(Garment garment) async {
+  Future<void> _toggleFavorite(Garment garment) async {
     final id = garment.id;
     if (id == null) return;
+    final next = !garment.isFavorite;
+    ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: next);
     try {
-      await GarmentService().deleteGarment(id);
-      ref.read(garmentsProvider.notifier).removeGarment(id);
+      await GarmentService().setFavorite(id, isFavorite: next);
     } catch (e) {
+      ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: !next);
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
         return;
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete garment')),
+          const SnackBar(content: Text('Failed to update favorite')),
         );
       }
     }

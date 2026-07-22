@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
@@ -67,6 +68,8 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
   Set<String> _selectedColors = {'All'};
   Set<String> _selectedTypes = {'All'};
+
+  bool get _isModified => !setEquals(_selectedIds, widget.initiallySelectedIds);
 
   @override
   void initState() {
@@ -254,6 +257,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       bottomNavigationBar: BottomActionButton(
         label: 'Confirm',
         onPressed: () => Navigator.pop(context, _selectedIds),
+        enabled: _isModified,
       ),
     );
   }

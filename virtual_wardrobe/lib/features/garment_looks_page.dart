@@ -8,9 +8,9 @@ import '../core/utils/debug_log.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/favorite_card.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/look/look_card.dart';
 
@@ -45,7 +45,6 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
   List<Look> _allLooks = [];
   bool _loading = true;
   String? _error;
-  final _deleteGroup = DeletableCardGroup();
 
   bool get _isFiltered =>
       !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
@@ -185,10 +184,9 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
   }
 
   Widget _buildLookCard(BuildContext context, Look look) {
-    return DeletableCard(
-      group: _deleteGroup,
-      borderRadius: BorderRadius.circular(20),
-      onDelete: () => _deleteLook(look),
+    return FavoriteCard(
+      isFavorite: look.isFavorite,
+      onToggle: () => _toggleFavorite(look),
       child: LookCard(
         look: look,
         onTap: () => Navigator.push(
@@ -199,21 +197,29 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
     );
   }
 
-  Future<void> _deleteLook(Look look) async {
+  void _setLookFavorite(int lookId, bool isFavorite) {
+    setState(() {
+      _allLooks = _allLooks
+          .map((l) => l.id == lookId ? l.copyWith(isFavorite: isFavorite) : l)
+          .toList();
+    });
+  }
+
+  Future<void> _toggleFavorite(Look look) async {
+    final next = !look.isFavorite;
+    _setLookFavorite(look.id, next);
     try {
-      await LookService().deleteLook(look.id);
-      if (!mounted) return;
-      setState(() => _allLooks.removeWhere((l) => l.id == look.id));
+      await LookService().setFavorite(look.id, isFavorite: next);
     } catch (e) {
+      if (!mounted) return;
+      _setLookFavorite(look.id, !next);
       if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
+        await AuthExpiredHandler.handle(context);
         return;
       }
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to delete look')));
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update favorite')),
+      );
     }
   }
 }

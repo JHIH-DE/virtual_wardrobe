@@ -113,61 +113,6 @@ extension GarmentColorX on GarmentColor {
   }
 }
 
-class OutfitSelection {
-  final Garment? top;
-  final Garment? middle;
-  final Garment? outer;
-  final Garment? bottom;
-  final Garment? onePiece;
-  final Garment? shoes;
-  final Garment? socks;
-  final Garment? accessory;
-
-  const OutfitSelection({
-    this.top,
-    this.middle,
-    this.outer,
-    this.bottom,
-    this.onePiece,
-    this.shoes,
-    this.socks,
-    this.accessory,
-  });
-
-  //bool get canTryOn => (top != null || middle != null) && bottom != null;
-  bool get canTryOn => true;
-
-  OutfitSelection copyWith({
-    Garment? top,
-    Garment? middle,
-    Garment? outer,
-    Garment? bottom,
-    Garment? onePiece,
-    Garment? shoes,
-    Garment? socks,
-    Garment? accessory,
-    bool clearTop = false,
-    bool clearMiddle = false,
-    bool clearOuter = false,
-    bool clearBottom = false,
-    bool clearOnePiece = false,
-    bool clearShoes = false,
-    bool clearSocks = false,
-    bool clearAccessory = false,
-  }) {
-    return OutfitSelection(
-      top: clearTop ? null : (top ?? this.top),
-      middle: clearMiddle ? null : (middle ?? this.middle),
-      outer: clearOuter ? null : (outer ?? this.outer),
-      bottom: clearBottom ? null : (bottom ?? this.bottom),
-      onePiece: clearOnePiece ? null : (onePiece ?? this.onePiece),
-      shoes: clearShoes ? null : (shoes ?? this.shoes),
-      socks: clearSocks ? null : (socks ?? this.socks),
-      accessory: clearAccessory ? null : (accessory ?? this.accessory),
-    );
-  }
-}
-
 class Garment {
   final int? id;
   final int? garmentId;

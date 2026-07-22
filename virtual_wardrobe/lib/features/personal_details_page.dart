@@ -8,13 +8,16 @@ import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/base_service.dart';
 import '../core/services/profile_service.dart';
+import '../data/location_result.dart';
 import 'image_editor_page.dart';
+import 'location_picker_page.dart';
 import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/custom_dropdown.dart';
 import 'widgets/common/profile_avatar.dart';
 import 'widgets/common/required_field_label.dart';
+import 'widgets/common/tappable_field_decorator.dart';
 
 class PersonalDetailsPage extends StatefulWidget {
   const PersonalDetailsPage({super.key});
@@ -32,6 +35,12 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
   String? _avatarLocalPath;
   String? _selectedGender;
   DateTime? _selectedBirthDate;
+  String? _homeLocation;
+
+  String _initialName = '';
+  String? _initialGender;
+  DateTime? _initialBirthDate;
+  String? _initialLocation;
 
   final List<String> _genderOptions = [
     'Male',
@@ -40,11 +49,22 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     'Prefer not to say',
   ];
 
+  bool get _isModified =>
+      _nameCtrl.text.trim() != _initialName ||
+      _selectedGender != _initialGender ||
+      _selectedBirthDate != _initialBirthDate ||
+      _homeLocation != _initialLocation;
+
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    // Typing doesn't rebuild this widget on its own — force one so
+    // _isModified gets re-evaluated as the user edits the name field.
+    _nameCtrl.addListener(_onFieldChanged);
   }
+
+  void _onFieldChanged() => setState(() {});
 
   @override
   void dispose() {
@@ -64,12 +84,17 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
         _avatarUrl = profile['avatar_object_url'] as String?;
         _nameCtrl.text = profile['name'] ?? '';
         _selectedGender = profile['gender'] as String?;
+        _homeLocation = profile['location'] as String?;
         final birthdayStr = profile['birthday'] as String?;
         if (birthdayStr != null && birthdayStr.isNotEmpty) {
           try {
             _selectedBirthDate = DateTime.parse(birthdayStr);
           } catch (_) {}
         }
+        _initialName = _nameCtrl.text.trim();
+        _initialGender = _selectedGender;
+        _initialBirthDate = _selectedBirthDate;
+        _initialLocation = _homeLocation;
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -94,6 +119,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
         birthday: _selectedBirthDate != null
             ? DateFormat('yyyy-MM-dd').format(_selectedBirthDate!)
             : null,
+        location: _homeLocation,
       );
       if (!mounted) return;
       Navigator.pop(context, result);
@@ -180,6 +206,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
             label: 'Save',
             onPressed: _saveProfile,
             isLoading: _loading,
+            enabled: _isModified,
           ),
         ],
       ),
@@ -246,6 +273,8 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
           _buildGenderField(),
           const SizedBox(height: 20),
           _buildBirthdayField(),
+          const SizedBox(height: 20),
+          _buildLocationField(),
         ],
       ),
     );
@@ -299,5 +328,45 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildLocationField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RequiredFieldLabel('Home Location'),
+        const SizedBox(height: 8),
+        TappableFieldDecorator(
+          onTap: _pickHomeLocation,
+          children: [
+            Expanded(
+              child: Text(
+                _homeLocation ?? 'Select your city',
+                style: TextStyle(
+                  color: _homeLocation == null
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.location_on_outlined,
+              size: 18,
+              color: AppColors.icon,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickHomeLocation() async {
+    if (_loading) return;
+    final result = await Navigator.push<LocationResult>(
+      context,
+      MaterialPageRoute(builder: (_) => const LocationPickerPage()),
+    );
+    if (result == null) return;
+    setState(() => _homeLocation = result.name);
   }
 }

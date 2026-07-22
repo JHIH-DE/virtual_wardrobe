@@ -9,9 +9,9 @@ import '../core/services/look_service.dart';
 import '../data/look.dart';
 import 'looks_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/deletable_card.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/favorite_card.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/look/look_card.dart';
 
@@ -23,8 +23,6 @@ class LooksPage extends ConsumerStatefulWidget {
 }
 
 class _LooksPageState extends ConsumerState<LooksPage> {
-  final _deleteGroup = DeletableCardGroup();
-
   static const List<String> _seasons = [
     'All',
     'Spring',
@@ -172,10 +170,9 @@ class _LooksPageState extends ConsumerState<LooksPage> {
   }
 
   Widget _buildLookCard(BuildContext context, Look look) {
-    return DeletableCard(
-      group: _deleteGroup,
-      borderRadius: BorderRadius.circular(20),
-      onDelete: () => _deleteLook(look),
+    return FavoriteCard(
+      isFavorite: look.isFavorite,
+      onToggle: () => _toggleFavorite(look),
       child: LookCard(
         look: look,
         onTap: () => Navigator.push(
@@ -186,21 +183,24 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     );
   }
 
-  Future<void> _deleteLook(Look look) async {
+  Future<void> _toggleFavorite(Look look) async {
+    final next = !look.isFavorite;
+    ref.read(looksProvider.notifier).updateFavorite(look.id, isFavorite: next);
     try {
-      await LookService().deleteLook(look.id);
-      ref.read(looksProvider.notifier).removeById(look.id);
+      await LookService().setFavorite(look.id, isFavorite: next);
     } catch (e) {
+      ref
+          .read(looksProvider.notifier)
+          .updateFavorite(look.id, isFavorite: !next);
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
         return;
       }
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to delete look')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update favorite')),
+        );
       }
     }
   }
-
 }

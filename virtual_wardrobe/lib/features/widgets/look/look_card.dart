@@ -25,6 +25,24 @@ class LookCard extends StatelessWidget {
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
 
+  Widget _buildImageFallback(IconData icon, String label) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 32, color: AppColors.icon),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: AppTextStyle.regular12.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -59,21 +77,12 @@ class LookCard extends StatelessWidget {
                             placeholder: (_, __) => const Center(
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            errorWidget: (_, __, ___) => const Center(
-                              child: Icon(
-                                Icons.broken_image_outlined,
-                                size: 36,
-                                color: AppColors.icon,
-                              ),
+                            errorWidget: (_, __, ___) => _buildImageFallback(
+                              Icons.broken_image_outlined,
+                              'Failed to Load',
                             ),
                           )
-                        : const Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 36,
-                              color: AppColors.icon,
-                            ),
-                          ),
+                        : _buildImageFallback(Icons.image_outlined, 'No Image'),
                   ),
                 ),
                 Padding(

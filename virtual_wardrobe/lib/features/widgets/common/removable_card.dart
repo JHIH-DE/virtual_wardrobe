@@ -5,10 +5,10 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import 'card_corner_badge.dart';
 
-/// Coordinates a group of [DeletableCard]s (e.g. all cards in one grid) so
+/// Coordinates a group of [RemovableCard]s (e.g. all cards in one grid) so
 /// opening one card's delete confirmation closes any other that's open.
 /// Create one instance per list/grid and pass it to every card in it.
-class DeletableCardGroup {
+class RemovableCardGroup {
   VoidCallback? _openClose;
 
   void _requestOpen(VoidCallback close) {
@@ -23,13 +23,13 @@ class DeletableCardGroup {
 
 /// Wraps [child] with a corner delete badge; tapping it shows a full-card
 /// black overlay with DELETE / cancel actions before invoking [onDelete].
-class DeletableCard extends StatefulWidget {
+class RemovableCard extends StatefulWidget {
   final Widget child;
   final VoidCallback onDelete;
   final BorderRadius borderRadius;
-  final DeletableCardGroup? group;
+  final RemovableCardGroup? group;
 
-  const DeletableCard({
+  const RemovableCard({
     super.key,
     required this.child,
     required this.onDelete,
@@ -38,10 +38,10 @@ class DeletableCard extends StatefulWidget {
   });
 
   @override
-  State<DeletableCard> createState() => _DeletableCardState();
+  State<RemovableCard> createState() => _RemovableCardState();
 }
 
-class _DeletableCardState extends State<DeletableCard> with RouteAware {
+class _RemovableCardState extends State<RemovableCard> with RouteAware {
   bool _confirming = false;
 
   void _open() {
@@ -117,7 +117,7 @@ class _DeletableCardState extends State<DeletableCard> with RouteAware {
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              'DELETE',
+                              'REMOVE',
                               style: AppTextStyle.bold16.copyWith(
                                 color: AppColors.textPrimary,
                                 letterSpacing: 0.5,

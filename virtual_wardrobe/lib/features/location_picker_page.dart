@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../app/theme/app_colors.dart';
-import '../data/trip_plan.dart';
+import '../data/location_result.dart';
 import 'widgets/common/app_tool_bar.dart';
 
 class LocationPickerPage extends StatefulWidget {

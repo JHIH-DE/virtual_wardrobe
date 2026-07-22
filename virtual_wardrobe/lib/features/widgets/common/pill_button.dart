@@ -49,13 +49,13 @@ class PillButton extends StatelessWidget {
   }) {
     return PillButton(
       key: key,
-      label: Text(label, style: AppTextStyle.bold16),
+      label: Text(label, style: AppTextStyle.bold14),
       icon: icon,
       onTap: onTap,
       height: null,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       mainAxisAlignment: MainAxisAlignment.start,
-      gap: 8,
+      gap: 4,
       border: null,
       boxShadow: const [
         BoxShadow(color: AppColors.overlaySubtle, blurRadius: 4),

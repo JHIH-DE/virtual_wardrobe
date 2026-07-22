@@ -17,6 +17,61 @@ import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/loading_overlay.dart';
 import 'widgets/garment/garment_image.dart';
 
+/// The user's in-progress slot-by-slot garment picks for this page's manual
+/// try-on flow. Purely local UI state (no fromJson/toJson) — not a synced
+/// domain model, so it lives here rather than in lib/data/.
+class _OutfitSelection {
+  final Garment? top;
+  final Garment? middle;
+  final Garment? outer;
+  final Garment? bottom;
+  final Garment? onePiece;
+  final Garment? shoes;
+  final Garment? socks;
+  final Garment? accessory;
+
+  const _OutfitSelection({
+    this.top,
+    this.middle,
+    this.outer,
+    this.bottom,
+    this.onePiece,
+    this.shoes,
+    this.socks,
+    this.accessory,
+  });
+
+  _OutfitSelection copyWith({
+    Garment? top,
+    Garment? middle,
+    Garment? outer,
+    Garment? bottom,
+    Garment? onePiece,
+    Garment? shoes,
+    Garment? socks,
+    Garment? accessory,
+    bool clearTop = false,
+    bool clearMiddle = false,
+    bool clearOuter = false,
+    bool clearBottom = false,
+    bool clearOnePiece = false,
+    bool clearShoes = false,
+    bool clearSocks = false,
+    bool clearAccessory = false,
+  }) {
+    return _OutfitSelection(
+      top: clearTop ? null : (top ?? this.top),
+      middle: clearMiddle ? null : (middle ?? this.middle),
+      outer: clearOuter ? null : (outer ?? this.outer),
+      bottom: clearBottom ? null : (bottom ?? this.bottom),
+      onePiece: clearOnePiece ? null : (onePiece ?? this.onePiece),
+      shoes: clearShoes ? null : (shoes ?? this.shoes),
+      socks: clearSocks ? null : (socks ?? this.socks),
+      accessory: clearAccessory ? null : (accessory ?? this.accessory),
+    );
+  }
+}
+
 class AddLookPage extends StatefulWidget {
   final List<Garment> initialGarments;
   final List<Garment>? preloadedGarments;
@@ -35,8 +90,8 @@ class AddLookPage extends StatefulWidget {
 
 class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
   final List<Garment> _allGarments = [];
-  late OutfitSelection _outfit;
-  late OutfitSelection _initialOutfit;
+  late _OutfitSelection _outfit;
+  late _OutfitSelection _initialOutfit;
   bool _isLoadingGarments = false;
 
   bool _hasCategory(GarmentCategory category) =>
@@ -77,7 +132,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     super.initState();
     _outfit = widget.initialGarments.isNotEmpty
         ? _buildInitialOutfit(widget.initialGarments)
-        : const OutfitSelection();
+        : const _OutfitSelection();
     _initialOutfit = _outfit;
     if (widget.preloadedGarments != null) {
       _allGarments.addAll(widget.preloadedGarments!);
@@ -86,11 +141,11 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     }
   }
 
-  OutfitSelection _buildInitialOutfit(List<Garment> garments) {
+  _OutfitSelection _buildInitialOutfit(List<Garment> garments) {
     final tops = garments
         .where((g) => g.category == GarmentCategory.top)
         .toList();
-    return OutfitSelection(
+    return _OutfitSelection(
       top: tops.isNotEmpty ? tops[0] : null,
       middle: tops.length > 1 ? tops[1] : null,
       outer: garments

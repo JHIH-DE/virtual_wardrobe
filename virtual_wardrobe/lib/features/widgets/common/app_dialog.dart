@@ -64,7 +64,7 @@ class _AppDialogState extends State<AppDialog> {
       child: SizedBox(
         width: widget.width,
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -94,7 +94,7 @@ class _AppDialogState extends State<AppDialog> {
                       ),
                       child: Text(
                         widget.primaryLabel,
-                        style: AppTextStyle.regular14.copyWith(
+                        style: AppTextStyle.regular16.copyWith(
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
@@ -106,13 +106,16 @@ class _AppDialogState extends State<AppDialog> {
                         backgroundColor: AppColors.accent,
                         minimumSize: const Size(double.infinity, 54),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(27),
                         ),
                         elevation: 0,
                       ),
                       child: Text(
                         widget.primaryLabel,
-                        style: const TextStyle(color: AppColors.textOnPrimary),
+                        style: AppTextStyle.regular16.copyWith(
+                          color: AppColors.textOnPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
               if (widget.secondaryLabel != null) ...[

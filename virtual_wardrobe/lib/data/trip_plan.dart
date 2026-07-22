@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'location_result.dart';
+
 /// Display label -> raw API value, shared between trip creation and editing.
 const Map<String, String> kTripPurposeOptions = {
   'Leisure Travel': 'leisure_travel',
@@ -85,10 +87,12 @@ class TripPlan {
   LocationResult get location => legs.first.location;
 
   /// "Tokyo • Yokohama • Kamakura" (stripping country if present).
-  String get locationSummary => legs.map((l) {
+  String get locationSummary => legs
+      .map((l) {
         final name = l.location.name;
         return name.contains(',') ? name.split(',').first.trim() : name;
-      }).join(' • ');
+      })
+      .join(' • ');
 
   /// The leg active on [date], if any.
   TripLeg? legForDate(DateTime date) {
@@ -138,18 +142,4 @@ class TripPlan {
       legs: legs,
     );
   }
-}
-
-class LocationResult {
-  final String name;
-  final double latitude;
-  final double longitude;
-  final String timezone;
-
-  LocationResult({
-    required this.name,
-    required this.latitude,
-    required this.longitude,
-    required this.timezone,
-  });
 }
