@@ -13,9 +13,6 @@ import 'personal_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 
-/// Maximum number of styles a user may select at once.
-const int _maxSelectedStyles = 3;
-
 /// Style -> its illustration, per gender bucket — Male and Female need
 /// different photos for the same style (e.g. Streetwear shows a male model
 /// under 'Male', a female model under 'Female'). Missing entries (no
@@ -117,14 +114,14 @@ String? _styleGenderFor(String? profileGender) {
   }
 }
 
-class StylePreferencesPage extends StatefulWidget {
-  const StylePreferencesPage({super.key});
+class StyleProfilePage extends StatefulWidget {
+  const StyleProfilePage({super.key});
 
   @override
-  State<StylePreferencesPage> createState() => _StylePreferencesPageState();
+  State<StyleProfilePage> createState() => _StyleProfilePageState();
 }
 
-class _StylePreferencesPageState extends State<StylePreferencesPage> {
+class _StyleProfilePageState extends State<StyleProfilePage> {
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -212,14 +209,14 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
     setState(() {
       if (_selectedStyles.contains(style)) {
         _selectedStyles.remove(style);
-      } else if (_selectedStyles.length < _maxSelectedStyles) {
+      } else {
         _selectedStyles.add(style);
       }
     });
   }
 
   AppToolBar _buildAppBar(AppLocalizations l10n) {
-    return AppToolBar(title: l10n.findYourStyle);
+    return AppToolBar(title: l10n.styleProfile);
   }
 
   @override
@@ -281,14 +278,6 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
           if (_error != null) _buildErrorBanner(),
           Text(
             l10n.styleSelectionInstruction,
-            textAlign: TextAlign.center,
-            style: AppTextStyle.regular14.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.styleSelectionDescription,
             textAlign: TextAlign.center,
             style: AppTextStyle.regular14.copyWith(
               color: AppColors.textSecondary,
@@ -407,9 +396,7 @@ class _StylePreferencesPageState extends State<StylePreferencesPage> {
                   style.localizedName(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.bold14.copyWith(
-                    color: AppColors.primary,
-                  ),
+                  style: AppTextStyle.bold14.copyWith(color: AppColors.primary),
                 ),
               ),
             ],

@@ -13,6 +13,7 @@ import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/favorite_card.dart';
+import 'widgets/common/feedback_overlay.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/look/look_card.dart';
 
@@ -51,6 +52,20 @@ class _LooksPageState extends ConsumerState<LooksPage> {
         if (next.hasError && next.error is AuthExpiredException) {
           AuthExpiredHandler.handle(context);
         }
+      });
+      ref.listenManual(lookFeedbackProvider, (_, next) {
+        if (next == null) return;
+        final l10n = AppLocalizations.of(context);
+        showFeedbackOverlay(
+          context,
+          message: next == LookFeedbackKind.saved
+              ? l10n.lookSaved
+              : l10n.lookDeleted,
+          imagePath: next == LookFeedbackKind.deleted
+              ? 'assets/images/delete_success.png'
+              : 'assets/images/success.png',
+        );
+        ref.read(lookFeedbackProvider.notifier).state = null;
       });
       ref.read(looksProvider.notifier).refreshIfNeeded();
     });

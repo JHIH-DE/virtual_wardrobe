@@ -30,7 +30,7 @@ class MainShellScope extends InheritedWidget {
 }
 
 /// Floating bottom nav bar shown on the app's main tabs (Home, My Closet,
-/// Looks, Trip Planner), with a raised center button for the add-clothing /
+/// Looks, Trips), with a raised center button for the add-clothing /
 /// manual-try-on / new-trip quick actions. Highlights [current] so the user
 /// always knows which page they're on. Purely presentational — [onSelect]
 /// and [onQuickAction] are called with the tapped tab/action and the host

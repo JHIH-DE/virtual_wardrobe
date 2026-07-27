@@ -3,21 +3,21 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../data/trip_plan.dart';
+import '../../data/trip.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
-class TripPlanService with BaseService {
+class TripService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/trip_plans';
 
-  Future<int> createTripPlan({
+  Future<int> createTrip({
     required String name,
     required List<TripLeg> legs,
     required String purpose,
     required List<Map<String, dynamic>> days,
   }) async {
-    debugLog('--- createTripPlan ---');
+    debugLog('--- createTrip ---');
     final uri = Uri.parse(_baseUrl);
 
     final body = {
@@ -26,7 +26,7 @@ class TripPlanService with BaseService {
       "purpose": purpose,
       "days": days,
     };
-    debugLog('createTripPlan body: ${jsonEncode(body)}');
+    debugLog('createTrip body: ${jsonEncode(body)}');
 
     final res = await withAuth(
       (token) => http.post(
@@ -36,18 +36,18 @@ class TripPlanService with BaseService {
       ),
     );
 
-    final envelope = decodeMap(res, op: 'createTripPlan');
+    final envelope = decodeMap(res, op: 'createTrip');
     final data = envelope['data'];
 
     if (data is! Map<String, dynamic>) {
-      throw Exception('createTripPlan: response missing data object');
+      throw Exception('createTrip: response missing data object');
     }
     final id = data['id'];
-    if (id is! int) throw Exception('createTripPlan: missing id in response');
+    if (id is! int) throw Exception('createTrip: missing id in response');
     return id;
   }
 
-  Future<void> generateTripPlan(
+  Future<void> generateTrip(
     int tripId, {
     String? defaultOccasion,
     String? style,
@@ -55,7 +55,7 @@ class TripPlanService with BaseService {
     bool? minimizePacking,
     Map<String, int>? categoryLimits,
   }) async {
-    debugLog('--- generateTripPlan id=$tripId ---');
+    debugLog('--- generateTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/generate');
 
     final body = <String, dynamic>{
@@ -74,10 +74,10 @@ class TripPlanService with BaseService {
       ),
     );
 
-    decodeMap(res, op: 'generateTripPlan');
+    decodeMap(res, op: 'generateTrip');
   }
 
-  Future<void> updateTripPlan(
+  Future<void> updateTrip(
     int tripId, {
     String? name,
     List<TripLeg>? legs,
@@ -86,7 +86,7 @@ class TripPlanService with BaseService {
     String? style,
     List<Map<String, dynamic>>? days,
   }) async {
-    debugLog('--- updateTripPlan id=$tripId ---');
+    debugLog('--- updateTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId');
 
     final body = <String, dynamic>{
@@ -106,44 +106,44 @@ class TripPlanService with BaseService {
       ),
     );
 
-    decodeMap(res, op: 'updateTripPlan');
+    decodeMap(res, op: 'updateTrip');
   }
 
-  Future<List<TripPlan>> getTripPlans() async {
-    debugLog('--- getTripPlans ---');
+  Future<List<Trip>> getTrips() async {
+    debugLog('--- getTrips ---');
     final uri = Uri.parse(_baseUrl);
 
     final res = await withAuth(
       (token) => http.get(uri, headers: authHeaders(token)),
     );
 
-    final envelope = decodeMap(res, op: 'getTripPlans');
+    final envelope = decodeMap(res, op: 'getTrips');
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
-      throw Exception('getTripPlans: response missing data object');
+      throw Exception('getTrips: response missing data object');
     }
     final items = data['items'];
     if (items is! List) {
-      throw Exception('getTripPlans: response missing items array');
+      throw Exception('getTrips: response missing items array');
     }
     return items
         .whereType<Map<String, dynamic>>()
-        .map((j) => TripPlan.fromJson(j))
+        .map((j) => Trip.fromJson(j))
         .toList();
   }
 
-  Future<Map<String, dynamic>> getTripPlan(int tripId) async {
-    debugLog('--- getTripPlan id=$tripId ---');
+  Future<Map<String, dynamic>> getTrip(int tripId) async {
+    debugLog('--- getTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId');
 
     final res = await withAuth(
       (token) => http.get(uri, headers: authHeaders(token)),
     );
 
-    final envelope = decodeMap(res, op: 'getTripPlan');
+    final envelope = decodeMap(res, op: 'getTrip');
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
-      throw Exception('getTripPlan: response missing data object');
+      throw Exception('getTrip: response missing data object');
     }
     return data;
   }
@@ -174,29 +174,29 @@ class TripPlanService with BaseService {
     decodeMap(res, op: 'removeSuitcaseItem');
   }
 
-  Future<void> deleteTripPlan(int tripId) async {
-    debugLog('--- deleteTripPlan id=$tripId ---');
+  Future<void> deleteTrip(int tripId) async {
+    debugLog('--- deleteTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId');
 
     final res = await withAuth(
       (token) => http.delete(uri, headers: authHeaders(token)),
     );
 
-    decodeMap(res, op: 'deleteTripPlan');
+    decodeMap(res, op: 'deleteTrip');
   }
 
-  Future<Map<String, dynamic>> analyzeTripPlan(int tripId) async {
-    debugLog('--- analyzeTripPlan id=$tripId ---');
+  Future<Map<String, dynamic>> analyzeTrip(int tripId) async {
+    debugLog('--- analyzeTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
     final res = await withAuth(
       (token) => http.post(uri, headers: authHeaders(token)),
     );
 
-    final envelope = decodeMap(res, op: 'analyzeTripPlan');
+    final envelope = decodeMap(res, op: 'analyzeTrip');
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
-      throw Exception('analyzeTripPlan: response missing data object');
+      throw Exception('analyzeTrip: response missing data object');
     }
     return data;
   }

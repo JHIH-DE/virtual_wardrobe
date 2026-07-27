@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
+import '../core/providers/locale_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/auth_storage.dart';
@@ -10,22 +12,31 @@ import '../core/services/profile_service.dart';
 import '../core/utils/debug_log.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'body_profile_page.dart';
-import 'daily_preferences_page.dart';
+import 'lifestyle_page.dart';
 import 'login_page.dart';
 import 'personal_details_page.dart';
-import 'style_preferences_page.dart';
+import 'style_profile_page.dart';
 import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
+import 'widgets/common/picker_sheet.dart';
 import 'widgets/common/profile_avatar.dart';
 
-class SettingsPage extends StatefulWidget {
+/// Wraps the bottom sheet's chosen locale so a `null` result (System
+/// Default, itself a valid choice) can be told apart from the sheet being
+/// dismissed without a choice (which also pops `null`).
+class _LanguageChoice {
+  final Locale? locale;
+  const _LanguageChoice(this.locale);
+}
+
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   // Profile
   String? _name;
   String? _avatarUrl;
@@ -139,7 +150,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildDailyOutfitCard(l10n),
+                  child: _buildLifestyleCard(l10n),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildLanguageCard(l10n),
                 ),
                 const SizedBox(height: 16),
                 Padding(
@@ -219,7 +235,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return AppListCard(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const StylePreferencesPage()),
+        MaterialPageRoute(builder: (_) => const StyleProfilePage()),
       ),
       leading: const Icon(Icons.style_outlined, color: AppColors.icon),
       showArrow: true,
@@ -227,16 +243,71 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildDailyOutfitCard(AppLocalizations l10n) {
+  Widget _buildLifestyleCard(AppLocalizations l10n) {
     return AppListCard(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const DailyPreferencesPage()),
+        MaterialPageRoute(builder: (_) => const LifestylePage()),
       ),
       leadingAsset: 'assets/images/daily_planner.png',
       showArrow: true,
-      child: Text(l10n.dailyPreferences, style: AppTextStyle.bold16),
+      child: Text(l10n.lifestyle, style: AppTextStyle.bold16),
     );
+  }
+
+  Widget _buildLanguageCard(AppLocalizations l10n) {
+    final locale = ref.watch(localeProvider);
+    return AppListCard(
+      onTap: () => _openLanguagePicker(l10n),
+      leading: const Icon(Icons.language_outlined, color: AppColors.icon),
+      showArrow: true,
+      summary: _localeDisplayLabel(locale, l10n),
+      child: Text(l10n.language, style: AppTextStyle.bold16),
+    );
+  }
+
+  String _localeDisplayLabel(Locale? locale, AppLocalizations l10n) {
+    if (locale == null) return l10n.languageSystemDefault;
+    return locale.languageCode == 'zh'
+        ? l10n.languageTraditionalChinese
+        : l10n.languageEnglish;
+  }
+
+  Future<void> _openLanguagePicker(AppLocalizations l10n) async {
+    final current = ref.read(localeProvider);
+    const options = <Locale?>[null, Locale('en'), Locale('zh', 'TW')];
+
+    final choice = await showPickerSheet<_LanguageChoice>(
+      context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PickerSheetHeader(l10n.selectLanguageTitle),
+          for (final option in options)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.language_outlined,
+                color: option == current ? AppColors.accent : AppColors.icon,
+              ),
+              title: Text(
+                _localeDisplayLabel(option, l10n),
+                style: option == current
+                    ? AppTextStyle.semibold16.copyWith(color: AppColors.accent)
+                    : AppTextStyle.regular16,
+              ),
+              trailing: option == current
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () => Navigator.pop(sheetContext, _LanguageChoice(option)),
+            ),
+        ],
+      ),
+    );
+
+    if (choice == null || choice.locale == current) return;
+    ref.read(localeProvider.notifier).setLocale(choice.locale);
   }
 
   Widget _buildLogoutCard(AppLocalizations l10n) {

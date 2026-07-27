@@ -23,6 +23,30 @@ extension GarmentCategoryLocalization on GarmentCategory {
         return l10n.categoryAccessory;
     }
   }
+
+  /// Plural form used when a category is paired with a count, e.g. "15
+  /// Tops" — falls back to the singular [localizedLabel] for categories
+  /// that never actually appear pluralized in that context (Socks,
+  /// Accessory).
+  String pluralLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case GarmentCategory.top:
+        return l10n.categoryTopPlural;
+      case GarmentCategory.bottom:
+        return l10n.categoryBottomPlural;
+      case GarmentCategory.outer:
+        return l10n.categoryOuterPlural;
+      case GarmentCategory.onePiece:
+        return l10n.categoryOnePiecePlural;
+      case GarmentCategory.shoes:
+        return l10n.categoryShoesPlural;
+      case GarmentCategory.socks:
+        return l10n.categorySocks;
+      case GarmentCategory.accessory:
+        return l10n.categoryAccessory;
+    }
+  }
 }
 
 extension GarmentColorLocalization on GarmentColor {

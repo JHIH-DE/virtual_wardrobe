@@ -37,6 +37,10 @@ class AppColors {
   // monochrome ink/cream palette.
   static const Color accent = Color(0xFF9966CC);
 
+  // Pale accent tint — e.g. a filter chip's selected-state background,
+  // where a solid `accent` fill would be too heavy
+  static const Color accentTint = Color(0x1F9966CC); // accent @12%
+
   // Social sign-in (fixed brand colors, do not retint)
   static const Color facebook = Color(0xFF1877F2);
   static const Color google = Color(0xFF4285F4);
@@ -48,7 +52,7 @@ class AppColors {
   // Filled-heart color when a look/garment is marked favorite
   static const Color favorite = Color(0xFFE53935);
 
-  // Trip status dots (TripPlannerPage's Ongoing/Upcoming/Past section headers)
+  // Trip status dots (TripMainPage's Ongoing/Upcoming/Past section headers)
   static const Color statusOngoing = Color(0xFF4CAF50);
   static const Color statusUpcoming = Color(0xFF4F7FFF);
   static const Color statusPast = Color(0xFF9E9E9E);

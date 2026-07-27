@@ -5,7 +5,7 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/trip_plan_service.dart';
+import '../core/services/trip_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
 import '../l10n/garment_localization.dart';
@@ -81,7 +81,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
   Future<void> _loadAdvice() async {
     try {
-      final data = await TripPlanService().getTripSuggestion(widget.tripId);
+      final data = await TripService().getTripSuggestion(widget.tripId);
       final categories = data['categories'];
       if (categories is List) {
         for (final item in categories) {
@@ -284,9 +284,9 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
         hasScrollBody: false,
         child: Center(
           child: Text(
-            AppLocalizations.of(context).noGarmentsInCategory(
-              _selectedCategory.localizedLabel(context),
-            ),
+            AppLocalizations.of(
+              context,
+            ).noGarmentsInCategory(_selectedCategory.localizedLabel(context)),
             style: AppTextStyle.regular16.copyWith(
               color: AppColors.textSecondary,
             ),

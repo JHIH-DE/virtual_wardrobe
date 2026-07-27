@@ -21,21 +21,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleProfile => 'Style Profile';
 
   @override
-  String get dailyPreferences => 'Daily Preferences';
+  String get lifestyle => 'Lifestyle';
 
   @override
   String get logout => 'Logout';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get selectLanguageTitle => 'Select Language';
+
+  @override
+  String get languageSystemDefault => 'System Default';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageTraditionalChinese => '繁體中文';
 
   @override
   String get findYourStyle => 'Find Your Style';
 
   @override
   String get styleSelectionInstruction =>
-      'Choose up to 3 styles that best match your everyday wardrobe.';
-
-  @override
-  String get styleSelectionDescription =>
-      'We\'ll personalize your outfit recommendations based on your selections.';
+      'Choose your styles for personalized outfit picks.';
 
   @override
   String get save => 'Save';
@@ -99,10 +110,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Would you like to save this look to your collection?';
 
   @override
-  String get removeLookTitle => 'Remove look?';
+  String get deleteLookTitle => 'Delete Look';
 
   @override
-  String get removeLookBody => 'This look will be removed from your Looks.';
+  String get deleteLookConfirmation =>
+      'Are you sure you want to delete this look?';
 
   @override
   String createdOnDate(String date) {
@@ -360,6 +372,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryAccessory => 'Accessory';
 
   @override
+  String get categoryTopPlural => 'Tops';
+
+  @override
+  String get categoryBottomPlural => 'Bottoms';
+
+  @override
+  String get categoryOuterPlural => 'Outers';
+
+  @override
+  String get categoryOnePiecePlural => 'One-pieces';
+
+  @override
+  String get categoryShoesPlural => 'Shoes';
+
+  @override
   String get colorBlack => 'Black';
 
   @override
@@ -436,21 +463,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToCloset => 'Add to Closet';
 
   @override
-  String outfitCombosPossible(int combos) {
-    return '$combos outfit combinations possible';
+  String get clothingAdded => 'Clothing Added';
+
+  @override
+  String garmentPairsWellWith(String subCategory, int count) {
+    return 'This $subCategory pairs well with $count items in your closet.';
   }
 
   @override
-  String get addMorePiecesHint =>
-      'Add a few more pieces to unlock outfit ideas';
-
-  @override
-  String outfitComboBasis(int tops, int bottoms, int shoes) {
-    return 'Based on the $tops top(s), $bottoms bottom(s) and $shoes pair(s) of shoes already in your closet — a good sign this piece will earn its keep.';
+  String garmentPairsWellWithGeneric(int count) {
+    return 'Pairs well with $count items in your closet.';
   }
 
   @override
-  String get clothingNameLabel => 'Clothing Name';
+  String get bestMatchesLabel => 'Best matches:';
+
+  @override
+  String get scoreTierExcellent => 'Excellent Match';
+
+  @override
+  String get scoreTierHighlyVersatile => 'Highly Versatile';
+
+  @override
+  String get scoreTierGoodMatch => 'Good Match';
+
+  @override
+  String get scoreTierLimitedMatch => 'Limited Match';
+
+  @override
+  String get scoreTierHardToStyle => 'Hard to Style';
+
+  @override
+  String get clothingNameLabel => 'Name';
 
   @override
   String get nameTheClothingHint => 'Name the clothing';
@@ -459,7 +503,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseEnterNameError => 'Please enter name';
 
   @override
-  String get clothingCategoryLabel => 'Clothing Category';
+  String get clothingCategoryLabel => 'Category';
 
   @override
   String get productType => 'Product Type';
@@ -495,7 +539,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usedInLooks => 'Used in Looks';
 
   @override
-  String get selectAColor => 'Select a color';
+  String get selectAColor => 'Select Color';
 
   @override
   String get chooseColorTitle => 'Choose a color';
@@ -504,13 +548,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clear => 'Clear';
 
   @override
-  String get selectDate => 'Select date';
+  String get close => 'Close';
+
+  @override
+  String get brand => 'Brand';
+
+  @override
+  String get price => 'Price';
+
+  @override
+  String get selectDate => 'Select Date';
 
   @override
   String get editImage => 'Edit image';
 
   @override
   String get changesSaved => 'Changes Saved';
+
+  @override
+  String get itemDeleted => 'Clothing Deleted';
+
+  @override
+  String get lookSaved => 'Look Saved';
+
+  @override
+  String get lookDeleted => 'Look Deleted';
 
   @override
   String get midLayer => 'Mid Layer';
@@ -556,19 +618,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genderLabel => 'Gender';
 
   @override
-  String get selectGenderHint => 'Select gender';
+  String get selectGenderHint => 'Select Gender';
 
   @override
   String get birthdayLabel => 'Birthday';
 
   @override
-  String get selectBirthdayHint => 'Select birthday';
+  String get selectBirthdayHint => 'Select Birthday';
 
   @override
   String get homeLocationLabel => 'Home Location';
 
   @override
-  String get selectYourCityHint => 'Select your city';
+  String get selectYourCityHint => 'Select Your City';
 
   @override
   String get seasonLabel => 'Season';
@@ -685,19 +747,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noGarmentsPackedYet => 'No garments packed yet';
 
   @override
-  String get occasionDaily => '🏠 Daily';
+  String get occasionWork => 'Work';
 
   @override
-  String get occasionWork => '💼 Work';
+  String get occasionCasual => 'Casual';
 
   @override
-  String get occasionDate => '❤️ Date';
+  String get occasionWorkout => 'Workout';
 
   @override
-  String get occasionSport => '🏃 Sport';
+  String get occasionDate => 'Date';
 
   @override
-  String get occasionFormal => '👔 Formal';
+  String get occasionTravel => 'Travel';
+
+  @override
+  String get occasionParty => 'Party';
 
   @override
   String get settingsSaved => 'Settings saved';
@@ -706,18 +771,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get comfortAdjustment => 'Comfort Adjustment';
 
   @override
-  String get dailyOccasions => 'Daily Occasions';
-
-  @override
-  String dayWithTodaySuffix(String day) {
-    return '$day (Today)';
-  }
+  String get weeklySchedule => 'Weekly Schedule';
 
   @override
   String get apply => 'Apply';
 
   @override
   String get perceivedTempOffset => 'Perceived temperature offset';
+
+  @override
+  String get lifestyleIntroLine1 =>
+      'Tell LUMI what your typical week looks like.';
+
+  @override
+  String get lifestyleIntroLine2 =>
+      'We\'ll recommend outfits that match your routine.';
+
+  @override
+  String get comfortAdjustmentIntro =>
+      'Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.';
+
+  @override
+  String get selectOccasionTitle => 'Select Occasion';
 
   @override
   String get todaysLook => 'Today\'s Look';
@@ -785,7 +860,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get album => 'Album';
 
   @override
-  String get fullBodyPhotoLabel => 'Full-body Photo';
+  String get fullBodyPhotoDescription =>
+      'Used to generate your outfit try-on photos.';
 
   @override
   String get figureDetailLabel => 'Figure Detail';

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'pill_button.dart';
 
 /// Photo preview when [imageProvider] is set, otherwise a dashed-border
 /// "Upload Image" placeholder with a choose-photo button.
@@ -32,15 +34,28 @@ class PhotoUploadField extends StatelessWidget {
       return Center(
         child: FractionallySizedBox(
           widthFactor: 0.85,
-          child: GestureDetector(
-            onTap: onTap,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: aspectRatio,
-                child: Image(image: provider, fit: BoxFit.cover),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: aspectRatio,
+                  child: Image(image: provider, fit: BoxFit.cover),
+                ),
               ),
-            ),
+              Positioned(
+                bottom: 12,
+                right: 12,
+                child: PillButton.floating(
+                  label: l10n.editImage,
+                  icon: Image.asset(
+                    'assets/images/edit.png',
+                    height: AppDimens.iconSmallSize,
+                  ),
+                  onTap: onTap ?? () {},
+                ),
+              ),
+            ],
           ),
         ),
       );

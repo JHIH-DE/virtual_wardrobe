@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -18,6 +17,8 @@ import 'settings_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/lumi_insight_card.dart';
 import 'widgets/common/pill_button.dart';
+import 'widgets/common/refreshable_network_image.dart';
+import 'widgets/look/look_image.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -276,16 +277,11 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                             color: AppColors.icon,
                           ),
                         )
-                      : CachedNetworkImage(
+                      : RefreshableNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              size: 48,
-                              color: AppColors.icon,
-                            ),
-                          ),
+                          errorIconSize: 48,
+                          onRefreshUrl: _refreshTryOnResultUrl,
                         ),
                 ),
               ),
@@ -308,6 +304,20 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
         ),
       ],
     );
+  }
+
+  Future<String?> _refreshTryOnResultUrl() async {
+    if (tryOnJobId == 0) return null;
+    try {
+      final freshUrl = await fetchFreshLookImageUrl(tryOnJobId);
+      if (mounted && freshUrl.isNotEmpty) {
+        setState(() => tryOnResultUrl = freshUrl);
+      }
+      return freshUrl;
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return null;
+    }
   }
 
   void _openLookDetails() {

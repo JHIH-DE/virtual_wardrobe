@@ -48,13 +48,13 @@ class TripLeg {
   }
 }
 
-class TripPlan {
+class Trip {
   final String id;
   final String name;
   final String purpose;
   final List<TripLeg> legs;
 
-  TripPlan({
+  Trip({
     required this.id,
     required this.name,
     required this.purpose,
@@ -102,8 +102,8 @@ class TripPlan {
     return null;
   }
 
-  TripPlan copyWith({String? name, String? purpose, List<TripLeg>? legs}) {
-    return TripPlan(
+  Trip copyWith({String? name, String? purpose, List<TripLeg>? legs}) {
+    return Trip(
       id: id,
       name: name ?? this.name,
       purpose: purpose ?? this.purpose,
@@ -111,7 +111,7 @@ class TripPlan {
     );
   }
 
-  factory TripPlan.fromJson(Map<String, dynamic> json) {
+  factory Trip.fromJson(Map<String, dynamic> json) {
     final rawLegs = json['legs'];
     List<TripLeg> legs;
     if (rawLegs is List && rawLegs.isNotEmpty) {
@@ -124,7 +124,7 @@ class TripPlan {
       legs = [TripLeg.fromJson(json)];
     }
 
-    return TripPlan(
+    return Trip(
       id: json['id'].toString(),
       name: json['name'] as String? ?? '',
       purpose: json['purpose'] as String? ?? '',

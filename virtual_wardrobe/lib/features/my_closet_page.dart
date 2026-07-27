@@ -17,6 +17,7 @@ import 'widgets/common/favorite_card.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/feedback_overlay.dart';
 import 'widgets/garment/garment_card.dart';
 
 class MyClosetPage extends ConsumerStatefulWidget {
@@ -28,11 +29,12 @@ class MyClosetPage extends ConsumerStatefulWidget {
 
 class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   GarmentCategory _selectedCategory = GarmentCategory.top;
-  final Set<String> _selectedColors = {};
-  final Set<String> _selectedProductTypes = {};
+  Set<String> _selectedColors = {'All'};
+  Set<String> _selectedProductTypes = {'All'};
 
   bool get _isFiltered =>
-      _selectedColors.isNotEmpty || _selectedProductTypes.isNotEmpty;
+      !_selectedColors.contains('All') ||
+      !_selectedProductTypes.contains('All');
 
   @override
   void initState() {
@@ -71,13 +73,13 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     return all.where((g) {
       if (g.category != category) return false;
       final okColor =
-          _selectedColors.isEmpty ||
+          _selectedColors.contains('All') ||
           (g.color != null &&
               _selectedColors.any(
                 (c) => c.toLowerCase() == g.color!.toLowerCase(),
               ));
       final okType =
-          _selectedProductTypes.isEmpty ||
+          _selectedProductTypes.contains('All') ||
           _selectedProductTypes.contains(g.subCategory);
       return okColor && okType;
     }).toList();
@@ -87,22 +89,25 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     final categoryGarments = allGarments
         .where((g) => g.category == _selectedCategory)
         .toList();
-    final availableColors = GarmentColor.values
-        .where(
-          (c) => categoryGarments.any(
-            (g) =>
-                g.color != null &&
-                g.color!.toLowerCase() == c.label.toLowerCase(),
-          ),
-        )
-        .toList();
-    final availableTypes =
-        categoryGarments
-            .map((g) => g.subCategory)
-            .where((s) => s.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final availableColors = [
+      'All',
+      ...GarmentColor.values
+          .where(
+            (c) => categoryGarments.any(
+              (g) =>
+                  g.color != null &&
+                  g.color!.toLowerCase() == c.label.toLowerCase(),
+            ),
+          )
+          .map((c) => c.label),
+    ];
+    final availableTypes = [
+      'All',
+      ...{
+        for (final g in categoryGarments)
+          if (g.subCategory.isNotEmpty) g.subCategory,
+      }.toList()..sort(),
+    ];
 
     final l10n = AppLocalizations.of(context);
     return FilterButton(
@@ -110,27 +115,25 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       groups: [
         FilterGroup(
           label: l10n.color,
-          options: availableColors.map((c) => c.label).toList(),
+          options: availableColors,
           selected: () => _selectedColors,
-          onToggle: (v) => setState(() {
-            if (_selectedColors.contains(v)) {
-              _selectedColors.remove(v);
-            } else {
-              _selectedColors.add(v);
-            }
-          }),
+          onToggle: (v) => setState(
+            () => _selectedColors = FilterButton.toggleWithAll(
+              _selectedColors,
+              v,
+            ),
+          ),
         ),
         FilterGroup(
           label: l10n.productType,
           options: availableTypes,
           selected: () => _selectedProductTypes,
-          onToggle: (v) => setState(() {
-            if (_selectedProductTypes.contains(v)) {
-              _selectedProductTypes.remove(v);
-            } else {
-              _selectedProductTypes.add(v);
-            }
-          }),
+          onToggle: (v) => setState(
+            () => _selectedProductTypes = FilterButton.toggleWithAll(
+              _selectedProductTypes,
+              v,
+            ),
+          ),
         ),
       ],
     );
@@ -158,8 +161,9 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context, garmentsAsync),
       body: garmentsAsync.when(
-        loading: () =>
-            LoadingOverlay(label: AppLocalizations.of(context).loadingClosetEllipsis),
+        loading: () => LoadingOverlay(
+          label: AppLocalizations.of(context).loadingClosetEllipsis,
+        ),
         error: (e, _) => ErrorStateWidget(
           error: e,
           onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
@@ -180,8 +184,8 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
           selectedCategory: effectiveCategory,
           onSelected: (category) => setState(() {
             _selectedCategory = category;
-            _selectedColors.clear();
-            _selectedProductTypes.clear();
+            _selectedColors = {'All'};
+            _selectedProductTypes = {'All'};
           }),
         ),
         Expanded(child: _buildGarmentGridSection(all, effectiveCategory)),
@@ -288,8 +292,21 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
 
     if (result == 'deleted') {
       ref.read(garmentsProvider.notifier).removeGarment(garment.id!);
+      if (mounted) {
+        showFeedbackOverlay(
+          context,
+          message: AppLocalizations.of(context).itemDeleted,
+          imagePath: 'assets/images/delete_success.png',
+        );
+      }
     } else if (result is Garment) {
       ref.read(garmentsProvider.notifier).updateGarment(result);
+      if (mounted) {
+        showFeedbackOverlay(
+          context,
+          message: AppLocalizations.of(context).changesSaved,
+        );
+      }
     }
   }
 }

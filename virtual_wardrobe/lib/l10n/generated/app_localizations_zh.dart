@@ -21,19 +21,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleProfile => '風格檔案';
 
   @override
-  String get dailyPreferences => '每日穿搭偏好';
+  String get lifestyle => '生活風格';
 
   @override
   String get logout => '登出';
 
   @override
+  String get language => '語言';
+
+  @override
+  String get selectLanguageTitle => '選擇語言';
+
+  @override
+  String get languageSystemDefault => '跟隨系統';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageTraditionalChinese => '繁體中文';
+
+  @override
   String get findYourStyle => '探索你的風格';
 
   @override
-  String get styleSelectionInstruction => '選擇最多 3 種最符合你日常穿搭的風格。';
-
-  @override
-  String get styleSelectionDescription => '我們將根據你的選擇，為你打造個人化的穿搭推薦。';
+  String get styleSelectionInstruction => '選擇你的風格，獲得個人化穿搭推薦。';
 
   @override
   String get save => '儲存';
@@ -96,10 +108,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get saveThisLookBody => '要將這套穿搭加入你的收藏嗎？';
 
   @override
-  String get removeLookTitle => '移除穿搭？';
+  String get deleteLookTitle => '刪除穿搭';
 
   @override
-  String get removeLookBody => '這套穿搭將從你的穿搭列表中移除。';
+  String get deleteLookConfirmation => '確定要刪除這套穿搭嗎？';
 
   @override
   String createdOnDate(String date) {
@@ -355,6 +367,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryAccessory => '配件';
 
   @override
+  String get categoryTopPlural => '上衣';
+
+  @override
+  String get categoryBottomPlural => '下身';
+
+  @override
+  String get categoryOuterPlural => '外套';
+
+  @override
+  String get categoryOnePiecePlural => '連身衣';
+
+  @override
+  String get categoryShoesPlural => '鞋';
+
+  @override
   String get colorBlack => '黑色';
 
   @override
@@ -429,20 +456,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addToCloset => '加入衣櫃';
 
   @override
-  String outfitCombosPossible(int combos) {
-    return '可組成 $combos 種穿搭';
+  String get clothingAdded => '已加入衣物';
+
+  @override
+  String garmentPairsWellWith(String subCategory, int count) {
+    return '這件$subCategory適合搭配你衣櫃裡的 $count 件單品。';
   }
 
   @override
-  String get addMorePiecesHint => '再新增幾件單品即可解鎖穿搭建議';
-
-  @override
-  String outfitComboBasis(int tops, int bottoms, int shoes) {
-    return '根據你衣櫃中已有的 $tops 件上衣、$bottoms 件下身和 $shoes 雙鞋子——這件單品很有機會派上用場。';
+  String garmentPairsWellWithGeneric(int count) {
+    return '適合搭配你衣櫃裡的 $count 件單品。';
   }
 
   @override
-  String get clothingNameLabel => '衣物名稱';
+  String get bestMatchesLabel => '最佳搭配：';
+
+  @override
+  String get scoreTierExcellent => '完美百搭';
+
+  @override
+  String get scoreTierHighlyVersatile => '百搭度高';
+
+  @override
+  String get scoreTierGoodMatch => '適合搭配';
+
+  @override
+  String get scoreTierLimitedMatch => '搭配有限';
+
+  @override
+  String get scoreTierHardToStyle => '較難搭配';
+
+  @override
+  String get clothingNameLabel => '名稱';
 
   @override
   String get nameTheClothingHint => '為這件衣物命名';
@@ -451,7 +496,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pleaseEnterNameError => '請輸入名稱';
 
   @override
-  String get clothingCategoryLabel => '衣物類別';
+  String get clothingCategoryLabel => '類別';
 
   @override
   String get productType => '商品類型';
@@ -496,6 +541,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clear => '清除';
 
   @override
+  String get close => '關閉';
+
+  @override
+  String get brand => '品牌';
+
+  @override
+  String get price => '價格';
+
+  @override
   String get selectDate => '選擇日期';
 
   @override
@@ -503,6 +557,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get changesSaved => '變更已儲存';
+
+  @override
+  String get itemDeleted => '已刪除衣物';
+
+  @override
+  String get lookSaved => '穿搭已儲存';
+
+  @override
+  String get lookDeleted => '穿搭已刪除';
 
   @override
   String get midLayer => '中層';
@@ -675,19 +738,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noGarmentsPackedYet => '尚未打包任何衣物';
 
   @override
-  String get occasionDaily => '🏠 日常';
+  String get occasionWork => '工作';
 
   @override
-  String get occasionWork => '💼 工作';
+  String get occasionCasual => '休閒';
 
   @override
-  String get occasionDate => '❤️ 約會';
+  String get occasionWorkout => '運動';
 
   @override
-  String get occasionSport => '🏃 運動';
+  String get occasionDate => '約會';
 
   @override
-  String get occasionFormal => '👔 正式';
+  String get occasionTravel => '旅行';
+
+  @override
+  String get occasionParty => '派對';
 
   @override
   String get settingsSaved => '設定已儲存';
@@ -696,18 +762,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get comfortAdjustment => '舒適度調整';
 
   @override
-  String get dailyOccasions => '每日場合';
-
-  @override
-  String dayWithTodaySuffix(String day) {
-    return '$day（今天）';
-  }
+  String get weeklySchedule => '每週排程';
 
   @override
   String get apply => '套用';
 
   @override
   String get perceivedTempOffset => '體感溫度調整';
+
+  @override
+  String get lifestyleIntroLine1 => '告訴 LUMI 你典型的一週作息。';
+
+  @override
+  String get lifestyleIntroLine2 => '我們會根據你的日常推薦合適的穿搭。';
+
+  @override
+  String get comfortAdjustmentIntro => '每個人對冷熱的感受不同，這裡可以微調成適合你的體感。';
+
+  @override
+  String get selectOccasionTitle => '選擇場合';
 
   @override
   String get todaysLook => '今日穿搭';
@@ -773,7 +846,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get album => '相簿';
 
   @override
-  String get fullBodyPhotoLabel => '全身照';
+  String get fullBodyPhotoDescription => '用於生成你的穿搭試穿照片。';
 
   @override
   String get figureDetailLabel => '身形細節';
@@ -811,19 +884,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleProfile => '風格檔案';
 
   @override
-  String get dailyPreferences => '每日穿搭偏好';
+  String get lifestyle => '生活風格';
 
   @override
   String get logout => '登出';
 
   @override
+  String get language => '語言';
+
+  @override
+  String get selectLanguageTitle => '選擇語言';
+
+  @override
+  String get languageSystemDefault => '跟隨系統';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageTraditionalChinese => '繁體中文';
+
+  @override
   String get findYourStyle => '探索你的風格';
 
   @override
-  String get styleSelectionInstruction => '選擇最多 3 種最符合你日常穿搭的風格。';
-
-  @override
-  String get styleSelectionDescription => '我們將根據你的選擇，為你打造個人化的穿搭推薦。';
+  String get styleSelectionInstruction => '選擇你的風格，獲得個人化穿搭推薦。';
 
   @override
   String get save => '儲存';
@@ -886,10 +971,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get saveThisLookBody => '要將這套穿搭加入你的收藏嗎？';
 
   @override
-  String get removeLookTitle => '移除穿搭？';
+  String get deleteLookTitle => '刪除穿搭';
 
   @override
-  String get removeLookBody => '這套穿搭將從你的穿搭列表中移除。';
+  String get deleteLookConfirmation => '確定要刪除這套穿搭嗎？';
 
   @override
   String createdOnDate(String date) {
@@ -1145,6 +1230,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get categoryAccessory => '配件';
 
   @override
+  String get categoryTopPlural => '上衣';
+
+  @override
+  String get categoryBottomPlural => '下身';
+
+  @override
+  String get categoryOuterPlural => '外套';
+
+  @override
+  String get categoryOnePiecePlural => '連身衣';
+
+  @override
+  String get categoryShoesPlural => '鞋';
+
+  @override
   String get colorBlack => '黑色';
 
   @override
@@ -1219,20 +1319,38 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addToCloset => '加入衣櫃';
 
   @override
-  String outfitCombosPossible(int combos) {
-    return '可組成 $combos 種穿搭';
+  String get clothingAdded => '已加入衣物';
+
+  @override
+  String garmentPairsWellWith(String subCategory, int count) {
+    return '這件$subCategory適合搭配你衣櫃裡的 $count 件單品。';
   }
 
   @override
-  String get addMorePiecesHint => '再新增幾件單品即可解鎖穿搭建議';
-
-  @override
-  String outfitComboBasis(int tops, int bottoms, int shoes) {
-    return '根據你衣櫃中已有的 $tops 件上衣、$bottoms 件下身和 $shoes 雙鞋子——這件單品很有機會派上用場。';
+  String garmentPairsWellWithGeneric(int count) {
+    return '適合搭配你衣櫃裡的 $count 件單品。';
   }
 
   @override
-  String get clothingNameLabel => '衣物名稱';
+  String get bestMatchesLabel => '最佳搭配：';
+
+  @override
+  String get scoreTierExcellent => '完美百搭';
+
+  @override
+  String get scoreTierHighlyVersatile => '百搭度高';
+
+  @override
+  String get scoreTierGoodMatch => '適合搭配';
+
+  @override
+  String get scoreTierLimitedMatch => '搭配有限';
+
+  @override
+  String get scoreTierHardToStyle => '較難搭配';
+
+  @override
+  String get clothingNameLabel => '名稱';
 
   @override
   String get nameTheClothingHint => '為這件衣物命名';
@@ -1241,7 +1359,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get pleaseEnterNameError => '請輸入名稱';
 
   @override
-  String get clothingCategoryLabel => '衣物類別';
+  String get clothingCategoryLabel => '類別';
 
   @override
   String get productType => '商品類型';
@@ -1286,6 +1404,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get clear => '清除';
 
   @override
+  String get close => '關閉';
+
+  @override
+  String get brand => '品牌';
+
+  @override
+  String get price => '價格';
+
+  @override
   String get selectDate => '選擇日期';
 
   @override
@@ -1293,6 +1420,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get changesSaved => '變更已儲存';
+
+  @override
+  String get itemDeleted => '已刪除衣物';
+
+  @override
+  String get lookSaved => '穿搭已儲存';
+
+  @override
+  String get lookDeleted => '穿搭已刪除';
 
   @override
   String get midLayer => '中層';
@@ -1465,19 +1601,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get noGarmentsPackedYet => '尚未打包任何衣物';
 
   @override
-  String get occasionDaily => '🏠 日常';
+  String get occasionWork => '工作';
 
   @override
-  String get occasionWork => '💼 工作';
+  String get occasionCasual => '休閒';
 
   @override
-  String get occasionDate => '❤️ 約會';
+  String get occasionWorkout => '運動';
 
   @override
-  String get occasionSport => '🏃 運動';
+  String get occasionDate => '約會';
 
   @override
-  String get occasionFormal => '👔 正式';
+  String get occasionTravel => '旅行';
+
+  @override
+  String get occasionParty => '派對';
 
   @override
   String get settingsSaved => '設定已儲存';
@@ -1486,18 +1625,25 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get comfortAdjustment => '舒適度調整';
 
   @override
-  String get dailyOccasions => '每日場合';
-
-  @override
-  String dayWithTodaySuffix(String day) {
-    return '$day（今天）';
-  }
+  String get weeklySchedule => '每週排程';
 
   @override
   String get apply => '套用';
 
   @override
   String get perceivedTempOffset => '體感溫度調整';
+
+  @override
+  String get lifestyleIntroLine1 => '告訴 LUMI 你典型的一週作息。';
+
+  @override
+  String get lifestyleIntroLine2 => '我們會根據你的日常推薦合適的穿搭。';
+
+  @override
+  String get comfortAdjustmentIntro => '每個人對冷熱的感受不同，這裡可以微調成適合你的體感。';
+
+  @override
+  String get selectOccasionTitle => '選擇場合';
 
   @override
   String get todaysLook => '今日穿搭';
@@ -1563,7 +1709,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get album => '相簿';
 
   @override
-  String get fullBodyPhotoLabel => '全身照';
+  String get fullBodyPhotoDescription => '用於生成你的穿搭試穿照片。';
 
   @override
   String get figureDetailLabel => '身形細節';

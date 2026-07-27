@@ -8,13 +8,13 @@ import '../features/home_page.dart';
 import '../features/looks_page.dart';
 import '../features/add_look_page.dart';
 import '../features/my_closet_page.dart';
-import '../features/trip_planner_page.dart';
+import '../features/trip_main_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
 import '../features/widgets/common/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
 
 /// Persistent shell hosting the app's 4 main tabs (Home, My Closet, Looks,
-/// Trip Planner) in an [IndexedStack]. Unlike pushing each tab as its own
+/// Trips) in an [IndexedStack]. Unlike pushing each tab as its own
 /// route, this keeps every tab's widget state (scroll position, in-progress
 /// filters, etc.) alive across switches, and the floating nav bar is built
 /// once here rather than per-page — so switching tabs is a plain `setState`
@@ -57,7 +57,12 @@ class _MainShellState extends ConsumerState<MainShell> {
       case QuickAction.addClothing:
         GarmentUploadHelper.showAddClothingDialog(
           context,
-          onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
+          onAdded: (g) {
+            ref.read(garmentsProvider.notifier).addGarment(g);
+            // Land on My Closet regardless of which tab the quick action
+            // was triggered from.
+            _select(AppTab.closet);
+          },
         );
       case QuickAction.addLook:
         await _openAddLook();
@@ -115,7 +120,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                 HomePage(),
                 MyClosetPage(),
                 LooksPage(),
-                TripPlannerPage(),
+                TripMainPage(),
               ],
             ),
           ),

@@ -1,0 +1,284 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../app/theme/app_colors.dart';
+import '../app/theme/app_text_styles.dart';
+import '../data/occasion_type.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../l10n/occasion_type_localization.dart';
+import 'widgets/common/app_tool_bar.dart';
+import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/number_stepper.dart';
+import 'widgets/common/picker_sheet.dart';
+import 'widgets/common/section_title.dart';
+
+class LifestylePage extends StatefulWidget {
+  const LifestylePage({super.key});
+
+  @override
+  State<LifestylePage> createState() => _LifestylePageState();
+}
+
+class _LifestylePageState extends State<LifestylePage> {
+  List<String> _weeklyOccasions = _defaultWeeklyOccasions();
+  int _temperatureOffset = 0;
+  bool _saving = false;
+
+  late List<String> _initialWeeklyOccasions = List.of(_weeklyOccasions);
+  int _initialTemperatureOffset = 0;
+
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
+  bool get _isModified =>
+      !listEquals(_weeklyOccasions, _initialWeeklyOccasions) ||
+      _temperatureOffset != _initialTemperatureOffset;
+
+  // Index 0 = Monday ... 6 = Sunday, matching the fixed weekly card order.
+  static List<String> _defaultWeeklyOccasions() => List.generate(
+    7,
+    (i) => (i < 5 ? OccasionType.work : OccasionType.casual).apiValue,
+  );
+
+  /// Maps a stored value to a currently-valid occasion id, falling back to
+  /// Work for values from a retired taxonomy (e.g. an older build's
+  /// 'casual_daily' / 'sport' / 'formal').
+  static String _normalizeOccasion(String stored) =>
+      (occasionTypeFromApiValue(stored) ?? OccasionType.work).apiValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList('weekly_occasions');
+    final offset = prefs.getInt('temperature_offset') ?? 0;
+    if (!mounted) return;
+    final loaded = (saved != null && saved.length == 7)
+        ? saved.map(_normalizeOccasion).toList()
+        : _defaultWeeklyOccasions();
+    setState(() {
+      _weeklyOccasions = loaded;
+      _temperatureOffset = offset;
+      _initialWeeklyOccasions = List.of(loaded);
+      _initialTemperatureOffset = offset;
+    });
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('weekly_occasions', _weeklyOccasions);
+    await prefs.setString(
+      'occasions_last_saved',
+      DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
+    await prefs.setInt('temperature_offset', _temperatureOffset);
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _initialWeeklyOccasions = List.of(_weeklyOccasions);
+      _initialTemperatureOffset = _temperatureOffset;
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(_l10n.settingsSaved)));
+  }
+
+  AppToolBar _buildAppBar() {
+    return AppToolBar(title: _l10n.lifestyle);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      extendBody: true,
+      appBar: _buildAppBar(),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          const SizedBox(height: 16),
+          _buildSectionTitle(_l10n.weeklySchedule),
+          const SizedBox(height: 8),
+          _buildWeeklyScheduleIntro(),
+          const SizedBox(height: 16),
+          ...List.generate(7, _buildWeekdayCard),
+          const SizedBox(height: 16),
+          _buildSectionTitle(_l10n.comfortAdjustment),
+          const SizedBox(height: 8),
+          _buildComfortAdjustmentIntro(),
+          const SizedBox(height: 16),
+          _buildTempAdjuster(),
+          const SizedBox(height: 32),
+        ],
+      ),
+      bottomNavigationBar: BottomActionButton(
+        label: _l10n.apply,
+        onPressed: _save,
+        isLoading: _saving,
+        enabled: _isModified,
+      ),
+    );
+  }
+
+  Widget _buildWeeklyScheduleIntro() {
+    final style = AppTextStyle.regular14.copyWith(
+      color: AppColors.textSecondary,
+      height: 1.4,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_l10n.lifestyleIntroLine1, style: style),
+        const SizedBox(height: 4),
+        Text(_l10n.lifestyleIntroLine2, style: style),
+      ],
+    );
+  }
+
+  Widget _buildComfortAdjustmentIntro() {
+    return Text(
+      _l10n.comfortAdjustmentIntro,
+      style: AppTextStyle.regular14.copyWith(
+        color: AppColors.textSecondary,
+        height: 1.4,
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String label) {
+    return SectionTitle(
+      label,
+      style: AppTextStyle.bold18.copyWith(color: AppColors.textPrimary),
+    );
+  }
+
+  Widget _buildTempAdjuster() {
+    return NumberStepper(
+      label: _l10n.perceivedTempOffset,
+      valueLabel: '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°',
+      onDecrement: () {
+        if (_temperatureOffset > -5) setState(() => _temperatureOffset--);
+      },
+      onIncrement: () {
+        if (_temperatureOffset < 5) setState(() => _temperatureOffset++);
+      },
+    );
+  }
+
+  Widget _buildWeekdayCard(int index) {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final date = monday.add(Duration(days: index));
+    final occasion =
+        occasionTypeFromApiValue(_weeklyOccasions[index]) ?? OccasionType.work;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openOccasionPicker(index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowResting,
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  DateFormat('EEEE').format(date),
+                  style: AppTextStyle.semibold16,
+                ),
+              ),
+              Icon(occasion.icon, size: 18, color: AppColors.icon),
+              const SizedBox(width: 6),
+              Text(
+                occasion.localizedLabel(context),
+                style: AppTextStyle.regular14.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openOccasionPicker(int index) async {
+    final current =
+        occasionTypeFromApiValue(_weeklyOccasions[index]) ?? OccasionType.work;
+    final selected = await showPickerSheet<OccasionType>(
+      context,
+      builder: (sheetContext) => RadioGroup<OccasionType>(
+        groupValue: current,
+        onChanged: (v) {
+          if (v != null) Navigator.pop(sheetContext, v);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PickerSheetHeader(_l10n.selectOccasionTitle),
+            for (final occasion in OccasionType.values)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: occasion == current
+                      ? BoxDecoration(
+                          color: AppColors.accentTint,
+                          borderRadius: BorderRadius.circular(10),
+                        )
+                      : null,
+                  child: Icon(
+                    occasion.icon,
+                    size: 18,
+                    color: occasion == current
+                        ? AppColors.accent
+                        : AppColors.icon,
+                  ),
+                ),
+                title: Text(
+                  occasion.localizedLabel(sheetContext),
+                  style: occasion == current
+                      ? AppTextStyle.bold16
+                      : AppTextStyle.regular16,
+                ),
+                trailing: Radio<OccasionType>(
+                  value: occasion,
+                  activeColor: AppColors.accent,
+                ),
+                onTap: () => Navigator.pop(sheetContext, occasion),
+              ),
+          ],
+        ),
+      ),
+    );
+
+    if (selected == null || selected == current) return;
+    setState(() => _weeklyOccasions[index] = selected.apiValue);
+  }
+}

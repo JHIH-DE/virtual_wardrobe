@@ -27,14 +27,16 @@ class RemovableCardGroup {
 class RemovableCard extends StatefulWidget {
   final Widget child;
   final VoidCallback onDelete;
-  final BorderRadius borderRadius;
   final RemovableCardGroup? group;
+
+  static const BorderRadius _borderRadius = BorderRadius.all(
+    Radius.circular(16),
+  );
 
   const RemovableCard({
     super.key,
     required this.child,
     required this.onDelete,
-    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
     this.group,
   });
 
@@ -94,7 +96,7 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
         if (_confirming)
           Positioned.fill(
             child: ClipRRect(
-              borderRadius: widget.borderRadius,
+              borderRadius: RemovableCard._borderRadius,
               child: Container(
                 color: AppColors.scrimBackdrop,
                 padding: const EdgeInsets.all(12),

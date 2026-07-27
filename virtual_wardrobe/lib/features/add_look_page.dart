@@ -211,7 +211,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (ids.isEmpty) return;
     if (tryOnJobId != 0) await deleteOutfitJob(tryOnJobId);
 
-    await performTryOn(ids, 'outfit');
+    await performTryOn(ids, 'looks');
     if (!mounted) return;
 
     if (tryOnResultUrl != null) {
@@ -490,6 +490,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
       leading: value != null
           ? GarmentImage(
               url: value.imageUrl,
+              garmentId: value.id,
               width: 40,
               height: 40,
               borderRadius: 8,

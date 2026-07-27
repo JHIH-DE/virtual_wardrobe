@@ -23,20 +23,26 @@ import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/custom_dropdown.dart';
+import 'widgets/common/close_action_button.dart';
 import 'widgets/common/lumi_insight_card.dart';
+import 'widgets/common/picker_field.dart';
+import 'widgets/common/picker_sheet.dart';
 import 'widgets/common/pill_button.dart';
+import 'widgets/common/score_ring.dart';
 import 'widgets/common/section_title.dart';
 import 'widgets/common/tappable_field_decorator.dart';
+import 'widgets/garment/garment_image.dart';
 
 class EditGarmentPage extends ConsumerStatefulWidget {
   final Garment? initialGarment;
   final Map<String, dynamic>? initialAnalysisData;
+  final Map<String, dynamic>? initialVersatility;
 
   const EditGarmentPage({
     super.key,
     this.initialGarment,
     this.initialAnalysisData,
+    this.initialVersatility,
   });
 
   @override
@@ -61,6 +67,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
+  Map<String, dynamic>? _versatility;
   int? _lookCount;
 
   bool _isModified = false;
@@ -102,6 +109,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
 
     if (widget.initialAnalysisData != null) {
       _applyAnalysisData(widget.initialAnalysisData!);
+      _versatility = widget.initialVersatility;
     } else if (_id == null &&
         _imagePathOrUrl != null &&
         _imagePathOrUrl!.isNotEmpty) {
@@ -203,9 +211,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           await AuthExpiredHandler.handle(context);
           return;
         }
-        setState(
-          () => errorMessage = _l10n.deleteFailedPrefix(e.toString()),
-        );
+        setState(() => errorMessage = _l10n.deleteFailedPrefix(e.toString()));
       }
     }
   }
@@ -235,9 +241,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   }
 
   AppToolBar _buildAppBar(BuildContext context) {
-    final title = _isAddMode
-        ? _l10n.quickActionAddClothing
-        : _l10n.details;
+    final title = _isAddMode ? _l10n.quickActionAddClothing : _l10n.details;
     return AppToolBar(
       title: title,
       onBack: () async {
@@ -328,80 +332,192 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     );
   }
 
-  // UI mockup only — combo count is a rough client-side estimate from
-  // whatever's already loaded in garmentsProvider, not a real AI analysis.
   Widget _buildOutfitPotentialCard() {
-    final closet = ref.watch(garmentsProvider).valueOrNull ?? const [];
-    final tops = closet.where((g) => g.category == GarmentCategory.top).length;
-    final bottoms = closet
-        .where((g) => g.category == GarmentCategory.bottom)
-        .length;
-    final outers = closet
-        .where((g) => g.category == GarmentCategory.outer)
-        .length;
-    final shoes = closet
-        .where((g) => g.category == GarmentCategory.shoes)
-        .length;
+    final score = (_versatility?['score'] as num?)?.toInt();
+    final breakdown =
+        (_versatility?['breakdown'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .where((item) {
+              final count = (item['compatible_count'] as num?)?.toInt() ?? 0;
+              if (count == 0) return false;
+              final category = GarmentCategoryX.fromApiValue(
+                item['category'] as String?,
+              );
+              return category != GarmentCategory.accessory &&
+                  category != GarmentCategory.socks;
+            })
+            .toList() ??
+        const [];
 
-    final combos = _estimateOutfitCombos(
-      tops: tops,
-      bottoms: bottoms,
-      outers: outers,
-      shoes: shoes,
+    if (score == null) return const SizedBox.shrink();
+
+    final totalItems = breakdown.fold<int>(
+      0,
+      (sum, item) => sum + ((item['compatible_count'] as num?)?.toInt() ?? 0),
     );
-
+    final subCategory = _subCategory.text.trim();
     return LumiInsightCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            combos > 0
-                ? _l10n.outfitCombosPossible(combos)
-                : _l10n.addMorePiecesHint,
+            subCategory.isEmpty
+                ? _l10n.garmentPairsWellWithGeneric(totalItems)
+                : _l10n.garmentPairsWellWith(subCategory, totalItems),
             style: AppTextStyle.bold14,
           ),
-          const SizedBox(height: 6),
-          Text(
-            _l10n.outfitComboBasis(tops, bottoms, shoes),
-            style: AppTextStyle.regular14.copyWith(
-              color: AppColors.textSecondary,
-            ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                children: [
+                  ScoreRing(score: score, size: 70),
+                  const SizedBox(height: 6),
+                  Text(
+                    _scoreTierLabel(score),
+                    style: AppTextStyle.bold12.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 40),
+              if (breakdown.isNotEmpty)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_l10n.bestMatchesLabel, style: AppTextStyle.bold14),
+                      const SizedBox(height: 6),
+                      _buildBreakdownList(breakdown),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  int _estimateOutfitCombos({
-    required int tops,
-    required int bottoms,
-    required int outers,
-    required int shoes,
-  }) {
-    final shoeFactor = shoes == 0 ? 1 : shoes;
-    switch (_category) {
-      case GarmentCategory.top:
-        return bottoms * shoeFactor;
-      case GarmentCategory.bottom:
-        return tops * shoeFactor;
-      case GarmentCategory.outer:
-        return tops * bottoms;
-      case GarmentCategory.shoes:
-        return tops * bottoms;
-      default:
-        return (tops + bottoms) * shoeFactor;
-    }
+  String _scoreTierLabel(int score) {
+    if (score >= 90) return _l10n.scoreTierExcellent;
+    if (score >= 75) return _l10n.scoreTierHighlyVersatile;
+    if (score >= 55) return _l10n.scoreTierGoodMatch;
+    if (score >= 35) return _l10n.scoreTierLimitedMatch;
+    return _l10n.scoreTierHardToStyle;
+  }
+
+  Widget _buildBreakdownList(List<Map<String, dynamic>> breakdown) {
+    final style = AppTextStyle.regular14.copyWith(
+      color: AppColors.textSecondary,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < breakdown.length; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i == breakdown.length - 1 ? 0 : 6),
+            child: InkWell(
+              onTap: () => _showCompatibleGarments(breakdown[i]),
+              borderRadius: BorderRadius.circular(6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('•  ', style: style),
+                  Expanded(
+                    child: Text(
+                      '${(breakdown[i]['compatible_count'] as num?)?.toInt() ?? 0} '
+                      '${GarmentCategoryX.fromApiValue(breakdown[i]['category'] as String?).pluralLabel(context)}',
+                      style: style,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showCompatibleGarments(Map<String, dynamic> breakdownItem) {
+    final category = GarmentCategoryX.fromApiValue(
+      breakdownItem['category'] as String?,
+    );
+    final ids = (breakdownItem['compatible_garment_ids'] as List?)
+            ?.whereType<num>()
+            .map((n) => n.toInt())
+            .toList() ??
+        const [];
+    final all = ref.read(garmentsProvider).valueOrNull ?? const [];
+    final garments = <Garment>[
+      for (final id in ids)
+        for (final g in all)
+          if (g.id == id) g,
+    ].take(9).toList();
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                category.localizedLabel(ctx),
+                textAlign: TextAlign.center,
+                style: AppTextStyle.bold18,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final g in garments)
+                    Container(
+                      width: 84,
+                      height: 84,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        border: Border.all(color: AppColors.borderStrong),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: GarmentImage(
+                        url: g.imageUrl,
+                        garmentId: g.id,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              CloseActionButton(onPressed: () => Navigator.pop(ctx)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildDetailsSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
       decoration: const BoxDecoration(color: AppColors.pageBackground),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!_isAddMode) _buildUsedInLooksTile(),
-          const Divider(height: 24, thickness: 1, color: AppColors.borderSubtle),
+          const Divider(
+            height: 24,
+            thickness: 1,
+            color: AppColors.borderSubtle,
+          ),
           _buildNameField(),
           const SizedBox(height: 20),
           _buildCategoryField(),
@@ -443,27 +559,53 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       children: [
         SectionTitle(_l10n.clothingCategoryLabel),
         const SizedBox(height: 8),
-        CustomDropdown<GarmentCategory>(
-          value: _category,
-          items: GarmentCategory.values
-              .map(
-                (c) => DropdownMenuItem(
-                  value: c,
-                  child: Text(
-                    c.localizedLabel(context),
-                    style: AppTextStyle.regular14,
-                  ),
-                ),
-              )
-              .toList(),
-          onChanged: (v) {
-            if (v != null) {
-              setState(() => _category = v);
-              _checkModified();
-            }
-          },
+        PickerField(
+          text: _category.localizedLabel(context),
+          onTap: _openCategoryPicker,
         ),
       ],
+    );
+  }
+
+  Future<void> _openCategoryPicker() async {
+    await showPickerSheet<void>(
+      context,
+      builder: (sheetContext) => RadioGroup<GarmentCategory>(
+        groupValue: _category,
+        onChanged: (v) {
+          if (v != null) {
+            setState(() => _category = v);
+            _checkModified();
+          }
+          Navigator.pop(sheetContext);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PickerSheetHeader(_l10n.clothingCategoryLabel),
+            for (final c in GarmentCategory.values)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  c.localizedLabel(context),
+                  style: c == _category
+                      ? AppTextStyle.bold16
+                      : AppTextStyle.regular16,
+                ),
+                trailing: Radio<GarmentCategory>(
+                  value: c,
+                  activeColor: AppColors.accent,
+                ),
+                onTap: () {
+                  setState(() => _category = c);
+                  _checkModified();
+                  Navigator.pop(sheetContext);
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -578,6 +720,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           result.metadata,
           processedImagePath: result.processedImagePath,
         );
+        _versatility = result.versatility;
         _isAnalyzing = false;
       });
     } catch (e) {
@@ -601,11 +744,11 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       child: GestureDetector(
         onTap: navigable ? _openUsedInLooks : null,
         child: Container(
-          height: 60,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             children: [
@@ -686,7 +829,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         Expanded(
           child: Text(
             selected?.localizedLabel(context) ?? _l10n.selectAColor,
-            style: AppTextStyle.regular14.copyWith(
+            style: AppTextStyle.regular16.copyWith(
               color: selected == null
                   ? AppColors.textSecondary
                   : AppColors.textPrimary,
@@ -702,58 +845,32 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   }
 
   void _openColorPickerSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.overlaySubtle,
-                  borderRadius: BorderRadius.circular(99),
-                ),
+    showPickerSheet(
+      context,
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PickerSheetHeader(
+            _l10n.chooseColorTitle,
+            trailing: TextButton(
+              onPressed: () {
+                setState(() => _selectedColor = null);
+                _checkModified();
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
+              child: Text(_l10n.clear),
             ),
-            const SizedBox(height: 20),
-            _buildColorPickerHeader(),
-            const SizedBox(height: 10),
-            _buildColorGrid(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorPickerHeader() {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(_l10n.chooseColorTitle, style: AppTextStyle.bold16),
-        ),
-        TextButton(
-          onPressed: () {
-            setState(() => _selectedColor = null);
-            _checkModified();
-            Navigator.pop(context);
-          },
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: Text(_l10n.clear),
-        ),
-      ],
+          _buildColorGrid(context),
+        ],
+      ),
     );
   }
 
@@ -825,7 +942,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             _purchaseDate == null
                 ? _l10n.selectDate
                 : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
-            style: TextStyle(
+            style: AppTextStyle.regular16.copyWith(
               color: _purchaseDate == null
                   ? AppColors.textSecondary
                   : AppColors.textPrimary,
@@ -924,6 +1041,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         _isImageChanged = true;
         if (result.analysisData != null) {
           _applyAnalysisData(result.analysisData!);
+          _versatility = result.versatility;
         }
       });
       _checkModified();
@@ -974,7 +1092,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           : await _updateGarmentFields();
 
       if (!mounted) return;
-      await _finishSaveSuccess(result);
+      Navigator.of(context).pop(result);
     } catch (e) {
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
@@ -1023,45 +1141,6 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       purchaseDate: _purchaseDate,
     );
     return GarmentService().updateGarment(updated);
-  }
-
-  /// Shows the success overlay, gives the user a moment to see it, then
-  /// closes both the overlay and this page, returning [result] to the caller.
-  Future<void> _finishSaveSuccess(Garment result) async {
-    _showSuccessOverlay();
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (!mounted) return;
-    Navigator.of(context).pop(); // 關閉成功彈窗
-    Navigator.of(context).pop(result); // 關閉 AddGarmentPage 並回傳結果
-  }
-
-  void _showSuccessOverlay() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle, color: AppColors.icon, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                _l10n.changesSaved,
-                style: AppTextStyle.bold16.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   GarmentColor? _tryParseGarmentColor(String? colorText) {

@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -6,6 +5,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/look.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'look_image.dart';
 
 class LookCard extends StatelessWidget {
   final Look look;
@@ -25,24 +25,6 @@ class LookCard extends StatelessWidget {
 
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
-
-  Widget _buildImageFallback(IconData icon, String label) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 32, color: AppColors.icon),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: AppTextStyle.regular12.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,25 +51,16 @@ class LookCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: Container(
-                    color: AppColors.surface,
-                    child: look.imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: look.imageUrl,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                            placeholder: (_, __) => const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            errorWidget: (_, __, ___) => _buildImageFallback(
-                              Icons.broken_image_outlined,
-                              l10n.failedToLoad,
-                            ),
-                          )
-                        : _buildImageFallback(
-                            Icons.image_outlined,
-                            l10n.noImage,
-                          ),
+                  child: LookImage(
+                    imageUrl: look.imageUrl,
+                    lookId: look.id,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    placeholderBuilder: (_) => const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    noImageLabel: l10n.noImage,
+                    errorLabel: l10n.failedToLoad,
                   ),
                 ),
                 Padding(

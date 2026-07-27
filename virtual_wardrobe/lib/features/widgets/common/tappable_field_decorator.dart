@@ -20,8 +20,18 @@ class TappableFieldDecorator extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: InputDecorator(
-        decoration: appInputDecoration(hint: ''),
-        child: Row(children: children),
+        decoration: appInputDecoration(
+          hint: '',
+        ).copyWith(contentPadding: EdgeInsets.zero),
+        child: SizedBox(
+          // Matches PickerField/AppTextField's measured 48px height.
+          height: 48,
+          child: Padding(
+            // Matches PickerField/AppTextField's measured 14px text inset.
+            padding: const EdgeInsets.only(left: 10, right: 10),
+            child: Row(children: children),
+          ),
+        ),
       ),
     );
   }

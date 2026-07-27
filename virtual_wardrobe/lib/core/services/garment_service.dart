@@ -15,9 +15,14 @@ import 'base_service.dart';
 
 class AnalyzeGarmentResult {
   final Map<String, dynamic> metadata;
+  final Map<String, dynamic>? versatility;
   final String? processedImagePath;
 
-  const AnalyzeGarmentResult({required this.metadata, this.processedImagePath});
+  const AnalyzeGarmentResult({
+    required this.metadata,
+    this.versatility,
+    this.processedImagePath,
+  });
 }
 
 class GarmentService with BaseService {
@@ -233,6 +238,7 @@ class GarmentService with BaseService {
     final envelope = decodeMap(res, op: 'analyzeInstantGarment');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? {};
     final metadata = (data['metadata'] as Map<String, dynamic>?) ?? {};
+    final versatility = data['versatility'] as Map<String, dynamic>?;
 
     String? processedImagePath;
     final base64Str = data['processed_image_base64'] as String?;
@@ -248,6 +254,7 @@ class GarmentService with BaseService {
 
     return AnalyzeGarmentResult(
       metadata: metadata,
+      versatility: versatility,
       processedImagePath: processedImagePath,
     );
   }

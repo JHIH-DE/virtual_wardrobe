@@ -6,10 +6,10 @@ import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/trip_plan_service.dart';
+import '../core/services/trip_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
-import '../data/trip_plan.dart';
+import '../data/trip.dart';
 import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'trip_garment_selection_page.dart';
@@ -22,7 +22,7 @@ import 'widgets/common/primary_action_button.dart';
 import 'widgets/garment/garment_card.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
-  final TripPlan trip;
+  final Trip trip;
 
   const TripSuitcasePage({super.key, required this.trip});
 
@@ -65,7 +65,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   Future<void> _loadPackedItems() async {
     try {
-      final data = await TripPlanService().getTripPlan(_tripId);
+      final data = await TripService().getTrip(_tripId);
       final ids = _parseSuitcaseItemIds(data['suitcase_items']);
       if (mounted) setState(() => _packedIds = ids);
     } catch (e) {
@@ -122,10 +122,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
     try {
       for (final id in toAdd) {
-        await TripPlanService().addSuitcaseItem(_tripId, garmentId: id);
+        await TripService().addSuitcaseItem(_tripId, garmentId: id);
       }
       for (final id in toRemove) {
-        await TripPlanService().removeSuitcaseItem(_tripId, garmentId: id);
+        await TripService().removeSuitcaseItem(_tripId, garmentId: id);
       }
     } catch (e) {
       if (e is AuthExpiredException) {
@@ -134,9 +134,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       }
       debugLog('Failed to update suitcase: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_l10n.failedToUpdateSuitcase)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateSuitcase)));
       }
     } finally {
       if (mounted) {
@@ -158,7 +158,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     });
 
     try {
-      await TripPlanService().removeSuitcaseItem(_tripId, garmentId: id);
+      await TripService().removeSuitcaseItem(_tripId, garmentId: id);
     } catch (e) {
       if (mounted) setState(() => _packedIds.add(id));
       if (e is AuthExpiredException) {
@@ -219,7 +219,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         padding: const EdgeInsets.all(16),
         children: [
           PrimaryActionButton(
-            label: _l10n.addGarment,
+            label: _l10n.selectGarmentsTitle,
             icon: Icons.add,
             fullWidth: true,
             onPressed: () => _handleAddGarment(allGarments),

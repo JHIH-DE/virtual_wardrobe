@@ -13,7 +13,11 @@ class BottomActionButton extends StatelessWidget {
   final Color textColor;
   final EdgeInsets panelPadding;
   final BorderSide? borderSide;
-  final double height;
+
+  // Was an overridable param (default 56); the one call site that needed a
+  // shorter bar (Remix Look) is the only value actually in use, so that's
+  // now the fixed height everywhere.
+  static const double _height = 48;
 
   const BottomActionButton({
     super.key,
@@ -27,7 +31,6 @@ class BottomActionButton extends StatelessWidget {
     this.textColor = AppColors.textOnPrimary,
     this.panelPadding = const EdgeInsets.fromLTRB(22, 22, 22, 0),
     this.borderSide,
-    this.height = 56,
   });
 
   bool get _isDisabled => !enabled || isLoading || onPressed == null;
@@ -38,11 +41,19 @@ class BottomActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (_isUnavailable) return const SizedBox.shrink();
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: _isUnavailable
+          ? const SizedBox.shrink(key: ValueKey('bottomActionButton-hidden'))
+          : _buildButton(key: const ValueKey('bottomActionButton-visible')),
+    );
+  }
 
+  Widget _buildButton({required Key key}) {
     final iconColor = _isDisabled ? AppColors.textSecondary : textColor;
 
     return Padding(
+      key: key,
       padding: panelPadding,
       child: SafeArea(
         top: false,
@@ -50,7 +61,7 @@ class BottomActionButton extends StatelessWidget {
         right: false,
         child: SizedBox(
           width: double.infinity,
-          height: height,
+          height: _height,
           child: ElevatedButton(
             onPressed: _isDisabled ? null : onPressed,
             style: ElevatedButton.styleFrom(

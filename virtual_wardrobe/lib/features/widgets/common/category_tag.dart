@@ -5,20 +5,15 @@ import '../../../app/theme/app_text_styles.dart';
 
 class CategoryTag extends StatelessWidget {
   final String label;
-  final Color color;
 
-  const CategoryTag({
-    super.key,
-    required this.label,
-    this.color = AppColors.tagBackground,
-  });
+  const CategoryTag({super.key, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color,
+        color: AppColors.tagBackground,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

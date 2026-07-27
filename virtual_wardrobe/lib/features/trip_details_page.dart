@@ -10,13 +10,13 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
-import '../core/services/trip_plan_service.dart';
+import '../core/services/trip_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/signed_url.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
 import '../data/look.dart';
-import '../data/trip_plan.dart';
+import '../data/trip.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'trip_suitcase_page.dart';
 import 'widgets/common/app_list_card.dart';
@@ -28,7 +28,7 @@ import 'widgets/garment/garment_image.dart';
 import 'widgets/trip/trip_day_card.dart';
 
 /// One trip day's primary outfit option, as returned embedded in
-/// `TripPlanService.getTripPlan`'s `days[].options[]` — no separate
+/// `TripService.getTrip`'s `days[].options[]` — no separate
 /// per-day fetch needed once the trip has been loaded.
 class TripDayOutfit {
   final int? optionId;
@@ -116,7 +116,7 @@ Future<_WeatherForecast> _fetchLegWeather(TripLeg leg) async {
 /// Builds one weather entry per day of the whole trip by looking up, for
 /// each day, which leg covers it and pulling that leg's forecast for that
 /// day. Robust to legs being entered out of chronological order.
-Future<_WeatherForecast> _fetchWeather(TripPlan trip) async {
+Future<_WeatherForecast> _fetchWeather(Trip trip) async {
   final legForecasts = <_WeatherForecast>[];
   for (final leg in trip.legs) {
     legForecasts.add(await _fetchLegWeather(leg));
@@ -194,7 +194,7 @@ TripDayOutfit _parseTripDayOutfit(
 }
 
 class TripDetailsPage extends ConsumerStatefulWidget {
-  final TripPlan trip;
+  final Trip trip;
   final TripDetailsInitialData initialData;
 
   const TripDetailsPage({
@@ -205,12 +205,12 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 
   /// Fetches everything [TripDetailsPage] needs up front, so the page can be
   /// pushed only once loading is complete (no in-page spinner on open).
-  static Future<TripDetailsInitialData> preload(TripPlan trip) async {
+  static Future<TripDetailsInitialData> preload(Trip trip) async {
     final weather = await _fetchWeather(trip);
 
     List<TripDayOutfit> dayOutfits = [];
     try {
-      final tripData = await TripPlanService().getTripPlan(int.parse(trip.id));
+      final tripData = await TripService().getTrip(int.parse(trip.id));
       final allGarments = await GarmentService().getGarments();
       final garmentsById = {
         for (final g in allGarments)
@@ -316,7 +316,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   Future<void> _loadPackingAdvice() async {
     setState(() => _loadingPackingAdvice = true);
     try {
-      final data = await TripPlanService().getTripSuggestion(
+      final data = await TripService().getTripSuggestion(
         int.parse(widget.trip.id),
       );
       if (mounted) {
@@ -387,7 +387,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       imageUrl: tryOnResultUrl,
       isLoading: isLookLoading,
       jobStatus: isLookLoading
-          ? (tryOnJobId == 0 ? _l10n.creatingEllipsis : _l10n.generatingEllipsis)
+          ? (tryOnJobId == 0
+                ? _l10n.creatingEllipsis
+                : _l10n.generatingEllipsis)
           : null,
       errorMessage: tryOnErrorMessage,
     );
@@ -559,7 +561,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderSubtle),
       ),
-      child: GarmentImage(url: g.imageUrl, fit: BoxFit.cover, borderRadius: 12),
+      child: GarmentImage(
+        url: g.imageUrl,
+        garmentId: g.id,
+        fit: BoxFit.cover,
+        borderRadius: 12,
+      ),
     );
   }
 
@@ -576,7 +583,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
     if (jobId != null) {
       try {
-        await TripPlanService().setTryonJobToOption(
+        await TripService().setTryonJobToOption(
           jobId,
           optionId: optionId,
           tripId: int.parse(widget.trip.id),

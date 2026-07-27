@@ -8,12 +8,16 @@
   "settings": "Settings",
   "bodyProfile": "Body Profile",
   "styleProfile": "Style Profile",
-  "dailyPreferences": "Daily Preferences",
+  "lifestyle": "Lifestyle",
   "logout": "Logout",
+  "language": "Language",
+  "selectLanguageTitle": "Select Language",
+  "languageSystemDefault": "System Default",
+  "languageEnglish": "English",
+  "languageTraditionalChinese": "繁體中文",
 
   "findYourStyle": "Find Your Style",
-  "styleSelectionInstruction": "Choose up to 3 styles that best match your everyday wardrobe.",
-  "styleSelectionDescription": "We'll personalize your outfit recommendations based on your selections.",
+  "styleSelectionInstruction": "Choose your styles for personalized outfit picks.",
 
   "save": "Save",
   "cancel": "Cancel",
@@ -37,8 +41,8 @@
 
   "saveThisLookTitle": "Save this look?",
   "saveThisLookBody": "Would you like to save this look to your collection?",
-  "removeLookTitle": "Remove look?",
-  "removeLookBody": "This look will be removed from your Looks.",
+  "deleteLookTitle": "Delete Look",
+  "deleteLookConfirmation": "Are you sure you want to delete this look?",
 
   "createdOnDate": "Created {date}",
   "@createdOnDate": {
@@ -176,6 +180,11 @@
   "categorySocks": "Socks",
   "categoryShoes": "Shoes",
   "categoryAccessory": "Accessory",
+  "categoryTopPlural": "Tops",
+  "categoryBottomPlural": "Bottoms",
+  "categoryOuterPlural": "Outers",
+  "categoryOnePiecePlural": "One-pieces",
+  "categoryShoesPlural": "Shoes",
 
   "colorBlack": "Black",
   "colorWhite": "White",
@@ -205,23 +214,30 @@
   "unsavedChangesBody": "If you leave this page, your changes will be lost.",
   "dontSave": "Don't Save",
   "addToCloset": "Add to Closet",
-  "outfitCombosPossible": "{combos} outfit combinations possible",
-  "@outfitCombosPossible": {
-    "placeholders": { "combos": { "type": "int" } }
-  },
-  "addMorePiecesHint": "Add a few more pieces to unlock outfit ideas",
-  "outfitComboBasis": "Based on the {tops} top(s), {bottoms} bottom(s) and {shoes} pair(s) of shoes already in your closet — a good sign this piece will earn its keep.",
-  "@outfitComboBasis": {
+  "clothingAdded": "Clothing Added",
+  "garmentPairsWellWith": "This {subCategory} pairs well with {count} items in your closet.",
+  "@garmentPairsWellWith": {
     "placeholders": {
-      "tops": { "type": "int" },
-      "bottoms": { "type": "int" },
-      "shoes": { "type": "int" }
+      "subCategory": { "type": "String" },
+      "count": { "type": "int" }
     }
   },
-  "clothingNameLabel": "Clothing Name",
+  "garmentPairsWellWithGeneric": "Pairs well with {count} items in your closet.",
+  "@garmentPairsWellWithGeneric": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "bestMatchesLabel": "Best matches:",
+  "scoreTierExcellent": "Excellent Match",
+  "scoreTierHighlyVersatile": "Highly Versatile",
+  "scoreTierGoodMatch": "Good Match",
+  "scoreTierLimitedMatch": "Limited Match",
+  "scoreTierHardToStyle": "Hard to Style",
+  "clothingNameLabel": "Name",
   "nameTheClothingHint": "Name the clothing",
   "pleaseEnterNameError": "Please enter name",
-  "clothingCategoryLabel": "Clothing Category",
+  "clothingCategoryLabel": "Category",
   "productType": "Product Type",
   "productTypeHint": "e.g. Top",
   "pleaseEnterProductTypeError": "Please enter product type",
@@ -233,12 +249,18 @@
   "purchaseDateLabel": "Purchase date",
   "notUsedInLooksYet": "Not used in any looks yet",
   "usedInLooks": "Used in Looks",
-  "selectAColor": "Select a color",
+  "selectAColor": "Select Color",
   "chooseColorTitle": "Choose a color",
   "clear": "Clear",
-  "selectDate": "Select date",
+  "close": "Close",
+  "brand": "Brand",
+  "price": "Price",
+  "selectDate": "Select Date",
   "editImage": "Edit image",
   "changesSaved": "Changes Saved",
+  "itemDeleted": "Clothing Deleted",
+  "lookSaved": "Look Saved",
+  "lookDeleted": "Look Deleted",
 
   "midLayer": "Mid Layer",
   "outerwear": "Outerwear",
@@ -255,11 +277,11 @@
   "accountNameLabel": "Account Name",
   "enterYourNameHint": "Enter your name",
   "genderLabel": "Gender",
-  "selectGenderHint": "Select gender",
+  "selectGenderHint": "Select Gender",
   "birthdayLabel": "Birthday",
-  "selectBirthdayHint": "Select birthday",
+  "selectBirthdayHint": "Select Birthday",
   "homeLocationLabel": "Home Location",
-  "selectYourCityHint": "Select your city",
+  "selectYourCityHint": "Select Your City",
 
   "seasonLabel": "Season",
   "styleLabel": "Style",
@@ -316,20 +338,21 @@
   "addGarment": "Add Garment",
   "noGarmentsPackedYet": "No garments packed yet",
 
-  "occasionDaily": "🏠 Daily",
-  "occasionWork": "💼 Work",
-  "occasionDate": "❤️ Date",
-  "occasionSport": "🏃 Sport",
-  "occasionFormal": "👔 Formal",
+  "occasionWork": "Work",
+  "occasionCasual": "Casual",
+  "occasionWorkout": "Workout",
+  "occasionDate": "Date",
+  "occasionTravel": "Travel",
+  "occasionParty": "Party",
   "settingsSaved": "Settings saved",
   "comfortAdjustment": "Comfort Adjustment",
-  "dailyOccasions": "Daily Occasions",
-  "dayWithTodaySuffix": "{day} (Today)",
-  "@dayWithTodaySuffix": {
-    "placeholders": { "day": { "type": "String" } }
-  },
+  "weeklySchedule": "Weekly Schedule",
   "apply": "Apply",
   "perceivedTempOffset": "Perceived temperature offset",
+  "lifestyleIntroLine1": "Tell LUMI what your typical week looks like.",
+  "lifestyleIntroLine2": "We'll recommend outfits that match your routine.",
+  "comfortAdjustmentIntro": "Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.",
+  "selectOccasionTitle": "Select Occasion",
 
   "todaysLook": "Today's Look",
   "loadingWeatherEllipsis": "Loading weather…",
@@ -356,7 +379,7 @@
   "retake": "Retake",
   "album": "Album",
 
-  "fullBodyPhotoLabel": "Full-body Photo",
+  "fullBodyPhotoDescription": "Used to generate your outfit try-on photos.",
   "figureDetailLabel": "Figure Detail",
   "chooseClearFullBodyPhotoHint": "Please choose a clear, full-body photo.",
   "heightHint": "height",

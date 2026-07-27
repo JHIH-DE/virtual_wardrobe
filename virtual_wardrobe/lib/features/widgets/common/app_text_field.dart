@@ -6,7 +6,7 @@ import '../../../app/theme/app_text_styles.dart';
 
 /// Shared "input field chrome" — filled, rounded, bordered — used by
 /// [AppTextField] as well as the dropdown/date-picker fields in
-/// `custom_dropdown.dart`. The border radius/color and focused-border
+/// `picker_field.dart`. The border radius/color and focused-border
 /// color/width are overridable so callers can match their own field style.
 InputDecoration appInputDecoration({
   String? hint,
@@ -103,7 +103,7 @@ class AppTextField extends StatelessWidget {
       readOnly: readOnly,
       maxLines: maxLines,
       validator: validator,
-      style: AppTextStyle.bold16,
+      style: AppTextStyle.regular16,
       decoration: appInputDecoration(
         hint: hint,
         label: label,

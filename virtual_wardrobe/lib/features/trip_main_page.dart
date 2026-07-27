@@ -9,9 +9,9 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../core/providers/trips_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/trip_plan_service.dart';
+import '../core/services/trip_service.dart';
 import '../core/utils/debug_log.dart';
-import '../data/trip_plan.dart';
+import '../data/trip.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'trip_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
@@ -20,14 +20,14 @@ import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/labeled_divider.dart';
 import 'widgets/common/loading_overlay.dart';
-import 'widgets/trip/trip_plan_card.dart';
-import 'widgets/trip/trip_plan_create_dialog.dart';
+import 'widgets/trip/trip_card.dart';
+import 'widgets/trip/trip_create_dialog.dart';
 
-class TripPlannerPage extends ConsumerStatefulWidget {
-  const TripPlannerPage({super.key});
+class TripMainPage extends ConsumerStatefulWidget {
+  const TripMainPage({super.key});
 
   @override
-  ConsumerState<TripPlannerPage> createState() => _TripPlannerPageState();
+  ConsumerState<TripMainPage> createState() => _TripMainPageState();
 }
 
 final _dateFmt = DateFormat('yyyy-MM-dd');
@@ -36,7 +36,7 @@ DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 enum _TripStatus { ongoing, upcoming, past }
 
-_TripStatus _tripStatus(TripPlan trip, DateTime today) {
+_TripStatus _tripStatus(Trip trip, DateTime today) {
   final start = _dateOnly(trip.dateRange.start);
   final end = _dateOnly(trip.dateRange.end);
   if (today.isBefore(start)) return _TripStatus.upcoming;
@@ -125,9 +125,7 @@ Future<Map<String, double>> _fetchDailyMap(String url) async {
 /// Builds one `{date, temperature_c}` entry per day of the whole trip by
 /// looking up, for each day, which leg covers it and pulling that leg's
 /// mean temperature for that specific date.
-Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(
-  TripPlan trip,
-) async {
+Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(Trip trip) async {
   final legTemps = <Map<String, double>>[];
   for (final leg in trip.legs) {
     legTemps.add(await _fetchLegDailyTemps(leg));
@@ -154,14 +152,14 @@ Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(
 
 /// Shows the "New Trip" creation flow (location/date form, then weather
 /// prefetch + create call) and adds the result to [tripsProvider]. Shared
-/// between [TripPlannerPage]'s own "+" and any other entry point (e.g. the
+/// between [TripMainPage]'s own "+" and any other entry point (e.g. the
 /// Home page's quick-actions menu).
 Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
   final l10n = AppLocalizations.of(context);
-  final input = await showDialog<TripPlan>(
+  final input = await showDialog<Trip>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const TripPlanCreateDialog(),
+    builder: (_) => const TripCreateDialog(),
   );
   if (input == null || !context.mounted) return;
 
@@ -173,7 +171,7 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
   );
 
   try {
-    final newTrip = await _createTripPlan(input);
+    final newTrip = await _createTrip(input);
     ref.read(tripsProvider.notifier).add(newTrip);
     final initialData = await TripDetailsPage.preload(newTrip);
 
@@ -195,17 +193,17 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
 }
 
 /// Fetches the per-day weather needed by the backend, then creates the trip
-/// plan record and returns it as a [TripPlan].
-Future<TripPlan> _createTripPlan(TripPlan input) async {
+/// plan record and returns it as a [Trip].
+Future<Trip> _createTrip(Trip input) async {
   final days = await _fetchDailyTemperatures(input);
   debugLog('createTrip days: $days');
-  final id = await TripPlanService().createTripPlan(
+  final id = await TripService().createTrip(
     name: input.name,
     legs: input.legs,
     purpose: input.purpose,
     days: days,
   );
-  return TripPlan(
+  return Trip(
     id: id.toString(),
     name: input.name,
     legs: input.legs,
@@ -213,12 +211,12 @@ Future<TripPlan> _createTripPlan(TripPlan input) async {
   );
 }
 
-/// Jumps the shell to the Trip Planner tab so that popping back off of Trip
+/// Jumps the shell to the Trips tab so that popping back off of Trip
 /// Details always lands there, regardless of where trip creation was
 /// started from (e.g. Home's quick-actions menu), then pushes Trip Details.
 void _goToNewTripDetails(
   BuildContext context,
-  TripPlan trip,
+  Trip trip,
   TripDetailsInitialData initialData,
 ) {
   MainShellScope.of(context)?.selectTab(AppTab.tripPlanner);
@@ -228,7 +226,7 @@ void _goToNewTripDetails(
   Navigator.push(context, route);
 }
 
-class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
+class _TripMainPageState extends ConsumerState<TripMainPage> {
   bool _openingTrip = false;
 
   @override
@@ -262,14 +260,14 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
 
   AppToolBar _buildAppBar(BuildContext context) {
     return AppToolBar(
-      title: AppLocalizations.of(context).tripPlannerTitle,
+      title: AppLocalizations.of(context).navTrips,
       showBackButton: false,
     );
   }
 
   Widget _buildScaffold(
     BuildContext context,
-    AsyncValue<List<TripPlan>> tripsAsync,
+    AsyncValue<List<Trip>> tripsAsync,
   ) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
@@ -285,7 +283,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     );
   }
 
-  Widget _buildTripList(BuildContext context, List<TripPlan> trips) {
+  Widget _buildTripList(BuildContext context, List<Trip> trips) {
     return RefreshIndicator(
       onRefresh: () => ref.read(tripsProvider.notifier).refresh(),
       child: trips.isEmpty
@@ -306,16 +304,13 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   /// by how soon they happen — Ongoing/Upcoming ascending by start date,
   /// Past descending so the most recently finished trip shows first), and
   /// interleaves a [LabeledDivider] header before each non-empty section.
-  List<Widget> _buildGroupedTripItems(
-    BuildContext context,
-    List<TripPlan> trips,
-  ) {
+  List<Widget> _buildGroupedTripItems(BuildContext context, List<Trip> trips) {
     final l10n = AppLocalizations.of(context);
     final today = _dateOnly(DateTime.now());
 
-    final ongoing = <TripPlan>[];
-    final upcoming = <TripPlan>[];
-    final past = <TripPlan>[];
+    final ongoing = <Trip>[];
+    final upcoming = <Trip>[];
+    final past = <Trip>[];
     for (final trip in trips) {
       switch (_tripStatus(trip, today)) {
         case _TripStatus.ongoing:
@@ -331,7 +326,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     past.sort((a, b) => b.dateRange.end.compareTo(a.dateRange.end));
 
     final items = <Widget>[];
-    void addSection(String label, List<TripPlan> group, Color dotColor) {
+    void addSection(String label, List<Trip> group, Color dotColor) {
       if (group.isEmpty) return;
       if (items.isNotEmpty) items.add(const SizedBox(height: 8));
       items.add(LabeledDivider(label: label, dotColor: dotColor));
@@ -360,10 +355,10 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     );
   }
 
-  Widget _buildTripCard(BuildContext context, TripPlan trip) {
+  Widget _buildTripCard(BuildContext context, Trip trip) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: TripPlanCard(
+      child: TripCard(
         key: ValueKey(trip.id),
         trip: trip,
         onTap: () => _handleOpenTrip(context, trip),
@@ -393,11 +388,11 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   Future<void> _handleUpdateTrip(
     BuildContext context,
     WidgetRef ref,
-    TripPlan trip, {
-    required TripPlan updated,
+    Trip trip, {
+    required Trip updated,
   }) async {
     try {
-      await TripPlanService().updateTripPlan(
+      await TripService().updateTrip(
         int.parse(trip.id),
         name: updated.name != trip.name ? updated.name : null,
         legs: updated.legs,
@@ -414,7 +409,9 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       }
       debugLog('Failed to update trip: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).failedToUpdateTrip)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).failedToUpdateTrip),
+        ),
       );
     }
   }
@@ -422,7 +419,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
   Future<void> _handleDeleteTrip(
     BuildContext context,
     WidgetRef ref,
-    TripPlan trip,
+    Trip trip,
   ) async {
     showDialog(
       context: context,
@@ -431,7 +428,7 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
     );
 
     try {
-      await TripPlanService().deleteTripPlan(int.parse(trip.id));
+      await TripService().deleteTrip(int.parse(trip.id));
 
       if (!context.mounted) return;
       Navigator.pop(context); // close loading indicator
@@ -445,12 +442,14 @@ class _TripPlannerPageState extends ConsumerState<TripPlannerPage> {
       }
       debugLog('Failed to delete trip: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).failedToDeleteTrip)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).failedToDeleteTrip),
+        ),
       );
     }
   }
 
-  Future<void> _handleOpenTrip(BuildContext context, TripPlan trip) async {
+  Future<void> _handleOpenTrip(BuildContext context, Trip trip) async {
     setState(() => _openingTrip = true);
     try {
       final data = await TripDetailsPage.preload(trip);

@@ -43,6 +43,7 @@ class GarmentListCard extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     child: GarmentImage(
                       url: garment.imageUrl,
+                      garmentId: garment.id,
                       fit: BoxFit.fitHeight,
                       borderRadius: 0,
                     ),

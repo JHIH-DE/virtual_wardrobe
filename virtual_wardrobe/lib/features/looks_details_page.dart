@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,14 +14,17 @@ import '../data/garment.dart';
 import '../data/look.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'add_look_page.dart';
-import 'full_screen_image_page.dart';
 import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/labeled_divider.dart';
 import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/refreshable_network_image.dart';
+import 'widgets/garment/garment_detail_dialog.dart';
 import 'widgets/garment/garment_list_card.dart';
+import 'widgets/look/look_image.dart';
 
 enum _LookMenuAction { rename, share, delete }
 
@@ -84,9 +86,8 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   Future<void> _ensureFreshOutfitImage() async {
     if (!isSignedUrlExpired(_imageUrl)) return;
     try {
-      final data = await LookService().getLook(widget.look.id);
-      final fresh = Look.fromJson(data);
-      if (mounted) setState(() => _imageUrl = fresh.imageUrl);
+      final fresh = await fetchFreshLookImageUrl(widget.look.id);
+      if (mounted) setState(() => _imageUrl = fresh);
     } catch (_) {
       // Leave the existing URL; the image's errorWidget covers the fallback.
     }
@@ -98,9 +99,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       children: [
         _buildScaffold(context),
         if (_openingTryOn)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.loadingGarments),
-          ),
+          Positioned.fill(child: LoadingOverlay(label: _l10n.loadingGarments)),
       ],
     );
   }
@@ -230,7 +229,6 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       ),
       onPressed: () => _remixLook(context),
       enabled: !_loadingGarments && !_openingTryOn,
-      height: 48,
       panelPadding: const EdgeInsets.fromLTRB(22, 22, 22, 8),
     );
   }
@@ -295,35 +293,24 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     ).showSnackBar(SnackBar(content: Text(_l10n.shareComingSoon)));
   }
 
+  Future<String?> _refreshOutfitImageUrl() async {
+    final fresh = await fetchFreshLookImageUrl(widget.look.id);
+    if (mounted) setState(() => _imageUrl = fresh);
+    return fresh;
+  }
+
   Widget _buildOutfitImage() {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        PageRouteBuilder(
-          opaque: false,
-          pageBuilder: (_, __, ___) => FullScreenImagePage(imageUrl: _imageUrl),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: AspectRatio(
-          aspectRatio: 3 / 4,
-          child: Hero(
-            tag: 'outfit_image_${widget.look.id}',
-            child: CachedNetworkImage(
-              imageUrl: _imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (_, __) =>
-                  const Center(child: CircularProgressIndicator()),
-              errorWidget: (_, __, ___) => Center(
-                child: Text(
-                  _l10n.failedToLoadImage,
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: AspectRatio(
+        aspectRatio: 3 / 4,
+        child: RefreshableNetworkImage(
+          imageUrl: _imageUrl,
+          fit: BoxFit.cover,
+          placeholderBuilder: (_) =>
+              const Center(child: CircularProgressIndicator()),
+          errorLabel: _l10n.failedToLoadImage,
+          onRefreshUrl: _refreshOutfitImageUrl,
         ),
       ),
     );
@@ -352,19 +339,7 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: GarmentListCard(
         garment: g,
-        onTap: (g.imageUrl?.isNotEmpty == true)
-            ? () => Navigator.of(context).push(
-                PageRouteBuilder(
-                  opaque: false,
-                  pageBuilder: (_, __, ___) => FullScreenImagePage(
-                    imageUrl: g.imageUrl!,
-                    backgroundColor: AppColors.surface,
-                    aspectRatio: 1.0,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              )
-            : null,
+        onTap: () => GarmentDetailDialog.show(context, g),
       ),
     );
   }
@@ -463,7 +438,12 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     try {
       await LookService().setSaved(widget.look.id, isSaved: true);
       await ref.read(looksProvider.notifier).refresh();
-      if (mounted) setState(() => _isSaved = true);
+      if (!mounted) return;
+      setState(() => _isSaved = true);
+      final feedback = ref.read(lookFeedbackProvider.notifier);
+      MainShellScope.of(context)?.selectTab(AppTab.looks);
+      Navigator.popUntil(context, (route) => route.isFirst);
+      feedback.state = LookFeedbackKind.saved;
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -510,9 +490,9 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: _l10n.removeLookTitle,
-        body: _l10n.removeLookBody,
-        primaryLabel: _l10n.remove,
+        title: _l10n.deleteLookTitle,
+        body: _l10n.deleteLookConfirmation,
+        primaryLabel: _l10n.delete,
         onPrimary: () => Navigator.pop(ctx, true),
         secondaryLabel: _l10n.cancel,
         onSecondary: () => Navigator.pop(ctx, false),
@@ -524,7 +504,9 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     try {
       await LookService().deleteLook(widget.look.id);
       ref.read(looksProvider.notifier).removeById(widget.look.id);
+      final feedback = ref.read(lookFeedbackProvider.notifier);
       if (mounted) Navigator.pop(context);
+      feedback.state = LookFeedbackKind.deleted;
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);

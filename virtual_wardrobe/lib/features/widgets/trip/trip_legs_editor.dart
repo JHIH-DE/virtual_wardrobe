@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/location_result.dart';
-import '../../../data/trip_plan.dart';
+import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../location_picker_page.dart';
 import 'trip_leg_date_range_picker.dart';

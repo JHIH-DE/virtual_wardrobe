@@ -25,10 +25,8 @@ class FilterGroup {
   });
 }
 
-/// Filter icon button that opens a dropdown menu built from [groups],
-/// anchored directly under the button, with a full-screen dark scrim behind
-/// it so the panel reads as highlighted above the rest of the page.
-class FilterButton extends StatefulWidget {
+/// Filter icon button that opens a bottom sheet built from [groups].
+class FilterButton extends StatelessWidget {
   final bool isFiltered;
   final List<FilterGroup> groups;
 
@@ -53,115 +51,77 @@ class FilterButton extends StatefulWidget {
     return next;
   }
 
-  @override
-  State<FilterButton> createState() => _FilterButtonState();
-}
-
-class _FilterButtonState extends State<FilterButton> {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-
-  bool get _isOpen => _overlayEntry != null;
-
-  void _toggle() {
-    if (_isOpen) {
-      _close();
-    } else {
-      _open();
-    }
-  }
-
-  void _open() {
-    final entry = OverlayEntry(builder: _buildOverlayContent);
-    _overlayEntry = entry;
-    Overlay.of(context).insert(entry);
-    setState(() {});
-  }
-
-  void _close() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _overlayEntry?.remove();
-    super.dispose();
-  }
-
-  // A single Stack owns both layers, so paint order (scrim first, panel on
-  // top) is just widget order — no dependence on how/where Overlay entries
-  // from other widgets happen to be stacked.
-  Widget _buildOverlayContent(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _close,
-            child: Container(color: AppColors.scrimBackdrop),
-          ),
-        ),
-        CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          targetAnchor: Alignment.bottomRight,
-          followerAnchor: Alignment.topRight,
-          offset: const Offset(0, 8),
-          child: _buildPanel(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPanel() {
+  void _openFilterSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Material(
-      color: AppColors.surface,
-      elevation: 8,
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: StatefulBuilder(
-        builder: (ctx, setMenuState) {
-          return Container(
-            width: 262,
-            padding: const EdgeInsets.all(16),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var i = 0; i < widget.groups.length; i++) ...[
-                  Text(widget.groups[i].label, style: AppTextStyle.bold16),
-                  const SizedBox(height: 10),
-                  widget.groups[i].options.isEmpty
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.overlaySubtle,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                for (var i = 0; i < groups.length; i++) ...[
+                  Text(groups[i].label, style: AppTextStyle.bold16),
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: AppColors.dividerSubtle,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  groups[i].options.isEmpty
                       ? Text(
-                          widget.groups[i].emptyMessage ??
+                          groups[i].emptyMessage ??
                               l10n.noOptionsAvailable(
-                                widget.groups[i].label.toLowerCase(),
+                                groups[i].label.toLowerCase(),
                               ),
                           style: AppTextStyle.regular14.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         )
                       : Wrap(
-                          spacing: 8,
+                          spacing: 10,
                           runSpacing: 8,
-                          children: widget.groups[i].options.map((opt) {
-                            final selected = widget.groups[i]
-                                .selected()
-                                .contains(opt);
+                          children: groups[i].options.map((opt) {
+                            final selected = groups[i].selected().contains(opt);
                             return SelectableChip(
                               label: opt,
                               selected: selected,
+                              selectedColor: AppColors.accentTint,
+                              selectedTextColor: AppColors.accent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               onTap: () {
-                                widget.groups[i].onToggle(opt);
-                                setMenuState(() {});
+                                groups[i].onToggle(opt);
+                                setSheetState(() {});
                               },
                             );
                           }).toList(),
                         ),
-                  if (i != widget.groups.length - 1) const SizedBox(height: 20),
+                  if (i != groups.length - 1) const SizedBox(height: 20),
                 ],
               ],
             ),
@@ -173,27 +133,27 @@ class _FilterButtonState extends State<FilterButton> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          IconButton(icon: const Icon(Icons.filter_list), onPressed: _toggle),
-          if (widget.isFiltered)
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.accent,
-                  shape: BoxShape.circle,
-                ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.filter_list),
+          onPressed: () => _openFilterSheet(context),
+        ),
+        if (isFiltered)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: AppColors.accent,
+                shape: BoxShape.circle,
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

@@ -38,7 +38,7 @@ class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
 
   void addGarment(Garment garment) {
     final current = state.valueOrNull ?? [];
-    state = AsyncData([...current, garment]);
+    state = AsyncData([garment, ...current]);
   }
 
   void updateGarment(Garment garment) {

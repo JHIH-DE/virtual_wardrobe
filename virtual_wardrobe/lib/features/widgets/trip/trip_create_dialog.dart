@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../../data/trip_plan.dart';
+import '../../../data/trip.dart';
 import '../../../data/trip_purpose.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../l10n/trip_purpose_localization.dart';
@@ -9,14 +9,14 @@ import '../common/app_dialog.dart';
 import '../common/app_text_field.dart';
 import 'trip_legs_editor.dart';
 
-class TripPlanCreateDialog extends StatefulWidget {
-  const TripPlanCreateDialog({super.key});
+class TripCreateDialog extends StatefulWidget {
+  const TripCreateDialog({super.key});
 
   @override
-  State<TripPlanCreateDialog> createState() => _TripPlanCreateDialogState();
+  State<TripCreateDialog> createState() => _TripCreateDialogState();
 }
 
-class _TripPlanCreateDialogState extends State<TripPlanCreateDialog> {
+class _TripCreateDialogState extends State<TripCreateDialog> {
   final TextEditingController _tripNameController = TextEditingController();
   final ValueNotifier<List<TripLeg>> _legsNotifier = ValueNotifier([]);
   TripPurpose _selectedPurpose = TripPurpose.leisureTravel;
@@ -87,7 +87,7 @@ class _TripPlanCreateDialogState extends State<TripPlanCreateDialog> {
     }
     Navigator.pop(
       context,
-      TripPlan(
+      Trip(
         id: '',
         name: _tripNameController.text,
         legs: _legsNotifier.value,

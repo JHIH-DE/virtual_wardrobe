@@ -10,6 +10,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../edit_garment_page.dart';
 import '../../camera_capture_page.dart';
 import '../../image_editor_page.dart';
+import '../common/close_action_button.dart';
+import '../common/feedback_overlay.dart';
 
 class GarmentUploadHelper {
   static void showAddClothingDialog(
@@ -79,27 +81,7 @@ class GarmentUploadHelper {
                   ),
                 ),
                 const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(dialogCtx),
-                  icon: Container(
-                    padding: const EdgeInsets.all(4),
-                    child: Image.asset(
-                      'assets/images/page_arrow_left.png',
-                      height: AppDimens.iconSmallSize,
-                    ),
-                  ),
-                  label: Text(l10n.back, style: AppTextStyle.bold16),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 56),
-                    side: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
-                ),
+                CloseActionButton(onPressed: () => Navigator.pop(dialogCtx)),
               ],
             ),
           ),
@@ -183,11 +165,18 @@ class GarmentUploadHelper {
                 imageUrl: result.imagePath,
               ),
               initialAnalysisData: result.analysisData,
+              initialVersatility: result.versatility,
             ),
           ),
         );
         if (newGarment != null) {
           onAdded?.call(newGarment);
+          if (context.mounted) {
+            showFeedbackOverlay(
+              context,
+              message: AppLocalizations.of(context).clothingAdded,
+            );
+          }
         }
         onComplete?.call();
       }

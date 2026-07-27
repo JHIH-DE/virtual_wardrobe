@@ -8,6 +8,14 @@ final looksProvider = AsyncNotifierProvider<LooksNotifier, List<Look>>(
   LooksNotifier.new,
 );
 
+/// A save/delete that just happened on [LooksDetailsPage], to be shown as a
+/// [showFeedbackOverlay] on [LooksPage] once navigation lands back there —
+/// set here rather than shown directly, since the details page pops (or
+/// pops-to-root) itself away before the message would matter.
+enum LookFeedbackKind { saved, deleted }
+
+final lookFeedbackProvider = StateProvider<LookFeedbackKind?>((ref) => null);
+
 class LooksNotifier extends AsyncNotifier<List<Look>> {
   @override
   Future<List<Look>> build() => LookService().getAllLooks();

@@ -1,12 +1,18 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/services/garment_service.dart';
+import '../common/refreshable_network_image.dart';
 
 class GarmentImage extends StatelessWidget {
   final String? url;
+
+  /// When set, a load failure triggers one refetch of this garment from
+  /// the backend to pick up a freshly-signed image URL (e.g. the cached one
+  /// expired). Leave null to skip the retry (no ID available to refetch).
+  final int? garmentId;
   final double? width;
   final double? height;
   final BoxFit fit;
@@ -15,6 +21,7 @@ class GarmentImage extends StatelessWidget {
   const GarmentImage({
     super.key,
     required this.url,
+    this.garmentId,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
@@ -32,14 +39,19 @@ class GarmentImage extends StatelessWidget {
         child: const Icon(Icons.image_not_supported, color: AppColors.icon),
       );
     } else if (u.startsWith('http')) {
-      image = CachedNetworkImage(
+      final id = garmentId;
+      image = RefreshableNetworkImage(
         imageUrl: u,
         width: width,
         height: height,
         fit: fit,
-        errorWidget: (_, __, ___) => const Center(
-          child: Icon(Icons.broken_image, color: AppColors.icon),
-        ),
+        errorIcon: Icons.broken_image,
+        onRefreshUrl: id == null
+            ? null
+            : () async {
+                final fresh = await GarmentService().getGarment(id);
+                return fresh.imageUrl;
+              },
       );
     } else if (u.startsWith('file://')) {
       image = Image.file(

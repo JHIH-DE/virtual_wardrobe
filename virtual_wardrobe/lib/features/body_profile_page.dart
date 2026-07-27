@@ -122,6 +122,9 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
       ),
     );
     if (result == null || !mounted) return;
+    // Confirmed without picking a new photo — imagePath is still the
+    // original signed URL, not a local file. Nothing to upload.
+    if (result.imagePath.startsWith('http')) return;
     setState(() => _fullBodyLocalPath = result.imagePath);
     await _uploadFullBody(result.imagePath);
   }
@@ -169,7 +172,12 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_error != null) _buildErrorBanner(),
-            Text(_l10n.fullBodyPhotoLabel, style: AppTextStyle.bold14),
+            Text(
+              _l10n.fullBodyPhotoDescription,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 10),
             _buildPhotoUpload(),
             const SizedBox(height: 24),

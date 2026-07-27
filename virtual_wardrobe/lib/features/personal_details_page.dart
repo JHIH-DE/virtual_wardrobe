@@ -15,9 +15,9 @@ import 'location_picker_page.dart';
 import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/custom_dropdown.dart';
+import 'widgets/common/picker_field.dart';
+import 'widgets/common/picker_sheet.dart';
 import 'widgets/common/profile_avatar.dart';
-import 'widgets/common/required_field_label.dart';
 import 'widgets/common/tappable_field_decorator.dart';
 
 class PersonalDetailsPage extends StatefulWidget {
@@ -54,7 +54,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
 
   // These map the stable English values stored/sent to the backend to
   // display text — the stored gender value itself must stay in English so
-  // style_preferences_page.dart's gender-based lookup keeps working.
+  // style_profile_page.dart's gender-based lookup keeps working.
   String _genderDisplayLabel(String value) {
     switch (value) {
       case 'Male':
@@ -305,7 +305,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel(_l10n.accountNameLabel),
+        Text(_l10n.accountNameLabel, style: AppTextStyle.semibold14),
         const SizedBox(height: 8),
         AppTextField(controller: _nameCtrl, hint: _l10n.enterYourNameHint),
       ],
@@ -316,24 +316,54 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel(_l10n.genderLabel),
+        Text(_l10n.genderLabel, style: AppTextStyle.semibold14),
         const SizedBox(height: 8),
-        CustomDropdown<String>(
-          value: _selectedGender,
+        PickerField(
+          text: _selectedGender != null
+              ? _genderDisplayLabel(_selectedGender!)
+              : '',
           hint: _l10n.selectGenderHint,
-          items: _genderOptions
-              .map(
-                (g) => DropdownMenuItem(
-                  value: g,
-                  child: Text(_genderDisplayLabel(g)),
-                ),
-              )
-              .toList(),
-          onChanged: _loading
-              ? null
-              : (v) => setState(() => _selectedGender = v),
+          onTap: _loading ? null : _openGenderPicker,
         ),
       ],
+    );
+  }
+
+  Future<void> _openGenderPicker() async {
+    await showPickerSheet<void>(
+      context,
+      builder: (sheetContext) => RadioGroup<String>(
+        groupValue: _selectedGender,
+        onChanged: (v) {
+          setState(() => _selectedGender = v);
+          Navigator.pop(sheetContext);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PickerSheetHeader(_l10n.selectGenderHint),
+            for (final g in _genderOptions)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  _genderDisplayLabel(g),
+                  style: g == _selectedGender
+                      ? AppTextStyle.bold16
+                      : AppTextStyle.regular16,
+                ),
+                trailing: Radio<String>(
+                  value: g,
+                  activeColor: AppColors.accent,
+                ),
+                onTap: () {
+                  setState(() => _selectedGender = g);
+                  Navigator.pop(sheetContext);
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -341,7 +371,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel(_l10n.birthdayLabel),
+        Text(_l10n.birthdayLabel, style: AppTextStyle.semibold14),
         const SizedBox(height: 8),
         DateDropdownField(
           value: _selectedBirthDate,
@@ -360,7 +390,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RequiredFieldLabel(_l10n.homeLocationLabel),
+        Text(_l10n.homeLocationLabel, style: AppTextStyle.semibold14),
         const SizedBox(height: 8),
         TappableFieldDecorator(
           onTap: _pickHomeLocation,
@@ -368,7 +398,7 @@ class _PersonalDetailsPageState extends State<PersonalDetailsPage> {
             Expanded(
               child: Text(
                 _homeLocation ?? _l10n.selectYourCityHint,
-                style: TextStyle(
+                style: AppTextStyle.regular16.copyWith(
                   color: _homeLocation == null
                       ? AppColors.textSecondary
                       : AppColors.textPrimary,

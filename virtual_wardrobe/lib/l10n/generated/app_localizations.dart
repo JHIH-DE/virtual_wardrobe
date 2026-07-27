@@ -123,17 +123,47 @@ abstract class AppLocalizations {
   /// **'Style Profile'**
   String get styleProfile;
 
-  /// No description provided for @dailyPreferences.
+  /// No description provided for @lifestyle.
   ///
   /// In en, this message translates to:
-  /// **'Daily Preferences'**
-  String get dailyPreferences;
+  /// **'Lifestyle'**
+  String get lifestyle;
 
   /// No description provided for @logout.
   ///
   /// In en, this message translates to:
   /// **'Logout'**
   String get logout;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @selectLanguageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Language'**
+  String get selectLanguageTitle;
+
+  /// No description provided for @languageSystemDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'System Default'**
+  String get languageSystemDefault;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @languageTraditionalChinese.
+  ///
+  /// In en, this message translates to:
+  /// **'繁體中文'**
+  String get languageTraditionalChinese;
 
   /// No description provided for @findYourStyle.
   ///
@@ -144,14 +174,8 @@ abstract class AppLocalizations {
   /// No description provided for @styleSelectionInstruction.
   ///
   /// In en, this message translates to:
-  /// **'Choose up to 3 styles that best match your everyday wardrobe.'**
+  /// **'Choose your styles for personalized outfit picks.'**
   String get styleSelectionInstruction;
-
-  /// No description provided for @styleSelectionDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'We\'ll personalize your outfit recommendations based on your selections.'**
-  String get styleSelectionDescription;
 
   /// No description provided for @save.
   ///
@@ -273,17 +297,17 @@ abstract class AppLocalizations {
   /// **'Would you like to save this look to your collection?'**
   String get saveThisLookBody;
 
-  /// No description provided for @removeLookTitle.
+  /// No description provided for @deleteLookTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove look?'**
-  String get removeLookTitle;
+  /// **'Delete Look'**
+  String get deleteLookTitle;
 
-  /// No description provided for @removeLookBody.
+  /// No description provided for @deleteLookConfirmation.
   ///
   /// In en, this message translates to:
-  /// **'This look will be removed from your Looks.'**
-  String get removeLookBody;
+  /// **'Are you sure you want to delete this look?'**
+  String get deleteLookConfirmation;
 
   /// Footer showing the creation date of a look
   ///
@@ -771,6 +795,36 @@ abstract class AppLocalizations {
   /// **'Accessory'**
   String get categoryAccessory;
 
+  /// No description provided for @categoryTopPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'Tops'**
+  String get categoryTopPlural;
+
+  /// No description provided for @categoryBottomPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottoms'**
+  String get categoryBottomPlural;
+
+  /// No description provided for @categoryOuterPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'Outers'**
+  String get categoryOuterPlural;
+
+  /// No description provided for @categoryOnePiecePlural.
+  ///
+  /// In en, this message translates to:
+  /// **'One-pieces'**
+  String get categoryOnePiecePlural;
+
+  /// No description provided for @categoryShoesPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoes'**
+  String get categoryShoesPlural;
+
   /// No description provided for @colorBlack.
   ///
   /// In en, this message translates to:
@@ -915,28 +969,64 @@ abstract class AppLocalizations {
   /// **'Add to Closet'**
   String get addToCloset;
 
-  /// No description provided for @outfitCombosPossible.
+  /// No description provided for @clothingAdded.
   ///
   /// In en, this message translates to:
-  /// **'{combos} outfit combinations possible'**
-  String outfitCombosPossible(int combos);
+  /// **'Clothing Added'**
+  String get clothingAdded;
 
-  /// No description provided for @addMorePiecesHint.
+  /// No description provided for @garmentPairsWellWith.
   ///
   /// In en, this message translates to:
-  /// **'Add a few more pieces to unlock outfit ideas'**
-  String get addMorePiecesHint;
+  /// **'This {subCategory} pairs well with {count} items in your closet.'**
+  String garmentPairsWellWith(String subCategory, int count);
 
-  /// No description provided for @outfitComboBasis.
+  /// No description provided for @garmentPairsWellWithGeneric.
   ///
   /// In en, this message translates to:
-  /// **'Based on the {tops} top(s), {bottoms} bottom(s) and {shoes} pair(s) of shoes already in your closet — a good sign this piece will earn its keep.'**
-  String outfitComboBasis(int tops, int bottoms, int shoes);
+  /// **'Pairs well with {count} items in your closet.'**
+  String garmentPairsWellWithGeneric(int count);
+
+  /// No description provided for @bestMatchesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Best matches:'**
+  String get bestMatchesLabel;
+
+  /// No description provided for @scoreTierExcellent.
+  ///
+  /// In en, this message translates to:
+  /// **'Excellent Match'**
+  String get scoreTierExcellent;
+
+  /// No description provided for @scoreTierHighlyVersatile.
+  ///
+  /// In en, this message translates to:
+  /// **'Highly Versatile'**
+  String get scoreTierHighlyVersatile;
+
+  /// No description provided for @scoreTierGoodMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Good Match'**
+  String get scoreTierGoodMatch;
+
+  /// No description provided for @scoreTierLimitedMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Limited Match'**
+  String get scoreTierLimitedMatch;
+
+  /// No description provided for @scoreTierHardToStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard to Style'**
+  String get scoreTierHardToStyle;
 
   /// No description provided for @clothingNameLabel.
   ///
   /// In en, this message translates to:
-  /// **'Clothing Name'**
+  /// **'Name'**
   String get clothingNameLabel;
 
   /// No description provided for @nameTheClothingHint.
@@ -954,7 +1044,7 @@ abstract class AppLocalizations {
   /// No description provided for @clothingCategoryLabel.
   ///
   /// In en, this message translates to:
-  /// **'Clothing Category'**
+  /// **'Category'**
   String get clothingCategoryLabel;
 
   /// No description provided for @productType.
@@ -1026,7 +1116,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectAColor.
   ///
   /// In en, this message translates to:
-  /// **'Select a color'**
+  /// **'Select Color'**
   String get selectAColor;
 
   /// No description provided for @chooseColorTitle.
@@ -1041,10 +1131,28 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get clear;
 
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @brand.
+  ///
+  /// In en, this message translates to:
+  /// **'Brand'**
+  String get brand;
+
+  /// No description provided for @price.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get price;
+
   /// No description provided for @selectDate.
   ///
   /// In en, this message translates to:
-  /// **'Select date'**
+  /// **'Select Date'**
   String get selectDate;
 
   /// No description provided for @editImage.
@@ -1058,6 +1166,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Changes Saved'**
   String get changesSaved;
+
+  /// No description provided for @itemDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clothing Deleted'**
+  String get itemDeleted;
+
+  /// No description provided for @lookSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Look Saved'**
+  String get lookSaved;
+
+  /// No description provided for @lookDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Look Deleted'**
+  String get lookDeleted;
 
   /// No description provided for @midLayer.
   ///
@@ -1146,7 +1272,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectGenderHint.
   ///
   /// In en, this message translates to:
-  /// **'Select gender'**
+  /// **'Select Gender'**
   String get selectGenderHint;
 
   /// No description provided for @birthdayLabel.
@@ -1158,7 +1284,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectBirthdayHint.
   ///
   /// In en, this message translates to:
-  /// **'Select birthday'**
+  /// **'Select Birthday'**
   String get selectBirthdayHint;
 
   /// No description provided for @homeLocationLabel.
@@ -1170,7 +1296,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectYourCityHint.
   ///
   /// In en, this message translates to:
-  /// **'Select your city'**
+  /// **'Select Your City'**
   String get selectYourCityHint;
 
   /// No description provided for @seasonLabel.
@@ -1383,35 +1509,41 @@ abstract class AppLocalizations {
   /// **'No garments packed yet'**
   String get noGarmentsPackedYet;
 
-  /// No description provided for @occasionDaily.
-  ///
-  /// In en, this message translates to:
-  /// **'🏠 Daily'**
-  String get occasionDaily;
-
   /// No description provided for @occasionWork.
   ///
   /// In en, this message translates to:
-  /// **'💼 Work'**
+  /// **'Work'**
   String get occasionWork;
+
+  /// No description provided for @occasionCasual.
+  ///
+  /// In en, this message translates to:
+  /// **'Casual'**
+  String get occasionCasual;
+
+  /// No description provided for @occasionWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout'**
+  String get occasionWorkout;
 
   /// No description provided for @occasionDate.
   ///
   /// In en, this message translates to:
-  /// **'❤️ Date'**
+  /// **'Date'**
   String get occasionDate;
 
-  /// No description provided for @occasionSport.
+  /// No description provided for @occasionTravel.
   ///
   /// In en, this message translates to:
-  /// **'🏃 Sport'**
-  String get occasionSport;
+  /// **'Travel'**
+  String get occasionTravel;
 
-  /// No description provided for @occasionFormal.
+  /// No description provided for @occasionParty.
   ///
   /// In en, this message translates to:
-  /// **'👔 Formal'**
-  String get occasionFormal;
+  /// **'Party'**
+  String get occasionParty;
 
   /// No description provided for @settingsSaved.
   ///
@@ -1425,17 +1557,11 @@ abstract class AppLocalizations {
   /// **'Comfort Adjustment'**
   String get comfortAdjustment;
 
-  /// No description provided for @dailyOccasions.
+  /// No description provided for @weeklySchedule.
   ///
   /// In en, this message translates to:
-  /// **'Daily Occasions'**
-  String get dailyOccasions;
-
-  /// No description provided for @dayWithTodaySuffix.
-  ///
-  /// In en, this message translates to:
-  /// **'{day} (Today)'**
-  String dayWithTodaySuffix(String day);
+  /// **'Weekly Schedule'**
+  String get weeklySchedule;
 
   /// No description provided for @apply.
   ///
@@ -1448,6 +1574,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Perceived temperature offset'**
   String get perceivedTempOffset;
+
+  /// No description provided for @lifestyleIntroLine1.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell LUMI what your typical week looks like.'**
+  String get lifestyleIntroLine1;
+
+  /// No description provided for @lifestyleIntroLine2.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll recommend outfits that match your routine.'**
+  String get lifestyleIntroLine2;
+
+  /// No description provided for @comfortAdjustmentIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.'**
+  String get comfortAdjustmentIntro;
+
+  /// No description provided for @selectOccasionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Occasion'**
+  String get selectOccasionTitle;
 
   /// No description provided for @todaysLook.
   ///
@@ -1575,11 +1725,11 @@ abstract class AppLocalizations {
   /// **'Album'**
   String get album;
 
-  /// No description provided for @fullBodyPhotoLabel.
+  /// No description provided for @fullBodyPhotoDescription.
   ///
   /// In en, this message translates to:
-  /// **'Full-body Photo'**
-  String get fullBodyPhotoLabel;
+  /// **'Used to generate your outfit try-on photos.'**
+  String get fullBodyPhotoDescription;
 
   /// No description provided for @figureDetailLabel.
   ///

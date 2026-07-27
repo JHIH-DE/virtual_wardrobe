@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../app/theme/app_colors.dart';
@@ -37,6 +37,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   String? _currentPath;
   final TransformationController _transformationController =
       TransformationController();
+  final GlobalKey _previewBoundaryKey = GlobalKey();
   bool _isAnalyzing = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -77,33 +78,19 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     }
   }
 
-  Future<String> _cropToSquare(String path) async {
-    final bytes = await File(path).readAsBytes();
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final image = frame.image;
-
-    final size = math.min(image.width, image.height);
-    final offsetX = (image.width - size) ~/ 2;
-    final offsetY = (image.height - size) ~/ 2;
-
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.drawImageRect(
-      image,
-      Rect.fromLTWH(
-        offsetX.toDouble(),
-        offsetY.toDouble(),
-        size.toDouble(),
-        size.toDouble(),
-      ),
-      Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
-      Paint(),
-    );
-    final squareImage = await recorder.endRecording().toImage(size, size);
-    final byteData = await squareImage.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
+  /// Rasterizes exactly what's currently visible in the square preview —
+  /// i.e. respects whatever pinch-zoom/pan framing the user applied via
+  /// [_transformationController] — rather than re-reading and blindly
+  /// center-cropping the source file. This also means it works the same
+  /// way whether [_currentPath] is a local file or a remote (http) URL:
+  /// either way, the output is always a fresh local file.
+  Future<String> _captureSquareImage() async {
+    final boundary =
+        _previewBoundaryKey.currentContext!.findRenderObject()
+            as RenderRepaintBoundary;
+    final pixelRatio = MediaQuery.of(context).devicePixelRatio * 2;
+    final image = await boundary.toImage(pixelRatio: pixelRatio);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
     final outPath =
         '${Directory.systemTemp.path}/sq_${DateTime.now().millisecondsSinceEpoch}.png';
@@ -114,10 +101,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Future<void> _handleConfirmed() async {
     if (_currentPath == null || _isAnalyzing) return;
 
-    final isLocal = !_currentPath!.startsWith('http');
-    final processPath = isLocal
-        ? await _cropToSquare(_currentPath!)
-        : _currentPath!;
+    final processPath = await _captureSquareImage();
 
     if (widget.showAnalysis) {
       setState(() => _isAnalyzing = true);
@@ -131,6 +115,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           ImageEditResult(
             imagePath: result.processedImagePath ?? processPath,
             analysisData: result.metadata,
+            versatility: result.versatility,
           ),
         );
       } on AuthExpiredException {
@@ -226,7 +211,12 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: _buildImageContent(),
+              // Inside the clip, so capturing this boundary doesn't bake in
+              // the rounded corners — just the square photo content.
+              child: RepaintBoundary(
+                key: _previewBoundaryKey,
+                child: _buildImageContent(),
+              ),
             ),
           ),
         ),

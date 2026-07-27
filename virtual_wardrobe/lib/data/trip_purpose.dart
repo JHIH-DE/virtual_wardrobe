@@ -1,5 +1,5 @@
 /// Stable trip-purpose identifiers, matching the snake_case values already
-/// stored in `TripPlan.purpose` and sent to the API — introducing this enum
+/// stored in `Trip.purpose` and sent to the API — introducing this enum
 /// doesn't change the wire format, only how the picker UI represents it.
 enum TripPurpose {
   leisureTravel,
