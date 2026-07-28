@@ -9,7 +9,7 @@ import '../core/services/profile_service.dart';
 import '../data/style_type.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/style_type_localization.dart';
-import 'personal_details_page.dart';
+import 'account_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 
@@ -198,7 +198,7 @@ class _StyleProfilePageState extends State<StyleProfilePage> {
   Future<void> _openPersonalDetails() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const PersonalDetailsPage()),
+      MaterialPageRoute(builder: (_) => const AccountPage()),
     );
     // Gender may have just been set/changed — refresh so the style list
     // reflects it.

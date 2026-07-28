@@ -564,6 +564,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       child: GarmentImage(
         url: g.imageUrl,
         garmentId: g.id,
+        memCacheWidth: 160,
         fit: BoxFit.cover,
         borderRadius: 12,
       ),

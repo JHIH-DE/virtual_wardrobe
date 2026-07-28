@@ -24,6 +24,7 @@ import 'widgets/common/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/close_action_button.dart';
+import 'widgets/common/compatibility_row.dart';
 import 'widgets/common/lumi_insight_card.dart';
 import 'widgets/common/picker_field.dart';
 import 'widgets/common/picker_sheet.dart';
@@ -63,6 +64,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   String? errorMessage;
   String? _imagePathOrUrl;
   GarmentColor? _selectedColor;
+  GarmentFit? _selectedFit;
   GarmentCategory _category = GarmentCategory.top;
   DateTime? _purchaseDate;
   Garment? _editingGarment;
@@ -77,7 +79,10 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   late String _initialBrand;
   late String _initialPrice;
   GarmentColor? _initialColor;
+  GarmentFit? _initialFit;
   DateTime? _initialDate;
+
+  bool get _showFitField => garmentFitCategories.contains(_category);
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -95,6 +100,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     _initialBrand = _editingGarment?.brand ?? '';
     _initialPrice = _editingGarment?.price?.toString() ?? '';
     _initialColor = _tryParseGarmentColor(_editingGarment?.color);
+    _initialFit = GarmentFitX.fromApiValue(_editingGarment?.fit);
     _initialDate = _editingGarment?.purchaseDate;
 
     if (_editingGarment != null) {
@@ -105,6 +111,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       _priceCtrl.text = _editingGarment!.price?.toString() ?? '';
       _purchaseDate = _editingGarment!.purchaseDate;
       _selectedColor ??= _initialColor;
+      _selectedFit ??= _initialFit;
     }
 
     if (widget.initialAnalysisData != null) {
@@ -169,6 +176,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         _brandCtrl.text != _initialBrand ||
         _priceCtrl.text != _initialPrice ||
         _selectedColor != _initialColor ||
+        _selectedFit != _initialFit ||
         _purchaseDate != _initialDate;
 
     if (changed != _isModified) {
@@ -356,17 +364,12 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       (sum, item) => sum + ((item['compatible_count'] as num?)?.toInt() ?? 0),
     );
     final subCategory = _subCategory.text.trim();
+    final allGarments = ref.watch(garmentsProvider).valueOrNull ?? const [];
+
     return LumiInsightCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            subCategory.isEmpty
-                ? _l10n.garmentPairsWellWithGeneric(totalItems)
-                : _l10n.garmentPairsWellWith(subCategory, totalItems),
-            style: AppTextStyle.bold14,
-          ),
-          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -382,20 +385,40 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
                   ),
                 ],
               ),
-              const SizedBox(width: 40),
-              if (breakdown.isNotEmpty)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_l10n.bestMatchesLabel, style: AppTextStyle.bold14),
-                      const SizedBox(height: 6),
-                      _buildBreakdownList(breakdown),
-                    ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    subCategory.isEmpty
+                        ? _l10n.garmentPairsWellWithGeneric(totalItems)
+                        : _l10n.garmentPairsWellWith(subCategory, totalItems),
+                    style: AppTextStyle.regular14.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
+              ),
             ],
           ),
+          if (breakdown.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            for (var i = 0; i < breakdown.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              CompatibilityRow(
+                label: GarmentCategoryX.fromApiValue(
+                  breakdown[i]['category'] as String?,
+                ).pluralLabel(context),
+                count: (breakdown[i]['compatible_count'] as num?)?.toInt() ?? 0,
+                previewGarments: _resolveGarments(
+                  breakdown[i],
+                  allGarments,
+                  limit: 3,
+                ),
+                onTap: () => _showCompatibleGarments(breakdown[i]),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -409,53 +432,33 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return _l10n.scoreTierHardToStyle;
   }
 
-  Widget _buildBreakdownList(List<Map<String, dynamic>> breakdown) {
-    final style = AppTextStyle.regular14.copyWith(
-      color: AppColors.textSecondary,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < breakdown.length; i++)
-          Padding(
-            padding: EdgeInsets.only(bottom: i == breakdown.length - 1 ? 0 : 6),
-            child: InkWell(
-              onTap: () => _showCompatibleGarments(breakdown[i]),
-              borderRadius: BorderRadius.circular(6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('•  ', style: style),
-                  Expanded(
-                    child: Text(
-                      '${(breakdown[i]['compatible_count'] as num?)?.toInt() ?? 0} '
-                      '${GarmentCategoryX.fromApiValue(breakdown[i]['category'] as String?).pluralLabel(context)}',
-                      style: style,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
+  /// Resolves a breakdown item's `compatible_garment_ids` against the
+  /// user's already-loaded closet, for both the row's preview thumbnails
+  /// and the full dialog grid.
+  List<Garment> _resolveGarments(
+    Map<String, dynamic> breakdownItem,
+    List<Garment> all, {
+    int? limit,
+  }) {
+    final ids = (breakdownItem['compatible_garment_ids'] as List?)
+            ?.whereType<num>()
+            .map((n) => n.toInt())
+            .toList() ??
+        const [];
+    final matched = <Garment>[
+      for (final id in ids)
+        for (final g in all)
+          if (g.id == id) g,
+    ];
+    return limit == null ? matched : matched.take(limit).toList();
   }
 
   void _showCompatibleGarments(Map<String, dynamic> breakdownItem) {
     final category = GarmentCategoryX.fromApiValue(
       breakdownItem['category'] as String?,
     );
-    final ids = (breakdownItem['compatible_garment_ids'] as List?)
-            ?.whereType<num>()
-            .map((n) => n.toInt())
-            .toList() ??
-        const [];
     final all = ref.read(garmentsProvider).valueOrNull ?? const [];
-    final garments = <Garment>[
-      for (final id in ids)
-        for (final g in all)
-          if (g.id == id) g,
-    ].take(9).toList();
+    final garments = _resolveGarments(breakdownItem, all, limit: 9);
 
     showDialog<void>(
       context: context,
@@ -468,7 +471,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                category.localizedLabel(ctx),
+                category.pluralLabel(ctx),
                 textAlign: TextAlign.center,
                 style: AppTextStyle.bold18,
               ),
@@ -491,6 +494,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
                       child: GarmentImage(
                         url: g.imageUrl,
                         garmentId: g.id,
+                        memCacheWidth: 168,
+                        memCacheHeight: 168,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -525,6 +530,10 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           _buildSubCategoryField(),
           const SizedBox(height: 20),
           _buildColorField(),
+          if (_showFitField) ...[
+            const SizedBox(height: 20),
+            _buildFitField(),
+          ],
           const SizedBox(height: 20),
           _buildBrandField(),
           const SizedBox(height: 20),
@@ -573,10 +582,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       builder: (sheetContext) => RadioGroup<GarmentCategory>(
         groupValue: _category,
         onChanged: (v) {
-          if (v != null) {
-            setState(() => _category = v);
-            _checkModified();
-          }
+          if (v != null) _applyCategoryChange(v);
           Navigator.pop(sheetContext);
         },
         child: Column(
@@ -598,8 +604,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
                   activeColor: AppColors.accent,
                 ),
                 onTap: () {
-                  setState(() => _category = c);
-                  _checkModified();
+                  _applyCategoryChange(c);
                   Navigator.pop(sheetContext);
                 },
               ),
@@ -607,6 +612,18 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         ),
       ),
     );
+  }
+
+  /// Fit only makes sense for garments with a body-shape silhouette
+  /// ([garmentFitCategories]), so a category switch away from those clears
+  /// any previously-picked fit rather than silently saving a stale value
+  /// for a category where the field is now hidden.
+  void _applyCategoryChange(GarmentCategory category) {
+    setState(() {
+      _category = category;
+      if (!_showFitField) _selectedFit = null;
+    });
+    _checkModified();
   }
 
   Widget _buildSubCategoryField() {
@@ -633,6 +650,17 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         SectionTitle(_l10n.color),
         const SizedBox(height: 8),
         _colorPicker(),
+      ],
+    );
+  }
+
+  Widget _buildFitField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle(_l10n.fitLabel),
+        const SizedBox(height: 8),
+        _fitPicker(),
       ],
     );
   }
@@ -817,12 +845,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           decoration: BoxDecoration(
             color: selected?.color ?? Colors.transparent,
             shape: BoxShape.circle,
-            border: Border.all(
-              color: selected == null
-                  ? AppColors.borderSubtle
-                  : Colors.transparent,
-              width: 1.2,
-            ),
+            border: Border.all(color: AppColors.borderSubtle, width: 1.2),
           ),
         ),
         const SizedBox(width: 10),
@@ -917,6 +940,69 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
         child: isSelected
             ? Icon(Icons.check, size: 20, color: c.preferredCheckColor)
             : null,
+      ),
+    );
+  }
+
+  Widget _fitPicker() {
+    final selected = _selectedFit;
+    return TappableFieldDecorator(
+      onTap: _openFitPickerSheet,
+      children: [
+        Expanded(
+          child: Text(
+            selected?.localizedLabel(context) ?? _l10n.selectAFit,
+            style: AppTextStyle.regular16.copyWith(
+              color: selected == null
+                  ? AppColors.textSecondary
+                  : AppColors.textPrimary,
+            ),
+          ),
+        ),
+        Image.asset(
+          'assets/images/arrow_down.png',
+          height: AppDimens.iconSmallSize,
+        ),
+      ],
+    );
+  }
+
+  void _openFitPickerSheet() {
+    showPickerSheet<void>(
+      context,
+      builder: (sheetContext) => RadioGroup<GarmentFit>(
+        groupValue: _selectedFit,
+        onChanged: (v) {
+          setState(() => _selectedFit = v);
+          _checkModified();
+          Navigator.pop(sheetContext);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PickerSheetHeader(_l10n.chooseFitTitle),
+            for (final f in GarmentFit.values)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  f.localizedLabel(context),
+                  style: f == _selectedFit
+                      ? AppTextStyle.bold16
+                      : AppTextStyle.regular16,
+                ),
+                trailing: Radio<GarmentFit>(
+                  value: f,
+                  activeColor: AppColors.accent,
+                ),
+                onTap: () {
+                  setState(() => _selectedFit = f);
+                  _checkModified();
+                  Navigator.pop(sheetContext);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1121,6 +1207,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       name: _nameCtrl.text.trim(),
       brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
       color: _selectedColor?.label,
+      fit: _selectedFit?.apiValue,
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
     );
@@ -1137,6 +1224,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       subCategory: _subCategory.text.trim(),
       brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
       color: _selectedColor?.label,
+      fit: _selectedFit?.apiValue,
+      clearFit: _selectedFit == null,
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
     );

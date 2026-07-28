@@ -6,7 +6,20 @@
   },
 
   "settings": "Settings",
-  "bodyProfile": "Body Profile",
+  "account": "Account",
+  "aiModel": "AI Model",
+  "aiModelDescription": "These references help LUMI understand your appearance for AI outfit try-on and future generated looks.",
+  "faceReferenceLabel": "Face Reference",
+  "faceReferenceDescription": "Used for your face, hairstyle, and facial features — not your body proportions.",
+  "faceReferenceUploadHint": "Upload a clear, front-facing portrait.",
+  "faceReferenceComingSoon": "Coming soon",
+  "bodyReferenceLabel": "Body Reference",
+  "bodyReferenceDescription": "Used for your body shape, height, and overall proportions.",
+  "aiModelReady": "Ready · Face + Body Configured",
+  "aiModelReferencesAdded": "{count}/2 References Added",
+  "@aiModelReferencesAdded": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "styleProfile": "Style Profile",
   "lifestyle": "Lifestyle",
   "logout": "Logout",
@@ -228,7 +241,6 @@
       "count": { "type": "int" }
     }
   },
-  "bestMatchesLabel": "Best matches:",
   "scoreTierExcellent": "Excellent Match",
   "scoreTierHighlyVersatile": "Highly Versatile",
   "scoreTierGoodMatch": "Good Match",
@@ -242,6 +254,12 @@
   "productTypeHint": "e.g. Top",
   "pleaseEnterProductTypeError": "Please enter product type",
   "color": "Color",
+  "fitLabel": "Fit",
+  "selectAFit": "Select Fit",
+  "chooseFitTitle": "Choose a fit",
+  "fitRegular": "Regular",
+  "fitRelaxed": "Relaxed",
+  "fitOversized": "Oversized",
   "brandOptionalLabel": "Brand (optional)",
   "brandHint": "What is the brand of this clothing?",
   "priceOptionalLabel": "Price (optional)",
@@ -269,7 +287,6 @@
   "creatingLooksEllipsis": "Creating Looks…",
   "loadingClosetEllipsis": "Loading Closet…",
 
-  "personalDetailsTitle": "Personal Details",
   "genderMale": "Male",
   "genderFemale": "Female",
   "genderOther": "Other",
@@ -347,7 +364,6 @@
   "settingsSaved": "Settings saved",
   "comfortAdjustment": "Comfort Adjustment",
   "weeklySchedule": "Weekly Schedule",
-  "apply": "Apply",
   "perceivedTempOffset": "Perceived temperature offset",
   "lifestyleIntroLine1": "Tell LUMI what your typical week looks like.",
   "lifestyleIntroLine2": "We'll recommend outfits that match your routine.",
@@ -379,8 +395,6 @@
   "retake": "Retake",
   "album": "Album",
 
-  "fullBodyPhotoDescription": "Used to generate your outfit try-on photos.",
-  "figureDetailLabel": "Figure Detail",
   "chooseClearFullBodyPhotoHint": "Please choose a clear, full-body photo.",
   "heightHint": "height",
   "weightHint": "weight",

@@ -113,6 +113,7 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
+          count: _filtered().length,
           groups: [
             FilterGroup(
               label: l10n.seasonLabel,

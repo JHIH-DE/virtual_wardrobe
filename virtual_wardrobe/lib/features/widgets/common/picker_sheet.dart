@@ -51,16 +51,11 @@ class PickerSheetHeader extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 28),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Divider(
-            height: 1,
+        Divider(
+            height: 32,
             thickness: 1,
             color: AppColors.dividerSubtle,
           ),
-        ),
-        const SizedBox(height: 16),
       ],
     );
   }

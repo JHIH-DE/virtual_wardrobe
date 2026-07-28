@@ -29,7 +29,7 @@ class BottomActionButton extends StatelessWidget {
     this.trailing,
     this.buttonColor = AppColors.accent,
     this.textColor = AppColors.textOnPrimary,
-    this.panelPadding = const EdgeInsets.fromLTRB(22, 22, 22, 0),
+    this.panelPadding = const EdgeInsets.fromLTRB(22, 0, 22, 0),
     this.borderSide,
   });
 

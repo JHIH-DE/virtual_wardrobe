@@ -110,8 +110,10 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     ];
 
     final l10n = AppLocalizations.of(context);
+
     return FilterButton(
       isFiltered: _isFiltered,
+      count: _currentListCount(allGarments),
       groups: [
         FilterGroup(
           label: l10n.color,
@@ -139,15 +141,24 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     );
   }
 
+  /// Garments visible in the grid right now — current category with the
+  /// color/product-type filters applied.
+  int _currentListCount(List<Garment> all) {
+    final available = _availableCategories(all);
+    final effectiveCategory = _effectiveCategory(available);
+    return _filtered(all, effectiveCategory).length;
+  }
+
   AppToolBar _buildAppBar(
     BuildContext context,
     AsyncValue<List<Garment>> garmentsAsync,
   ) {
+    final all = garmentsAsync.valueOrNull ?? [];
     return AppToolBar(
       title: AppLocalizations.of(context).navCloset,
       showBackButton: false,
       actions: [
-        _buildFilterButton(garmentsAsync.valueOrNull ?? []),
+        _buildFilterButton(all),
         const SizedBox(width: 8),
       ],
     );

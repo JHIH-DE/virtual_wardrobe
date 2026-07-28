@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
+import '../core/services/auth_handler.dart';
+import '../core/services/profile_service.dart';
 import '../data/occasion_type.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/occasion_type_localization.dart';
@@ -41,6 +43,16 @@ class _LifestylePageState extends State<LifestylePage> {
     (i) => (i < 5 ? OccasionType.work : OccasionType.casual).apiValue,
   );
 
+  static const _weekdayKeys = [
+    'mon',
+    'tue',
+    'wed',
+    'thu',
+    'fri',
+    'sat',
+    'sun',
+  ];
+
   /// Maps a stored value to a currently-valid occasion id, falling back to
   /// Work for values from a retired taxonomy (e.g. an older build's
   /// 'casual_daily' / 'sport' / 'formal').
@@ -71,22 +83,38 @@ class _LifestylePageState extends State<LifestylePage> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('weekly_occasions', _weeklyOccasions);
-    await prefs.setString(
-      'occasions_last_saved',
-      DateFormat('yyyy-MM-dd').format(DateTime.now()),
-    );
-    await prefs.setInt('temperature_offset', _temperatureOffset);
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _initialWeeklyOccasions = List.of(_weeklyOccasions);
-      _initialTemperatureOffset = _temperatureOffset;
-    });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(_l10n.settingsSaved)));
+    try {
+      await ProfileService().updateMyProfile(
+        weeklySchedule: Map.fromIterables(_weekdayKeys, _weeklyOccasions),
+        temperatureOffsetC: _temperatureOffset,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('weekly_occasions', _weeklyOccasions);
+      await prefs.setString(
+        'occasions_last_saved',
+        DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      );
+      await prefs.setInt('temperature_offset', _temperatureOffset);
+      if (!mounted) return;
+      setState(() {
+        _initialWeeklyOccasions = List.of(_weeklyOccasions);
+        _initialTemperatureOffset = _temperatureOffset;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.settingsSaved)));
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   AppToolBar _buildAppBar() {
@@ -118,7 +146,7 @@ class _LifestylePageState extends State<LifestylePage> {
         ],
       ),
       bottomNavigationBar: BottomActionButton(
-        label: _l10n.apply,
+        label: _l10n.save,
         onPressed: _save,
         isLoading: _saving,
         enabled: _isModified,
@@ -152,10 +180,7 @@ class _LifestylePageState extends State<LifestylePage> {
   }
 
   Widget _buildSectionTitle(String label) {
-    return SectionTitle(
-      label,
-      style: AppTextStyle.bold18.copyWith(color: AppColors.textPrimary),
-    );
+    return SectionTitle(label);
   }
 
   Widget _buildTempAdjuster() {

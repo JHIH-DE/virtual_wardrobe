@@ -14,6 +14,14 @@ class RefreshableNetworkImage extends StatefulWidget {
   final Alignment alignment;
   final double? width;
   final double? height;
+
+  /// Decode target size in physical pixels — keeps the in-memory bitmap
+  /// close to what's actually shown instead of the source photo's full
+  /// resolution, so Flutter's (size-capped) image cache can hold many more
+  /// thumbnails before evicting anything. Leave null for full-resolution
+  /// decoding (e.g. a hero/full-screen image).
+  final int? memCacheWidth;
+  final int? memCacheHeight;
   final Widget Function(BuildContext context)? placeholderBuilder;
   final IconData errorIcon;
   final double errorIconSize;
@@ -31,6 +39,8 @@ class RefreshableNetworkImage extends StatefulWidget {
     this.alignment = Alignment.center,
     this.width,
     this.height,
+    this.memCacheWidth,
+    this.memCacheHeight,
     this.placeholderBuilder,
     this.errorIcon = Icons.broken_image_outlined,
     this.errorIconSize = 36,
@@ -87,6 +97,8 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
       imageUrl: _url,
       width: widget.width,
       height: widget.height,
+      memCacheWidth: widget.memCacheWidth,
+      memCacheHeight: widget.memCacheHeight,
       fit: widget.fit,
       alignment: widget.alignment,
       placeholder: widget.placeholderBuilder != null

@@ -113,12 +113,45 @@ extension GarmentColorX on GarmentColor {
   }
 }
 
+enum GarmentFit { regular, relaxed, oversized }
+
+extension GarmentFitX on GarmentFit {
+  String get label {
+    final n = name;
+    return n[0].toUpperCase() + n.substring(1);
+  }
+
+  String get apiValue => label;
+
+  static GarmentFit? fromApiValue(String? value) {
+    if (value == null) return null;
+    final lower = value.toLowerCase();
+    for (final f in GarmentFit.values) {
+      if (f.name.toLowerCase() == lower || f.label.toLowerCase() == lower) {
+        return f;
+      }
+    }
+    return null;
+  }
+}
+
+/// Categories a garment's [GarmentFit] applies to — cut/silhouette is a
+/// meaningful choice for clothing with a body shape, not for shoes or
+/// accessories.
+const Set<GarmentCategory> garmentFitCategories = {
+  GarmentCategory.top,
+  GarmentCategory.bottom,
+  GarmentCategory.outer,
+  GarmentCategory.onePiece,
+};
+
 class Garment {
   final int? id;
   final int? garmentId;
   final String name;
   final String? brand;
   final String? color;
+  final String? fit;
   final double? price;
   final DateTime? purchaseDate;
   final String? imageUrl;
@@ -144,6 +177,7 @@ class Garment {
     this.garmentId,
     this.brand,
     this.color,
+    this.fit,
     this.price,
     this.purchaseDate,
     this.imageUrl,
@@ -156,6 +190,7 @@ class Garment {
     String? name,
     String? brand,
     String? color,
+    String? fit,
     double? price,
     DateTime? purchaseDate,
     GarmentCategory? category,
@@ -171,6 +206,7 @@ class Garment {
     bool clearGarmentId = false,
     bool clearBrand = false,
     bool clearColor = false,
+    bool clearFit = false,
     bool clearPrice = false,
     bool clearPurchaseDate = false,
     bool clearMetadata = false,
@@ -188,6 +224,7 @@ class Garment {
       objectName: objectName ?? this.objectName,
       imageUrl: imageUrl ?? this.imageUrl,
       color: clearColor ? null : (color ?? this.color),
+      fit: clearFit ? null : (fit ?? this.fit),
       price: clearPrice ? null : (price ?? this.price),
       purchaseDate: clearPurchaseDate
           ? null
@@ -217,6 +254,7 @@ class Garment {
       name: (json['name'] as String?) ?? '',
       brand: json['brand'] as String?,
       color: json['color'] as String?,
+      fit: json['fit'] as String?,
       price: parseNum(json['price']),
       thickness: parseNum(json['thickness']) ?? 0.0,
       formality: parseNum(json['formality']) ?? 0.0,
@@ -238,6 +276,7 @@ class Garment {
       'name': name,
       'brand': brand,
       'color': color,
+      'fit': fit,
       'price': price,
       'thickness': thickness,
       'formality': formality,

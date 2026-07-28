@@ -1,8 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
-import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/locale_provider.dart';
 import '../core/services/auth_handler.dart';
@@ -11,10 +12,11 @@ import '../core/services/auth_storage.dart';
 import '../core/services/profile_service.dart';
 import '../core/utils/debug_log.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'body_profile_page.dart';
+import 'account_page.dart';
+import 'ai_model_page.dart';
+import 'image_editor_page.dart';
 import 'lifestyle_page.dart';
 import 'login_page.dart';
-import 'personal_details_page.dart';
 import 'style_profile_page.dart';
 import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
@@ -39,10 +41,11 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   // Profile
   String? _name;
+  String? _email;
   String? _avatarUrl;
-  double? _weight;
-  double? _height;
-  String _unitSystem = 'metric';
+  String? _avatarLocalPath;
+  bool _avatarUploading = false;
+  String? _fullBodyUrl;
   bool _loading = true;
 
   @override
@@ -54,18 +57,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _loadProfile() async {
     setState(() => _loading = true);
     try {
-      final profile = await ProfileService().getMyProfile();
+      final results = await Future.wait([
+        ProfileService().getMyProfile(),
+        ProfileService().getMyFullBody(),
+      ]);
       if (!mounted) return;
+      final profile = results[0] as Map<String, dynamic>;
+      final fullBodyUrl = results[1] as String?;
       setState(() {
         _name = profile['name'] as String?;
+        _email = profile['email'] as String?;
         _avatarUrl = profile['avatar_object_url'] as String?;
-        _unitSystem = (profile['unit_system'] ?? 'metric') as String;
-        _weight = profile['weight'] != null
-            ? (profile['weight'] as num).toDouble()
-            : null;
-        _height = profile['height'] != null
-            ? (profile['height'] as num).toDouble()
-            : null;
+        _fullBodyUrl = fullBodyUrl;
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -77,34 +80,68 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  String get _weightLabel {
-    if (_weight == null) return '---';
-    return _unitSystem == 'metric'
-        ? '${_weight!.toStringAsFixed(0)} kg'
-        : '${_weight!.toStringAsFixed(0)} lb';
+  // Face Reference has no backend upload endpoint yet (see AiModelPage) —
+  // always counts as missing until that ships.
+  bool get _hasFaceReference => false;
+
+  bool get _hasBodyReference =>
+      _fullBodyUrl != null &&
+      _fullBodyUrl!.isNotEmpty &&
+      _fullBodyUrl != 'string';
+
+  String _aiModelStatusLabel(AppLocalizations l10n) {
+    final count = (_hasFaceReference ? 1 : 0) + (_hasBodyReference ? 1 : 0);
+    return count == 2 ? l10n.aiModelReady : l10n.aiModelReferencesAdded(count);
   }
 
-  String get _heightLabel {
-    if (_height == null) return '---';
-    return _unitSystem == 'metric'
-        ? '${_height!.toStringAsFixed(0)} cm'
-        : '${_height!.toStringAsFixed(0)} in';
-  }
-
-  Future<void> _openPersonalDetails() async {
+  Future<void> _openAccount() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const PersonalDetailsPage()),
+      MaterialPageRoute(builder: (_) => const AccountPage()),
     );
     _loadProfile();
   }
 
-  Future<void> _openFigureSetting() async {
+  Future<void> _openAiModel() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const BodyProfilePage()),
+      MaterialPageRoute(builder: (_) => const AiModelPage()),
     );
     _loadProfile();
+  }
+
+  Future<void> _changeAvatar() async {
+    final picked = await Navigator.push<String?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ImageEditorPage(initialPath: _avatarLocalPath ?? _avatarUrl),
+      ),
+    );
+    if (picked == null || picked.isEmpty) return;
+    setState(() => _avatarLocalPath = picked);
+    await _uploadAvatar(picked);
+  }
+
+  Future<void> _uploadAvatar(String localPath) async {
+    setState(() => _avatarUploading = true);
+    try {
+      final init = await ProfileService().avatarInitUpload();
+      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
+      final url = await ProfileService().avatarComplete(
+        objectName: init.objectName,
+      );
+      if (mounted) {
+        setState(() {
+          _avatarUrl = url;
+          _avatarLocalPath = null;
+        });
+      }
+    } catch (e) {
+      debugLog('SettingsPage avatar upload error: $e');
+    } finally {
+      if (mounted) setState(() => _avatarUploading = false);
+    }
   }
 
   Future<void> _logout() async {
@@ -140,7 +177,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildFigureCard(l10n),
+                  child: _buildAccountCard(l10n),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildAiModelCard(l10n),
                 ),
                 const SizedBox(height: 16),
                 Padding(
@@ -170,64 +212,55 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildProfileCard(AppLocalizations l10n) {
     ImageProvider? avatarProvider;
-    if (_avatarUrl != null &&
+    if (_avatarLocalPath != null) {
+      avatarProvider = FileImage(File(_avatarLocalPath!));
+    } else if (_avatarUrl != null &&
         _avatarUrl!.isNotEmpty &&
         _avatarUrl != 'string') {
       avatarProvider = NetworkImage(_avatarUrl!);
     }
-    return Container(
-      color: AppColors.pageBackground,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(height: 1, color: AppColors.borderSubtle),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              children: [
-                ProfileAvatar(
-                  image: avatarProvider,
-                  size: 72,
-                  showEditLabel: false,
-                  fallbackIconSize: 30,
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.accountNameLabel, style: AppTextStyle.bold14),
-                      const SizedBox(height: 3),
-                      Text(
-                        (_name != null && _name!.isNotEmpty) ? _name! : '---',
-                        style: AppTextStyle.bold20,
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _openPersonalDetails,
-                  child: Image.asset(
-                    'assets/images/edit.png',
-                    height: AppDimens.iconMediumSize,
-                  ),
-                ),
-              ],
+          ProfileAvatar(
+            image: avatarProvider,
+            size: 120,
+            onTap: _avatarUploading ? null : _changeAvatar,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            (_name != null && _name!.isNotEmpty) ? _name! : '---',
+            style: AppTextStyle.bold20,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            (_email != null && _email!.isNotEmpty) ? _email! : '---',
+            style: AppTextStyle.regular14.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
-          Container(height: 1, color: AppColors.borderSubtle),
         ],
       ),
     );
   }
 
-  Widget _buildFigureCard(AppLocalizations l10n) {
+  Widget _buildAccountCard(AppLocalizations l10n) {
     return AppListCard(
-      onTap: _openFigureSetting,
+      onTap: _openAccount,
+      leadingAsset: 'assets/images/account.png',
+      showArrow: true,
+      child: Text(l10n.account, style: AppTextStyle.bold16),
+    );
+  }
+
+  Widget _buildAiModelCard(AppLocalizations l10n) {
+    return AppListCard(
+      onTap: _openAiModel,
       leadingAsset: 'assets/images/figure_setting.png',
       showArrow: true,
-      summary: '$_weightLabel   $_heightLabel',
-      child: Text(l10n.bodyProfile, style: AppTextStyle.bold16),
+      summary: _aiModelStatusLabel(l10n),
+      child: Text(l10n.aiModel, style: AppTextStyle.bold16),
     );
   }
 

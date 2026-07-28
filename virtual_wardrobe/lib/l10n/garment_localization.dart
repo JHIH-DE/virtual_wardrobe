@@ -90,3 +90,17 @@ extension GarmentColorLocalization on GarmentColor {
     }
   }
 }
+
+extension GarmentFitLocalization on GarmentFit {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case GarmentFit.regular:
+        return l10n.fitRegular;
+      case GarmentFit.relaxed:
+        return l10n.fitRelaxed;
+      case GarmentFit.oversized:
+        return l10n.fitOversized;
+    }
+  }
+}

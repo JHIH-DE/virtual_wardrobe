@@ -89,6 +89,7 @@ class GarmentService with BaseService {
       'object_name': garment.objectName,
       'brand': garment.brand,
       'color': garment.color,
+      'fit': garment.fit,
       'price': garment.price,
       'purchase_date': dateStr,
       'thickness': garment.thickness,

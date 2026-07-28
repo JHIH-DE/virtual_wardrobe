@@ -15,7 +15,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '設定';
 
   @override
-  String get bodyProfile => '身形檔案';
+  String get account => '帳號';
+
+  @override
+  String get aiModel => 'AI 模型';
+
+  @override
+  String get aiModelDescription =>
+      '這些參考資料能幫助 LUMI 了解你的外貌，用於 AI 試穿與未來的 AI 生成穿搭。';
+
+  @override
+  String get faceReferenceLabel => '臉部參考';
+
+  @override
+  String get faceReferenceDescription => '用於你的臉部、髮型與五官特徵——不會用於身形比例。';
+
+  @override
+  String get faceReferenceUploadHint => '請上傳一張清晰的正面大頭照。';
+
+  @override
+  String get faceReferenceComingSoon => '即將推出';
+
+  @override
+  String get bodyReferenceLabel => '身形參考';
+
+  @override
+  String get bodyReferenceDescription => '用於你的身形、身高與整體比例。';
+
+  @override
+  String get aiModelReady => '已就緒．臉部與身形皆已設定';
+
+  @override
+  String aiModelReferencesAdded(int count) {
+    return '已新增 $count/2 項參考資料';
+  }
 
   @override
   String get styleProfile => '風格檔案';
@@ -469,9 +502,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get bestMatchesLabel => '最佳搭配：';
-
-  @override
   String get scoreTierExcellent => '完美百搭';
 
   @override
@@ -509,6 +539,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get color => '顏色';
+
+  @override
+  String get fitLabel => '版型';
+
+  @override
+  String get selectAFit => '選擇版型';
+
+  @override
+  String get chooseFitTitle => '選擇版型';
+
+  @override
+  String get fitRegular => '標準';
+
+  @override
+  String get fitRelaxed => '微寬鬆';
+
+  @override
+  String get fitOversized => '寬鬆';
 
   @override
   String get brandOptionalLabel => '品牌（選填）';
@@ -584,9 +632,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get loadingClosetEllipsis => '載入衣櫃中…';
-
-  @override
-  String get personalDetailsTitle => '個人資料';
 
   @override
   String get genderMale => '男性';
@@ -765,9 +810,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get weeklySchedule => '每週排程';
 
   @override
-  String get apply => '套用';
-
-  @override
   String get perceivedTempOffset => '體感溫度調整';
 
   @override
@@ -844,12 +886,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get album => '相簿';
-
-  @override
-  String get fullBodyPhotoDescription => '用於生成你的穿搭試穿照片。';
-
-  @override
-  String get figureDetailLabel => '身形細節';
 
   @override
   String get chooseClearFullBodyPhotoHint => '請選擇一張清晰的全身照。';
@@ -878,7 +914,40 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settings => '設定';
 
   @override
-  String get bodyProfile => '身形檔案';
+  String get account => '帳號';
+
+  @override
+  String get aiModel => 'AI 模型';
+
+  @override
+  String get aiModelDescription =>
+      '這些參考資料能幫助 LUMI 了解你的外貌，用於 AI 試穿與未來的 AI 生成穿搭。';
+
+  @override
+  String get faceReferenceLabel => '臉部參考';
+
+  @override
+  String get faceReferenceDescription => '用於你的臉部、髮型與五官特徵——不會用於身形比例。';
+
+  @override
+  String get faceReferenceUploadHint => '請上傳一張清晰的正面大頭照。';
+
+  @override
+  String get faceReferenceComingSoon => '即將推出';
+
+  @override
+  String get bodyReferenceLabel => '身形參考';
+
+  @override
+  String get bodyReferenceDescription => '用於你的身形、身高與整體比例。';
+
+  @override
+  String get aiModelReady => '已就緒．臉部與身形皆已設定';
+
+  @override
+  String aiModelReferencesAdded(int count) {
+    return '已新增 $count/2 項參考資料';
+  }
 
   @override
   String get styleProfile => '風格檔案';
@@ -1332,9 +1401,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get bestMatchesLabel => '最佳搭配：';
-
-  @override
   String get scoreTierExcellent => '完美百搭';
 
   @override
@@ -1372,6 +1438,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get color => '顏色';
+
+  @override
+  String get fitLabel => '版型';
+
+  @override
+  String get selectAFit => '選擇版型';
+
+  @override
+  String get chooseFitTitle => '選擇版型';
+
+  @override
+  String get fitRegular => '標準';
+
+  @override
+  String get fitRelaxed => '微寬鬆';
+
+  @override
+  String get fitOversized => '寬鬆';
 
   @override
   String get brandOptionalLabel => '品牌（選填）';
@@ -1447,9 +1531,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get loadingClosetEllipsis => '載入衣櫃中…';
-
-  @override
-  String get personalDetailsTitle => '個人資料';
 
   @override
   String get genderMale => '男性';
@@ -1628,9 +1709,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get weeklySchedule => '每週排程';
 
   @override
-  String get apply => '套用';
-
-  @override
   String get perceivedTempOffset => '體感溫度調整';
 
   @override
@@ -1707,12 +1785,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get album => '相簿';
-
-  @override
-  String get fullBodyPhotoDescription => '用於生成你的穿搭試穿照片。';
-
-  @override
-  String get figureDetailLabel => '身形細節';
 
   @override
   String get chooseClearFullBodyPhotoHint => '請選擇一張清晰的全身照。';

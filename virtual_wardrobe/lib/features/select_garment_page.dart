@@ -97,6 +97,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
+          count: _filtered.length,
           groups: [
             FilterGroup(
               label: l10n.color,

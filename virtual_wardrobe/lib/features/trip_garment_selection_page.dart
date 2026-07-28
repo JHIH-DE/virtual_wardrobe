@@ -187,6 +187,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
+          count: _filtered.length,
           groups: [
             FilterGroup(
               label: l10n.color,

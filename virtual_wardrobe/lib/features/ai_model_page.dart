@@ -13,15 +13,16 @@ import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/common/numeric_unit_field.dart';
 import 'widgets/common/photo_upload_field.dart';
+import 'widgets/common/section_title.dart';
 
-class BodyProfilePage extends StatefulWidget {
-  const BodyProfilePage({super.key});
+class AiModelPage extends StatefulWidget {
+  const AiModelPage({super.key});
 
   @override
-  State<BodyProfilePage> createState() => _BodyProfilePageState();
+  State<AiModelPage> createState() => _AiModelPageState();
 }
 
-class _BodyProfilePageState extends State<BodyProfilePage> {
+class _AiModelPageState extends State<AiModelPage> {
   final _heightCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
 
@@ -151,7 +152,7 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: _l10n.bodyProfile);
+    return AppToolBar(title: _l10n.aiModel);
   }
 
   @override
@@ -173,16 +174,43 @@ class _BodyProfilePageState extends State<BodyProfilePage> {
           children: [
             if (_error != null) _buildErrorBanner(),
             Text(
-              _l10n.fullBodyPhotoDescription,
+              _l10n.aiModelDescription,
               style: AppTextStyle.regular14.copyWith(
                 color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SectionTitle(_l10n.faceReferenceLabel),
+            const SizedBox(height: 6),
+            Text(
+              _l10n.faceReferenceDescription,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 10),
+            PhotoUploadField(
+              imageProvider: null,
+              onTap: null,
+              title: _l10n.faceReferenceLabel,
+              subtitle: _l10n.faceReferenceUploadHint,
+              buttonLabel: _l10n.faceReferenceComingSoon,
+            ),
+            const SizedBox(height: 24),
+            SectionTitle(_l10n.bodyReferenceLabel),
+            const SizedBox(height: 6),
+            Text(
+              _l10n.bodyReferenceDescription,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.4,
               ),
             ),
             const SizedBox(height: 10),
             _buildPhotoUpload(),
-            const SizedBox(height: 24),
-            Text(_l10n.figureDetailLabel, style: AppTextStyle.bold14),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             _buildHeightWeightFields(),
           ],
         ),

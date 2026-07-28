@@ -111,11 +111,71 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settings;
 
-  /// No description provided for @bodyProfile.
+  /// No description provided for @account.
   ///
   /// In en, this message translates to:
-  /// **'Body Profile'**
-  String get bodyProfile;
+  /// **'Account'**
+  String get account;
+
+  /// No description provided for @aiModel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Model'**
+  String get aiModel;
+
+  /// No description provided for @aiModelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'These references help LUMI understand your appearance for AI outfit try-on and future generated looks.'**
+  String get aiModelDescription;
+
+  /// No description provided for @faceReferenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Face Reference'**
+  String get faceReferenceLabel;
+
+  /// No description provided for @faceReferenceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for your face, hairstyle, and facial features — not your body proportions.'**
+  String get faceReferenceDescription;
+
+  /// No description provided for @faceReferenceUploadHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload a clear, front-facing portrait.'**
+  String get faceReferenceUploadHint;
+
+  /// No description provided for @faceReferenceComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get faceReferenceComingSoon;
+
+  /// No description provided for @bodyReferenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Body Reference'**
+  String get bodyReferenceLabel;
+
+  /// No description provided for @bodyReferenceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for your body shape, height, and overall proportions.'**
+  String get bodyReferenceDescription;
+
+  /// No description provided for @aiModelReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready · Face + Body Configured'**
+  String get aiModelReady;
+
+  /// No description provided for @aiModelReferencesAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/2 References Added'**
+  String aiModelReferencesAdded(int count);
 
   /// No description provided for @styleProfile.
   ///
@@ -987,12 +1047,6 @@ abstract class AppLocalizations {
   /// **'Pairs well with {count} items in your closet.'**
   String garmentPairsWellWithGeneric(int count);
 
-  /// No description provided for @bestMatchesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Best matches:'**
-  String get bestMatchesLabel;
-
   /// No description provided for @scoreTierExcellent.
   ///
   /// In en, this message translates to:
@@ -1070,6 +1124,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Color'**
   String get color;
+
+  /// No description provided for @fitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit'**
+  String get fitLabel;
+
+  /// No description provided for @selectAFit.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Fit'**
+  String get selectAFit;
+
+  /// No description provided for @chooseFitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a fit'**
+  String get chooseFitTitle;
+
+  /// No description provided for @fitRegular.
+  ///
+  /// In en, this message translates to:
+  /// **'Regular'**
+  String get fitRegular;
+
+  /// No description provided for @fitRelaxed.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed'**
+  String get fitRelaxed;
+
+  /// No description provided for @fitOversized.
+  ///
+  /// In en, this message translates to:
+  /// **'Oversized'**
+  String get fitOversized;
 
   /// No description provided for @brandOptionalLabel.
   ///
@@ -1220,12 +1310,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loading Closet…'**
   String get loadingClosetEllipsis;
-
-  /// No description provided for @personalDetailsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal Details'**
-  String get personalDetailsTitle;
 
   /// No description provided for @genderMale.
   ///
@@ -1563,12 +1647,6 @@ abstract class AppLocalizations {
   /// **'Weekly Schedule'**
   String get weeklySchedule;
 
-  /// No description provided for @apply.
-  ///
-  /// In en, this message translates to:
-  /// **'Apply'**
-  String get apply;
-
   /// No description provided for @perceivedTempOffset.
   ///
   /// In en, this message translates to:
@@ -1724,18 +1802,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Album'**
   String get album;
-
-  /// No description provided for @fullBodyPhotoDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Used to generate your outfit try-on photos.'**
-  String get fullBodyPhotoDescription;
-
-  /// No description provided for @figureDetailLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Figure Detail'**
-  String get figureDetailLabel;
 
   /// No description provided for @chooseClearFullBodyPhotoHint.
   ///

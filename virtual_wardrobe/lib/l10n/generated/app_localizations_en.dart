@@ -15,7 +15,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
-  String get bodyProfile => 'Body Profile';
+  String get account => 'Account';
+
+  @override
+  String get aiModel => 'AI Model';
+
+  @override
+  String get aiModelDescription =>
+      'These references help LUMI understand your appearance for AI outfit try-on and future generated looks.';
+
+  @override
+  String get faceReferenceLabel => 'Face Reference';
+
+  @override
+  String get faceReferenceDescription =>
+      'Used for your face, hairstyle, and facial features — not your body proportions.';
+
+  @override
+  String get faceReferenceUploadHint =>
+      'Upload a clear, front-facing portrait.';
+
+  @override
+  String get faceReferenceComingSoon => 'Coming soon';
+
+  @override
+  String get bodyReferenceLabel => 'Body Reference';
+
+  @override
+  String get bodyReferenceDescription =>
+      'Used for your body shape, height, and overall proportions.';
+
+  @override
+  String get aiModelReady => 'Ready · Face + Body Configured';
+
+  @override
+  String aiModelReferencesAdded(int count) {
+    return '$count/2 References Added';
+  }
 
   @override
   String get styleProfile => 'Style Profile';
@@ -476,9 +512,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bestMatchesLabel => 'Best matches:';
-
-  @override
   String get scoreTierExcellent => 'Excellent Match';
 
   @override
@@ -516,6 +549,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get color => 'Color';
+
+  @override
+  String get fitLabel => 'Fit';
+
+  @override
+  String get selectAFit => 'Select Fit';
+
+  @override
+  String get chooseFitTitle => 'Choose a fit';
+
+  @override
+  String get fitRegular => 'Regular';
+
+  @override
+  String get fitRelaxed => 'Relaxed';
+
+  @override
+  String get fitOversized => 'Oversized';
 
   @override
   String get brandOptionalLabel => 'Brand (optional)';
@@ -592,9 +643,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loadingClosetEllipsis => 'Loading Closet…';
-
-  @override
-  String get personalDetailsTitle => 'Personal Details';
 
   @override
   String get genderMale => 'Male';
@@ -774,9 +822,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklySchedule => 'Weekly Schedule';
 
   @override
-  String get apply => 'Apply';
-
-  @override
   String get perceivedTempOffset => 'Perceived temperature offset';
 
   @override
@@ -858,13 +903,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get album => 'Album';
-
-  @override
-  String get fullBodyPhotoDescription =>
-      'Used to generate your outfit try-on photos.';
-
-  @override
-  String get figureDetailLabel => 'Figure Detail';
 
   @override
   String get chooseClearFullBodyPhotoHint =>

@@ -15,6 +15,12 @@ class GarmentImage extends StatelessWidget {
   final int? garmentId;
   final double? width;
   final double? height;
+
+  /// Decode target size in physical pixels for thumbnail-sized uses — see
+  /// [RefreshableNetworkImage.memCacheWidth]. Leave null for full-resolution
+  /// decoding.
+  final int? memCacheWidth;
+  final int? memCacheHeight;
   final BoxFit fit;
   final double borderRadius;
 
@@ -24,6 +30,8 @@ class GarmentImage extends StatelessWidget {
     this.garmentId,
     this.width,
     this.height,
+    this.memCacheWidth,
+    this.memCacheHeight,
     this.fit = BoxFit.cover,
     this.borderRadius = 0,
   });
@@ -44,6 +52,8 @@ class GarmentImage extends StatelessWidget {
         imageUrl: u,
         width: width,
         height: height,
+        memCacheWidth: memCacheWidth,
+        memCacheHeight: memCacheHeight,
         fit: fit,
         errorIcon: Icons.broken_image,
         onRefreshUrl: id == null
@@ -58,10 +68,19 @@ class GarmentImage extends StatelessWidget {
         File.fromUri(Uri.parse(u)),
         width: width,
         height: height,
+        cacheWidth: memCacheWidth,
+        cacheHeight: memCacheHeight,
         fit: fit,
       );
     } else {
-      image = Image.file(File(u), width: width, height: height, fit: fit);
+      image = Image.file(
+        File(u),
+        width: width,
+        height: height,
+        cacheWidth: memCacheWidth,
+        cacheHeight: memCacheHeight,
+        fit: fit,
+      );
     }
 
     if (borderRadius > 0) {

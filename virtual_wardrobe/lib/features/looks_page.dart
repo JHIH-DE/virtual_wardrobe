@@ -94,7 +94,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     }).toList();
   }
 
-  AppToolBar _buildAppBar(BuildContext context) {
+  AppToolBar _buildAppBar(BuildContext context, List<Look> all) {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: l10n.navLooks,
@@ -102,6 +102,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
+          count: _filtered(all).length,
           groups: [
             FilterGroup(
               label: l10n.seasonLabel,
@@ -141,7 +142,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     final looksAsync = ref.watch(looksProvider);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(context, looksAsync.valueOrNull ?? []),
       body: looksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => ErrorStateWidget(

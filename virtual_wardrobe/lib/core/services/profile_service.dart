@@ -136,6 +136,8 @@ class ProfileService with BaseService {
     String? unitSystem,
     String? location,
     List<String>? style,
+    Map<String, String>? weeklySchedule,
+    num? temperatureOffsetC,
   }) async {
     debugLog('--- updateMyProfile ---');
     final uri = Uri.parse(_baseUrl);
@@ -150,6 +152,10 @@ class ProfileService with BaseService {
     if (location != null) payload['location'] = location;
     if (style != null) {
       payload['style'] = style;
+    }
+    if (weeklySchedule != null) payload['weekly_schedule'] = weeklySchedule;
+    if (temperatureOffsetC != null) {
+      payload['temperature_offset_c'] = temperatureOffsetC;
     }
 
     final res = await withAuth(
