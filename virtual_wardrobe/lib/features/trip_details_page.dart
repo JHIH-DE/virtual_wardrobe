@@ -1,13 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
-import '../core/providers/looks_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../core/services/trip_service.dart';
@@ -18,10 +14,14 @@ import '../data/garment.dart';
 import '../data/look.dart';
 import '../data/trip.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'add_look_page.dart';
+import 'look_details_page.dart';
 import 'trip_suitcase_page.dart';
+import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
+import 'widgets/common/loading_overlay.dart';
 import 'widgets/common/lumi_insight_card.dart';
 import 'widgets/trip/today_outfit_idea.dart';
 import 'widgets/garment/garment_image.dart';
@@ -34,139 +34,51 @@ class TripDayOutfit {
   final int? optionId;
   final List<Garment> garments;
   final int? jobId;
+  final double? temperatureC;
 
-  const TripDayOutfit({this.optionId, this.garments = const [], this.jobId});
+  const TripDayOutfit({
+    this.optionId,
+    this.garments = const [],
+    this.jobId,
+    this.temperatureC,
+  });
 }
 
 class TripDetailsInitialData {
-  final List<int> weatherCodes;
-  final List<double> highTemps;
-  final List<double> lowTemps;
   final List<TripDayOutfit> dayOutfits;
+  final Set<int> suitcaseIds;
 
   const TripDetailsInitialData({
-    required this.weatherCodes,
-    required this.highTemps,
-    required this.lowTemps,
     required this.dayOutfits,
+    required this.suitcaseIds,
   });
 }
 
-class _WeatherForecast {
-  final List<int> codes;
-  final List<double> highs;
-  final List<double> lows;
-
-  const _WeatherForecast({
-    required this.codes,
-    required this.highs,
-    required this.lows,
-  });
-}
-
-/// Fetches the full (unsliced) forecast for a single leg, covering exactly
-/// that leg's own date range.
-Future<_WeatherForecast> _fetchLegWeather(TripLeg leg) async {
-  final startOffset = leg.dateRange.start.difference(DateTime.now()).inDays;
-  final duration = leg.dateRange.duration.inDays + 1;
-  final lat = leg.location.latitude;
-  final lon = leg.location.longitude;
-  int daysNeeded = startOffset + duration;
-  if (daysNeeded > 16) daysNeeded = 16;
-  if (daysNeeded < 7) daysNeeded = 7;
-  final url =
-      'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon'
-      '&daily=weathercode,temperature_2m_max,temperature_2m_min'
-      '&timezone=auto&forecast_days=$daysNeeded';
-
-  try {
-    final res = await http.get(Uri.parse(url));
-    if (res.statusCode == 200) {
-      final data = json.decode(res.body);
-      final daily = data['daily'];
-      if (daily == null) {
-        return const _WeatherForecast(codes: [], highs: [], lows: []);
+/// Parses `suitcase_items` from a `getTrip` response — items may come back
+/// either as `{garment_id: int, ...}` objects or bare ints.
+Set<int> _parseSuitcaseItemIds(dynamic rawItems) {
+  final ids = <int>{};
+  if (rawItems is List) {
+    for (final item in rawItems) {
+      if (item is Map && item['garment_id'] is int) {
+        ids.add(item['garment_id'] as int);
+      } else if (item is int) {
+        ids.add(item);
       }
-
-      // Robust parsing: handle nulls or missing values in API response
-      return _WeatherForecast(
-        codes:
-            (daily['weathercode'] as List?)
-                ?.map((v) => (v as num?)?.toInt() ?? 0)
-                .toList() ??
-            [],
-        highs:
-            (daily['temperature_2m_max'] as List?)
-                ?.map((v) => (v as num?)?.toDouble() ?? 0.0)
-                .toList() ??
-            [],
-        lows:
-            (daily['temperature_2m_min'] as List?)
-                ?.map((v) => (v as num?)?.toDouble() ?? 0.0)
-                .toList() ??
-            [],
-      );
-    }
-  } catch (e) {
-    debugLog('Fetch leg weather failed: $e');
-  }
-  return const _WeatherForecast(codes: [], highs: [], lows: []);
-}
-
-/// Builds one weather entry per day of the whole trip by looking up, for
-/// each day, which leg covers it and pulling that leg's forecast for that
-/// day. Robust to legs being entered out of chronological order.
-Future<_WeatherForecast> _fetchWeather(Trip trip) async {
-  final legForecasts = <_WeatherForecast>[];
-  for (final leg in trip.legs) {
-    legForecasts.add(await _fetchLegWeather(leg));
-  }
-
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-
-  final totalDays = trip.dateRange.duration.inDays + 1;
-  final codes = <int>[];
-  final highs = <double>[];
-  final lows = <double>[];
-  for (int i = 0; i < totalDays; i++) {
-    final date = trip.dateRange.start.add(Duration(days: i));
-    final leg = trip.legForDate(date);
-    final legIndex = leg == null ? -1 : trip.legs.indexOf(leg);
-    if (legIndex == -1) {
-      // No leg covers this day (gap between legs); no data to show.
-      codes.add(0);
-      highs.add(0);
-      lows.add(0);
-      continue;
-    }
-    final forecast = legForecasts[legIndex];
-    // Open-Meteo's response always starts at "today", regardless of which
-    // leg it's for, so every leg's array is indexed the same way.
-    final dayOffset = DateTime(
-      date.year,
-      date.month,
-      date.day,
-    ).difference(today).inDays;
-    if (dayOffset >= 0 && dayOffset < forecast.codes.length) {
-      codes.add(forecast.codes[dayOffset]);
-      highs.add(forecast.highs[dayOffset]);
-      lows.add(forecast.lows[dayOffset]);
-    } else {
-      codes.add(0);
-      highs.add(0);
-      lows.add(0);
     }
   }
-  return _WeatherForecast(codes: codes, highs: highs, lows: lows);
+  return ids;
 }
 
 /// Picks the primary (lowest `order_index`) outfit option for one trip day
-/// and resolves its garment ids against [garmentsById].
+/// and resolves its garment ids against [garmentsById]. The day's
+/// temperature comes straight from the trip plan itself (`temperature_c`),
+/// not a separate weather fetch.
 TripDayOutfit _parseTripDayOutfit(
   Map<String, dynamic> day,
   Map<int, Garment> garmentsById,
 ) {
+  final temperatureC = (day['temperature_c'] as num?)?.toDouble();
   final options =
       ((day['options'] as List?) ?? [])
           .whereType<Map<String, dynamic>>()
@@ -176,7 +88,7 @@ TripDayOutfit _parseTripDayOutfit(
             (b['order_index'] as num?) ?? 0,
           ),
         );
-  if (options.isEmpty) return const TripDayOutfit();
+  if (options.isEmpty) return TripDayOutfit(temperatureC: temperatureC);
 
   final primary = options.first;
   final items = ((primary['items'] as List?) ?? [])
@@ -190,6 +102,7 @@ TripDayOutfit _parseTripDayOutfit(
     optionId: (primary['id'] as num?)?.toInt(),
     garments: garments,
     jobId: (primary['job_id'] as num?)?.toInt(),
+    temperatureC: temperatureC,
   );
 }
 
@@ -206,9 +119,8 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   /// Fetches everything [TripDetailsPage] needs up front, so the page can be
   /// pushed only once loading is complete (no in-page spinner on open).
   static Future<TripDetailsInitialData> preload(Trip trip) async {
-    final weather = await _fetchWeather(trip);
-
     List<TripDayOutfit> dayOutfits = [];
+    Set<int> suitcaseIds = {};
     try {
       final tripData = await TripService().getTrip(int.parse(trip.id));
       final allGarments = await GarmentService().getGarments();
@@ -222,17 +134,13 @@ class TripDetailsPage extends ConsumerStatefulWidget {
           .whereType<Map<String, dynamic>>()
           .map((day) => _parseTripDayOutfit(day, garmentsById))
           .toList();
+      suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']);
     } catch (e) {
       if (e is AuthExpiredException) rethrow;
       debugLog('Failed to load trip outfits: $e');
     }
 
-    return TripDetailsInitialData(
-      weatherCodes: weather.codes,
-      highTemps: weather.highs,
-      lowTemps: weather.lows,
-      dayOutfits: dayOutfits,
-    );
+    return TripDetailsInitialData(dayOutfits: dayOutfits, suitcaseIds: suitcaseIds);
   }
 
   @override
@@ -243,13 +151,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     with TryOnMixin {
   int _selectedDayIndex = 0;
 
-  late final List<int> _weatherCodes = widget.initialData.weatherCodes;
-  late final List<double> _highTemps = widget.initialData.highTemps;
-  late final List<double> _lowTemps = widget.initialData.lowTemps;
   late List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
+  late Set<int> _suitcaseIds = widget.initialData.suitcaseIds;
 
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
+  bool _packingAdviceExpanded = false;
+  int? _recommendedTotal;
+  bool _generatingPlan = false;
+  bool _loadingEditor = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -258,6 +168,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       : null;
 
   List<Garment> get _todayGarments => _currentDayOutfit?.garments ?? const [];
+
+  /// True if any of today's outfit garments have since been removed from
+  /// the trip's suitcase — e.g. the user unpacked something after LUMI (or
+  /// the user themself) already assigned it to this day.
+  bool get _hasMissingSuitcaseItems =>
+      _todayGarments.any((g) => g.id != null && !_suitcaseIds.contains(g.id));
 
   @override
   void initState() {
@@ -300,6 +216,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               (day) => TripDayOutfit(
                 optionId: day.optionId,
                 jobId: day.jobId,
+                temperatureC: day.temperatureC,
                 garments: day.garments
                     .map((g) => freshById[g.id] ?? g)
                     .toList(),
@@ -320,7 +237,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         int.parse(widget.trip.id),
       );
       if (mounted) {
-        setState(() => _packingAdvice = data['overall_advice'] as String?);
+        setState(() {
+          _packingAdvice = data['overall_advice'] as String?;
+          _recommendedTotal = _sumRecommendedQuantity(data['categories']);
+        });
       }
     } catch (e) {
       if (e is AuthExpiredException) {
@@ -333,43 +253,318 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
+  /// Sums `recommended_quantity` across every category in a
+  /// `getTripSuggestion` response, for the Suitcase card's packed/recommended
+  /// progress summary.
+  int? _sumRecommendedQuantity(dynamic categories) {
+    if (categories is! List) return null;
+    var total = 0;
+    for (final item in categories) {
+      if (item is Map && item['recommended_quantity'] is num) {
+        total += (item['recommended_quantity'] as num).toInt();
+      }
+    }
+    return total;
+  }
+
   Future<void> _loadDailyData() async {
     resetTryOnState();
     await _loadOutfitImage();
   }
 
+  /// Re-fetches the trip's `days[].options[]` (e.g. after generating or
+  /// hand-editing a plan) without re-fetching weather.
+  Future<void> _refreshDayOutfits() async {
+    final tripData = await TripService().getTrip(int.parse(widget.trip.id));
+    final allGarments = await GarmentService().getGarments();
+    final garmentsById = {
+      for (final g in allGarments)
+        if (g.id != null) g.id!: g,
+    };
+    final rawDays = (tripData['days'] as List?) ?? [];
+    final dayOutfits = rawDays
+        .whereType<Map<String, dynamic>>()
+        .map((day) => _parseTripDayOutfit(day, garmentsById))
+        .toList();
+    if (!mounted) return;
+    setState(() {
+      _dayOutfits = dayOutfits;
+      _suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']);
+    });
+    await _loadOutfitImage();
+  }
+
+  /// Fetches the trip's current suitcase, resolved to full [Garment]
+  /// objects (alongside the user's whole closet, for callers that also need
+  /// it — e.g. to decide which category slots to show), and syncs
+  /// [_suitcaseIds] along the way. Returns null (after showing an error) if
+  /// the fetch fails.
+  Future<({List<Garment> suitcase, List<Garment> closet})?>
+  _fetchSuitcaseGarments() async {
+    try {
+      final tripData = await TripService().getTrip(int.parse(widget.trip.id));
+      final suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']);
+      final allGarments = await GarmentService().getGarments();
+      if (mounted) setState(() => _suitcaseIds = suitcaseIds);
+      final suitcase = allGarments
+          .where((g) => g.id != null && suitcaseIds.contains(g.id))
+          .toList();
+      return (suitcase: suitcase, closet: allGarments);
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return null;
+      }
+      debugLog('Failed to load suitcase: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateDayOutfit)));
+      }
+      return null;
+    }
+  }
+
+  /// A suitcase needs at least one upper-body piece (top or one-piece) and
+  /// one lower-body piece (bottom or one-piece) for LUMI to have any chance
+  /// of assembling a complete outfit.
+  bool _hasViableSuitcase(List<Garment> suitcase) {
+    final categories = suitcase.map((g) => g.category).toSet();
+    final hasUpper =
+        categories.contains(GarmentCategory.top) ||
+        categories.contains(GarmentCategory.onePiece);
+    final hasLower =
+        categories.contains(GarmentCategory.bottom) ||
+        categories.contains(GarmentCategory.onePiece);
+    return hasUpper && hasLower;
+  }
+
+  Future<void> _openSuitcase() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: widget.trip)),
+    );
+    if (!mounted) return;
+    await _fetchSuitcaseGarments();
+  }
+
+  /// Asks LUMI to build an outfit for every day of the trip from whatever's
+  /// currently packed in the suitcase. Confirms first if a plan already
+  /// exists, since this replaces every day's outfit — including any the
+  /// user adjusted by hand.
+  Future<void> _generatePlan() async {
+    final fetched = await _fetchSuitcaseGarments();
+    if (fetched == null || !mounted) return;
+
+    if (!_hasViableSuitcase(fetched.suitcase)) {
+      final goToSuitcase = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AppDialog(
+          title: _l10n.insufficientSuitcaseTitle,
+          body: _l10n.insufficientSuitcaseBody,
+          primaryLabel: _l10n.goToSuitcase,
+          onPrimary: () => Navigator.pop(ctx, true),
+          secondaryLabel: _l10n.cancel,
+          onSecondary: () => Navigator.pop(ctx, false),
+        ),
+      );
+      if (goToSuitcase == true && mounted) await _openSuitcase();
+      return;
+    }
+
+    final hasExistingPlan = _dayOutfits.any((d) => d.optionId != null);
+    if (hasExistingPlan) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AppDialog(
+          title: _l10n.regeneratePlanTitle,
+          body: _l10n.regeneratePlanBody,
+          primaryLabel: _l10n.regenerate,
+          onPrimary: () => Navigator.pop(ctx, true),
+          secondaryLabel: _l10n.cancel,
+          onSecondary: () => Navigator.pop(ctx, false),
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    if (!mounted) return;
+
+    setState(() => _generatingPlan = true);
+    try {
+      await TripService().generateTripPlan(int.parse(widget.trip.id));
+      await _refreshDayOutfits();
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to generate trip plan: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.failedToGeneratePlan)));
+      }
+    } finally {
+      if (mounted) setState(() => _generatingPlan = false);
+    }
+  }
+
+  /// Lets the user manually swap which suitcase garments make up the
+  /// selected day's outfit, reusing [AddLookPage]'s per-category slot
+  /// picker. Only reachable once LUMI has generated a plan (there has to be
+  /// an existing option to PATCH).
+  Future<void> _openDayOutfitEditor() async {
+    final optionId = _currentDayOutfit?.optionId;
+    if (optionId == null) return;
+
+    setState(() => _loadingEditor = true);
+    final fetched = await _fetchSuitcaseGarments();
+    if (mounted) setState(() => _loadingEditor = false);
+    if (fetched == null || !mounted) return;
+    final suitcaseGarments = fetched.suitcase;
+
+    final validIds = Set.of(_suitcaseIds);
+
+    final result = await Navigator.push<Set<int>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddLookPage(
+          initialGarments: _todayGarments,
+          preloadedGarments: suitcaseGarments,
+          selectOnly: true,
+          validGarmentIds: validIds,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    try {
+      final updated = await TripService().updateOptionItems(
+        int.parse(widget.trip.id),
+        optionId: optionId,
+        garmentIds: result.toList(),
+      );
+      // Union of closet + the day's previous garments, since a slot the
+      // user left untouched can still carry a stale (no-longer-packed) id.
+      final garmentsById = {
+        for (final g in [...fetched.closet, ..._todayGarments])
+          if (g.id != null) g.id!: g,
+      };
+      final items = (updated['items'] as List?) ?? [];
+      final newGarments = items
+          .whereType<Map<String, dynamic>>()
+          .map((i) => garmentsById[(i['garment_id'] as num?)?.toInt()])
+          .whereType<Garment>()
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _dayOutfits[_selectedDayIndex] = TripDayOutfit(
+          optionId: optionId,
+          jobId: _currentDayOutfit?.jobId,
+          temperatureC: _currentDayOutfit?.temperatureC,
+          garments: newGarments,
+        );
+      });
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to update day outfit: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateDayOutfit)));
+      }
+    }
+  }
+
+  /// "Fix" action for the missing-items warning: re-adds whatever's
+  /// currently in this day's outfit but missing from the suitcase back into
+  /// it, rather than making the user go re-pick the outfit.
+  Future<void> _fixMissingSuitcaseItems() async {
+    final missingIds = _todayGarments
+        .where((g) => g.id != null && !_suitcaseIds.contains(g.id))
+        .map((g) => g.id!)
+        .toList();
+    if (missingIds.isEmpty) return;
+
+    try {
+      for (final id in missingIds) {
+        await TripService().addSuitcaseItem(
+          int.parse(widget.trip.id),
+          garmentId: id,
+        );
+      }
+      if (!mounted) return;
+      setState(() => _suitcaseIds.addAll(missingIds));
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to re-add missing suitcase items: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateSuitcase)));
+      }
+    }
+  }
+
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: widget.trip.name);
+    return AppToolBar(
+      title: widget.trip.name,
+      actions: [
+        IconButton(
+          onPressed: _generatingPlan ? null : _generatePlan,
+          icon: const Icon(
+            Icons.auto_awesome_outlined,
+            color: AppColors.icon,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          _paddedSection(_buildTripHeader()),
-          const SizedBox(height: 20),
-          _paddedSection(_buildLumiInsightCard()),
-          const SizedBox(height: 20),
-          _paddedSection(_buildSuitcaseSection()),
-          const SizedBox(height: 20),
-          _buildTripDaySelector(),
-          const SizedBox(height: 20),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.only(bottom: 32),
-              children: [
-                _paddedSection(_buildWardrobeSection()),
-                const SizedBox(height: 20),
-                _paddedSection(_buildOutfitSection()),
-              ],
-            ),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.pageBackground,
+          appBar: _buildAppBar(),
+          // A single scrollable list (rather than a fixed header Column with
+          // only the bottom section scrolling) so dragging from anywhere on
+          // screen — including the trip header/insight/suitcase/day-selector
+          // area — scrolls the whole page, not just the section below them.
+          body: ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              const SizedBox(height: 20),
+              _paddedSection(_buildTripHeader()),
+              const SizedBox(height: 20),
+              _paddedSection(_buildLumiInsightCard()),
+              const SizedBox(height: 20),
+              _paddedSection(_buildSuitcaseSection()),
+              const SizedBox(height: 20),
+              _buildTripDaySelector(),
+              const SizedBox(height: 20),
+              _buildWardrobeSection(),
+              const SizedBox(height: 20),
+              _paddedSection(_buildOutfitSection()),
+            ],
           ),
-        ],
-      ),
+        ),
+        if (_generatingPlan)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
+          ),
+        if (_loadingEditor)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.loadingSuitcaseEllipsis),
+          ),
+      ],
     );
   }
 
@@ -382,7 +577,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   Widget _buildOutfitSection() {
     return TodayOutfitIdea(
-      onSave: _onSaveLook,
+      onTap: _openLookDetails,
       onGenerate: _handleGenerateLook,
       imageUrl: tryOnResultUrl,
       isLoading: isLookLoading,
@@ -448,7 +643,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         itemCount: totalDays,
         itemBuilder: (context, index) {
           final date = widget.trip.dateRange.start.add(Duration(days: index));
-          final hasWeather = _weatherCodes.length > index;
+          final temperatureC = index < _dayOutfits.length
+              ? _dayOutfits[index].temperatureC
+              : null;
           return TripDayCard(
             date: date,
             isSelected: index == _selectedDayIndex,
@@ -456,9 +653,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               setState(() => _selectedDayIndex = index);
               _loadDailyData();
             },
-            weatherCode: hasWeather ? _weatherCodes[index] : null,
-            lowTemp: hasWeather ? _lowTemps[index] : null,
-            highTemp: hasWeather ? _highTemps[index] : null,
+            temperatureC: temperatureC,
           );
         },
       ),
@@ -469,37 +664,133 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final dateStr = DateFormat('EEEE, MMM d').format(
       widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex)),
     );
+    final hasOption = _currentDayOutfit?.optionId != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _l10n.wardrobeForDate(dateStr),
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _l10n.wardrobeForDate(dateStr),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (hasOption)
+                IconButton(
+                  onPressed: _openDayOutfitEditor,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 20,
+                    color: AppColors.icon,
+                  ),
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         if (_todayGarments.isEmpty)
-          EmptyStatePlaceholder(
-            message: _l10n.noItemsPlanned,
-            height: 100,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-              border: Border.fromBorderSide(
-                BorderSide(color: AppColors.borderSubtle),
-              ),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: hasOption
+                ? EmptyStatePlaceholder(
+                    message: _l10n.noItemsPlanned,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.all(Radius.circular(16)),
+                      border: Border.fromBorderSide(
+                        BorderSide(color: AppColors.borderSubtle),
+                      ),
+                    ),
+                  )
+                : _buildGeneratePlanCta(),
           )
-        else
+        else ...[
+          if (_hasMissingSuitcaseItems)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildMissingItemsWarning(),
+            ),
           SizedBox(
             height: 100,
             child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               itemCount: _todayGarments.length,
               itemBuilder: (context, index) =>
                   _buildGarmentItem(_todayGarments[index]),
             ),
           ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildMissingItemsWarning() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 16,
+            color: AppColors.error,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              _l10n.outfitMissingItemsWarning,
+              style: AppTextStyle.regular13.copyWith(color: AppColors.error),
+            ),
+          ),
+          TextButton(
+            onPressed: _fixMissingSuitcaseItems,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(_l10n.fixOutfit),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGeneratePlanCta() {
+    return GestureDetector(
+      onTap: _generatingPlan ? null : _generatePlan,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.auto_awesome, color: AppColors.accent, size: 28),
+            const SizedBox(height: 8),
+            Text(_l10n.letLumiPlanOutfits, style: AppTextStyle.bold14),
+            const SizedBox(height: 4),
+            Text(
+              _l10n.letLumiPlanOutfitsHint,
+              textAlign: TextAlign.center,
+              style: AppTextStyle.regular13.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -526,47 +817,115 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 ),
               ],
             )
-          : Text(
-              _packingAdvice!,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.5,
+          : GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(
+                () => _packingAdviceExpanded = !_packingAdviceExpanded,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _l10n.tapToViewAiSummary,
+                          style: AppTextStyle.bold14,
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: _packingAdviceExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 150),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 20,
+                          color: AppColors.icon,
+                        ),
+                      ),
+                    ],
+                  ),
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 150),
+                    crossFadeState: _packingAdviceExpanded
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    firstChild: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        _packingAdvice!,
+                        style: AppTextStyle.regular14.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    secondChild: const SizedBox.shrink(),
+                  ),
+                ],
               ),
             ),
     );
   }
 
   Widget _buildSuitcaseSection() {
+    final packedCount = _suitcaseIds.length;
+    final recommended = _recommendedTotal;
+    final summary = packedCount == 0
+        ? _l10n.packClothingHint
+        : (recommended != null
+              ? _l10n.recommendedSelectedCount(recommended, packedCount)
+              : _l10n.packedItemsCount(packedCount));
+
     return AppListCard(
       title: _l10n.suitcaseLabel,
       leading: const Icon(Icons.luggage_outlined, color: AppColors.icon),
       showArrow: true,
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: widget.trip)),
-      ),
+      onTap: _openSuitcase,
       child: Text(
-        _l10n.packClothingHint,
+        summary,
         style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
       ),
     );
   }
 
   Widget _buildGarmentItem(Garment g) {
+    final isMissing = g.id != null && !_suitcaseIds.contains(g.id);
     return Container(
       width: 80,
       margin: const EdgeInsets.only(right: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(
+          color: isMissing ? AppColors.error : AppColors.borderSubtle,
+          width: isMissing ? 1.5 : 1,
+        ),
       ),
-      child: GarmentImage(
-        url: g.imageUrl,
-        garmentId: g.id,
-        memCacheWidth: 160,
-        fit: BoxFit.cover,
-        borderRadius: 12,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: GarmentImage(
+              url: g.imageUrl,
+              garmentId: g.id,
+              memCacheWidth: 160,
+              fit: BoxFit.cover,
+              borderRadius: 12,
+            ),
+          ),
+          if (isMissing)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Icon(
+                Icons.error,
+                size: 16,
+                color: AppColors.error,
+                shadows: [
+                  Shadow(color: AppColors.surface, blurRadius: 3),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -580,7 +939,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         .where((g) => g.id != null)
         .map((g) => g.id!)
         .toList();
-    final int? jobId = await performTryOn(ids, "weekly");
+    final int? jobId = await performTryOn(ids, "trip");
 
     if (jobId != null) {
       try {
@@ -599,26 +958,29 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
-  Future<void> _onSaveLook() async {
+  void _openLookDetails() {
     final url = tryOnResultUrl;
     if (url == null) return;
 
-    try {
-      final look = Look(
-        id: tryOnJobId,
-        imageUrl: url,
-        seasons: const [],
-        style: const [],
-        advice: tryOnAiAdvice,
-      );
-      ref.read(looksProvider.notifier).add(look);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.savedToCloset)));
-      }
-    } catch (e) {
-      debugLog('Save error: $e');
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LookDetailsPage(
+          look: Look(
+            id: tryOnJobId,
+            imageUrl: url,
+            advice: tryOnAiAdvice,
+            garmentIds: _todayGarments
+                .where((g) => g.id != null)
+                .map((g) => g.id!)
+                .toList(),
+          ),
+          isNew: true,
+          confirmLeaveOnBack: false,
+          navigateToLooksTabOnSave: false,
+          showRemixWhenSaved: false,
+        ),
+      ),
+    );
   }
 }

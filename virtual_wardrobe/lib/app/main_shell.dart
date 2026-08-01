@@ -8,7 +8,7 @@ import '../features/home_page.dart';
 import '../features/looks_page.dart';
 import '../features/add_look_page.dart';
 import '../features/my_closet_page.dart';
-import '../features/trip_main_page.dart';
+import '../features/trips_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
 import '../features/widgets/common/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
@@ -32,9 +32,19 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   AppTab _current = AppTab.home;
+  bool _globalLoading = false;
+  String? _globalLoadingLabel;
 
   void _select(AppTab tab) {
     if (tab != _current) setState(() => _current = tab);
+  }
+
+  void _setGlobalLoading(bool loading, {String? label}) {
+    if (loading == _globalLoading && label == _globalLoadingLabel) return;
+    setState(() {
+      _globalLoading = loading;
+      _globalLoadingLabel = label;
+    });
   }
 
   /// Swiping left/right cycles to the next/previous tab in [AppTab.values]
@@ -109,6 +119,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     return MainShellScope(
       selectTab: _select,
+      setLoading: _setGlobalLoading,
       child: Stack(
         children: [
           GestureDetector(
@@ -120,7 +131,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                 HomePage(),
                 MyClosetPage(),
                 LooksPage(),
-                TripMainPage(),
+                TripsPage(),
               ],
             ),
           ),
@@ -129,6 +140,9 @@ class _MainShellState extends ConsumerState<MainShell> {
             onSelect: _select,
             onQuickAction: _handleQuickAction,
           ),
+          // Painted last so it sits above FloatingNavBar and truly covers
+          // the whole screen — see MainShellScope.setLoading.
+          if (_globalLoading) LoadingOverlay(label: _globalLoadingLabel ?? ''),
         ],
       ),
     );

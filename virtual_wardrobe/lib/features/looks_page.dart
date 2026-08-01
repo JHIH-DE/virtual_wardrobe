@@ -8,13 +8,14 @@ import '../core/services/auth_handler.dart';
 import '../core/services/look_service.dart';
 import '../data/look.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'looks_details_page.dart';
+import 'look_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/favorite_card.dart';
 import 'widgets/common/feedback_overlay.dart';
 import 'widgets/common/filter_button.dart';
+import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/look/look_card.dart';
 
 class LooksPage extends ConsumerStatefulWidget {
@@ -48,10 +49,12 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _reportLoadingState(ref.read(looksProvider));
       ref.listenManual(looksProvider, (_, next) {
         if (next.hasError && next.error is AuthExpiredException) {
           AuthExpiredHandler.handle(context);
         }
+        _reportLoadingState(next);
       });
       ref.listenManual(lookFeedbackProvider, (_, next) {
         if (next == null) return;
@@ -69,6 +72,16 @@ class _LooksPageState extends ConsumerState<LooksPage> {
       });
       ref.read(looksProvider.notifier).refreshIfNeeded();
     });
+  }
+
+  /// Mirrors looksProvider's loading state up to MainShell, which shows a
+  /// full-screen overlay above the floating nav bar — see
+  /// MainShellScope.setLoading for why this can't just be built inline.
+  void _reportLoadingState(AsyncValue<List<Look>> state) {
+    MainShellScope.of(context)?.setLoading(
+      state.isLoading,
+      label: AppLocalizations.of(context).loadingLooksEllipsis,
+    );
   }
 
   bool get _isFiltered =>
@@ -144,7 +157,9 @@ class _LooksPageState extends ConsumerState<LooksPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context, looksAsync.valueOrNull ?? []),
       body: looksAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        // Shell-level overlay (see _reportLoadingState) covers the whole
+        // screen including the nav bar while loading.
+        loading: () => const SizedBox.shrink(),
         error: (e, _) => ErrorStateWidget(
           error: e,
           onRetry: () => ref.read(looksProvider.notifier).refresh(),
@@ -197,7 +212,7 @@ class _LooksPageState extends ConsumerState<LooksPage> {
         look: look,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
+          MaterialPageRoute(builder: (_) => LookDetailsPage(look: look)),
         ),
       ),
     );

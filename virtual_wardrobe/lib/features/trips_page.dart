@@ -23,11 +23,11 @@ import 'widgets/common/loading_overlay.dart';
 import 'widgets/trip/trip_card.dart';
 import 'widgets/trip/trip_create_dialog.dart';
 
-class TripMainPage extends ConsumerStatefulWidget {
-  const TripMainPage({super.key});
+class TripsPage extends ConsumerStatefulWidget {
+  const TripsPage({super.key});
 
   @override
-  ConsumerState<TripMainPage> createState() => _TripMainPageState();
+  ConsumerState<TripsPage> createState() => _TripMainPageState();
 }
 
 final _dateFmt = DateFormat('yyyy-MM-dd');
@@ -152,7 +152,7 @@ Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(Trip trip) async {
 
 /// Shows the "New Trip" creation flow (location/date form, then weather
 /// prefetch + create call) and adds the result to [tripsProvider]. Shared
-/// between [TripMainPage]'s own "+" and any other entry point (e.g. the
+/// between [TripsPage]'s own "+" and any other entry point (e.g. the
 /// Home page's quick-actions menu).
 Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
   final l10n = AppLocalizations.of(context);
@@ -226,36 +226,35 @@ void _goToNewTripDetails(
   Navigator.push(context, route);
 }
 
-class _TripMainPageState extends ConsumerState<TripMainPage> {
-  bool _openingTrip = false;
-
+class _TripMainPageState extends ConsumerState<TripsPage> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _reportLoadingState(ref.read(tripsProvider));
       ref.listenManual(tripsProvider, (_, next) {
         if (next.hasError && next.error is AuthExpiredException) {
           AuthExpiredHandler.handle(context);
         }
+        _reportLoadingState(next);
       });
     });
+  }
+
+  /// Mirrors tripsProvider's loading state up to MainShell, which shows a
+  /// full-screen overlay above the floating nav bar — see
+  /// MainShellScope.setLoading for why this can't just be built inline.
+  void _reportLoadingState(AsyncValue<List<Trip>> state) {
+    MainShellScope.of(context)?.setLoading(
+      state.isLoading,
+      label: AppLocalizations.of(context).loadingTripsEllipsis,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final tripsAsync = ref.watch(tripsProvider);
-
-    return Stack(
-      children: [
-        _buildScaffold(context, tripsAsync),
-        if (_openingTrip)
-          Positioned.fill(
-            child: LoadingOverlay(
-              label: AppLocalizations.of(context).loadingTripEllipsis,
-            ),
-          ),
-      ],
-    );
+    return _buildScaffold(context, tripsAsync);
   }
 
   AppToolBar _buildAppBar(BuildContext context) {
@@ -450,13 +449,15 @@ class _TripMainPageState extends ConsumerState<TripMainPage> {
   }
 
   Future<void> _handleOpenTrip(BuildContext context, Trip trip) async {
-    setState(() => _openingTrip = true);
+    final l10n = AppLocalizations.of(context);
+    MainShellScope.of(
+      context,
+    )?.setLoading(true, label: l10n.loadingTripEllipsis);
     try {
       final data = await TripDetailsPage.preload(trip);
 
-      if (!mounted) return;
-      setState(() => _openingTrip = false);
-      if (!context.mounted) return;
+      if (!mounted || !context.mounted) return;
+      MainShellScope.of(context)?.setLoading(false);
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -464,8 +465,8 @@ class _TripMainPageState extends ConsumerState<TripMainPage> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _openingTrip = false);
+      if (!mounted || !context.mounted) return;
+      MainShellScope.of(context)?.setLoading(false);
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;

@@ -47,7 +47,7 @@ class TripService with BaseService {
     return id;
   }
 
-  Future<void> generateTrip(
+  Future<void> generateTripPlan(
     int tripId, {
     String? defaultOccasion,
     String? style,
@@ -55,7 +55,7 @@ class TripService with BaseService {
     bool? minimizePacking,
     Map<String, int>? categoryLimits,
   }) async {
-    debugLog('--- generateTrip id=$tripId ---');
+    debugLog('--- generateTripPlan id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/generate');
 
     final body = <String, dynamic>{
@@ -74,7 +74,7 @@ class TripService with BaseService {
       ),
     );
 
-    decodeMap(res, op: 'generateTrip');
+    decodeMap(res, op: 'generateTripPlan');
   }
 
   Future<void> updateTrip(
@@ -239,6 +239,34 @@ class TripService with BaseService {
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
       throw Exception('setTryonJobToOption: response missing data object');
+    }
+    return data;
+  }
+
+  /// Manually replaces the garments in a trip outfit option (e.g. the user
+  /// swapping out what LUMI picked for a given day).
+  Future<Map<String, dynamic>> updateOptionItems(
+    int tripId, {
+    required int optionId,
+    required List<int> garmentIds,
+  }) async {
+    debugLog(
+      '--- updateOptionItems tripId=$tripId optionId=$optionId garmentIds=$garmentIds ---',
+    );
+    final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/items');
+
+    final res = await withAuth(
+      (token) => http.patch(
+        uri,
+        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
+        body: jsonEncode({'garment_ids': garmentIds}),
+      ),
+    );
+
+    final envelope = decodeMap(res, op: 'updateOptionItems');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('updateOptionItems: response missing data object');
     }
     return data;
   }

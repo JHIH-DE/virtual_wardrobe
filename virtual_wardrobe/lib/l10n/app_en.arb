@@ -147,6 +147,18 @@
   "fillAllFieldsError": "Please fill all fields",
 
   "regenerate": "Regenerate",
+  "letLumiPlanOutfits": "Let LUMI Plan Your Trip",
+  "letLumiPlanOutfitsHint": "LUMI will build an outfit for every day using what's in your suitcase.",
+  "regeneratePlanTitle": "Regenerate outfit plan?",
+  "regeneratePlanBody": "This will replace every day's current outfit, including any you've adjusted by hand.",
+  "failedToGeneratePlan": "Failed to generate outfit plan",
+  "generatingPlanEllipsis": "Planning your outfits…",
+  "failedToUpdateDayOutfit": "Failed to update outfit",
+  "insufficientSuitcaseTitle": "Not Enough in Your Suitcase",
+  "insufficientSuitcaseBody": "LUMI needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.",
+  "goToSuitcase": "Go to Suitcase",
+  "outfitMissingItemsWarning": "Some items in this outfit were removed from your suitcase.",
+  "fixOutfit": "Fix",
   "loading": "Loading…",
   "tryAgain": "Try Again",
   "generatingLookEllipsis": "Generating your look…",
@@ -255,8 +267,7 @@
   "pleaseEnterProductTypeError": "Please enter product type",
   "color": "Color",
   "fitLabel": "Fit",
-  "selectAFit": "Select Fit",
-  "chooseFitTitle": "Choose a fit",
+  "fitSlim": "Slim",
   "fitRegular": "Regular",
   "fitRelaxed": "Relaxed",
   "fitOversized": "Oversized",
@@ -284,6 +295,7 @@
   "outerwear": "Outerwear",
   "createLook": "Create Look",
   "selectCombinationsInstruction": "Select the clothing combinations you'd like to try, then click \"Create Look\" to see your try-on results!",
+  "editDayOutfitInstruction": "Choose which suitcase items make up this day's outfit.",
   "creatingLooksEllipsis": "Creating Looks…",
   "loadingClosetEllipsis": "Loading Closet…",
 
@@ -310,6 +322,8 @@
   "failedToCreateTrip": "Failed to create trip",
   "tripPlannerTitle": "Trip Planner",
   "loadingTripEllipsis": "Loading Trip…",
+  "loadingTripsEllipsis": "Loading Trips…",
+  "loadingLooksEllipsis": "Loading Looks…",
   "noTripsPlannedYet": "No trips planned yet",
   "statusOngoing": "Ongoing",
   "statusUpcoming": "Upcoming",
@@ -326,9 +340,9 @@
   },
   "noItemsPlanned": "No items planned",
   "thinkingEllipsis": "Thinking…",
+  "tapToViewAiSummary": "Tap to view AI Summary",
   "suitcaseLabel": "Suitcase",
   "packClothingHint": "Pack clothing for this trip",
-  "savedToCloset": "Saved to Closet ✅",
 
   "selectGarmentsTitle": "Select Garments",
   "noGarmentsInCategory": "No garments in {category}",
@@ -342,6 +356,13 @@
     "placeholders": {
       "recommended": { "type": "int" },
       "selected": { "type": "int" }
+    }
+  },
+  "packedItemsCount": "Packed {count}",
+  "@packedItemsCount": {
+    "description": "Suitcase card summary before AI packing recommendations have loaded",
+    "placeholders": {
+      "count": { "type": "int" }
     }
   },
 

@@ -657,6 +657,78 @@ abstract class AppLocalizations {
   /// **'Regenerate'**
   String get regenerate;
 
+  /// No description provided for @letLumiPlanOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'Let LUMI Plan Your Trip'**
+  String get letLumiPlanOutfits;
+
+  /// No description provided for @letLumiPlanOutfitsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'LUMI will build an outfit for every day using what\'s in your suitcase.'**
+  String get letLumiPlanOutfitsHint;
+
+  /// No description provided for @regeneratePlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate outfit plan?'**
+  String get regeneratePlanTitle;
+
+  /// No description provided for @regeneratePlanBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace every day\'s current outfit, including any you\'ve adjusted by hand.'**
+  String get regeneratePlanBody;
+
+  /// No description provided for @failedToGeneratePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to generate outfit plan'**
+  String get failedToGeneratePlan;
+
+  /// No description provided for @generatingPlanEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Planning your outfits…'**
+  String get generatingPlanEllipsis;
+
+  /// No description provided for @failedToUpdateDayOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update outfit'**
+  String get failedToUpdateDayOutfit;
+
+  /// No description provided for @insufficientSuitcaseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Enough in Your Suitcase'**
+  String get insufficientSuitcaseTitle;
+
+  /// No description provided for @insufficientSuitcaseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'LUMI needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.'**
+  String get insufficientSuitcaseBody;
+
+  /// No description provided for @goToSuitcase.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Suitcase'**
+  String get goToSuitcase;
+
+  /// No description provided for @outfitMissingItemsWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Some items in this outfit were removed from your suitcase.'**
+  String get outfitMissingItemsWarning;
+
+  /// No description provided for @fixOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix'**
+  String get fixOutfit;
+
   /// No description provided for @loading.
   ///
   /// In en, this message translates to:
@@ -1131,17 +1203,11 @@ abstract class AppLocalizations {
   /// **'Fit'**
   String get fitLabel;
 
-  /// No description provided for @selectAFit.
+  /// No description provided for @fitSlim.
   ///
   /// In en, this message translates to:
-  /// **'Select Fit'**
-  String get selectAFit;
-
-  /// No description provided for @chooseFitTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose a fit'**
-  String get chooseFitTitle;
+  /// **'Slim'**
+  String get fitSlim;
 
   /// No description provided for @fitRegular.
   ///
@@ -1299,6 +1365,12 @@ abstract class AppLocalizations {
   /// **'Select the clothing combinations you\'d like to try, then click \"Create Look\" to see your try-on results!'**
   String get selectCombinationsInstruction;
 
+  /// No description provided for @editDayOutfitInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which suitcase items make up this day\'s outfit.'**
+  String get editDayOutfitInstruction;
+
   /// No description provided for @creatingLooksEllipsis.
   ///
   /// In en, this message translates to:
@@ -1437,6 +1509,18 @@ abstract class AppLocalizations {
   /// **'Loading Trip…'**
   String get loadingTripEllipsis;
 
+  /// No description provided for @loadingTripsEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Trips…'**
+  String get loadingTripsEllipsis;
+
+  /// No description provided for @loadingLooksEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Looks…'**
+  String get loadingLooksEllipsis;
+
   /// No description provided for @noTripsPlannedYet.
   ///
   /// In en, this message translates to:
@@ -1509,6 +1593,12 @@ abstract class AppLocalizations {
   /// **'Thinking…'**
   String get thinkingEllipsis;
 
+  /// No description provided for @tapToViewAiSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view AI Summary'**
+  String get tapToViewAiSummary;
+
   /// No description provided for @suitcaseLabel.
   ///
   /// In en, this message translates to:
@@ -1520,12 +1610,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pack clothing for this trip'**
   String get packClothingHint;
-
-  /// No description provided for @savedToCloset.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved to Closet ✅'**
-  String get savedToCloset;
 
   /// No description provided for @selectGarmentsTitle.
   ///
@@ -1556,6 +1640,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommended {recommended} · Selected {selected}'**
   String recommendedSelectedCount(int recommended, int selected);
+
+  /// Suitcase card summary before AI packing recommendations have loaded
+  ///
+  /// In en, this message translates to:
+  /// **'Packed {count}'**
+  String packedItemsCount(int count);
 
   /// No description provided for @failedToUpdateSuitcase.
   ///

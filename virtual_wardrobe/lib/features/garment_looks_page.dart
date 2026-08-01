@@ -7,7 +7,7 @@ import '../core/services/look_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/look.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'looks_details_page.dart';
+import 'look_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
@@ -194,7 +194,7 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
         look: look,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => LooksDetailsPage(look: look)),
+          MaterialPageRoute(builder: (_) => LookDetailsPage(look: look)),
         ),
       ),
     );

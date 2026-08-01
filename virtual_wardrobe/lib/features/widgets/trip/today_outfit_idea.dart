@@ -5,8 +5,8 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class TodayOutfitIdea extends StatelessWidget {
-  final VoidCallback onSave;
   final VoidCallback onGenerate;
+  final VoidCallback? onTap;
   final String? imageUrl;
   final bool isLoading;
   final String? jobStatus;
@@ -14,8 +14,8 @@ class TodayOutfitIdea extends StatelessWidget {
 
   const TodayOutfitIdea({
     super.key,
-    required this.onSave,
     required this.onGenerate,
+    this.onTap,
     this.imageUrl,
     this.isLoading = false,
     this.jobStatus,
@@ -34,90 +34,40 @@ class TodayOutfitIdea extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.borderSubtle),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isLoading)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60),
-              child: _buildLoadingView(l10n),
-            )
-          else if (errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60),
-              child: _buildErrorView(l10n),
-            )
-          else if (hasImage)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-              child: AspectRatio(
-                aspectRatio: 3 / 4,
-                child: Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  alignment: Alignment.topCenter,
-                  errorBuilder: (_, __, ___) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 60),
-                    child: _buildPlaceholder(l10n),
+      child: hasImage
+          ? GestureDetector(
+              onTap: onTap,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: AspectRatio(
+                  aspectRatio: 3 / 4,
+                  child: Image.network(
+                    imageUrl!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    alignment: Alignment.topCenter,
+                    errorBuilder: (_, __, ___) =>
+                        Center(child: _buildPlaceholder(l10n)),
                   ),
                 ),
               ),
             )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60),
-              child: _buildGenerateView(l10n),
-            ),
-          if (hasImage && !isLoading && errorMessage == null)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onGenerate,
-                      icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: Text(l10n.regenerate),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textPrimary,
-                        side: const BorderSide(color: AppColors.borderSubtle),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onSave,
-                      icon: const Icon(Icons.bookmark_border_rounded, size: 20),
-                      label: Text(l10n.save),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.textOnPrimary,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
+          : SizedBox(
+              height: 240,
+              child: Center(
+                child: isLoading
+                    ? _buildLoadingView(l10n)
+                    : errorMessage != null
+                    ? _buildErrorView(l10n)
+                    : _buildGenerateView(l10n),
               ),
             ),
-        ],
-      ),
     );
   }
 
   Widget _buildLoadingView(AppLocalizations l10n) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
+    mainAxisSize: MainAxisSize.min,
     children: [
       const CircularProgressIndicator(),
       const SizedBox(height: 16),
@@ -130,6 +80,7 @@ class TodayOutfitIdea extends StatelessWidget {
 
   Widget _buildErrorView(AppLocalizations l10n) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
+    mainAxisSize: MainAxisSize.min,
     children: [
       const Icon(Icons.error_outline, size: 48, color: AppColors.icon),
       const SizedBox(height: 12),
@@ -148,6 +99,7 @@ class TodayOutfitIdea extends StatelessWidget {
 
   Widget _buildPlaceholder(AppLocalizations l10n) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
+    mainAxisSize: MainAxisSize.min,
     children: [
       Icon(
         Icons.inventory_2_outlined,
@@ -164,6 +116,7 @@ class TodayOutfitIdea extends StatelessWidget {
 
   Widget _buildGenerateView(AppLocalizations l10n) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
+    mainAxisSize: MainAxisSize.min,
     children: [
       Icon(
         Icons.auto_awesome,
@@ -190,9 +143,7 @@ class TodayOutfitIdea extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     ],

@@ -28,7 +28,7 @@ import 'widgets/look/look_image.dart';
 
 enum _LookMenuAction { rename, share, delete }
 
-class LooksDetailsPage extends ConsumerStatefulWidget {
+class LookDetailsPage extends ConsumerStatefulWidget {
   final Look look;
   final bool isNew;
 
@@ -38,21 +38,40 @@ class LooksDetailsPage extends ConsumerStatefulWidget {
   /// so there's nothing unsaved to lose).
   final bool confirmLeaveOnBack;
 
-  const LooksDetailsPage({
+  /// After tapping "Save Look", whether to jump to the Looks tab (popping
+  /// back to the shell root) or just pop this page. Jumping to Looks makes
+  /// sense when the look was created standalone (Home / Add Look), but not
+  /// when it was opened from a specific flow like Trip Details, where the
+  /// user expects Save to return them to what they were doing.
+  final bool navigateToLooksTabOnSave;
+
+  /// Once the look is saved, whether to still offer the "Remix Look" bottom
+  /// bar. Set this to false for entry points (e.g. Trip Details) where a
+  /// saved look shouldn't offer to be remixed from here — the bottom bar is
+  /// hidden entirely in that case instead.
+  final bool showRemixWhenSaved;
+
+  const LookDetailsPage({
     super.key,
     required this.look,
     this.isNew = false,
     this.confirmLeaveOnBack = true,
+    this.navigateToLooksTabOnSave = true,
+    this.showRemixWhenSaved = true,
   });
 
   @override
-  ConsumerState<LooksDetailsPage> createState() => _LooksDetailsPageState();
+  ConsumerState<LookDetailsPage> createState() => _LooksDetailsPageState();
 }
 
-class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
+class _LooksDetailsPageState extends ConsumerState<LookDetailsPage> {
   bool _isDeleting = false;
   bool _isSaving = false;
   bool _isSaved = false;
+  // True while we're waiting on _fetchLookDetails to confirm the real
+  // isSaved status for entry points that hide the bar once saved — avoids
+  // flashing the "Save Look" button before we know it's already saved.
+  bool _resolvingSavedStatus = false;
   String? _name;
   List<String>? _seasons;
   List<String>? _style;
@@ -71,8 +90,12 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
     super.initState();
     _name = widget.look.name;
     _imageUrl = widget.look.imageUrl;
+    _isSaved = widget.look.isSaved;
     if (widget.look.garmentIds.isNotEmpty) _loadGarments();
-    if (widget.isNew) _fetchLookDetails();
+    if (widget.isNew) {
+      _resolvingSavedStatus = !widget.showRemixWhenSaved;
+      _fetchLookDetails();
+    }
     // A freshly-created look's URL was just signed, but one opened from a
     // list (looks_page.dart, garment_looks_page.dart) may have sat in
     // memory long enough for its signed URL to expire.
@@ -213,12 +236,18 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
   }
 
   Widget _buildBottomBar(BuildContext context) {
-    if (widget.isNew) {
+    if (_resolvingSavedStatus) {
+      return const SizedBox.shrink();
+    }
+    if (widget.isNew && !_isSaved) {
       return BottomActionButton(
         label: _l10n.saveLook,
         onPressed: _isSaving ? null : _saveLook,
         isLoading: _isSaving,
       );
+    }
+    if (_isSaved && !widget.showRemixWhenSaved) {
+      return const SizedBox.shrink();
     }
     return BottomActionButton(
       label: _l10n.remixLook,
@@ -354,8 +383,12 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
             : _name;
         _seasons = _parseStringList(data['season']);
         _style = _parseStringList(data['style']);
+        _isSaved = data['is_saved'] == true || data['is_saved'] == 1;
       });
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _resolvingSavedStatus = false);
+    }
   }
 
   List<String> _parseStringList(dynamic v) {
@@ -440,10 +473,14 @@ class _LooksDetailsPageState extends ConsumerState<LooksDetailsPage> {
       await ref.read(looksProvider.notifier).refresh();
       if (!mounted) return;
       setState(() => _isSaved = true);
-      final feedback = ref.read(lookFeedbackProvider.notifier);
-      MainShellScope.of(context)?.selectTab(AppTab.looks);
-      Navigator.popUntil(context, (route) => route.isFirst);
-      feedback.state = LookFeedbackKind.saved;
+      if (widget.navigateToLooksTabOnSave) {
+        final feedback = ref.read(lookFeedbackProvider.notifier);
+        MainShellScope.of(context)?.selectTab(AppTab.looks);
+        Navigator.popUntil(context, (route) => route.isFirst);
+        feedback.state = LookFeedbackKind.saved;
+      } else {
+        Navigator.pop(context);
+      }
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);

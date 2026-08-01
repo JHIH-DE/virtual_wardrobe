@@ -12,7 +12,7 @@ import '../core/utils/debug_log.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/look.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'looks_details_page.dart';
+import 'look_details_page.dart';
 import 'settings_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/lumi_insight_card.dart';
@@ -324,7 +324,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LooksDetailsPage(
+        builder: (_) => LookDetailsPage(
           look: Look(
             id: tryOnJobId,
             imageUrl: tryOnResultUrl!,

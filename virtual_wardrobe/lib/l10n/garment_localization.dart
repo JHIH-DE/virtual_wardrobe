@@ -95,6 +95,8 @@ extension GarmentFitLocalization on GarmentFit {
   String localizedLabel(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     switch (this) {
+      case GarmentFit.slim:
+        return l10n.fitSlim;
       case GarmentFit.regular:
         return l10n.fitRegular;
       case GarmentFit.relaxed:

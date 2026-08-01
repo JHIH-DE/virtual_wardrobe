@@ -3,31 +3,23 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../../../core/providers/weather_provider.dart';
 
 /// One day's tile in [TripDetailsPage]'s horizontal day selector — date
-/// badge + weekday label, plus a weather icon/temperature range when
-/// forecast data is available for that day.
+/// badge + weekday label, plus the day's temperature (from the trip plan
+/// itself) when available.
 class TripDayCard extends StatelessWidget {
   final DateTime date;
   final bool isSelected;
   final VoidCallback onTap;
-  final int? weatherCode;
-  final double? lowTemp;
-  final double? highTemp;
+  final double? temperatureC;
 
   const TripDayCard({
     super.key,
     required this.date,
     required this.isSelected,
     required this.onTap,
-    this.weatherCode,
-    this.lowTemp,
-    this.highTemp,
+    this.temperatureC,
   });
-
-  bool get _hasWeather =>
-      weatherCode != null && lowTemp != null && highTemp != null;
 
   @override
   Widget build(BuildContext context) {
@@ -81,18 +73,10 @@ class TripDayCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (_hasWeather) ...[
+            if (temperatureC != null) ...[
               const SizedBox(height: 6),
-              Icon(
-                WeatherData.iconFromCondition(
-                  WeatherData.conditionFromCode(weatherCode!),
-                ),
-                size: 20,
-                color: AppColors.textPrimary,
-              ),
-              const SizedBox(height: 4),
               Text(
-                '${lowTemp!.round()}°C - ${highTemp!.round()}°C',
+                '${temperatureC!.round()}°C',
                 style: AppTextStyle.regular12,
               ),
             ],

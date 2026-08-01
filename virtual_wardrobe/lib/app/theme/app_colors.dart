@@ -73,8 +73,8 @@ class AppColors {
 
   // Overlays — composed as base color + alpha so the opacity is explicit
   static const Color overlayScrim = Color(
-    0x5C262420,
-  ); // full-screen loading mask, ink @36%
+    0x4D000000,
+  ); // full-screen loading mask, black @30%
   static const Color selectionTint = Color(
     0x5C1A1A1A,
   ); // selected-card highlight, primary @36%

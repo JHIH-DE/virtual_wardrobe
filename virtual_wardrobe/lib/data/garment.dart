@@ -113,7 +113,7 @@ extension GarmentColorX on GarmentColor {
   }
 }
 
-enum GarmentFit { regular, relaxed, oversized }
+enum GarmentFit { slim, regular, relaxed, oversized }
 
 extension GarmentFitX on GarmentFit {
   String get label {

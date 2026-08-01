@@ -16,7 +16,7 @@ import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/favorite_card.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/filter_button.dart';
-import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/feedback_overlay.dart';
 import 'widgets/garment/garment_card.dart';
 
@@ -40,13 +40,25 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _reportLoadingState(ref.read(garmentsProvider));
       ref.listenManual(garmentsProvider, (_, next) {
         if (next.hasError && next.error is AuthExpiredException) {
           AuthExpiredHandler.handle(context);
         }
+        _reportLoadingState(next);
       });
       ref.read(garmentsProvider.notifier).refreshIfNeeded();
     });
+  }
+
+  /// Mirrors garmentsProvider's loading state up to MainShell, which shows
+  /// a full-screen overlay above the floating nav bar — see
+  /// MainShellScope.setLoading for why this can't just be built inline.
+  void _reportLoadingState(AsyncValue<List<Garment>> state) {
+    MainShellScope.of(context)?.setLoading(
+      state.isLoading,
+      label: AppLocalizations.of(context).loadingClosetEllipsis,
+    );
   }
 
   static const _allCategories = [
@@ -157,10 +169,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     return AppToolBar(
       title: AppLocalizations.of(context).navCloset,
       showBackButton: false,
-      actions: [
-        _buildFilterButton(all),
-        const SizedBox(width: 8),
-      ],
+      actions: [_buildFilterButton(all), const SizedBox(width: 8)],
     );
   }
 
@@ -172,9 +181,10 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context, garmentsAsync),
       body: garmentsAsync.when(
-        loading: () => LoadingOverlay(
-          label: AppLocalizations.of(context).loadingClosetEllipsis,
-        ),
+        // The shell-level overlay (via MainShellScope.setLoading, wired up
+        // in initState) covers the whole screen including the nav bar, so
+        // there's nothing to render here while loading.
+        loading: () => const SizedBox.shrink(),
         error: (e, _) => ErrorStateWidget(
           error: e,
           onRetry: () => ref.read(garmentsProvider.notifier).refresh(),

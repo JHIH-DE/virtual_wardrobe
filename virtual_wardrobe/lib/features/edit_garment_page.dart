@@ -660,7 +660,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       children: [
         SectionTitle(_l10n.fitLabel),
         const SizedBox(height: 8),
-        _fitPicker(),
+        _fitSlider(),
       ],
     );
   }
@@ -944,65 +944,57 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     );
   }
 
-  Widget _fitPicker() {
-    final selected = _selectedFit;
-    return TappableFieldDecorator(
-      onTap: _openFitPickerSheet,
-      children: [
-        Expanded(
-          child: Text(
-            selected?.localizedLabel(context) ?? _l10n.selectAFit,
-            style: AppTextStyle.regular16.copyWith(
-              color: selected == null
-                  ? AppColors.textSecondary
-                  : AppColors.textPrimary,
+  Widget _fitSlider() {
+    final values = GarmentFit.values;
+    // The slider always shows a concrete position (unlike the old picker,
+    // which could sit at an explicit "nothing selected" state) — defaults
+    // to Regular until the user actually drags it, at which point
+    // _selectedFit becomes non-null and the change is tracked normally.
+    final displayed = _selectedFit ?? GarmentFit.regular;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderStrong, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 8,
+              activeTrackColor: AppColors.accentTint,
+              inactiveTrackColor: AppColors.borderSubtle,
+              thumbColor: AppColors.accent,
+              overlayColor: AppColors.accent.withValues(alpha: 0.12),
+            ),
+            child: Slider(
+              value: displayed.index.toDouble(),
+              min: 0,
+              max: (values.length - 1).toDouble(),
+              divisions: values.length - 1,
+              onChanged: (v) {
+                final fit = values[v.round()];
+                setState(() => _selectedFit = fit);
+                _checkModified();
+              },
             ),
           ),
-        ),
-        Image.asset(
-          'assets/images/arrow_down.png',
-          height: AppDimens.iconSmallSize,
-        ),
-      ],
-    );
-  }
-
-  void _openFitPickerSheet() {
-    showPickerSheet<void>(
-      context,
-      builder: (sheetContext) => RadioGroup<GarmentFit>(
-        groupValue: _selectedFit,
-        onChanged: (v) {
-          setState(() => _selectedFit = v);
-          _checkModified();
-          Navigator.pop(sheetContext);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PickerSheetHeader(_l10n.chooseFitTitle),
-            for (final f in GarmentFit.values)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  f.localizedLabel(context),
-                  style: f == _selectedFit
-                      ? AppTextStyle.bold16
-                      : AppTextStyle.regular16,
+          SizedBox(
+            width: double.infinity,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                displayed.localizedLabel(context),
+                textAlign: TextAlign.center,
+                style: AppTextStyle.regular16.copyWith(
+                  color: AppColors.textPrimary,
                 ),
-                trailing: Radio<GarmentFit>(
-                  value: f,
-                  activeColor: AppColors.accent,
-                ),
-                onTap: () {
-                  setState(() => _selectedFit = f);
-                  _checkModified();
-                  Navigator.pop(sheetContext);
-                },
               ),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

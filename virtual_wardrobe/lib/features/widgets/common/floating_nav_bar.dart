@@ -16,9 +16,17 @@ enum QuickAction { addClothing, addLook, newTrip }
 class MainShellScope extends InheritedWidget {
   final ValueChanged<AppTab> selectTab;
 
+  /// Shows/hides a full-screen [LoadingOverlay] at the shell level, above
+  /// [FloatingNavBar] — a tab page's own body sits *below* the nav bar in
+  /// the shell's Stack, so a loading mask built inline into that body can
+  /// never visually cover the nav bar. Routing it through here instead
+  /// lets any tab page's loading state actually mask the whole screen.
+  final void Function(bool loading, {String? label}) setLoading;
+
   const MainShellScope({
     super.key,
     required this.selectTab,
+    required this.setLoading,
     required super.child,
   });
   static MainShellScope? of(BuildContext context) =>
@@ -26,7 +34,7 @@ class MainShellScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(MainShellScope oldWidget) =>
-      selectTab != oldWidget.selectTab;
+      selectTab != oldWidget.selectTab || setLoading != oldWidget.setLoading;
 }
 
 /// Floating bottom nav bar shown on the app's main tabs (Home, My Closet,

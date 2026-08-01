@@ -16,6 +16,7 @@ import 'account_page.dart';
 import 'ai_model_page.dart';
 import 'image_editor_page.dart';
 import 'lifestyle_page.dart';
+import 'loading_preview_page.dart';
 import 'login_page.dart';
 import 'style_profile_page.dart';
 import 'widgets/common/app_list_card.dart';
@@ -202,6 +203,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildLoadingPreviewCard(),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildLogoutCard(l10n),
                 ),
                 const SizedBox(height: 32),
@@ -341,6 +347,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     if (choice == null || choice.locale == current) return;
     ref.read(localeProvider.notifier).setLocale(choice.locale);
+  }
+
+  // Debug-only entry point for eyeballing LoadingOverlay's pulse animation
+  // on demand. Remove once it's no longer needed for verification.
+  Widget _buildLoadingPreviewCard() {
+    return AppListCard(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoadingPreviewPage()),
+      ),
+      leading: const Icon(Icons.blur_circular, color: AppColors.icon),
+      showArrow: true,
+      child: const Text('Loading Preview', style: AppTextStyle.bold16),
+    );
   }
 
   Widget _buildLogoutCard(AppLocalizations l10n) {

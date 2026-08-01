@@ -11,7 +11,7 @@ import '../data/look.dart';
 import '../data/select_garment_result.dart';
 import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'looks_details_page.dart';
+import 'look_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 import 'widgets/common/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
@@ -79,11 +79,24 @@ class AddLookPage extends StatefulWidget {
   final List<Garment>? preloadedGarments;
   final VoidCallback? onBack;
 
+  /// When true, the bottom bar becomes a "Confirm" button that pops the
+  /// selected garment ids back to the caller instead of starting a try-on —
+  /// used when this page is reused as a picker (e.g. editing a trip day's
+  /// outfit) rather than for its own create-a-look flow.
+  final bool selectOnly;
+
+  /// In [selectOnly] mode, garment ids NOT in this set get a warning badge
+  /// on their slot (e.g. an outfit item that's since been removed from the
+  /// trip's suitcase). Ignored outside [selectOnly] mode.
+  final Set<int>? validGarmentIds;
+
   const AddLookPage({
     super.key,
     this.initialGarments = const [],
     this.preloadedGarments,
     this.onBack,
+    this.selectOnly = false,
+    this.validGarmentIds,
   });
 
   @override
@@ -98,8 +111,18 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
+  // In selectOnly mode, a category whose only occurrence is in the
+  // pre-existing selection (e.g. its category has since vanished from the
+  // pool entirely) still gets a slot — otherwise a stale pick would
+  // disappear silently instead of showing its warning badge. Categories
+  // with nothing in the pool AND nothing currently assigned stay hidden.
+  late final Set<GarmentCategory> _initialCategories = widget.initialGarments
+      .map((g) => g.category)
+      .toSet();
+
   bool _hasCategory(GarmentCategory category) =>
-      _allGarments.any((g) => g.category == category);
+      _allGarments.any((g) => g.category == category) ||
+      (widget.selectOnly && _initialCategories.contains(category));
 
   Future<void> _ensureFreshGarments() async {
     final stale = _allGarments.any((g) {
@@ -228,7 +251,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) => LooksDetailsPage(
+        builder: (_) => LookDetailsPage(
           look: Look(
             id: tryOnJobId,
             imageUrl: tryOnResultUrl!,
@@ -243,7 +266,12 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: _l10n.quickActionAddLook, onBack: widget.onBack);
+    return AppToolBar(
+      title: widget.selectOnly
+          ? _l10n.selectGarmentsTitle
+          : _l10n.quickActionAddLook,
+      onBack: widget.onBack,
+    );
   }
 
   @override
@@ -288,7 +316,9 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
 
   Widget _buildInstructions() {
     return Text(
-      _l10n.selectCombinationsInstruction,
+      widget.selectOnly
+          ? _l10n.editDayOutfitInstruction
+          : _l10n.selectCombinationsInstruction,
       textAlign: TextAlign.center,
       style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
     );
@@ -435,6 +465,14 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
   }
 
   Widget _buildBottomBar() {
+    if (widget.selectOnly) {
+      return BottomActionButton(
+        label: _l10n.confirm,
+        onPressed: () =>
+            Navigator.pop(context, _selectedGarmentIds().toSet()),
+        enabled: _hasSelection && _isModified,
+      );
+    }
     return BottomActionButton(
       label: _l10n.createLook,
       leading: Image.asset(
@@ -460,6 +498,12 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     final detail = value == null
         ? null
         : (value.color?.isNotEmpty == true ? value.color! : value.subCategory);
+    final isInvalid =
+        widget.selectOnly &&
+        widget.validGarmentIds != null &&
+        value != null &&
+        value.id != null &&
+        !widget.validGarmentIds!.contains(value.id);
 
     return AppListCard(
       onTap: (isLookLoading || _isLoadingGarments)
@@ -488,15 +532,33 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
       showArrow: true,
       leadingAsset: (value == null && iconData == null) ? iconAsset : null,
       leading: value != null
-          ? GarmentImage(
-              url: value.imageUrl,
-              garmentId: value.id,
-              width: 40,
-              height: 40,
-              memCacheWidth: 80,
-              memCacheHeight: 80,
-              borderRadius: 8,
-              fit: BoxFit.cover,
+          ? Stack(
+              clipBehavior: Clip.none,
+              children: [
+                GarmentImage(
+                  url: value.imageUrl,
+                  garmentId: value.id,
+                  width: 40,
+                  height: 40,
+                  memCacheWidth: 80,
+                  memCacheHeight: 80,
+                  borderRadius: 8,
+                  fit: BoxFit.cover,
+                ),
+                if (isInvalid)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Icon(
+                      Icons.error,
+                      size: 16,
+                      color: AppColors.error,
+                      shadows: [
+                        Shadow(color: AppColors.surface, blurRadius: 3),
+                      ],
+                    ),
+                  ),
+              ],
             )
           : (iconData != null
                 ? Icon(iconData, size: 28, color: AppColors.icon)

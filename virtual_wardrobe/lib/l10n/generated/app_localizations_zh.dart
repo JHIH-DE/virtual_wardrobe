@@ -299,6 +299,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get regenerate => '重新產生';
 
   @override
+  String get letLumiPlanOutfits => '讓 LUMI 規劃你的行程穿搭';
+
+  @override
+  String get letLumiPlanOutfitsHint => 'LUMI 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
+
+  @override
+  String get regeneratePlanTitle => '重新規劃穿搭？';
+
+  @override
+  String get regeneratePlanBody => '這會取代每一天目前的穿搭，包含你手動調整過的部分。';
+
+  @override
+  String get failedToGeneratePlan => '規劃穿搭失敗';
+
+  @override
+  String get generatingPlanEllipsis => '規劃穿搭中…';
+
+  @override
+  String get failedToUpdateDayOutfit => '更新穿搭失敗';
+
+  @override
+  String get insufficientSuitcaseTitle => '行李箱衣物不足';
+
+  @override
+  String get insufficientSuitcaseBody =>
+      'LUMI 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
+
+  @override
+  String get goToSuitcase => '前往行李箱';
+
+  @override
+  String get outfitMissingItemsWarning => '這套穿搭裡有些單品已經從行李箱中移除。';
+
+  @override
+  String get fixOutfit => '修正';
+
+  @override
   String get loading => '載入中…';
 
   @override
@@ -544,10 +581,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fitLabel => '版型';
 
   @override
-  String get selectAFit => '選擇版型';
-
-  @override
-  String get chooseFitTitle => '選擇版型';
+  String get fitSlim => '修身';
 
   @override
   String get fitRegular => '標準';
@@ -628,6 +662,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立穿搭」查看試穿結果！';
 
   @override
+  String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
+
+  @override
   String get creatingLooksEllipsis => '建立穿搭中…';
 
   @override
@@ -697,6 +734,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingTripEllipsis => '載入行程中…';
 
   @override
+  String get loadingTripsEllipsis => '載入行程列表中…';
+
+  @override
+  String get loadingLooksEllipsis => '載入穿搭中…';
+
+  @override
   String get noTripsPlannedYet => '尚無規劃中的行程';
 
   @override
@@ -735,13 +778,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get thinkingEllipsis => '思考中…';
 
   @override
+  String get tapToViewAiSummary => '點擊查看 AI 摘要';
+
+  @override
   String get suitcaseLabel => '行李箱';
 
   @override
   String get packClothingHint => '為這趟行程打包衣物';
-
-  @override
-  String get savedToCloset => '已儲存至衣櫃 ✅';
 
   @override
   String get selectGarmentsTitle => '選擇衣物';
@@ -760,6 +803,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String recommendedSelectedCount(int recommended, int selected) {
     return '建議 $recommended ‧ 已選 $selected';
+  }
+
+  @override
+  String packedItemsCount(int count) {
+    return '已打包 $count 件';
   }
 
   @override
@@ -1198,6 +1246,43 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get regenerate => '重新產生';
 
   @override
+  String get letLumiPlanOutfits => '讓 LUMI 規劃你的行程穿搭';
+
+  @override
+  String get letLumiPlanOutfitsHint => 'LUMI 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
+
+  @override
+  String get regeneratePlanTitle => '重新規劃穿搭？';
+
+  @override
+  String get regeneratePlanBody => '這會取代每一天目前的穿搭，包含你手動調整過的部分。';
+
+  @override
+  String get failedToGeneratePlan => '規劃穿搭失敗';
+
+  @override
+  String get generatingPlanEllipsis => '規劃穿搭中…';
+
+  @override
+  String get failedToUpdateDayOutfit => '更新穿搭失敗';
+
+  @override
+  String get insufficientSuitcaseTitle => '行李箱衣物不足';
+
+  @override
+  String get insufficientSuitcaseBody =>
+      'LUMI 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
+
+  @override
+  String get goToSuitcase => '前往行李箱';
+
+  @override
+  String get outfitMissingItemsWarning => '這套穿搭裡有些單品已經從行李箱中移除。';
+
+  @override
+  String get fixOutfit => '修正';
+
+  @override
   String get loading => '載入中…';
 
   @override
@@ -1443,10 +1528,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get fitLabel => '版型';
 
   @override
-  String get selectAFit => '選擇版型';
-
-  @override
-  String get chooseFitTitle => '選擇版型';
+  String get fitSlim => '修身';
 
   @override
   String get fitRegular => '標準';
@@ -1527,6 +1609,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立穿搭」查看試穿結果！';
 
   @override
+  String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
+
+  @override
   String get creatingLooksEllipsis => '建立穿搭中…';
 
   @override
@@ -1596,6 +1681,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loadingTripEllipsis => '載入行程中…';
 
   @override
+  String get loadingTripsEllipsis => '載入行程列表中…';
+
+  @override
+  String get loadingLooksEllipsis => '載入穿搭中…';
+
+  @override
   String get noTripsPlannedYet => '尚無規劃中的行程';
 
   @override
@@ -1634,13 +1725,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get thinkingEllipsis => '思考中…';
 
   @override
+  String get tapToViewAiSummary => '點擊查看 AI 摘要';
+
+  @override
   String get suitcaseLabel => '行李箱';
 
   @override
   String get packClothingHint => '為這趟行程打包衣物';
-
-  @override
-  String get savedToCloset => '已儲存至衣櫃 ✅';
 
   @override
   String get selectGarmentsTitle => '選擇衣物';
@@ -1659,6 +1750,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String recommendedSelectedCount(int recommended, int selected) {
     return '建議 $recommended ‧ 已選 $selected';
+  }
+
+  @override
+  String packedItemsCount(int count) {
+    return '已打包 $count 件';
   }
 
   @override

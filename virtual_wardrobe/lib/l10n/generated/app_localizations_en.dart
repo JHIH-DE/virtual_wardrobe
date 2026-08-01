@@ -307,6 +307,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get regenerate => 'Regenerate';
 
   @override
+  String get letLumiPlanOutfits => 'Let LUMI Plan Your Trip';
+
+  @override
+  String get letLumiPlanOutfitsHint =>
+      'LUMI will build an outfit for every day using what\'s in your suitcase.';
+
+  @override
+  String get regeneratePlanTitle => 'Regenerate outfit plan?';
+
+  @override
+  String get regeneratePlanBody =>
+      'This will replace every day\'s current outfit, including any you\'ve adjusted by hand.';
+
+  @override
+  String get failedToGeneratePlan => 'Failed to generate outfit plan';
+
+  @override
+  String get generatingPlanEllipsis => 'Planning your outfits…';
+
+  @override
+  String get failedToUpdateDayOutfit => 'Failed to update outfit';
+
+  @override
+  String get insufficientSuitcaseTitle => 'Not Enough in Your Suitcase';
+
+  @override
+  String get insufficientSuitcaseBody =>
+      'LUMI needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.';
+
+  @override
+  String get goToSuitcase => 'Go to Suitcase';
+
+  @override
+  String get outfitMissingItemsWarning =>
+      'Some items in this outfit were removed from your suitcase.';
+
+  @override
+  String get fixOutfit => 'Fix';
+
+  @override
   String get loading => 'Loading…';
 
   @override
@@ -554,10 +594,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fitLabel => 'Fit';
 
   @override
-  String get selectAFit => 'Select Fit';
-
-  @override
-  String get chooseFitTitle => 'Choose a fit';
+  String get fitSlim => 'Slim';
 
   @override
   String get fitRegular => 'Regular';
@@ -639,6 +676,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Select the clothing combinations you\'d like to try, then click \"Create Look\" to see your try-on results!';
 
   @override
+  String get editDayOutfitInstruction =>
+      'Choose which suitcase items make up this day\'s outfit.';
+
+  @override
   String get creatingLooksEllipsis => 'Creating Looks…';
 
   @override
@@ -709,6 +750,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingTripEllipsis => 'Loading Trip…';
 
   @override
+  String get loadingTripsEllipsis => 'Loading Trips…';
+
+  @override
+  String get loadingLooksEllipsis => 'Loading Looks…';
+
+  @override
   String get noTripsPlannedYet => 'No trips planned yet';
 
   @override
@@ -747,13 +794,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thinkingEllipsis => 'Thinking…';
 
   @override
+  String get tapToViewAiSummary => 'Tap to view AI Summary';
+
+  @override
   String get suitcaseLabel => 'Suitcase';
 
   @override
   String get packClothingHint => 'Pack clothing for this trip';
-
-  @override
-  String get savedToCloset => 'Saved to Closet ✅';
 
   @override
   String get selectGarmentsTitle => 'Select Garments';
@@ -772,6 +819,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String recommendedSelectedCount(int recommended, int selected) {
     return 'Recommended $recommended · Selected $selected';
+  }
+
+  @override
+  String packedItemsCount(int count) {
+    return 'Packed $count';
   }
 
   @override
