@@ -139,6 +139,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadGarments => 'Failed to load garments';
 
   @override
+  String get failedToRegenerateLook => 'Failed to regenerate look';
+
+  @override
   String get saveThisLookTitle => 'Save this look?';
 
   @override
@@ -783,8 +786,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generatingEllipsis => 'Generating…';
 
   @override
-  String wardrobeForDate(String date) {
-    return 'Wardrobe for $date';
+  String get dailyOutfitPlan => 'Daily Outfit Plan';
+
+  @override
+  String outfitForDate(String date) {
+    return 'Outfit for $date';
   }
 
   @override

@@ -345,6 +345,12 @@ abstract class AppLocalizations {
   /// **'Failed to load garments'**
   String get failedToLoadGarments;
 
+  /// No description provided for @failedToRegenerateLook.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to regenerate look'**
+  String get failedToRegenerateLook;
+
   /// No description provided for @saveThisLookTitle.
   ///
   /// In en, this message translates to:
@@ -1575,11 +1581,17 @@ abstract class AppLocalizations {
   /// **'Generating…'**
   String get generatingEllipsis;
 
-  /// No description provided for @wardrobeForDate.
+  /// No description provided for @dailyOutfitPlan.
   ///
   /// In en, this message translates to:
-  /// **'Wardrobe for {date}'**
-  String wardrobeForDate(String date);
+  /// **'Daily Outfit Plan'**
+  String get dailyOutfitPlan;
+
+  /// No description provided for @outfitForDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit for {date}'**
+  String outfitForDate(String date);
 
   /// No description provided for @noItemsPlanned.
   ///

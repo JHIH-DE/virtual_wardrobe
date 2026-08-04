@@ -320,6 +320,7 @@ class _QuickActionButtonState extends State<_QuickActionButton> {
           decoration: BoxDecoration(
             color: AppColors.accent,
             shape: BoxShape.circle,
+            border: Border.all(color: Colors.white54, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: AppColors.overlaySubtle,

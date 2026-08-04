@@ -52,7 +52,7 @@ class PickerSheetHeader extends StatelessWidget {
           ),
         ],
         Divider(
-            height: 32,
+            height: 16,
             thickness: 1,
             color: AppColors.dividerSubtle,
           ),

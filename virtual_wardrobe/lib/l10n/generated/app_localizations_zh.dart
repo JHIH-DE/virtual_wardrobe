@@ -135,6 +135,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToLoadGarments => '服飾載入失敗';
 
   @override
+  String get failedToRegenerateLook => '重新產生穿搭失敗';
+
+  @override
   String get saveThisLookTitle => '儲存這套穿搭？';
 
   @override
@@ -767,8 +770,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get generatingEllipsis => '產生中…';
 
   @override
-  String wardrobeForDate(String date) {
-    return '$date 的服裝';
+  String get dailyOutfitPlan => '每日穿搭規劃';
+
+  @override
+  String outfitForDate(String date) {
+    return '$date 的穿搭';
   }
 
   @override
@@ -1082,6 +1088,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get failedToLoadGarments => '服飾載入失敗';
 
   @override
+  String get failedToRegenerateLook => '重新產生穿搭失敗';
+
+  @override
   String get saveThisLookTitle => '儲存這套穿搭？';
 
   @override
@@ -1714,8 +1723,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get generatingEllipsis => '產生中…';
 
   @override
-  String wardrobeForDate(String date) {
-    return '$date 的服裝';
+  String get dailyOutfitPlan => '每日穿搭規劃';
+
+  @override
+  String outfitForDate(String date) {
+    return '$date 的穿搭';
   }
 
   @override

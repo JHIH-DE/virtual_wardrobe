@@ -234,7 +234,7 @@ class _AddLookPageState extends State<AddLookPage> with TryOnMixin {
     if (ids.isEmpty) return;
     if (tryOnJobId != 0) await deleteOutfitJob(tryOnJobId);
 
-    await performTryOn(ids, 'looks');
+    await performTryOn(ids, 'general');
     if (!mounted) return;
 
     if (tryOnResultUrl != null) {

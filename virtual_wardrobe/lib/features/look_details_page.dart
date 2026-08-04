@@ -26,7 +26,7 @@ import 'widgets/garment/garment_detail_dialog.dart';
 import 'widgets/garment/garment_list_card.dart';
 import 'widgets/look/look_image.dart';
 
-enum _LookMenuAction { rename, share, delete }
+enum _LookMenuAction { rename, share, regenerate, delete }
 
 class LookDetailsPage extends ConsumerStatefulWidget {
   final Look look;
@@ -78,6 +78,7 @@ class _LooksDetailsPageState extends ConsumerState<LookDetailsPage> {
   List<Garment>? _garments;
   bool _loadingGarments = false;
   bool _openingTryOn = false;
+  bool _isRegenerating = false;
   late String _imageUrl;
 
   List<String> get _effectiveSeasons => _seasons ?? widget.look.seasons;
@@ -123,6 +124,10 @@ class _LooksDetailsPageState extends ConsumerState<LookDetailsPage> {
         _buildScaffold(context),
         if (_openingTryOn)
           Positioned.fill(child: LoadingOverlay(label: _l10n.loadingGarments)),
+        if (_isRegenerating)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.generatingEllipsis),
+          ),
       ],
     );
   }
@@ -152,6 +157,17 @@ class _LooksDetailsPageState extends ConsumerState<LookDetailsPage> {
                 _LookMenuAction.share,
                 Icons.share_outlined,
                 _l10n.share,
+              ),
+              PopupMenuItem(
+                value: _LookMenuAction.regenerate,
+                enabled: !_isRegenerating,
+                child: Row(
+                  children: [
+                    const Icon(Icons.refresh, color: AppColors.icon),
+                    const SizedBox(width: 12),
+                    Text(_l10n.regenerate),
+                  ],
+                ),
               ),
               const PopupMenuDivider(),
               PopupMenuItem(
@@ -198,6 +214,9 @@ class _LooksDetailsPageState extends ConsumerState<LookDetailsPage> {
         break;
       case _LookMenuAction.share:
         _shareLook();
+        break;
+      case _LookMenuAction.regenerate:
+        _regenerateLook();
         break;
       case _LookMenuAction.delete:
         _deleteLook();
@@ -464,6 +483,86 @@ class _LooksDetailsPageState extends ConsumerState<LookDetailsPage> {
         ).showSnackBar(SnackBar(content: Text(_l10n.failedToLoadGarments)));
       }
     }
+  }
+
+  /// Creates a fresh try-on job from the same garments, waits for it to
+  /// finish, then deletes the original job — the old look is only removed
+  /// once the replacement has actually succeeded.
+  Future<void> _regenerateLook() async {
+    if (_isRegenerating) return;
+    final garmentIds = widget.look.garmentIds;
+    if (garmentIds.isEmpty) return;
+
+    setState(() => _isRegenerating = true);
+    try {
+      final jobResponse = await LookService().createLook(
+        garmentIds: garmentIds,
+        type: 'general',
+      );
+      final newJobId = jobResponse['job_id'] as int;
+
+      final newLookData = await _waitForLookCompletion(newJobId);
+      if (newLookData == null) {
+        throw Exception('Regenerate timed out or failed.');
+      }
+
+      if (widget.look.isSaved) {
+        await LookService().setSaved(newJobId, isSaved: true);
+      }
+      // The old job's custom name doesn't carry over server-side, so the
+      // new job needs it re-applied explicitly — otherwise it reverts to
+      // whatever default the backend assigns a fresh look.
+      final name = _name;
+      if (name != null && name.isNotEmpty) {
+        await LookService().setName(newJobId, name: name);
+      }
+      await LookService().deleteLook(widget.look.id);
+      await ref.read(looksProvider.notifier).refresh();
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LookDetailsPage(
+            look: Look(
+              id: newJobId,
+              name: name,
+              imageUrl: newLookData['result_image_url'] ?? '',
+              garmentIds: garmentIds,
+              seasons: _parseStringList(newLookData['season']),
+              style: _parseStringList(newLookData['style']),
+              advice: newLookData['ai_notes'],
+              isSaved: widget.look.isSaved,
+            ),
+            navigateToLooksTabOnSave: widget.navigateToLooksTabOnSave,
+            showRemixWhenSaved: widget.showRemixWhenSaved,
+          ),
+        ),
+      );
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.failedToRegenerateLook)));
+    } finally {
+      if (mounted) setState(() => _isRegenerating = false);
+    }
+  }
+
+  /// Polls a freshly-created job until it completes (or fails/times out),
+  /// mirroring TryOnMixin's polling without pulling in its unrelated state.
+  Future<Map<String, dynamic>?> _waitForLookCompletion(int jobId) async {
+    for (var attempt = 0; attempt < 180; attempt++) {
+      final data = await LookService().getLook(jobId);
+      final status = data['status'];
+      if (status == 'completed') return data;
+      if (status == 'failed') return null;
+      await Future.delayed(const Duration(seconds: 2));
+    }
+    return null;
   }
 
   Future<void> _saveLook() async {

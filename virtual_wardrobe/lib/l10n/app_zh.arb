@@ -45,6 +45,7 @@
   "shareComingSoon": "分享功能即將推出",
   "failedToLoadImage": "圖片載入失敗",
   "failedToLoadGarments": "服飾載入失敗",
+  "failedToRegenerateLook": "重新產生穿搭失敗",
 
   "saveThisLookTitle": "儲存這套穿搭？",
   "saveThisLookBody": "要將這套穿搭加入你的收藏嗎？",
@@ -273,7 +274,8 @@
 
   "creatingEllipsis": "建立中…",
   "generatingEllipsis": "產生中…",
-  "wardrobeForDate": "{date} 的服裝",
+  "dailyOutfitPlan": "每日穿搭規劃",
+  "outfitForDate": "{date} 的穿搭",
   "noItemsPlanned": "尚無規劃項目",
   "thinkingEllipsis": "思考中…",
   "tapToViewAiSummary": "點擊查看 AI 摘要",

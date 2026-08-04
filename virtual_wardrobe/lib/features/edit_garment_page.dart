@@ -440,7 +440,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     List<Garment> all, {
     int? limit,
   }) {
-    final ids = (breakdownItem['compatible_garment_ids'] as List?)
+    final ids =
+        (breakdownItem['compatible_garment_ids'] as List?)
             ?.whereType<num>()
             .map((n) => n.toInt())
             .toList() ??
@@ -530,10 +531,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
           _buildSubCategoryField(),
           const SizedBox(height: 20),
           _buildColorField(),
-          if (_showFitField) ...[
-            const SizedBox(height: 20),
-            _buildFitField(),
-          ],
+          if (_showFitField) ...[const SizedBox(height: 20), _buildFitField()],
           const SizedBox(height: 20),
           _buildBrandField(),
           const SizedBox(height: 20),
@@ -891,6 +889,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
               child: Text(_l10n.clear),
             ),
           ),
+          const SizedBox(height: 16),
           _buildColorGrid(context),
         ],
       ),

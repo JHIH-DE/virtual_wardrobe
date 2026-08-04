@@ -51,6 +51,7 @@
   "shareComingSoon": "Share coming soon",
   "failedToLoadImage": "Failed to load image",
   "failedToLoadGarments": "Failed to load garments",
+  "failedToRegenerateLook": "Failed to regenerate look",
 
   "saveThisLookTitle": "Save this look?",
   "saveThisLookBody": "Would you like to save this look to your collection?",
@@ -334,8 +335,9 @@
 
   "creatingEllipsis": "Creating…",
   "generatingEllipsis": "Generating…",
-  "wardrobeForDate": "Wardrobe for {date}",
-  "@wardrobeForDate": {
+  "dailyOutfitPlan": "Daily Outfit Plan",
+  "outfitForDate": "Outfit for {date}",
+  "@outfitForDate": {
     "placeholders": { "date": { "type": "String" } }
   },
   "noItemsPlanned": "No items planned",

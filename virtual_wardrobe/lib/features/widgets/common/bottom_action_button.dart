@@ -30,7 +30,7 @@ class BottomActionButton extends StatelessWidget {
     this.buttonColor = AppColors.accent,
     this.textColor = AppColors.textOnPrimary,
     this.panelPadding = const EdgeInsets.fromLTRB(22, 0, 22, 0),
-    this.borderSide,
+    this.borderSide = const BorderSide(color: Colors.white54, width: 1.5),
   });
 
   bool get _isDisabled => !enabled || isLoading || onPressed == null;

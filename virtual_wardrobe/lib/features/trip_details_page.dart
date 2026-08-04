@@ -34,13 +34,15 @@ class TripDayOutfit {
   final int? optionId;
   final List<Garment> garments;
   final int? jobId;
-  final double? temperatureC;
+  final double? temperatureMaxC;
+  final double? temperatureMinC;
 
   const TripDayOutfit({
     this.optionId,
     this.garments = const [],
     this.jobId,
-    this.temperatureC,
+    this.temperatureMaxC,
+    this.temperatureMinC,
   });
 }
 
@@ -72,13 +74,14 @@ Set<int> _parseSuitcaseItemIds(dynamic rawItems) {
 
 /// Picks the primary (lowest `order_index`) outfit option for one trip day
 /// and resolves its garment ids against [garmentsById]. The day's
-/// temperature comes straight from the trip plan itself (`temperature_c`),
-/// not a separate weather fetch.
+/// temperature range comes straight from the trip plan itself
+/// (`temperature_max_c` / `temperature_min_c`), not a separate weather fetch.
 TripDayOutfit _parseTripDayOutfit(
   Map<String, dynamic> day,
   Map<int, Garment> garmentsById,
 ) {
-  final temperatureC = (day['temperature_c'] as num?)?.toDouble();
+  final temperatureMaxC = (day['temperature_max_c'] as num?)?.toDouble();
+  final temperatureMinC = (day['temperature_min_c'] as num?)?.toDouble();
   final options =
       ((day['options'] as List?) ?? [])
           .whereType<Map<String, dynamic>>()
@@ -88,7 +91,12 @@ TripDayOutfit _parseTripDayOutfit(
             (b['order_index'] as num?) ?? 0,
           ),
         );
-  if (options.isEmpty) return TripDayOutfit(temperatureC: temperatureC);
+  if (options.isEmpty) {
+    return TripDayOutfit(
+      temperatureMaxC: temperatureMaxC,
+      temperatureMinC: temperatureMinC,
+    );
+  }
 
   final primary = options.first;
   final items = ((primary['items'] as List?) ?? [])
@@ -102,7 +110,8 @@ TripDayOutfit _parseTripDayOutfit(
     optionId: (primary['id'] as num?)?.toInt(),
     garments: garments,
     jobId: (primary['job_id'] as num?)?.toInt(),
-    temperatureC: temperatureC,
+    temperatureMaxC: temperatureMaxC,
+    temperatureMinC: temperatureMinC,
   );
 }
 
@@ -140,7 +149,10 @@ class TripDetailsPage extends ConsumerStatefulWidget {
       debugLog('Failed to load trip outfits: $e');
     }
 
-    return TripDetailsInitialData(dayOutfits: dayOutfits, suitcaseIds: suitcaseIds);
+    return TripDetailsInitialData(
+      dayOutfits: dayOutfits,
+      suitcaseIds: suitcaseIds,
+    );
   }
 
   @override
@@ -149,7 +161,13 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 
 class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     with TryOnMixin {
+  // TripDayCard's own width plus the gap around it — the per-page slot
+  // width used to size the day selector's PageController.viewportFraction.
+  static const double _dayCardWidth = 95;
+  static const double _dayCardGap = 8;
+
   int _selectedDayIndex = 0;
+  PageController? _dayPageController;
 
   late List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
   late Set<int> _suitcaseIds = widget.initialData.suitcaseIds;
@@ -189,6 +207,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
+  @override
+  void dispose() {
+    _dayPageController?.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadOutfitImage() async {
     final jobId = _currentDayOutfit?.jobId;
     if (jobId != null && jobId != 0) await watchJob(jobId);
@@ -216,7 +240,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               (day) => TripDayOutfit(
                 optionId: day.optionId,
                 jobId: day.jobId,
-                temperatureC: day.temperatureC,
+                temperatureMaxC: day.temperatureMaxC,
+                temperatureMinC: day.temperatureMinC,
                 garments: day.garments
                     .map((g) => freshById[g.id] ?? g)
                     .toList(),
@@ -461,7 +486,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         _dayOutfits[_selectedDayIndex] = TripDayOutfit(
           optionId: optionId,
           jobId: _currentDayOutfit?.jobId,
-          temperatureC: _currentDayOutfit?.temperatureC,
+          temperatureMaxC: _currentDayOutfit?.temperatureMaxC,
+          temperatureMinC: _currentDayOutfit?.temperatureMinC,
           garments: newGarments,
         );
       });
@@ -518,10 +544,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       actions: [
         IconButton(
           onPressed: _generatingPlan ? null : _generatePlan,
-          icon: const Icon(
-            Icons.auto_awesome_outlined,
-            color: AppColors.icon,
-          ),
+          icon: const Icon(Icons.auto_awesome_outlined, color: AppColors.icon),
         ),
       ],
     );
@@ -548,11 +571,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               const SizedBox(height: 20),
               _paddedSection(_buildSuitcaseSection()),
               const SizedBox(height: 20),
-              _buildTripDaySelector(),
-              const SizedBox(height: 20),
-              _buildWardrobeSection(),
-              const SizedBox(height: 20),
-              _paddedSection(_buildOutfitSection()),
+              _paddedSection(_buildDayPlanCard()),
             ],
           ),
         ),
@@ -572,6 +591,74 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: child,
+    );
+  }
+
+  Widget _buildDayPlanCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(_l10n.dailyOutfitPlan, style: AppTextStyle.bold18),
+          ),
+          const SizedBox(height: 8),
+          _buildTripDaySelector(),
+          const SizedBox(height: 8),
+          _buildCityHeader(),
+          const SizedBox(height: 16),
+          _buildWardrobeSection(),
+          const SizedBox(height: 16),
+          _paddedSection(_buildOutfitSection()),
+        ],
+      ),
+    );
+  }
+
+  /// A lightweight "which city am I in" divider below the date selector —
+  /// just an icon + name, not another card, so it reads as one section
+  /// rather than a stack of separate widgets. Crossfades as the selected
+  /// day moves between legs.
+  Widget _buildCityHeader() {
+    final date = widget.trip.dateRange.start.add(
+      Duration(days: _selectedDayIndex),
+    );
+    final leg = _legForDate(date);
+    final cityName = leg == null ? null : _cityOnly(leg.location.name);
+    if (cityName == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Row(
+              key: ValueKey(cityName),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: AppColors.icon,
+                ),
+                const SizedBox(width: 6),
+                Text(cityName, style: AppTextStyle.semibold14),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
+        ],
+      ),
     );
   }
 
@@ -633,30 +720,117 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
+  /// A centered, swipe-only day carousel — the day centered in the
+  /// viewport is always the selected one (no tapping a card to select it).
   Widget _buildTripDaySelector() {
     final int totalDays = widget.trip.dateRange.duration.inDays + 1;
-    return SizedBox(
-      height: 102,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: totalDays,
-        itemBuilder: (context, index) {
-          final date = widget.trip.dateRange.start.add(Duration(days: index));
-          final temperatureC = index < _dayOutfits.length
-              ? _dayOutfits[index].temperatureC
-              : null;
-          return TripDayCard(
-            date: date,
-            isSelected: index == _selectedDayIndex,
-            onTap: () {
-              setState(() => _selectedDayIndex = index);
-              _loadDailyData();
-            },
-            temperatureC: temperatureC,
-          );
-        },
+    return _fadeHorizontalEdges(
+      SizedBox(
+        height: 102,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final slotWidth = _dayCardWidth + _dayCardGap;
+            final fraction = (slotWidth / constraints.maxWidth).clamp(
+              0.05,
+              1.0,
+            );
+            _dayPageController ??= PageController(
+              viewportFraction: fraction,
+              initialPage: _selectedDayIndex,
+            );
+            return PageView.builder(
+              controller: _dayPageController,
+              itemCount: totalDays,
+              onPageChanged: _selectDay,
+              itemBuilder: (context, index) {
+                final date = widget.trip.dateRange.start.add(
+                  Duration(days: index),
+                );
+                final dayOutfit = index < _dayOutfits.length
+                    ? _dayOutfits[index]
+                    : null;
+                return Center(
+                  child: TripDayCard(
+                    date: date,
+                    isSelected: index == _selectedDayIndex,
+                    temperatureMaxC: dayOutfit?.temperatureMaxC,
+                    temperatureMinC: dayOutfit?.temperatureMinC,
+                    onTap: () => _dayPageController?.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOut,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
+    );
+  }
+
+  void _selectDay(int index) {
+    setState(() => _selectedDayIndex = index);
+    _loadDailyData();
+  }
+
+  TripLeg? _legForDate(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+    for (final leg in widget.trip.legs) {
+      final start = leg.dateRange.start;
+      final end = leg.dateRange.end;
+      final startDay = DateTime(start.year, start.month, start.day);
+      final endDay = DateTime(end.year, end.month, end.day);
+      if (!day.isBefore(startDay) && !day.isAfter(endDay)) return leg;
+    }
+    return null;
+  }
+
+  /// [LocationResult.name] is stored as "City, Country" — the city header only
+  /// has room for (and only wants) the city part.
+  String _cityOnly(String locationName) => locationName.split(',').first.trim();
+
+  /// Fades a horizontally-scrolling child out near its left/right edges, so
+  /// content sliding past doesn't end abruptly at the card's border. Uses a
+  /// same-color scrim overlay (matching the card background) rather than a
+  /// ShaderMask blend — blending against the list's own colors made the
+  /// fade look washed out / flash white during scroll.
+  Widget _fadeHorizontalEdges(Widget child) {
+    Widget scrim(Alignment begin, Alignment end) {
+      return IgnorePointer(
+        child: Container(
+          width: 24,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: begin,
+              end: end,
+              colors: [
+                AppColors.surface,
+                AppColors.surface.withValues(alpha: 0),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        child,
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          child: scrim(Alignment.centerLeft, Alignment.centerRight),
+        ),
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: scrim(Alignment.centerRight, Alignment.centerLeft),
+        ),
+      ],
     );
   }
 
@@ -674,11 +848,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             children: [
               Expanded(
                 child: Text(
-                  _l10n.wardrobeForDate(dateStr),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  _l10n.outfitForDate(dateStr),
+                  style: AppTextStyle.bold16,
                 ),
               ),
               if (hasOption)
@@ -718,14 +889,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildMissingItemsWarning(),
             ),
-          SizedBox(
-            height: 100,
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: _todayGarments.length,
-              itemBuilder: (context, index) =>
-                  _buildGarmentItem(_todayGarments[index]),
+          _fadeHorizontalEdges(
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: _todayGarments.length,
+                itemBuilder: (context, index) =>
+                    _buildGarmentItem(_todayGarments[index]),
+              ),
             ),
           ),
         ],
@@ -920,9 +1093,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 Icons.error,
                 size: 16,
                 color: AppColors.error,
-                shadows: [
-                  Shadow(color: AppColors.surface, blurRadius: 3),
-                ],
+                shadows: [Shadow(color: AppColors.surface, blurRadius: 3)],
               ),
             ),
         ],
