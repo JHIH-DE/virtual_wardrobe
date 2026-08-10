@@ -22,7 +22,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelDescription =>
-      'These references help LUMI understand your appearance for AI outfit try-on and future generated looks.';
+      'These references help LUMI understand your appearance for AI outfit try-on and future generated outfits.';
 
   @override
   String get faceReferenceLabel => 'Face Reference';
@@ -109,16 +109,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get details => 'Details';
 
   @override
-  String get renameLook => 'Rename Look';
+  String get renameOutfit => 'Rename Outfit';
 
   @override
-  String get lookNameLabel => 'Name of this look';
+  String get outfitNameLabel => 'Name of this outfit';
 
   @override
-  String get remixLook => 'Remix Look';
+  String get saveOutfit => 'Save Outfit';
 
   @override
-  String get saveLook => 'Save Look';
+  String get createAnotherVersion => 'Create Another Version';
+
+  @override
+  String get customizationLooks => 'Customize (Optional)';
+
+  @override
+  String get currentOutfitLabel => 'Current Outfit';
+
+  @override
+  String get accessoriesLabel => 'Accessories';
+
+  @override
+  String get createOutfit => 'Create Outfit';
+
+  @override
+  String get createOutfitHint => 'Create another outfit using these garments';
+
+  @override
+  String get sceneLabel => 'Scene';
+
+  @override
+  String get sceneSubtitle => 'Choose where this look comes to life.';
+
+  @override
+  String get noneLabel => 'None';
+
+  @override
+  String selectItemTitle(String item) {
+    return 'Select $item';
+  }
 
   @override
   String get loadingGarments => 'Loading Garments…';
@@ -127,7 +156,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCollection => 'My Collection';
 
   @override
-  String get myLook => 'My Look';
+  String get myOutfit => 'My Outfit';
 
   @override
   String get shareComingSoon => 'Share coming soon';
@@ -139,21 +168,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadGarments => 'Failed to load garments';
 
   @override
-  String get failedToRegenerateLook => 'Failed to regenerate look';
+  String get failedToRegenerateOutfit => 'Failed to regenerate outfit';
 
   @override
-  String get saveThisLookTitle => 'Save this look?';
+  String get saveThisOutfitTitle => 'Save this outfit?';
 
   @override
-  String get saveThisLookBody =>
-      'Would you like to save this look to your collection?';
+  String get saveThisOutfitBody =>
+      'Would you like to save this outfit to your collection?';
 
   @override
-  String get deleteLookTitle => 'Delete Look';
+  String get deleteOutfitTitle => 'Delete Outfit';
+
+  @override
+  String get deleteOutfitConfirmation =>
+      'Are you sure you want to delete this outfit?';
+
+  @override
+  String get deleteLookTitle => 'Delete Version';
 
   @override
   String get deleteLookConfirmation =>
-      'Are you sure you want to delete this look?';
+      'Are you sure you want to delete this version? This can\'t be undone.';
 
   @override
   String createdOnDate(String date) {
@@ -232,7 +268,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navCloset => 'Closet';
 
   @override
-  String get navLooks => 'Looks';
+  String get navOutfits => 'Outfits';
 
   @override
   String get navTrips => 'Trips';
@@ -241,10 +277,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickActions => 'Quick Actions';
 
   @override
-  String get quickActionAddClothing => 'Add Clothing';
+  String get quickActionAddClothing => 'New Clothing';
 
   @override
-  String get quickActionAddLook => 'Add Look';
+  String get quickActionAddOutfit => 'New Outfit';
 
   @override
   String get newTrip => 'New Trip';
@@ -343,11 +379,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goToSuitcase => 'Go to Suitcase';
 
   @override
-  String get outfitMissingItemsWarning =>
-      'Some items in this outfit were removed from your suitcase.';
+  String missingFromSuitcaseCount(int count) {
+    return '$count items aren\'t packed yet.';
+  }
 
   @override
-  String get fixOutfit => 'Fix';
+  String get addToSuitcase => 'Add to Suitcase';
 
   @override
   String get loading => 'Loading…';
@@ -356,13 +393,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tryAgain => 'Try Again';
 
   @override
-  String get generatingLookEllipsis => 'Generating your look…';
+  String get generatingOutfitEllipsis => 'Generating your outfit…';
 
   @override
-  String get noLookImageYet => 'No look image yet';
+  String get noOutfitImageYet => 'No outfit image yet';
 
   @override
-  String get generateLook => 'Generate Look';
+  String get generateOutfit => 'Generate Outfit';
 
   @override
   String get selectDates => 'Select Dates';
@@ -398,8 +435,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get back => 'Back';
 
   @override
-  String lookFallbackTitle(int id) {
-    return 'Look #$id';
+  String outfitFallbackTitle(int id) {
+    return 'Outfit #$id';
   }
 
   @override
@@ -624,10 +661,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get purchaseDateLabel => 'Purchase date';
 
   @override
-  String get notUsedInLooksYet => 'Not used in any looks yet';
+  String get notUsedInOutfitsYet => 'Not used in any outfits yet';
 
   @override
-  String get usedInLooks => 'Used in Looks';
+  String get usedInOutfits => 'Used in Outfits';
 
   @override
   String get selectAColor => 'Select Color';
@@ -660,10 +697,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get itemDeleted => 'Clothing Deleted';
 
   @override
-  String get lookSaved => 'Look Saved';
+  String get outfitSaved => 'Outfit Saved';
 
   @override
-  String get lookDeleted => 'Look Deleted';
+  String get outfitDeleted => 'Outfit Deleted';
 
   @override
   String get midLayer => 'Mid Layer';
@@ -672,18 +709,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outerwear => 'Outerwear';
 
   @override
-  String get createLook => 'Create Look';
-
-  @override
   String get selectCombinationsInstruction =>
-      'Select the clothing combinations you\'d like to try, then click \"Create Look\" to see your try-on results!';
+      'Select the clothing combinations you\'d like to try, then click \"Create Outfit\" to see your try-on results!';
 
   @override
   String get editDayOutfitInstruction =>
       'Choose which suitcase items make up this day\'s outfit.';
 
   @override
-  String get creatingLooksEllipsis => 'Creating Looks…';
+  String get creatingOutfitsEllipsis => 'Creating Outfits…';
 
   @override
   String get loadingClosetEllipsis => 'Loading Closet…';
@@ -731,11 +765,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleLabel => 'Style';
 
   @override
-  String get noLooksYet => 'No looks yet.';
+  String get noOutfitsYet => 'No outfits yet.';
 
   @override
-  String get itemNotUsedInLooksYet =>
-      'This item has not been used in any looks yet.';
+  String get itemNotUsedInOutfitsYet =>
+      'This item has not been used in any outfits yet.';
 
   @override
   String get failedToUpdateFavorite => 'Failed to update favorite';
@@ -756,7 +790,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingTripsEllipsis => 'Loading Trips…';
 
   @override
-  String get loadingLooksEllipsis => 'Loading Looks…';
+  String get loadingOutfitsEllipsis => 'Loading Outfits…';
 
   @override
   String get noTripsPlannedYet => 'No trips planned yet';
@@ -810,6 +844,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectGarmentsTitle => 'Select Garments';
+
+  @override
+  String get addFromOutfit => 'Add from an Outfit';
+
+  @override
+  String get selectAnOutfitTitle => 'Select an Outfit';
+
+  @override
+  String addedItemsFromOutfitCount(int count) {
+    return 'Added $count items from this outfit.';
+  }
+
+  @override
+  String get noNewItemsFromOutfit => 'No new items to add from this outfit.';
 
   @override
   String noGarmentsInCategory(String category) {
@@ -898,7 +946,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectOccasionTitle => 'Select Occasion';
 
   @override
-  String get todaysLook => 'Today\'s Look';
+  String get todaysOutfit => 'Today\'s Outfit';
 
   @override
   String get loadingWeatherEllipsis => 'Loading weather…';

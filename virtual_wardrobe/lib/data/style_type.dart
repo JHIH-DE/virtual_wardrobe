@@ -22,7 +22,7 @@ enum StyleType {
 
 /// Wire-format (de)serialization. Kept backward-compatible with the
 /// display-case strings ("City Boy", "Old Money", ...) already stored by
-/// the backend and in existing `Look`/profile data, so no API or data
+/// the backend and in existing `Outfit`/profile data, so no API or data
 /// migration is required to introduce this enum.
 extension StyleTypeApi on StyleType {
   String get apiValue {

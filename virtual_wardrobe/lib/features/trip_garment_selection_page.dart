@@ -8,8 +8,10 @@ import '../core/services/auth_handler.dart';
 import '../core/services/trip_service.dart';
 import '../core/utils/debug_log.dart';
 import '../data/garment.dart';
+import '../data/outfit.dart';
 import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'trip_outfit_picker_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/bottom_action_button.dart';
 import 'widgets/garment/category_selector.dart';
@@ -134,6 +136,37 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     });
   }
 
+  /// Lets the user pick a saved outfit, then selects whichever of its
+  /// garments are still in the current closet — the same way tapping each
+  /// one individually would.
+  Future<void> _pickFromOutfit() async {
+    final outfit = await Navigator.push<Outfit>(
+      context,
+      MaterialPageRoute(builder: (_) => const TripOutfitPickerPage()),
+    );
+    if (outfit == null || !mounted) return;
+
+    final availableIds = widget.garments
+        .map((g) => g.id)
+        .whereType<int>()
+        .toSet();
+    final matchedIds = outfit.garmentIds.where(availableIds.contains).toSet();
+    final newIds = matchedIds.difference(_selectedIds);
+
+    final l10n = AppLocalizations.of(context);
+    if (newIds.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.noNewItemsFromOutfit)));
+      return;
+    }
+
+    setState(() => _selectedIds.addAll(newIds));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.addedItemsFromOutfitCount(newIds.length))),
+    );
+  }
+
   List<Garment> get _byCategory =>
       widget.garments.where((g) => g.category == _selectedCategory).toList();
 
@@ -185,6 +218,11 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     return AppToolBar(
       title: l10n.selectGarmentsTitle,
       actions: [
+        IconButton(
+          tooltip: l10n.addFromOutfit,
+          icon: const Icon(Icons.style_outlined, color: AppColors.icon),
+          onPressed: _pickFromOutfit,
+        ),
         FilterButton(
           isFiltered: _isFiltered,
           count: _filtered.length,
@@ -296,7 +334,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       );
     }
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,

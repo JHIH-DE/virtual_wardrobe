@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../../../core/services/look_service.dart';
-import '../../../data/look.dart';
+import '../../../core/services/outfit_service.dart';
+import '../../../data/outfit.dart';
 import '../common/refreshable_network_image.dart';
 
-/// Single source of truth for "what is this look's image URL right now" —
+/// Single source of truth for "what is this outfit's image URL right now" —
 /// mirrors GarmentImage's reliance on `GarmentService().getGarment(id)`.
-/// Goes through `Look.fromJson` (not a raw map cast) so a malformed/missing
+/// Goes through `Outfit.fromJson` (not a raw map cast) so a malformed/missing
 /// field degrades to `''` instead of throwing.
-Future<String> fetchFreshLookImageUrl(int lookId) async {
-  final data = await LookService().getLook(lookId);
-  return Look.fromJson(data).imageUrl;
+Future<String> fetchFreshOutfitImageUrl(int outfitId) async {
+  final data = await OutfitService().getOutfit(outfitId);
+  return Outfit.fromJson(data).imageUrl;
 }
 
-/// Renders a look's outfit image, self-healing once on load failure by
-/// refetching the look from the backend for a freshly-signed URL.
-class LookImage extends StatelessWidget {
+/// Renders an outfit's image, self-healing once on load failure by
+/// refetching the outfit from the backend for a freshly-signed URL.
+class OutfitImage extends StatelessWidget {
   final String imageUrl;
-  final int lookId;
+  final int outfitId;
   final double? width;
   final double? height;
   final BoxFit fit;
@@ -29,10 +29,10 @@ class LookImage extends StatelessWidget {
   final String? errorLabel;
   final Widget Function(BuildContext context)? placeholderBuilder;
 
-  const LookImage({
+  const OutfitImage({
     super.key,
     required this.imageUrl,
-    required this.lookId,
+    required this.outfitId,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
@@ -74,13 +74,20 @@ class LookImage extends StatelessWidget {
         ? _fallback(Icons.image_outlined, noImageLabel)
         : RefreshableNetworkImage(
             imageUrl: imageUrl,
+            // The backend hands back a freshly re-signed URL on every
+            // fetch even when the underlying image hasn't changed, which
+            // would otherwise defeat the disk cache (URL-keyed by
+            // default) on every refetch. Key by the stable outfit/job id
+            // instead — same scheme as trip_details_page.dart's own
+            // outfit image, so the two can even share a cache entry.
+            cacheKey: 'outfit-job-$outfitId',
             width: width,
             height: height,
             fit: fit,
             alignment: alignment,
             placeholderBuilder: placeholderBuilder,
             errorLabel: errorLabel,
-            onRefreshUrl: () => fetchFreshLookImageUrl(lookId),
+            onRefreshUrl: () => fetchFreshOutfitImageUrl(outfitId),
           );
 
     if (borderRadius > 0) {

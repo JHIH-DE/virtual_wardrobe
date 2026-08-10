@@ -203,9 +203,9 @@ class GarmentService with BaseService {
     return updated;
   }
 
-  Future<void> setFavorite(int lookId, {required bool isFavorite}) async {
-    debugLog('--- setFavorite: $lookId / $isFavorite ---');
-    final uri = Uri.parse('$_baseUrl/$lookId');
+  Future<void> setFavorite(int garmentId, {required bool isFavorite}) async {
+    debugLog('--- setFavorite: $garmentId / $isFavorite ---');
+    final uri = Uri.parse('$_baseUrl/$garmentId');
     final res = await withAuth(
       (token) => http.patch(
         uri,

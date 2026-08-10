@@ -32,6 +32,14 @@ class RefreshableNetworkImage extends StatefulWidget {
   /// the image just shows the error state with no retry attempt.
   final Future<String?> Function()? onRefreshUrl;
 
+  /// Overrides what [CachedNetworkImage] keys its disk/memory cache entry
+  /// by. Leave null to key by [imageUrl] itself (the default) — pass a
+  /// stable id instead when the same underlying image is re-fetched under
+  /// a *different* URL each time (e.g. a freshly re-signed cloud storage
+  /// link), so re-signing doesn't show up as a cache miss and trigger a
+  /// redundant download of bytes already on disk.
+  final String? cacheKey;
+
   const RefreshableNetworkImage({
     super.key,
     required this.imageUrl,
@@ -46,6 +54,7 @@ class RefreshableNetworkImage extends StatefulWidget {
     this.errorIconSize = 36,
     this.errorLabel,
     this.onRefreshUrl,
+    this.cacheKey,
   });
 
   @override
@@ -95,6 +104,7 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
   Widget build(BuildContext context) {
     return CachedNetworkImage(
       imageUrl: _url,
+      cacheKey: widget.cacheKey,
       width: widget.width,
       height: widget.height,
       memCacheWidth: widget.memCacheWidth,

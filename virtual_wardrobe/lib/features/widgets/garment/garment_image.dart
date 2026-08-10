@@ -50,6 +50,9 @@ class GarmentImage extends StatelessWidget {
       final id = garmentId;
       image = RefreshableNetworkImage(
         imageUrl: u,
+        // Same reasoning as OutfitImage's cacheKey: a re-signed URL for
+        // the same garment shouldn't read as a disk-cache miss.
+        cacheKey: id != null ? 'garment-$id' : null,
         width: width,
         height: height,
         memCacheWidth: memCacheWidth,

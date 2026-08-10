@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
-import '../core/providers/looks_provider.dart';
+import '../core/providers/outfits_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/look_service.dart';
-import '../data/look.dart';
+import '../core/services/outfit_service.dart';
+import '../data/outfit.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'look_details_page.dart';
+import 'outfit_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
@@ -16,16 +16,16 @@ import 'widgets/common/favorite_card.dart';
 import 'widgets/common/feedback_overlay.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/common/floating_nav_bar.dart';
-import 'widgets/look/look_card.dart';
+import 'widgets/outfit/outfit_card.dart';
 
-class LooksPage extends ConsumerStatefulWidget {
-  const LooksPage({super.key});
+class OutfitsPage extends ConsumerStatefulWidget {
+  const OutfitsPage({super.key});
 
   @override
-  ConsumerState<LooksPage> createState() => _LooksPageState();
+  ConsumerState<OutfitsPage> createState() => _OutfitsPageState();
 }
 
-class _LooksPageState extends ConsumerState<LooksPage> {
+class _OutfitsPageState extends ConsumerState<OutfitsPage> {
   static const List<String> _seasons = [
     'All',
     'Spring',
@@ -49,56 +49,56 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _reportLoadingState(ref.read(looksProvider));
-      ref.listenManual(looksProvider, (_, next) {
+      _reportLoadingState(ref.read(outfitsProvider));
+      ref.listenManual(outfitsProvider, (_, next) {
         if (next.hasError && next.error is AuthExpiredException) {
           AuthExpiredHandler.handle(context);
         }
         _reportLoadingState(next);
       });
-      ref.listenManual(lookFeedbackProvider, (_, next) {
+      ref.listenManual(outfitFeedbackProvider, (_, next) {
         if (next == null) return;
         final l10n = AppLocalizations.of(context);
         showFeedbackOverlay(
           context,
-          message: next == LookFeedbackKind.saved
-              ? l10n.lookSaved
-              : l10n.lookDeleted,
-          imagePath: next == LookFeedbackKind.deleted
+          message: next == OutfitFeedbackKind.saved
+              ? l10n.outfitSaved
+              : l10n.outfitDeleted,
+          imagePath: next == OutfitFeedbackKind.deleted
               ? 'assets/images/delete_success.png'
               : 'assets/images/success.png',
         );
-        ref.read(lookFeedbackProvider.notifier).state = null;
+        ref.read(outfitFeedbackProvider.notifier).state = null;
       });
-      ref.read(looksProvider.notifier).refreshIfNeeded();
+      ref.read(outfitsProvider.notifier).refreshIfNeeded();
     });
   }
 
-  /// Mirrors looksProvider's loading state up to MainShell, which shows a
+  /// Mirrors outfitsProvider's loading state up to MainShell, which shows a
   /// full-screen overlay above the floating nav bar — see
   /// MainShellScope.setLoading for why this can't just be built inline.
-  void _reportLoadingState(AsyncValue<List<Look>> state) {
+  void _reportLoadingState(AsyncValue<List<Outfit>> state) {
     MainShellScope.of(context)?.setLoading(
       state.isLoading,
-      label: AppLocalizations.of(context).loadingLooksEllipsis,
+      label: AppLocalizations.of(context).loadingOutfitsEllipsis,
     );
   }
 
   bool get _isFiltered =>
       !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
 
-  List<Look> _filtered(List<Look> all) {
-    return all.where((l) {
+  List<Outfit> _filtered(List<Outfit> all) {
+    return all.where((o) {
       final okSeason =
           _selectedSeasons.contains('All') ||
-          l.seasons.any(
+          o.seasons.any(
             (s) => _selectedSeasons.any(
               (sel) => sel.toLowerCase() == s.toLowerCase(),
             ),
           );
       final okStyle =
           _selectedStyle.contains('All') ||
-          l.style.any(
+          o.style.any(
             (s) => _selectedStyle.any(
               (sel) => sel.toLowerCase() == s.toLowerCase(),
             ),
@@ -107,10 +107,10 @@ class _LooksPageState extends ConsumerState<LooksPage> {
     }).toList();
   }
 
-  AppToolBar _buildAppBar(BuildContext context, List<Look> all) {
+  AppToolBar _buildAppBar(BuildContext context, List<Outfit> all) {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
-      title: l10n.navLooks,
+      title: l10n.navOutfits,
       showBackButton: false,
       actions: [
         FilterButton(
@@ -152,37 +152,37 @@ class _LooksPageState extends ConsumerState<LooksPage> {
   }
 
   Widget _buildScaffold(BuildContext context) {
-    final looksAsync = ref.watch(looksProvider);
+    final outfitsAsync = ref.watch(outfitsProvider);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(context, looksAsync.valueOrNull ?? []),
-      body: looksAsync.when(
+      appBar: _buildAppBar(context, outfitsAsync.valueOrNull ?? []),
+      body: outfitsAsync.when(
         // Shell-level overlay (see _reportLoadingState) covers the whole
         // screen including the nav bar while loading.
         loading: () => const SizedBox.shrink(),
         error: (e, _) => ErrorStateWidget(
           error: e,
-          onRetry: () => ref.read(looksProvider.notifier).refresh(),
+          onRetry: () => ref.read(outfitsProvider.notifier).refresh(),
         ),
-        data: (all) => _buildLooksGrid(_filtered(all)),
+        data: (all) => _buildOutfitsGrid(_filtered(all)),
       ),
     );
   }
 
-  Widget _buildLooksGrid(List<Look> looks) {
-    if (looks.isEmpty) {
+  Widget _buildOutfitsGrid(List<Outfit> outfits) {
+    if (outfits.isEmpty) {
       return Center(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: EmptyStatePlaceholder(
-            message: AppLocalizations.of(context).noLooksYet,
+            message: AppLocalizations.of(context).noOutfitsYet,
           ),
         ),
       );
     }
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(looksProvider.notifier).refresh(),
+      onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
       color: AppColors.primary,
       child: GridView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -196,37 +196,40 @@ class _LooksPageState extends ConsumerState<LooksPage> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          mainAxisExtent: AppDimens.lookCardHeight,
+          mainAxisExtent: AppDimens.outfitCardHeight,
         ),
-        itemCount: looks.length,
-        itemBuilder: (context, index) => _buildLookCard(context, looks[index]),
+        itemCount: outfits.length,
+        itemBuilder: (context, index) =>
+            _buildOutfitCard(context, outfits[index]),
       ),
     );
   }
 
-  Widget _buildLookCard(BuildContext context, Look look) {
+  Widget _buildOutfitCard(BuildContext context, Outfit outfit) {
     return FavoriteCard(
-      isFavorite: look.isFavorite,
-      onToggle: () => _toggleFavorite(look),
-      child: LookCard(
-        look: look,
+      isFavorite: outfit.isFavorite,
+      onToggle: () => _toggleFavorite(outfit),
+      child: OutfitCard(
+        outfit: outfit,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => LookDetailsPage(look: look)),
+          MaterialPageRoute(builder: (_) => OutfitDetailsPage(outfit: outfit)),
         ),
       ),
     );
   }
 
-  Future<void> _toggleFavorite(Look look) async {
-    final next = !look.isFavorite;
-    ref.read(looksProvider.notifier).updateFavorite(look.id, isFavorite: next);
+  Future<void> _toggleFavorite(Outfit outfit) async {
+    final next = !outfit.isFavorite;
+    ref
+        .read(outfitsProvider.notifier)
+        .updateFavorite(outfit.id, isFavorite: next);
     try {
-      await LookService().setFavorite(look.id, isFavorite: next);
+      await OutfitService().setFavorite(outfit.id, isFavorite: next);
     } catch (e) {
       ref
-          .read(looksProvider.notifier)
-          .updateFavorite(look.id, isFavorite: !next);
+          .read(outfitsProvider.notifier)
+          .updateFavorite(outfit.id, isFavorite: !next);
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
         return;

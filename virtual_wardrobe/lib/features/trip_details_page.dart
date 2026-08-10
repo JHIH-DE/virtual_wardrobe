@@ -6,16 +6,17 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
+import '../core/services/outfit_service.dart';
 import '../core/services/trip_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/signed_url.dart';
 import '../core/utils/try_on_mixin.dart';
 import '../data/garment.dart';
-import '../data/look.dart';
+import '../data/outfit.dart';
 import '../data/trip.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'add_look_page.dart';
-import 'look_details_page.dart';
+import 'add_outfit_page.dart';
+import 'outfit_details_page.dart';
 import 'trip_suitcase_page.dart';
 import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_list_card.dart';
@@ -172,6 +173,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   late List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
   late Set<int> _suitcaseIds = widget.initialData.suitcaseIds;
 
+  /// Once a day's try-on job has resolved to an image URL, it's kept here
+  /// so switching away and back to that day — or leaving this page and
+  /// coming back to a brand new [TripDetailsPage] instance entirely —
+  /// shows it straight away instead of re-polling `getOutfit` for a job
+  /// that's already finished. Static (rather than an instance field) so it
+  /// outlives any single page instance for the rest of the app session.
+  /// This exists *in addition to* [TodayOutfitIdea.cacheKey]: that keeps
+  /// the actual image bytes on disk keyed by job id (survives even app
+  /// restarts), while this map avoids the redundant `getOutfit` network
+  /// call itself, since the backend hands back a freshly re-signed URL —
+  /// and therefore a disk-cache miss on the URL string alone — every time.
+  static final Map<int, String> _resolvedOutfitImageUrls = {};
+
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
   bool _packingAdviceExpanded = false;
@@ -215,7 +229,23 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   Future<void> _loadOutfitImage() async {
     final jobId = _currentDayOutfit?.jobId;
-    if (jobId != null && jobId != 0) await watchJob(jobId);
+    if (jobId == null || jobId == 0) return;
+
+    final cachedUrl = _resolvedOutfitImageUrls[jobId];
+    if (cachedUrl != null) {
+      if (mounted) {
+        setState(() {
+          tryOnJobId = jobId;
+          tryOnResultUrl = cachedUrl;
+        });
+      }
+      return;
+    }
+
+    final resolvedJobId = await watchJob(jobId);
+    if (resolvedJobId != null && tryOnResultUrl != null) {
+      _resolvedOutfitImageUrls[resolvedJobId] = tryOnResultUrl!;
+    }
   }
 
   bool get _hasStaleGarmentImages => _dayOutfits.any(
@@ -435,7 +465,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   /// Lets the user manually swap which suitcase garments make up the
-  /// selected day's outfit, reusing [AddLookPage]'s per-category slot
+  /// selected day's outfit, reusing [AddOutfitPage]'s per-category slot
   /// picker. Only reachable once LUMI has generated a plan (there has to be
   /// an existing option to PATCH).
   Future<void> _openDayOutfitEditor() async {
@@ -453,7 +483,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final result = await Navigator.push<Set<int>>(
       context,
       MaterialPageRoute(
-        builder: (_) => AddLookPage(
+        builder: (_) => AddOutfitPage(
           initialGarments: _todayGarments,
           preloadedGarments: suitcaseGarments,
           selectOnly: true,
@@ -611,34 +641,56 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           ),
           const SizedBox(height: 8),
           _buildTripDaySelector(),
-          const SizedBox(height: 8),
-          _buildCityHeader(),
+          const SizedBox(height: 12),
+          _paddedSection(_buildOutfitDateHeader()),
+          const SizedBox(height: 12),
+          _paddedSection(_buildOutfitSection()),
           const SizedBox(height: 16),
           _buildWardrobeSection(),
-          const SizedBox(height: 16),
-          _paddedSection(_buildOutfitSection()),
         ],
       ),
     );
   }
 
-  /// A lightweight "which city am I in" divider below the date selector —
-  /// just an icon + name, not another card, so it reads as one section
-  /// rather than a stack of separate widgets. Crossfades as the selected
-  /// day moves between legs.
-  Widget _buildCityHeader() {
+  /// The day's date/edit-button title, with the city it falls in folded in
+  /// underneath as a quiet subtitle — rather than its own separate header
+  /// block — so the two read as one piece of context instead of a stack of
+  /// distinct sections. The city crossfades as the selected day moves
+  /// between legs.
+  Widget _buildOutfitDateHeader() {
     final date = widget.trip.dateRange.start.add(
       Duration(days: _selectedDayIndex),
     );
+    final dateStr = DateFormat('EEEE, MMM d').format(date);
+    final hasOption = _currentDayOutfit?.optionId != null;
     final leg = _legForDate(date);
     final cityName = leg == null ? null : _cityOnly(leg.location.name);
-    if (cityName == null) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _l10n.outfitForDate(dateStr),
+                style: AppTextStyle.bold16,
+              ),
+            ),
+            if (hasOption)
+              IconButton(
+                onPressed: _openDayOutfitEditor,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                  color: AppColors.icon,
+                ),
+              ),
+          ],
+        ),
+        if (cityName != null) ...[
+          const SizedBox(height: 2),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             child: Row(
@@ -647,34 +699,59 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               children: [
                 const Icon(
                   Icons.location_on_outlined,
-                  size: 16,
-                  color: AppColors.icon,
+                  size: 14,
+                  color: AppColors.textSecondary,
                 ),
-                const SizedBox(width: 6),
-                Text(cityName, style: AppTextStyle.semibold14),
+                const SizedBox(width: 4),
+                Text(
+                  cityName,
+                  style: AppTextStyle.regular13.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
         ],
-      ),
+      ],
     );
   }
 
   Widget _buildOutfitSection() {
     return TodayOutfitIdea(
-      onTap: _openLookDetails,
-      onGenerate: _handleGenerateLook,
+      onTap: _openOutfitDetails,
+      onGenerate: _handleGenerateOutfit,
       imageUrl: tryOnResultUrl,
-      isLoading: isLookLoading,
-      jobStatus: isLookLoading
+      isLoading: isOutfitLoading,
+      jobStatus: isOutfitLoading
           ? (tryOnJobId == 0
                 ? _l10n.creatingEllipsis
                 : _l10n.generatingEllipsis)
           : null,
       errorMessage: tryOnErrorMessage,
+      onRefreshUrl: _refreshOutfitImageUrl,
+      cacheKey: tryOnJobId != 0 ? 'outfit-job-$tryOnJobId' : null,
     );
+  }
+
+  /// Re-fetches the current day's already-completed try-on job to pick up
+  /// a freshly-signed `result_image_url` if the cached one expired —
+  /// there's no new job to create, just the same one's latest status.
+  Future<String?> _refreshOutfitImageUrl() async {
+    final jobId = tryOnJobId != 0 ? tryOnJobId : _currentDayOutfit?.jobId;
+    if (jobId == null || jobId == 0) return null;
+    try {
+      final result = await OutfitService().getOutfit(jobId);
+      final url =
+          (primaryLookOf(result)?['result_image_url'] ??
+                  result['result_image_url'])
+              as String?;
+      if (url != null) _resolvedOutfitImageUrls[jobId] = url;
+      return url;
+    } catch (e) {
+      debugLog('Failed to refresh outfit image url: $e');
+      return null;
+    }
   }
 
   Widget _buildTripHeader() {
@@ -835,37 +912,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Widget _buildWardrobeSection() {
-    final dateStr = DateFormat('EEEE, MMM d').format(
-      widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex)),
-    );
     final hasOption = _currentDayOutfit?.optionId != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _l10n.outfitForDate(dateStr),
-                  style: AppTextStyle.bold16,
-                ),
-              ),
-              if (hasOption)
-                IconButton(
-                  onPressed: _openDayOutfitEditor,
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: AppColors.icon,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
         if (_todayGarments.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -884,11 +934,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 : _buildGeneratePlanCta(),
           )
         else ...[
-          if (_hasMissingSuitcaseItems)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildMissingItemsWarning(),
-            ),
           _fadeHorizontalEdges(
             SizedBox(
               height: 100,
@@ -901,36 +946,53 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               ),
             ),
           ),
+          if (_hasMissingSuitcaseItems) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildMissingItemsWarning(),
+            ),
+          ],
         ],
       ],
     );
   }
 
   Widget _buildMissingItemsWarning() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+    final missingCount = _todayGarments
+        .where((g) => g.id != null && !_suitcaseIds.contains(g.id))
+        .length;
+    if (missingCount == 0) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.warning_amber_rounded,
-            size: 16,
-            color: AppColors.error,
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              _l10n.outfitMissingItemsWarning,
-              style: AppTextStyle.regular13.copyWith(color: AppColors.error),
+          Text(
+            _l10n.missingFromSuitcaseCount(missingCount),
+            style: AppTextStyle.regular13.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
-          TextButton(
-            onPressed: _fixMissingSuitcaseItems,
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: _fixMissingSuitcaseItems,
+              child: Text(
+                _l10n.addToSuitcase,
+                style: AppTextStyle.semibold14.copyWith(
+                  color: AppColors.accent,
+                ),
+              ),
             ),
-            child: Text(_l10n.fixOutfit),
           ),
         ],
       ),
@@ -1069,10 +1131,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isMissing ? AppColors.error : AppColors.borderSubtle,
-          width: isMissing ? 1.5 : 1,
-        ),
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Stack(
         children: [
@@ -1101,7 +1160,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
-  Future<void> _handleGenerateLook() async {
+  Future<void> _handleGenerateOutfit() async {
     if (_todayGarments.isEmpty) return;
     final optionId = _currentDayOutfit?.optionId;
     if (optionId == null) return;
@@ -1113,6 +1172,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final int? jobId = await performTryOn(ids, "trip");
 
     if (jobId != null) {
+      if (tryOnResultUrl != null) {
+        _resolvedOutfitImageUrls[jobId] = tryOnResultUrl!;
+      }
       try {
         await TripService().setTryonJobToOption(
           jobId,
@@ -1129,15 +1191,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
-  void _openLookDetails() {
+  void _openOutfitDetails() {
     final url = tryOnResultUrl;
     if (url == null) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LookDetailsPage(
-          look: Look(
+        builder: (_) => OutfitDetailsPage(
+          outfit: Outfit(
             id: tryOnJobId,
             imageUrl: url,
             advice: tryOnAiAdvice,
@@ -1148,8 +1210,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           ),
           isNew: true,
           confirmLeaveOnBack: false,
-          navigateToLooksTabOnSave: false,
-          showRemixWhenSaved: false,
+          navigateToOutfitsTabOnSave: false,
+          showEditOutfitWhenSaved: false,
         ),
       ),
     );

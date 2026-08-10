@@ -308,16 +308,16 @@ class _StyleProfilePageState extends State<StyleProfilePage> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        mainAxisExtent: AppDimens.lookCardHeight,
+        mainAxisExtent: AppDimens.outfitCardHeight,
       ),
       itemCount: _availableStyles.length,
       itemBuilder: (context, i) => _buildStyleCard(_availableStyles[i]),
     );
   }
 
-  // Mirrors LookCard's look (see widgets/look/look_card.dart) — full-bleed
-  // image over a label — with a GarmentCard-style selection badge added on
-  // top for the Create Look-style picking interaction.
+  // Mirrors OutfitCard's look (see widgets/outfit/outfit_card.dart) —
+  // full-bleed image over a label — with a GarmentCard-style selection
+  // badge added on top for the Create Outfit-style picking interaction.
   Widget _buildStyleCard(StyleType style) {
     final isSelected = _selectedStyles.contains(style);
 

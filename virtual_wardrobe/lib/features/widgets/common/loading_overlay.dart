@@ -194,12 +194,13 @@ class _LumiLoaderPainter extends CustomPainter {
         ..lineTo(outerHalfWidth, tipCenterY)
         ..lineTo(innerHalfWidth, yInner)
         ..close();
-      final tipCap = Path()..addOval(
-        Rect.fromCircle(
-          center: Offset(0, tipCenterY),
-          radius: outerHalfWidth,
-        ),
-      );
+      final tipCap = Path()
+        ..addOval(
+          Rect.fromCircle(
+            center: Offset(0, tipCenterY),
+            radius: outerHalfWidth,
+          ),
+        );
 
       canvas.drawPath(
         Path.combine(PathOperation.union, body, tipCap),

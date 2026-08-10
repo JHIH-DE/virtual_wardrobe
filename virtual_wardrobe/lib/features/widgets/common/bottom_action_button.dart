@@ -15,8 +15,8 @@ class BottomActionButton extends StatelessWidget {
   final BorderSide? borderSide;
 
   // Was an overridable param (default 56); the one call site that needed a
-  // shorter bar (Remix Look) is the only value actually in use, so that's
-  // now the fixed height everywhere.
+  // shorter bar (Outfit Details' "Edit Outfit" button) is the only value
+  // actually in use, so that's now the fixed height everywhere.
   static const double _height = 48;
 
   const BottomActionButton({

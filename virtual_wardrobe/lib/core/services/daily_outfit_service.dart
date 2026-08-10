@@ -8,7 +8,9 @@ import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
-class DailyLookService with BaseService {
+class DailyOutfitService with BaseService {
+  // Backend route is still `/daily_looks` — not renamed here since that's
+  // a live API contract, not just app-side wording.
   static final String _baseUrl = '${AppConfig.fullApiUrl}/daily_looks';
 
   Future<List<Garment>> getGarments(String day) async {
@@ -42,17 +44,17 @@ class DailyLookService with BaseService {
     return id;
   }
 
-  Future<int?> getLook(String day) async {
-    final data = await _fetchDayData(day, 'getLook');
+  Future<int?> getOutfit(String day) async {
+    final data = await _fetchDayData(day, 'getOutfit');
     final jobId = data?['job_id'] as int?;
-    debugLog('--- getLook job_id: $jobId ---');
+    debugLog('--- getOutfit job_id: $jobId ---');
     return jobId;
   }
 
-  /// Generates a look plan for any single date (not limited to a rolling
+  /// Generates an outfit plan for any single date (not limited to a rolling
   /// window). Always replaces any existing options for that date. Returns
   /// the primary option's id (lowest `order_index`).
-  Future<int> generateDailyLook({
+  Future<int> generateDailyOutfit({
     required String date,
     String? timezone,
     String? occasion,
@@ -61,7 +63,7 @@ class DailyLookService with BaseService {
     String? style,
     int? alternativesPerDay,
   }) async {
-    debugLog('--- generateDailyLook: $date ---');
+    debugLog('--- generateDailyOutfit: $date ---');
     final uri = Uri.parse('$_baseUrl/generate');
     final body = <String, dynamic>{
       'date': date,
@@ -79,7 +81,7 @@ class DailyLookService with BaseService {
           http.post(uri, headers: authHeaders(token), body: jsonEncode(body)),
     );
 
-    final envelope = decodeMap(res, op: 'generateDailyLook');
+    final envelope = decodeMap(res, op: 'generateDailyOutfit');
     final data = envelope['data'] as Map<String, dynamic>?;
     final options =
         ((data?['options'] as List?) ?? [])
@@ -92,13 +94,13 @@ class DailyLookService with BaseService {
           );
     final id = options.isEmpty ? null : options.first['id'] as int?;
     if (id == null) {
-      throw Exception('generateDailyLook: response missing options[0].id');
+      throw Exception('generateDailyOutfit: response missing options[0].id');
     }
     return id;
   }
 
-  /// Creates a try-on render job for one look option, using the garments
-  /// already selected on that option (from a prior [generateDailyLook]
+  /// Creates a try-on render job for one outfit option, using the garments
+  /// already selected on that option (from a prior [generateDailyOutfit]
   /// call), and queues the render in the background. Returns the new job id.
   Future<int?> createTryOnForOption(int optionId) async {
     debugLog('--- createTryOnForOption: $optionId ---');
@@ -114,24 +116,24 @@ class DailyLookService with BaseService {
     return jobId;
   }
 
-  /// Fetches the existing look plan for [targetDate]. Returns null data if
+  /// Fetches the existing outfit plan for [targetDate]. Returns null data if
   /// none exists.
-  Future<Map<String, dynamic>?> getDailyLook(String targetDate) async {
-    debugLog('--- getDailyLook: $targetDate ---');
+  Future<Map<String, dynamic>?> getDailyOutfit(String targetDate) async {
+    debugLog('--- getDailyOutfit: $targetDate ---');
     final uri = Uri.parse('$_baseUrl/$targetDate');
     final res = await withAuth(
       (token) => http.get(uri, headers: authHeaders(token)),
     );
 
-    final envelope = decodeMap(res, op: 'getDailyLook');
+    final envelope = decodeMap(res, op: 'getDailyOutfit');
     return envelope['data'] as Map<String, dynamic>?;
   }
 
-  Future<List<Map<String, dynamic>>> listDailyLooks({
+  Future<List<Map<String, dynamic>>> listDailyOutfits({
     String? startDate,
     String? endDate,
   }) async {
-    debugLog('--- listDailyLooks: $startDate - $endDate ---');
+    debugLog('--- listDailyOutfits: $startDate - $endDate ---');
     final uri = Uri.parse(_baseUrl).replace(
       queryParameters: {
         if (startDate != null) 'start_date': startDate,
@@ -142,23 +144,23 @@ class DailyLookService with BaseService {
       (token) => http.get(uri, headers: authHeaders(token)),
     );
 
-    final envelope = decodeMap(res, op: 'listDailyLooks');
+    final envelope = decodeMap(res, op: 'listDailyOutfits');
     final data = envelope['data'];
     if (data is! List) {
-      throw Exception('listDailyLooks: response missing list data');
+      throw Exception('listDailyOutfits: response missing list data');
     }
     return data.whereType<Map<String, dynamic>>().toList();
   }
 
-  Future<void> deleteDailyLook(String targetDate) async {
-    debugLog('--- deleteDailyLook: $targetDate ---');
+  Future<void> deleteDailyOutfit(String targetDate) async {
+    debugLog('--- deleteDailyOutfit: $targetDate ---');
     final uri = Uri.parse('$_baseUrl/$targetDate');
     final res = await withAuth(
       (token) => http.delete(uri, headers: authHeaders(token)),
     );
 
     if (res.statusCode != 200) {
-      throw Exception('deleteDailyLook failed: ${res.body}');
+      throw Exception('deleteDailyOutfit failed: ${res.body}');
     }
   }
 

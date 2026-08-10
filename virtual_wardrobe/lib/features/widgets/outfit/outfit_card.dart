@@ -3,23 +3,23 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../../../data/look.dart';
+import '../../../data/outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import 'look_image.dart';
+import 'outfit_image.dart';
 
-class LookCard extends StatelessWidget {
-  final Look look;
+class OutfitCard extends StatelessWidget {
+  final Outfit outfit;
   final VoidCallback onTap;
 
-  const LookCard({super.key, required this.look, required this.onTap});
+  const OutfitCard({super.key, required this.outfit, required this.onTap});
 
   String _label(AppLocalizations l10n) {
-    if (look.name != null && look.name!.isNotEmpty) return look.name!;
+    if (outfit.name != null && outfit.name!.isNotEmpty) return outfit.name!;
     final parts = [
-      ...look.style,
-      ...look.seasons,
+      ...outfit.style,
+      ...outfit.seasons,
     ].where((s) => s.isNotEmpty).toList();
-    if (parts.isEmpty) return l10n.lookFallbackTitle(look.id);
+    if (parts.isEmpty) return l10n.outfitFallbackTitle(outfit.id);
     return parts.map(_capitalize).join(' ');
   }
 
@@ -32,7 +32,7 @@ class LookCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        height: AppDimens.lookCardHeight,
+        height: AppDimens.outfitCardHeight,
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
@@ -51,9 +51,9 @@ class LookCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: LookImage(
-                    imageUrl: look.imageUrl,
-                    lookId: look.id,
+                  child: OutfitImage(
+                    imageUrl: outfit.imageUrl,
+                    outfitId: outfit.id,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
                     placeholderBuilder: (_) => const Center(

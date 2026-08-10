@@ -21,9 +21,7 @@ class CloseActionButton extends StatelessWidget {
         foregroundColor: AppColors.accent,
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

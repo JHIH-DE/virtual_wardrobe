@@ -10,38 +10,33 @@ import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/filter_button.dart';
 import 'widgets/garment/garment_card.dart';
 
-/// Full-page grid picker for a single outfit slot (Top/Bottom/Shoes/etc).
-/// Tapping an item — or the "None" tile — immediately pops back with the
-/// result; there's no separate confirm step. Mirrors SelectAccessoryPage's
-/// design.
-class SelectGarmentPage extends StatefulWidget {
+/// Full-page grid picker for a single Create Look accessory slot. Tapping
+/// an item — or the "None" tile — immediately pops back with the result;
+/// there's no separate confirm step. Supports the same color/type filter
+/// as the garment slot picker used elsewhere.
+class SelectAccessoryPage extends StatefulWidget {
   final String title;
-  final GarmentCategory category;
   final List<Garment> garments;
   final Garment? selected;
 
-  const SelectGarmentPage({
+  const SelectAccessoryPage({
     super.key,
     required this.title,
-    required this.category,
     required this.garments,
     this.selected,
   });
 
   @override
-  State<SelectGarmentPage> createState() => _SelectGarmentPageState();
+  State<SelectAccessoryPage> createState() => _SelectAccessoryPageState();
 }
 
-class _SelectGarmentPageState extends State<SelectGarmentPage> {
+class _SelectAccessoryPageState extends State<SelectAccessoryPage> {
   Set<String> _selectedColors = {'All'};
   Set<String> _selectedTypes = {'All'};
 
-  List<Garment> get _byCategory =>
-      widget.garments.where((g) => g.category == widget.category).toList();
-
   List<String> get _availableColors {
     final colors =
-        _byCategory
+        widget.garments
             .map((g) => g.color)
             .whereType<String>()
             .where((c) => c.isNotEmpty)
@@ -53,7 +48,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
 
   List<String> get _availableTypes {
     final types =
-        _byCategory
+        widget.garments
             .map((g) => g.subCategory)
             .where((t) => t.isNotEmpty)
             .toSet()
@@ -66,7 +61,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
       !_selectedColors.contains('All') || !_selectedTypes.contains('All');
 
   List<Garment> get _filtered {
-    return _byCategory.where((g) {
+    return widget.garments.where((g) {
       final okColor =
           _selectedColors.contains('All') ||
           (g.color != null &&

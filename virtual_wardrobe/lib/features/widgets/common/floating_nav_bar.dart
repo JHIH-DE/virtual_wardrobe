@@ -4,10 +4,10 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
-enum AppTab { home, closet, looks, tripPlanner }
+enum AppTab { home, closet, outfits, tripPlanner }
 
 /// The three actions behind the nav bar's raised center button.
-enum QuickAction { addClothing, addLook, newTrip }
+enum QuickAction { addClothing, addOutfit, newTrip }
 
 /// Lets any descendant page switch the active tab in the persistent
 /// `MainShell` above it — e.g. after creating a trip, jump to the Trip
@@ -38,7 +38,7 @@ class MainShellScope extends InheritedWidget {
 }
 
 /// Floating bottom nav bar shown on the app's main tabs (Home, My Closet,
-/// Looks, Trips), with a raised center button for the add-clothing /
+/// Outfits, Trips), with a raised center button for the add-clothing /
 /// manual-try-on / new-trip quick actions. Highlights [current] so the user
 /// always knows which page they're on. Purely presentational — [onSelect]
 /// and [onQuickAction] are called with the tapped tab/action and the host
@@ -111,10 +111,10 @@ class FloatingNavBar extends StatelessWidget {
                             ),
                             const SizedBox(width: _centerButtonSize),
                             _tab(
-                              AppTab.looks,
+                              AppTab.outfits,
                               activeIcon: Icons.style_rounded,
                               inactiveIcon: Icons.style_outlined,
-                              label: l10n.navLooks,
+                              label: l10n.navOutfits,
                             ),
                             _tab(
                               AppTab.tripPlanner,
@@ -203,8 +203,7 @@ class FloatingNavBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 side: const BorderSide(color: AppColors.dividerOnDark),
               ),
-              child: SizedBox(
-                width: 220,
+              child: IntrinsicWidth(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -212,13 +211,13 @@ class FloatingNavBar extends StatelessWidget {
                       context,
                       value: QuickAction.addClothing,
                       label: l10n.quickActionAddClothing,
-                      icon: Icons.checkroom_outlined,
+                      icon: Icons.dry_cleaning_outlined,
                       showDivider: true,
                     ),
                     _quickActionItem(
                       context,
-                      value: QuickAction.addLook,
-                      label: l10n.quickActionAddLook,
+                      value: QuickAction.addOutfit,
+                      label: l10n.quickActionAddOutfit,
                       icon: Icons.accessibility_new_outlined,
                       showDivider: true,
                     ),
@@ -268,15 +267,15 @@ class FloatingNavBar extends StatelessWidget {
               )
             : null,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Icon(icon, size: 20, color: AppColors.textOnPrimary),
+            const SizedBox(width: 12),
             Text(
               label,
               style: AppTextStyle.regular16.copyWith(
                 color: AppColors.textOnPrimary,
               ),
             ),
-            Icon(icon, size: 20, color: AppColors.textOnPrimary),
           ],
         ),
       ),

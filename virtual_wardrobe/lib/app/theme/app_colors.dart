@@ -49,7 +49,7 @@ class AppColors {
   static const Color error = Color(0xFFE4483F);
   static const Color success = Color(0xFF1FAE79);
 
-  // Filled-heart color when a look/garment is marked favorite
+  // Filled-heart color when an outfit/garment is marked favorite
   static const Color favorite = Color(0xFFE53935);
 
   // Trip status dots (TripMainPage's Ongoing/Upcoming/Past section headers)

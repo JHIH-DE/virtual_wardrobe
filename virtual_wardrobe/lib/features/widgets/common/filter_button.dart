@@ -83,9 +83,9 @@ class FilterButton extends StatelessWidget {
                 for (var i = 0; i < groups.length; i++) ...[
                   Text(groups[i].label, style: AppTextStyle.bold16),
                   Divider(
-                      height: 16,
-                      thickness: 1,
-                      color: AppColors.dividerSubtle,
+                    height: 16,
+                    thickness: 1,
+                    color: AppColors.dividerSubtle,
                   ),
                   const SizedBox(height: 12),
                   groups[i].options.isEmpty

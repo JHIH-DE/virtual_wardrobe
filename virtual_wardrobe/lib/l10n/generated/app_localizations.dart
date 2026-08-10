@@ -126,7 +126,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiModelDescription.
   ///
   /// In en, this message translates to:
-  /// **'These references help LUMI understand your appearance for AI outfit try-on and future generated looks.'**
+  /// **'These references help LUMI understand your appearance for AI outfit try-on and future generated outfits.'**
   String get aiModelDescription;
 
   /// No description provided for @faceReferenceLabel.
@@ -285,29 +285,83 @@ abstract class AppLocalizations {
   /// **'Details'**
   String get details;
 
-  /// No description provided for @renameLook.
+  /// No description provided for @renameOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Rename Look'**
-  String get renameLook;
+  /// **'Rename Outfit'**
+  String get renameOutfit;
 
-  /// No description provided for @lookNameLabel.
+  /// No description provided for @outfitNameLabel.
   ///
   /// In en, this message translates to:
-  /// **'Name of this look'**
-  String get lookNameLabel;
+  /// **'Name of this outfit'**
+  String get outfitNameLabel;
 
-  /// No description provided for @remixLook.
+  /// No description provided for @saveOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Remix Look'**
-  String get remixLook;
+  /// **'Save Outfit'**
+  String get saveOutfit;
 
-  /// No description provided for @saveLook.
+  /// No description provided for @createAnotherVersion.
   ///
   /// In en, this message translates to:
-  /// **'Save Look'**
-  String get saveLook;
+  /// **'Create Another Version'**
+  String get createAnotherVersion;
+
+  /// No description provided for @customizationLooks.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize (Optional)'**
+  String get customizationLooks;
+
+  /// No description provided for @currentOutfitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Outfit'**
+  String get currentOutfitLabel;
+
+  /// No description provided for @accessoriesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessories'**
+  String get accessoriesLabel;
+
+  /// No description provided for @createOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Outfit'**
+  String get createOutfit;
+
+  /// No description provided for @createOutfitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create another outfit using these garments'**
+  String get createOutfitHint;
+
+  /// No description provided for @sceneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scene'**
+  String get sceneLabel;
+
+  /// No description provided for @sceneSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose where this look comes to life.'**
+  String get sceneSubtitle;
+
+  /// No description provided for @noneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get noneLabel;
+
+  /// No description provided for @selectItemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select {item}'**
+  String selectItemTitle(String item);
 
   /// No description provided for @loadingGarments.
   ///
@@ -321,11 +375,11 @@ abstract class AppLocalizations {
   /// **'My Collection'**
   String get myCollection;
 
-  /// No description provided for @myLook.
+  /// No description provided for @myOutfit.
   ///
   /// In en, this message translates to:
-  /// **'My Look'**
-  String get myLook;
+  /// **'My Outfit'**
+  String get myOutfit;
 
   /// No description provided for @shareComingSoon.
   ///
@@ -345,49 +399,61 @@ abstract class AppLocalizations {
   /// **'Failed to load garments'**
   String get failedToLoadGarments;
 
-  /// No description provided for @failedToRegenerateLook.
+  /// No description provided for @failedToRegenerateOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Failed to regenerate look'**
-  String get failedToRegenerateLook;
+  /// **'Failed to regenerate outfit'**
+  String get failedToRegenerateOutfit;
 
-  /// No description provided for @saveThisLookTitle.
+  /// No description provided for @saveThisOutfitTitle.
   ///
   /// In en, this message translates to:
-  /// **'Save this look?'**
-  String get saveThisLookTitle;
+  /// **'Save this outfit?'**
+  String get saveThisOutfitTitle;
 
-  /// No description provided for @saveThisLookBody.
+  /// No description provided for @saveThisOutfitBody.
   ///
   /// In en, this message translates to:
-  /// **'Would you like to save this look to your collection?'**
-  String get saveThisLookBody;
+  /// **'Would you like to save this outfit to your collection?'**
+  String get saveThisOutfitBody;
+
+  /// No description provided for @deleteOutfitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Outfit'**
+  String get deleteOutfitTitle;
+
+  /// No description provided for @deleteOutfitConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this outfit?'**
+  String get deleteOutfitConfirmation;
 
   /// No description provided for @deleteLookTitle.
   ///
   /// In en, this message translates to:
-  /// **'Delete Look'**
+  /// **'Delete Version'**
   String get deleteLookTitle;
 
   /// No description provided for @deleteLookConfirmation.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to delete this look?'**
+  /// **'Are you sure you want to delete this version? This can\'t be undone.'**
   String get deleteLookConfirmation;
 
-  /// Footer showing the creation date of a look
+  /// Footer showing the creation date of an outfit
   ///
   /// In en, this message translates to:
   /// **'Created {date}'**
   String createdOnDate(String date);
 
-  /// Auto-generated look title built from its first season/style tag
+  /// Auto-generated outfit title built from its first season/style tag
   ///
   /// In en, this message translates to:
   /// **'{style} Outfit'**
   String outfitTitle(String style);
 
-  /// Section header showing how many garments are in a look
+  /// Section header showing how many garments are in an outfit
   ///
   /// In en, this message translates to:
   /// **'Garments ({count})'**
@@ -513,11 +579,11 @@ abstract class AppLocalizations {
   /// **'Closet'**
   String get navCloset;
 
-  /// No description provided for @navLooks.
+  /// No description provided for @navOutfits.
   ///
   /// In en, this message translates to:
-  /// **'Looks'**
-  String get navLooks;
+  /// **'Outfits'**
+  String get navOutfits;
 
   /// No description provided for @navTrips.
   ///
@@ -534,14 +600,14 @@ abstract class AppLocalizations {
   /// No description provided for @quickActionAddClothing.
   ///
   /// In en, this message translates to:
-  /// **'Add Clothing'**
+  /// **'New Clothing'**
   String get quickActionAddClothing;
 
-  /// No description provided for @quickActionAddLook.
+  /// No description provided for @quickActionAddOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Add Look'**
-  String get quickActionAddLook;
+  /// **'New Outfit'**
+  String get quickActionAddOutfit;
 
   /// No description provided for @newTrip.
   ///
@@ -723,17 +789,17 @@ abstract class AppLocalizations {
   /// **'Go to Suitcase'**
   String get goToSuitcase;
 
-  /// No description provided for @outfitMissingItemsWarning.
+  /// No description provided for @missingFromSuitcaseCount.
   ///
   /// In en, this message translates to:
-  /// **'Some items in this outfit were removed from your suitcase.'**
-  String get outfitMissingItemsWarning;
+  /// **'{count} items aren\'t packed yet.'**
+  String missingFromSuitcaseCount(int count);
 
-  /// No description provided for @fixOutfit.
+  /// No description provided for @addToSuitcase.
   ///
   /// In en, this message translates to:
-  /// **'Fix'**
-  String get fixOutfit;
+  /// **'Add to Suitcase'**
+  String get addToSuitcase;
 
   /// No description provided for @loading.
   ///
@@ -747,23 +813,23 @@ abstract class AppLocalizations {
   /// **'Try Again'**
   String get tryAgain;
 
-  /// No description provided for @generatingLookEllipsis.
+  /// No description provided for @generatingOutfitEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Generating your look…'**
-  String get generatingLookEllipsis;
+  /// **'Generating your outfit…'**
+  String get generatingOutfitEllipsis;
 
-  /// No description provided for @noLookImageYet.
+  /// No description provided for @noOutfitImageYet.
   ///
   /// In en, this message translates to:
-  /// **'No look image yet'**
-  String get noLookImageYet;
+  /// **'No outfit image yet'**
+  String get noOutfitImageYet;
 
-  /// No description provided for @generateLook.
+  /// No description provided for @generateOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Generate Look'**
-  String get generateLook;
+  /// **'Generate Outfit'**
+  String get generateOutfit;
 
   /// No description provided for @selectDates.
   ///
@@ -831,11 +897,11 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get back;
 
-  /// Fallback look card title when the look has no name or tags
+  /// Fallback outfit card title when the outfit has no name or tags
   ///
   /// In en, this message translates to:
-  /// **'Look #{id}'**
-  String lookFallbackTitle(int id);
+  /// **'Outfit #{id}'**
+  String outfitFallbackTitle(int id);
 
   /// No description provided for @failedToLoad.
   ///
@@ -1263,17 +1329,17 @@ abstract class AppLocalizations {
   /// **'Purchase date'**
   String get purchaseDateLabel;
 
-  /// No description provided for @notUsedInLooksYet.
+  /// No description provided for @notUsedInOutfitsYet.
   ///
   /// In en, this message translates to:
-  /// **'Not used in any looks yet'**
-  String get notUsedInLooksYet;
+  /// **'Not used in any outfits yet'**
+  String get notUsedInOutfitsYet;
 
-  /// No description provided for @usedInLooks.
+  /// No description provided for @usedInOutfits.
   ///
   /// In en, this message translates to:
-  /// **'Used in Looks'**
-  String get usedInLooks;
+  /// **'Used in Outfits'**
+  String get usedInOutfits;
 
   /// No description provided for @selectAColor.
   ///
@@ -1335,17 +1401,17 @@ abstract class AppLocalizations {
   /// **'Clothing Deleted'**
   String get itemDeleted;
 
-  /// No description provided for @lookSaved.
+  /// No description provided for @outfitSaved.
   ///
   /// In en, this message translates to:
-  /// **'Look Saved'**
-  String get lookSaved;
+  /// **'Outfit Saved'**
+  String get outfitSaved;
 
-  /// No description provided for @lookDeleted.
+  /// No description provided for @outfitDeleted.
   ///
   /// In en, this message translates to:
-  /// **'Look Deleted'**
-  String get lookDeleted;
+  /// **'Outfit Deleted'**
+  String get outfitDeleted;
 
   /// No description provided for @midLayer.
   ///
@@ -1359,16 +1425,10 @@ abstract class AppLocalizations {
   /// **'Outerwear'**
   String get outerwear;
 
-  /// No description provided for @createLook.
-  ///
-  /// In en, this message translates to:
-  /// **'Create Look'**
-  String get createLook;
-
   /// No description provided for @selectCombinationsInstruction.
   ///
   /// In en, this message translates to:
-  /// **'Select the clothing combinations you\'d like to try, then click \"Create Look\" to see your try-on results!'**
+  /// **'Select the clothing combinations you\'d like to try, then click \"Create Outfit\" to see your try-on results!'**
   String get selectCombinationsInstruction;
 
   /// No description provided for @editDayOutfitInstruction.
@@ -1377,11 +1437,11 @@ abstract class AppLocalizations {
   /// **'Choose which suitcase items make up this day\'s outfit.'**
   String get editDayOutfitInstruction;
 
-  /// No description provided for @creatingLooksEllipsis.
+  /// No description provided for @creatingOutfitsEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Creating Looks…'**
-  String get creatingLooksEllipsis;
+  /// **'Creating Outfits…'**
+  String get creatingOutfitsEllipsis;
 
   /// No description provided for @loadingClosetEllipsis.
   ///
@@ -1473,17 +1533,17 @@ abstract class AppLocalizations {
   /// **'Style'**
   String get styleLabel;
 
-  /// No description provided for @noLooksYet.
+  /// No description provided for @noOutfitsYet.
   ///
   /// In en, this message translates to:
-  /// **'No looks yet.'**
-  String get noLooksYet;
+  /// **'No outfits yet.'**
+  String get noOutfitsYet;
 
-  /// No description provided for @itemNotUsedInLooksYet.
+  /// No description provided for @itemNotUsedInOutfitsYet.
   ///
   /// In en, this message translates to:
-  /// **'This item has not been used in any looks yet.'**
-  String get itemNotUsedInLooksYet;
+  /// **'This item has not been used in any outfits yet.'**
+  String get itemNotUsedInOutfitsYet;
 
   /// No description provided for @failedToUpdateFavorite.
   ///
@@ -1521,11 +1581,11 @@ abstract class AppLocalizations {
   /// **'Loading Trips…'**
   String get loadingTripsEllipsis;
 
-  /// No description provided for @loadingLooksEllipsis.
+  /// No description provided for @loadingOutfitsEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Loading Looks…'**
-  String get loadingLooksEllipsis;
+  /// **'Loading Outfits…'**
+  String get loadingOutfitsEllipsis;
 
   /// No description provided for @noTripsPlannedYet.
   ///
@@ -1628,6 +1688,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select Garments'**
   String get selectGarmentsTitle;
+
+  /// No description provided for @addFromOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add from an Outfit'**
+  String get addFromOutfit;
+
+  /// No description provided for @selectAnOutfitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an Outfit'**
+  String get selectAnOutfitTitle;
+
+  /// No description provided for @addedItemsFromOutfitCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {count} items from this outfit.'**
+  String addedItemsFromOutfitCount(int count);
+
+  /// No description provided for @noNewItemsFromOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'No new items to add from this outfit.'**
+  String get noNewItemsFromOutfit;
 
   /// No description provided for @noGarmentsInCategory.
   ///
@@ -1779,11 +1863,11 @@ abstract class AppLocalizations {
   /// **'Select Occasion'**
   String get selectOccasionTitle;
 
-  /// No description provided for @todaysLook.
+  /// No description provided for @todaysOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Today\'s Look'**
-  String get todaysLook;
+  /// **'Today\'s Outfit'**
+  String get todaysOutfit;
 
   /// No description provided for @loadingWeatherEllipsis.
   ///

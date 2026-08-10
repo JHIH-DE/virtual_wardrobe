@@ -8,7 +8,7 @@
   "settings": "Settings",
   "account": "Account",
   "aiModel": "AI Model",
-  "aiModelDescription": "These references help LUMI understand your appearance for AI outfit try-on and future generated looks.",
+  "aiModelDescription": "These references help LUMI understand your appearance for AI outfit try-on and future generated outfits.",
   "faceReferenceLabel": "Face Reference",
   "faceReferenceDescription": "Used for your face, hairstyle, and facial features — not your body proportions.",
   "faceReferenceUploadHint": "Upload a clear, front-facing portrait.",
@@ -41,26 +41,40 @@
   "delete": "Delete",
   "details": "Details",
 
-  "renameLook": "Rename Look",
-  "lookNameLabel": "Name of this look",
-  "remixLook": "Remix Look",
-  "saveLook": "Save Look",
+  "renameOutfit": "Rename Outfit",
+  "outfitNameLabel": "Name of this outfit",
+  "saveOutfit": "Save Outfit",
+  "createAnotherVersion": "Create Another Version",
+  "customizationLooks": "Customize (Optional)",
+  "currentOutfitLabel": "Current Outfit",
+  "accessoriesLabel": "Accessories",
+  "createOutfit": "Create Outfit",
+  "createOutfitHint": "Create another outfit using these garments",
+  "sceneLabel": "Scene",
+  "sceneSubtitle": "Choose where this look comes to life.",
+  "noneLabel": "None",
+  "selectItemTitle": "Select {item}",
+  "@selectItemTitle": {
+    "placeholders": { "item": { "type": "String" } }
+  },
   "loadingGarments": "Loading Garments…",
   "myCollection": "My Collection",
-  "myLook": "My Look",
+  "myOutfit": "My Outfit",
   "shareComingSoon": "Share coming soon",
   "failedToLoadImage": "Failed to load image",
   "failedToLoadGarments": "Failed to load garments",
-  "failedToRegenerateLook": "Failed to regenerate look",
+  "failedToRegenerateOutfit": "Failed to regenerate outfit",
 
-  "saveThisLookTitle": "Save this look?",
-  "saveThisLookBody": "Would you like to save this look to your collection?",
-  "deleteLookTitle": "Delete Look",
-  "deleteLookConfirmation": "Are you sure you want to delete this look?",
+  "saveThisOutfitTitle": "Save this outfit?",
+  "saveThisOutfitBody": "Would you like to save this outfit to your collection?",
+  "deleteOutfitTitle": "Delete Outfit",
+  "deleteOutfitConfirmation": "Are you sure you want to delete this outfit?",
+  "deleteLookTitle": "Delete Version",
+  "deleteLookConfirmation": "Are you sure you want to delete this version? This can't be undone.",
 
   "createdOnDate": "Created {date}",
   "@createdOnDate": {
-    "description": "Footer showing the creation date of a look",
+    "description": "Footer showing the creation date of an outfit",
     "placeholders": {
       "date": {
         "type": "String"
@@ -70,7 +84,7 @@
 
   "outfitTitle": "{style} Outfit",
   "@outfitTitle": {
-    "description": "Auto-generated look title built from its first season/style tag",
+    "description": "Auto-generated outfit title built from its first season/style tag",
     "placeholders": {
       "style": {
         "type": "String"
@@ -80,7 +94,7 @@
 
   "garmentsCount": "Garments ({count})",
   "@garmentsCount": {
-    "description": "Section header showing how many garments are in a look",
+    "description": "Section header showing how many garments are in an outfit",
     "placeholders": {
       "count": {
         "type": "int"
@@ -110,11 +124,11 @@
 
   "navHome": "Home",
   "navCloset": "Closet",
-  "navLooks": "Looks",
+  "navOutfits": "Outfits",
   "navTrips": "Trips",
   "quickActions": "Quick Actions",
-  "quickActionAddClothing": "Add Clothing",
-  "quickActionAddLook": "Add Look",
+  "quickActionAddClothing": "New Clothing",
+  "quickActionAddOutfit": "New Outfit",
   "newTrip": "New Trip",
 
   "retry": "Retry",
@@ -158,13 +172,16 @@
   "insufficientSuitcaseTitle": "Not Enough in Your Suitcase",
   "insufficientSuitcaseBody": "LUMI needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.",
   "goToSuitcase": "Go to Suitcase",
-  "outfitMissingItemsWarning": "Some items in this outfit were removed from your suitcase.",
-  "fixOutfit": "Fix",
+  "missingFromSuitcaseCount": "{count} items aren't packed yet.",
+  "@missingFromSuitcaseCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addToSuitcase": "Add to Suitcase",
   "loading": "Loading…",
   "tryAgain": "Try Again",
-  "generatingLookEllipsis": "Generating your look…",
-  "noLookImageYet": "No look image yet",
-  "generateLook": "Generate Look",
+  "generatingOutfitEllipsis": "Generating your outfit…",
+  "noOutfitImageYet": "No outfit image yet",
+  "generateOutfit": "Generate Outfit",
 
   "selectDates": "Select Dates",
   "startDatePlaceholder": "Start Date",
@@ -179,9 +196,9 @@
   "photoAlbum": "Photo Album",
   "back": "Back",
 
-  "lookFallbackTitle": "Look #{id}",
-  "@lookFallbackTitle": {
-    "description": "Fallback look card title when the look has no name or tags",
+  "outfitFallbackTitle": "Outfit #{id}",
+  "@outfitFallbackTitle": {
+    "description": "Fallback outfit card title when the outfit has no name or tags",
     "placeholders": {
       "id": {
         "type": "int"
@@ -277,8 +294,8 @@
   "priceOptionalLabel": "Price (optional)",
   "priceHint": "How much is this clothing?",
   "purchaseDateLabel": "Purchase date",
-  "notUsedInLooksYet": "Not used in any looks yet",
-  "usedInLooks": "Used in Looks",
+  "notUsedInOutfitsYet": "Not used in any outfits yet",
+  "usedInOutfits": "Used in Outfits",
   "selectAColor": "Select Color",
   "chooseColorTitle": "Choose a color",
   "clear": "Clear",
@@ -289,15 +306,14 @@
   "editImage": "Edit image",
   "changesSaved": "Changes Saved",
   "itemDeleted": "Clothing Deleted",
-  "lookSaved": "Look Saved",
-  "lookDeleted": "Look Deleted",
+  "outfitSaved": "Outfit Saved",
+  "outfitDeleted": "Outfit Deleted",
 
   "midLayer": "Mid Layer",
   "outerwear": "Outerwear",
-  "createLook": "Create Look",
-  "selectCombinationsInstruction": "Select the clothing combinations you'd like to try, then click \"Create Look\" to see your try-on results!",
+  "selectCombinationsInstruction": "Select the clothing combinations you'd like to try, then click \"Create Outfit\" to see your try-on results!",
   "editDayOutfitInstruction": "Choose which suitcase items make up this day's outfit.",
-  "creatingLooksEllipsis": "Creating Looks…",
+  "creatingOutfitsEllipsis": "Creating Outfits…",
   "loadingClosetEllipsis": "Loading Closet…",
 
   "genderMale": "Male",
@@ -315,8 +331,8 @@
 
   "seasonLabel": "Season",
   "styleLabel": "Style",
-  "noLooksYet": "No looks yet.",
-  "itemNotUsedInLooksYet": "This item has not been used in any looks yet.",
+  "noOutfitsYet": "No outfits yet.",
+  "itemNotUsedInOutfitsYet": "This item has not been used in any outfits yet.",
   "failedToUpdateFavorite": "Failed to update favorite",
 
   "creatingTripEllipsis": "Creating Trip…",
@@ -324,7 +340,7 @@
   "tripPlannerTitle": "Trip Planner",
   "loadingTripEllipsis": "Loading Trip…",
   "loadingTripsEllipsis": "Loading Trips…",
-  "loadingLooksEllipsis": "Loading Looks…",
+  "loadingOutfitsEllipsis": "Loading Outfits…",
   "noTripsPlannedYet": "No trips planned yet",
   "statusOngoing": "Ongoing",
   "statusUpcoming": "Upcoming",
@@ -347,6 +363,13 @@
   "packClothingHint": "Pack clothing for this trip",
 
   "selectGarmentsTitle": "Select Garments",
+  "addFromOutfit": "Add from an Outfit",
+  "selectAnOutfitTitle": "Select an Outfit",
+  "addedItemsFromOutfitCount": "Added {count} items from this outfit.",
+  "@addedItemsFromOutfitCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "noNewItemsFromOutfit": "No new items to add from this outfit.",
   "noGarmentsInCategory": "No garments in {category}",
   "@noGarmentsInCategory": {
     "placeholders": { "category": { "type": "String" } }
@@ -393,7 +416,7 @@
   "comfortAdjustmentIntro": "Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.",
   "selectOccasionTitle": "Select Occasion",
 
-  "todaysLook": "Today's Look",
+  "todaysOutfit": "Today's Outfit",
   "loadingWeatherEllipsis": "Loading weather…",
   "viewDetails": "View Details",
 

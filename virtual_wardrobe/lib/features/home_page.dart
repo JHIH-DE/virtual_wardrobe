@@ -7,18 +7,18 @@ import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/providers/weather_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/daily_look_service.dart';
+import '../core/services/daily_outfit_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/try_on_mixin.dart';
-import '../data/look.dart';
+import '../data/outfit.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'look_details_page.dart';
+import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/lumi_insight_card.dart';
 import 'widgets/common/pill_button.dart';
 import 'widgets/common/refreshable_network_image.dart';
-import 'widgets/look/look_image.dart';
+import 'widgets/outfit/outfit_image.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -28,32 +28,32 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
-  bool _loadingLook = true;
+  bool _loadingOutfit = true;
   String? _reasoning;
   List<int> _garmentIds = [];
 
   @override
   void initState() {
     super.initState();
-    _loadDailyLook();
+    _loadDailyOutfit();
   }
 
-  Future<void> _loadDailyLook() async {
-    setState(() => _loadingLook = true);
+  Future<void> _loadDailyOutfit() async {
+    setState(() => _loadingOutfit = true);
     try {
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      var look = await DailyLookService().getDailyLook(today);
-      if (look == null) {
-        final optionId = await DailyLookService().generateDailyLook(
+      var outfit = await DailyOutfitService().getDailyOutfit(today);
+      if (outfit == null) {
+        final optionId = await DailyOutfitService().generateDailyOutfit(
           date: today,
         );
-        await DailyLookService().createTryOnForOption(optionId);
-        look = await DailyLookService().getDailyLook(today);
+        await DailyOutfitService().createTryOnForOption(optionId);
+        outfit = await DailyOutfitService().getDailyOutfit(today);
       }
-      if (look == null) return;
+      if (outfit == null) return;
 
       final options =
-          ((look['options'] as List?) ?? [])
+          ((outfit['options'] as List?) ?? [])
               .whereType<Map<String, dynamic>>()
               .toList()
             ..sort(
@@ -86,8 +86,8 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
         });
       }
 
-      final jobId = option['job_id'] as int?;
-      debugLog('--- _loadDailyLook - jobId: $jobId  ---');
+      final jobId = option['daily_look_id'] as int?;
+      debugLog('--- _loadDailyOutfit - daily_look_id: $jobId  ---');
       if (jobId != null && jobId != 0) {
         await watchJob(jobId);
       }
@@ -96,9 +96,9 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
         if (mounted) await AuthExpiredHandler.handle(context);
         return;
       }
-      debugLog('Failed to load daily look: $e');
+      debugLog('Failed to load daily outfit: $e');
     } finally {
-      if (mounted) setState(() => _loadingLook = false);
+      if (mounted) setState(() => _loadingOutfit = false);
     }
   }
 
@@ -146,7 +146,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
               children: [
                 _buildHeader(),
                 const SizedBox(height: 16),
-                _buildLookImageCard(),
+                _buildOutfitImageCard(),
                 const SizedBox(height: 12),
                 _buildLumiInsightCard(),
               ],
@@ -249,15 +249,15 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     );
   }
 
-  Widget _buildLookImageCard() {
+  Widget _buildOutfitImageCard() {
     final l10n = AppLocalizations.of(context);
-    final loading = _loadingLook || isLookLoading;
+    final loading = _loadingOutfit || isOutfitLoading;
     final imageUrl = tryOnResultUrl;
     final hasResult = !loading && imageUrl != null && imageUrl.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.todaysLook, style: AppTextStyle.bold16),
+        Text(l10n.todaysOutfit, style: AppTextStyle.bold16),
         const SizedBox(height: 8),
         Stack(
           children: [
@@ -279,6 +279,12 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                         )
                       : RefreshableNetworkImage(
                           imageUrl: imageUrl,
+                          // Re-signed URL each fetch shouldn't defeat the
+                          // disk cache — same scheme as OutfitImage/
+                          // trip_details_page.dart's outfit image.
+                          cacheKey: tryOnJobId != 0
+                              ? 'outfit-job-$tryOnJobId'
+                              : null,
                           fit: BoxFit.cover,
                           errorIconSize: 48,
                           onRefreshUrl: _refreshTryOnResultUrl,
@@ -297,7 +303,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                     size: 10,
                     color: AppColors.icon,
                   ),
-                  onTap: _openLookDetails,
+                  onTap: _openOutfitDetails,
                 ),
               ),
           ],
@@ -309,7 +315,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
   Future<String?> _refreshTryOnResultUrl() async {
     if (tryOnJobId == 0) return null;
     try {
-      final freshUrl = await fetchFreshLookImageUrl(tryOnJobId);
+      final freshUrl = await fetchFreshOutfitImageUrl(tryOnJobId);
       if (mounted && freshUrl.isNotEmpty) {
         setState(() => tryOnResultUrl = freshUrl);
       }
@@ -320,12 +326,12 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     }
   }
 
-  void _openLookDetails() {
+  void _openOutfitDetails() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LookDetailsPage(
-          look: Look(
+        builder: (_) => OutfitDetailsPage(
+          outfit: Outfit(
             id: tryOnJobId,
             imageUrl: tryOnResultUrl!,
             advice: tryOnAiAdvice,

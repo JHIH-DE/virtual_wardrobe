@@ -3,28 +3,28 @@ import 'package:flutter/material.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/look_service.dart';
+import '../core/services/outfit_service.dart';
 import '../core/utils/debug_log.dart';
-import '../data/look.dart';
+import '../data/outfit.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'look_details_page.dart';
+import 'outfit_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/common/empty_state_placeholder.dart';
 import 'widgets/common/error_state_widget.dart';
 import 'widgets/common/favorite_card.dart';
 import 'widgets/common/filter_button.dart';
-import 'widgets/look/look_card.dart';
+import 'widgets/outfit/outfit_card.dart';
 
-class GarmentLooksPage extends StatefulWidget {
+class GarmentOutfitsPage extends StatefulWidget {
   final int garmentId;
 
-  const GarmentLooksPage({super.key, required this.garmentId});
+  const GarmentOutfitsPage({super.key, required this.garmentId});
 
   @override
-  State<GarmentLooksPage> createState() => _GarmentLooksPageState();
+  State<GarmentOutfitsPage> createState() => _GarmentOutfitsPageState();
 }
 
-class _GarmentLooksPageState extends State<GarmentLooksPage> {
+class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
   static const List<String> _seasons = [
     'All',
     'Spring',
@@ -43,7 +43,7 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
   Set<String> _selectedSeasons = {'All'};
   Set<String> _selectedStyle = {'All'};
 
-  List<Look> _allLooks = [];
+  List<Outfit> _allOutfits = [];
   bool _loading = true;
   String? _error;
 
@@ -62,19 +62,21 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
       _error = null;
     });
     try {
-      debugLog('getLooksByGarments garmentId=${widget.garmentId}');
-      final result = await LookService().getLooksByGarments([widget.garmentId]);
-      final saved = result.where((l) => l.isSaved).toList();
+      debugLog('getOutfitsByGarments garmentId=${widget.garmentId}');
+      final result = await OutfitService().getOutfitsByGarments([
+        widget.garmentId,
+      ]);
+      final saved = result.where((o) => o.isSaved).toList();
       debugLog(
-        'API returned ${result.length} looks, ${saved.length} isSaved=true',
+        'API returned ${result.length} outfits, ${saved.length} isSaved=true',
       );
-      for (final l in result) {
+      for (final o in result) {
         debugLog(
-          '  look id=${l.id} isSaved=${l.isSaved} imageUrl=${l.imageUrl}',
+          '  outfit id=${o.id} isSaved=${o.isSaved} imageUrl=${o.imageUrl}',
         );
       }
       if (!mounted) return;
-      setState(() => _allLooks = saved);
+      setState(() => _allOutfits = saved);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -86,18 +88,18 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
     }
   }
 
-  List<Look> _filtered() {
-    return _allLooks.where((l) {
+  List<Outfit> _filtered() {
+    return _allOutfits.where((o) {
       final okSeason =
           _selectedSeasons.contains('All') ||
-          l.seasons.any(
+          o.seasons.any(
             (s) => _selectedSeasons.any(
               (sel) => sel.toLowerCase() == s.toLowerCase(),
             ),
           );
       final okStyle =
           _selectedStyle.contains('All') ||
-          l.style.any(
+          o.style.any(
             (s) => _selectedStyle.any(
               (sel) => sel.toLowerCase() == s.toLowerCase(),
             ),
@@ -109,7 +111,7 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
   AppToolBar _buildAppBar() {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
-      title: l10n.usedInLooks,
+      title: l10n.usedInOutfits,
       actions: [
         FilterButton(
           isFiltered: _isFiltered,
@@ -152,17 +154,17 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
           ? const Center(child: CircularProgressIndicator())
           : _error != null
           ? ErrorStateWidget(error: _error!, onRetry: _load)
-          : _buildLooksGrid(_filtered()),
+          : _buildOutfitsGrid(_filtered()),
     );
   }
 
-  Widget _buildLooksGrid(List<Look> looks) {
-    if (looks.isEmpty) {
+  Widget _buildOutfitsGrid(List<Outfit> outfits) {
+    if (outfits.isEmpty) {
       return Center(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: EmptyStatePlaceholder(
-            message: AppLocalizations.of(context).itemNotUsedInLooksYet,
+            message: AppLocalizations.of(context).itemNotUsedInOutfitsYet,
           ),
         ),
       );
@@ -178,44 +180,45 @@ class _GarmentLooksPageState extends State<GarmentLooksPage> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          mainAxisExtent: AppDimens.lookCardHeight,
+          mainAxisExtent: AppDimens.outfitCardHeight,
         ),
-        itemCount: looks.length,
-        itemBuilder: (context, index) => _buildLookCard(context, looks[index]),
+        itemCount: outfits.length,
+        itemBuilder: (context, index) =>
+            _buildOutfitCard(context, outfits[index]),
       ),
     );
   }
 
-  Widget _buildLookCard(BuildContext context, Look look) {
+  Widget _buildOutfitCard(BuildContext context, Outfit outfit) {
     return FavoriteCard(
-      isFavorite: look.isFavorite,
-      onToggle: () => _toggleFavorite(look),
-      child: LookCard(
-        look: look,
+      isFavorite: outfit.isFavorite,
+      onToggle: () => _toggleFavorite(outfit),
+      child: OutfitCard(
+        outfit: outfit,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => LookDetailsPage(look: look)),
+          MaterialPageRoute(builder: (_) => OutfitDetailsPage(outfit: outfit)),
         ),
       ),
     );
   }
 
-  void _setLookFavorite(int lookId, bool isFavorite) {
+  void _setOutfitFavorite(int outfitId, bool isFavorite) {
     setState(() {
-      _allLooks = _allLooks
-          .map((l) => l.id == lookId ? l.copyWith(isFavorite: isFavorite) : l)
+      _allOutfits = _allOutfits
+          .map((o) => o.id == outfitId ? o.copyWith(isFavorite: isFavorite) : o)
           .toList();
     });
   }
 
-  Future<void> _toggleFavorite(Look look) async {
-    final next = !look.isFavorite;
-    _setLookFavorite(look.id, next);
+  Future<void> _toggleFavorite(Outfit outfit) async {
+    final next = !outfit.isFavorite;
+    _setOutfitFavorite(outfit.id, next);
     try {
-      await LookService().setFavorite(look.id, isFavorite: next);
+      await OutfitService().setFavorite(outfit.id, isFavorite: next);
     } catch (e) {
       if (!mounted) return;
-      _setLookFavorite(look.id, !next);
+      _setOutfitFavorite(outfit.id, !next);
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;

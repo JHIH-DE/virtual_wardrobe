@@ -43,15 +43,7 @@ class _LifestylePageState extends State<LifestylePage> {
     (i) => (i < 5 ? OccasionType.work : OccasionType.casual).apiValue,
   );
 
-  static const _weekdayKeys = [
-    'mon',
-    'tue',
-    'wed',
-    'thu',
-    'fri',
-    'sat',
-    'sun',
-  ];
+  static const _weekdayKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
   /// Maps a stored value to a currently-valid occasion id, falling back to
   /// Work for values from a retired taxonomy (e.g. an older build's

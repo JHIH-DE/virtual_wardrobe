@@ -28,6 +28,10 @@ class AppDialog extends StatefulWidget {
   /// reserved for actual primary actions.
   final bool primaryIsTextButton;
 
+  /// Rim border applied to the primary, secondary (outlined), and tertiary
+  /// buttons — not the flat text-button variants, which stay chromeless.
+  final BorderSide? borderSide;
+
   const AppDialog({
     super.key,
     required this.title,
@@ -44,6 +48,7 @@ class AppDialog extends StatefulWidget {
     this.contentToPrimarySpacing = 20,
     this.secondaryIsTextButton = true,
     this.primaryIsTextButton = false,
+    this.borderSide = const BorderSide(color: Colors.white24, width: 1),
   }) : assert(
          body != null || content != null,
          'AppDialog requires either body or content',
@@ -109,6 +114,7 @@ class _AppDialogState extends State<AppDialog> {
                           borderRadius: BorderRadius.circular(27),
                         ),
                         elevation: 0,
+                        side: widget.borderSide,
                       ),
                       child: Text(
                         widget.primaryLabel,
@@ -138,10 +144,12 @@ class _AppDialogState extends State<AppDialog> {
                     : OutlinedButton(
                         onPressed: widget.onSecondary,
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: AppColors.textPrimary,
-                            width: 1.6,
-                          ),
+                          side:
+                              widget.borderSide ??
+                              const BorderSide(
+                                color: AppColors.textPrimary,
+                                width: 1.6,
+                              ),
                           minimumSize: const Size(double.infinity, 54),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -172,10 +180,9 @@ class _AppDialogState extends State<AppDialog> {
                         color: _tertiaryPressed
                             ? AppColors.accent
                             : AppColors.surface,
-                        border: Border.all(
-                          color: AppColors.textPrimary,
-                          width: 1.6,
-                        ),
+                        border: widget.borderSide != null
+                            ? Border.fromBorderSide(widget.borderSide!)
+                            : null,
                         borderRadius: BorderRadius.circular(19),
                       ),
                       alignment: Alignment.center,

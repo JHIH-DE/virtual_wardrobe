@@ -105,16 +105,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get details => '詳情';
 
   @override
-  String get renameLook => '重新命名穿搭';
+  String get renameOutfit => '重新命名穿搭';
 
   @override
-  String get lookNameLabel => '這套穿搭的名稱';
+  String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get remixLook => '重新混搭';
+  String get saveOutfit => '儲存穿搭';
 
   @override
-  String get saveLook => '儲存穿搭';
+  String get createAnotherVersion => '建立另一個版本';
+
+  @override
+  String get customizationLooks => '自訂造型';
+
+  @override
+  String get currentOutfitLabel => '目前穿搭';
+
+  @override
+  String get accessoriesLabel => '配件';
+
+  @override
+  String get createOutfit => '建立造型';
+
+  @override
+  String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
+
+  @override
+  String get sceneLabel => '場景';
+
+  @override
+  String get sceneSubtitle => '選擇讓這套穿搭躍然眼前的場景。';
+
+  @override
+  String get noneLabel => '無';
+
+  @override
+  String selectItemTitle(String item) {
+    return '選擇$item';
+  }
 
   @override
   String get loadingGarments => '載入服飾中…';
@@ -123,7 +152,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get myCollection => '我的收藏';
 
   @override
-  String get myLook => '我的穿搭';
+  String get myOutfit => '我的穿搭';
 
   @override
   String get shareComingSoon => '分享功能即將推出';
@@ -135,19 +164,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToLoadGarments => '服飾載入失敗';
 
   @override
-  String get failedToRegenerateLook => '重新產生穿搭失敗';
+  String get failedToRegenerateOutfit => '重新產生穿搭失敗';
 
   @override
-  String get saveThisLookTitle => '儲存這套穿搭？';
+  String get saveThisOutfitTitle => '儲存這套穿搭？';
 
   @override
-  String get saveThisLookBody => '要將這套穿搭加入你的收藏嗎？';
+  String get saveThisOutfitBody => '要將這套穿搭加入你的收藏嗎？';
 
   @override
-  String get deleteLookTitle => '刪除穿搭';
+  String get deleteOutfitTitle => '刪除穿搭';
 
   @override
-  String get deleteLookConfirmation => '確定要刪除這套穿搭嗎？';
+  String get deleteOutfitConfirmation => '確定要刪除這套穿搭嗎？';
+
+  @override
+  String get deleteLookTitle => '刪除版本';
+
+  @override
+  String get deleteLookConfirmation => '確定要刪除這個版本嗎？此動作無法復原。';
 
   @override
   String createdOnDate(String date) {
@@ -225,7 +260,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navCloset => '衣櫃';
 
   @override
-  String get navLooks => '穿搭';
+  String get navOutfits => '穿搭';
 
   @override
   String get navTrips => '行程';
@@ -237,7 +272,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quickActionAddClothing => '新增衣物';
 
   @override
-  String get quickActionAddLook => '新增穿搭';
+  String get quickActionAddOutfit => '新增穿搭';
 
   @override
   String get newTrip => '新增行程';
@@ -333,10 +368,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get goToSuitcase => '前往行李箱';
 
   @override
-  String get outfitMissingItemsWarning => '這套穿搭裡有些單品已經從行李箱中移除。';
+  String missingFromSuitcaseCount(int count) {
+    return '還有 $count 件尚未打包。';
+  }
 
   @override
-  String get fixOutfit => '修正';
+  String get addToSuitcase => '加入行李箱';
 
   @override
   String get loading => '載入中…';
@@ -345,13 +382,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tryAgain => '再試一次';
 
   @override
-  String get generatingLookEllipsis => '正在產生你的穿搭…';
+  String get generatingOutfitEllipsis => '正在產生你的穿搭…';
 
   @override
-  String get noLookImageYet => '尚無穿搭圖片';
+  String get noOutfitImageYet => '尚無穿搭圖片';
 
   @override
-  String get generateLook => '產生穿搭';
+  String get generateOutfit => '產生穿搭';
 
   @override
   String get selectDates => '選擇日期';
@@ -387,7 +424,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get back => '返回';
 
   @override
-  String lookFallbackTitle(int id) {
+  String outfitFallbackTitle(int id) {
     return '穿搭 #$id';
   }
 
@@ -611,10 +648,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get purchaseDateLabel => '購買日期';
 
   @override
-  String get notUsedInLooksYet => '尚未用於任何穿搭';
+  String get notUsedInOutfitsYet => '尚未用於任何穿搭';
 
   @override
-  String get usedInLooks => '已用於穿搭';
+  String get usedInOutfits => '已用於穿搭';
 
   @override
   String get selectAColor => '選擇顏色';
@@ -647,10 +684,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get itemDeleted => '已刪除衣物';
 
   @override
-  String get lookSaved => '穿搭已儲存';
+  String get outfitSaved => '穿搭已儲存';
 
   @override
-  String get lookDeleted => '穿搭已刪除';
+  String get outfitDeleted => '穿搭已刪除';
 
   @override
   String get midLayer => '中層';
@@ -659,16 +696,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outerwear => '外套';
 
   @override
-  String get createLook => '建立穿搭';
-
-  @override
-  String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立穿搭」查看試穿結果！';
+  String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立造型」查看試穿結果！';
 
   @override
   String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
 
   @override
-  String get creatingLooksEllipsis => '建立穿搭中…';
+  String get creatingOutfitsEllipsis => '建立穿搭中…';
 
   @override
   String get loadingClosetEllipsis => '載入衣櫃中…';
@@ -716,10 +750,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleLabel => '風格';
 
   @override
-  String get noLooksYet => '尚無穿搭。';
+  String get noOutfitsYet => '尚無穿搭。';
 
   @override
-  String get itemNotUsedInLooksYet => '這件單品尚未用於任何穿搭。';
+  String get itemNotUsedInOutfitsYet => '這件單品尚未用於任何穿搭。';
 
   @override
   String get failedToUpdateFavorite => '更新收藏失敗';
@@ -740,7 +774,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingTripsEllipsis => '載入行程列表中…';
 
   @override
-  String get loadingLooksEllipsis => '載入穿搭中…';
+  String get loadingOutfitsEllipsis => '載入穿搭中…';
 
   @override
   String get noTripsPlannedYet => '尚無規劃中的行程';
@@ -794,6 +828,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get selectGarmentsTitle => '選擇衣物';
+
+  @override
+  String get addFromOutfit => '從穿搭新增';
+
+  @override
+  String get selectAnOutfitTitle => '選擇穿搭';
+
+  @override
+  String addedItemsFromOutfitCount(int count) {
+    return '已從此穿搭新增 $count 件單品。';
+  }
+
+  @override
+  String get noNewItemsFromOutfit => '這套穿搭沒有可新增的單品。';
 
   @override
   String noGarmentsInCategory(String category) {
@@ -879,7 +927,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectOccasionTitle => '選擇場合';
 
   @override
-  String get todaysLook => '今日穿搭';
+  String get todaysOutfit => '今日穿搭';
 
   @override
   String get loadingWeatherEllipsis => '載入天氣中…';
@@ -1058,16 +1106,45 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get details => '詳情';
 
   @override
-  String get renameLook => '重新命名穿搭';
+  String get renameOutfit => '重新命名穿搭';
 
   @override
-  String get lookNameLabel => '這套穿搭的名稱';
+  String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get remixLook => '重新混搭';
+  String get saveOutfit => '儲存穿搭';
 
   @override
-  String get saveLook => '儲存穿搭';
+  String get createAnotherVersion => '建立另一個版本';
+
+  @override
+  String get customizationLooks => '自訂造型';
+
+  @override
+  String get currentOutfitLabel => '目前穿搭';
+
+  @override
+  String get accessoriesLabel => '配件';
+
+  @override
+  String get createOutfit => '建立造型';
+
+  @override
+  String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
+
+  @override
+  String get sceneLabel => '場景';
+
+  @override
+  String get sceneSubtitle => '選擇讓這套穿搭躍然眼前的場景。';
+
+  @override
+  String get noneLabel => '無';
+
+  @override
+  String selectItemTitle(String item) {
+    return '選擇$item';
+  }
 
   @override
   String get loadingGarments => '載入服飾中…';
@@ -1076,7 +1153,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get myCollection => '我的收藏';
 
   @override
-  String get myLook => '我的穿搭';
+  String get myOutfit => '我的穿搭';
 
   @override
   String get shareComingSoon => '分享功能即將推出';
@@ -1088,19 +1165,25 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get failedToLoadGarments => '服飾載入失敗';
 
   @override
-  String get failedToRegenerateLook => '重新產生穿搭失敗';
+  String get failedToRegenerateOutfit => '重新產生穿搭失敗';
 
   @override
-  String get saveThisLookTitle => '儲存這套穿搭？';
+  String get saveThisOutfitTitle => '儲存這套穿搭？';
 
   @override
-  String get saveThisLookBody => '要將這套穿搭加入你的收藏嗎？';
+  String get saveThisOutfitBody => '要將這套穿搭加入你的收藏嗎？';
 
   @override
-  String get deleteLookTitle => '刪除穿搭';
+  String get deleteOutfitTitle => '刪除穿搭';
 
   @override
-  String get deleteLookConfirmation => '確定要刪除這套穿搭嗎？';
+  String get deleteOutfitConfirmation => '確定要刪除這套穿搭嗎？';
+
+  @override
+  String get deleteLookTitle => '刪除版本';
+
+  @override
+  String get deleteLookConfirmation => '確定要刪除這個版本嗎？此動作無法復原。';
 
   @override
   String createdOnDate(String date) {
@@ -1178,7 +1261,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get navCloset => '衣櫃';
 
   @override
-  String get navLooks => '穿搭';
+  String get navOutfits => '穿搭';
 
   @override
   String get navTrips => '行程';
@@ -1190,7 +1273,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get quickActionAddClothing => '新增衣物';
 
   @override
-  String get quickActionAddLook => '新增穿搭';
+  String get quickActionAddOutfit => '新增穿搭';
 
   @override
   String get newTrip => '新增行程';
@@ -1286,10 +1369,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get goToSuitcase => '前往行李箱';
 
   @override
-  String get outfitMissingItemsWarning => '這套穿搭裡有些單品已經從行李箱中移除。';
+  String missingFromSuitcaseCount(int count) {
+    return '還有 $count 件尚未打包。';
+  }
 
   @override
-  String get fixOutfit => '修正';
+  String get addToSuitcase => '加入行李箱';
 
   @override
   String get loading => '載入中…';
@@ -1298,13 +1383,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get tryAgain => '再試一次';
 
   @override
-  String get generatingLookEllipsis => '正在產生你的穿搭…';
+  String get generatingOutfitEllipsis => '正在產生你的穿搭…';
 
   @override
-  String get noLookImageYet => '尚無穿搭圖片';
+  String get noOutfitImageYet => '尚無穿搭圖片';
 
   @override
-  String get generateLook => '產生穿搭';
+  String get generateOutfit => '產生穿搭';
 
   @override
   String get selectDates => '選擇日期';
@@ -1340,7 +1425,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get back => '返回';
 
   @override
-  String lookFallbackTitle(int id) {
+  String outfitFallbackTitle(int id) {
     return '穿搭 #$id';
   }
 
@@ -1564,10 +1649,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get purchaseDateLabel => '購買日期';
 
   @override
-  String get notUsedInLooksYet => '尚未用於任何穿搭';
+  String get notUsedInOutfitsYet => '尚未用於任何穿搭';
 
   @override
-  String get usedInLooks => '已用於穿搭';
+  String get usedInOutfits => '已用於穿搭';
 
   @override
   String get selectAColor => '選擇顏色';
@@ -1600,10 +1685,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get itemDeleted => '已刪除衣物';
 
   @override
-  String get lookSaved => '穿搭已儲存';
+  String get outfitSaved => '穿搭已儲存';
 
   @override
-  String get lookDeleted => '穿搭已刪除';
+  String get outfitDeleted => '穿搭已刪除';
 
   @override
   String get midLayer => '中層';
@@ -1612,16 +1697,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get outerwear => '外套';
 
   @override
-  String get createLook => '建立穿搭';
-
-  @override
-  String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立穿搭」查看試穿結果！';
+  String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立造型」查看試穿結果！';
 
   @override
   String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
 
   @override
-  String get creatingLooksEllipsis => '建立穿搭中…';
+  String get creatingOutfitsEllipsis => '建立穿搭中…';
 
   @override
   String get loadingClosetEllipsis => '載入衣櫃中…';
@@ -1669,10 +1751,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleLabel => '風格';
 
   @override
-  String get noLooksYet => '尚無穿搭。';
+  String get noOutfitsYet => '尚無穿搭。';
 
   @override
-  String get itemNotUsedInLooksYet => '這件單品尚未用於任何穿搭。';
+  String get itemNotUsedInOutfitsYet => '這件單品尚未用於任何穿搭。';
 
   @override
   String get failedToUpdateFavorite => '更新收藏失敗';
@@ -1693,7 +1775,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loadingTripsEllipsis => '載入行程列表中…';
 
   @override
-  String get loadingLooksEllipsis => '載入穿搭中…';
+  String get loadingOutfitsEllipsis => '載入穿搭中…';
 
   @override
   String get noTripsPlannedYet => '尚無規劃中的行程';
@@ -1747,6 +1829,20 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get selectGarmentsTitle => '選擇衣物';
+
+  @override
+  String get addFromOutfit => '從穿搭新增';
+
+  @override
+  String get selectAnOutfitTitle => '選擇穿搭';
+
+  @override
+  String addedItemsFromOutfitCount(int count) {
+    return '已從此穿搭新增 $count 件單品。';
+  }
+
+  @override
+  String get noNewItemsFromOutfit => '這套穿搭沒有可新增的單品。';
 
   @override
   String noGarmentsInCategory(String category) {
@@ -1832,7 +1928,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get selectOccasionTitle => '選擇場合';
 
   @override
-  String get todaysLook => '今日穿搭';
+  String get todaysOutfit => '今日穿搭';
 
   @override
   String get loadingWeatherEllipsis => '載入天氣中…';

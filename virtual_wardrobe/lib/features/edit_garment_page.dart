@@ -10,14 +10,14 @@ import '../app/theme/app_text_styles.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
-import '../core/services/look_service.dart';
+import '../core/services/outfit_service.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/signed_url.dart';
 import '../data/garment.dart';
 import '../data/image_edit_result.dart';
 import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'garment_looks_page.dart';
+import 'garment_outfits_page.dart';
 import 'image_editor_page.dart';
 import 'widgets/common/app_dialog.dart';
 import 'widgets/common/app_text_field.dart';
@@ -70,7 +70,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
   Map<String, dynamic>? _versatility;
-  int? _lookCount;
+  int? _outfitCount;
 
   bool _isModified = false;
   late String _initialName;
@@ -133,20 +133,20 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
 
     if (_id != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _ensureFreshImage());
-      _loadLookCount();
+      _loadOutfitCount();
     }
   }
 
-  int? get _garmentIdForLooks =>
+  int? get _garmentIdForOutfits =>
       _editingGarment?.garmentId ?? _editingGarment?.id;
 
-  Future<void> _loadLookCount() async {
-    final gid = _garmentIdForLooks;
+  Future<void> _loadOutfitCount() async {
+    final gid = _garmentIdForOutfits;
     if (gid == null) return;
     try {
-      final looks = await LookService().getLooksByGarments([gid]);
-      final count = looks.where((l) => l.isSaved).length;
-      if (mounted) setState(() => _lookCount = count);
+      final outfits = await OutfitService().getOutfitsByGarments([gid]);
+      final count = outfits.where((o) => o.isSaved).length;
+      if (mounted) setState(() => _outfitCount = count);
     } catch (_) {
       // Tile just stays in its loading state; not worth surfacing an error
       // for a secondary count that the user can still reach via the tap.
@@ -518,7 +518,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_isAddMode) _buildUsedInLooksTile(),
+          if (!_isAddMode) _buildUsedInOutfitsTile(),
           const Divider(
             height: 24,
             thickness: 1,
@@ -759,8 +759,8 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     }
   }
 
-  Widget _buildUsedInLooksTile() {
-    final count = _lookCount;
+  Widget _buildUsedInOutfitsTile() {
+    final count = _outfitCount;
     final loading = count == null;
     final zero = count == 0;
     final navigable = !zero;
@@ -768,7 +768,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
-        onTap: navigable ? _openUsedInLooks : null,
+        onTap: navigable ? _openUsedInOutfits : null,
         child: Container(
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -786,7 +786,7 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  zero ? _l10n.notUsedInLooksYet : _l10n.usedInLooks,
+                  zero ? _l10n.notUsedInOutfitsYet : _l10n.usedInOutfits,
                   style: AppTextStyle.regular14.copyWith(
                     color: zero
                         ? AppColors.textSecondary
@@ -820,15 +820,15 @@ class _AddGarmentPageState extends ConsumerState<EditGarmentPage> {
     );
   }
 
-  void _openUsedInLooks() {
-    final gid = _garmentIdForLooks;
+  void _openUsedInOutfits() {
+    final gid = _garmentIdForOutfits;
     debugLog(
-      'Used in Looks tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
+      'Used in Outfits tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
     );
     if (gid == null) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => GarmentLooksPage(garmentId: gid)),
+      MaterialPageRoute(builder: (_) => GarmentOutfitsPage(garmentId: gid)),
     );
   }
 

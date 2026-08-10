@@ -11,7 +11,7 @@ import 'garment_image.dart';
 
 /// Shows [garment]'s photo plus its category/name/color/brand/price, in a
 /// centered dialog — replaces jumping to a bare full-screen image when
-/// tapping a garment in a look's garment list.
+/// tapping a garment in an outfit's garment list.
 class GarmentDetailDialog extends StatelessWidget {
   final Garment garment;
 

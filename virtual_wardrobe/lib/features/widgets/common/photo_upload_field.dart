@@ -4,6 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'dashed_border_painter.dart';
 import 'pill_button.dart';
 
 /// Photo preview when [imageProvider] is set, otherwise a dashed-border
@@ -64,10 +65,7 @@ class PhotoUploadField extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: AppColors.borderStrong,
-          radius: 16,
-        ),
+        painter: DashedBorderPainter(color: AppColors.borderStrong, radius: 16),
         child: Container(
           width: double.infinity,
           height: 240,
@@ -105,47 +103,4 @@ class PhotoUploadField extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-  const _DashedBorderPainter({required this.color, required this.radius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    const sw = 1.5;
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(sw / 2, sw / 2, size.width - sw, size.height - sw),
-          Radius.circular(radius),
-        ),
-      );
-
-    for (final metric in path.computeMetrics()) {
-      double distance = 0;
-      bool draw = true;
-      while (distance < metric.length) {
-        final segmentEnd = (distance + (draw ? 8.0 : 5.0)).clamp(
-          0.0,
-          metric.length,
-        );
-        if (draw) {
-          canvas.drawPath(metric.extractPath(distance, segmentEnd), paint);
-        }
-        distance = segmentEnd;
-        draw = !draw;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
 }

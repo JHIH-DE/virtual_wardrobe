@@ -5,22 +5,22 @@ import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/utils/debug_log.dart';
 import '../features/home_page.dart';
-import '../features/looks_page.dart';
-import '../features/add_look_page.dart';
+import '../features/outfits_page.dart';
+import '../features/add_outfit_page.dart';
 import '../features/my_closet_page.dart';
 import '../features/trips_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
 import '../features/widgets/common/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
 
-/// Persistent shell hosting the app's 4 main tabs (Home, My Closet, Looks,
+/// Persistent shell hosting the app's 4 main tabs (Home, My Closet, Outfits,
 /// Trips) in an [IndexedStack]. Unlike pushing each tab as its own
 /// route, this keeps every tab's widget state (scroll position, in-progress
 /// filters, etc.) alive across switches, and the floating nav bar is built
 /// once here rather than per-page — so switching tabs is a plain `setState`
 /// with no route transition to animate, and the bar never flickers.
 ///
-/// Also owns the nav bar's raised center button (add clothing / add look /
+/// Also owns the nav bar's raised center button (add clothing / add outfit /
 /// new trip) — it lives here rather than on a single page since it needs
 /// to work the same regardless of which tab is active.
 class MainShell extends ConsumerStatefulWidget {
@@ -74,14 +74,14 @@ class _MainShellState extends ConsumerState<MainShell> {
             _select(AppTab.closet);
           },
         );
-      case QuickAction.addLook:
-        await _openAddLook();
+      case QuickAction.addOutfit:
+        await _openAddOutfit();
       case QuickAction.newTrip:
         await handleCreateTrip(context, ref);
     }
   }
 
-  Future<void> _openAddLook() async {
+  Future<void> _openAddOutfit() async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -95,7 +95,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => AddLookPage(
+          builder: (_) => AddOutfitPage(
             preloadedGarments: garments,
             onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
           ),
@@ -130,7 +130,7 @@ class _MainShellState extends ConsumerState<MainShell> {
               children: const [
                 HomePage(),
                 MyClosetPage(),
-                LooksPage(),
+                OutfitsPage(),
                 TripsPage(),
               ],
             ),
