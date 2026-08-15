@@ -218,12 +218,12 @@ class TripService with BaseService {
   }
 
   Future<Map<String, dynamic>> setTryonJobToOption(
-    int jobId, {
+    int outfitId, {
     required int optionId,
     required int tripId,
   }) async {
     debugLog(
-      '--- setTryonJobToOption tripId=$tripId optionId=$optionId jobId=$jobId ---',
+      '--- setTryonJobToOption tripId=$tripId optionId=$optionId outfitId=$outfitId ---',
     );
     final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/job');
 
@@ -231,7 +231,7 @@ class TripService with BaseService {
       (token) => http.patch(
         uri,
         headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode({'job_id': jobId}),
+        body: jsonEncode({'outfit_id': outfitId}),
       ),
     );
 

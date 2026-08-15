@@ -15,9 +15,9 @@ import '../data/image_edit_result.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'camera_capture_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/pill_button.dart';
+import 'widgets/common/buttons/bottom_action_button.dart';
+import 'widgets/common/overlays/loading_overlay.dart';
+import 'widgets/common/buttons/pill_button.dart';
 
 class ImageEditorPage extends StatefulWidget {
   final String? initialPath;

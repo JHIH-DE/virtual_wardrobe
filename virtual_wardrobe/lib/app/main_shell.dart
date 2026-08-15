@@ -10,7 +10,7 @@ import '../features/add_outfit_page.dart';
 import '../features/my_closet_page.dart';
 import '../features/trips_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
-import '../features/widgets/common/loading_overlay.dart';
+import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
 
 /// Persistent shell hosting the app's 4 main tabs (Home, My Closet, Outfits,

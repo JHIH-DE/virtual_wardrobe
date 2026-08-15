@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/profile_service.dart';
@@ -11,9 +12,9 @@ import '../data/occasion_type.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../l10n/occasion_type_localization.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/number_stepper.dart';
-import 'widgets/common/picker_sheet.dart';
+import 'widgets/common/buttons/bottom_action_button.dart';
+import 'widgets/common/fields/number_stepper.dart';
+import 'widgets/common/overlays/picker_sheet.dart';
 import 'widgets/common/section_title.dart';
 
 class LifestylePage extends StatefulWidget {
@@ -120,7 +121,12 @@ class _LifestylePageState extends State<LifestylePage> {
       extendBody: true,
       appBar: _buildAppBar(),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          AppDimens.bottomActionBtnClearance,
+        ),
         children: [
           const SizedBox(height: 16),
           _buildSectionTitle(_l10n.weeklySchedule),
@@ -134,7 +140,6 @@ class _LifestylePageState extends State<LifestylePage> {
           _buildComfortAdjustmentIntro(),
           const SizedBox(height: 16),
           _buildTempAdjuster(),
-          const SizedBox(height: 32),
         ],
       ),
       bottomNavigationBar: BottomActionButton(

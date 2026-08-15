@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../app/theme/app_colors.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/garment_service.dart';
 import '../core/services/outfit_service.dart';
 import '../core/services/trip_service.dart';
 import '../core/utils/debug_log.dart';
@@ -18,12 +17,12 @@ import '../l10n/generated/app_localizations.dart';
 import 'add_outfit_page.dart';
 import 'outfit_details_page.dart';
 import 'trip_suitcase_page.dart';
-import 'widgets/common/app_dialog.dart';
-import 'widgets/common/app_list_card.dart';
+import 'widgets/common/overlays/app_dialog.dart';
+import 'widgets/common/cards/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/lumi_insight_card.dart';
+import 'widgets/common/overlays/empty_state_placeholder.dart';
+import 'widgets/common/overlays/loading_overlay.dart';
+import 'widgets/common/cards/lumi_insight_card.dart';
 import 'widgets/trip/today_outfit_idea.dart';
 import 'widgets/garment/garment_image.dart';
 import 'widgets/trip/trip_day_card.dart';
@@ -34,14 +33,14 @@ import 'widgets/trip/trip_day_card.dart';
 class TripDayOutfit {
   final int? optionId;
   final List<Garment> garments;
-  final int? jobId;
+  final int? outfitId;
   final double? temperatureMaxC;
   final double? temperatureMinC;
 
   const TripDayOutfit({
     this.optionId,
     this.garments = const [],
-    this.jobId,
+    this.outfitId,
     this.temperatureMaxC,
     this.temperatureMinC,
   });
@@ -73,14 +72,13 @@ Set<int> _parseSuitcaseItemIds(dynamic rawItems) {
   return ids;
 }
 
-/// Picks the primary (lowest `order_index`) outfit option for one trip day
-/// and resolves its garment ids against [garmentsById]. The day's
-/// temperature range comes straight from the trip plan itself
+/// Picks the primary (lowest `order_index`) outfit option for one trip day.
+/// Each item's `image_url`/`category`/`name` now come back embedded
+/// directly (`TripOutfitItemResponse`), so garments are built straight from
+/// them — no separate closet fetch needed to resolve `garment_id`s. The
+/// day's temperature range comes straight from the trip plan itself
 /// (`temperature_max_c` / `temperature_min_c`), not a separate weather fetch.
-TripDayOutfit _parseTripDayOutfit(
-  Map<String, dynamic> day,
-  Map<int, Garment> garmentsById,
-) {
+TripDayOutfit _parseTripDayOutfit(Map<String, dynamic> day) {
   final temperatureMaxC = (day['temperature_max_c'] as num?)?.toDouble();
   final temperatureMinC = (day['temperature_min_c'] as num?)?.toDouble();
   final options =
@@ -102,15 +100,12 @@ TripDayOutfit _parseTripDayOutfit(
   final primary = options.first;
   final items = ((primary['items'] as List?) ?? [])
       .whereType<Map<String, dynamic>>();
-  final garments = items
-      .map((i) => garmentsById[(i['garment_id'] as num?)?.toInt()])
-      .whereType<Garment>()
-      .toList();
+  final garments = items.map(Garment.fromTripItemJson).toList();
 
   return TripDayOutfit(
     optionId: (primary['id'] as num?)?.toInt(),
     garments: garments,
-    jobId: (primary['job_id'] as num?)?.toInt(),
+    outfitId: (primary['outfit_id'] as num?)?.toInt(),
     temperatureMaxC: temperatureMaxC,
     temperatureMinC: temperatureMinC,
   );
@@ -133,16 +128,10 @@ class TripDetailsPage extends ConsumerStatefulWidget {
     Set<int> suitcaseIds = {};
     try {
       final tripData = await TripService().getTrip(int.parse(trip.id));
-      final allGarments = await GarmentService().getGarments();
-      final garmentsById = {
-        for (final g in allGarments)
-          if (g.id != null) g.id!: g,
-      };
-
       final rawDays = (tripData['days'] as List?) ?? [];
       dayOutfits = rawDays
           .whereType<Map<String, dynamic>>()
-          .map((day) => _parseTripDayOutfit(day, garmentsById))
+          .map(_parseTripDayOutfit)
           .toList();
       suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']);
     } catch (e) {
@@ -186,6 +175,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// and therefore a disk-cache miss on the URL string alone — every time.
   static final Map<int, String> _resolvedOutfitImageUrls = {};
 
+  /// The last successfully-shown image for the *current* day, kept
+  /// separate from [tryOnResultUrl] (which `TryOnMixin` nulls out the
+  /// moment a poll/regenerate starts) so [TodayOutfitIdea] can keep
+  /// showing it — with a loading overlay on top — while a regenerate is in
+  /// flight, the same way Outfit Details overlays a loading state on a
+  /// look's existing image instead of blanking it out. Cleared on day
+  /// switches (a different day's photo shouldn't linger under the
+  /// spinner), but deliberately *not* cleared when a regenerate starts.
+  String? _lastShownOutfitImageUrl;
+
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
   bool _packingAdviceExpanded = false;
@@ -228,23 +227,25 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _loadOutfitImage() async {
-    final jobId = _currentDayOutfit?.jobId;
-    if (jobId == null || jobId == 0) return;
+    final outfitId = _currentDayOutfit?.outfitId;
+    if (outfitId == null || outfitId == 0) return;
 
-    final cachedUrl = _resolvedOutfitImageUrls[jobId];
+    final cachedUrl = _resolvedOutfitImageUrls[outfitId];
     if (cachedUrl != null) {
       if (mounted) {
         setState(() {
-          tryOnJobId = jobId;
+          tryOnOutfitId = outfitId;
           tryOnResultUrl = cachedUrl;
+          _lastShownOutfitImageUrl = cachedUrl;
         });
       }
       return;
     }
 
-    final resolvedJobId = await watchJob(jobId);
-    if (resolvedJobId != null && tryOnResultUrl != null) {
-      _resolvedOutfitImageUrls[resolvedJobId] = tryOnResultUrl!;
+    final resolvedOutfitId = await watchJob(outfitId);
+    if (resolvedOutfitId != null && tryOnResultUrl != null) {
+      _resolvedOutfitImageUrls[resolvedOutfitId] = tryOnResultUrl!;
+      if (mounted) setState(() => _lastShownOutfitImageUrl = tryOnResultUrl);
     }
   }
 
@@ -255,30 +256,20 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }),
   );
 
+  /// Day-option images now come straight from the trip itself
+  /// (`TripOutfitItemResponse.image_url`), so refreshing a stale one means
+  /// re-fetching the trip, not the closet.
   Future<void> _ensureFreshDayGarments() async {
     if (!_hasStaleGarmentImages) return;
     try {
-      final fresh = await GarmentService().getGarments();
-      final freshById = {
-        for (final g in fresh)
-          if (g.id != null) g.id!: g,
-      };
+      final tripData = await TripService().getTrip(int.parse(widget.trip.id));
+      final rawDays = (tripData['days'] as List?) ?? [];
+      final dayOutfits = rawDays
+          .whereType<Map<String, dynamic>>()
+          .map(_parseTripDayOutfit)
+          .toList();
       if (!mounted) return;
-      setState(() {
-        _dayOutfits = _dayOutfits
-            .map(
-              (day) => TripDayOutfit(
-                optionId: day.optionId,
-                jobId: day.jobId,
-                temperatureMaxC: day.temperatureMaxC,
-                temperatureMinC: day.temperatureMinC,
-                garments: day.garments
-                    .map((g) => freshById[g.id] ?? g)
-                    .toList(),
-              ),
-            )
-            .toList();
-      });
+      setState(() => _dayOutfits = dayOutfits);
     } catch (_) {
       // Leave the existing URLs; GarmentImage's errorWidget covers the
       // fallback if they've truly expired.
@@ -324,6 +315,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   Future<void> _loadDailyData() async {
     resetTryOnState();
+    setState(() => _lastShownOutfitImageUrl = null);
     await _loadOutfitImage();
   }
 
@@ -331,15 +323,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// hand-editing a plan) without re-fetching weather.
   Future<void> _refreshDayOutfits() async {
     final tripData = await TripService().getTrip(int.parse(widget.trip.id));
-    final allGarments = await GarmentService().getGarments();
-    final garmentsById = {
-      for (final g in allGarments)
-        if (g.id != null) g.id!: g,
-    };
     final rawDays = (tripData['days'] as List?) ?? [];
     final dayOutfits = rawDays
         .whereType<Map<String, dynamic>>()
-        .map((day) => _parseTripDayOutfit(day, garmentsById))
+        .map(_parseTripDayOutfit)
         .toList();
     if (!mounted) return;
     setState(() {
@@ -350,21 +337,25 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   /// Fetches the trip's current suitcase, resolved to full [Garment]
-  /// objects (alongside the user's whole closet, for callers that also need
-  /// it — e.g. to decide which category slots to show), and syncs
-  /// [_suitcaseIds] along the way. Returns null (after showing an error) if
-  /// the fetch fails.
-  Future<({List<Garment> suitcase, List<Garment> closet})?>
-  _fetchSuitcaseGarments() async {
+  /// objects straight from each item's own embedded `image_url`/`category`/
+  /// `name` fields (`TripSuitcaseItemResponse`) — no closet fetch needed —
+  /// and syncs [_suitcaseIds] along the way. Returns null (after showing an
+  /// error) if the fetch fails.
+  Future<List<Garment>?> _fetchSuitcaseGarments() async {
     try {
       final tripData = await TripService().getTrip(int.parse(widget.trip.id));
-      final suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']);
-      final allGarments = await GarmentService().getGarments();
-      if (mounted) setState(() => _suitcaseIds = suitcaseIds);
-      final suitcase = allGarments
-          .where((g) => g.id != null && suitcaseIds.contains(g.id))
+      final rawSuitcaseItems = (tripData['suitcase_items'] as List?) ?? [];
+      final suitcase = rawSuitcaseItems
+          .whereType<Map<String, dynamic>>()
+          .map(Garment.fromTripItemJson)
           .toList();
-      return (suitcase: suitcase, closet: allGarments);
+      if (mounted) {
+        setState(
+          () =>
+              _suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']),
+        );
+      }
+      return suitcase;
     } catch (e) {
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
@@ -411,7 +402,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final fetched = await _fetchSuitcaseGarments();
     if (fetched == null || !mounted) return;
 
-    if (!_hasViableSuitcase(fetched.suitcase)) {
+    if (!_hasViableSuitcase(fetched)) {
       final goToSuitcase = await showDialog<bool>(
         context: context,
         builder: (ctx) => AppDialog(
@@ -476,7 +467,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final fetched = await _fetchSuitcaseGarments();
     if (mounted) setState(() => _loadingEditor = false);
     if (fetched == null || !mounted) return;
-    final suitcaseGarments = fetched.suitcase;
+    final suitcaseGarments = fetched;
 
     final validIds = Set.of(_suitcaseIds);
 
@@ -499,23 +490,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         optionId: optionId,
         garmentIds: result.toList(),
       );
-      // Union of closet + the day's previous garments, since a slot the
-      // user left untouched can still carry a stale (no-longer-packed) id.
-      final garmentsById = {
-        for (final g in [...fetched.closet, ..._todayGarments])
-          if (g.id != null) g.id!: g,
-      };
       final items = (updated['items'] as List?) ?? [];
       final newGarments = items
           .whereType<Map<String, dynamic>>()
-          .map((i) => garmentsById[(i['garment_id'] as num?)?.toInt()])
-          .whereType<Garment>()
+          .map(Garment.fromTripItemJson)
           .toList();
       if (!mounted) return;
       setState(() {
         _dayOutfits[_selectedDayIndex] = TripDayOutfit(
           optionId: optionId,
-          jobId: _currentDayOutfit?.jobId,
+          outfitId: _currentDayOutfit?.outfitId,
           temperatureMaxC: _currentDayOutfit?.temperatureMaxC,
           temperatureMinC: _currentDayOutfit?.temperatureMinC,
           garments: newGarments,
@@ -721,16 +705,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     return TodayOutfitIdea(
       onTap: _openOutfitDetails,
       onGenerate: _handleGenerateOutfit,
-      imageUrl: tryOnResultUrl,
+      // The last successfully-shown image, not the raw (nulled-out-while-
+      // loading) tryOnResultUrl — lets the widget keep it visible with a
+      // loading overlay on top while regenerating, instead of blanking out.
+      imageUrl: _lastShownOutfitImageUrl,
       isLoading: isOutfitLoading,
       jobStatus: isOutfitLoading
-          ? (tryOnJobId == 0
+          ? (tryOnOutfitId == 0
                 ? _l10n.creatingEllipsis
                 : _l10n.generatingEllipsis)
           : null,
       errorMessage: tryOnErrorMessage,
       onRefreshUrl: _refreshOutfitImageUrl,
-      cacheKey: tryOnJobId != 0 ? 'outfit-job-$tryOnJobId' : null,
+      cacheKey: tryOnOutfitId != 0 ? 'outfit-job-$tryOnOutfitId' : null,
     );
   }
 
@@ -738,15 +725,17 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// a freshly-signed `result_image_url` if the cached one expired —
   /// there's no new job to create, just the same one's latest status.
   Future<String?> _refreshOutfitImageUrl() async {
-    final jobId = tryOnJobId != 0 ? tryOnJobId : _currentDayOutfit?.jobId;
-    if (jobId == null || jobId == 0) return null;
+    final outfitId = tryOnOutfitId != 0
+        ? tryOnOutfitId
+        : _currentDayOutfit?.outfitId;
+    if (outfitId == null || outfitId == 0) return null;
     try {
-      final result = await OutfitService().getOutfit(jobId);
+      final result = await OutfitService().getOutfit(outfitId);
       final url =
           (primaryLookOf(result)?['result_image_url'] ??
                   result['result_image_url'])
               as String?;
-      if (url != null) _resolvedOutfitImageUrls[jobId] = url;
+      if (url != null) _resolvedOutfitImageUrls[outfitId] = url;
       return url;
     } catch (e) {
       debugLog('Failed to refresh outfit image url: $e');
@@ -1169,25 +1158,39 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         .where((g) => g.id != null)
         .map((g) => g.id!)
         .toList();
-    final int? jobId = await performTryOn(ids, "trip");
+    final int? outfitId = await performTryOn(ids, "trip");
 
-    if (jobId != null) {
-      if (tryOnResultUrl != null) {
-        _resolvedOutfitImageUrls[jobId] = tryOnResultUrl!;
+    if (outfitId == null) {
+      // With a previous image still on screen, TodayOutfitIdea no longer
+      // blanks out to its inline error view on failure (matching Outfit
+      // Details, which leaves a look's existing image in place) — so a
+      // failed regenerate needs its own explicit surface.
+      if (mounted &&
+          _lastShownOutfitImageUrl != null &&
+          tryOnErrorMessage != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(tryOnErrorMessage!)));
       }
-      try {
-        await TripService().setTryonJobToOption(
-          jobId,
-          optionId: optionId,
-          tripId: int.parse(widget.trip.id),
-        );
-      } catch (e) {
-        if (e is AuthExpiredException) {
-          await AuthExpiredHandler.handle(context);
-          return;
-        }
-        debugLog('Failed to save jobId: $e');
+      return;
+    }
+
+    if (tryOnResultUrl != null) {
+      _resolvedOutfitImageUrls[outfitId] = tryOnResultUrl!;
+      if (mounted) setState(() => _lastShownOutfitImageUrl = tryOnResultUrl);
+    }
+    try {
+      await TripService().setTryonJobToOption(
+        outfitId,
+        optionId: optionId,
+        tripId: int.parse(widget.trip.id),
+      );
+    } catch (e) {
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
       }
+      debugLog('Failed to save outfitId: $e');
     }
   }
 
@@ -1200,7 +1203,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       MaterialPageRoute(
         builder: (_) => OutfitDetailsPage(
           outfit: Outfit(
-            id: tryOnJobId,
+            id: tryOnOutfitId,
             imageUrl: url,
             advice: tryOnAiAdvice,
             garmentIds: _todayGarments

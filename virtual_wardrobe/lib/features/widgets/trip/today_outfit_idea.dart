@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../common/refreshable_network_image.dart';
+import '../common/overlays/loading_overlay.dart';
+import '../common/images/refreshable_network_image.dart';
 
 class TodayOutfitIdea extends StatelessWidget {
   final VoidCallback onGenerate;
@@ -48,54 +49,62 @@ class TodayOutfitIdea extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.borderSubtle),
       ),
-      child: hasImage
-          ? GestureDetector(
-              onTap: onTap,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: RefreshableNetworkImage(
-                    imageUrl: imageUrl!,
-                    cacheKey: cacheKey,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    alignment: Alignment.topCenter,
-                    placeholderBuilder: (_) =>
-                        const Center(child: CircularProgressIndicator()),
-                    errorIcon: Icons.inventory_2_outlined,
-                    errorIconSize: 64,
-                    errorLabel: l10n.generatingOutfitEllipsis,
-                    onRefreshUrl: onRefreshUrl,
-                  ),
-                ),
-              ),
-            )
-          : SizedBox(
-              height: 140,
-              child: Center(
-                child: isLoading
-                    ? _buildLoadingView(l10n)
-                    : errorMessage != null
-                    ? _buildErrorView(l10n)
-                    : _buildGenerateView(l10n),
-              ),
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: hasImage ? _buildImage(l10n) : _buildEmptyState(l10n),
+      ),
     );
   }
 
-  Widget _buildLoadingView(AppLocalizations l10n) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      const CircularProgressIndicator(),
-      const SizedBox(height: 16),
-      Text(
-        jobStatus ?? l10n.loading,
-        style: const TextStyle(color: AppColors.textSecondary),
+  /// Keeps the existing image visible — with a [LoadingOverlay] on top
+  /// while regenerating — rather than blanking it out, the same way Outfit
+  /// Details overlays a loading state on a look's existing image instead
+  /// of hiding it.
+  Widget _buildImage(AppLocalizations l10n) {
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: AspectRatio(
+        aspectRatio: 3 / 4,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RefreshableNetworkImage(
+              imageUrl: imageUrl!,
+              cacheKey: cacheKey,
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              errorIcon: Icons.inventory_2_outlined,
+              errorIconSize: 64,
+              errorLabel: l10n.generatingOutfitEllipsis,
+              onRefreshUrl: onRefreshUrl,
+            ),
+            if (isLoading)
+              LoadingOverlay(label: jobStatus ?? l10n.generatingEllipsis),
+          ],
+        ),
       ),
-    ],
-  );
+    );
+  }
+
+  /// No outfit image yet — loading (first-ever generate), an error, or the
+  /// "tap to generate" prompt.
+  Widget _buildEmptyState(AppLocalizations l10n) {
+    return SizedBox(
+      height: 140,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (!isLoading)
+            Center(
+              child: errorMessage != null
+                  ? _buildErrorView(l10n)
+                  : _buildGenerateView(l10n),
+            ),
+          if (isLoading) LoadingOverlay(label: jobStatus ?? l10n.loading),
+        ],
+      ),
+    );
+  }
 
   Widget _buildErrorView(AppLocalizations l10n) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
@@ -111,8 +120,16 @@ class TodayOutfitIdea extends StatelessWidget {
           style: AppTextStyle.regular13.copyWith(color: AppColors.textPrimary),
         ),
       ),
-      const SizedBox(height: 8),
-      TextButton(onPressed: onGenerate, child: Text(l10n.tryAgain)),
+      const SizedBox(height: 4),
+      TextButton(
+        onPressed: onGenerate,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(l10n.tryAgain),
+      ),
     ],
   );
 

@@ -4,7 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
-import '../common/selectable_chip.dart';
+import '../common/fields/selectable_chip.dart';
 
 class CategorySelector extends StatelessWidget {
   final List<GarmentCategory> categories;

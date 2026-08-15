@@ -183,6 +183,54 @@ abstract class AppLocalizations {
   /// **'Style Profile'**
   String get styleProfile;
 
+  /// No description provided for @styleTaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Style Taste'**
+  String get styleTaste;
+
+  /// No description provided for @styleTasteSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'LUMI learns how you like to put outfits together'**
+  String get styleTasteSummary;
+
+  /// No description provided for @styleTasteHeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on your saved outfits and feedback, LUMI is learning your style taste.'**
+  String get styleTasteHeroSubtitle;
+
+  /// No description provided for @styleTasteDimensionsInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What these mean'**
+  String get styleTasteDimensionsInfoTitle;
+
+  /// No description provided for @styleTasteRadarCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Style Taste'**
+  String get styleTasteRadarCardTitle;
+
+  /// No description provided for @styleTasteRadarCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A visual summary of your style preferences.'**
+  String get styleTasteRadarCardSubtitle;
+
+  /// No description provided for @styleTasteKeyInsightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Key Insights'**
+  String get styleTasteKeyInsightsTitle;
+
+  /// Style Taste insight card's stat line — how many saved outfits were analyzed and how many of those are favorites
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzed {count} outfits · {favoriteCount} favorites'**
+  String styleTasteAnalysisStats(int count, int favoriteCount);
+
   /// No description provided for @lifestyle.
   ///
   /// In en, this message translates to:
@@ -399,12 +447,6 @@ abstract class AppLocalizations {
   /// **'Failed to load garments'**
   String get failedToLoadGarments;
 
-  /// No description provided for @failedToRegenerateOutfit.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to regenerate outfit'**
-  String get failedToRegenerateOutfit;
-
   /// No description provided for @saveThisOutfitTitle.
   ///
   /// In en, this message translates to:
@@ -429,17 +471,23 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete this outfit?'**
   String get deleteOutfitConfirmation;
 
-  /// No description provided for @deleteLookTitle.
+  /// No description provided for @deleteLook.
   ///
   /// In en, this message translates to:
-  /// **'Delete Version'**
-  String get deleteLookTitle;
+  /// **'Delete Look'**
+  String get deleteLook;
 
-  /// No description provided for @deleteLookConfirmation.
+  /// No description provided for @undo.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to delete this version? This can\'t be undone.'**
-  String get deleteLookConfirmation;
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @lookDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Look deleted'**
+  String get lookDeleted;
 
   /// Footer showing the creation date of an outfit
   ///
@@ -566,6 +614,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Outdoor'**
   String get styleOutdoor;
+
+  /// No description provided for @styleTasteStyleBalanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Style Balance'**
+  String get styleTasteStyleBalanceTitle;
+
+  /// No description provided for @styleTasteStyleBalanceLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Consistent'**
+  String get styleTasteStyleBalanceLow;
+
+  /// No description provided for @styleTasteStyleBalanceHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get styleTasteStyleBalanceHigh;
+
+  /// No description provided for @styleTasteColorPairingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Color Pairing'**
+  String get styleTasteColorPairingTitle;
+
+  /// No description provided for @styleTasteColorPairingLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tonal'**
+  String get styleTasteColorPairingLow;
+
+  /// No description provided for @styleTasteColorPairingHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Contrast'**
+  String get styleTasteColorPairingHigh;
+
+  /// No description provided for @styleTasteFitPreferenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit Preference'**
+  String get styleTasteFitPreferenceTitle;
+
+  /// No description provided for @styleTasteFitPreferenceLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Fitted'**
+  String get styleTasteFitPreferenceLow;
+
+  /// No description provided for @styleTasteFitPreferenceHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Relaxed'**
+  String get styleTasteFitPreferenceHigh;
+
+  /// No description provided for @styleTasteLayeringTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Layering'**
+  String get styleTasteLayeringTitle;
+
+  /// No description provided for @styleTasteLayeringLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Simple'**
+  String get styleTasteLayeringLow;
+
+  /// No description provided for @styleTasteLayeringHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Layered'**
+  String get styleTasteLayeringHigh;
+
+  /// No description provided for @styleTasteAccessoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessories'**
+  String get styleTasteAccessoriesTitle;
+
+  /// No description provided for @styleTasteAccessoriesLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimal'**
+  String get styleTasteAccessoriesLow;
+
+  /// No description provided for @styleTasteAccessoriesHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Expressive'**
+  String get styleTasteAccessoriesHigh;
 
   /// No description provided for @navHome.
   ///
@@ -1946,6 +2084,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit'**
   String get edit;
+
+  /// No description provided for @editTagsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Tags'**
+  String get editTagsTitle;
 
   /// No description provided for @analyzingClothingEllipsis.
   ///

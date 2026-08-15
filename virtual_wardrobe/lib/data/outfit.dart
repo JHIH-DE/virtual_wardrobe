@@ -47,7 +47,6 @@ class Outfit {
   final String? advice;
   final String? errorMessage;
   final bool isFavorite;
-  final bool isSaved;
   final DateTime createdAt;
   final DateTime? finishedAt;
 
@@ -61,12 +60,11 @@ class Outfit {
     this.advice,
     this.errorMessage,
     this.isFavorite = false,
-    this.isSaved = false,
     DateTime? createdAt,
     this.finishedAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  Outfit copyWith({bool? isFavorite, bool? isSaved, String? name}) {
+  Outfit copyWith({bool? isFavorite, String? name}) {
     return Outfit(
       id: id,
       name: name ?? this.name,
@@ -77,7 +75,6 @@ class Outfit {
       advice: advice,
       errorMessage: errorMessage,
       isFavorite: isFavorite ?? this.isFavorite,
-      isSaved: isSaved ?? this.isSaved,
       createdAt: createdAt,
       finishedAt: finishedAt,
     );
@@ -109,18 +106,33 @@ class Outfit {
       return [];
     }
 
+    // Falls back through candidates that are null OR empty — a look still
+    // `queued`/`processing` reports its own result_image_url as "" rather
+    // than omitting it, which `??` alone wouldn't skip past.
+    String firstNonEmpty(List<String?> candidates) {
+      for (final c in candidates) {
+        if (c != null && c.isNotEmpty) return c;
+      }
+      return '';
+    }
+
     final look = primaryLookOf(json);
     return Outfit(
-      // Backend now returns the outfit's id as `outfit_id`; `job_id` is
-      // kept as a fallback for any endpoint that hasn't migrated. Getting
-      // this wrong is silent and severe — every outfit was resolving to id
-      // 0, which collided cache keys (all list cards showed the same
-      // cached image) and made every details-page refresh re-fetch outfit
-      // 0 regardless of which outfit was actually opened.
-      id: parseId(json['outfit_id'] ?? json['job_id']),
+      id: parseId(json['outfit_id']),
       name: json['name'] as String?,
       garmentIds: parseIds(json['garment_ids']),
-      imageUrl: (look?['result_image_url'] ?? json['result_image_url']) ?? '',
+      // latest_result_image_url comes first: it's the backend's own
+      // "most recent successful render" pointer, whereas looks[0] is just
+      // positionally first — if that original look failed (status:
+      // 'failed', empty result_image_url) and the user generated a working
+      // version afterwards (createLook, a new looks[] entry rather than an
+      // in-place overwrite), looks[0] would keep resolving to the dead
+      // original instead of the actual current image.
+      imageUrl: firstNonEmpty([
+        json['latest_result_image_url'] as String?,
+        look?['result_image_url'] as String?,
+        json['result_image_url'] as String?,
+      ]),
       errorMessage: look?['error_message'] ?? json['error_message'],
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
       finishedAt: parseDate(look?['finished_at'] ?? json['finished_at']),
@@ -128,13 +140,12 @@ class Outfit {
       style: parseStrings(json['style']),
       advice: look?['ai_notes'] ?? json['ai_notes'],
       isFavorite: json['is_favorite'] == true || json['is_favorite'] == 1,
-      isSaved: json['is_saved'] == true || json['is_saved'] == 1,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'job_id': id,
+      'outfit_id': id,
       'garment_ids': garmentIds,
       'result_image_url': imageUrl,
       'error_message': errorMessage,
@@ -145,4 +156,21 @@ class Outfit {
       'ai_notes': advice,
     };
   }
+}
+
+/// What `AddOutfitPage` pops back on success when generating a new version
+/// of an existing outfit (`existingOutfit` mode) — the generated image, the
+/// backend `look_id` that produced it (so the caller can offer deleting
+/// this specific version later, see `OutfitService.deleteLook`), and the
+/// accessories used (so the caller's Garment list can reflect this specific
+/// version instead of the outfit's fixed core combo).
+class OutfitVersionResult {
+  final String imageUrl;
+  final int? lookId;
+  final List<int> accessoryGarmentIds;
+  const OutfitVersionResult({
+    required this.imageUrl,
+    this.lookId,
+    this.accessoryGarmentIds = const [],
+  });
 }

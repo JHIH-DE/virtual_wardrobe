@@ -9,9 +9,9 @@ import '../utils/debug_log.dart';
 import 'base_service.dart';
 
 class DailyOutfitService with BaseService {
-  // Backend route is still `/daily_looks` — not renamed here since that's
+  // Backend route is still `/daily_outfits/` — not renamed here since that's
   // a live API contract, not just app-side wording.
-  static final String _baseUrl = '${AppConfig.fullApiUrl}/daily_looks';
+  static final String _baseUrl = '${AppConfig.fullApiUrl}/daily_outfits';
 
   Future<List<Garment>> getGarments(String day) async {
     final data = await _fetchDayData(day, 'getGarments');
@@ -46,9 +46,9 @@ class DailyOutfitService with BaseService {
 
   Future<int?> getOutfit(String day) async {
     final data = await _fetchDayData(day, 'getOutfit');
-    final jobId = data?['job_id'] as int?;
-    debugLog('--- getOutfit job_id: $jobId ---');
-    return jobId;
+    final outfitId = data?['outfit_id'] as int?;
+    debugLog('--- getOutfit outfit_id: $outfitId ---');
+    return outfitId;
   }
 
   /// Generates an outfit plan for any single date (not limited to a rolling
@@ -111,9 +111,9 @@ class DailyOutfitService with BaseService {
 
     final envelope = decodeMap(res, op: 'createTryOnForOption');
     final data = envelope['data'] as Map<String, dynamic>?;
-    final jobId = data?['job_id'] as int?;
-    debugLog('--- createTryOnForOption job_id: $jobId ---');
-    return jobId;
+    final outfitId = data?['outfit_id'] as int?;
+    debugLog('--- createTryOnForOption outfit_id: $outfitId ---');
+    return outfitId;
   }
 
   /// Fetches the existing outfit plan for [targetDate]. Returns null data if
@@ -124,9 +124,14 @@ class DailyOutfitService with BaseService {
     final res = await withAuth(
       (token) => http.get(uri, headers: authHeaders(token)),
     );
+    debugLog(
+      '--- getDailyOutfit response (${res.statusCode}): ${res.body} ---',
+    );
+    if (res.statusCode == 404) return null;
 
     final envelope = decodeMap(res, op: 'getDailyOutfit');
-    return envelope['data'] as Map<String, dynamic>?;
+    final data = envelope['data'] as Map<String, dynamic>?;
+    return data;
   }
 
   Future<List<Map<String, dynamic>>> listDailyOutfits({
@@ -161,31 +166,6 @@ class DailyOutfitService with BaseService {
 
     if (res.statusCode != 200) {
       throw Exception('deleteDailyOutfit failed: ${res.body}');
-    }
-  }
-
-  Future<void> saveJobId(String day, int jobId) async {
-    debugLog('--- saveJobId ---');
-    final id = await getId(day);
-    if (id == null) {
-      throw Exception('saveJobId: could not find plan ID for day $day');
-    }
-    debugLog('--- saveJobId id: $id');
-    debugLog('--- saveJobId jobId: $jobId');
-
-    final uri = Uri.parse('$_baseUrl/options/$id/job');
-    final body = {"job_id": jobId};
-
-    final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ),
-    );
-
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('saveJobId failed: ${res.body}');
     }
   }
 

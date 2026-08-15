@@ -19,8 +19,12 @@ final outfitFeedbackProvider = StateProvider<OutfitFeedbackKind?>(
 );
 
 class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
+  // The Outfits tab is standalone try-ons only — 'daily'/'trip' outfits are
+  // managed from Home's daily outfit / Trip Details instead, so they're
+  // filtered out server-side rather than fetched and discarded.
   @override
-  Future<List<Outfit>> build() => OutfitService().getAllOutfits();
+  Future<List<Outfit>> build() =>
+      OutfitService().getAllOutfits(jobType: 'general');
 
   /// True if any cached outfit's signed image URL has expired (or is about
   /// to), meaning the cached list should be re-fetched before display.
@@ -42,7 +46,9 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => OutfitService().getAllOutfits());
+    state = await AsyncValue.guard(
+      () => OutfitService().getAllOutfits(jobType: 'general'),
+    );
   }
 
   void add(Outfit outfit) {
@@ -62,12 +68,4 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
     );
   }
 
-  void updateFavorite(int id, {required bool isFavorite}) {
-    final current = state.valueOrNull ?? [];
-    state = AsyncData(
-      current
-          .map((o) => o.id == id ? o.copyWith(isFavorite: isFavorite) : o)
-          .toList(),
-    );
-  }
 }

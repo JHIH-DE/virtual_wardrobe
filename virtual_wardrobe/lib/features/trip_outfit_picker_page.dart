@@ -8,8 +8,8 @@ import '../core/utils/debug_log.dart';
 import '../data/outfit.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/overlays/empty_state_placeholder.dart';
+import 'widgets/common/overlays/error_state_widget.dart';
 import 'widgets/outfit/outfit_card.dart';
 
 /// Lets the user pick one of their saved outfits, so its garments can be
@@ -40,8 +40,10 @@ class _TripOutfitPickerPageState extends State<TripOutfitPickerPage> {
     });
     try {
       final outfits = await OutfitService().getAllOutfits();
+      // `is_saved` is no longer part of the outfit schema — filtering by it
+      // always excluded every result now.
       if (!mounted) return;
-      setState(() => _outfits = outfits.where((o) => o.isSaved).toList());
+      setState(() => _outfits = outfits);
     } catch (e) {
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);

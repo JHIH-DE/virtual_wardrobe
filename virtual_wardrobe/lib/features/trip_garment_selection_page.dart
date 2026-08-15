@@ -13,10 +13,10 @@ import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'trip_outfit_picker_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/buttons/bottom_action_button.dart';
 import 'widgets/garment/category_selector.dart';
-import 'widgets/common/filter_button.dart';
-import 'widgets/common/lumi_insight_card.dart';
+import 'widgets/common/buttons/filter_button.dart';
+import 'widgets/common/cards/lumi_insight_card.dart';
 import 'widgets/garment/garment_card.dart';
 
 class _CategoryAdvice {
@@ -334,7 +334,12 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       );
     }
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        AppDimens.bottomActionBtnClearance,
+      ),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,

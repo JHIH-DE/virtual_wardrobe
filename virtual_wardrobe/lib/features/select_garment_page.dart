@@ -4,10 +4,9 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../data/garment.dart';
-import '../data/select_garment_result.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/filter_button.dart';
+import 'widgets/common/buttons/filter_button.dart';
 import 'widgets/garment/garment_card.dart';
 
 /// Full-page grid picker for a single outfit slot (Top/Bottom/Shoes/etc).

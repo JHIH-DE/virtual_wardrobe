@@ -54,6 +54,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleProfile => '風格檔案';
 
   @override
+  String get styleTaste => '風格品味';
+
+  @override
+  String get styleTasteSummary => 'LUMI 學習你偏好的穿搭組合方式';
+
+  @override
+  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，LUMI 正在學習你的風格品味。';
+
+  @override
+  String get styleTasteDimensionsInfoTitle => '這些代表什麼';
+
+  @override
+  String get styleTasteRadarCardTitle => '你的風格品味';
+
+  @override
+  String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
+
+  @override
+  String get styleTasteKeyInsightsTitle => '重點洞察';
+
+  @override
+  String styleTasteAnalysisStats(int count, int favoriteCount) {
+    return '已分析 $count 套穿搭．$favoriteCount 套收藏';
+  }
+
+  @override
   String get lifestyle => '生活風格';
 
   @override
@@ -164,9 +190,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToLoadGarments => '服飾載入失敗';
 
   @override
-  String get failedToRegenerateOutfit => '重新產生穿搭失敗';
-
-  @override
   String get saveThisOutfitTitle => '儲存這套穿搭？';
 
   @override
@@ -179,10 +202,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteOutfitConfirmation => '確定要刪除這套穿搭嗎？';
 
   @override
-  String get deleteLookTitle => '刪除版本';
+  String get deleteLook => '刪除造型';
 
   @override
-  String get deleteLookConfirmation => '確定要刪除這個版本嗎？此動作無法復原。';
+  String get undo => '復原';
+
+  @override
+  String get lookDeleted => '已刪除造型';
 
   @override
   String createdOnDate(String date) {
@@ -252,6 +278,51 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get styleOutdoor => '戶外風';
+
+  @override
+  String get styleTasteStyleBalanceTitle => '風格平衡';
+
+  @override
+  String get styleTasteStyleBalanceLow => '一致';
+
+  @override
+  String get styleTasteStyleBalanceHigh => '混搭';
+
+  @override
+  String get styleTasteColorPairingTitle => '色彩搭配';
+
+  @override
+  String get styleTasteColorPairingLow => '同色調';
+
+  @override
+  String get styleTasteColorPairingHigh => '對比色';
+
+  @override
+  String get styleTasteFitPreferenceTitle => '版型偏好';
+
+  @override
+  String get styleTasteFitPreferenceLow => '修身';
+
+  @override
+  String get styleTasteFitPreferenceHigh => '寬鬆';
+
+  @override
+  String get styleTasteLayeringTitle => '層次穿搭';
+
+  @override
+  String get styleTasteLayeringLow => '簡單';
+
+  @override
+  String get styleTasteLayeringHigh => '多層次';
+
+  @override
+  String get styleTasteAccessoriesTitle => '配件';
+
+  @override
+  String get styleTasteAccessoriesLow => '極簡';
+
+  @override
+  String get styleTasteAccessoriesHigh => '豐富';
 
   @override
   String get navHome => '首頁';
@@ -967,6 +1038,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get edit => '編輯';
+
+  @override
+  String get editTagsTitle => '編輯標籤';
 
   @override
   String get analyzingClothingEllipsis => '分析衣物中…';
@@ -1055,6 +1129,32 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleProfile => '風格檔案';
 
   @override
+  String get styleTaste => '風格品味';
+
+  @override
+  String get styleTasteSummary => 'LUMI 學習你偏好的穿搭組合方式';
+
+  @override
+  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，LUMI 正在學習你的風格品味。';
+
+  @override
+  String get styleTasteDimensionsInfoTitle => '這些代表什麼';
+
+  @override
+  String get styleTasteRadarCardTitle => '你的風格品味';
+
+  @override
+  String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
+
+  @override
+  String get styleTasteKeyInsightsTitle => '重點洞察';
+
+  @override
+  String styleTasteAnalysisStats(int count, int favoriteCount) {
+    return '已分析 $count 套穿搭．$favoriteCount 套收藏';
+  }
+
+  @override
   String get lifestyle => '生活風格';
 
   @override
@@ -1165,9 +1265,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get failedToLoadGarments => '服飾載入失敗';
 
   @override
-  String get failedToRegenerateOutfit => '重新產生穿搭失敗';
-
-  @override
   String get saveThisOutfitTitle => '儲存這套穿搭？';
 
   @override
@@ -1180,10 +1277,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deleteOutfitConfirmation => '確定要刪除這套穿搭嗎？';
 
   @override
-  String get deleteLookTitle => '刪除版本';
+  String get deleteLook => '刪除造型';
 
   @override
-  String get deleteLookConfirmation => '確定要刪除這個版本嗎？此動作無法復原。';
+  String get undo => '復原';
+
+  @override
+  String get lookDeleted => '已刪除造型';
 
   @override
   String createdOnDate(String date) {
@@ -1253,6 +1353,51 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleOutdoor => '戶外風';
+
+  @override
+  String get styleTasteStyleBalanceTitle => '風格平衡';
+
+  @override
+  String get styleTasteStyleBalanceLow => '一致';
+
+  @override
+  String get styleTasteStyleBalanceHigh => '混搭';
+
+  @override
+  String get styleTasteColorPairingTitle => '色彩搭配';
+
+  @override
+  String get styleTasteColorPairingLow => '同色調';
+
+  @override
+  String get styleTasteColorPairingHigh => '對比色';
+
+  @override
+  String get styleTasteFitPreferenceTitle => '版型偏好';
+
+  @override
+  String get styleTasteFitPreferenceLow => '修身';
+
+  @override
+  String get styleTasteFitPreferenceHigh => '寬鬆';
+
+  @override
+  String get styleTasteLayeringTitle => '層次穿搭';
+
+  @override
+  String get styleTasteLayeringLow => '簡單';
+
+  @override
+  String get styleTasteLayeringHigh => '多層次';
+
+  @override
+  String get styleTasteAccessoriesTitle => '配件';
+
+  @override
+  String get styleTasteAccessoriesLow => '極簡';
+
+  @override
+  String get styleTasteAccessoriesHigh => '豐富';
 
   @override
   String get navHome => '首頁';
@@ -1968,6 +2113,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get edit => '編輯';
+
+  @override
+  String get editTagsTitle => '編輯標籤';
 
   @override
   String get analyzingClothingEllipsis => '分析衣物中…';

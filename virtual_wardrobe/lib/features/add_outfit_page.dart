@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme/app_colors.dart';
+import '../app/theme/app_dimens.dart';
 import '../app/theme/app_text_styles.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/garment_service.dart';
 import '../core/utils/signed_url.dart';
 import '../core/utils/try_on_mixin.dart';
-import '../data/outfit_version_result.dart';
 import '../data/garment.dart';
 import '../data/outfit.dart';
 import '../data/scene_option.dart';
-import '../data/select_garment_result.dart';
 import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'outfit_details_page.dart';
 import 'select_accessory_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
-import 'widgets/common/app_list_card.dart';
+import 'widgets/common/cards/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/dashed_border_painter.dart';
+import 'widgets/common/buttons/bottom_action_button.dart';
+import 'widgets/common/images/dashed_border_painter.dart';
 import 'widgets/common/labeled_divider.dart';
-import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/overlays/loading_overlay.dart';
 import 'widgets/garment/garment_image.dart';
 
 /// The user's in-progress slot-by-slot garment picks for this page's manual
@@ -263,7 +262,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   Future<void> _startTryOn() async {
     final ids = _selectedGarmentIds();
     if (ids.isEmpty) return;
-    if (tryOnJobId != 0) await deleteOutfitJob(tryOnJobId);
+    if (tryOnOutfitId != 0) await deleteOutfitJob(tryOnOutfitId);
 
     final existingOutfit = widget.existingOutfit;
     if (existingOutfit != null) {
@@ -333,7 +332,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       MaterialPageRoute(
         builder: (_) => OutfitDetailsPage(
           outfit: Outfit(
-            id: tryOnJobId,
+            id: tryOnOutfitId,
             imageUrl: tryOnResultUrl!,
             advice: tryOnAiAdvice,
             garmentIds: garmentIds,
@@ -393,7 +392,12 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       appBar: _buildAppBar(),
       body: ListView(
         physics: const ClampingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 90),
+        padding: const EdgeInsets.fromLTRB(
+          20,
+          24,
+          20,
+          AppDimens.bottomActionBtnClearance,
+        ),
         children: [
           _buildInstructions(),
           const SizedBox(height: 24),
@@ -756,9 +760,28 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           scrollDirection: Axis.horizontal,
           itemCount: SceneOption.all.length,
           separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (context, i) => _buildSceneCard(SceneOption.all[i]),
+          itemBuilder: (context, i) => _buildSceneCard(SceneOption.all[i], i),
         ),
       ),
+    );
+  }
+
+  static const _sceneCardWidth = 120.0;
+  static const _sceneCardSpacing = 12.0;
+
+  /// Scrolls so the just-selected scene at [index] is fully in view,
+  /// centered in the row — tapping a card near either edge would otherwise
+  /// leave it half cut off under the fade scrim.
+  void _centerSceneCard(int index) {
+    if (!_sceneScrollController.hasClients) return;
+    final position = _sceneScrollController.position;
+    final itemStart = index * (_sceneCardWidth + _sceneCardSpacing);
+    final target =
+        itemStart - (position.viewportDimension - _sceneCardWidth) / 2;
+    _sceneScrollController.animateTo(
+      target.clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
     );
   }
 
@@ -827,17 +850,20 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// Selected-state treatment (foreground border + checkmark badge) mirrors
   /// `GarmentCard`'s selected styling, so the same "picked" affordance reads
   /// consistently across the app.
-  Widget _buildSceneCard(SceneOption scene) {
+  Widget _buildSceneCard(SceneOption scene, int index) {
     final isSelected = scene.id == _scene.id;
     return GestureDetector(
       onTap: isOutfitLoading
           ? null
-          : () => setState(() {
-              _scene = scene;
-              _sceneCustomized = true;
-            }),
+          : () {
+              setState(() {
+                _scene = scene;
+                _sceneCustomized = true;
+              });
+              _centerSceneCard(index);
+            },
       child: SizedBox(
-        width: 120,
+        width: _sceneCardWidth,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(

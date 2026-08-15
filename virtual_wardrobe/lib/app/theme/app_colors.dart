@@ -86,6 +86,9 @@ class AppColors {
   static const Color overlaySubtle = Color(
     0x1F000000,
   ); // light overlay/shadow, black @12%
+  static const Color surfaceTranslucent = Color(
+    0xB3FFFFFF,
+  ); // white @70%, e.g. a badge sitting on top of a photo
   static const Color scrimBackdrop = Color(
     0xA6000000,
   ); // full-screen dark backdrop, black @65%

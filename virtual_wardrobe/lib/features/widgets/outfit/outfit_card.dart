@@ -56,9 +56,6 @@ class OutfitCard extends StatelessWidget {
                     outfitId: outfit.id,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
-                    placeholderBuilder: (_) => const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
                     noImageLabel: l10n.noImage,
                     errorLabel: l10n.failedToLoad,
                   ),

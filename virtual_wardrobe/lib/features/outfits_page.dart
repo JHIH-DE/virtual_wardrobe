@@ -5,16 +5,14 @@ import '../app/theme/app_colors.dart';
 import '../app/theme/app_dimens.dart';
 import '../core/providers/outfits_provider.dart';
 import '../core/services/auth_handler.dart';
-import '../core/services/outfit_service.dart';
 import '../data/outfit.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'outfit_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/error_state_widget.dart';
-import 'widgets/common/favorite_card.dart';
-import 'widgets/common/feedback_overlay.dart';
-import 'widgets/common/filter_button.dart';
+import 'widgets/common/overlays/empty_state_placeholder.dart';
+import 'widgets/common/overlays/error_state_widget.dart';
+import 'widgets/common/overlays/feedback_overlay.dart';
+import 'widgets/common/buttons/filter_button.dart';
 import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/outfit/outfit_card.dart';
 
@@ -206,41 +204,12 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
   }
 
   Widget _buildOutfitCard(BuildContext context, Outfit outfit) {
-    return FavoriteCard(
-      isFavorite: outfit.isFavorite,
-      onToggle: () => _toggleFavorite(outfit),
-      child: OutfitCard(
-        outfit: outfit,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => OutfitDetailsPage(outfit: outfit)),
-        ),
+    return OutfitCard(
+      outfit: outfit,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => OutfitDetailsPage(outfit: outfit)),
       ),
     );
-  }
-
-  Future<void> _toggleFavorite(Outfit outfit) async {
-    final next = !outfit.isFavorite;
-    ref
-        .read(outfitsProvider.notifier)
-        .updateFavorite(outfit.id, isFavorite: next);
-    try {
-      await OutfitService().setFavorite(outfit.id, isFavorite: next);
-    } catch (e) {
-      ref
-          .read(outfitsProvider.notifier)
-          .updateFavorite(outfit.id, isFavorite: !next);
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).failedToUpdateFavorite),
-          ),
-        );
-      }
-    }
   }
 }

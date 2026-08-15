@@ -57,6 +57,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleProfile => 'Style Profile';
 
   @override
+  String get styleTaste => 'Style Taste';
+
+  @override
+  String get styleTasteSummary =>
+      'LUMI learns how you like to put outfits together';
+
+  @override
+  String get styleTasteHeroSubtitle =>
+      'Based on your saved outfits and feedback, LUMI is learning your style taste.';
+
+  @override
+  String get styleTasteDimensionsInfoTitle => 'What these mean';
+
+  @override
+  String get styleTasteRadarCardTitle => 'Your Style Taste';
+
+  @override
+  String get styleTasteRadarCardSubtitle =>
+      'A visual summary of your style preferences.';
+
+  @override
+  String get styleTasteKeyInsightsTitle => 'Key Insights';
+
+  @override
+  String styleTasteAnalysisStats(int count, int favoriteCount) {
+    return 'Analyzed $count outfits · $favoriteCount favorites';
+  }
+
+  @override
   String get lifestyle => 'Lifestyle';
 
   @override
@@ -168,9 +197,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadGarments => 'Failed to load garments';
 
   @override
-  String get failedToRegenerateOutfit => 'Failed to regenerate outfit';
-
-  @override
   String get saveThisOutfitTitle => 'Save this outfit?';
 
   @override
@@ -185,11 +211,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this outfit?';
 
   @override
-  String get deleteLookTitle => 'Delete Version';
+  String get deleteLook => 'Delete Look';
 
   @override
-  String get deleteLookConfirmation =>
-      'Are you sure you want to delete this version? This can\'t be undone.';
+  String get undo => 'Undo';
+
+  @override
+  String get lookDeleted => 'Look deleted';
 
   @override
   String createdOnDate(String date) {
@@ -260,6 +288,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get styleOutdoor => 'Outdoor';
+
+  @override
+  String get styleTasteStyleBalanceTitle => 'Style Balance';
+
+  @override
+  String get styleTasteStyleBalanceLow => 'Consistent';
+
+  @override
+  String get styleTasteStyleBalanceHigh => 'Mixed';
+
+  @override
+  String get styleTasteColorPairingTitle => 'Color Pairing';
+
+  @override
+  String get styleTasteColorPairingLow => 'Tonal';
+
+  @override
+  String get styleTasteColorPairingHigh => 'Contrast';
+
+  @override
+  String get styleTasteFitPreferenceTitle => 'Fit Preference';
+
+  @override
+  String get styleTasteFitPreferenceLow => 'Fitted';
+
+  @override
+  String get styleTasteFitPreferenceHigh => 'Relaxed';
+
+  @override
+  String get styleTasteLayeringTitle => 'Layering';
+
+  @override
+  String get styleTasteLayeringLow => 'Simple';
+
+  @override
+  String get styleTasteLayeringHigh => 'Layered';
+
+  @override
+  String get styleTasteAccessoriesTitle => 'Accessories';
+
+  @override
+  String get styleTasteAccessoriesLow => 'Minimal';
+
+  @override
+  String get styleTasteAccessoriesHigh => 'Expressive';
 
   @override
   String get navHome => 'Home';
@@ -987,6 +1060,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edit => 'Edit';
+
+  @override
+  String get editTagsTitle => 'Edit Tags';
 
   @override
   String get analyzingClothingEllipsis => 'Analyzing Clothing…';

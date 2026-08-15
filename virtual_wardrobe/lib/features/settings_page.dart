@@ -19,9 +19,10 @@ import 'lifestyle_page.dart';
 import 'loading_preview_page.dart';
 import 'login_page.dart';
 import 'style_profile_page.dart';
-import 'widgets/common/app_list_card.dart';
+import 'style_taste_page.dart';
+import 'widgets/common/cards/app_list_card.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/picker_sheet.dart';
+import 'widgets/common/overlays/picker_sheet.dart';
 import 'widgets/common/profile_avatar.dart';
 
 /// Wraps the bottom sheet's chosen locale so a `null` result (System
@@ -193,6 +194,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildStyleTasteCard(l10n),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildLifestyleCard(l10n),
                 ),
                 const SizedBox(height: 16),
@@ -279,6 +285,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       leading: const Icon(Icons.style_outlined, color: AppColors.icon),
       showArrow: true,
       child: Text(l10n.styleProfile, style: AppTextStyle.bold16),
+    );
+  }
+
+  Widget _buildStyleTasteCard(AppLocalizations l10n) {
+    return AppListCard(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const StyleTastePage()),
+      ),
+      leading: const Icon(Icons.auto_awesome_outlined, color: AppColors.icon),
+      showArrow: true,
+      summary: l10n.styleTasteSummary,
+      child: Text(l10n.styleTaste, style: AppTextStyle.bold16),
     );
   }
 

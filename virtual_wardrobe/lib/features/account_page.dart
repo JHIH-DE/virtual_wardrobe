@@ -8,12 +8,12 @@ import '../core/services/profile_service.dart';
 import '../data/location_result.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'location_picker_page.dart';
-import 'widgets/common/app_text_field.dart';
+import 'widgets/common/fields/app_text_field.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/bottom_action_button.dart';
-import 'widgets/common/picker_field.dart';
-import 'widgets/common/picker_sheet.dart';
-import 'widgets/common/tappable_field_decorator.dart';
+import 'widgets/common/buttons/bottom_action_button.dart';
+import 'widgets/common/fields/picker_field.dart';
+import 'widgets/common/overlays/picker_sheet.dart';
+import 'widgets/common/fields/tappable_field_decorator.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});

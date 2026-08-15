@@ -15,11 +15,11 @@ import '../data/trip.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'trip_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/error_state_widget.dart';
+import 'widgets/common/overlays/empty_state_placeholder.dart';
+import 'widgets/common/overlays/error_state_widget.dart';
 import 'widgets/common/floating_nav_bar.dart';
 import 'widgets/common/labeled_divider.dart';
-import 'widgets/common/loading_overlay.dart';
+import 'widgets/common/overlays/loading_overlay.dart';
 import 'widgets/trip/trip_card.dart';
 import 'widgets/trip/trip_create_dialog.dart';
 
@@ -49,7 +49,7 @@ _TripStatus _tripStatus(Trip trip, DateTime today) {
 /// data; legs further out (forecasts don't exist that far ahead) fall
 /// back to last year's actual weather for the same calendar dates as an
 /// estimate.
-Future<Map<String, double>> _fetchLegDailyTemps(TripLeg leg) async {
+Future<Map<String, _DailyTemp>> _fetchLegDailyTemps(TripLeg leg) async {
   final today = _dateOnly(DateTime.now());
   final startOffset = _dateOnly(leg.dateRange.start).difference(today).inDays;
   if (startOffset > 15) {
@@ -58,7 +58,7 @@ Future<Map<String, double>> _fetchLegDailyTemps(TripLeg leg) async {
   return _fetchForecastLegTemps(leg);
 }
 
-Future<Map<String, double>> _fetchForecastLegTemps(TripLeg leg) async {
+Future<Map<String, _DailyTemp>> _fetchForecastLegTemps(TripLeg leg) async {
   final today = _dateOnly(DateTime.now());
   final startOffset = _dateOnly(leg.dateRange.start).difference(today).inDays;
   final duration = leg.dateRange.duration.inDays + 1;
@@ -69,7 +69,7 @@ Future<Map<String, double>> _fetchForecastLegTemps(TripLeg leg) async {
   if (daysNeeded < 7) daysNeeded = 7;
   final url =
       'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon'
-      '&daily=temperature_2m_mean&timezone=auto&forecast_days=$daysNeeded';
+      '&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=$daysNeeded';
   return _fetchDailyMap(url);
 }
 
@@ -77,7 +77,7 @@ Future<Map<String, double>> _fetchForecastLegTemps(TripLeg leg) async {
 /// pulls last year's actual weather for the same calendar dates from
 /// Open-Meteo's historical archive and shifts those dates forward a year
 /// to key them onto this trip's real dates.
-Future<Map<String, double>> _fetchHistoricalLegTemps(TripLeg leg) async {
+Future<Map<String, _DailyTemp>> _fetchHistoricalLegTemps(TripLeg leg) async {
   final start = leg.dateRange.start;
   final end = leg.dateRange.end;
   final histStart = DateTime(start.year - 1, start.month, start.day);
@@ -87,10 +87,10 @@ Future<Map<String, double>> _fetchHistoricalLegTemps(TripLeg leg) async {
   final url =
       'https://archive-api.open-meteo.com/v1/archive?latitude=$lat&longitude=$lon'
       '&start_date=${_dateFmt.format(histStart)}&end_date=${_dateFmt.format(histEnd)}'
-      '&daily=temperature_2m_mean&timezone=auto';
+      '&daily=temperature_2m_max,temperature_2m_min&timezone=auto';
 
   final histTemps = await _fetchDailyMap(url);
-  final shifted = <String, double>{};
+  final shifted = <String, _DailyTemp>{};
   histTemps.forEach((dateStr, temp) {
     final d = DateTime.parse(dateStr);
     shifted[_dateFmt.format(DateTime(d.year + 1, d.month, d.day))] = temp;
@@ -98,20 +98,34 @@ Future<Map<String, double>> _fetchHistoricalLegTemps(TripLeg leg) async {
   return shifted;
 }
 
+/// One day's high/low, as the trip_plans API now wants them
+/// (`temperature_max_c`/`temperature_min_c`) rather than a single mean.
+class _DailyTemp {
+  final double max;
+  final double min;
+  const _DailyTemp(this.max, this.min);
+}
+
 /// Calls an Open-Meteo daily-temperature endpoint and maps its own
 /// returned dates to values, rather than assuming a fixed offset from
 /// "today" — the response's date range doesn't always start exactly where
 /// requested.
-Future<Map<String, double>> _fetchDailyMap(String url) async {
+Future<Map<String, _DailyTemp>> _fetchDailyMap(String url) async {
   try {
     final res = await http.get(Uri.parse(url));
     if (res.statusCode == 200) {
       final data = json.decode(res.body);
       final times = List<String>.from(data['daily']['time']);
-      final temps = List<double>.from(
-        data['daily']['temperature_2m_mean'].map((t) => (t as num).toDouble()),
+      final maxTemps = List<double>.from(
+        data['daily']['temperature_2m_max'].map((t) => (t as num).toDouble()),
       );
-      return {for (int i = 0; i < times.length; i++) times[i]: temps[i]};
+      final minTemps = List<double>.from(
+        data['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()),
+      );
+      return {
+        for (int i = 0; i < times.length; i++)
+          times[i]: _DailyTemp(maxTemps[i], minTemps[i]),
+      };
     }
     debugLog(
       'Fetch daily temps failed: HTTP ${res.statusCode} for $url\n${res.body}',
@@ -122,11 +136,11 @@ Future<Map<String, double>> _fetchDailyMap(String url) async {
   return const {};
 }
 
-/// Builds one `{date, temperature_c}` entry per day of the whole trip by
-/// looking up, for each day, which leg covers it and pulling that leg's
-/// mean temperature for that specific date.
+/// Builds one `{date, temperature_max_c, temperature_min_c}` entry per day
+/// of the whole trip by looking up, for each day, which leg covers it and
+/// pulling that leg's high/low for that specific date.
 Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(Trip trip) async {
-  final legTemps = <Map<String, double>>[];
+  final legTemps = <Map<String, _DailyTemp>>[];
   for (final leg in trip.legs) {
     legTemps.add(await _fetchLegDailyTemps(leg));
   }
@@ -143,9 +157,13 @@ Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(Trip trip) async {
 
     final dateStr = _dateFmt.format(date);
     final legIndex = trip.legs.indexOf(leg);
-    final temp = legTemps[legIndex][dateStr] ?? 0.0;
+    final temp = legTemps[legIndex][dateStr];
 
-    days.add({'date': dateStr, 'temperature_c': temp.round()});
+    days.add({
+      'date': dateStr,
+      'temperature_max_c': (temp?.max ?? 0.0).round(),
+      'temperature_min_c': (temp?.min ?? 0.0).round(),
+    });
   }
   return days;
 }

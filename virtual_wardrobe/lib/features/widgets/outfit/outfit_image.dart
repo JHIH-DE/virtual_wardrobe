@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/outfit_service.dart';
+import '../../../core/utils/image_cache_bust.dart';
 import '../../../data/outfit.dart';
-import '../common/refreshable_network_image.dart';
+import '../common/images/refreshable_network_image.dart';
 
 /// Single source of truth for "what is this outfit's image URL right now" —
 /// mirrors GarmentImage's reliance on `GarmentService().getGarment(id)`.
@@ -70,17 +71,23 @@ class OutfitImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The backend hands back a freshly re-signed URL on every fetch even
+    // when the underlying image hasn't changed, which would otherwise
+    // defeat the disk cache (URL-keyed by default) on every refetch. Key by
+    // the stable outfit/job id instead — same scheme as
+    // trip_details_page.dart's own outfit image, so the two can even share
+    // a cache entry. The version suffix comes from ImageCacheBust: this same
+    // image can also be overwritten in place at this exact URL by
+    // OutfitService.regenerateLook (see outfit_details_page.dart), which a
+    // stable-URL/stable-key cache would otherwise never see as a change.
+    final cacheKey =
+        'outfit-job-$outfitId-v${ImageCacheBust.versionOf('outfit-job-$outfitId')}';
     final image = imageUrl.isEmpty
         ? _fallback(Icons.image_outlined, noImageLabel)
         : RefreshableNetworkImage(
+            key: ValueKey(cacheKey),
             imageUrl: imageUrl,
-            // The backend hands back a freshly re-signed URL on every
-            // fetch even when the underlying image hasn't changed, which
-            // would otherwise defeat the disk cache (URL-keyed by
-            // default) on every refetch. Key by the stable outfit/job id
-            // instead — same scheme as trip_details_page.dart's own
-            // outfit image, so the two can even share a cache entry.
-            cacheKey: 'outfit-job-$outfitId',
+            cacheKey: cacheKey,
             width: width,
             height: height,
             fit: fit,

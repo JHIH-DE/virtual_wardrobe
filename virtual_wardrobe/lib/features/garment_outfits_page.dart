@@ -9,10 +9,9 @@ import '../data/outfit.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'outfit_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/error_state_widget.dart';
-import 'widgets/common/favorite_card.dart';
-import 'widgets/common/filter_button.dart';
+import 'widgets/common/overlays/empty_state_placeholder.dart';
+import 'widgets/common/overlays/error_state_widget.dart';
+import 'widgets/common/buttons/filter_button.dart';
 import 'widgets/outfit/outfit_card.dart';
 
 class GarmentOutfitsPage extends StatefulWidget {
@@ -66,17 +65,11 @@ class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
       final result = await OutfitService().getOutfitsByGarments([
         widget.garmentId,
       ]);
-      final saved = result.where((o) => o.isSaved).toList();
-      debugLog(
-        'API returned ${result.length} outfits, ${saved.length} isSaved=true',
-      );
-      for (final o in result) {
-        debugLog(
-          '  outfit id=${o.id} isSaved=${o.isSaved} imageUrl=${o.imageUrl}',
-        );
-      }
+      // `is_saved` is no longer part of the outfit schema this endpoint
+      // returns (always parses false), so filtering by it excluded every
+      // result — show everything getOutfitsByGarments actually found.
       if (!mounted) return;
-      setState(() => _allOutfits = saved);
+      setState(() => _allOutfits = result);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -190,44 +183,12 @@ class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
   }
 
   Widget _buildOutfitCard(BuildContext context, Outfit outfit) {
-    return FavoriteCard(
-      isFavorite: outfit.isFavorite,
-      onToggle: () => _toggleFavorite(outfit),
-      child: OutfitCard(
-        outfit: outfit,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => OutfitDetailsPage(outfit: outfit)),
-        ),
+    return OutfitCard(
+      outfit: outfit,
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => OutfitDetailsPage(outfit: outfit)),
       ),
     );
-  }
-
-  void _setOutfitFavorite(int outfitId, bool isFavorite) {
-    setState(() {
-      _allOutfits = _allOutfits
-          .map((o) => o.id == outfitId ? o.copyWith(isFavorite: isFavorite) : o)
-          .toList();
-    });
-  }
-
-  Future<void> _toggleFavorite(Outfit outfit) async {
-    final next = !outfit.isFavorite;
-    _setOutfitFavorite(outfit.id, next);
-    try {
-      await OutfitService().setFavorite(outfit.id, isFavorite: next);
-    } catch (e) {
-      if (!mounted) return;
-      _setOutfitFavorite(outfit.id, !next);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).failedToUpdateFavorite),
-        ),
-      );
-    }
   }
 }

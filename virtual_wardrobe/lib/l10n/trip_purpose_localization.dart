@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../data/trip_purpose.dart';
+import '../data/trip.dart';
 import 'generated/app_localizations.dart';
 
 extension TripPurposeLocalization on TripPurpose {

@@ -4,11 +4,10 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip.dart';
-import '../../../data/trip_purpose.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../l10n/trip_purpose_localization.dart';
-import '../common/app_dialog.dart';
-import '../common/app_text_field.dart';
+import '../common/overlays/app_dialog.dart';
+import '../common/fields/app_text_field.dart';
 import 'trip_legs_editor.dart';
 
 enum _TripCardAction { editName, editLegs, editPurpose, delete }

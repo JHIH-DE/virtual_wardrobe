@@ -15,9 +15,10 @@ import '../l10n/generated/app_localizations.dart';
 import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/lumi_insight_card.dart';
-import 'widgets/common/pill_button.dart';
-import 'widgets/common/refreshable_network_image.dart';
+import 'widgets/common/overlays/loading_overlay.dart';
+import 'widgets/common/cards/lumi_insight_card.dart';
+import 'widgets/common/buttons/pill_button.dart';
+import 'widgets/common/images/refreshable_network_image.dart';
 import 'widgets/outfit/outfit_image.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -44,10 +45,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       var outfit = await DailyOutfitService().getDailyOutfit(today);
       if (outfit == null) {
-        final optionId = await DailyOutfitService().generateDailyOutfit(
-          date: today,
-        );
-        await DailyOutfitService().createTryOnForOption(optionId);
+        await DailyOutfitService().generateDailyOutfit(date: today);
         outfit = await DailyOutfitService().getDailyOutfit(today);
       }
       if (outfit == null) return;
@@ -86,10 +84,10 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
         });
       }
 
-      final jobId = option['daily_look_id'] as int?;
-      debugLog('--- _loadDailyOutfit - daily_look_id: $jobId  ---');
-      if (jobId != null && jobId != 0) {
-        await watchJob(jobId);
+      final outfitId = option['outfit_id'] as int?;
+      debugLog('--- _loadDailyOutfit - outfit_id: $outfitId ---');
+      if (outfitId != null && outfitId != 0) {
+        await watchJob(outfitId);
       }
     } catch (e) {
       if (e is AuthExpiredException) {
@@ -135,24 +133,27 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(context),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 16),
-                _buildOutfitImageCard(),
-                const SizedBox(height: 12),
-                _buildLumiInsightCard(),
-              ],
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 16),
+                  _buildOutfitImageCard(),
+                  const SizedBox(height: 12),
+                  _buildLumiInsightCard(),
+                  SizedBox(height: AppDimens.floatingNavBarClearance),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -268,7 +269,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                 child: Container(
                   color: AppColors.surface,
                   child: loading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? LoadingOverlay(label: l10n.generatingOutfitEllipsis)
                       : (imageUrl == null || imageUrl.isEmpty)
                       ? Center(
                           child: Icon(
@@ -282,8 +283,8 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
                           // Re-signed URL each fetch shouldn't defeat the
                           // disk cache — same scheme as OutfitImage/
                           // trip_details_page.dart's outfit image.
-                          cacheKey: tryOnJobId != 0
-                              ? 'outfit-job-$tryOnJobId'
+                          cacheKey: tryOnOutfitId != 0
+                              ? 'outfit-job-$tryOnOutfitId'
                               : null,
                           fit: BoxFit.cover,
                           errorIconSize: 48,
@@ -313,9 +314,9 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
   }
 
   Future<String?> _refreshTryOnResultUrl() async {
-    if (tryOnJobId == 0) return null;
+    if (tryOnOutfitId == 0) return null;
     try {
-      final freshUrl = await fetchFreshOutfitImageUrl(tryOnJobId);
+      final freshUrl = await fetchFreshOutfitImageUrl(tryOnOutfitId);
       if (mounted && freshUrl.isNotEmpty) {
         setState(() => tryOnResultUrl = freshUrl);
       }
@@ -332,7 +333,7 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
       MaterialPageRoute(
         builder: (_) => OutfitDetailsPage(
           outfit: Outfit(
-            id: tryOnJobId,
+            id: tryOnOutfitId,
             imageUrl: tryOnResultUrl!,
             advice: tryOnAiAdvice,
             garmentIds: _garmentIds,

@@ -14,11 +14,10 @@ import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'trip_garment_selection_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/removable_card.dart';
-import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/error_state_widget.dart';
-import 'widgets/common/loading_overlay.dart';
-import 'widgets/common/primary_action_button.dart';
+import 'widgets/common/cards/removable_card.dart';
+import 'widgets/common/overlays/empty_state_placeholder.dart';
+import 'widgets/common/overlays/loading_overlay.dart';
+import 'widgets/common/buttons/primary_action_button.dart';
 import 'widgets/garment/garment_card.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
@@ -42,9 +41,14 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   ];
 
   bool _loading = true;
-  Set<int> _packedIds = {};
+  List<Garment> _packedGarments = [];
   final Set<int> _pendingIds = {};
   final _deleteGroup = RemovableCardGroup();
+
+  Set<int> get _packedIds => {
+    for (final g in _packedGarments)
+      if (g.id != null) g.id!,
+  };
 
   int get _tripId => int.parse(widget.trip.id);
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -66,8 +70,15 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   Future<void> _loadPackedItems() async {
     try {
       final data = await TripService().getTrip(_tripId);
-      final ids = _parseSuitcaseItemIds(data['suitcase_items']);
-      if (mounted) setState(() => _packedIds = ids);
+      final rawItems = (data['suitcase_items'] as List?) ?? [];
+      // Each item now embeds its own image/category/name
+      // (TripSuitcaseItemResponse), so garments are built straight from
+      // the trip response — no closet fetch needed to resolve them.
+      final garments = rawItems
+          .whereType<Map<String, dynamic>>()
+          .map(Garment.fromTripItemJson)
+          .toList();
+      if (mounted) setState(() => _packedGarments = garments);
     } catch (e) {
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
@@ -77,20 +88,6 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  Set<int> _parseSuitcaseItemIds(dynamic rawItems) {
-    final ids = <int>{};
-    if (rawItems is List) {
-      for (final item in rawItems) {
-        if (item is Map && item['garment_id'] is int) {
-          ids.add(item['garment_id'] as int);
-        } else if (item is int) {
-          ids.add(item);
-        }
-      }
-    }
-    return ids;
   }
 
   Future<void> _handleAddGarment(List<Garment> allGarments) async {
@@ -114,10 +111,16 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     final toRemove = _packedIds.difference(result);
     if (toAdd.isEmpty && toRemove.isEmpty) return;
 
+    final closetById = _indexGarmentsById(garments);
     setState(() {
       _pendingIds.addAll(toAdd);
       _pendingIds.addAll(toRemove);
-      _packedIds = result;
+      _packedGarments = [
+        for (final g in _packedGarments)
+          if (!toRemove.contains(g.id)) g,
+        for (final id in toAdd)
+          if (closetById[id] != null) closetById[id]!,
+      ];
     });
 
     try {
@@ -152,15 +155,16 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     final id = garment.id;
     if (id == null || _pendingIds.contains(id)) return;
 
+    final previousGarments = _packedGarments;
     setState(() {
       _pendingIds.add(id);
-      _packedIds.remove(id);
+      _packedGarments = _packedGarments.where((g) => g.id != id).toList();
     });
 
     try {
       await TripService().removeSuitcaseItem(_tripId, garmentId: id);
     } catch (e) {
-      if (mounted) setState(() => _packedIds.add(id));
+      if (mounted) setState(() => _packedGarments = previousGarments);
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
         return;
@@ -182,21 +186,17 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   @override
   Widget build(BuildContext context) {
-    final garmentsAsync = ref.watch(garmentsProvider);
+    // Only needed for the "Add" picker's full closet — the packed list
+    // itself now renders straight from _packedGarments (embedded fields
+    // from the trip response), so it isn't gated on this loading/erroring.
+    final closetGarments = ref.watch(garmentsProvider).valueOrNull ?? [];
 
     return Stack(
       children: [
         Scaffold(
           backgroundColor: AppColors.pageBackground,
           appBar: _buildAppBar(),
-          body: garmentsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => ErrorStateWidget(
-              error: e,
-              onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
-            ),
-            data: (all) => _buildBody(all),
-          ),
+          body: _buildBody(closetGarments),
         ),
         if (_loading)
           Positioned.fill(
@@ -206,13 +206,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
-  Widget _buildBody(List<Garment> allGarments) {
-    final byId = _indexGarmentsById(allGarments);
-    final packedGarments = _packedIds
-        .map((id) => byId[id])
-        .whereType<Garment>()
-        .toList();
-
+  Widget _buildBody(List<Garment> closetGarments) {
     return RefreshIndicator(
       onRefresh: _loadPackedItems,
       child: ListView(
@@ -222,10 +216,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             label: _l10n.selectGarmentsTitle,
             icon: Icons.add,
             fullWidth: true,
-            onPressed: () => _handleAddGarment(allGarments),
+            onPressed: () => _handleAddGarment(closetGarments),
           ),
           const SizedBox(height: 20),
-          if (packedGarments.isEmpty)
+          if (_packedGarments.isEmpty)
             EmptyStatePlaceholder(
               message: _l10n.noGarmentsPackedYet,
               icon: Icons.luggage_outlined,
@@ -235,7 +229,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             for (final category in _categoryOrder)
               ..._buildCategorySection(
                 category,
-                packedGarments.where((g) => g.category == category).toList(),
+                _packedGarments.where((g) => g.category == category).toList(),
               ),
         ],
       ),

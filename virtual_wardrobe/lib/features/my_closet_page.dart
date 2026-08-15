@@ -9,15 +9,15 @@ import '../core/services/garment_service.dart';
 import '../data/garment.dart';
 import '../l10n/garment_localization.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'edit_garment_page.dart';
+import 'garment_details_page.dart';
 import 'widgets/common/app_tool_bar.dart';
 import 'widgets/garment/category_selector.dart';
-import 'widgets/common/empty_state_placeholder.dart';
-import 'widgets/common/favorite_card.dart';
-import 'widgets/common/error_state_widget.dart';
-import 'widgets/common/filter_button.dart';
+import 'widgets/common/overlays/empty_state_placeholder.dart';
+import 'widgets/common/cards/favorite_card.dart';
+import 'widgets/common/overlays/error_state_widget.dart';
+import 'widgets/common/buttons/filter_button.dart';
 import 'widgets/common/floating_nav_bar.dart';
-import 'widgets/common/feedback_overlay.dart';
+import 'widgets/common/overlays/feedback_overlay.dart';
 import 'widgets/garment/garment_card.dart';
 
 class MyClosetPage extends ConsumerStatefulWidget {
@@ -307,7 +307,7 @@ class _MyClosetPageState extends ConsumerState<MyClosetPage> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => EditGarmentPage(initialGarment: garment),
+        builder: (_) => GarmentDetailsPage(initialGarment: garment),
       ),
     );
 

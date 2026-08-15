@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/services/garment_service.dart';
-import '../common/refreshable_network_image.dart';
+import '../common/images/refreshable_network_image.dart';
 
 class GarmentImage extends StatelessWidget {
   final String? url;

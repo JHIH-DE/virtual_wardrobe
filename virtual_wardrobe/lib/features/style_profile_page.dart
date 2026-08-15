@@ -11,7 +11,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../l10n/style_type_localization.dart';
 import 'account_page.dart';
 import 'widgets/common/app_tool_bar.dart';
-import 'widgets/common/bottom_action_button.dart';
+import 'widgets/common/buttons/bottom_action_button.dart';
 
 /// Style -> its illustration, per gender bucket — Male and Female need
 /// different photos for the same style (e.g. Streetwear shows a male model
@@ -271,7 +271,12 @@ class _StyleProfilePageState extends State<StyleProfilePage> {
 
   Widget _buildStyleForm(AppLocalizations l10n) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        AppDimens.bottomActionBtnClearance,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
