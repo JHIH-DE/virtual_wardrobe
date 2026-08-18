@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../l10n/trip_purpose_localization.dart';
+import '../../../l10n/trip_activity_localization.dart';
 import '../common/overlays/app_dialog.dart';
 import '../common/fields/app_text_field.dart';
 import 'trip_legs_editor.dart';
@@ -18,7 +19,7 @@ class TripCreateDialog extends StatefulWidget {
 class _TripCreateDialogState extends State<TripCreateDialog> {
   final TextEditingController _tripNameController = TextEditingController();
   final ValueNotifier<List<TripLeg>> _legsNotifier = ValueNotifier([]);
-  TripPurpose _selectedPurpose = TripPurpose.leisureTravel;
+  final Set<TripActivity> _selectedActivities = {};
 
   @override
   void dispose() {
@@ -43,28 +44,43 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
             ),
             const SizedBox(height: 16),
             TripLegsEditor(legsNotifier: _legsNotifier),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<TripPurpose>(
-              value: _selectedPurpose,
-              decoration: appInputDecoration(
-                label: l10n.tripPurposeLabel,
-                prefixIcon: const Icon(
-                  Icons.flight_takeoff,
-                  color: AppColors.icon,
-                  size: 20,
+            const SizedBox(height: 8),
+            Theme(
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                iconColor: AppColors.icon,
+                collapsedIconColor: AppColors.icon,
+                title: Text(
+                  l10n.tripActivitiesLabel,
+                  style: AppTextStyle.bold16,
                 ),
-              ),
-              items: TripPurpose.values
-                  .map(
-                    (purpose) => DropdownMenuItem(
-                      value: purpose,
-                      child: Text(purpose.localizedLabel(context)),
+                children: [
+                  for (final activity in TripActivity.values)
+                    CheckboxListTile(
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      activeColor: AppColors.accent,
+                      value: _selectedActivities.contains(activity),
+                      title: Text(
+                        activity.localizedLabel(context),
+                        style: AppTextStyle.regular16,
+                      ),
+                      onChanged: (checked) => setState(() {
+                        if (checked == true) {
+                          _selectedActivities.add(activity);
+                        } else {
+                          _selectedActivities.remove(activity);
+                        }
+                      }),
                     ),
-                  )
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _selectedPurpose = v);
-              },
+                ],
+              ),
             ),
           ],
         ),
@@ -90,7 +106,7 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
         id: '',
         name: _tripNameController.text,
         legs: _legsNotifier.value,
-        purpose: _selectedPurpose.apiValue,
+        activities: _selectedActivities.map((a) => a.apiValue).toList(),
       ),
     );
   }

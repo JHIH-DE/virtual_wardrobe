@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/login_page.dart';
+import '../../features/pages/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import 'auth_storage.dart';
 

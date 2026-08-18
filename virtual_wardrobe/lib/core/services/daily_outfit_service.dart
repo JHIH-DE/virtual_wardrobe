@@ -46,7 +46,7 @@ class DailyOutfitService with BaseService {
 
   Future<int?> getOutfit(String day) async {
     final data = await _fetchDayData(day, 'getOutfit');
-    final outfitId = data?['outfit_id'] as int?;
+    final outfitId = data?['daily_outfit_id'] as int?;
     debugLog('--- getOutfit outfit_id: $outfitId ---');
     return outfitId;
   }

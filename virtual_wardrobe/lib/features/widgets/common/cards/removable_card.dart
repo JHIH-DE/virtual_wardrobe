@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/route_observer.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/route_observer.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'card_corner_badge.dart';
 

@@ -798,7 +798,7 @@ abstract class AppLocalizations {
   /// No description provided for @editTripName.
   ///
   /// In en, this message translates to:
-  /// **'Edit Trip Name'**
+  /// **'Edit Name'**
   String get editTripName;
 
   /// No description provided for @editDestinations.
@@ -813,11 +813,11 @@ abstract class AppLocalizations {
   /// **'Enter trip name'**
   String get enterTripName;
 
-  /// No description provided for @editTripPurpose.
+  /// No description provided for @editTripActivities.
   ///
   /// In en, this message translates to:
-  /// **'Edit Trip Purpose'**
-  String get editTripPurpose;
+  /// **'Edit Activities'**
+  String get editTripActivities;
 
   /// No description provided for @deleteTrip.
   ///
@@ -843,11 +843,11 @@ abstract class AppLocalizations {
   /// **'Trip Name'**
   String get tripNameLabel;
 
-  /// No description provided for @tripPurposeLabel.
+  /// No description provided for @tripActivitiesLabel.
   ///
   /// In en, this message translates to:
-  /// **'Trip Purpose'**
-  String get tripPurposeLabel;
+  /// **'Trip Activities (Optional)'**
+  String get tripActivitiesLabel;
 
   /// No description provided for @create.
   ///
@@ -1053,47 +1053,29 @@ abstract class AppLocalizations {
   /// **'No Image'**
   String get noImage;
 
-  /// No description provided for @tripPurposeLeisureTravel.
+  /// No description provided for @tripActivityOutdoor.
   ///
   /// In en, this message translates to:
-  /// **'Leisure Travel'**
-  String get tripPurposeLeisureTravel;
+  /// **'Outdoor'**
+  String get tripActivityOutdoor;
 
-  /// No description provided for @tripPurposeBusinessTrip.
+  /// No description provided for @tripActivityBusiness.
   ///
   /// In en, this message translates to:
-  /// **'Business Trip'**
-  String get tripPurposeBusinessTrip;
+  /// **'Business'**
+  String get tripActivityBusiness;
 
-  /// No description provided for @tripPurposeFamilyTrip.
+  /// No description provided for @tripActivityFormalOccasion.
   ///
   /// In en, this message translates to:
-  /// **'Family Trip'**
-  String get tripPurposeFamilyTrip;
+  /// **'Formal Occasion'**
+  String get tripActivityFormalOccasion;
 
-  /// No description provided for @tripPurposeOutdoorTrip.
+  /// No description provided for @tripActivityWaterActivities.
   ///
   /// In en, this message translates to:
-  /// **'Outdoor Trip'**
-  String get tripPurposeOutdoorTrip;
-
-  /// No description provided for @tripPurposeCityTrip.
-  ///
-  /// In en, this message translates to:
-  /// **'City Trip'**
-  String get tripPurposeCityTrip;
-
-  /// No description provided for @tripPurposeResortVacation.
-  ///
-  /// In en, this message translates to:
-  /// **'Resort / Vacation'**
-  String get tripPurposeResortVacation;
-
-  /// No description provided for @tripPurposeMixed.
-  ///
-  /// In en, this message translates to:
-  /// **'Mixed'**
-  String get tripPurposeMixed;
+  /// **'Water Activities'**
+  String get tripActivityWaterActivities;
 
   /// No description provided for @categoryTop.
   ///
@@ -1269,6 +1251,12 @@ abstract class AppLocalizations {
   /// **'Purple'**
   String get colorPurple;
 
+  /// No description provided for @renameGarment.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Garment'**
+  String get renameGarment;
+
   /// No description provided for @deleteGarment.
   ///
   /// In en, this message translates to:
@@ -1316,6 +1304,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clothing Added'**
   String get clothingAdded;
+
+  /// No description provided for @recentlyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Added'**
+  String get recentlyAdded;
 
   /// No description provided for @garmentPairsWellWith.
   ///
@@ -1748,6 +1742,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Past'**
   String get statusPast;
+
+  /// No description provided for @upcomingTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming Trip'**
+  String get upcomingTrip;
 
   /// No description provided for @failedToUpdateTrip.
   ///

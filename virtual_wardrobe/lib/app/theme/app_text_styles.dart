@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:virtual_wardrobe/app/theme/app_colors.dart';
 
 class AppTextStyle {
+  /// Home App Bar's "Aseri" wordmark. Not `const`: [GoogleFonts.sora] loads/
+  /// caches the font at call time rather than being a const constructor.
+  static TextStyle get brandTitle => GoogleFonts.sora(
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.6,
+    height: 1.0,
+    color: AppColors.textPrimary,
+  );
+
   static const TextStyle bold20 = TextStyle(
     fontFamily: 'text/EN',
     fontSize: 20,
@@ -93,6 +104,17 @@ class AppTextStyle {
   static const TextStyle regular16 = TextStyle(
     fontFamily: 'text/EN',
     fontSize: 16,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  /// Matches AppDialog's primary button label (`regular16` + `w500`) — use
+  /// for other primary call-to-action buttons that should read the same,
+  /// e.g. [BottomActionButton].
+  static const TextStyle medium16 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );

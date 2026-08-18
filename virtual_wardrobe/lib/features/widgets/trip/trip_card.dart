@@ -5,19 +5,19 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../l10n/trip_purpose_localization.dart';
+import '../../../l10n/trip_activity_localization.dart';
 import '../common/overlays/app_dialog.dart';
 import '../common/fields/app_text_field.dart';
 import 'trip_legs_editor.dart';
 
-enum _TripCardAction { editName, editLegs, editPurpose, delete }
+enum _TripCardAction { editName, editLegs, editActivities, delete }
 
 class TripCard extends StatelessWidget {
   final Trip trip;
   final VoidCallback onTap;
   final ValueChanged<String> onNameChanged;
   final ValueChanged<List<TripLeg>> onLegsChanged;
-  final ValueChanged<String> onPurposeChanged;
+  final ValueChanged<List<String>> onActivitiesChanged;
   final VoidCallback onDelete;
 
   const TripCard({
@@ -26,7 +26,7 @@ class TripCard extends StatelessWidget {
     required this.onTap,
     required this.onNameChanged,
     required this.onLegsChanged,
-    required this.onPurposeChanged,
+    required this.onActivitiesChanged,
     required this.onDelete,
   });
 
@@ -97,12 +97,12 @@ class TripCard extends StatelessWidget {
                             l10n.editDestinations,
                           ),
                           _menuItem(
-                            _TripCardAction.editPurpose,
+                            _TripCardAction.editActivities,
                             const Icon(
                               Icons.flight_takeoff,
                               color: AppColors.icon,
                             ),
-                            l10n.editTripPurpose,
+                            l10n.editTripActivities,
                           ),
                           const PopupMenuDivider(),
                           PopupMenuItem(
@@ -219,8 +219,8 @@ class TripCard extends StatelessWidget {
       case _TripCardAction.editLegs:
         _editLegs(context);
         break;
-      case _TripCardAction.editPurpose:
-        _editPurpose(context);
+      case _TripCardAction.editActivities:
+        _editActivities(context);
         break;
       case _TripCardAction.delete:
         _confirmDelete(context);
@@ -266,7 +266,6 @@ class TripCard extends StatelessWidget {
         onPrimary: () => Navigator.pop(ctx, legsNotifier.value),
         secondaryLabel: l10n.cancel,
         onSecondary: () => Navigator.pop(ctx),
-        width: 320,
       ),
     );
     legsNotifier.dispose();
@@ -275,44 +274,53 @@ class TripCard extends StatelessWidget {
     onLegsChanged(result);
   }
 
-  Future<void> _editPurpose(BuildContext context) async {
+  Future<void> _editActivities(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
-    final currentPurpose =
-        tripPurposeFromApiValue(trip.purpose) ?? TripPurpose.values.first;
+    final selected = trip.activities
+        .map(tripActivityFromApiValue)
+        .whereType<TripActivity>()
+        .toSet();
 
-    final result = await showDialog<TripPurpose>(
+    final result = await showDialog<Set<TripActivity>>(
       context: context,
-      builder: (ctx) => AppDialog(
-        title: l10n.editTripPurpose,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final purpose in TripPurpose.values)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  purpose.localizedLabel(context),
-                  style: purpose == currentPurpose
-                      ? AppTextStyle.semibold16.copyWith(
-                          color: AppColors.accent,
-                        )
-                      : AppTextStyle.regular16,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AppDialog(
+          title: l10n.editTripActivities,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final activity in TripActivity.values)
+                CheckboxListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  activeColor: AppColors.accent,
+                  value: selected.contains(activity),
+                  title: Text(
+                    activity.localizedLabel(context),
+                    style: AppTextStyle.regular16,
+                  ),
+                  onChanged: (checked) => setDialogState(() {
+                    if (checked == true) {
+                      selected.add(activity);
+                    } else {
+                      selected.remove(activity);
+                    }
+                  }),
                 ),
-                trailing: purpose == currentPurpose
-                    ? const Icon(Icons.check, color: AppColors.accent)
-                    : null,
-                onTap: () => Navigator.pop(ctx, purpose),
-              ),
-          ],
+            ],
+          ),
+          primaryLabel: l10n.save,
+          onPrimary: () => Navigator.pop(ctx, selected),
+          secondaryLabel: l10n.cancel,
+          onSecondary: () => Navigator.pop(ctx),
         ),
-        primaryLabel: l10n.cancel,
-        onPrimary: () => Navigator.pop(ctx),
-        primaryIsTextButton: true,
       ),
     );
 
-    if (result == null || result == currentPurpose) return;
-    onPurposeChanged(result.apiValue);
+    if (result == null) return;
+    onActivitiesChanged(result.map((a) => a.apiValue).toList());
   }
 
   Future<void> _confirmDelete(BuildContext context) async {

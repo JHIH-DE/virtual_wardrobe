@@ -41,6 +41,12 @@ class Outfit {
   final int id;
   final String? name;
   final List<int> garmentIds;
+  // The primary look's accessories — separate from garmentIds (the core
+  // combo) since that's how the backend/createLook itself splits them. Not
+  // in toJson's own request shape anywhere; this only flows one way, out of
+  // primaryLookOf, for callers that need "every garment this outfit uses"
+  // (e.g. TripOutfitSelectionPage's "add to suitcase" shortcut).
+  final List<int> accessoryGarmentIds;
   final String imageUrl;
   final List<String> seasons;
   final List<String> style;
@@ -54,6 +60,7 @@ class Outfit {
     required this.id,
     this.name,
     this.garmentIds = const [],
+    this.accessoryGarmentIds = const [],
     required this.imageUrl,
     this.seasons = const <String>[],
     this.style = const <String>[],
@@ -69,6 +76,7 @@ class Outfit {
       id: id,
       name: name ?? this.name,
       garmentIds: garmentIds,
+      accessoryGarmentIds: accessoryGarmentIds,
       imageUrl: imageUrl,
       seasons: seasons,
       style: style,
@@ -121,6 +129,7 @@ class Outfit {
       id: parseId(json['outfit_id']),
       name: json['name'] as String?,
       garmentIds: parseIds(json['garment_ids']),
+      accessoryGarmentIds: parseIds(look?['accessory_garment_ids']),
       // latest_result_image_url comes first: it's the backend's own
       // "most recent successful render" pointer, whereas looks[0] is just
       // positionally first — if that original look failed (status:

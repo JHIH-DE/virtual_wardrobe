@@ -7,9 +7,9 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../data/image_edit_result.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../garment_details_page.dart';
-import '../../camera_capture_page.dart';
-import '../../image_editor_page.dart';
+import '../../pages/garment_details_page.dart';
+import '../../pages/camera_capture_page.dart';
+import '../../pages/image_editor_page.dart';
 import '../common/buttons/close_action_button.dart';
 import '../common/overlays/feedback_overlay.dart';
 
@@ -145,7 +145,10 @@ class GarmentUploadHelper {
       final result = await Navigator.push<ImageEditResult>(
         context,
         MaterialPageRoute(
-          builder: (_) => ImageEditorPage(initialPath: imagePath),
+          builder: (_) => ImageEditorPage(
+            initialPath: imagePath,
+            title: AppLocalizations.of(context).quickActionAddClothing,
+          ),
         ),
       );
 

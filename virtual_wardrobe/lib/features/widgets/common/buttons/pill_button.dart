@@ -19,6 +19,7 @@ class PillButton extends StatelessWidget {
   final double gap;
   final BoxBorder? border;
   final List<BoxShadow> boxShadow;
+  final Color color;
 
   const PillButton({
     super.key,
@@ -39,6 +40,7 @@ class PillButton extends StatelessWidget {
         offset: Offset(0, 4),
       ),
     ],
+    this.color = AppColors.surface,
   });
 
   factory PillButton.floating({
@@ -72,7 +74,7 @@ class PillButton extends StatelessWidget {
         height: height,
         padding: padding,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: color,
           borderRadius: BorderRadius.circular(20),
           border: border,
           boxShadow: boxShadow,

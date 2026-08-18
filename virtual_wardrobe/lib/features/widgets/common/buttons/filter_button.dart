@@ -29,13 +29,11 @@ class FilterGroup {
 class FilterButton extends StatelessWidget {
   final bool isFiltered;
   final List<FilterGroup> groups;
-  final int count;
 
   const FilterButton({
     super.key,
     required this.isFiltered,
     required this.groups,
-    required this.count,
   });
 
   /// Toggle helper for the common 'All' sentinel pattern: selecting 'All'
@@ -125,23 +123,14 @@ class FilterButton extends StatelessWidget {
         ),
         if (isFiltered)
           Positioned(
-            right: 2,
-            top: 2,
+            left: 6,
+            top: 6,
             child: Container(
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
                 color: AppColors.accent,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Center(
-                child: Text(
-                  '$count',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyle.bold10.copyWith(
-                    color: AppColors.textOnPrimary,
-                  ),
-                ),
+                shape: BoxShape.circle,
               ),
             ),
           ),

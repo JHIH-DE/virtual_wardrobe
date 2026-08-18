@@ -184,15 +184,15 @@
     }
   },
 
-  "editTripName": "Edit Trip Name",
+  "editTripName": "Edit Name",
   "editDestinations": "Edit Destinations",
   "enterTripName": "Enter trip name",
-  "editTripPurpose": "Edit Trip Purpose",
+  "editTripActivities": "Edit Activities",
   "deleteTrip": "Delete Trip",
   "deleteTripConfirmation": "Are you sure you want to delete this trip?",
   "viewPlan": "View Plan",
   "tripNameLabel": "Trip Name",
-  "tripPurposeLabel": "Trip Purpose",
+  "tripActivitiesLabel": "Trip Activities (Optional)",
   "create": "Create",
   "fillAllFieldsError": "Please fill all fields",
 
@@ -243,13 +243,10 @@
   "failedToLoad": "Failed to Load",
   "noImage": "No Image",
 
-  "tripPurposeLeisureTravel": "Leisure Travel",
-  "tripPurposeBusinessTrip": "Business Trip",
-  "tripPurposeFamilyTrip": "Family Trip",
-  "tripPurposeOutdoorTrip": "Outdoor Trip",
-  "tripPurposeCityTrip": "City Trip",
-  "tripPurposeResortVacation": "Resort / Vacation",
-  "tripPurposeMixed": "Mixed",
+  "tripActivityOutdoor": "Outdoor",
+  "tripActivityBusiness": "Business",
+  "tripActivityFormalOccasion": "Formal Occasion",
+  "tripActivityWaterActivities": "Water Activities",
 
   "categoryTop": "Top",
   "categoryBottom": "Bottom",
@@ -282,6 +279,7 @@
   "colorPink": "Pink",
   "colorPurple": "Purple",
 
+  "renameGarment": "Rename Garment",
   "deleteGarment": "Delete Garment",
   "deleteGarmentConfirmation": "Are you sure you want to delete this garment?",
   "deleteFailedPrefix": "Delete failed: {error}",
@@ -293,6 +291,7 @@
   "dontSave": "Don't Save",
   "addToCloset": "Add to Closet",
   "clothingAdded": "Clothing Added",
+  "recentlyAdded": "Recently Added",
   "garmentPairsWellWith": "This {subCategory} pairs well with {count} items in your closet.",
   "@garmentPairsWellWith": {
     "placeholders": {
@@ -380,6 +379,7 @@
   "statusOngoing": "Ongoing",
   "statusUpcoming": "Upcoming",
   "statusPast": "Past",
+  "upcomingTrip": "Upcoming Trip",
   "failedToUpdateTrip": "Failed to update trip",
   "failedToDeleteTrip": "Failed to delete trip",
   "failedToLoadTripDetails": "Failed to load trip details",

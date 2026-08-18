@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
 
 class BottomActionButton extends StatelessWidget {
   final String label;
@@ -96,9 +97,8 @@ class BottomActionButton extends StatelessWidget {
                       ],
                       Text(
                         label,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        style: AppTextStyle.medium16.copyWith(
+                          color: iconColor,
                         ),
                       ),
                       if (trailing != null) ...[

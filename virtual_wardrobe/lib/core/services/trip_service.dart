@@ -14,7 +14,7 @@ class TripService with BaseService {
   Future<int> createTrip({
     required String name,
     required List<TripLeg> legs,
-    required String purpose,
+    required List<String> activities,
     required List<Map<String, dynamic>> days,
   }) async {
     debugLog('--- createTrip ---');
@@ -23,7 +23,7 @@ class TripService with BaseService {
     final body = {
       "name": name,
       "legs": legs.map((l) => l.toJson()).toList(),
-      "purpose": purpose,
+      "activities": activities,
       "days": days,
     };
     debugLog('createTrip body: ${jsonEncode(body)}');
@@ -81,7 +81,7 @@ class TripService with BaseService {
     int tripId, {
     String? name,
     List<TripLeg>? legs,
-    String? purpose,
+    List<String>? activities,
     String? defaultOccasion,
     String? style,
     List<Map<String, dynamic>>? days,
@@ -92,7 +92,7 @@ class TripService with BaseService {
     final body = <String, dynamic>{
       if (name != null) 'name': name,
       if (legs != null) 'legs': legs.map((l) => l.toJson()).toList(),
-      if (purpose != null) 'purpose': purpose,
+      if (activities != null) 'activities': activities,
       if (defaultOccasion != null) 'default_occasion': defaultOccasion,
       if (style != null) 'style': style,
       if (days != null) 'days': days,

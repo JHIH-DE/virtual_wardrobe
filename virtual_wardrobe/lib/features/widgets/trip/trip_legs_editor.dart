@@ -6,7 +6,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/location_result.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../location_picker_page.dart';
+import '../../pages/location_picker_page.dart';
 import 'trip_leg_date_range_picker.dart';
 
 /// Lets the user build up the list of legs (location + date range) for a
@@ -94,9 +94,7 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
             padding: EdgeInsets.zero,
             minimumSize: const Size(0, 32),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            textStyle: AppTextStyle.regular14.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            textStyle: AppTextStyle.bold16,
           ),
         ),
       ],

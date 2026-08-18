@@ -372,7 +372,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get editTripName => '編輯行程名稱';
+  String get editTripName => '編輯名稱';
 
   @override
   String get editDestinations => '編輯目的地';
@@ -381,7 +381,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterTripName => '輸入行程名稱';
 
   @override
-  String get editTripPurpose => '編輯行程目的';
+  String get editTripActivities => '編輯活動';
 
   @override
   String get deleteTrip => '刪除行程';
@@ -396,7 +396,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tripNameLabel => '行程名稱';
 
   @override
-  String get tripPurposeLabel => '行程目的';
+  String get tripActivitiesLabel => '行程活動（選填）';
 
   @override
   String get create => '建立';
@@ -506,25 +506,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noImage => '無圖片';
 
   @override
-  String get tripPurposeLeisureTravel => '休閒旅遊';
+  String get tripActivityOutdoor => '戶外';
 
   @override
-  String get tripPurposeBusinessTrip => '商務出差';
+  String get tripActivityBusiness => '商務';
 
   @override
-  String get tripPurposeFamilyTrip => '家庭旅遊';
+  String get tripActivityFormalOccasion => '正式場合';
 
   @override
-  String get tripPurposeOutdoorTrip => '戶外旅遊';
-
-  @override
-  String get tripPurposeCityTrip => '城市旅遊';
-
-  @override
-  String get tripPurposeResortVacation => '度假 / 休憩';
-
-  @override
-  String get tripPurposeMixed => '綜合';
+  String get tripActivityWaterActivities => '水上活動';
 
   @override
   String get categoryTop => '上衣';
@@ -614,6 +605,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get colorPurple => '紫色';
 
   @override
+  String get renameGarment => '重新命名衣物';
+
+  @override
   String get deleteGarment => '刪除衣物';
 
   @override
@@ -638,6 +632,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get clothingAdded => '已加入衣物';
+
+  @override
+  String get recentlyAdded => '最近新增';
 
   @override
   String garmentPairsWellWith(String subCategory, int count) {
@@ -858,6 +855,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get statusPast => '已結束';
+
+  @override
+  String get upcomingTrip => '即將到來的行程';
 
   @override
   String get failedToUpdateTrip => '更新行程失敗';
@@ -1447,7 +1447,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get editTripName => '編輯行程名稱';
+  String get editTripName => '編輯名稱';
 
   @override
   String get editDestinations => '編輯目的地';
@@ -1456,7 +1456,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get enterTripName => '輸入行程名稱';
 
   @override
-  String get editTripPurpose => '編輯行程目的';
+  String get editTripActivities => '編輯活動';
 
   @override
   String get deleteTrip => '刪除行程';
@@ -1471,7 +1471,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get tripNameLabel => '行程名稱';
 
   @override
-  String get tripPurposeLabel => '行程目的';
+  String get tripActivitiesLabel => '行程活動（選填）';
 
   @override
   String get create => '建立';
@@ -1581,25 +1581,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get noImage => '無圖片';
 
   @override
-  String get tripPurposeLeisureTravel => '休閒旅遊';
+  String get tripActivityOutdoor => '戶外';
 
   @override
-  String get tripPurposeBusinessTrip => '商務出差';
+  String get tripActivityBusiness => '商務';
 
   @override
-  String get tripPurposeFamilyTrip => '家庭旅遊';
+  String get tripActivityFormalOccasion => '正式場合';
 
   @override
-  String get tripPurposeOutdoorTrip => '戶外旅遊';
-
-  @override
-  String get tripPurposeCityTrip => '城市旅遊';
-
-  @override
-  String get tripPurposeResortVacation => '度假 / 休憩';
-
-  @override
-  String get tripPurposeMixed => '綜合';
+  String get tripActivityWaterActivities => '水上活動';
 
   @override
   String get categoryTop => '上衣';
@@ -1689,6 +1680,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get colorPurple => '紫色';
 
   @override
+  String get renameGarment => '重新命名衣物';
+
+  @override
   String get deleteGarment => '刪除衣物';
 
   @override
@@ -1713,6 +1707,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get clothingAdded => '已加入衣物';
+
+  @override
+  String get recentlyAdded => '最近新增';
 
   @override
   String garmentPairsWellWith(String subCategory, int count) {
@@ -1933,6 +1930,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get statusPast => '已結束';
+
+  @override
+  String get upcomingTrip => '即將到來的行程';
 
   @override
   String get failedToUpdateTrip => '更新行程失敗';

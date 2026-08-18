@@ -51,13 +51,13 @@ class TripLeg {
 class Trip {
   final String id;
   final String name;
-  final String purpose;
+  final List<String> activities;
   final List<TripLeg> legs;
 
   Trip({
     required this.id,
     required this.name,
-    required this.purpose,
+    required this.activities,
     required this.legs,
   }) : assert(legs.isNotEmpty, 'A trip needs at least one leg');
 
@@ -102,11 +102,11 @@ class Trip {
     return null;
   }
 
-  Trip copyWith({String? name, String? purpose, List<TripLeg>? legs}) {
+  Trip copyWith({String? name, List<String>? activities, List<TripLeg>? legs}) {
     return Trip(
       id: id,
       name: name ?? this.name,
-      purpose: purpose ?? this.purpose,
+      activities: activities ?? this.activities,
       legs: legs ?? this.legs,
     );
   }
@@ -124,52 +124,42 @@ class Trip {
       legs = [TripLeg.fromJson(json)];
     }
 
+    final rawActivities = json['activities'];
+
     return Trip(
       id: json['id'].toString(),
       name: json['name'] as String? ?? '',
-      purpose: json['purpose'] as String? ?? '',
+      activities: rawActivities is List
+          ? rawActivities.map((a) => a.toString()).toList()
+          : const [],
       legs: legs,
     );
   }
 }
 
-/// Stable trip-purpose identifiers, matching the snake_case values already
-/// stored in `Trip.purpose` and sent to the API — introducing this enum
-/// doesn't change the wire format, only how the picker UI represents it.
-enum TripPurpose {
-  leisureTravel,
-  businessTrip,
-  familyTrip,
-  outdoorTrip,
-  cityTrip,
-  resortVacation,
-  mixed,
-}
+/// Stable trip-activity identifiers, matching the snake_case values sent to
+/// the API — a trip can have any number of these at once (unlike the old
+/// single-select `TripPurpose` this replaced).
+enum TripActivity { outdoor, business, formalOccasion, waterActivities }
 
-extension TripPurposeApi on TripPurpose {
+extension TripActivityApi on TripActivity {
   String get apiValue {
     switch (this) {
-      case TripPurpose.leisureTravel:
-        return 'leisure_travel';
-      case TripPurpose.businessTrip:
-        return 'business_trip';
-      case TripPurpose.familyTrip:
-        return 'family_trip';
-      case TripPurpose.outdoorTrip:
-        return 'outdoor_trip';
-      case TripPurpose.cityTrip:
-        return 'city_trip';
-      case TripPurpose.resortVacation:
-        return 'resort_vacation';
-      case TripPurpose.mixed:
-        return 'mixed';
+      case TripActivity.outdoor:
+        return 'outdoor';
+      case TripActivity.business:
+        return 'business';
+      case TripActivity.formalOccasion:
+        return 'formal_occasion';
+      case TripActivity.waterActivities:
+        return 'water_activities';
     }
   }
 }
 
-TripPurpose? tripPurposeFromApiValue(String value) {
-  for (final purpose in TripPurpose.values) {
-    if (purpose.apiValue == value) return purpose;
+TripActivity? tripActivityFromApiValue(String value) {
+  for (final activity in TripActivity.values) {
+    if (activity.apiValue == value) return activity;
   }
   return null;
 }

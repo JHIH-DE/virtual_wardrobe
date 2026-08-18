@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/locale_provider.dart';
 import '../core/services/auth_storage.dart';
-import '../features/login_page.dart';
+import '../core/utils/route_observer.dart';
+import '../features/pages/login_page.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'main_shell.dart';
-import 'route_observer.dart';
 import 'theme/app_theme.dart';
 
 class App extends ConsumerWidget {

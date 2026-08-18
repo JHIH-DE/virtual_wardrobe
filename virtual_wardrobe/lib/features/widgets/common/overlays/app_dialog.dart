@@ -48,7 +48,7 @@ class AppDialog extends StatefulWidget {
     this.contentToPrimarySpacing = 20,
     this.secondaryIsTextButton = true,
     this.primaryIsTextButton = false,
-    this.borderSide = const BorderSide(color: Colors.white24, width: 1),
+    this.borderSide = const BorderSide(color: Colors.white54, width: 1.5),
   }) : assert(
          body != null || content != null,
          'AppDialog requires either body or content',

@@ -382,7 +382,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get editTripName => 'Edit Trip Name';
+  String get editTripName => 'Edit Name';
 
   @override
   String get editDestinations => 'Edit Destinations';
@@ -391,7 +391,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterTripName => 'Enter trip name';
 
   @override
-  String get editTripPurpose => 'Edit Trip Purpose';
+  String get editTripActivities => 'Edit Activities';
 
   @override
   String get deleteTrip => 'Delete Trip';
@@ -407,7 +407,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripNameLabel => 'Trip Name';
 
   @override
-  String get tripPurposeLabel => 'Trip Purpose';
+  String get tripActivitiesLabel => 'Trip Activities (Optional)';
 
   @override
   String get create => 'Create';
@@ -519,25 +519,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noImage => 'No Image';
 
   @override
-  String get tripPurposeLeisureTravel => 'Leisure Travel';
+  String get tripActivityOutdoor => 'Outdoor';
 
   @override
-  String get tripPurposeBusinessTrip => 'Business Trip';
+  String get tripActivityBusiness => 'Business';
 
   @override
-  String get tripPurposeFamilyTrip => 'Family Trip';
+  String get tripActivityFormalOccasion => 'Formal Occasion';
 
   @override
-  String get tripPurposeOutdoorTrip => 'Outdoor Trip';
-
-  @override
-  String get tripPurposeCityTrip => 'City Trip';
-
-  @override
-  String get tripPurposeResortVacation => 'Resort / Vacation';
-
-  @override
-  String get tripPurposeMixed => 'Mixed';
+  String get tripActivityWaterActivities => 'Water Activities';
 
   @override
   String get categoryTop => 'Top';
@@ -627,6 +618,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorPurple => 'Purple';
 
   @override
+  String get renameGarment => 'Rename Garment';
+
+  @override
   String get deleteGarment => 'Delete Garment';
 
   @override
@@ -653,6 +647,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clothingAdded => 'Clothing Added';
+
+  @override
+  String get recentlyAdded => 'Recently Added';
 
   @override
   String garmentPairsWellWith(String subCategory, int count) {
@@ -876,6 +873,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statusPast => 'Past';
+
+  @override
+  String get upcomingTrip => 'Upcoming Trip';
 
   @override
   String get failedToUpdateTrip => 'Failed to update trip';

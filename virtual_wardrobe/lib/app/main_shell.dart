@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/utils/debug_log.dart';
-import '../features/home_page.dart';
-import '../features/outfits_page.dart';
-import '../features/add_outfit_page.dart';
-import '../features/my_closet_page.dart';
-import '../features/trips_page.dart';
+import '../features/pages/home_page.dart';
+import '../features/pages/outfits_page.dart';
+import '../features/pages/add_outfit_page.dart';
+import '../features/pages/closet_page.dart';
+import '../features/pages/trips_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
@@ -129,7 +129,7 @@ class _MainShellState extends ConsumerState<MainShell> {
               index: AppTab.values.indexOf(_current),
               children: const [
                 HomePage(),
-                MyClosetPage(),
+                ClosetPage(),
                 OutfitsPage(),
                 TripsPage(),
               ],

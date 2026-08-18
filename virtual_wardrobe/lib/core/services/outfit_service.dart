@@ -12,6 +12,9 @@ class OutfitService with BaseService {
   // Backend route is still `/outfits` — not renamed here since that's a
   // live API contract, not just app-side wording.
   static final String _baseUrl = '${AppConfig.fullApiUrl}/outfits';
+  // A handful of look endpoints live at the top level (`/looks/...`)
+  // instead of nested under an outfit (`/outfits/{outfit_id}/looks/...`).
+  static final String _looksBaseUrl = '${AppConfig.fullApiUrl}/looks';
 
   Future<Map<String, dynamic>> createOutfit({
     required List<int> garmentIds,
@@ -323,6 +326,37 @@ class OutfitService with BaseService {
       return;
     }
     throw Exception('deleteLook failed (${res.statusCode}): ${res.body}');
+  }
+
+  /// Fetches a single look directly by its own id — unlike [getOutfit],
+  /// which returns the whole outfit (with every look nested under
+  /// `looks[]`), this looks it up standalone via the top-level
+  /// `GET /looks/{look_id}` route.
+  Future<Map<String, dynamic>> getLook(int lookId) async {
+    debugLog('--- getLook: lookId=$lookId ---');
+    final uri = Uri.parse('$_looksBaseUrl/$lookId');
+    final res = await withAuth(
+      (token) => http.get(uri, headers: authHeaders(token)),
+    );
+    final envelope = decodeMap(res, op: 'getLook');
+    final data = envelope['data'];
+
+    if (data is! Map<String, dynamic>) {
+      throw Exception('getLook: response missing look data object');
+    }
+    return data;
+  }
+
+  /// Compensation sweep: finds looks stuck in-progress for over 10 minutes
+  /// and retriggers them. No parameters — a maintenance action, not scoped
+  /// to any single outfit/look.
+  Future<void> cleanupStuckLooks() async {
+    debugLog('--- cleanupStuckLooks ---');
+    final uri = Uri.parse('$_looksBaseUrl/cleanup-stuck');
+    final res = await withAuth(
+      (token) => http.post(uri, headers: authHeaders(token)),
+    );
+    decodeMap(res, op: 'cleanupStuckLooks');
   }
 }
 
