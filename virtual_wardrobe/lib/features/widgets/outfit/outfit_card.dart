@@ -53,6 +53,7 @@ class OutfitCard extends StatelessWidget {
                 Expanded(
                   child: OutfitImage(
                     imageUrl: outfit.imageUrl,
+                    groupId: outfit.groupId,
                     outfitId: outfit.id,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,

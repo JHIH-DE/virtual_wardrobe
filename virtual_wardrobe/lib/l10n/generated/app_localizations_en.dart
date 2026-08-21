@@ -150,7 +150,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAnotherVersion => 'Create Another Version';
 
   @override
-  String get customizationLooks => 'Customize (Optional)';
+  String get customizationOptional => 'Customize (Optional)';
 
   @override
   String get currentOutfitLabel => 'Current Outfit';
@@ -168,7 +168,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sceneLabel => 'Scene';
 
   @override
-  String get sceneSubtitle => 'Choose where this look comes to life.';
+  String get sceneSubtitle => 'Choose where this outfit comes to life.';
 
   @override
   String get noneLabel => 'None';
@@ -208,16 +208,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteOutfitConfirmation =>
-      'Are you sure you want to delete this outfit?';
+      'Are you sure you want to delete this version?';
 
   @override
-  String get deleteLook => 'Delete Look';
+  String get deleteOutfitGroupConfirmation =>
+      'This will also delete every other outfit generated together with it. This can\'t be undone.';
 
   @override
-  String get undo => 'Undo';
-
-  @override
-  String get lookDeleted => 'Look deleted';
+  String get deleteThisVersion => 'Delete Version';
 
   @override
   String createdOnDate(String date) {

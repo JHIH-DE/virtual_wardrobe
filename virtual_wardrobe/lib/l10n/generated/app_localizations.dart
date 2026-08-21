@@ -357,11 +357,11 @@ abstract class AppLocalizations {
   /// **'Create Another Version'**
   String get createAnotherVersion;
 
-  /// No description provided for @customizationLooks.
+  /// No description provided for @customizationOptional.
   ///
   /// In en, this message translates to:
   /// **'Customize (Optional)'**
-  String get customizationLooks;
+  String get customizationOptional;
 
   /// No description provided for @currentOutfitLabel.
   ///
@@ -396,7 +396,7 @@ abstract class AppLocalizations {
   /// No description provided for @sceneSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Choose where this look comes to life.'**
+  /// **'Choose where this outfit comes to life.'**
   String get sceneSubtitle;
 
   /// No description provided for @noneLabel.
@@ -468,26 +468,20 @@ abstract class AppLocalizations {
   /// No description provided for @deleteOutfitConfirmation.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to delete this outfit?'**
+  /// **'Are you sure you want to delete this version?'**
   String get deleteOutfitConfirmation;
 
-  /// No description provided for @deleteLook.
+  /// No description provided for @deleteOutfitGroupConfirmation.
   ///
   /// In en, this message translates to:
-  /// **'Delete Look'**
-  String get deleteLook;
+  /// **'This will also delete every other outfit generated together with it. This can\'t be undone.'**
+  String get deleteOutfitGroupConfirmation;
 
-  /// No description provided for @undo.
+  /// No description provided for @deleteThisVersion.
   ///
   /// In en, this message translates to:
-  /// **'Undo'**
-  String get undo;
-
-  /// No description provided for @lookDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Look deleted'**
-  String get lookDeleted;
+  /// **'Delete Version'**
+  String get deleteThisVersion;
 
   /// Footer showing the creation date of an outfit
   ///

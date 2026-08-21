@@ -23,8 +23,7 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
   // managed from Home's daily outfit / Trip Details instead, so they're
   // filtered out server-side rather than fetched and discarded.
   @override
-  Future<List<Outfit>> build() =>
-      OutfitService().getAllOutfits(jobType: 'general');
+  Future<List<Outfit>> build() => OutfitService().getAllOutfits();
 
   /// True if any cached outfit's signed image URL has expired (or is about
   /// to), meaning the cached list should be re-fetched before display.
@@ -46,9 +45,7 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => OutfitService().getAllOutfits(jobType: 'general'),
-    );
+    state = await AsyncValue.guard(() => OutfitService().getAllOutfits());
   }
 
   void add(Outfit outfit) {

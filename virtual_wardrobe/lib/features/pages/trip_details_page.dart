@@ -5,17 +5,13 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
-import '../../core/services/outfit_service.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/signed_url.dart';
-import '../../core/utils/try_on_mixin.dart';
 import '../../data/garment.dart';
-import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'add_outfit_page.dart';
-import 'outfit_details_page.dart';
 import 'trip_suitcase_page.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -149,8 +145,7 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<TripDetailsPage> createState() => _TripDetailsPageState();
 }
 
-class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
-    with TryOnMixin {
+class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   // TripDayCard's own width plus the gap around it — the per-page slot
   // width used to size the day selector's PageController.viewportFraction.
   static const double _dayCardWidth = 95;
@@ -161,29 +156,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   late List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
   late Set<int> _suitcaseIds = widget.initialData.suitcaseIds;
-
-  /// Once a day's try-on job has resolved to an image URL, it's kept here
-  /// so switching away and back to that day — or leaving this page and
-  /// coming back to a brand new [TripDetailsPage] instance entirely —
-  /// shows it straight away instead of re-polling `getOutfit` for a job
-  /// that's already finished. Static (rather than an instance field) so it
-  /// outlives any single page instance for the rest of the app session.
-  /// This exists *in addition to* [TodayOutfitIdea.cacheKey]: that keeps
-  /// the actual image bytes on disk keyed by job id (survives even app
-  /// restarts), while this map avoids the redundant `getOutfit` network
-  /// call itself, since the backend hands back a freshly re-signed URL —
-  /// and therefore a disk-cache miss on the URL string alone — every time.
-  static final Map<int, String> _resolvedOutfitImageUrls = {};
-
-  /// The last successfully-shown image for the *current* day, kept
-  /// separate from [tryOnResultUrl] (which `TryOnMixin` nulls out the
-  /// moment a poll/regenerate starts) so [TodayOutfitIdea] can keep
-  /// showing it — with a loading overlay on top — while a regenerate is in
-  /// flight, the same way Outfit Details overlays a loading state on a
-  /// look's existing image instead of blanking it out. Cleared on day
-  /// switches (a different day's photo shouldn't linger under the
-  /// spinner), but deliberately *not* cleared when a regenerate starts.
-  String? _lastShownOutfitImageUrl;
 
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
@@ -210,7 +182,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   void initState() {
     super.initState();
     _loadPackingAdvice();
-    _loadOutfitImage();
     // preload() fetched fresh garment image URLs, but if this page instance
     // stays open long enough for them to expire (e.g. backgrounded, or the
     // trip was preloaded a while before the user actually opened it), there
@@ -224,29 +195,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   void dispose() {
     _dayPageController?.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadOutfitImage() async {
-    final outfitId = _currentDayOutfit?.outfitId;
-    if (outfitId == null || outfitId == 0) return;
-
-    final cachedUrl = _resolvedOutfitImageUrls[outfitId];
-    if (cachedUrl != null) {
-      if (mounted) {
-        setState(() {
-          tryOnOutfitId = outfitId;
-          tryOnResultUrl = cachedUrl;
-          _lastShownOutfitImageUrl = cachedUrl;
-        });
-      }
-      return;
-    }
-
-    final resolvedOutfitId = await watchJob(outfitId);
-    if (resolvedOutfitId != null && tryOnResultUrl != null) {
-      _resolvedOutfitImageUrls[resolvedOutfitId] = tryOnResultUrl!;
-      if (mounted) setState(() => _lastShownOutfitImageUrl = tryOnResultUrl);
-    }
   }
 
   bool get _hasStaleGarmentImages => _dayOutfits.any(
@@ -313,12 +261,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     return total;
   }
 
-  Future<void> _loadDailyData() async {
-    resetTryOnState();
-    setState(() => _lastShownOutfitImageUrl = null);
-    await _loadOutfitImage();
-  }
-
   /// Re-fetches the trip's `days[].options[]` (e.g. after generating or
   /// hand-editing a plan) without re-fetching weather.
   Future<void> _refreshDayOutfits() async {
@@ -333,7 +275,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       _dayOutfits = dayOutfits;
       _suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']);
     });
-    await _loadOutfitImage();
   }
 
   /// Fetches the trip's current suitcase, resolved to full [Garment]
@@ -701,46 +642,18 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
+  // Trip day try-on image generation isn't wired up here — the backend's
+  // trip try-on generation endpoint isn't supported yet (currently 503),
+  // independent of the outfit-group API migration. Tapping "Generate"
+  // surfaces that instead of calling a dead endpoint.
   Widget _buildOutfitSection() {
     return TodayOutfitIdea(
-      onTap: _openOutfitDetails,
-      onGenerate: _handleGenerateOutfit,
-      // The last successfully-shown image, not the raw (nulled-out-while-
-      // loading) tryOnResultUrl — lets the widget keep it visible with a
-      // loading overlay on top while regenerating, instead of blanking out.
-      imageUrl: _lastShownOutfitImageUrl,
-      isLoading: isOutfitLoading,
-      jobStatus: isOutfitLoading
-          ? (tryOnOutfitId == 0
-                ? _l10n.creatingEllipsis
-                : _l10n.generatingEllipsis)
-          : null,
-      errorMessage: tryOnErrorMessage,
-      onRefreshUrl: _refreshOutfitImageUrl,
-      cacheKey: tryOnOutfitId != 0 ? 'outfit-job-$tryOnOutfitId' : null,
+      onGenerate: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_l10n.faceReferenceComingSoon)),
+        );
+      },
     );
-  }
-
-  /// Re-fetches the current day's already-completed try-on job to pick up
-  /// a freshly-signed `result_image_url` if the cached one expired —
-  /// there's no new job to create, just the same one's latest status.
-  Future<String?> _refreshOutfitImageUrl() async {
-    final outfitId = tryOnOutfitId != 0
-        ? tryOnOutfitId
-        : _currentDayOutfit?.outfitId;
-    if (outfitId == null || outfitId == 0) return null;
-    try {
-      final result = await OutfitService().getOutfit(outfitId);
-      final url =
-          (primaryLookOf(result)?['result_image_url'] ??
-                  result['result_image_url'])
-              as String?;
-      if (url != null) _resolvedOutfitImageUrls[outfitId] = url;
-      return url;
-    } catch (e) {
-      debugLog('Failed to refresh outfit image url: $e');
-      return null;
-    }
   }
 
   Widget _buildTripHeader() {
@@ -838,7 +751,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   void _selectDay(int index) {
     setState(() => _selectedDayIndex = index);
-    _loadDailyData();
   }
 
   TripLeg? _legForDate(DateTime date) {
@@ -1149,74 +1061,4 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
-  Future<void> _handleGenerateOutfit() async {
-    if (_todayGarments.isEmpty) return;
-    final optionId = _currentDayOutfit?.optionId;
-    if (optionId == null) return;
-
-    final ids = _todayGarments
-        .where((g) => g.id != null)
-        .map((g) => g.id!)
-        .toList();
-    final int? outfitId = await performTryOn(ids, "trip");
-
-    if (outfitId == null) {
-      // With a previous image still on screen, TodayOutfitIdea no longer
-      // blanks out to its inline error view on failure (matching Outfit
-      // Details, which leaves a look's existing image in place) — so a
-      // failed regenerate needs its own explicit surface.
-      if (mounted &&
-          _lastShownOutfitImageUrl != null &&
-          tryOnErrorMessage != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(tryOnErrorMessage!)));
-      }
-      return;
-    }
-
-    if (tryOnResultUrl != null) {
-      _resolvedOutfitImageUrls[outfitId] = tryOnResultUrl!;
-      if (mounted) setState(() => _lastShownOutfitImageUrl = tryOnResultUrl);
-    }
-    try {
-      await TripService().setTryonJobToOption(
-        outfitId,
-        optionId: optionId,
-        tripId: int.parse(widget.trip.id),
-      );
-    } catch (e) {
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to save outfitId: $e');
-    }
-  }
-
-  void _openOutfitDetails() {
-    final url = tryOnResultUrl;
-    if (url == null) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OutfitDetailsPage(
-          outfit: Outfit(
-            id: tryOnOutfitId,
-            imageUrl: url,
-            advice: tryOnAiAdvice,
-            garmentIds: _todayGarments
-                .where((g) => g.id != null)
-                .map((g) => g.id!)
-                .toList(),
-          ),
-          isNew: true,
-          confirmLeaveOnBack: false,
-          navigateToOutfitsTabOnSave: false,
-          showEditOutfitWhenSaved: false,
-        ),
-      ),
-    );
-  }
 }

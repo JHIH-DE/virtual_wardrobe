@@ -143,7 +143,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createAnotherVersion => '建立另一個版本';
 
   @override
-  String get customizationLooks => '自訂造型';
+  String get customizationOptional => '自訂（選填）';
 
   @override
   String get currentOutfitLabel => '目前穿搭';
@@ -199,16 +199,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteOutfitTitle => '刪除穿搭';
 
   @override
-  String get deleteOutfitConfirmation => '確定要刪除這套穿搭嗎？';
+  String get deleteOutfitConfirmation => '確定要刪除這個版本嗎？';
 
   @override
-  String get deleteLook => '刪除造型';
+  String get deleteOutfitGroupConfirmation => '這麼做也會一併刪除跟這套穿搭同批產生的其他穿搭，且無法復原。';
 
   @override
-  String get undo => '復原';
-
-  @override
-  String get lookDeleted => '已刪除造型';
+  String get deleteThisVersion => '刪除版本';
 
   @override
   String createdOnDate(String date) {
@@ -1218,7 +1215,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get createAnotherVersion => '建立另一個版本';
 
   @override
-  String get customizationLooks => '自訂造型';
+  String get customizationOptional => '自訂（選填）';
 
   @override
   String get currentOutfitLabel => '目前穿搭';
@@ -1274,16 +1271,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deleteOutfitTitle => '刪除穿搭';
 
   @override
-  String get deleteOutfitConfirmation => '確定要刪除這套穿搭嗎？';
+  String get deleteOutfitConfirmation => '確定要刪除這個版本嗎？';
 
   @override
-  String get deleteLook => '刪除造型';
+  String get deleteOutfitGroupConfirmation => '這麼做也會一併刪除跟這套穿搭同批產生的其他穿搭，且無法復原。';
 
   @override
-  String get undo => '復原';
-
-  @override
-  String get lookDeleted => '已刪除造型';
+  String get deleteThisVersion => '刪除版本';
 
   @override
   String createdOnDate(String date) {

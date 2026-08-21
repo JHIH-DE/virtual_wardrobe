@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -36,25 +35,7 @@ import '../widgets/outfit/outfit_image.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
 
-/// One image shown in Outfit Details' carousel. [lookId] is only null
-/// before the real look history has loaded — until then, delete/regenerate
-/// stay disabled.
-class _OutfitLookEntry {
-  final String imageUrl;
-  final int? lookId;
-  // This specific look's accessories — not the outfit's fixed core combo,
-  // since accessories are picked per-look. Drives the Garment list so it
-  // reflects whichever look is currently shown, not every look ever
-  // generated.
-  final List<int> accessoryGarmentIds;
-  final bool isFavorite;
-  const _OutfitLookEntry(
-    this.imageUrl, {
-    this.lookId,
-    this.accessoryGarmentIds = const [],
-    this.isFavorite = false,
-  });
-}
+enum _VersionMenuAction { regenerate, delete }
 
 class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
@@ -117,38 +98,38 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   // hide the action bar once saved — avoids flashing the "Save Outfit"
   // button before the rest of the outfit's details have loaded.
   bool _resolvingSavedStatus = false;
-  String? _name;
-  List<String>? _seasons;
-  List<String>? _style;
   List<Garment>? _garments;
   bool _loadingGarments = false;
   bool _openingTryOn = false;
-  // Index into _outfitImages currently re-running its AI render via
-  // OutfitService.regenerateLook, or null if none is in flight.
-  int? _regeneratingLookIndex;
-  // True while a look-delete undo SnackBar is showing (see _deleteLook) —
-  // blocks starting a second one until the first resolves.
-  bool _hasPendingLookDelete = false;
+  // True while regenerateOutfit's AI render is in flight.
+  bool _isRegenerating = false;
 
-  // Starts with just the outfit's own image (index 0); each completed
-  // Create Look flow appends its generated image here. Purely client-side
-  // — this list doesn't persist across app restarts (the outfit's full
-  // `looks[]` history lives on the backend, but this page doesn't fetch it).
-  late final List<_OutfitLookEntry> _outfitImages = [
-    _OutfitLookEntry(widget.outfit.imageUrl),
-  ];
-  final PageController _outfitImagePageController = PageController();
-  int _currentImageIndex = 0;
+  // Every outfit in this group, swipeable via [_pageController] — starts
+  // with just the seed outfit and gets replaced with the full set once
+  // [_loadGroupOutfits] resolves (an existing outfit may already have
+  // siblings from earlier "Create Another Version" calls).
+  late final List<Outfit> _versions = [widget.outfit];
+  int _currentIndex = 0;
+  final PageController _pageController = PageController();
 
-  List<String> get _effectiveSeasons => _seasons ?? widget.outfit.seasons;
-  List<String> get _effectiveStyle => _style ?? widget.outfit.style;
+  /// The version currently shown in the carousel — photo, favorite,
+  /// garments, and the Regenerate/Delete actions all apply to this one.
+  Outfit get _current => _versions[_currentIndex];
+
+  /// [_versions] first entry — the app bar title/tags always reflect this
+  /// one regardless of which version is currently swiped to, so the header
+  /// reads as this outfit *group*'s identity rather than flickering
+  /// per-version as the user swipes.
+  Outfit get _primary => _versions[0];
+
+  List<String> get _effectiveSeasons => _primary.seasons;
+  List<String> get _effectiveStyle => _primary.style;
   bool get _shouldConfirmLeave => widget.isNew && widget.confirmLeaveOnBack;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void initState() {
     super.initState();
-    _name = widget.outfit.name;
     // The backend no longer has an is_saved concept — every outfit is
     // persisted the moment it's created. isNew is what actually means
     // "not yet confirmed kept" here: fresh outfits start unconfirmed (so
@@ -159,59 +140,35 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     if (widget.isNew) {
       _resolvingSavedStatus = !widget.showEditOutfitWhenSaved;
       _fetchOutfitDetails();
-    }
-    // A freshly-created outfit's URL was just signed, but one opened from a
-    // list (outfits_page.dart, garment_outfits_page.dart) may have sat in
-    // memory long enough for its signed URL to expire — and this also picks
-    // up any earlier-generated looks the backend already has for this
-    // outfit, since the carousel otherwise only ever shows what's been
-    // generated in the current page instance.
-    if (!widget.isNew) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _loadLookHistory());
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadGroupOutfits());
     }
   }
 
   @override
   void dispose() {
-    _outfitImagePageController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  /// Replaces the single placeholder image ([widget.outfit.imageUrl]) with
-  /// this outfit's full look history from the backend — otherwise the
-  /// carousel only ever shows what's been generated in *this* page
-  /// instance, since [_outfitImages] itself is purely client-side and never
-  /// persists across navigations.
-  Future<void> _loadLookHistory() async {
+  /// Replaces [_versions] (initially just [widget.outfit]) with every
+  /// outfit actually in the group — otherwise the carousel would only ever
+  /// show versions created in *this* page instance.
+  Future<void> _loadGroupOutfits() async {
     try {
-      final data = await OutfitService().getOutfit(widget.outfit.id);
-      final entries = allLooksOf(data)
-          .map((look) {
-            final url = look['result_image_url'] as String?;
-            if (url == null || url.isEmpty) return null;
-            final rawAccessoryIds = look['accessory_garment_ids'];
-            return _OutfitLookEntry(
-              url,
-              lookId: look['look_id'] as int?,
-              accessoryGarmentIds: rawAccessoryIds is List
-                  ? rawAccessoryIds.whereType<int>().toList()
-                  : const [],
-              isFavorite:
-                  look['is_favorite'] == true || look['is_favorite'] == 1,
-            );
-          })
-          .whereType<_OutfitLookEntry>()
-          .toList();
-      if (!mounted || entries.isEmpty) return;
+      final outfits = await OutfitService().getGroupOutfits(
+        widget.outfit.groupId,
+      );
+      if (!mounted || outfits.isEmpty) return;
       setState(() {
-        _outfitImages
+        _versions
           ..clear()
-          ..addAll(entries);
-        _currentImageIndex = 0;
+          ..addAll(outfits);
+        _currentIndex = 0;
       });
       _loadGarments();
     } catch (_) {
-      // Leave the single placeholder image already showing.
+      // Leave the single seed version already showing.
     }
   }
 
@@ -327,10 +284,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             const SizedBox(height: 12),
             _buildOutfitImage(),
             const SizedBox(height: 16),
-            if (widget.outfit.garmentIds.isNotEmpty) ...[
-              _buildGarmentSection(),
-            ],
-            _buildCreateDateFooter(),
+            if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
+            const SizedBox(height: 8),
           ],
         ),
         bottomNavigationBar: _buildBottomBar(context),
@@ -376,10 +331,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       !(_isSaved && !widget.showEditOutfitWhenSaved);
 
   /// Opens Add Outfit in "Create Another Version" mode — its bottom button
-  /// calls `createLook` on this same outfit instead of creating a new one
-  /// (see [AddOutfitPage.existingOutfit]). Never touches this outfit/look
-  /// directly; the returned image (if any) is appended to [_outfitImages]
-  /// as a new carousel entry.
+  /// calls `generateOutfit` into this outfit's *same* group instead of a
+  /// fresh one (see [AddOutfitPage.existingOutfit]), so the result is a
+  /// brand new [Outfit] alongside this one, appended to [_versions] and
+  /// swiped into view.
   Future<void> _openCreateAnotherVersion() async {
     setState(() => _openingTryOn = true);
     try {
@@ -387,13 +342,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (!mounted) return;
       setState(() => _openingTryOn = false);
       if (!context.mounted) return;
-      final result = await Navigator.push<OutfitVersionResult>(
+      final result = await Navigator.push<Outfit>(
         context,
         MaterialPageRoute(
           builder: (_) => AddOutfitPage(
-            // Carries the live (possibly renamed this session) name — see
-            // AddOutfitPage's title, which shows it in existingOutfit mode.
-            existingOutfit: widget.outfit.copyWith(name: _name),
+            existingOutfit: _current,
             initialGarments: _garments ?? const [],
             preloadedGarments: closetGarments,
           ),
@@ -401,21 +354,18 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
       if (result == null || !mounted) return;
       setState(() {
-        _outfitImages.add(
-          _OutfitLookEntry(
-            result.imageUrl,
-            lookId: result.lookId,
-            accessoryGarmentIds: result.accessoryGarmentIds,
-          ),
-        );
-        _currentImageIndex = _outfitImages.length - 1;
+        _versions.add(result);
+        _currentIndex = _versions.length - 1;
       });
       _loadGarments();
-      await _outfitImagePageController.animateToPage(
-        _currentImageIndex,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (_pageController.hasClients) {
+        await _pageController.animateToPage(
+          _currentIndex,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+      await ref.read(outfitsProvider.notifier).refresh();
     } catch (e) {
       if (!mounted) return;
       setState(() => _openingTryOn = false);
@@ -550,7 +500,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   /// Opens a bottom sheet to multi-select Season/Style tags, then saves via
-  /// [OutfitService.setSeason]/[OutfitService.setStyle] on confirm.
+  /// [OutfitService.updateOutfit] on confirm.
   Future<void> _openEditTagsSheet() async {
     final selectedSeasons = _effectiveSeasons.map(_titleCase).toSet();
     final selectedStyles = _effectiveStyle.map(_titleCase).toSet();
@@ -627,16 +577,15 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     final seasons = result.seasons.map((s) => s.toLowerCase()).toList();
     final styles = result.styles.map((s) => s.toLowerCase()).toList();
     try {
-      // Sequential, not Future.wait — both PATCH the same outfit resource,
-      // and firing them concurrently risks a lost update if the backend's
-      // handler isn't a true partial-field merge (whichever write lands
-      // second could silently clobber the other's field).
-      await OutfitService().setSeason(widget.outfit.id, season: seasons);
-      await OutfitService().setStyle(widget.outfit.id, style: styles);
+      await OutfitService().updateOutfit(
+        _primary.groupId,
+        _primary.id,
+        season: seasons,
+        style: styles,
+      );
       if (!mounted) return;
       setState(() {
-        _seasons = seasons;
-        _style = styles;
+        _versions[0] = _primary.copyWith(seasons: seasons, style: styles);
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -647,20 +596,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
-  }
-
-  Widget _buildCreateDateFooter() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 8),
-        Text(
-          _l10n.createdOnDate(_formattedDate),
-          style: AppTextStyle.bold14.copyWith(color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
   }
 
   void _shareOutfit() {
@@ -669,209 +604,33 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     ).showSnackBar(SnackBar(content: Text(_l10n.shareComingSoon)));
   }
 
-  Future<String?> _refreshOutfitImageUrl() async {
-    final fresh = await fetchFreshOutfitImageUrl(widget.outfit.id);
-    if (mounted) setState(() => _outfitImages[0] = _OutfitLookEntry(fresh));
+  /// Refreshes the signed image URL for the version at [index] — every
+  /// version can self-heal independently, since each carries its own
+  /// outfit id.
+  Future<String?> _refreshImageUrlFor(int index) async {
+    if (index >= _versions.length) return null;
+    final outfit = _versions[index];
+    final fresh = await fetchFreshOutfitImageUrl(outfit.groupId, outfit.id);
+    if (mounted && index < _versions.length) {
+      setState(() => _versions[index] = outfit.copyWith(imageUrl: fresh));
+    }
     return fresh;
   }
 
-  /// Deletes a single generated look from the carousel. Only entries with a
-  /// [_OutfitLookEntry.lookId] are deletable (see [_buildOutfitImage]), and
-  /// the last remaining look can never be deleted.
-  ///
-  /// No confirmation dialog, no visible countdown — the look disappears
-  /// from the carousel immediately and a lightweight "Look deleted"
-  /// SnackBar offers an Undo for a few seconds. Only an explicit Undo tap
-  /// ([SnackBarClosedReason.action]) restores it; letting the SnackBar time
-  /// out, swiping it away, or navigating elsewhere all commit the delete to
-  /// the backend once it resolves.
-  Future<void> _deleteLook(int index) async {
-    if (_outfitImages.length <= 1 || _hasPendingLookDelete) return;
-    final lookId = _outfitImages[index].lookId;
-    if (lookId == null) return;
-
-    final removedEntry = _outfitImages[index];
-    final previousImageIndex = _currentImageIndex;
-
-    setState(() {
-      _hasPendingLookDelete = true;
-      _outfitImages.removeAt(index);
-      if (_currentImageIndex >= _outfitImages.length) {
-        _currentImageIndex = _outfitImages.length - 1;
-      }
-    });
-    _bumpPrimaryLookCacheIfPromoted(index);
-    _loadGarments();
-    if (_outfitImagePageController.hasClients) {
-      _outfitImagePageController.jumpToPage(_currentImageIndex);
-    }
-
-    final reason = await ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(_buildLookDeletedSnackBar()).closed;
-    if (!mounted) return;
-    setState(() => _hasPendingLookDelete = false);
-
-    if (reason == SnackBarClosedReason.action) {
-      setState(() {
-        _outfitImages.insert(index, removedEntry);
-        _currentImageIndex = previousImageIndex.clamp(
-          0,
-          _outfitImages.length - 1,
-        );
-      });
-      _bumpPrimaryLookCacheIfPromoted(index);
-      _loadGarments();
-      if (_outfitImagePageController.hasClients) {
-        _outfitImagePageController.jumpToPage(_currentImageIndex);
-      }
-      return;
-    }
-
+  Future<void> _toggleFavorite() async {
+    final target = _current;
+    final index = _currentIndex;
+    final next = !target.isFavorite;
+    setState(() => _versions[index] = target.copyWith(isFavorite: next));
     try {
-      await OutfitService().deleteLook(widget.outfit.id, lookId);
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      // The backend delete failed after it was already removed from the
-      // UI — put it back so the two don't drift out of sync.
-      setState(() {
-        _outfitImages.insert(index, removedEntry);
-        _currentImageIndex = index;
-      });
-      _bumpPrimaryLookCacheIfPromoted(index);
-      _loadGarments();
-      if (_outfitImagePageController.hasClients) {
-        _outfitImagePageController.jumpToPage(_currentImageIndex);
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
-
-  /// The carousel's position 0 always renders under the fixed
-  /// `outfit-job-$outfitId` cache key (see [_buildOutfitImage]'s
-  /// `itemBuilder`), not the occupying look's own identity — because
-  /// that's the same key Home/Outfits/Trip use for this outfit's primary
-  /// image. That's fine as long as position 0 always holds the same look,
-  /// but [_deleteLook] can promote a *different* look into position 0 (or
-  /// demote+restore one back), and without bumping the version here, the
-  /// promoted look would render with stale bytes still cached under that
-  /// key from whichever look occupied position 0 before it.
-  void _bumpPrimaryLookCacheIfPromoted(int mutatedIndex) {
-    if (mutatedIndex != 0) return;
-    ImageCacheBust.bump('outfit-job-${widget.outfit.id}');
-  }
-
-  /// Lightweight "Look deleted" undo prompt — margins align with the page's
-  /// own content padding (see [_buildScaffold]'s `ListView` padding) and
-  /// the Undo action uses the app's purple accent instead of Material's
-  /// default action color.
-  SnackBar _buildLookDeletedSnackBar() {
-    return SnackBar(
-      duration: const Duration(seconds: 5),
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      content: Text(
-        _l10n.lookDeleted,
-        style: AppTextStyle.regular14.copyWith(color: AppColors.textOnPrimary),
-      ),
-      action: SnackBarAction(
-        label: _l10n.undo,
-        textColor: AppColors.accent,
-        onPressed: () {},
-      ),
-    );
-  }
-
-  /// Re-runs the AI render for a single look in place (see
-  /// [OutfitService.regenerateLook]) — same accessories/background, new
-  /// image, no new history entry.
-  Future<void> _regenerateLook(int index) async {
-    if (_regeneratingLookIndex != null) return;
-    final lookId = _outfitImages[index].lookId;
-    if (lookId == null) return;
-
-    setState(() => _regeneratingLookIndex = index);
-    try {
-      await OutfitService().regenerateLook(widget.outfit.id, lookId);
-      final look = await _waitForLookCompletion(widget.outfit.id, lookId);
-      final freshUrl = look?['result_image_url'] as String?;
-      if (freshUrl == null || freshUrl.isEmpty) {
-        throw Exception('Regenerate timed out or failed.');
-      }
-      // regenerateLook overwrites the image at its existing URL in place,
-      // so the URL never changes — bump the same base key every consumer
-      // of this look/outfit's image reads (this page's own carousel on a
-      // future instance, and OutfitImage elsewhere for index 0's primary
-      // look — see ImageCacheBust), so they all move to a cache key that's
-      // never been seen before instead of keep serving pre-regenerate
-      // bytes from a stable key's cache entry.
-      final baseKey = index == 0
-          ? 'outfit-job-${widget.outfit.id}'
-          : 'look-$lookId';
-      ImageCacheBust.bump(baseKey);
-
-      if (!mounted) return;
-      setState(() {
-        final old = _outfitImages[index];
-        _outfitImages[index] = _OutfitLookEntry(
-          freshUrl,
-          lookId: lookId,
-          accessoryGarmentIds: old.accessoryGarmentIds,
-          isFavorite: old.isFavorite,
-        );
-      });
-      // Index 0 is this outfit's primary look — also shown (via
-      // OutfitImage) in the Outfits list, Home, and Trip pages. Refreshing
-      // makes them rebuild now (picking up the just-bumped version above)
-      // instead of only whenever something else happens to rebuild them.
-      if (index == 0) {
-        await ref.read(outfitsProvider.notifier).refresh();
-      }
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      if (mounted) setState(() => _regeneratingLookIndex = null);
-    }
-  }
-
-  void _setLookFavorite(int index, bool isFavorite) {
-    setState(() {
-      final old = _outfitImages[index];
-      _outfitImages[index] = _OutfitLookEntry(
-        old.imageUrl,
-        lookId: old.lookId,
-        accessoryGarmentIds: old.accessoryGarmentIds,
-        isFavorite: isFavorite,
-      );
-    });
-  }
-
-  Future<void> _toggleLookFavorite(int index) async {
-    final lookId = _outfitImages[index].lookId;
-    if (lookId == null) return;
-
-    final next = !_outfitImages[index].isFavorite;
-    _setLookFavorite(index, next);
-    try {
-      await OutfitService().setLookFavorite(
-        widget.outfit.id,
-        lookId,
+      await OutfitService().updateOutfit(
+        target.groupId,
+        target.id,
         isFavorite: next,
       );
     } catch (e) {
       if (!mounted) return;
-      _setLookFavorite(index, !next);
+      setState(() => _versions[index] = target);
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;
@@ -882,22 +641,40 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// Polls a specific look (as opposed to [_waitForOutfitCompletion], which
-  /// always watches the outfit's primary look) until it completes, fails,
-  /// or times out.
-  Future<Map<String, dynamic>?> _waitForLookCompletion(
-    int outfitId,
-    int lookId,
-  ) async {
-    for (var attempt = 0; attempt < 180; attempt++) {
-      final data = await OutfitService().getOutfit(outfitId);
-      final look = lookById(data, lookId);
-      final status = look?['status'];
-      if (status == 'completed') return look;
-      if (status == 'failed') return null;
-      await Future.delayed(const Duration(seconds: 2));
+  /// Re-runs the AI render for the currently shown version in place (see
+  /// [OutfitService.regenerateOutfit]) — same garment combo/background, new
+  /// image, no new version created.
+  Future<void> _regenerateImage() async {
+    if (_isRegenerating) return;
+    final target = _current;
+    final index = _currentIndex;
+    setState(() => _isRegenerating = true);
+    try {
+      final outfit = await OutfitService().regenerateOutfit(
+        target.groupId,
+        target.id,
+      );
+      if (!mounted) return;
+      setState(() => _versions[index] = outfit);
+      // regenerateOutfit overwrites the image at its existing URL in place,
+      // so the URL never changes — bump the base key every consumer of
+      // this outfit's image reads (OutfitImage in the Outfits list, Home,
+      // Trip pages) so they all move to a cache key that's never been seen
+      // before instead of keep serving pre-regenerate bytes from a
+      // stable key's cache entry.
+      ImageCacheBust.bump('outfit-job-${target.id}');
+      await ref.read(outfitsProvider.notifier).refresh();
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isRegenerating = false);
     }
-    return null;
   }
 
   Widget _buildOutfitImage() {
@@ -909,65 +686,63 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           child: AspectRatio(
             aspectRatio: 3 / 4,
             child: Stack(
+              fit: StackFit.expand,
               children: [
                 PageView.builder(
-                  controller: _outfitImagePageController,
+                  controller: _pageController,
                   onPageChanged: (index) {
-                    setState(() => _currentImageIndex = index);
-                    // Different looks can have different accessories — keep
+                    setState(() => _currentIndex = index);
+                    // Different versions can have different garments — keep
                     // the Garment list in sync with whichever is shown now.
                     _loadGarments();
                   },
-                  itemCount: _outfitImages.length,
-                  // Only the outfit's own image (index 0) can refresh its
-                  // signed URL by re-fetching the outfit — appended Look
-                  // images don't have an equivalent lookup yet.
+                  itemCount: _versions.length,
                   itemBuilder: (_, index) {
-                    final entry = _outfitImages[index];
+                    final outfit = _versions[index];
                     // Stable base id (survives signed-URL re-signing) plus
                     // ImageCacheBust's live version — bumped by
-                    // _regenerateLook, and read fresh by every page
-                    // instance/widget that shows this same look/outfit
-                    // image, so nothing (this carousel on a future page
-                    // instance, OutfitImage elsewhere, ...) keeps serving
-                    // pre-regenerate bytes.
-                    final baseKey = index == 0
-                        ? 'outfit-job-${widget.outfit.id}'
-                        : entry.lookId != null
-                        ? 'look-${entry.lookId}'
-                        : null;
-                    final cacheKey = baseKey == null
-                        ? null
-                        : '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
+                    // _regenerateImage/_openCreateAnotherVersion, and read
+                    // fresh by every widget that shows this outfit's image
+                    // (OutfitImage elsewhere included), so nothing keeps
+                    // serving pre-regenerate bytes from a stable key's
+                    // cache entry.
+                    final baseKey = 'outfit-job-${outfit.id}';
+                    final cacheKey =
+                        '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
                     return RefreshableNetworkImage(
-                      key: ValueKey(cacheKey ?? entry.imageUrl),
-                      imageUrl: entry.imageUrl,
+                      key: ValueKey(cacheKey),
+                      imageUrl: outfit.imageUrl,
                       cacheKey: cacheKey,
                       fit: BoxFit.cover,
                       errorLabel: _l10n.failedToLoadImage,
-                      onRefreshUrl: index == 0 ? _refreshOutfitImageUrl : null,
+                      onRefreshUrl: () => _refreshImageUrlFor(index),
                     );
                   },
                 ),
-                if (_outfitImages[_currentImageIndex].lookId != null &&
-                    _regeneratingLookIndex == null)
+                if (!_isRegenerating) ...[
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: _buildVersionMenuButton(),
+                  ),
                   Positioned(
                     bottom: 12,
                     right: 12,
                     child: CardCornerBadge(
-                      icon: _outfitImages[_currentImageIndex].isFavorite
+                      icon: _current.isFavorite
                           ? Icons.favorite
                           : Icons.favorite_border,
                       backgroundColor: AppColors.surfaceTranslucent,
-                      iconColor: _outfitImages[_currentImageIndex].isFavorite
+                      iconColor: _current.isFavorite
                           ? AppColors.favorite
                           : AppColors.icon,
                       size: 36,
                       iconSize: 20,
-                      onTap: () => _toggleLookFavorite(_currentImageIndex),
+                      onTap: _toggleFavorite,
                     ),
                   ),
-                if (_regeneratingLookIndex == _currentImageIndex)
+                ],
+                if (_isRegenerating)
                   Positioned.fill(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
@@ -980,27 +755,23 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         ),
         const SizedBox(height: 12),
         _buildImagePageIndicator(),
-        _buildLookActionsBar(),
       ],
     );
   }
 
-  /// Dots marking which outfit/look photo is shown, plus a "current / total"
-  /// counter trailing them.
+  /// Dots marking which version's photo is shown, plus a "current / total"
+  /// counter trailing them — hidden entirely when there's only one version.
   Widget _buildImagePageIndicator() {
-    if (_outfitImages.length < 2) return const SizedBox.shrink();
+    if (_versions.length < 2) return const SizedBox.shrink();
     return SizedBox(
       height: 20,
       child: Stack(
         children: [
-          // Centered on the full row width — not the space left over after
-          // the counter — so the active dot stays exactly centered
-          // regardless of how wide the "current / total" text is.
           Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: List.generate(_outfitImages.length, (index) {
-                final isActive = index == _currentImageIndex;
+              children: List.generate(_versions.length, (index) {
+                final isActive = index == _currentIndex;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -1017,7 +788,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              '${_currentImageIndex + 1} / ${_outfitImages.length}',
+              '${_currentIndex + 1} / ${_versions.length}',
               style: AppTextStyle.regular13.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -1028,71 +799,76 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// Regenerate/Delete for whichever look is currently shown — replaces the
-  /// old on-image corner badges with a row below the photo so the image
-  /// itself stays clean (only the favorite heart remains on it).
-  Widget _buildLookActionsBar() {
-    final current = _outfitImages[_currentImageIndex];
-    final canAct = current.lookId != null && _regeneratingLookIndex == null;
-    if (!canAct) return const SizedBox.shrink();
-
-    final regenerateButton = _buildLookActionButton(
-      icon: const Icon(Icons.refresh, size: 20, color: AppColors.textPrimary),
-      label: _l10n.regenerate,
-      onTap: () => _regenerateLook(_currentImageIndex),
-    );
-
-    // The last remaining look can never be deleted (see _deleteLook) — the
-    // button shows disabled instead of prompting anything.
-    final canDeleteLook = _outfitImages.length > 1;
-    final deleteButton = _buildLookActionButton(
-      icon: Image.asset('assets/images/delete.png', width: 20, height: 20),
-      label: _l10n.deleteLook,
-      onTap: canDeleteLook ? () => _deleteLook(_currentImageIndex) : null,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Expanded(child: regenerateButton),
-            const VerticalDivider(width: 1, color: AppColors.borderSubtle),
-            Expanded(child: deleteButton),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLookActionButton({
-    required Widget icon,
-    required String label,
-    required VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Opacity(
-          opacity: onTap == null ? 0.4 : 1,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+  /// The photo's own "..." corner menu — Regenerate and Delete this
+  /// version for whichever version is currently shown (see
+  /// [_deleteThisOutfit] for what "delete" actually does depending on
+  /// whether this outfit has siblings in its group).
+  Widget _buildVersionMenuButton() {
+    return PopupMenuButton<_VersionMenuAction>(
+      padding: EdgeInsets.zero,
+      color: AppColors.surface,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      // Narrower than the default 112-280 range — this menu's items are
+      // both short, so the default min width leaves a lot of empty space.
+      constraints: const BoxConstraints(minWidth: 0, maxWidth: 150),
+      // Default menuPadding is 8px vertical around the whole item list, on
+      // top of each item's own height — shrink it since this menu only
+      // has two short items.
+      menuPadding: const EdgeInsets.symmetric(vertical: 4),
+      onSelected: _handleVersionMenuAction,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _VersionMenuAction.regenerate,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
             children: [
-              icon,
-              const SizedBox(height: 4),
+              const Icon(Icons.refresh, size: 20, color: AppColors.icon),
+              const SizedBox(width: 8),
+              Text(_l10n.regenerate),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: _VersionMenuAction.delete,
+          enabled: !_isDeleting,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline, size: 20, color: AppColors.icon),
+              const SizedBox(width: 8),
               Text(
-                label,
-                style: AppTextStyle.regular13.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                _l10n.deleteThisVersion,
+                style: const TextStyle(color: AppColors.error),
               ),
             ],
           ),
         ),
+      ],
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceTranslucent,
+          shape: BoxShape.circle,
+          boxShadow: [BoxShadow(color: AppColors.overlaySubtle, blurRadius: 4)],
+        ),
+        child: const Icon(Icons.more_horiz, size: 20, color: AppColors.icon),
       ),
     );
+  }
+
+  void _handleVersionMenuAction(_VersionMenuAction action) {
+    switch (action) {
+      case _VersionMenuAction.regenerate:
+        _regenerateImage();
+        break;
+      case _VersionMenuAction.delete:
+        _deleteThisOutfit();
+        break;
+    }
   }
 
   Widget _buildGarmentSection() {
@@ -1101,7 +877,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       children: [
         LabeledDivider(
           label: _l10n.garmentsCount(
-            _garments?.length ?? widget.outfit.garmentIds.length,
+            _garments?.length ?? _current.garmentIds.length,
           ),
         ),
         const SizedBox(height: 16),
@@ -1125,25 +901,18 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   Future<void> _fetchOutfitDetails() async {
     try {
-      final data = await OutfitService().getOutfit(widget.outfit.id);
+      final outfit = await OutfitService().getOutfit(
+        widget.outfit.groupId,
+        widget.outfit.id,
+      );
       if (!mounted) return;
-      setState(() {
-        _name = (data['name'] as String?)?.isNotEmpty == true
-            ? data['name'] as String
-            : _name;
-        _seasons = _parseStringList(data['season']);
-        _style = _parseStringList(data['style']);
-      });
+      // isNew mode never has other versions loaded yet, so this is always
+      // the only entry in _versions.
+      setState(() => _versions[0] = outfit);
     } catch (_) {
     } finally {
       if (mounted) setState(() => _resolvingSavedStatus = false);
     }
-  }
-
-  List<String> _parseStringList(dynamic v) {
-    if (v is List) return v.map((e) => e.toString()).toList();
-    if (v is String && v.isNotEmpty) return [v];
-    return [];
   }
 
   Map<int, Garment> _indexGarmentsById(List<Garment> garments) {
@@ -1162,12 +931,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       // render as broken images.
       final cached = ref.read(garmentsProvider).valueOrNull ?? const [];
       final cachedById = _indexGarmentsById(cached);
-      // Core garments (fixed) + whichever look is currently shown in the
-      // carousel's accessories — not every accessory across all looks.
-      final currentAccessoryIds = _currentImageIndex < _outfitImages.length
-          ? _outfitImages[_currentImageIndex].accessoryGarmentIds
-          : const <int>[];
-      final idsToLoad = {...widget.outfit.garmentIds, ...currentAccessoryIds};
+      final idsToLoad = _current.garmentIds.toSet();
 
       final results = await Future.wait(
         idsToLoad.map((id) {
@@ -1244,18 +1008,26 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         // delete it.
         await ref.read(outfitsProvider.notifier).refresh();
       } else {
-        await OutfitService().deleteOutfit(widget.outfit.id);
+        await OutfitService().deleteOutfit(
+          widget.outfit.groupId,
+          widget.outfit.id,
+        );
       }
     } catch (_) {}
     if (mounted) Navigator.pop(context);
   }
 
-  Future<void> _deleteOutfit() async {
+  /// The app bar's "..." menu action — always deletes the whole group (and
+  /// every version in it), regardless of how many it holds.
+  Future<void> _deleteOutfit() => _confirmThenDeleteGroup();
+
+  /// Deletes every version and the group itself, then closes the page.
+  Future<void> _confirmThenDeleteGroup() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
         title: _l10n.deleteOutfitTitle,
-        body: _l10n.deleteOutfitConfirmation,
+        body: _l10n.deleteOutfitGroupConfirmation,
         primaryLabel: _l10n.delete,
         onPrimary: () => Navigator.pop(ctx, true),
         secondaryLabel: _l10n.cancel,
@@ -1266,8 +1038,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
     setState(() => _isDeleting = true);
     try {
-      await OutfitService().deleteOutfit(widget.outfit.id);
-      ref.read(outfitsProvider.notifier).removeById(widget.outfit.id);
+      await OutfitService().deleteGroup(widget.outfit.groupId);
+      for (final version in _versions) {
+        ref.read(outfitsProvider.notifier).removeById(version.id);
+      }
       final feedback = ref.read(outfitFeedbackProvider.notifier);
       if (mounted) Navigator.pop(context);
       feedback.state = OutfitFeedbackKind.deleted;
@@ -1284,8 +1058,65 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
+  /// The action bar's delete button under the photo — surgical by default:
+  /// if there are other versions left, only the currently shown one is
+  /// deleted and the carousel moves on; if it's the last version, the
+  /// now-empty group goes with it and the page closes (see
+  /// [_confirmThenDeleteGroup]).
+  Future<void> _deleteThisOutfit() async {
+    if (_isDeleting) return;
+    if (_versions.length <= 1) {
+      await _confirmThenDeleteGroup();
+      return;
+    }
+
+    final target = _current;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.deleteOutfitTitle,
+        body: _l10n.deleteOutfitConfirmation,
+        primaryLabel: _l10n.delete,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await OutfitService().deleteOutfit(target.groupId, target.id);
+      if (!mounted) return;
+      setState(() {
+        _versions.remove(target);
+        _currentIndex = _currentIndex.clamp(0, _versions.length - 1);
+      });
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
+      _loadGarments();
+      // Not removeById: the flat outfits list shows one card per group (the
+      // group's first version stands in for it), so if [target] was that
+      // representative the card needs to be replaced with whichever version
+      // is now first, not removed outright while the group still exists.
+      await ref.read(outfitsProvider.notifier).refresh();
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
   String get _title {
-    if (_name != null && _name!.isNotEmpty) return _name!;
+    final name = _primary.name;
+    if (name != null && name.isNotEmpty) return name;
     final parts = [..._effectiveSeasons, ..._effectiveStyle];
     if (parts.isEmpty) return _l10n.myOutfit;
     final word = parts.first;
@@ -1296,7 +1127,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   Future<void> _showEditNameDialog() async {
-    final controller = TextEditingController(text: _name ?? '');
+    final controller = TextEditingController(text: _primary.name ?? '');
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
@@ -1318,12 +1149,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
     if (result == null || result.isEmpty || !mounted) return;
     try {
-      await OutfitService().setName(widget.outfit.id, name: result);
+      await OutfitService().updateOutfit(
+        _primary.groupId,
+        _primary.id,
+        name: result,
+      );
       if (!mounted) return;
-      setState(() => _name = result);
-      ref
-          .read(outfitsProvider.notifier)
-          .updateName(widget.outfit.id, name: result);
+      setState(() => _versions[0] = _primary.copyWith(name: result));
+      ref.read(outfitsProvider.notifier).updateName(_primary.id, name: result);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -1334,7 +1167,4 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
-
-  String get _formattedDate =>
-      DateFormat('MMM d, yyyy').format(widget.outfit.createdAt);
 }

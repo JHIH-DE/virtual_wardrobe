@@ -11,16 +11,12 @@ import '../../core/providers/trips_provider.dart';
 import '../../core/providers/weather_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/daily_outfit_service.dart';
-import '../../core/services/outfit_service.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
-import '../../core/utils/try_on_mixin.dart';
 import '../../data/garment.dart';
-import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'garment_details_page.dart';
-import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'trip_details_page.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -28,10 +24,7 @@ import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/cards/lumi_insight_card.dart';
-import '../widgets/common/buttons/pill_button.dart';
-import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/garment/garment_card.dart';
-import '../widgets/outfit/outfit_image.dart';
 import '../widgets/trip/trip_card.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -41,10 +34,9 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
+class _HomePageState extends ConsumerState<HomePage> {
   bool _loadingOutfit = true;
   String? _reasoning;
-  List<int> _garmentIds = [];
 
   @override
   void initState() {
@@ -79,16 +71,9 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
       }
 
       final option = options.first;
-      final items = ((option['items'] as List?) ?? [])
-          .whereType<Map<String, dynamic>>();
-      final garmentIds = items
-          .map((i) => (i['garment_id'] as num?)?.toInt())
-          .whereType<int>()
-          .toList();
       if (mounted) {
         final rawReasoning = option['reasoning'];
         setState(() {
-          _garmentIds = garmentIds;
           if (rawReasoning is List) {
             _reasoning = rawReasoning.map((e) => '• $e').join('\n');
           } else {
@@ -96,12 +81,10 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
           }
         });
       }
-
-      final lookId = option['look_id'] as int?;
-      debugLog('--- _loadDailyOutfit - look_id: $lookId ---');
-      if (lookId != null && lookId != 0) {
-        await _watchLook(lookId);
-      }
+      // The daily outfit's try-on render (an image for `option['look_id']`)
+      // isn't wired up here — the backend's daily/trip try-on generation
+      // endpoint isn't supported yet (currently 503), independent of this
+      // outfit-group API migration.
     } catch (e) {
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
@@ -110,55 +93,6 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
       debugLog('Failed to load daily outfit: $e');
     } finally {
       if (mounted) setState(() => _loadingOutfit = false);
-    }
-  }
-
-  /// Polls a single look directly by its own id (`OutfitService.getLook`)
-  /// until it completes. The daily outfit option hands back a `look_id`,
-  /// not an `outfit_id` — [TryOnMixin.watchJob] expects the latter, so it
-  /// doesn't apply here even though it sets the same [tryOnResultUrl] /
-  /// [isOutfitLoading] state this page's UI already reads.
-  Future<void> _watchLook(int lookId) async {
-    setState(() {
-      isOutfitLoading = true;
-      tryOnErrorMessage = null;
-    });
-    for (var attempt = 0; attempt < 180; attempt++) {
-      if (!mounted) return;
-      try {
-        final look = await OutfitService().getLook(lookId);
-        final status = look['status'];
-        debugLog('--- _watchLook lookId=$lookId status=$status ---');
-        if (status == 'completed') {
-          if (!mounted) return;
-          setState(() {
-            isOutfitLoading = false;
-            tryOnResultUrl = look['result_image_url'] as String?;
-            tryOnOutfitId = (look['outfit_id'] as num?)?.toInt() ?? 0;
-          });
-          return;
-        }
-        if (status == 'failed') {
-          if (!mounted) return;
-          setState(() {
-            isOutfitLoading = false;
-            tryOnErrorMessage =
-                (look['error_message'] as String?) ?? 'Failed on server.';
-          });
-          return;
-        }
-      } on AuthExpiredException {
-        rethrow;
-      } catch (e) {
-        debugLog('_watchLook polling error: $e');
-      }
-      await Future.delayed(const Duration(seconds: 2));
-    }
-    if (mounted) {
-      setState(() {
-        isOutfitLoading = false;
-        tryOnErrorMessage = 'Timeout.';
-      });
     }
   }
 
@@ -337,119 +271,48 @@ class _HomePageState extends ConsumerState<HomePage> with TryOnMixin {
     );
   }
 
+  // The daily outfit try-on render (a photo, not just the garment plan
+  // above) isn't wired up here — the backend's daily try-on generation
+  // endpoint isn't supported yet (currently 503), independent of this
+  // outfit-group API migration. Shows a "coming soon" placeholder instead.
   Widget _buildOutfitImageCard() {
     final l10n = AppLocalizations.of(context);
-    final loading = _loadingOutfit || isOutfitLoading;
-    final imageUrl = tryOnResultUrl;
-    final hasResult = !loading && imageUrl != null && imageUrl.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LabeledDivider(label: l10n.todaysOutfit),
         const SizedBox(height: 14),
-        GestureDetector(
-          // The whole photo is the tap target now — the pill in the corner
-          // is just a visual hint, not a separate control (see IgnorePointer
-          // below), so this is the only thing that actually navigates.
-          onTap: hasResult ? _openOutfitDetails : null,
-          behavior: HitTestBehavior.opaque,
-          child: Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: AspectRatio(
-                  aspectRatio: 1 / 1.15,
-                  child: Container(
-                    color: AppColors.surface,
-                    child: loading
-                        ? LoadingOverlay(label: l10n.generatingOutfitEllipsis)
-                        : (imageUrl == null || imageUrl.isEmpty)
-                        ? Center(
-                            child: Icon(
-                              Icons.checkroom,
-                              size: 48,
-                              color: AppColors.icon,
-                            ),
-                          )
-                        : RefreshableNetworkImage(
-                            imageUrl: imageUrl,
-                            // Re-signed URL each fetch shouldn't defeat the
-                            // disk cache — same scheme as OutfitImage/
-                            // trip_details_page.dart's outfit image.
-                            cacheKey: tryOnOutfitId != 0
-                                ? 'outfit-job-$tryOnOutfitId'
-                                : null,
-                            fit: BoxFit.cover,
-                            errorIconSize: 48,
-                            onRefreshUrl: _refreshTryOnResultUrl,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: AspectRatio(
+            aspectRatio: 1 / 1.15,
+            child: Container(
+              color: AppColors.surface,
+              child: _loadingOutfit
+                  ? LoadingOverlay(label: l10n.generatingOutfitEllipsis)
+                  : Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.checkroom,
+                            size: 48,
+                            color: AppColors.icon,
                           ),
-                  ),
-                ),
-              ),
-              if (hasResult)
-                Positioned(
-                  right: 10,
-                  bottom: 10,
-                  child: IgnorePointer(
-                    child: PillButton(
-                      label: Text(l10n.viewDetails, style: AppTextStyle.bold12),
-                      icon: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 9,
-                        color: AppColors.icon,
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.faceReferenceComingSoon,
+                            style: AppTextStyle.regular13.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                      onTap: _openOutfitDetails,
-                      height: 36,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      gap: 4,
-                      border: null,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: AppColors.overlaySubtle,
-                          blurRadius: 4,
-                        ),
-                      ],
-                      color: AppColors.surfaceTranslucent,
                     ),
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ],
-    );
-  }
-
-  Future<String?> _refreshTryOnResultUrl() async {
-    if (tryOnOutfitId == 0) return null;
-    try {
-      final freshUrl = await fetchFreshOutfitImageUrl(tryOnOutfitId);
-      if (mounted && freshUrl.isNotEmpty) {
-        setState(() => tryOnResultUrl = freshUrl);
-      }
-      return freshUrl;
-    } on AuthExpiredException {
-      if (mounted) await AuthExpiredHandler.handle(context);
-      return null;
-    }
-  }
-
-  void _openOutfitDetails() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OutfitDetailsPage(
-          outfit: Outfit(
-            id: tryOnOutfitId,
-            imageUrl: tryOnResultUrl!,
-            advice: tryOnAiAdvice,
-            garmentIds: _garmentIds,
-          ),
-          isNew: true,
-          confirmLeaveOnBack: false,
-        ),
-      ),
     );
   }
 

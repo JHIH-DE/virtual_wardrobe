@@ -1,14 +1,15 @@
-/// A background scene choice for the Create Look flow, backed by a bundled
-/// preview image (see `assets/images/`). Add another entry here to offer a
-/// new scene — no other code needs to change.
+/// A background scene choice for the Create Outfit flow, backed by a
+/// bundled preview image (see `assets/images/`). Add another entry here to
+/// offer a new scene — no other code needs to change.
 class SceneOption {
   final String id;
   final String label;
   final String assetPath;
 
-  /// The backend's `background_id` for Regenerate Look — matched against
-  /// the backend's background lookup table by name (`fitting_room` maps to
-  /// its "Default Fitting Room" entry; the rest match by name exactly).
+  /// The backend's `background_id` for outfit generate/regenerate —
+  /// matched against the backend's background lookup table by name
+  /// (`fitting_room` maps to its "Default Fitting Room" entry; the rest
+  /// match by name exactly).
   final int backgroundId;
 
   const SceneOption({

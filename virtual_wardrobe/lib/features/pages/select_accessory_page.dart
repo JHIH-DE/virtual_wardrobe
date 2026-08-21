@@ -9,7 +9,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/garment/garment_card.dart';
 
-/// Full-page grid picker for a single Create Look accessory slot. Tapping
+/// Full-page grid picker for a single Create Outfit accessory slot. Tapping
 /// an item — or the "None" tile — immediately pops back with the result;
 /// there's no separate confirm step. Supports the same color/type filter
 /// as the garment slot picker used elsewhere.

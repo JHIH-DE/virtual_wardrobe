@@ -5,7 +5,6 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
-import '../../core/services/outfit_service.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
@@ -138,17 +137,8 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   }
 
   /// Lets the user pick a saved outfit, then selects whichever of its
-  /// garments — core combo plus accessories — are still in the current
-  /// closet, the same way tapping each one individually would.
-  ///
-  /// [outfit.accessoryGarmentIds] comes from the *list* endpoint
-  /// (getAllOutfits, via TripOutfitSelectionPage) — mirroring
-  /// OutfitDetailsPage._loadLookHistory, that response's looks[] entries
-  /// aren't trusted to carry the full per-look detail, so this re-fetches
-  /// the single outfit to get the real accessory list before matching.
-  /// Unioned across *every* look (not just the primary/first one) — the
-  /// accessories the user actually cares about may only be on a later
-  /// regenerated look, not looks[0].
+  /// garments are still in the current closet, the same way tapping each
+  /// one individually would.
   Future<void> _pickFromOutfit() async {
     final outfit = await Navigator.push<Outfit>(
       context,
@@ -156,38 +146,11 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
     if (outfit == null || !mounted) return;
 
-    var accessoryIds = outfit.accessoryGarmentIds;
-    try {
-      final data = await OutfitService().getOutfit(outfit.id);
-      final allAccessoryIds = <int>{};
-      for (final look in allLooksOf(data)) {
-        final rawAccessoryIds = look['accessory_garment_ids'];
-        if (rawAccessoryIds is List) {
-          allAccessoryIds.addAll(rawAccessoryIds.whereType<int>());
-        }
-      }
-      debugLog(
-        '--- _pickFromOutfit: outfit ${outfit.id} looks=${allLooksOf(data).length} '
-        'accessoryIds=$allAccessoryIds ---',
-      );
-      accessoryIds = allAccessoryIds.toList();
-    } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
-      // Not worth failing the whole "add from outfit" shortcut over —
-      // fall back to whatever the list endpoint gave us (possibly empty).
-      debugLog('Failed to fetch outfit accessories: $e');
-    }
-    if (!mounted) return;
-
     final availableIds = widget.garments
         .map((g) => g.id)
         .whereType<int>()
         .toSet();
-    final outfitIds = {...outfit.garmentIds, ...accessoryIds};
-    final matchedIds = outfitIds.where(availableIds.contains).toSet();
+    final matchedIds = outfit.garmentIds.where(availableIds.contains).toSet();
     final newIds = matchedIds.difference(_selectedIds);
 
     final l10n = AppLocalizations.of(context);

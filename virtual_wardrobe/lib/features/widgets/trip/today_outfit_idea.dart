@@ -58,7 +58,7 @@ class TodayOutfitIdea extends StatelessWidget {
 
   /// Keeps the existing image visible — with a [LoadingOverlay] on top
   /// while regenerating — rather than blanking it out, the same way Outfit
-  /// Details overlays a loading state on a look's existing image instead
+  /// Details overlays a loading state on an outfit's existing image instead
   /// of hiding it.
   Widget _buildImage(AppLocalizations l10n) {
     return GestureDetector(

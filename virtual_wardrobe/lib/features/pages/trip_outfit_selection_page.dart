@@ -42,7 +42,7 @@ class _TripOutfitSelectionPageState extends State<TripOutfitSelectionPage> {
     try {
       // Only standalone try-ons belong here — 'daily'/'trip' outfits are
       // filtered out server-side, matching OutfitsNotifier.build.
-      final outfits = await OutfitService().getAllOutfits(jobType: 'general');
+      final outfits = await OutfitService().getAllOutfits();
       // `is_saved` is no longer part of the outfit schema — filtering by it
       // always excluded every result now.
       if (!mounted) return;

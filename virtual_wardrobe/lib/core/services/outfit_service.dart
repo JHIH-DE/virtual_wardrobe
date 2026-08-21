@@ -8,101 +8,49 @@ import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
+/// Client for the OutfitGroup + Outfit API (`/api/v1/outfit`). Every outfit
+/// lives inside a group (general/daily/trip) and carries its own render
+/// result inline, and `generate` does creation + AI render in one
+/// synchronous call. Only `type=general` has a full, actively-used path
+/// today — a general-flow outfit gets its own dedicated group, so
+/// [getAllOutfits] and [getOutfitsByGarments] flatten the group nesting away
+/// and the rest of the app keeps treating outfits as a flat list.
 class OutfitService with BaseService {
-  // Backend route is still `/outfits` — not renamed here since that's a
-  // live API contract, not just app-side wording.
-  static final String _baseUrl = '${AppConfig.fullApiUrl}/outfits';
-  // A handful of look endpoints live at the top level (`/looks/...`)
-  // instead of nested under an outfit (`/outfits/{outfit_id}/looks/...`).
-  static final String _looksBaseUrl = '${AppConfig.fullApiUrl}/looks';
+  static final String _baseUrl = '${AppConfig.fullApiUrl}/outfit';
 
-  Future<Map<String, dynamic>> createOutfit({
-    required List<int> garmentIds,
-    required String type,
-    String style = 'Minimal',
-    String? name,
-    int? backgroundId,
-  }) async {
-    debugLog('--- createOutfit garmentIds: $garmentIds ---');
+  Future<int> createGroup({String type = 'general'}) async {
+    debugLog('--- createGroup: type=$type ---');
     final uri = Uri.parse(_baseUrl);
-    final payload = <String, dynamic>{
-      'garment_ids': garmentIds,
-      "job_type": type,
-      "style": style,
-      if (name != null) 'name': name,
-      if (backgroundId != null) 'background_id': backgroundId,
-    };
     final res = await withAuth(
       (token) => http.post(
         uri,
         headers: authHeaders(token),
-        body: jsonEncode(payload),
+        body: jsonEncode({'type': type}),
       ),
     );
-    final envelope = decodeMap(res, op: 'createOutfit');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    debugLog('--- createOutfit raw response: $data ---');
-    return data;
-  }
-
-  /// Combines [createOutfit] + [createLook] into one call for the common
-  /// "create an outfit and immediately render its first look" flow. If Step
-  /// 1 ([createOutfit]) fails, nothing was created and the failure
-  /// propagates as-is. If Step 2 ([createLook]) fails, the outfit already
-  /// exists on the backend — the failure is wrapped in
-  /// [OutfitRenderException] carrying `outfitId` so the caller can retry
-  /// rendering via [createLook] directly instead of creating a duplicate
-  /// outfit.
-  Future<Map<String, dynamic>> createOutfitAndRender({
-    required List<int> garmentIds,
-    String style = 'Minimal',
-    String type = 'general',
-    String? name,
-    int? backgroundId,
-    List<int>? accessoryGarmentIds,
-  }) async {
-    debugLog('--- createOutfitAndRender garmentIds: $garmentIds ---');
-    final outfitResponse = await createOutfit(
-      garmentIds: garmentIds,
-      type: type,
-      style: style,
-      name: name,
-      backgroundId: backgroundId,
-    );
-    final outfitId = outfitResponse['outfit_id'] as int?;
-    if (outfitId == null) {
-      throw Exception('createOutfitAndRender: response missing outfit_id');
+    final envelope = decodeMap(res, op: 'createGroup');
+    final data = envelope['data'];
+    final groupId = data is Map<String, dynamic>
+        ? data['group_id'] as int?
+        : null;
+    if (groupId == null) {
+      throw Exception('createGroup: response missing group_id');
     }
-
-    try {
-      final lookResponse = await createLook(
-        outfitId,
-        accessoryGarmentIds: accessoryGarmentIds,
-        backgroundId: backgroundId,
-      );
-      return {
-        'outfit_id': outfitId,
-        'look_id': lookResponse['look_id'],
-        'status': lookResponse['status'],
-      };
-    } catch (e) {
-      throw OutfitRenderException(outfitId, e);
-    }
+    return groupId;
   }
 
   Future<List<Outfit>> getAllOutfits({
-    String? jobType,
+    String type = 'general',
     int page = 1,
     int size = 100,
     String? sort,
   }) async {
     debugLog(
-      '--- getAllOutfits: jobType=$jobType page=$page size=$size '
-      'sort=$sort ---',
+      '--- getAllOutfits: type=$type page=$page size=$size sort=$sort ---',
     );
     final uri = Uri.parse(_baseUrl).replace(
       queryParameters: {
-        if (jobType != null) 'job_type': jobType,
+        'type': type,
         'page': '$page',
         'size': '$size',
         if (sort != null) 'sort': sort,
@@ -112,49 +60,82 @@ class OutfitService with BaseService {
       (token) => http.get(uri, headers: authHeaders(token)),
     );
     final envelope = decodeMap(res, op: 'getAllOutfits');
-    final data = envelope['data'] as Map<String, dynamic>?;
-    final items = data?['items'];
+    final data = envelope['data'];
+    final items = data is Map<String, dynamic> ? data['items'] : null;
     if (items is! List) {
       throw Exception('getAllOutfits: response missing items list');
     }
-    final imageUrlsByOutfitId = {
-      for (final j in items.whereType<Map<String, dynamic>>())
-        (j['outfit_id'] ?? primaryLookOf(j)?['outfit_id']): primaryLookOf(
-          j,
-        )?['result_image_url'],
-    };
-    debugLog(
-      '--- getAllOutfits look_id 0 image by outfit_id: '
-      '$imageUrlsByOutfitId ---',
-    );
-
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((j) => Outfit.fromJson(j))
-        .toList();
+    // One card per group, not per outfit — a group can hold multiple
+    // versions (Outfit Details' "Create Another Version"), but the flat
+    // list only shows the first as that group's representative; every
+    // version is browsable from Outfit Details' own carousel.
+    final outfits = <Outfit>[];
+    for (final group in items.whereType<Map<String, dynamic>>()) {
+      final groupOutfits = group['outfits'];
+      if (groupOutfits is List) {
+        final primary = groupOutfits
+            .whereType<Map<String, dynamic>>()
+            .map(Outfit.fromJson)
+            .firstOrNull;
+        if (primary != null) outfits.add(primary);
+      }
+    }
+    return outfits;
   }
 
-  /// Regenerates a new look on an already-existing outfit, reusing its
-  /// existing core garment combo — unlike [createOutfit], which always
-  /// starts a brand new outfit. [accessoryGarmentIds]: leave null to reuse
-  /// the previous look's accessories, pass `[]` for none this time, or a
-  /// list to swap to those specific accessories. [backgroundId]: the
-  /// backend's background lookup id (see `SceneOption.backgroundId`); leave
-  /// null to reuse whatever background the previous look used.
-  Future<Map<String, dynamic>> createLook(
+  /// Creates a new outfit and renders it in one call (~10-15s for the AI
+  /// render) — there is no separate save step. Pass [groupId] to add this
+  /// as another version alongside an existing outfit (e.g. Outfit Details'
+  /// "Create Another Version"); omit it to start a fresh [type] group (the
+  /// normal create-outfit flow).
+  Future<Outfit> generateOutfit({
+    required List<int> garmentIds,
+    int? groupId,
+    String type = 'general',
+    int? backgroundId,
+    bool isFavorite = false,
+  }) async {
+    groupId ??= await createGroup(type: type);
+    debugLog(
+      '--- generateOutfit: groupId=$groupId garmentIds=$garmentIds '
+      'backgroundId=$backgroundId ---',
+    );
+    final uri = Uri.parse('$_baseUrl/$groupId/generate');
+    final payload = <String, dynamic>{
+      'garment_ids': garmentIds,
+      if (backgroundId != null) 'background_id': backgroundId,
+      'is_favorite': isFavorite,
+    };
+    final res = await withAuth(
+      (token) => http.post(
+        uri,
+        headers: authHeaders(token),
+        body: jsonEncode(payload),
+      ),
+    );
+    final envelope = decodeMap(res, op: 'generateOutfit');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('generateOutfit: response missing outfit data object');
+    }
+    return Outfit.fromJson(data);
+  }
+
+  /// Re-renders [outfitId] in place with the same garment combo — overwrites
+  /// the existing image, `outfit_id`/`name`/`style`/`season`/`garment_ids`
+  /// stay unchanged, no new outfit is created. Omit [backgroundId] to reuse
+  /// the outfit's current background.
+  Future<Outfit> regenerateOutfit(
+    int groupId,
     int outfitId, {
-    List<int>? accessoryGarmentIds,
     int? backgroundId,
   }) async {
     debugLog(
-      '--- createLook: $outfitId / '
-      'accessoryGarmentIds=$accessoryGarmentIds / '
+      '--- regenerateOutfit: groupId=$groupId outfitId=$outfitId '
       'backgroundId=$backgroundId ---',
     );
-    final uri = Uri.parse('$_baseUrl/$outfitId/looks');
+    final uri = Uri.parse('$_baseUrl/$groupId/$outfitId/regenerate');
     final payload = <String, dynamic>{
-      if (accessoryGarmentIds != null)
-        'accessory_garment_ids': accessoryGarmentIds,
       if (backgroundId != null) 'background_id': backgroundId,
     };
     final res = await withAuth(
@@ -164,90 +145,108 @@ class OutfitService with BaseService {
         body: jsonEncode(payload),
       ),
     );
-    final envelope = decodeMap(res, op: 'createLook');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    debugLog('--- createLook raw response: $data ---');
-    return data;
+    final envelope = decodeMap(res, op: 'regenerateOutfit');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('regenerateOutfit: response missing outfit data object');
+    }
+    return Outfit.fromJson(data);
   }
 
-  /// Regenerates [lookId] in place: reuses its existing accessories/
-  /// background and re-runs the AI render, overwriting the old image on
-  /// success — no new history entry is created. To change accessories/
-  /// background or keep history, use [createLook] instead.
-  Future<Map<String, dynamic>> regenerateLook(int outfitId, int lookId) async {
-    debugLog('--- regenerateLook: outfitId=$outfitId / lookId=$lookId ---');
-    final uri = Uri.parse('$_baseUrl/$outfitId/looks/$lookId/regenerate');
-    final res = await withAuth(
-      (token) => http.post(uri, headers: authHeaders(token)),
-    );
-    final envelope = decodeMap(res, op: 'regenerateLook');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    debugLog('--- regenerateLook raw response: $data ---');
-    return data;
-  }
-
-  Future<Map<String, dynamic>> getOutfit(int outfitId) async {
-    debugLog('--- getOutfit ---');
-    final uri = Uri.parse('$_baseUrl/$outfitId');
+  Future<Outfit> getOutfit(int groupId, int outfitId) async {
+    debugLog('--- getOutfit: groupId=$groupId outfitId=$outfitId ---');
+    final uri = Uri.parse('$_baseUrl/$groupId/$outfitId');
     final res = await withAuth(
       (token) => http.get(uri, headers: authHeaders(token)),
     );
     final envelope = decodeMap(res, op: 'getOutfit');
     final data = envelope['data'];
-
     if (data is! Map<String, dynamic>) {
       throw Exception('getOutfit: response missing outfit data object');
     }
-    return data;
+    return Outfit.fromJson(data);
   }
 
-  Future<void> setName(int outfitId, {required String name}) async {
-    debugLog('--- setName: $outfitId / $name ---');
-    final uri = Uri.parse('$_baseUrl/$outfitId');
+  /// Partial update — only pass the fields that changed, the rest are left
+  /// untouched server-side.
+  Future<Outfit> updateOutfit(
+    int groupId,
+    int outfitId, {
+    bool? isFavorite,
+    String? name,
+    List<String>? style,
+    List<String>? season,
+  }) async {
+    debugLog('--- updateOutfit: groupId=$groupId outfitId=$outfitId ---');
+    final uri = Uri.parse('$_baseUrl/$groupId/$outfitId');
+    final payload = <String, dynamic>{
+      if (isFavorite != null) 'is_favorite': isFavorite,
+      if (name != null) 'name': name,
+      if (style != null) 'style': style,
+      if (season != null) 'season': season,
+    };
     final res = await withAuth(
       (token) => http.patch(
         uri,
         headers: authHeaders(token),
-        body: jsonEncode({'name': name}),
+        body: jsonEncode(payload),
       ),
     );
-    decodeMap(res, op: 'setName');
+    final envelope = decodeMap(res, op: 'updateOutfit');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('updateOutfit: response missing outfit data object');
+    }
+    return Outfit.fromJson(data);
   }
 
-  /// Updates an outfit's season tags (confirmed via Update Outfit's
-  /// `PATCH /outfits/{outfit_id}` schema — `season`, alongside `style` and
-  /// `name`, independently settable).
-  Future<void> setSeason(int outfitId, {required List<String> season}) async {
-    debugLog('--- setSeason: $outfitId / $season ---');
-    final uri = Uri.parse('$_baseUrl/$outfitId');
+  /// Deletes a single outfit; the parent group is untouched even if this
+  /// was its last outfit.
+  Future<void> deleteOutfit(int groupId, int outfitId) async {
+    debugLog('--- deleteOutfit: groupId=$groupId outfitId=$outfitId ---');
+    final uri = Uri.parse('$_baseUrl/$groupId/$outfitId');
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'season': season}),
-      ),
+      (token) => http.delete(uri, headers: authHeaders(token)),
     );
-    debugLog('--- setSeason response (${res.statusCode}): ${res.body} ---');
-    decodeMap(res, op: 'setSeason');
+    decodeMap(res, op: 'deleteOutfit');
   }
 
-  /// Updates an outfit's style tags — see [setSeason].
-  Future<void> setStyle(int outfitId, {required List<String> style}) async {
-    debugLog('--- setStyle: $outfitId / $style ---');
-    final uri = Uri.parse('$_baseUrl/$outfitId');
+  /// Every outfit inside [groupId] — used to check whether an outfit has
+  /// siblings before deciding whether deleting it should take the
+  /// now-empty group with it.
+  Future<List<Outfit>> getGroupOutfits(int groupId) async {
+    debugLog('--- getGroupOutfits: groupId=$groupId ---');
+    final uri = Uri.parse('$_baseUrl/$groupId');
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'style': style}),
-      ),
+      (token) => http.get(uri, headers: authHeaders(token)),
     );
-    debugLog('--- setStyle response (${res.statusCode}): ${res.body} ---');
-    decodeMap(res, op: 'setStyle');
+    final envelope = decodeMap(res, op: 'getGroupOutfits');
+    final data = envelope['data'];
+    final outfits = data is Map<String, dynamic> ? data['outfits'] : null;
+    if (outfits is! List) {
+      throw Exception('getGroupOutfits: response missing outfits list');
+    }
+    return outfits
+        .whereType<Map<String, dynamic>>()
+        .map(Outfit.fromJson)
+        .toList();
   }
 
+  /// Deletes the whole group, cascading to every outfit (and their GCS
+  /// images) inside it.
+  Future<void> deleteGroup(int groupId) async {
+    debugLog('--- deleteGroup: groupId=$groupId ---');
+    final uri = Uri.parse('$_baseUrl/$groupId');
+    final res = await withAuth(
+      (token) => http.delete(uri, headers: authHeaders(token)),
+    );
+    decodeMap(res, op: 'deleteGroup');
+  }
+
+  /// Flat list (not group-nested) of every outfit that contains all of
+  /// [garmentIds].
   Future<List<Outfit>> getOutfitsByGarments(List<int> garmentIds) async {
-    debugLog('--- getOutfitsByGarments: $garmentIds ---');
+    debugLog('--- getOutfitsByGarments: garmentIds=$garmentIds ---');
     final uri = Uri.parse('$_baseUrl/by-garments');
     final res = await withAuth(
       (token) => http.post(
@@ -258,119 +257,9 @@ class OutfitService with BaseService {
     );
     final envelope = decodeMap(res, op: 'getOutfitsByGarments');
     final data = envelope['data'];
-    debugLog('--- getOutfitsByGarments raw response: ${res.body} ---');
-    // Same envelope drift as getAllOutfits: `data` used to be the list
-    // itself, but list-style endpoints on this backend have been migrating
-    // to a paginated `{items: [...], total, page, size}` wrapper — support
-    // both instead of assuming whichever shape happened to be true last.
-    final items = data is Map<String, dynamic> ? data['items'] : data;
-    if (items is! List) {
+    if (data is! List) {
       throw Exception('getOutfitsByGarments: response missing list data');
     }
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((j) => Outfit.fromJson(j))
-        .toList();
+    return data.whereType<Map<String, dynamic>>().map(Outfit.fromJson).toList();
   }
-
-  Future<void> deleteOutfit(int outfitId) async {
-    debugLog('--- deleteOutfit ---');
-    final uri = Uri.parse('$_baseUrl/$outfitId');
-    final res = await withAuth(
-      (token) => http.delete(uri, headers: authHeaders(token)),
-    );
-
-    if (res.statusCode == 200 ||
-        res.statusCode == 204 ||
-        res.statusCode == 404) {
-      return;
-    }
-    throw Exception('deleteOutfit failed (${res.statusCode}): ${res.body}');
-  }
-
-  /// Updates a single look's `is_favorite` flag — collects this one
-  /// generation's render (the outfit-level favorite has been retired along
-  /// with its backend endpoint).
-  Future<void> setLookFavorite(
-    int outfitId,
-    int lookId, {
-    required bool isFavorite,
-  }) async {
-    debugLog(
-      '--- setLookFavorite: outfitId=$outfitId / lookId=$lookId / '
-      '$isFavorite ---',
-    );
-    final uri = Uri.parse('$_baseUrl/$outfitId/looks/$lookId');
-    final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'is_favorite': isFavorite}),
-      ),
-    );
-    decodeMap(res, op: 'setLookFavorite');
-  }
-
-  /// Deletes a single generation (one entry of an outfit's `looks[]`).
-  /// Allowed down to zero remaining looks — the outfit itself is untouched.
-  Future<void> deleteLook(int outfitId, int lookId) async {
-    debugLog('--- deleteLook: outfitId=$outfitId / lookId=$lookId ---');
-    final uri = Uri.parse('$_baseUrl/$outfitId/looks/$lookId');
-    final res = await withAuth(
-      (token) => http.delete(uri, headers: authHeaders(token)),
-    );
-
-    if (res.statusCode == 200 ||
-        res.statusCode == 204 ||
-        res.statusCode == 404) {
-      return;
-    }
-    throw Exception('deleteLook failed (${res.statusCode}): ${res.body}');
-  }
-
-  /// Fetches a single look directly by its own id — unlike [getOutfit],
-  /// which returns the whole outfit (with every look nested under
-  /// `looks[]`), this looks it up standalone via the top-level
-  /// `GET /looks/{look_id}` route.
-  Future<Map<String, dynamic>> getLook(int lookId) async {
-    debugLog('--- getLook: lookId=$lookId ---');
-    final uri = Uri.parse('$_looksBaseUrl/$lookId');
-    final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
-    );
-    final envelope = decodeMap(res, op: 'getLook');
-    final data = envelope['data'];
-
-    if (data is! Map<String, dynamic>) {
-      throw Exception('getLook: response missing look data object');
-    }
-    return data;
-  }
-
-  /// Compensation sweep: finds looks stuck in-progress for over 10 minutes
-  /// and retriggers them. No parameters — a maintenance action, not scoped
-  /// to any single outfit/look.
-  Future<void> cleanupStuckLooks() async {
-    debugLog('--- cleanupStuckLooks ---');
-    final uri = Uri.parse('$_looksBaseUrl/cleanup-stuck');
-    final res = await withAuth(
-      (token) => http.post(uri, headers: authHeaders(token)),
-    );
-    decodeMap(res, op: 'cleanupStuckLooks');
-  }
-}
-
-/// Thrown by [OutfitService.createOutfitAndRender] when the outfit was
-/// created successfully but rendering its first look failed. [outfitId]
-/// lets the caller retry via [OutfitService.createLook] on the existing
-/// outfit instead of creating a duplicate one.
-class OutfitRenderException implements Exception {
-  final int outfitId;
-  final Object cause;
-
-  OutfitRenderException(this.outfitId, this.cause);
-
-  @override
-  String toString() =>
-      'OutfitRenderException(outfitId: $outfitId, cause: $cause)';
 }

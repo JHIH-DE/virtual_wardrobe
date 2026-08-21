@@ -4,22 +4,22 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/outfit_service.dart';
 import '../../../core/utils/image_cache_bust.dart';
-import '../../../data/outfit.dart';
 import '../common/images/refreshable_network_image.dart';
 
 /// Single source of truth for "what is this outfit's image URL right now" —
 /// mirrors GarmentImage's reliance on `GarmentService().getGarment(id)`.
 /// Goes through `Outfit.fromJson` (not a raw map cast) so a malformed/missing
 /// field degrades to `''` instead of throwing.
-Future<String> fetchFreshOutfitImageUrl(int outfitId) async {
-  final data = await OutfitService().getOutfit(outfitId);
-  return Outfit.fromJson(data).imageUrl;
+Future<String> fetchFreshOutfitImageUrl(int groupId, int outfitId) async {
+  final outfit = await OutfitService().getOutfit(groupId, outfitId);
+  return outfit.imageUrl;
 }
 
 /// Renders an outfit's image, self-healing once on load failure by
 /// refetching the outfit from the backend for a freshly-signed URL.
 class OutfitImage extends StatelessWidget {
   final String imageUrl;
+  final int groupId;
   final int outfitId;
   final double? width;
   final double? height;
@@ -33,6 +33,7 @@ class OutfitImage extends StatelessWidget {
   const OutfitImage({
     super.key,
     required this.imageUrl,
+    required this.groupId,
     required this.outfitId,
     this.width,
     this.height,
@@ -78,7 +79,7 @@ class OutfitImage extends StatelessWidget {
     // trip_details_page.dart's own outfit image, so the two can even share
     // a cache entry. The version suffix comes from ImageCacheBust: this same
     // image can also be overwritten in place at this exact URL by
-    // OutfitService.regenerateLook (see outfit_details_page.dart), which a
+    // OutfitService.regenerateOutfit (see outfit_details_page.dart), which a
     // stable-URL/stable-key cache would otherwise never see as a change.
     final cacheKey =
         'outfit-job-$outfitId-v${ImageCacheBust.versionOf('outfit-job-$outfitId')}';
@@ -94,7 +95,7 @@ class OutfitImage extends StatelessWidget {
             alignment: alignment,
             placeholderBuilder: placeholderBuilder,
             errorLabel: errorLabel,
-            onRefreshUrl: () => fetchFreshOutfitImageUrl(outfitId),
+            onRefreshUrl: () => fetchFreshOutfitImageUrl(groupId, outfitId),
           );
 
     if (borderRadius > 0) {

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -87,42 +89,63 @@ class FloatingNavBar extends StatelessWidget {
                       cornerRadius: _cornerRadius,
                       notchRadius: _notchRadius,
                     ),
-                    color: AppColors.scrimBackdrop,
+                    color: Colors.transparent,
                     elevation: 8,
                     shadowColor: Colors.black,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16, bottom: 10),
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _tab(
-                              AppTab.home,
-                              activeIcon: Icons.home_rounded,
-                              inactiveIcon: Icons.home_outlined,
-                              label: l10n.navHome,
+                    // Frosted glass: blur whatever's scrolling underneath,
+                    // then lay the translucent scrim tint on top of the
+                    // blur. PhysicalShape's own clip doesn't reliably
+                    // confine a BackdropFilter descendant (a known Flutter
+                    // gotcha — PhysicalShapeLayer clips differently from a
+                    // plain clip layer), so an explicit ClipPath with the
+                    // same clipper wraps it here to actually bound the blur
+                    // to the notched bar shape instead of the whole screen.
+                    child: ClipPath(
+                      clipper: const _NotchedBarClipper(
+                        cornerRadius: _cornerRadius,
+                        notchRadius: _notchRadius,
+                      ),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: Container(
+                          color: AppColors.scrimBackdrop,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8, bottom: 6),
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _tab(
+                                    AppTab.home,
+                                    activeIcon: Icons.home_rounded,
+                                    inactiveIcon: Icons.home_outlined,
+                                    label: l10n.navHome,
+                                  ),
+                                  _tab(
+                                    AppTab.closet,
+                                    activeIcon: Icons.checkroom_rounded,
+                                    inactiveIcon: Icons.checkroom_outlined,
+                                    label: l10n.navCloset,
+                                  ),
+                                  const SizedBox(width: _centerButtonSize),
+                                  _tab(
+                                    AppTab.outfits,
+                                    activeIcon: Icons.style_rounded,
+                                    inactiveIcon: Icons.style_outlined,
+                                    label: l10n.navOutfits,
+                                  ),
+                                  _tab(
+                                    AppTab.tripPlanner,
+                                    activeIcon: Icons.luggage_rounded,
+                                    inactiveIcon: Icons.luggage_outlined,
+                                    label: l10n.navTrips,
+                                  ),
+                                ],
+                              ),
                             ),
-                            _tab(
-                              AppTab.closet,
-                              activeIcon: Icons.checkroom_rounded,
-                              inactiveIcon: Icons.checkroom_outlined,
-                              label: l10n.navCloset,
-                            ),
-                            const SizedBox(width: _centerButtonSize),
-                            _tab(
-                              AppTab.outfits,
-                              activeIcon: Icons.style_rounded,
-                              inactiveIcon: Icons.style_outlined,
-                              label: l10n.navOutfits,
-                            ),
-                            _tab(
-                              AppTab.tripPlanner,
-                              activeIcon: Icons.luggage_rounded,
-                              inactiveIcon: Icons.luggage_outlined,
-                              label: l10n.navTrips,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -342,6 +365,14 @@ class _QuickActionButtonState extends State<_QuickActionButton> {
 /// A rounded rectangle with a circular notch bitten out of the top edge,
 /// centered horizontally, so the raised center button sits nested into the
 /// bar rather than simply stacked on top of it.
+///
+/// Built from [CircularNotchedRectangle] (the same smooth-notch curve
+/// Scaffold/BottomAppBar use for a docked FAB) rather than a plain
+/// rect-minus-circle boolean difference — a straight difference leaves two
+/// sharp cusps where the circle meets the flat top edge; the smooth-notch
+/// path blends the two with a curve instead. The outer corners are then
+/// rounded by intersecting with a rounded-rect covering the same bounds —
+/// safe because the notch sits at top-center and never reaches the corners.
 class _NotchedBarClipper extends CustomClipper<Path> {
   final double cornerRadius;
   final double notchRadius;
@@ -353,18 +384,22 @@ class _NotchedBarClipper extends CustomClipper<Path> {
 
   @override
   Path getClip(Size size) {
-    final barPath = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(cornerRadius),
-        ),
-      );
-    final notchPath = Path()
-      ..addOval(
-        Rect.fromCircle(center: Offset(size.width / 2, 0), radius: notchRadius),
-      );
-    return Path.combine(PathOperation.difference, barPath, notchPath);
+    final host = Rect.fromLTWH(0, 0, size.width, size.height);
+    final guest = Rect.fromCircle(
+      center: Offset(size.width / 2, 0),
+      radius: notchRadius,
+    );
+    final smoothNotchedPath = const CircularNotchedRectangle().getOuterPath(
+      host,
+      guest,
+    );
+    final roundedCornersPath = Path()
+      ..addRRect(RRect.fromRectAndRadius(host, Radius.circular(cornerRadius)));
+    return Path.combine(
+      PathOperation.intersect,
+      smoothNotchedPath,
+      roundedCornersPath,
+    );
   }
 
   @override

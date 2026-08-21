@@ -84,13 +84,11 @@ class AddOutfitPage extends StatefulWidget {
   /// trip's suitcase). Ignored outside [selectOnly] mode.
   final Set<int>? validGarmentIds;
 
-  /// When set, this page is generating another look/version of an
-  /// *already-existing* outfit (Outfit Details' "Create Another Version")
-  /// instead of creating a brand new one. The bottom button then calls
-  /// `OutfitService.createLook` on this outfit's id with the picked
-  /// accessories/background — core garment slot edits have no effect
-  /// through that endpoint, which always reuses the outfit's existing core
-  /// combo.
+  /// When set, this page creates a *new* outfit inside this outfit's group
+  /// instead of starting a fresh group (Outfit Details' "Create Another
+  /// Version") — core garment slot edits and accessory picks work exactly
+  /// like the normal create flow, the only difference is which group the
+  /// result lands in. Pops the newly created [Outfit] on success.
   final Outfit? existingOutfit;
 
   const AddOutfitPage({
@@ -116,7 +114,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   static const int _maxAccessories = 4;
   static const double _accessoryTileSize = 72;
 
-  // Customization Look block state — held here until Create Outfit sends
+  // Customization block state — held here until Create Outfit sends
   // everything to the backend together.
   bool _customizationExpanded = false;
   // Always exactly one trailing empty ("+") slot until the max is reached.
@@ -175,13 +173,6 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         sameSlot(_outfit.onePiece, _initialOutfit.onePiece) &&
         sameSlot(_outfit.shoes, _initialOutfit.shoes));
   }
-
-  /// In [AddOutfitPage.existingOutfit] mode, picking an accessory or scene
-  /// is itself a reason to enable the button — `createLook` doesn't care
-  /// about core garment slot edits, so gating solely on [_isModified] would
-  /// leave the button disabled for the flow's main use case.
-  bool get _hasCustomizationChange =>
-      _accessoryGarmentIds().isNotEmpty || _sceneCustomized;
 
   @override
   void initState() {
@@ -262,62 +253,31 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   Future<void> _startTryOn() async {
     final ids = _selectedGarmentIds();
     if (ids.isEmpty) return;
-    if (tryOnOutfitId != 0) await deleteOutfitJob(tryOnOutfitId);
-
-    final existingOutfit = widget.existingOutfit;
-    if (existingOutfit != null) {
-      await _createAnotherVersion(existingOutfit);
-      return;
+    if (tryOnOutfitId != 0) {
+      await deleteOutfitJob(tryOnGroupId, tryOnOutfitId);
     }
 
+    // The new API has no separate accessory concept — everything is one
+    // flat garment_ids list.
     final accessoryIds = _accessoryGarmentIds();
-    final hasCustomization = accessoryIds.isNotEmpty || _sceneCustomized;
     final allIds = {...ids, ...accessoryIds}.toList();
 
-    if (hasCustomization) {
-      await performTryOnWithCustomization(
-        ids,
-        accessoryGarmentIds: accessoryIds,
-        backgroundId: _scene.backgroundId,
-      );
-    } else {
-      await performTryOn(ids, 'general');
-    }
-    if (!mounted) return;
-
-    if (tryOnResultUrl != null) {
-      await _showTryOnResult(allIds);
-    } else if (tryOnErrorMessage != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tryOnErrorMessage!)));
-      resetTryOnState();
-    }
-  }
-
-  /// [AddOutfitPage.existingOutfit] mode (Outfit Details' "Create Another
-  /// Version"): generates a new look on the *same* outfit via `createLook`
-  /// instead of creating a brand new one, then pops back with the result
-  /// for the caller to append to its own carousel — core garment slot
-  /// edits made on this page have no effect here, since that endpoint
-  /// always reuses the outfit's existing core combo.
-  Future<void> _createAnotherVersion(Outfit existingOutfit) async {
-    final accessoryIds = _accessoryGarmentIds();
-    await performLookRegeneration(
-      existingOutfit.id,
-      accessoryGarmentIds: accessoryIds,
+    await performTryOn(
+      allIds,
+      // existingOutfit mode: land the new outfit in that outfit's group
+      // instead of starting a fresh one (Outfit Details' "Create Another
+      // Version").
+      groupId: widget.existingOutfit?.groupId,
       backgroundId: _sceneCustomized ? _scene.backgroundId : null,
     );
     if (!mounted) return;
+
     if (tryOnResultUrl != null) {
-      Navigator.pop(
-        context,
-        OutfitVersionResult(
-          imageUrl: tryOnResultUrl!,
-          lookId: tryOnLookId,
-          accessoryGarmentIds: accessoryIds,
-        ),
-      );
+      if (widget.existingOutfit != null) {
+        Navigator.pop(context, tryOnOutfit);
+      } else {
+        await _showTryOnResult(allIds);
+      }
     } else if (tryOnErrorMessage != null) {
       ScaffoldMessenger.of(
         context,
@@ -333,8 +293,8 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         builder: (_) => OutfitDetailsPage(
           outfit: Outfit(
             id: tryOnOutfitId,
+            groupId: tryOnGroupId,
             imageUrl: tryOnResultUrl!,
-            advice: tryOnAiAdvice,
             garmentIds: garmentIds,
           ),
           isNew: true,
@@ -563,7 +523,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _l10n.customizationLooks,
+                      _l10n.customizationOptional,
                       style: AppTextStyle.bold16,
                     ),
                   ),
@@ -623,8 +583,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       .toList();
 
   /// Candidates for [index]'s slot, minus whatever *type* of accessory is
-  /// already picked in the *other* slots — see CreateLookPage's original
-  /// `_candidatesFor` for the full reasoning (grouped by `subCategory`).
+  /// already picked in the *other* slots (grouped by `subCategory`).
   List<Garment> _accessoryCandidatesFor(int index) {
     final pickedTypesElsewhere = <String>{};
     final pickedIdsElsewhere = <int>{};
@@ -786,9 +745,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   }
 
   /// Overlays a short same-color scrim on each edge of [child] so content
-  /// sliding past doesn't end abruptly — see CreateLookPage's original
-  /// `_fadeHorizontalEdges` (the pattern this mirrors) for the full
-  /// reasoning.
+  /// sliding past doesn't end abruptly.
   Widget _fadeHorizontalEdges(Widget child) {
     Widget scrim(Alignment begin, Alignment end, IconData icon, bool visible) {
       return IgnorePointer(
@@ -970,12 +927,14 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         height: 18,
       ),
       onPressed: _startTryOn,
+      // existingOutfit mode has no "nothing changed" case to guard against —
+      // it's a fresh AI render either way, so it's worth allowing even with
+      // the exact same garments (a same-garments variant is a legitimate
+      // reason to hit "Create Another Version").
       enabled:
           !isOutfitLoading &&
           _hasSelection &&
-          (widget.existingOutfit != null
-              ? (_isModified || _hasCustomizationChange)
-              : _isModified),
+          (widget.existingOutfit != null || _isModified),
     );
   }
 
