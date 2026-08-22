@@ -7,13 +7,13 @@ import '../../core/services/outfit_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'outfit_details_page.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/overlays/empty_state_placeholder.dart';
-import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/overlays/empty_state_placeholder.dart';
+import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/outfit/outfit_card.dart';
+import 'outfit_details_page.dart';
 
 class GarmentOutfitsPage extends StatefulWidget {
   final int garmentId;

@@ -14,21 +14,21 @@ import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'trip_details_page.dart';
-import '../widgets/common/overlays/empty_state_placeholder.dart';
-import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/labeled_divider.dart';
+import '../widgets/common/overlays/empty_state_placeholder.dart';
+import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/trip/trip_card.dart';
 import '../widgets/trip/trip_create_dialog.dart';
+import 'trip_details_page.dart';
 
 class TripsPage extends ConsumerStatefulWidget {
   const TripsPage({super.key});
 
   @override
-  ConsumerState<TripsPage> createState() => _TripMainPageState();
+  ConsumerState<TripsPage> createState() => _TripsPageState();
 }
 
 final _dateFmt = DateFormat('yyyy-MM-dd');
@@ -211,6 +211,76 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
   }
 }
 
+/// Persists a trip edit (name/legs/activities) and reflects it in
+/// [tripsProvider]. Shared between [TripsPage] and any other entry point
+/// that edits a trip in place (e.g. the Home page's trip card).
+Future<void> handleUpdateTrip(
+  BuildContext context,
+  WidgetRef ref,
+  Trip trip, {
+  required Trip updated,
+}) async {
+  try {
+    await TripService().updateTrip(
+      int.parse(trip.id),
+      name: updated.name != trip.name ? updated.name : null,
+      legs: updated.legs,
+      activities: setEquals(updated.activities.toSet(), trip.activities.toSet())
+          ? null
+          : updated.activities,
+    );
+
+    if (!context.mounted) return;
+    ref.read(tripsProvider.notifier).updateTrip(updated);
+  } catch (e) {
+    if (!context.mounted) return;
+    if (e is AuthExpiredException) {
+      await AuthExpiredHandler.handle(context);
+      return;
+    }
+    debugLog('Failed to update trip: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).failedToUpdateTrip)),
+    );
+  }
+}
+
+/// Deletes a trip (with a loading overlay for the round trip) and removes
+/// it from [tripsProvider]. Shared between [TripsPage] and any other entry
+/// point that can delete a trip (e.g. the Home page's trip card).
+Future<void> handleDeleteTrip(
+  BuildContext context,
+  WidgetRef ref,
+  Trip trip,
+) async {
+  final l10n = AppLocalizations.of(context);
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    useSafeArea: false,
+    builder: (_) => LoadingOverlay(label: l10n.deletingTripEllipsis),
+  );
+
+  try {
+    await TripService().deleteTrip(int.parse(trip.id));
+
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    ref.read(tripsProvider.notifier).remove(trip.id);
+  } catch (e) {
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    if (e is AuthExpiredException) {
+      await AuthExpiredHandler.handle(context);
+      return;
+    }
+    debugLog('Failed to delete trip: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).failedToDeleteTrip)),
+    );
+  }
+}
+
 /// Fetches the per-day weather needed by the backend, then creates the trip
 /// plan record and returns it as a [Trip].
 Future<Trip> _createTrip(Trip input) async {
@@ -245,7 +315,7 @@ void _goToNewTripDetails(
   Navigator.push(context, route);
 }
 
-class _TripMainPageState extends ConsumerState<TripsPage> {
+class _TripsPageState extends ConsumerState<TripsPage> {
   @override
   void initState() {
     super.initState();
@@ -267,19 +337,13 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
     MainShellScope.of(context)?.setLoading(
       state.isLoading,
       label: AppLocalizations.of(context).loadingTripsEllipsis,
+      tab: AppTab.tripPlanner,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final tripsAsync = ref.watch(tripsProvider);
-    return _buildScaffold(context, tripsAsync);
-  }
-
-  Widget _buildScaffold(
-    BuildContext context,
-    AsyncValue<List<Trip>> tripsAsync,
-  ) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       body: SafeArea(
@@ -290,17 +354,17 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
             error: e,
             onRetry: () => ref.read(tripsProvider.notifier).refresh(),
           ),
-          data: (trips) => _buildTripList(context, trips),
+          data: (trips) => _buildTripList(trips),
         ),
       ),
     );
   }
 
-  Widget _buildTripList(BuildContext context, List<Trip> trips) {
+  Widget _buildTripList(List<Trip> trips) {
     return RefreshIndicator(
       onRefresh: () => ref.read(tripsProvider.notifier).refresh(),
       child: trips.isEmpty
-          ? _buildEmptyState(context)
+          ? _buildEmptyState()
           : ListView(
               padding: const EdgeInsets.fromLTRB(
                 16,
@@ -308,7 +372,7 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
                 16,
                 AppDimens.floatingNavBarClearance,
               ),
-              children: _buildGroupedTripItems(context, trips),
+              children: _buildGroupedTripItems(trips),
             ),
     );
   }
@@ -317,7 +381,7 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
   /// by how soon they happen — Ongoing/Upcoming ascending by start date,
   /// Past descending so the most recently finished trip shows first), and
   /// interleaves a [LabeledDivider] header before each non-empty section.
-  List<Widget> _buildGroupedTripItems(BuildContext context, List<Trip> trips) {
+  List<Widget> _buildGroupedTripItems(List<Trip> trips) {
     final l10n = AppLocalizations.of(context);
     final today = _dateOnly(DateTime.now());
 
@@ -345,7 +409,7 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
       items.add(LabeledDivider(label: label, dotColor: dotColor));
       items.add(const SizedBox(height: 16));
       for (final trip in group) {
-        items.add(_buildTripCard(context, trip));
+        items.add(_buildTripCard(trip));
       }
     }
 
@@ -356,7 +420,7 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
     return items;
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState() {
     return ListView(
       children: [
         EmptyStatePlaceholder(
@@ -368,115 +432,48 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
     );
   }
 
-  Widget _buildTripCard(BuildContext context, Trip trip) {
+  Widget _buildTripCard(Trip trip) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimens.cardSpacing),
       child: TripCard(
         key: ValueKey(trip.id),
         trip: trip,
-        onTap: () => _handleOpenTrip(context, trip),
-        onNameChanged: (name) => _handleUpdateTrip(
+        onTap: () => _handleOpenTrip(trip),
+        onNameChanged: (name) => handleUpdateTrip(
           context,
           ref,
           trip,
           updated: trip.copyWith(name: name),
         ),
-        onLegsChanged: (legs) => _handleUpdateTrip(
+        onLegsChanged: (legs) => handleUpdateTrip(
           context,
           ref,
           trip,
           updated: trip.copyWith(legs: legs),
         ),
-        onActivitiesChanged: (activities) => _handleUpdateTrip(
+        onActivitiesChanged: (activities) => handleUpdateTrip(
           context,
           ref,
           trip,
           updated: trip.copyWith(activities: activities),
         ),
-        onDelete: () => _handleDeleteTrip(context, ref, trip),
+        onDelete: () => handleDeleteTrip(context, ref, trip),
       ),
     );
   }
 
-  Future<void> _handleUpdateTrip(
-    BuildContext context,
-    WidgetRef ref,
-    Trip trip, {
-    required Trip updated,
-  }) async {
-    try {
-      await TripService().updateTrip(
-        int.parse(trip.id),
-        name: updated.name != trip.name ? updated.name : null,
-        legs: updated.legs,
-        activities:
-            setEquals(updated.activities.toSet(), trip.activities.toSet())
-            ? null
-            : updated.activities,
-      );
-
-      if (!context.mounted) return;
-      ref.read(tripsProvider.notifier).updateTrip(updated);
-    } catch (e) {
-      if (!context.mounted) return;
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to update trip: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).failedToUpdateTrip),
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleDeleteTrip(
-    BuildContext context,
-    WidgetRef ref,
-    Trip trip,
-  ) async {
+  Future<void> _handleOpenTrip(Trip trip) async {
     final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      useSafeArea: false,
-      builder: (_) => LoadingOverlay(label: l10n.deletingTripEllipsis),
+    MainShellScope.of(context)?.setLoading(
+      true,
+      label: l10n.loadingTripEllipsis,
+      tab: AppTab.tripPlanner,
     );
-
-    try {
-      await TripService().deleteTrip(int.parse(trip.id));
-
-      if (!context.mounted) return;
-      Navigator.pop(context); // close loading indicator
-      ref.read(tripsProvider.notifier).remove(trip.id);
-    } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context); // close loading indicator
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to delete trip: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).failedToDeleteTrip),
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleOpenTrip(BuildContext context, Trip trip) async {
-    final l10n = AppLocalizations.of(context);
-    MainShellScope.of(
-      context,
-    )?.setLoading(true, label: l10n.loadingTripEllipsis);
     try {
       final data = await TripDetailsPage.preload(trip);
 
       if (!mounted || !context.mounted) return;
-      MainShellScope.of(context)?.setLoading(false);
+      MainShellScope.of(context)?.setLoading(false, tab: AppTab.tripPlanner);
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -485,7 +482,7 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
       );
     } catch (e) {
       if (!mounted || !context.mounted) return;
-      MainShellScope.of(context)?.setLoading(false);
+      MainShellScope.of(context)?.setLoading(false, tab: AppTab.tripPlanner);
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;

@@ -11,17 +11,17 @@ import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'add_outfit_page.dart';
-import 'trip_suitcase_page.dart';
-import '../widgets/common/overlays/app_dialog.dart';
-import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/cards/app_list_card.dart';
+import '../widgets/common/cards/lumi_insight_card.dart';
+import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
-import '../widgets/common/cards/lumi_insight_card.dart';
-import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/garment/garment_image.dart';
+import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/trip/trip_day_card.dart';
+import 'add_outfit_page.dart';
+import 'trip_suitcase_page.dart';
 
 /// One trip day's primary outfit option, as returned embedded in
 /// `TripService.getTrip`'s `days[].options[]` — no separate

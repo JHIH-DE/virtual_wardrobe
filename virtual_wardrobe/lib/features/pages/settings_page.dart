@@ -12,6 +12,11 @@ import '../../core/services/auth_storage.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/cards/app_list_card.dart';
+import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/profile_avatar.dart';
 import 'account_page.dart';
 import 'ai_model_page.dart';
 import 'image_editor_page.dart';
@@ -19,11 +24,6 @@ import 'lifestyle_page.dart';
 import 'login_page.dart';
 import 'style_profile_page.dart';
 import 'style_taste_page.dart';
-import '../widgets/common/cards/app_list_card.dart';
-import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/images/petal_loader.dart';
-import '../widgets/common/overlays/picker_sheet.dart';
-import '../widgets/common/profile_avatar.dart';
 
 /// Wraps the bottom sheet's chosen locale so a `null` result (System
 /// Default, itself a valid choice) can be told apart from the sheet being

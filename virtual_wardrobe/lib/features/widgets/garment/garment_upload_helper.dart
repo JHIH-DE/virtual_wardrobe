@@ -7,8 +7,8 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../data/image_edit_result.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../pages/garment_details_page.dart';
 import '../../pages/camera_capture_page.dart';
+import '../../pages/garment_details_page.dart';
 import '../../pages/image_editor_page.dart';
 import '../common/buttons/close_action_button.dart';
 import '../common/overlays/feedback_overlay.dart';
@@ -125,7 +125,7 @@ class GarmentUploadHelper {
     VoidCallback? onComplete,
     void Function(Garment)? onAdded,
   ) async {
-    Navigator.pop(dialogContext); // 關閉彈窗
+    Navigator.pop(dialogContext); // Close the dialog
 
     String? imagePath;
 
@@ -141,7 +141,7 @@ class GarmentUploadHelper {
     }
 
     if (imagePath != null) {
-      // 1. 跳轉到編輯頁面
+      // 1. Navigate to the edit page
       final result = await Navigator.push<ImageEditResult>(
         context,
         MaterialPageRoute(
@@ -152,7 +152,7 @@ class GarmentUploadHelper {
         ),
       );
 
-      // 2. 跳轉到新增頁面
+      // 2. Navigate to the add page
       if (result != null) {
         if (!context.mounted) return;
         final newGarment = await Navigator.push<Garment>(

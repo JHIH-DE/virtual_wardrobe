@@ -64,8 +64,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   Widget build(BuildContext context) {
     if (!_isInitialized || _controller == null) {
       return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        backgroundColor: AppColors.trueBlack,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.textOnPrimary),
+        ),
       );
     }
 
@@ -73,13 +75,13 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     final boxSize = size.width * 0.85;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.trueBlack,
       body: Stack(
         children: [
           _buildCameraPreview(),
           _buildMaskWithHole(boxSize),
           _buildHighlightBorder(boxSize),
-          _buildHeader(context),
+          _buildHeader(),
           _buildCaptureButton(),
         ],
       ),
@@ -90,18 +92,15 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     return Positioned.fill(child: CameraPreview(_controller!));
   }
 
-  // 遮罩與鏤空方框
+  // Mask with a cutout square
   Widget _buildMaskWithHole(double boxSize) {
     return ColorFiltered(
-      colorFilter: ColorFilter.mode(
-        Colors.black.withValues(alpha: 0.6),
-        BlendMode.srcOut,
-      ),
+      colorFilter: ColorFilter.mode(AppColors.scrimStrong, BlendMode.srcOut),
       child: Stack(
         children: [
           Container(
             decoration: const BoxDecoration(
-              color: Colors.black,
+              color: AppColors.trueBlack,
               backgroundBlendMode: BlendMode.dstOut,
             ),
           ),
@@ -110,7 +109,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
               width: boxSize,
               height: boxSize,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.textOnPrimary,
                 borderRadius: BorderRadius.circular(32),
               ),
             ),
@@ -120,7 +119,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     );
   }
 
-  // 白色邊框與中央十字
+  // White border and center crosshair
   Widget _buildHighlightBorder(double boxSize) {
     return Center(
       child: SizedBox(
@@ -131,20 +130,20 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
           children: [
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 3),
+                border: Border.all(color: AppColors.textOnPrimary, width: 3),
                 borderRadius: BorderRadius.circular(32),
               ),
             ),
-            // 中央十字
-            Container(width: 30, height: 2, color: Colors.white),
-            Container(width: 2, height: 30, color: Colors.white),
+            // Center crosshair
+            Container(width: 30, height: 2, color: AppColors.textOnPrimary),
+            Container(width: 2, height: 30, color: AppColors.textOnPrimary),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader() {
     return Positioned(
       top: 0,
       left: 0,
@@ -152,11 +151,14 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       child: Container(
         height: 120,
         padding: const EdgeInsets.only(top: 40),
-        color: Colors.black.withValues(alpha: 0.4),
+        color: AppColors.scrimMedium,
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: AppColors.textOnPrimary,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             Expanded(
@@ -188,14 +190,14 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
             width: 84,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 5),
+              border: Border.all(color: AppColors.textOnPrimary, width: 5),
             ),
             child: Center(
               child: Container(
                 height: 64,
                 width: 64,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.textOnPrimary,
                   shape: BoxShape.circle,
                 ),
               ),

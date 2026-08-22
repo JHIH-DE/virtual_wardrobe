@@ -37,7 +37,7 @@ class AuthExpiredHandler {
 
       if (!context.mounted) return;
 
-      // 彈窗關閉後，執行跳轉
+      // Navigate after the dialog closes
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginPage()),
         (route) => false,

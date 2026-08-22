@@ -95,4 +95,28 @@ class AppColors {
   static const Color dividerOnDark = Color(
     0x26FFFFFF,
   ); // divider on dark surfaces (e.g. nav bar's quick-action menu), white @15%
+  static const Color shadowFaint = Color(
+    0x0D000000,
+  ); // faint resting shadow/border, black @5%
+  static const Color shadowSoft = Color(
+    0x26000000,
+  ); // soft drop shadow (e.g. a card corner badge), black @15%
+  static const Color overlayMedium = Color(
+    0x8A000000,
+  ); // medium-strength overlay (e.g. an avatar's "edit photo" label bar), black @54%
+  static const Color scrimMedium = Color(
+    0x66000000,
+  ); // medium-strength full-screen scrim (e.g. camera header bar), black @40%
+  static const Color scrimStrong = Color(
+    0x99000000,
+  ); // strong full-screen scrim (e.g. camera cutout mask), black @60%
+  static const Color surfaceTranslucentMedium = Color(
+    0xA6FFFFFF,
+  ); // white @65%, e.g. a badge sitting on top of a photo (slightly lighter than surfaceTranslucent)
+  static const Color borderOnDark = Color(
+    0x8AFFFFFF,
+  ); // subtle border on dark buttons/dialogs (was Colors.white54), white @54%
+  static const Color trueBlack = Color(
+    0xFF000000,
+  ); // pure opaque black — Material shadowColor, camera viewfinder backdrop/mask base
 }

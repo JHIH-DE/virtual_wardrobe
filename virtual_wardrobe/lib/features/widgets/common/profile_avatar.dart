@@ -49,7 +49,7 @@ class ProfileAvatar extends StatelessWidget {
                   right: 0,
                   child: Container(
                     padding: const EdgeInsets.only(top: 4, bottom: 13),
-                    color: Colors.black.withValues(alpha: 0.54),
+                    color: AppColors.overlayMedium,
                     child: Text(
                       AppLocalizations.of(context).editPhoto,
                       textAlign: TextAlign.center,

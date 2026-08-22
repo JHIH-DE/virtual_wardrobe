@@ -9,12 +9,13 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'image_editor_page.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/fields/numeric_unit_field.dart';
 import '../widgets/common/images/photo_upload_field.dart';
+import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/section_title.dart';
+import 'image_editor_page.dart';
 
 class AiModelPage extends StatefulWidget {
   const AiModelPage({super.key});
@@ -178,7 +179,7 @@ class _AiModelPageState extends State<AiModelPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_error != null) _buildErrorBanner(),
+            if (_error != null) InlineErrorText(message: _error!),
             Text(
               _l10n.aiModelDescription,
               style: AppTextStyle.regular14.copyWith(
@@ -220,16 +221,6 @@ class _AiModelPageState extends State<AiModelPage> {
             _buildHeightWeightFields(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildErrorBanner() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        _error!,
-        style: AppTextStyle.regular13.copyWith(color: AppColors.error),
       ),
     );
   }

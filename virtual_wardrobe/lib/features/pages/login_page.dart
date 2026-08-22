@@ -7,12 +7,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../../app/main_shell.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/config/env.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
-import '../../app/main_shell.dart';
 import '../../core/utils/debug_log.dart';
 import '../../l10n/generated/app_localizations.dart';
 
@@ -173,7 +173,10 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildLoginCard() {
     return Transform.translate(
-      offset: const Offset(0, -30), // 這裡控制覆蓋的高度
+      offset: const Offset(
+        0,
+        -30,
+      ), // Controls how much of the image the overlay covers
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
@@ -184,7 +187,7 @@ class _LoginPageState extends State<LoginPage> {
               color: AppColors.shadowResting,
               blurRadius: 20,
               spreadRadius: 0,
-              offset: const Offset(0, -10), // 向上位移的陰影
+              offset: const Offset(0, -10), // Shadow shifted upward
             ),
           ],
         ),

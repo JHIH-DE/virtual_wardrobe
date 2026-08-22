@@ -13,11 +13,11 @@ import '../../core/services/garment_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'camera_capture_page.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/buttons/pill_button.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
+import 'camera_capture_page.dart';
 
 class ImageEditorPage extends StatefulWidget {
   final String? initialPath;
@@ -142,7 +142,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     }
   }
 
-  AppToolBar _buildAppBar(BuildContext context) {
+  AppToolBar _buildAppBar() {
     return AppToolBar(
       title: widget.title ?? _l10n.edit,
       onBack: () {
@@ -155,7 +155,25 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildScaffold(context),
+        Scaffold(
+          backgroundColor: AppColors.pageBackground,
+          extendBody: true,
+          appBar: _buildAppBar(),
+          bottomNavigationBar: _buildConfirmButton(),
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                _buildImagePreview(),
+                const SizedBox(height: 24),
+                _buildPinchHint(),
+                const SizedBox(height: 32),
+                _buildActionButtons(),
+              ],
+            ),
+          ),
+        ),
         if (_isAnalyzing)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.analyzingClothingEllipsis),
@@ -165,28 +183,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   bool get _hasImage => _currentPath != null && _currentPath!.isNotEmpty;
-
-  Widget _buildScaffold(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      extendBody: true,
-      appBar: _buildAppBar(context),
-      bottomNavigationBar: _buildConfirmButton(),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            _buildImagePreview(),
-            const SizedBox(height: 24),
-            _buildPinchHint(),
-            const SizedBox(height: 32),
-            _buildActionButtons(),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildConfirmButton() {
     return BottomActionButton(
@@ -312,7 +308,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           child: PillButton(
             label: Text(_l10n.retake, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/camera.png', height: 32),
-            onTap: _isAnalyzing ? () {} : _handleRetake,
+            onPressed: _isAnalyzing ? () {} : _handleRetake,
           ),
         ),
         const SizedBox(width: 16),
@@ -320,7 +316,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           child: PillButton(
             label: Text(_l10n.album, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/album.png', height: 32),
-            onTap: _isAnalyzing ? () {} : _handleAlbum,
+            onPressed: _isAnalyzing ? () {} : _handleAlbum,
           ),
         ),
       ],

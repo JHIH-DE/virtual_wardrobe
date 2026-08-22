@@ -126,6 +126,14 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
+  static const TextStyle medium13 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0,
+    color: AppColors.textSecondary,
+  );
+
   static const TextStyle regular13 = TextStyle(
     fontFamily: 'text/EN',
     fontSize: 13,

@@ -11,13 +11,13 @@ import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'trip_outfit_selection_page.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/garment/category_selector.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/lumi_insight_card.dart';
+import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
+import 'trip_outfit_selection_page.dart';
 
 class _CategoryAdvice {
   final int recommendedQuantity;

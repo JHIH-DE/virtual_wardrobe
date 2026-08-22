@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'pressed_state_mixin.dart';
 
 enum AppTab { home, closet, outfits, tripPlanner }
 
@@ -23,7 +24,14 @@ class MainShellScope extends InheritedWidget {
   /// the shell's Stack, so a loading mask built inline into that body can
   /// never visually cover the nav bar. Routing it through here instead
   /// lets any tab page's loading state actually mask the whole screen.
-  final void Function(bool loading, {String? label}) setLoading;
+  ///
+  /// [tab] identifies which tab's loading state this call is for — every
+  /// tab is kept mounted at once in the shell's `IndexedStack`, so a
+  /// background fetch for a tab the user isn't even looking at (e.g. Trips
+  /// prefetching while Home is showing) must never show this overlay; it's
+  /// only displayed when [tab] is the currently active one.
+  final void Function(bool loading, {String? label, required AppTab tab})
+  setLoading;
 
   const MainShellScope({
     super.key,
@@ -91,7 +99,7 @@ class FloatingNavBar extends StatelessWidget {
                     ),
                     color: Colors.transparent,
                     elevation: 8,
-                    shadowColor: Colors.black,
+                    shadowColor: AppColors.trueBlack,
                     // Frosted glass: blur whatever's scrolling underneath,
                     // then lay the translucent scrim tint on top of the
                     // blur. PhysicalShape's own clip doesn't reliably
@@ -318,22 +326,17 @@ class _QuickActionButton extends StatefulWidget {
   State<_QuickActionButton> createState() => _QuickActionButtonState();
 }
 
-class _QuickActionButtonState extends State<_QuickActionButton> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (_pressed != value) setState(() => _pressed = value);
-  }
-
+class _QuickActionButtonState extends State<_QuickActionButton>
+    with PressedStateMixin<_QuickActionButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _setPressed(true),
-      onTapUp: (_) => _setPressed(false),
-      onTapCancel: () => _setPressed(false),
+      onTapDown: (_) => setPressed(true),
+      onTapUp: (_) => setPressed(false),
+      onTapCancel: () => setPressed(false),
       onTap: widget.onTap,
       child: AnimatedScale(
-        scale: _pressed ? 0.88 : 1.0,
+        scale: pressed ? 0.88 : 1.0,
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutBack,
         child: Container(
@@ -342,7 +345,7 @@ class _QuickActionButtonState extends State<_QuickActionButton> {
           decoration: BoxDecoration(
             color: AppColors.accent,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white54, width: 1.5),
+            border: Border.all(color: AppColors.borderOnDark, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: AppColors.overlaySubtle,

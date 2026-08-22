@@ -117,7 +117,7 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
                               vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.65),
+                              color: AppColors.surfaceTranslucentMedium,
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(

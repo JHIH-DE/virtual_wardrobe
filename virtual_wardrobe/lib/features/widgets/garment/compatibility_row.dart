@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
+import '../common/pressed_state_mixin.dart';
 import 'garment_image.dart';
 
 /// A tappable "N Category" row for the AI compatibility card — stacked
@@ -27,17 +28,12 @@ class CompatibilityRow extends StatefulWidget {
   State<CompatibilityRow> createState() => _CompatibilityRowState();
 }
 
-class _CompatibilityRowState extends State<CompatibilityRow> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (_pressed != value) setState(() => _pressed = value);
-  }
-
+class _CompatibilityRowState extends State<CompatibilityRow>
+    with PressedStateMixin<CompatibilityRow> {
   @override
   Widget build(BuildContext context) {
     return AnimatedScale(
-      scale: _pressed ? 0.98 : 1,
+      scale: pressed ? 0.98 : 1,
       duration: const Duration(milliseconds: 100),
       curve: Curves.easeOut,
       child: Material(
@@ -47,9 +43,9 @@ class _CompatibilityRowState extends State<CompatibilityRow> {
           borderRadius: BorderRadius.circular(12),
           splashColor: AppColors.accent.withValues(alpha: 0.15),
           highlightColor: AppColors.accent.withValues(alpha: 0.08),
-          onTapDown: (_) => _setPressed(true),
-          onTapUp: (_) => _setPressed(false),
-          onTapCancel: () => _setPressed(false),
+          onTapDown: (_) => setPressed(true),
+          onTapUp: (_) => setPressed(false),
+          onTapCancel: () => setPressed(false),
           onTap: widget.onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

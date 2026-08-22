@@ -12,7 +12,7 @@ import '../../../../app/theme/app_text_styles.dart';
 class PillButton extends StatelessWidget {
   final Widget label;
   final Widget icon;
-  final VoidCallback onTap;
+  final VoidCallback onPressed;
   final double? height;
   final EdgeInsetsGeometry padding;
   final MainAxisAlignment mainAxisAlignment;
@@ -25,7 +25,7 @@ class PillButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.icon,
-    required this.onTap,
+    required this.onPressed,
     this.height = 64,
     this.padding = const EdgeInsets.symmetric(horizontal: 16),
     this.mainAxisAlignment = MainAxisAlignment.spaceBetween,
@@ -47,13 +47,13 @@ class PillButton extends StatelessWidget {
     Key? key,
     required String label,
     required Widget icon,
-    required VoidCallback onTap,
+    required VoidCallback onPressed,
   }) {
     return PillButton(
       key: key,
       label: Text(label, style: AppTextStyle.bold14),
       icon: icon,
-      onTap: onTap,
+      onPressed: onPressed,
       height: null,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       mainAxisAlignment: MainAxisAlignment.start,
@@ -68,7 +68,7 @@ class PillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: onPressed,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         height: height,

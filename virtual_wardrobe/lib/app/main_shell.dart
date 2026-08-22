@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/utils/debug_log.dart';
-import '../features/pages/home_page.dart';
-import '../features/pages/outfits_page.dart';
 import '../features/pages/add_outfit_page.dart';
 import '../features/pages/closet_page.dart';
+import '../features/pages/home_page.dart';
+import '../features/pages/outfits_page.dart';
 import '../features/pages/trips_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
@@ -32,18 +32,26 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   AppTab _current = AppTab.home;
-  bool _globalLoading = false;
-  String? _globalLoadingLabel;
+  // Every tab stays mounted in the IndexedStack below, so each one's own
+  // background fetch (garments, outfits, trips) reports its loading state
+  // independently — keyed by tab here so a hidden tab's fetch never shows
+  // the shell-level overlay over whichever tab the user is actually
+  // looking at (see MainShellScope.setLoading).
+  final Map<AppTab, String?> _loadingLabelByTab = {};
 
   void _select(AppTab tab) {
     if (tab != _current) setState(() => _current = tab);
   }
 
-  void _setGlobalLoading(bool loading, {String? label}) {
-    if (loading == _globalLoading && label == _globalLoadingLabel) return;
+  void _setGlobalLoading(bool loading, {String? label, required AppTab tab}) {
+    final next = loading ? (label ?? '') : null;
+    if (_loadingLabelByTab[tab] == next) return;
     setState(() {
-      _globalLoading = loading;
-      _globalLoadingLabel = label;
+      if (next == null) {
+        _loadingLabelByTab.remove(tab);
+      } else {
+        _loadingLabelByTab[tab] = next;
+      }
     });
   }
 
@@ -141,8 +149,11 @@ class _MainShellState extends ConsumerState<MainShell> {
             onQuickAction: _handleQuickAction,
           ),
           // Painted last so it sits above FloatingNavBar and truly covers
-          // the whole screen — see MainShellScope.setLoading.
-          if (_globalLoading) LoadingOverlay(label: _globalLoadingLabel ?? ''),
+          // the whole screen — see MainShellScope.setLoading. Only the
+          // *currently active* tab's loading state can trigger this, even
+          // though every tab reports its own independently.
+          if (_loadingLabelByTab[_current] != null)
+            LoadingOverlay(label: _loadingLabelByTab[_current]!),
         ],
       ),
     );

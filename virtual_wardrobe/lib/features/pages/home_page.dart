@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -11,25 +10,24 @@ import '../../core/providers/trips_provider.dart';
 import '../../core/providers/weather_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/daily_outfit_service.dart';
-import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/images/refreshable_network_image.dart';
+import '../widgets/common/labeled_divider.dart';
+import '../widgets/garment/garment_card.dart';
+import '../widgets/outfit/outfit_image.dart';
+import '../widgets/trip/trip_card.dart';
 import 'garment_details_page.dart';
 import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'trip_details_page.dart';
-import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/floating_nav_bar.dart';
-import '../widgets/common/labeled_divider.dart';
-import '../widgets/common/overlays/loading_overlay.dart';
-import '../widgets/common/images/petal_loader.dart';
-import '../widgets/common/images/refreshable_network_image.dart';
-import '../widgets/garment/garment_card.dart';
-import '../widgets/outfit/outfit_image.dart';
-import '../widgets/trip/trip_card.dart';
+import 'trips_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -56,7 +54,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadDailyOutfit();
+    // Deferred to after the first frame — MainShellScope.of below needs an
+    // ancestor lookup that isn't safe to run during initState itself.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadDailyOutfit();
+    });
   }
 
   @override
@@ -67,6 +69,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _loadDailyOutfit() async {
     setState(() => _loadingOutfit = true);
+    MainShellScope.of(context)?.setLoading(
+      true,
+      label: AppLocalizations.of(context).loading,
+      tab: AppTab.home,
+    );
     try {
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final outfits = await DailyOutfitService().getDailyOutfit(today);
@@ -85,16 +92,55 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
       debugLog('Failed to load daily outfit: $e');
     } finally {
-      if (mounted) setState(() => _loadingOutfit = false);
+      if (mounted) {
+        setState(() => _loadingOutfit = false);
+        MainShellScope.of(context)?.setLoading(false, tab: AppTab.home);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return _buildScaffold(context);
+    // floatingNavBarClearance alone is tuned for the nav bar's own height,
+    // not any given device's safe-area inset — add that explicitly so the
+    // last card always clears the floating nav bar, gesture-bar devices
+    // included, without touching the nav bar's own layout.
+    final bottomClearance =
+        AppDimens.floatingNavBarClearance +
+        MediaQuery.of(context).padding.bottom;
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      appBar: _buildAppBar(),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 16),
+                  _buildOutfitImageCard(),
+                  _buildUpcomingTripSection(),
+                ],
+              ),
+            ),
+            // Outside the 24px page padding so the horizontal card scroller
+            // itself isn't boxed in and can reach the true screen edges —
+            // the section's own label keeps the 24px inset internally so it
+            // still lines up with the rest of the page.
+            _buildRecentlyAddedSection(),
+            SizedBox(height: bottomClearance),
+          ],
+        ),
+      ),
+    );
   }
 
-  AppToolBar _buildAppBar(BuildContext context) {
+  AppToolBar _buildAppBar() {
     return AppToolBar(
       title: AppLocalizations.of(context).navHome,
       titleWidget: Text(
@@ -128,46 +174,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         const SizedBox(width: 8),
       ],
-    );
-  }
-
-  Widget _buildScaffold(BuildContext context) {
-    // floatingNavBarClearance alone is tuned for the nav bar's own height,
-    // not any given device's safe-area inset — add that explicitly so the
-    // last card always clears the floating nav bar, gesture-bar devices
-    // included, without touching the nav bar's own layout.
-    final bottomClearance =
-        AppDimens.floatingNavBarClearance +
-        MediaQuery.of(context).padding.bottom;
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(context),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 16),
-                  _buildOutfitImageCard(),
-                  _buildUpcomingTripSection(),
-                ],
-              ),
-            ),
-            // Outside the 24px page padding so the horizontal card scroller
-            // itself isn't boxed in and can reach the true screen edges —
-            // the section's own label keeps the 24px inset internally so it
-            // still lines up with the rest of the page.
-            _buildRecentlyAddedSection(),
-            SizedBox(height: bottomClearance),
-          ],
-        ),
-      ),
     );
   }
 
@@ -273,10 +279,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: AspectRatio(
             aspectRatio: 1 / 1.15,
             child: _loadingOutfit
-                ? Container(
-                    color: AppColors.surface,
-                    child: LoadingOverlay(label: l10n.loading),
-                  )
+                // Shell-level overlay (see _loadDailyOutfit) covers the
+                // whole screen while loading, so this stays blank.
+                ? Container(color: AppColors.surface)
                 : !hasImage
                 ? Container(
                     color: AppColors.surface,
@@ -316,6 +321,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                             cacheKey: 'outfit-job-${option.id}',
                             fit: BoxFit.cover,
                             errorIconSize: 48,
+                            // Plain white background instead of a loading
+                            // spinner, with a quick cross-fade once the
+                            // image actually loads — matches
+                            // GarmentImage/OutfitImage's quieter treatment.
+                            placeholderBuilder: (_) =>
+                                Container(color: AppColors.surface),
+                            fadeInDuration: const Duration(milliseconds: 200),
                             onRefreshUrl: () => fetchFreshOutfitImageUrl(
                               option.groupId,
                               option.id,
@@ -418,82 +430,37 @@ class _HomePageState extends ConsumerState<HomePage> {
       key: ValueKey(trip.id),
       trip: trip,
       onTap: () => _openTrip(trip),
-      onNameChanged: (name) =>
-          _updateTrip(trip, updated: trip.copyWith(name: name)),
-      onLegsChanged: (legs) =>
-          _updateTrip(trip, updated: trip.copyWith(legs: legs)),
-      onActivitiesChanged: (activities) =>
-          _updateTrip(trip, updated: trip.copyWith(activities: activities)),
-      onDelete: () => _deleteTrip(trip),
+      onNameChanged: (name) => handleUpdateTrip(
+        context,
+        ref,
+        trip,
+        updated: trip.copyWith(name: name),
+      ),
+      onLegsChanged: (legs) => handleUpdateTrip(
+        context,
+        ref,
+        trip,
+        updated: trip.copyWith(legs: legs),
+      ),
+      onActivitiesChanged: (activities) => handleUpdateTrip(
+        context,
+        ref,
+        trip,
+        updated: trip.copyWith(activities: activities),
+      ),
+      onDelete: () => handleDeleteTrip(context, ref, trip),
     );
-  }
-
-  Future<void> _updateTrip(Trip trip, {required Trip updated}) async {
-    try {
-      await TripService().updateTrip(
-        int.parse(trip.id),
-        name: updated.name != trip.name ? updated.name : null,
-        legs: updated.legs,
-        activities:
-            setEquals(updated.activities.toSet(), trip.activities.toSet())
-            ? null
-            : updated.activities,
-      );
-      if (!mounted) return;
-      ref.read(tripsProvider.notifier).updateTrip(updated);
-    } catch (e) {
-      if (!mounted) return;
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to update trip: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).failedToUpdateTrip),
-        ),
-      );
-    }
-  }
-
-  Future<void> _deleteTrip(Trip trip) async {
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      useSafeArea: false,
-      builder: (_) => LoadingOverlay(label: l10n.deletingTripEllipsis),
-    );
-    try {
-      await TripService().deleteTrip(int.parse(trip.id));
-      if (!mounted) return;
-      Navigator.pop(context); // close loading indicator
-      ref.read(tripsProvider.notifier).remove(trip.id);
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // close loading indicator
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to delete trip: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).failedToDeleteTrip),
-        ),
-      );
-    }
   }
 
   Future<void> _openTrip(Trip trip) async {
     final l10n = AppLocalizations.of(context);
     MainShellScope.of(
       context,
-    )?.setLoading(true, label: l10n.loadingTripEllipsis);
+    )?.setLoading(true, label: l10n.loadingTripEllipsis, tab: AppTab.home);
     try {
       final data = await TripDetailsPage.preload(trip);
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false);
+      MainShellScope.of(context)?.setLoading(false, tab: AppTab.home);
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -502,7 +469,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false);
+      MainShellScope.of(context)?.setLoading(false, tab: AppTab.home);
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;

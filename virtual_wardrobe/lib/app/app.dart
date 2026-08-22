@@ -5,9 +5,10 @@ import '../core/providers/locale_provider.dart';
 import '../core/services/auth_storage.dart';
 import '../core/utils/route_observer.dart';
 import '../features/pages/login_page.dart';
-import '../features/widgets/common/images/petal_loader.dart';
+import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'main_shell.dart';
+import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 class App extends ConsumerWidget {
@@ -34,7 +35,10 @@ class App extends ConsumerWidget {
         future: _bootstrap(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Scaffold(body: Center(child: PetalLoader()));
+            return Scaffold(
+              backgroundColor: AppColors.pageBackground,
+              body: LoadingOverlay(label: AppLocalizations.of(context).loading),
+            );
           }
           return snapshot.data!;
         },

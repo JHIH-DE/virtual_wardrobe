@@ -100,7 +100,7 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
 
     if (cached != null && cached.hasWeeklyData) {
       if (cached.isStale) {
-        // 背景更新，不阻塞 UI
+        // Background refresh, doesn't block the UI
         Future.microtask(() async {
           try {
             final fresh = await _fetchFromNetwork();

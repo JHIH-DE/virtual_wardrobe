@@ -47,7 +47,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
         error: e,
         onRetry: () => ref.read(styleTasteProfileProvider.notifier).refresh(),
       ),
-      data: (profile) => _buildContent(context, profile),
+      data: (profile) => _buildContent(profile),
     );
 
     return Stack(
@@ -63,7 +63,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     );
   }
 
-  Widget _buildContent(BuildContext context, StyleTasteProfile profile) {
+  Widget _buildContent(StyleTasteProfile profile) {
     final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -75,14 +75,14 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
           ),
         ),
         const SizedBox(height: 16),
-        _buildAnalysisCard(context, profile.summary),
+        _buildAnalysisCard(profile.summary),
         const SizedBox(height: 16),
-        _buildRadarCard(context, profile.preferences),
+        _buildRadarCard(profile.preferences),
       ],
     );
   }
 
-  Widget _buildAnalysisCard(BuildContext context, String summary) {
+  Widget _buildAnalysisCard(String summary) {
     final l10n = AppLocalizations.of(context);
     final outfitsAsync = ref.watch(outfitsProvider);
 
@@ -110,10 +110,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     );
   }
 
-  Widget _buildRadarCard(
-    BuildContext context,
-    List<StyleTastePreference> preferences,
-  ) {
+  Widget _buildRadarCard(List<StyleTastePreference> preferences) {
     final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
@@ -150,7 +147,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
                     Icons.info_outline,
                     color: AppColors.textSecondary,
                   ),
-                  onPressed: () => _showAllDescriptionsDialog(context),
+                  onPressed: _showAllDescriptionsDialog,
                 ),
               ),
             ],
@@ -264,7 +261,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
   /// user), this is the same reference text for everyone, so it always
   /// covers every dimension regardless of which ones the API happened to
   /// return data for.
-  void _showAllDescriptionsDialog(BuildContext context) {
+  void _showAllDescriptionsDialog() {
     final l10n = AppLocalizations.of(context);
     const dimensions = StyleTasteDimension.values;
     showDialog(

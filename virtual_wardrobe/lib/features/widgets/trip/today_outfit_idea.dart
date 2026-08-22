@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../common/overlays/loading_overlay.dart';
 import '../common/images/refreshable_network_image.dart';
+import '../common/overlays/loading_overlay.dart';
 
 class TodayOutfitIdea extends StatelessWidget {
   final VoidCallback onGenerate;

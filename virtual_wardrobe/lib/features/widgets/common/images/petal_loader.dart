@@ -119,17 +119,17 @@ class _PetalLoaderPainter extends CustomPainter {
     canvas.save();
     canvas.translate(center.dx, center.dy);
 
-    // 中心圓
+    // Center circle
     canvas.drawCircle(Offset.zero, centerRadius, centerPaint);
 
-    // 外圈 8 個花瓣
+    // 8 outer petals
     for (int index = 0; index < petalCount; index++) {
       final angle = (math.pi * 2 / petalCount) * index;
 
       final petalProgress = _calculatePetalProgress(index);
       final easedProgress = Curves.easeOutCubic.transform(petalProgress);
 
-      // 讓花瓣從靠近中心的一端向外生長
+      // Grow each petal outward from the end nearest the center
       final currentLength = petalLength * easedProgress;
 
       if (currentLength <= 0.01) continue;
@@ -171,9 +171,9 @@ class _PetalLoaderPainter extends CustomPainter {
   }
 
   double _calculatePetalProgress(int index) {
-    // 前 60%：依序長出
-    // 中間 15%：完整停留
-    // 最後 25%：全部一起收回
+    // First 60%: petals grow in sequence
+    // Middle 15%: hold fully grown
+    // Last 25%: all retract together
     const growEnd = 0.60;
     const holdEnd = 0.75;
 

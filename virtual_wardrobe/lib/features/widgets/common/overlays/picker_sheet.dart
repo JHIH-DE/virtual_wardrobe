@@ -25,16 +25,7 @@ class PickerSheetHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Center(
-          child: Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.overlaySubtle,
-              borderRadius: BorderRadius.circular(99),
-            ),
-          ),
-        ),
+        const SheetDragHandle(),
         const SizedBox(height: 20),
         Row(
           children: [
@@ -53,6 +44,26 @@ class PickerSheetHeader extends StatelessWidget {
         ],
         Divider(height: 16, thickness: 1, color: AppColors.dividerSubtle),
       ],
+    );
+  }
+}
+
+/// The small rounded drag handle shown at the top of every bottom sheet
+/// that uses [showPickerSheet]'s chrome.
+class SheetDragHandle extends StatelessWidget {
+  const SheetDragHandle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: AppColors.overlaySubtle,
+          borderRadius: BorderRadius.circular(99),
+        ),
+      ),
     );
   }
 }

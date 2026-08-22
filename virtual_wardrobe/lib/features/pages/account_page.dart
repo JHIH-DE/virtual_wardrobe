@@ -7,14 +7,15 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'location_picker_page.dart';
-import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/picker_field.dart';
+import '../widgets/common/fields/tappable_field_decorator.dart';
+import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/section_title.dart';
-import '../widgets/common/fields/tappable_field_decorator.dart';
+import 'location_picker_page.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -165,7 +166,11 @@ class _AccountPageState extends State<AccountPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_error != null) _buildErrorBanner(),
+                  if (_error != null)
+                    InlineErrorText(
+                      message: _error!,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    ),
                   _buildFormFields(),
                 ],
               ),
@@ -178,16 +183,6 @@ class _AccountPageState extends State<AccountPage> {
             enabled: _isModified,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildErrorBanner() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Text(
-        _error!,
-        style: AppTextStyle.regular13.copyWith(color: AppColors.error),
       ),
     );
   }

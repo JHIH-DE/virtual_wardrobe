@@ -19,6 +19,10 @@ abstract class AppDimens {
   // AppToolBar across every page that uses it.
   static const double toolbarHeight = 40;
 
+  // Measured height of a tappable form field (PickerField, DateDropdownField,
+  // TappableFieldDecorator) so mixed text-field/picker rows line up.
+  static const double tappableFieldHeight = 48;
+
   static const double iconSmallSize = 20;
   static const double iconMediumSize = 24;
   static const double iconLargeSize = 64;

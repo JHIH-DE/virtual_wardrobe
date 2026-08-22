@@ -48,7 +48,7 @@ class TripDayCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: isSelected
             ? Border.all(color: AppColors.accent, width: 2)
-            : Border.all(color: Colors.black.withValues(alpha: 0.05), width: 1),
+            : Border.all(color: AppColors.shadowFaint, width: 1),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowResting,

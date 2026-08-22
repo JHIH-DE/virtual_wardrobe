@@ -16,23 +16,23 @@ import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'add_outfit_page.dart';
-import '../widgets/common/overlays/app_dialog.dart';
-import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/category_tag.dart';
+import '../widgets/common/fields/app_text_field.dart';
+import '../widgets/common/fields/selectable_chip.dart';
 import '../widgets/common/floating_nav_bar.dart';
-import '../widgets/common/labeled_divider.dart';
-import '../widgets/common/overlays/loading_overlay.dart';
-import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
-import '../widgets/common/fields/selectable_chip.dart';
+import '../widgets/common/labeled_divider.dart';
+import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
+import 'add_outfit_page.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
 
@@ -98,10 +98,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   // True while we're waiting on _fetchOutfitDetails for entry points that
   // hide the action bar once saved — avoids flashing the "Save Outfit"
   // button before the rest of the outfit's details have loaded.
-  bool _resolvingSavedStatus = false;
+  bool _isResolvingSavedStatus = false;
   List<Garment>? _garments;
-  bool _loadingGarments = false;
-  bool _openingTryOn = false;
+  bool _isLoadingGarments = false;
+  bool _isOpeningTryOn = false;
   // True while regenerateOutfit's AI render is in flight.
   bool _isRegenerating = false;
 
@@ -139,7 +139,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     _isSaved = !widget.isNew;
     if (widget.outfit.garmentIds.isNotEmpty) _loadGarments();
     if (widget.isNew) {
-      _resolvingSavedStatus = !widget.showEditOutfitWhenSaved;
+      _isResolvingSavedStatus = !widget.showEditOutfitWhenSaved;
       _fetchOutfitDetails();
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadGroupOutfits());
@@ -177,8 +177,38 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildScaffold(context),
-        if (_openingTryOn)
+        PopScope(
+          canPop: !_shouldConfirmLeave,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            _showLeaveDialog();
+          },
+          child: Scaffold(
+            backgroundColor: AppColors.pageBackground,
+            extendBody: true,
+            appBar: _buildAppBar(),
+            body: ListView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                _showsBottomActionButton
+                    ? AppDimens.bottomActionBtnClearance
+                    : 30,
+              ),
+              children: [
+                _buildInfoCard(),
+                const SizedBox(height: 12),
+                _buildOutfitImage(),
+                const SizedBox(height: 16),
+                if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
+                const SizedBox(height: 8),
+              ],
+            ),
+            bottomNavigationBar: _buildBottomBar(),
+          ),
+        ),
+        if (_isOpeningTryOn)
           Positioned.fill(child: LoadingOverlay(label: _l10n.loadingGarments)),
       ],
     );
@@ -262,40 +292,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  Widget _buildScaffold(BuildContext context) {
-    return PopScope(
-      canPop: !_shouldConfirmLeave,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        _showLeaveDialog();
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.pageBackground,
-        extendBody: true,
-        appBar: _buildAppBar(),
-        body: ListView(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 30,
-          ),
-          children: [
-            _buildInfoCard(),
-            const SizedBox(height: 12),
-            _buildOutfitImage(),
-            const SizedBox(height: 16),
-            if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
-            const SizedBox(height: 8),
-          ],
-        ),
-        bottomNavigationBar: _buildBottomBar(context),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar(BuildContext context) {
-    if (_resolvingSavedStatus) return const SizedBox.shrink();
+  Widget _buildBottomBar() {
+    if (_isResolvingSavedStatus) return const SizedBox.shrink();
 
     if (widget.isNew && !_isSaved) {
       return BottomActionButton(
@@ -319,7 +317,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// bottom clearance in the scrollable body when there's a real bar
   /// underneath it that could otherwise cover the date footer.
   bool get _showsBottomActionButton =>
-      !_resolvingSavedStatus &&
+      !_isResolvingSavedStatus &&
       ((widget.isNew && !_isSaved) || _showSavedOutfitActions);
 
   /// Mirrors the old bottom-bar visibility rule: only once the outfit is
@@ -327,7 +325,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// saved), and not for entry points that opt out via
   /// [OutfitDetailsPage.showEditOutfitWhenSaved].
   bool get _showSavedOutfitActions =>
-      !_resolvingSavedStatus &&
+      !_isResolvingSavedStatus &&
       !(widget.isNew && !_isSaved) &&
       !(_isSaved && !widget.showEditOutfitWhenSaved);
 
@@ -337,11 +335,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// brand new [Outfit] alongside this one, appended to [_versions] and
   /// swiped into view.
   Future<void> _openCreateAnotherVersion() async {
-    setState(() => _openingTryOn = true);
+    setState(() => _isOpeningTryOn = true);
     try {
       final closetGarments = await ref.read(garmentsProvider.future);
       if (!mounted) return;
-      setState(() => _openingTryOn = false);
+      setState(() => _isOpeningTryOn = false);
       if (!context.mounted) return;
       final result = await Navigator.push<Outfit>(
         context,
@@ -369,7 +367,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await ref.read(outfitsProvider.notifier).refresh();
     } catch (e) {
       if (!mounted) return;
-      setState(() => _openingTryOn = false);
+      setState(() => _isOpeningTryOn = false);
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;
@@ -886,7 +884,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
         ),
         const SizedBox(height: 16),
-        if (_loadingGarments)
+        if (_isLoadingGarments)
           const Center(child: PetalLoader())
         else if (_garments != null)
           ..._garments!.map(_buildGarmentCard),
@@ -916,7 +914,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       setState(() => _versions[0] = outfit);
     } catch (_) {
     } finally {
-      if (mounted) setState(() => _resolvingSavedStatus = false);
+      if (mounted) setState(() => _isResolvingSavedStatus = false);
     }
   }
 
@@ -928,7 +926,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   Future<void> _loadGarments() async {
-    setState(() => _loadingGarments = true);
+    setState(() => _isLoadingGarments = true);
     try {
       // Reuse whatever My Closet has already loaded into garmentsProvider
       // instead of always hitting the network per garment — but skip stale
@@ -955,7 +953,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (mounted) setState(() => _garments = results);
     } catch (_) {
     } finally {
-      if (mounted) setState(() => _loadingGarments = false);
+      if (mounted) setState(() => _isLoadingGarments = false);
     }
   }
 

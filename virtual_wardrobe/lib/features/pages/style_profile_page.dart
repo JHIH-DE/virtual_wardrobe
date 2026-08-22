@@ -9,10 +9,11 @@ import '../../core/services/profile_service.dart';
 import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/style_type_localization.dart';
-import 'account_page.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/overlays/inline_error_text.dart';
+import 'account_page.dart';
 
 /// Style -> its illustration, per gender bucket — Male and Female need
 /// different photos for the same style (e.g. Streetwear shows a male model
@@ -281,7 +282,7 @@ class _StyleProfilePageState extends State<StyleProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_error != null) _buildErrorBanner(),
+          if (_error != null) InlineErrorText(message: _error!),
           Text(
             l10n.styleSelectionInstruction,
             textAlign: TextAlign.center,
@@ -292,16 +293,6 @@ class _StyleProfilePageState extends State<StyleProfilePage> {
           const SizedBox(height: 24),
           _buildStyleChips(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildErrorBanner() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        _error!,
-        style: AppTextStyle.regular13.copyWith(color: AppColors.error),
       ),
     );
   }

@@ -8,15 +8,15 @@ import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'outfit_details_page.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/filter_button.dart';
+import '../widgets/common/cards/count_pill.dart';
+import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
-import '../widgets/common/cards/count_pill.dart';
-import '../widgets/common/buttons/filter_button.dart';
-import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/outfit/outfit_card.dart';
+import 'outfit_details_page.dart';
 
 class OutfitsPage extends ConsumerStatefulWidget {
   const OutfitsPage({super.key});
@@ -81,6 +81,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     MainShellScope.of(context)?.setLoading(
       state.isLoading,
       label: AppLocalizations.of(context).loadingOutfitsEllipsis,
+      tab: AppTab.outfits,
     );
   }
 
@@ -107,7 +108,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     }).toList();
   }
 
-  AppToolBar _buildAppBar(BuildContext context, List<Outfit> all) {
+  AppToolBar _buildAppBar(List<Outfit> all) {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: l10n.navOutfits,
@@ -160,14 +161,10 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildScaffold(context);
-  }
-
-  Widget _buildScaffold(BuildContext context) {
     final outfitsAsync = ref.watch(outfitsProvider);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(context, outfitsAsync.valueOrNull ?? []),
+      appBar: _buildAppBar(outfitsAsync.valueOrNull ?? []),
       body: outfitsAsync.when(
         // Shell-level overlay (see _reportLoadingState) covers the whole
         // screen including the nav bar while loading.

@@ -10,17 +10,17 @@ import '../../core/services/garment_service.dart';
 import '../../data/garment.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'garment_details_page.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/garment/category_selector.dart';
-import '../widgets/common/overlays/empty_state_placeholder.dart';
-import '../widgets/common/cards/favorite_card.dart';
-import '../widgets/common/cards/count_pill.dart';
-import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/buttons/filter_button.dart';
+import '../widgets/common/cards/count_pill.dart';
+import '../widgets/common/cards/favorite_card.dart';
 import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/overlays/empty_state_placeholder.dart';
+import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
+import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
+import 'garment_details_page.dart';
 
 class ClosetPage extends ConsumerStatefulWidget {
   const ClosetPage({super.key});
@@ -60,6 +60,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     MainShellScope.of(context)?.setLoading(
       state.isLoading,
       label: AppLocalizations.of(context).loadingClosetEllipsis,
+      tab: AppTab.closet,
     );
   }
 
@@ -162,10 +163,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     return _filtered(all, effectiveCategory).length;
   }
 
-  AppToolBar _buildAppBar(
-    BuildContext context,
-    AsyncValue<List<Garment>> garmentsAsync,
-  ) {
+  AppToolBar _buildAppBar(AsyncValue<List<Garment>> garmentsAsync) {
     final all = garmentsAsync.valueOrNull ?? [];
     return AppToolBar(
       title: AppLocalizations.of(context).navCloset,
@@ -193,7 +191,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
 
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(context, garmentsAsync),
+      appBar: _buildAppBar(garmentsAsync),
       body: garmentsAsync.when(
         // The shell-level overlay (via MainShellScope.setLoading, wired up
         // in initState) covers the whole screen including the nav bar, so

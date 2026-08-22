@@ -12,12 +12,12 @@ import '../../data/garment.dart';
 import '../../data/trip.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'trip_garment_selection_page.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/removable_card.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/garment/garment_card.dart';
+import 'trip_garment_selection_page.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
   final Trip trip;

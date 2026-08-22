@@ -17,23 +17,23 @@ import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'garment_outfits_page.dart';
-import 'image_editor_page.dart';
-import '../widgets/common/overlays/app_dialog.dart';
-import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/close_action_button.dart';
-import '../widgets/garment/compatibility_row.dart';
-import '../widgets/common/cards/lumi_insight_card.dart';
-import '../widgets/common/fields/picker_field.dart';
-import '../widgets/common/overlays/picker_sheet.dart';
-import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/buttons/pill_button.dart';
+import '../widgets/common/cards/lumi_insight_card.dart';
 import '../widgets/common/cards/score_ring.dart';
-import '../widgets/common/section_title.dart';
+import '../widgets/common/fields/app_text_field.dart';
+import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
+import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/section_title.dart';
+import '../widgets/garment/compatibility_row.dart';
 import '../widgets/garment/garment_image.dart';
+import 'garment_outfits_page.dart';
+import 'image_editor_page.dart';
 
 enum _GarmentMenuAction { rename, share, delete }
 
@@ -105,7 +105,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _imagePathOrUrl = _editingGarment?.imageUrl;
     _name = _editingGarment?.name;
 
-    // 初始化初始值，用於後續比較
+    // Snapshot initial values for later change detection
     _initialName = _editingGarment?.name ?? '';
     _initialCategory = _editingGarment?.category ?? GarmentCategory.top;
     _initialSub = _editingGarment?.subCategory ?? '';
@@ -210,7 +210,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     super.dispose();
   }
 
-  // 修改變數名稱：當沒有 ID 時，代表是新增模式 (Add Mode)
+  // No ID means Add mode
   bool get _isAddMode => _id == null;
 
   /// Mirrors `OutfitDetailsPage._title` — App Bar title, sourced from
@@ -368,7 +368,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return result == 'discard';
   }
 
-  AppToolBar _buildAppBar(BuildContext context) {
+  AppToolBar _buildAppBar() {
     return AppToolBar(
       title: _title,
       onBack: () async {
@@ -431,9 +431,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       child: Scaffold(
         backgroundColor: AppColors.pageBackground,
         extendBody: true,
-        appBar: _buildAppBar(context),
-        body: _buildForm(context),
-        // 固定在底部的儲存按鈕
+        appBar: _buildAppBar(),
+        body: _buildForm(),
+        // Save button pinned to the bottom
         bottomNavigationBar: BottomActionButton(
           label: _isAddMode ? _l10n.addToCloset : _l10n.save,
           onPressed: _isModified ? _saveGarment : null,
@@ -443,7 +443,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  Widget _buildForm(BuildContext context) {
+  Widget _buildForm() {
     return Form(
       key: _formKey,
       child: ListView(
@@ -462,7 +462,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               child: _buildOutfitPotentialCard(),
             ),
           ],
-          _buildDetailsSection(context),
+          _buildDetailsSection(),
         ],
       ),
     );
@@ -656,14 +656,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  Widget _buildDetailsSection(BuildContext context) {
+  Widget _buildDetailsSection() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(
-        20,
-        8,
-        20,
-        30,
-      ),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
       decoration: const BoxDecoration(color: AppColors.pageBackground),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -690,7 +685,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           const SizedBox(height: 20),
           _buildPriceField(),
           const SizedBox(height: 20),
-          _buildPurchaseDateSection(context),
+          _buildPurchaseDateSection(),
         ],
       ),
     );
@@ -842,13 +837,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  Widget _buildPurchaseDateSection(BuildContext context) {
+  Widget _buildPurchaseDateSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionTitle(_l10n.purchaseDateLabel.toUpperCase()),
         const SizedBox(height: 8),
-        _purchaseDateField(context),
+        _purchaseDateField(),
       ],
     );
   }
@@ -1043,13 +1038,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildColorGrid(context),
+          _buildColorGrid(),
         ],
       ),
     );
   }
 
-  Widget _buildColorGrid(BuildContext context) {
+  Widget _buildColorGrid() {
     return SizedBox(
       width: double.infinity,
       child: ConstrainedBox(
@@ -1151,7 +1146,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  Widget _purchaseDateField(BuildContext context) {
+  Widget _purchaseDateField() {
     return TappableFieldDecorator(
       onTap: () async {
         final now = DateTime.now();
@@ -1235,7 +1230,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             ),
           ),
         ),
-        // Edit Image 按鈕
+        // Edit Image button
         Positioned(
           bottom: 12,
           right: 12,
@@ -1245,7 +1240,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               'assets/images/edit.png',
               height: AppDimens.iconSmallSize,
             ),
-            onTap: _editCurrentImage,
+            onPressed: _editCurrentImage,
           ),
         ),
         if (_isAnalyzing)
@@ -1317,7 +1312,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     });
 
     try {
-      // 當新增模式或圖片變更時執行上傳；否則單純更新文字資料
+      // Upload when adding or when the image changed; otherwise just update text fields
       final result = (_isAddMode || _isImageChanged)
           ? await _uploadNewGarment()
           : await _updateGarmentFields();
@@ -1356,7 +1351,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
     );
-    // 如果是在編輯模式下更換圖片，先刪除舊紀錄
+    // When replacing the image in edit mode, delete the old record first
     if (!_isAddMode) await GarmentService().deleteGarment(_id!);
     return GarmentService().completeUpload(temp, _metaData);
   }

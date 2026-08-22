@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../pressed_state_mixin.dart';
 
 class AppDialog extends StatefulWidget {
   final String title;
@@ -48,7 +49,10 @@ class AppDialog extends StatefulWidget {
     this.contentToPrimarySpacing = 20,
     this.secondaryIsTextButton = true,
     this.primaryIsTextButton = false,
-    this.borderSide = const BorderSide(color: Colors.white54, width: 1.5),
+    this.borderSide = const BorderSide(
+      color: AppColors.borderOnDark,
+      width: 1.5,
+    ),
   }) : assert(
          body != null || content != null,
          'AppDialog requires either body or content',
@@ -58,9 +62,8 @@ class AppDialog extends StatefulWidget {
   State<AppDialog> createState() => _AppDialogState();
 }
 
-class _AppDialogState extends State<AppDialog> {
-  bool _tertiaryPressed = false;
-
+class _AppDialogState extends State<AppDialog>
+    with PressedStateMixin<AppDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -167,19 +170,17 @@ class _AppDialogState extends State<AppDialog> {
                 SizedBox(
                   width: 104,
                   child: GestureDetector(
-                    onTapDown: (_) => setState(() => _tertiaryPressed = true),
+                    onTapDown: (_) => setPressed(true),
                     onTapUp: (_) {
-                      setState(() => _tertiaryPressed = false);
+                      setPressed(false);
                       widget.onTertiary?.call();
                     },
-                    onTapCancel: () => setState(() => _tertiaryPressed = false),
+                    onTapCancel: () => setPressed(false),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 100),
                       height: 38,
                       decoration: BoxDecoration(
-                        color: _tertiaryPressed
-                            ? AppColors.accent
-                            : AppColors.surface,
+                        color: pressed ? AppColors.accent : AppColors.surface,
                         border: widget.borderSide != null
                             ? Border.fromBorderSide(widget.borderSide!)
                             : null,
@@ -189,7 +190,7 @@ class _AppDialogState extends State<AppDialog> {
                       child: Text(
                         widget.tertiaryLabel!,
                         style: AppTextStyle.regular14.copyWith(
-                          color: _tertiaryPressed
+                          color: pressed
                               ? AppColors.textOnPrimary
                               : AppColors.textPrimary,
                           fontWeight: FontWeight.w500,

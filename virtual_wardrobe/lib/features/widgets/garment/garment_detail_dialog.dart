@@ -5,8 +5,8 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../common/cards/category_tag.dart';
 import '../common/buttons/close_action_button.dart';
+import '../common/cards/category_tag.dart';
 import 'garment_image.dart';
 
 /// Shows [garment]'s photo plus its category/name/color/brand/price, in a

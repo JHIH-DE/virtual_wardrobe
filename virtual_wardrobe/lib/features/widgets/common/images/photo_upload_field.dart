@@ -4,8 +4,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import 'dashed_border_painter.dart';
 import '../buttons/pill_button.dart';
+import 'dashed_border_painter.dart';
 
 /// Photo preview when [imageProvider] is set, otherwise a dashed-border
 /// "Upload Image" placeholder with a choose-photo button.
@@ -53,7 +53,7 @@ class PhotoUploadField extends StatelessWidget {
                     'assets/images/edit.png',
                     height: AppDimens.iconSmallSize,
                   ),
-                  onTap: onTap ?? () {},
+                  onPressed: onTap ?? () {},
                 ),
               ),
             ],

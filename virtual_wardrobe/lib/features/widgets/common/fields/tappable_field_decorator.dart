@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_dimens.dart';
 import 'app_text_field.dart';
 
 /// Tappable row styled like a text field (picker/date-field trigger) —
@@ -24,8 +25,7 @@ class TappableFieldDecorator extends StatelessWidget {
           hint: '',
         ).copyWith(contentPadding: EdgeInsets.zero),
         child: SizedBox(
-          // Matches PickerField/AppTextField's measured 48px height.
-          height: 48,
+          height: AppDimens.tappableFieldHeight,
           child: Padding(
             // Matches PickerField/AppTextField's measured 14px text inset.
             padding: const EdgeInsets.only(left: 10, right: 10),

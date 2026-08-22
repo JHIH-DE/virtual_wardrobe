@@ -12,17 +12,17 @@ import '../../data/outfit.dart';
 import '../../data/scene_option.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import 'outfit_details_page.dart';
-import 'select_accessory_page.dart';
-import 'select_garment_page.dart' show SelectGarmentPage;
-import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
+import 'outfit_details_page.dart';
+import 'select_accessory_page.dart';
+import 'select_garment_page.dart' show SelectGarmentPage;
 
 /// The user's in-progress slot-by-slot garment picks for this page's manual
 /// try-on flow. Purely local UI state (no fromJson/toJson) — not a synced
@@ -333,7 +333,35 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildScaffold(),
+        Scaffold(
+          backgroundColor: AppColors.pageBackground,
+          extendBody: true,
+          appBar: _buildAppBar(),
+          body: ListView(
+            physics: const ClampingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              24,
+              20,
+              AppDimens.bottomActionBtnClearance,
+            ),
+            children: [
+              _buildInstructions(),
+              const SizedBox(height: 24),
+              if (!widget.selectOnly) ...[
+                _buildMatchALookCard(),
+                const SizedBox(height: 24),
+              ],
+              ..._buildTopSlots(),
+              ..._buildOuterSlot(),
+              ..._buildBottomSlot(),
+              ..._buildOnePieceSlot(),
+              ..._buildShoesSlot(),
+              _buildCustomizationBlock(),
+            ],
+          ),
+          bottomNavigationBar: _buildBottomBar(),
+        ),
         if (isOutfitLoading)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.creatingOutfitsEllipsis),
@@ -343,38 +371,6 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             child: LoadingOverlay(label: _l10n.loadingClosetEllipsis),
           ),
       ],
-    );
-  }
-
-  Widget _buildScaffold() {
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      extendBody: true,
-      appBar: _buildAppBar(),
-      body: ListView(
-        physics: const ClampingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          24,
-          20,
-          AppDimens.bottomActionBtnClearance,
-        ),
-        children: [
-          _buildInstructions(),
-          const SizedBox(height: 24),
-          if (!widget.selectOnly) ...[
-            _buildMatchALookCard(),
-            const SizedBox(height: 24),
-          ],
-          ..._buildTopSlots(),
-          ..._buildOuterSlot(),
-          ..._buildBottomSlot(),
-          ..._buildOnePieceSlot(),
-          ..._buildShoesSlot(),
-          _buildCustomizationBlock(),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
@@ -967,17 +963,16 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.65),
-                        ],
+                        colors: [Colors.transparent, AppColors.scrimBackdrop],
                       ),
                     ),
                     child: Text(
                       scene.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyle.bold12.copyWith(color: Colors.white),
+                      style: AppTextStyle.bold12.copyWith(
+                        color: AppColors.textOnPrimary,
+                      ),
                     ),
                   ),
                 ),

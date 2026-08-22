@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../fields/selectable_chip.dart';
+import '../overlays/picker_sheet.dart';
 
 /// One labeled row of selectable chips inside a [FilterButton]'s sheet.
 /// The group owns its own selection state and toggle logic, so callers
@@ -53,59 +54,44 @@ class FilterButton extends StatelessWidget {
 
   void _openFilterSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    showPickerSheet(
+      context,
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSheetState) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.overlaySubtle,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                  ),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SheetDragHandle(),
+              const SizedBox(height: 20),
+              for (var i = 0; i < groups.length; i++) ...[
+                Text(groups[i].label, style: AppTextStyle.bold16),
+                Divider(
+                  height: 16,
+                  thickness: 1,
+                  color: AppColors.dividerSubtle,
                 ),
-                const SizedBox(height: 20),
-                for (var i = 0; i < groups.length; i++) ...[
-                  Text(groups[i].label, style: AppTextStyle.bold16),
-                  Divider(
-                    height: 16,
-                    thickness: 1,
-                    color: AppColors.dividerSubtle,
-                  ),
-                  const SizedBox(height: 12),
-                  groups[i].options.isEmpty
-                      ? Text(
-                          groups[i].emptyMessage ??
-                              l10n.noOptionsAvailable(
-                                groups[i].label.toLowerCase(),
-                              ),
-                          style: AppTextStyle.regular14.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        )
-                      : _JustifiedChips(
-                          options: groups[i].options,
-                          selected: groups[i].selected,
-                          onToggle: groups[i].onToggle,
-                          onChanged: () => setSheetState(() {}),
+                const SizedBox(height: 12),
+                groups[i].options.isEmpty
+                    ? Text(
+                        groups[i].emptyMessage ??
+                            l10n.noOptionsAvailable(
+                              groups[i].label.toLowerCase(),
+                            ),
+                        style: AppTextStyle.regular14.copyWith(
+                          color: AppColors.textSecondary,
                         ),
-                  if (i != groups.length - 1) const SizedBox(height: 32),
-                ],
+                      )
+                    : _JustifiedChips(
+                        options: groups[i].options,
+                        selected: groups[i].selected,
+                        onToggle: groups[i].onToggle,
+                        onChanged: () => setSheetState(() {}),
+                      ),
+                if (i != groups.length - 1) const SizedBox(height: 32),
               ],
-            ),
+            ],
           );
         },
       ),

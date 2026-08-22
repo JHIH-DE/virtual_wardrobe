@@ -9,8 +9,6 @@ import 'app_text_field.dart';
 // Matches AppTextField/appInputDecoration's defaults so mixed text-field/
 // dropdown rows line up.
 const _kBorderRadius = 14.0;
-// Measured, not guessed — see AppTextField.
-const _kFieldHeight = 48.0;
 
 /// Date picker styled to match [PickerField].
 class DateDropdownField extends StatelessWidget {
@@ -94,7 +92,7 @@ class _TapToPickField extends StatelessWidget {
       child: InputDecorator(
         decoration: _decoration().copyWith(contentPadding: EdgeInsets.zero),
         child: SizedBox(
-          height: _kFieldHeight,
+          height: AppDimens.tappableFieldHeight,
           child: Padding(
             // Measured empirically against AppTextField (this Row/Text/Image
             // layout has a few px of its own inherent offset, so the values

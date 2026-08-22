@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
 
 /// Small pill-shaped badge for a plain item count (e.g. next to "Closet"/
 /// "Outfits" in an AppToolBar title). Deliberately not [AppColors.accent]
@@ -25,12 +26,7 @@ class CountPill extends StatelessWidget {
       child: Text(
         '$count',
         textScaler: TextScaler.noScaling,
-        style: const TextStyle(
-          fontFamily: 'text/EN',
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textSecondary,
-        ),
+        style: AppTextStyle.medium13,
       ),
     );
   }
