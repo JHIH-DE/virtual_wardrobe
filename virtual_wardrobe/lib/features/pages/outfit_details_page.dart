@@ -27,6 +27,7 @@ import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/fields/selectable_chip.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
@@ -122,8 +123,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// per-version as the user swipes.
   Outfit get _primary => _versions[0];
 
-  List<String> get _effectiveSeasons => _primary.seasons;
-  List<String> get _effectiveStyle => _primary.style;
+  List<String> get _effectiveSeasons => _current.seasons;
+  List<String> get _effectiveStyle => _current.style;
   bool get _shouldConfirmLeave => widget.isNew && widget.confirmLeaveOnBack;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -500,10 +501,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   /// Opens a bottom sheet to multi-select Season/Style tags, then saves via
-  /// [OutfitService.updateOutfit] on confirm.
+  /// [OutfitService.updateOutfit] on confirm. Applies to whichever version
+  /// was current when the sheet was opened — captured up front so a swipe
+  /// while the sheet is still open can't retarget the save.
   Future<void> _openEditTagsSheet() async {
-    final selectedSeasons = _effectiveSeasons.map(_titleCase).toSet();
-    final selectedStyles = _effectiveStyle.map(_titleCase).toSet();
+    final target = _current;
+    final index = _currentIndex;
+    final selectedSeasons = target.seasons.map(_titleCase).toSet();
+    final selectedStyles = target.style.map(_titleCase).toSet();
 
     final result =
         await showPickerSheet<({List<String> seasons, List<String> styles})>(
@@ -578,14 +583,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     final styles = result.styles.map((s) => s.toLowerCase()).toList();
     try {
       await OutfitService().updateOutfit(
-        _primary.groupId,
-        _primary.id,
+        target.groupId,
+        target.id,
         season: seasons,
         style: styles,
       );
-      if (!mounted) return;
+      if (!mounted || index >= _versions.length) return;
       setState(() {
-        _versions[0] = _primary.copyWith(seasons: seasons, style: styles);
+        _versions[index] = target.copyWith(seasons: seasons, style: styles);
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -882,7 +887,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         ),
         const SizedBox(height: 16),
         if (_loadingGarments)
-          const Center(child: CircularProgressIndicator())
+          const Center(child: PetalLoader())
         else if (_garments != null)
           ..._garments!.map(_buildGarmentCard),
       ],
@@ -891,7 +896,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   Widget _buildGarmentCard(Garment g) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: AppDimens.cardSpacing),
       child: GarmentListCard(
         garment: g,
         onTap: () => GarmentDetailDialog.show(context, g),

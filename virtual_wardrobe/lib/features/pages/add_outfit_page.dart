@@ -718,7 +718,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           controller: _sceneScrollController,
           scrollDirection: Axis.horizontal,
           itemCount: SceneOption.all.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          separatorBuilder: (_, __) => const SizedBox(width: _sceneCardSpacing),
           itemBuilder: (context, i) => _buildSceneCard(SceneOption.all[i], i),
         ),
       ),
@@ -726,7 +726,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   }
 
   static const _sceneCardWidth = 120.0;
-  static const _sceneCardSpacing = 12.0;
+  static const _sceneCardSpacing = AppDimens.cardSpacing;
 
   /// Scrolls so the just-selected scene at [index] is fully in view,
   /// centered in the row — tapping a card near either edge would otherwise
@@ -983,6 +983,13 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               }
             },
       showArrow: true,
+      // Matches the Customize header's height — only for the empty
+      // placeholder state; a selected garment's image + detail line still
+      // wants the taller default. The 40px leading icon alone would blow
+      // past 56 regardless of minHeight, so it has to shrink too (matching
+      // Customize's own 24px icon) for the constraint to actually bind.
+      minHeight: value == null ? 56 : 70,
+      leadingSize: value == null ? 24 : 40,
       leadingAsset: (value == null && iconData == null) ? iconAsset : null,
       leading: value != null
           ? Stack(

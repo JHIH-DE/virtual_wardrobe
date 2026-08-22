@@ -64,5 +64,4 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
       current.map((o) => o.id == id ? o.copyWith(name: name) : o).toList(),
     );
   }
-
 }

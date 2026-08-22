@@ -11,6 +11,7 @@ class ProfileService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/users/me';
   static final String _avatarUrl = '$_baseUrl/avatar';
   static final String _fullBodyUrl = '$_baseUrl/full-body';
+  static final String _styleTasteUrl = '$_baseUrl/style_taste';
 
   Future<Map<String, dynamic>> getMyProfile() async {
     debugLog('--- getMyProfile ---');
@@ -125,6 +126,25 @@ class ProfileService with BaseService {
     final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
     final style = data['style'];
     return style is List ? style.map((e) => e.toString()).toList() : null;
+  }
+
+  /// The user's Style Taste Profile — one entry per learned preference
+  /// dimension (`style_balance`, `color_pairing`, ...), each with its own
+  /// `score`/`confidence`/`label`/`insight`. When there isn't enough data
+  /// yet (fewer than the backend's analysis minimum), `status` comes back
+  /// `"learning"` instead of `"ready"` rather than the backend fabricating
+  /// untrustworthy scores — callers should treat scores/confidence as
+  /// unreliable in that case.
+  Future<Map<String, dynamic>> getMyStyleTaste() async {
+    debugLog('--- getMyStyleTaste ---');
+    final uri = Uri.parse(_styleTasteUrl);
+    final res = await withAuth(
+      (token) => http.get(uri, headers: authHeaders(token)),
+    );
+    final envelope = decodeMap(res, op: 'getMyStyleTaste');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    debugLog('--- getMyStyleTaste data: $data ---');
+    return data;
   }
 
   Future<Map<String, dynamic>> updateMyProfile({

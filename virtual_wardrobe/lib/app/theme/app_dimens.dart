@@ -1,4 +1,12 @@
 abstract class AppDimens {
+  // Standard gap between cards — grid cross/main axis spacing, the space
+  // between successive cards in a vertical list, and horizontal-scroller
+  // separators (GarmentCard, OutfitCard, TripCard, GarmentListCard, scene
+  // cards, style cards, ...). Kept as one constant so every card grid/list
+  // in the app stays visually consistent instead of each screen picking
+  // its own value.
+  static const double cardSpacing = 12;
+
   // Outfit Card
   static const double outfitCardHeight = 235;
 
@@ -23,5 +31,5 @@ abstract class AppDimens {
   // last row can scroll clear of the floating nav bar overlay instead of
   // being hidden behind it.
   static const double floatingNavBarClearance = 110;
-  static const double bottomActionBtnClearance = 80;
+  static const double bottomActionBtnClearance = 75;
 }

@@ -16,6 +16,13 @@ class Outfit {
   final int? backgroundId;
   final bool isFavorite;
 
+  /// How many versions this outfit's group actually has — only meaningful
+  /// on the representative [Outfit] a flattened list like
+  /// [OutfitService.getAllOutfits] returns (one card per group); every
+  /// other source (e.g. [OutfitService.getOutfit]) has no sibling count to
+  /// report, so it defaults to 1.
+  final int versionCount;
+
   Outfit({
     required this.id,
     this.groupId = 0,
@@ -29,6 +36,7 @@ class Outfit {
     this.errorMessage,
     this.backgroundId,
     this.isFavorite = false,
+    this.versionCount = 1,
   });
 
   Outfit copyWith({
@@ -37,6 +45,7 @@ class Outfit {
     String? imageUrl,
     List<String>? seasons,
     List<String>? style,
+    int? versionCount,
   }) {
     return Outfit(
       id: id,
@@ -51,6 +60,7 @@ class Outfit {
       errorMessage: errorMessage,
       backgroundId: backgroundId,
       isFavorite: isFavorite ?? this.isFavorite,
+      versionCount: versionCount ?? this.versionCount,
     );
   }
 

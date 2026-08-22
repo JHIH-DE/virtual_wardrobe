@@ -219,12 +219,6 @@ abstract class AppLocalizations {
   /// **'A visual summary of your style preferences.'**
   String get styleTasteRadarCardSubtitle;
 
-  /// No description provided for @styleTasteKeyInsightsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Key Insights'**
-  String get styleTasteKeyInsightsTitle;
-
   /// Style Taste insight card's stat line — how many saved outfits were analyzed and how many of those are favorites
   ///
   /// In en, this message translates to:
@@ -627,6 +621,12 @@ abstract class AppLocalizations {
   /// **'Mixed'**
   String get styleTasteStyleBalanceHigh;
 
+  /// No description provided for @styleTasteStyleBalanceExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your preference for mixing different styles.'**
+  String get styleTasteStyleBalanceExplanation;
+
   /// No description provided for @styleTasteColorPairingTitle.
   ///
   /// In en, this message translates to:
@@ -644,6 +644,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contrast'**
   String get styleTasteColorPairingHigh;
+
+  /// No description provided for @styleTasteColorPairingExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your preference for combining colors.'**
+  String get styleTasteColorPairingExplanation;
 
   /// No description provided for @styleTasteFitPreferenceTitle.
   ///
@@ -663,6 +669,12 @@ abstract class AppLocalizations {
   /// **'Relaxed'**
   String get styleTasteFitPreferenceHigh;
 
+  /// No description provided for @styleTasteFitPreferenceExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your preferred clothing fit.'**
+  String get styleTasteFitPreferenceExplanation;
+
   /// No description provided for @styleTasteLayeringTitle.
   ///
   /// In en, this message translates to:
@@ -681,6 +693,12 @@ abstract class AppLocalizations {
   /// **'Layered'**
   String get styleTasteLayeringHigh;
 
+  /// No description provided for @styleTasteLayeringExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your preference for layered looks.'**
+  String get styleTasteLayeringExplanation;
+
   /// No description provided for @styleTasteAccessoriesTitle.
   ///
   /// In en, this message translates to:
@@ -698,6 +716,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Expressive'**
   String get styleTasteAccessoriesHigh;
+
+  /// No description provided for @styleTasteAccessoriesExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your preference for using accessories.'**
+  String get styleTasteAccessoriesExplanation;
 
   /// No description provided for @navHome.
   ///
@@ -1554,7 +1578,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectCombinationsInstruction.
   ///
   /// In en, this message translates to:
-  /// **'Select the clothing combinations you\'d like to try, then click \"Create Outfit\" to see your try-on results!'**
+  /// **'Choose the pieces you want to wear.'**
   String get selectCombinationsInstruction;
 
   /// No description provided for @editDayOutfitInstruction.
@@ -1682,6 +1706,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Creating Trip…'**
   String get creatingTripEllipsis;
+
+  /// No description provided for @deletingTripEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting Trip…'**
+  String get deletingTripEllipsis;
 
   /// No description provided for @failedToCreateTrip.
   ///

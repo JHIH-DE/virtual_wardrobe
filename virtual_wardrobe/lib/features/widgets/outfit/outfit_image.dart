@@ -93,7 +93,13 @@ class OutfitImage extends StatelessWidget {
             height: height,
             fit: fit,
             alignment: alignment,
-            placeholderBuilder: placeholderBuilder,
+            // Plain white background instead of a per-tile loading
+            // spinner — quieter for dense grids/lists — with a quick
+            // cross-fade once the image actually loads.
+            placeholderBuilder:
+                placeholderBuilder ??
+                (_) => Container(color: AppColors.surface),
+            fadeInDuration: const Duration(milliseconds: 200),
             errorLabel: errorLabel,
             onRefreshUrl: () => fetchFreshOutfitImageUrl(groupId, outfitId),
           );

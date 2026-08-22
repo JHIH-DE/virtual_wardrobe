@@ -12,6 +12,7 @@ import '../../l10n/style_type_localization.dart';
 import 'account_page.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/images/petal_loader.dart';
 
 /// Style -> its illustration, per gender bucket — Male and Female need
 /// different photos for the same style (e.g. Streetwear shows a male model
@@ -227,7 +228,7 @@ class _StyleProfilePageState extends State<StyleProfilePage> {
       extendBody: true,
       appBar: _buildAppBar(l10n),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: PetalLoader())
           : _styleGender == null
           ? _buildNoGenderState(l10n)
           : _buildStyleForm(l10n),
@@ -311,8 +312,8 @@ class _StyleProfilePageState extends State<StyleProfilePage> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: AppDimens.cardSpacing,
+        mainAxisSpacing: AppDimens.cardSpacing,
         mainAxisExtent: AppDimens.outfitCardHeight,
       ),
       itemCount: _availableStyles.length,

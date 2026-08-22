@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
+import '../widgets/common/images/petal_loader.dart';
 import '../widgets/outfit/outfit_card.dart';
 
 /// Lets the user pick one of their saved outfits, so its garments can be
@@ -66,7 +67,7 @@ class _TripOutfitSelectionPageState extends State<TripOutfitSelectionPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: AppToolBar(title: l10n.selectAnOutfitTitle),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: PetalLoader())
           : _error != null
           ? ErrorStateWidget(error: _error!, onRetry: _load)
           : _buildGrid(l10n),
@@ -81,8 +82,8 @@ class _TripOutfitSelectionPageState extends State<TripOutfitSelectionPage> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: AppDimens.cardSpacing,
+        mainAxisSpacing: AppDimens.cardSpacing,
         mainAxisExtent: AppDimens.outfitCardHeight,
       ),
       itemCount: _outfits.length,

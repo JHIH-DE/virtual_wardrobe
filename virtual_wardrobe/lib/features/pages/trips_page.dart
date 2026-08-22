@@ -18,6 +18,7 @@ import 'trip_details_page.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/trip/trip_card.dart';
@@ -284,7 +285,7 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
       body: SafeArea(
         bottom: false,
         child: tripsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: PetalLoader()),
           error: (e, _) => ErrorStateWidget(
             error: e,
             onRetry: () => ref.read(tripsProvider.notifier).refresh(),
@@ -369,7 +370,7 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
 
   Widget _buildTripCard(BuildContext context, Trip trip) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: AppDimens.cardSpacing),
       child: TripCard(
         key: ValueKey(trip.id),
         trip: trip,
@@ -408,10 +409,8 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
         int.parse(trip.id),
         name: updated.name != trip.name ? updated.name : null,
         legs: updated.legs,
-        activities: setEquals(
-              updated.activities.toSet(),
-              trip.activities.toSet(),
-            )
+        activities:
+            setEquals(updated.activities.toSet(), trip.activities.toSet())
             ? null
             : updated.activities,
       );
@@ -438,10 +437,12 @@ class _TripMainPageState extends ConsumerState<TripsPage> {
     WidgetRef ref,
     Trip trip,
   ) async {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      useSafeArea: false,
+      builder: (_) => LoadingOverlay(label: l10n.deletingTripEllipsis),
     );
 
     try {

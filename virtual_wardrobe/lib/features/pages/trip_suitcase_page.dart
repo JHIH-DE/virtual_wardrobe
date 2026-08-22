@@ -268,8 +268,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         padding: EdgeInsets.zero,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: AppDimens.cardSpacing,
+          mainAxisSpacing: AppDimens.cardSpacing,
           mainAxisExtent: AppDimens.garmentCardHeight,
         ),
         itemCount: garments.length,

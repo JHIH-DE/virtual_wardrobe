@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Stable "learned preference" dimension identifiers. New dimensions can be
 /// added here without touching any Style Taste UI — pages render whatever
-/// list of dimensions the backend (currently: the mock
-/// `StyleTasteService`) returns, data-driven.
+/// list of dimensions `ProfileService.getMyStyleTaste` returns, data-driven.
 enum StyleTasteDimension {
   styleBalance,
   colorPairing,
@@ -93,6 +92,51 @@ class StyleTastePreference {
       score: score ?? this.score,
       confidence: confidence ?? this.confidence,
       description: description ?? this.description,
+    );
+  }
+}
+
+/// The full `GET /users/me/style_taste` response (`ProfileService
+/// .getMyStyleTaste`) — [summary] is LUMI's one-paragraph read on the
+/// user's overall style personality (shown in the Style Taste page's
+/// insight card), alongside the per-dimension [preferences] powering the
+/// radar chart. Bundled together since both come from the same fetch —
+/// there's no separate summary endpoint.
+class StyleTasteProfile {
+  final String status;
+  final String summary;
+  final List<StyleTastePreference> preferences;
+
+  const StyleTasteProfile({
+    required this.status,
+    required this.summary,
+    required this.preferences,
+  });
+
+  /// One object per dimension keyed by its `apiValue` (e.g.
+  /// `data['style_balance']`), each with `score`/`confidence`/`insight`,
+  /// rather than the flat `dimension`-tagged list
+  /// [StyleTastePreference.fromJson] expects. Missing dimensions are
+  /// skipped rather than defaulted, since a `status: "learning"` response
+  /// may not include every dimension yet.
+  factory StyleTasteProfile.fromApi(Map<String, dynamic> data) {
+    final preferences = <StyleTastePreference>[];
+    for (final dimension in StyleTasteDimension.values) {
+      final raw = data[dimension.apiValue];
+      if (raw is! Map<String, dynamic>) continue;
+      preferences.add(
+        StyleTastePreference(
+          dimension: dimension,
+          score: (raw['score'] as num?)?.toDouble() ?? 0.5,
+          confidence: (raw['confidence'] as num?)?.toDouble() ?? 0.0,
+          description: raw['insight'] as String?,
+        ),
+      );
+    }
+    return StyleTasteProfile(
+      status: data['status'] as String? ?? 'learning',
+      summary: data['summary'] as String? ?? '',
+      preferences: preferences,
     );
   }
 }

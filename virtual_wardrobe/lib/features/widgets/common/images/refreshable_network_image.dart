@@ -29,6 +29,10 @@ class RefreshableNetworkImage extends StatefulWidget {
   /// override this for a genuinely different treatment, not just a
   /// different spinner.
   final Widget Function(BuildContext context)? placeholderBuilder;
+
+  /// How long the loaded image cross-fades in over its placeholder.
+  /// [CachedNetworkImage]'s own default (500ms) unless overridden.
+  final Duration fadeInDuration;
   final IconData errorIcon;
   final double errorIconSize;
   final String? errorLabel;
@@ -56,6 +60,7 @@ class RefreshableNetworkImage extends StatefulWidget {
     this.memCacheWidth,
     this.memCacheHeight,
     this.placeholderBuilder,
+    this.fadeInDuration = const Duration(milliseconds: 500),
     this.errorIcon = Icons.broken_image_outlined,
     this.errorIconSize = 36,
     this.errorLabel,
@@ -117,6 +122,7 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
       memCacheHeight: widget.memCacheHeight,
       fit: widget.fit,
       alignment: widget.alignment,
+      fadeInDuration: widget.fadeInDuration,
       placeholder: (_, __) => widget.placeholderBuilder != null
           ? widget.placeholderBuilder!(context)
           : const Center(child: PetalLoader(size: 28)),

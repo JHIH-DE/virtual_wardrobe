@@ -649,9 +649,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Widget _buildOutfitSection() {
     return TodayOutfitIdea(
       onGenerate: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_l10n.faceReferenceComingSoon)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.faceReferenceComingSoon)));
       },
     );
   }
@@ -1060,5 +1060,4 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       ),
     );
   }
-
 }

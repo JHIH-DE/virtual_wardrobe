@@ -5,6 +5,7 @@ import '../core/providers/locale_provider.dart';
 import '../core/services/auth_storage.dart';
 import '../core/utils/route_observer.dart';
 import '../features/pages/login_page.dart';
+import '../features/widgets/common/images/petal_loader.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'main_shell.dart';
 import 'theme/app_theme.dart';
@@ -33,9 +34,7 @@ class App extends ConsumerWidget {
         future: _bootstrap(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const Scaffold(body: Center(child: PetalLoader()));
           }
           return snapshot.data!;
         },

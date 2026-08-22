@@ -22,6 +22,7 @@ import 'style_profile_page.dart';
 import 'style_taste_page.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 
@@ -172,7 +173,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(l10n),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: PetalLoader())
           : ListView(
               children: [
                 _buildProfileCard(l10n),

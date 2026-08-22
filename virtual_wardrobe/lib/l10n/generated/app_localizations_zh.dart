@@ -72,9 +72,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
 
   @override
-  String get styleTasteKeyInsightsTitle => '重點洞察';
-
-  @override
   String styleTasteAnalysisStats(int count, int favoriteCount) {
     return '已分析 $count 套穿搭．$favoriteCount 套收藏';
   }
@@ -286,6 +283,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteStyleBalanceHigh => '混搭';
 
   @override
+  String get styleTasteStyleBalanceExplanation => '你混搭不同風格的偏好。';
+
+  @override
   String get styleTasteColorPairingTitle => '色彩搭配';
 
   @override
@@ -293,6 +293,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get styleTasteColorPairingHigh => '對比色';
+
+  @override
+  String get styleTasteColorPairingExplanation => '你搭配顏色的偏好。';
 
   @override
   String get styleTasteFitPreferenceTitle => '版型偏好';
@@ -304,6 +307,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteFitPreferenceHigh => '寬鬆';
 
   @override
+  String get styleTasteFitPreferenceExplanation => '你偏好的衣物版型。';
+
+  @override
   String get styleTasteLayeringTitle => '層次穿搭';
 
   @override
@@ -313,6 +319,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteLayeringHigh => '多層次';
 
   @override
+  String get styleTasteLayeringExplanation => '你偏好疊穿造型的程度。';
+
+  @override
   String get styleTasteAccessoriesTitle => '配件';
 
   @override
@@ -320,6 +329,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get styleTasteAccessoriesHigh => '豐富';
+
+  @override
+  String get styleTasteAccessoriesExplanation => '你使用配件的偏好。';
 
   @override
   String get navHome => '首頁';
@@ -825,6 +837,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatingTripEllipsis => '建立行程中…';
+
+  @override
+  String get deletingTripEllipsis => '刪除行程中…';
 
   @override
   String get failedToCreateTrip => '建立行程失敗';
@@ -1144,9 +1159,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
 
   @override
-  String get styleTasteKeyInsightsTitle => '重點洞察';
-
-  @override
   String styleTasteAnalysisStats(int count, int favoriteCount) {
     return '已分析 $count 套穿搭．$favoriteCount 套收藏';
   }
@@ -1358,6 +1370,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteStyleBalanceHigh => '混搭';
 
   @override
+  String get styleTasteStyleBalanceExplanation => '你混搭不同風格的偏好。';
+
+  @override
   String get styleTasteColorPairingTitle => '色彩搭配';
 
   @override
@@ -1365,6 +1380,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleTasteColorPairingHigh => '對比色';
+
+  @override
+  String get styleTasteColorPairingExplanation => '你搭配顏色的偏好。';
 
   @override
   String get styleTasteFitPreferenceTitle => '版型偏好';
@@ -1376,6 +1394,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteFitPreferenceHigh => '寬鬆';
 
   @override
+  String get styleTasteFitPreferenceExplanation => '你偏好的衣物版型。';
+
+  @override
   String get styleTasteLayeringTitle => '層次穿搭';
 
   @override
@@ -1385,6 +1406,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteLayeringHigh => '多層次';
 
   @override
+  String get styleTasteLayeringExplanation => '你偏好疊穿造型的程度。';
+
+  @override
   String get styleTasteAccessoriesTitle => '配件';
 
   @override
@@ -1392,6 +1416,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleTasteAccessoriesHigh => '豐富';
+
+  @override
+  String get styleTasteAccessoriesExplanation => '你使用配件的偏好。';
 
   @override
   String get navHome => '首頁';
@@ -1897,6 +1924,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get creatingTripEllipsis => '建立行程中…';
+
+  @override
+  String get deletingTripEllipsis => '刪除行程中…';
 
   @override
   String get failedToCreateTrip => '建立行程失敗';

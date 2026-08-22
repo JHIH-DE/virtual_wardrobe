@@ -58,6 +58,11 @@ class GarmentImage extends StatelessWidget {
         memCacheWidth: memCacheWidth,
         memCacheHeight: memCacheHeight,
         fit: fit,
+        // Plain white background instead of a per-tile loading spinner —
+        // quieter for dense grids/lists — with a quick cross-fade once the
+        // image actually loads.
+        placeholderBuilder: (_) => Container(color: AppColors.surface),
+        fadeInDuration: const Duration(milliseconds: 200),
         errorIcon: Icons.broken_image,
         onRefreshUrl: id == null
             ? null

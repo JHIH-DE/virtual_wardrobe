@@ -97,9 +97,7 @@ class BottomActionButton extends StatelessWidget {
                       ],
                       Text(
                         label,
-                        style: AppTextStyle.medium16.copyWith(
-                          color: iconColor,
-                        ),
+                        style: AppTextStyle.medium16.copyWith(color: iconColor),
                       ),
                       if (trailing != null) ...[
                         const SizedBox(width: 8),

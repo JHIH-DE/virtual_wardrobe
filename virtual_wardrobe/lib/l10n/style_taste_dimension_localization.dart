@@ -56,4 +56,24 @@ extension StyleTasteDimensionLocalization on StyleTasteDimension {
         return l10n.styleTasteAccessoriesHigh;
     }
   }
+
+  /// Fixed, general explanation of what this dimension measures — shown in
+  /// the "What these mean" dialog. Unlike [StyleTastePreference.description]
+  /// (LUMI's personalized read on where *this user* sits), this text is the
+  /// same for everyone and never comes from the API.
+  String explanation(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case StyleTasteDimension.styleBalance:
+        return l10n.styleTasteStyleBalanceExplanation;
+      case StyleTasteDimension.colorPairing:
+        return l10n.styleTasteColorPairingExplanation;
+      case StyleTasteDimension.fitPreference:
+        return l10n.styleTasteFitPreferenceExplanation;
+      case StyleTasteDimension.layering:
+        return l10n.styleTasteLayeringExplanation;
+      case StyleTasteDimension.accessories:
+        return l10n.styleTasteAccessoriesExplanation;
+    }
+  }
 }

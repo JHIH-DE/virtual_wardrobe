@@ -68,16 +68,22 @@ class OutfitService with BaseService {
     // One card per group, not per outfit — a group can hold multiple
     // versions (Outfit Details' "Create Another Version"), but the flat
     // list only shows the first as that group's representative; every
-    // version is browsable from Outfit Details' own carousel.
+    // version is browsable from Outfit Details' own carousel. The
+    // representative still carries the group's real version count (see
+    // Outfit.versionCount) for callers that need the true total, like
+    // Style Taste's "N outfits analyzed" stat.
     final outfits = <Outfit>[];
     for (final group in items.whereType<Map<String, dynamic>>()) {
       final groupOutfits = group['outfits'];
       if (groupOutfits is List) {
-        final primary = groupOutfits
+        final parsed = groupOutfits
             .whereType<Map<String, dynamic>>()
             .map(Outfit.fromJson)
-            .firstOrNull;
-        if (primary != null) outfits.add(primary);
+            .toList();
+        final primary = parsed.firstOrNull;
+        if (primary != null) {
+          outfits.add(primary.copyWith(versionCount: parsed.length));
+        }
       }
     }
     return outfits;

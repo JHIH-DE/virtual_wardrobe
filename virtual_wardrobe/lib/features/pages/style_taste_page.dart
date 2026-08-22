@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/style_taste_dimension_localization.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/lumi_insight_card.dart';
+import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/cards/style_taste_radar_chart.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
@@ -19,34 +20,38 @@ import '../widgets/common/overlays/error_state_widget.dart';
 /// itself reads as "this is your taste" rather than five separate bars.
 /// Separate from StyleProfilePage's explicit style-tag picks: that answers
 /// "what styles do I like", this answers "how do I like outfits assembled".
-class StyleTastePage extends ConsumerWidget {
+class StyleTastePage extends ConsumerStatefulWidget {
   const StyleTastePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StyleTastePage> createState() => _StyleTastePageState();
+}
+
+class _StyleTastePageState extends ConsumerState<StyleTastePage> {
+  // Collapsed by default — the radar chart above already gives the at-a-
+  // glance read; this is the per-dimension detail for anyone who wants it.
+  bool _detailsExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final preferencesAsync = ref.watch(styleTastePreferencesProvider);
+    final profileAsync = ref.watch(styleTasteProfileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: AppToolBar(title: l10n.styleTaste),
-      body: preferencesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+      body: profileAsync.when(
+        loading: () => const Center(child: PetalLoader()),
         error: (e, _) => ErrorStateWidget(
           error: e,
-          onRetry: () =>
-              ref.read(styleTastePreferencesProvider.notifier).refresh(),
+          onRetry: () => ref.read(styleTasteProfileProvider.notifier).refresh(),
         ),
-        data: (preferences) => _buildContent(context, ref, preferences),
+        data: (profile) => _buildContent(context, profile),
       ),
     );
   }
 
-  Widget _buildContent(
-    BuildContext context,
-    WidgetRef ref,
-    List<StyleTastePreference> preferences,
-  ) {
+  Widget _buildContent(BuildContext context, StyleTasteProfile profile) {
     final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -58,36 +63,27 @@ class StyleTastePage extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _buildAnalysisCard(context, ref),
+        _buildAnalysisCard(context, profile.summary),
         const SizedBox(height: 16),
-        _buildRadarCard(context, preferences),
+        _buildRadarCard(context, profile.preferences),
       ],
     );
   }
 
-  Widget _buildAnalysisCard(BuildContext context, WidgetRef ref) {
+  Widget _buildAnalysisCard(BuildContext context, String summary) {
     final l10n = AppLocalizations.of(context);
-    final summaryAsync = ref.watch(styleTastePersonalitySummaryProvider);
     final outfitsAsync = ref.watch(outfitsProvider);
 
     return LumiInsightCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          summaryAsync.when(
-            data: (summary) => Text(summary, style: AppTextStyle.regular14),
-            loading: () => const SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            error: (_, __) => const SizedBox.shrink(),
-          ),
+          Text(summary, style: AppTextStyle.regular14),
           const SizedBox(height: 10),
           outfitsAsync.when(
             data: (outfits) => Text(
               l10n.styleTasteAnalysisStats(
-                outfits.length,
+                outfits.fold<int>(0, (sum, o) => sum + o.versionCount),
                 outfits.where((o) => o.isFavorite).length,
               ),
               style: AppTextStyle.regular12.copyWith(
@@ -142,8 +138,7 @@ class StyleTastePage extends ConsumerWidget {
                     Icons.info_outline,
                     color: AppColors.textSecondary,
                   ),
-                  onPressed: () =>
-                      _showAllDescriptionsDialog(context, preferences),
+                  onPressed: () => _showAllDescriptionsDialog(context),
                 ),
               ),
             ],
@@ -175,12 +170,43 @@ class StyleTastePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(l10n.styleTasteKeyInsightsTitle, style: AppTextStyle.bold16),
-          const SizedBox(height: 12),
-          for (final preference in preferences) ...[
-            _buildInsightRow(preference),
-            const SizedBox(height: 10),
-          ],
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _detailsExpanded = !_detailsExpanded),
+            child: Row(
+              children: [
+                Expanded(child: Text(l10n.details, style: AppTextStyle.bold16)),
+                AnimatedRotation(
+                  turns: _detailsExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 20,
+                    color: AppColors.icon,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 150),
+            crossFadeState: _detailsExpanded
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            firstChild: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final preference in preferences) ...[
+                    _buildInsightRow(preference),
+                    const SizedBox(height: 10),
+                  ],
+                ],
+              ),
+            ),
+            secondChild: const SizedBox.shrink(),
+          ),
         ],
       ),
     );
@@ -221,11 +247,14 @@ class StyleTastePage extends ConsumerWidget {
     );
   }
 
-  void _showAllDescriptionsDialog(
-    BuildContext context,
-    List<StyleTastePreference> preferences,
-  ) {
+  /// A fixed glossary of what every dimension measures — unlike the radar
+  /// card's per-dimension insight rows (LUMI's personalized read on this
+  /// user), this is the same reference text for everyone, so it always
+  /// covers every dimension regardless of which ones the API happened to
+  /// return data for.
+  void _showAllDescriptionsDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    const dimensions = StyleTasteDimension.values;
     showDialog(
       context: context,
       builder: (ctx) => AppDialog(
@@ -235,19 +264,16 @@ class StyleTastePage extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final preference in preferences) ...[
-                Text(
-                  preference.dimension.title(context),
-                  style: AppTextStyle.bold14,
-                ),
+              for (final dimension in dimensions) ...[
+                Text(dimension.title(context), style: AppTextStyle.bold14),
                 const SizedBox(height: 2),
                 Text(
-                  preference.description ?? '',
+                  dimension.explanation(context),
                   style: AppTextStyle.regular13.copyWith(
                     color: AppColors.textSecondary,
                   ),
                 ),
-                if (preference != preferences.last) const SizedBox(height: 12),
+                if (dimension != dimensions.last) const SizedBox(height: 12),
               ],
             ],
           ),

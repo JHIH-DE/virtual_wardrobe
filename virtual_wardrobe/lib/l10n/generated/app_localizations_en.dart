@@ -78,9 +78,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'A visual summary of your style preferences.';
 
   @override
-  String get styleTasteKeyInsightsTitle => 'Key Insights';
-
-  @override
   String styleTasteAnalysisStats(int count, int favoriteCount) {
     return 'Analyzed $count outfits · $favoriteCount favorites';
   }
@@ -297,6 +294,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteStyleBalanceHigh => 'Mixed';
 
   @override
+  String get styleTasteStyleBalanceExplanation =>
+      'Your preference for mixing different styles.';
+
+  @override
   String get styleTasteColorPairingTitle => 'Color Pairing';
 
   @override
@@ -304,6 +305,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get styleTasteColorPairingHigh => 'Contrast';
+
+  @override
+  String get styleTasteColorPairingExplanation =>
+      'Your preference for combining colors.';
 
   @override
   String get styleTasteFitPreferenceTitle => 'Fit Preference';
@@ -315,6 +320,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteFitPreferenceHigh => 'Relaxed';
 
   @override
+  String get styleTasteFitPreferenceExplanation =>
+      'Your preferred clothing fit.';
+
+  @override
   String get styleTasteLayeringTitle => 'Layering';
 
   @override
@@ -324,6 +333,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteLayeringHigh => 'Layered';
 
   @override
+  String get styleTasteLayeringExplanation =>
+      'Your preference for layered looks.';
+
+  @override
   String get styleTasteAccessoriesTitle => 'Accessories';
 
   @override
@@ -331,6 +344,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get styleTasteAccessoriesHigh => 'Expressive';
+
+  @override
+  String get styleTasteAccessoriesExplanation =>
+      'Your preference for using accessories.';
 
   @override
   String get navHome => 'Home';
@@ -778,7 +795,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectCombinationsInstruction =>
-      'Select the clothing combinations you\'d like to try, then click \"Create Outfit\" to see your try-on results!';
+      'Choose the pieces you want to wear.';
 
   @override
   String get editDayOutfitInstruction =>
@@ -844,6 +861,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatingTripEllipsis => 'Creating Trip…';
+
+  @override
+  String get deletingTripEllipsis => 'Deleting Trip…';
 
   @override
   String get failedToCreateTrip => 'Failed to create trip';

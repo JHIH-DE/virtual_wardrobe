@@ -1,32 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/style_taste.dart';
-import '../services/style_taste_service.dart';
+import '../services/profile_service.dart';
 
-final styleTastePreferencesProvider =
-    AsyncNotifierProvider<
-      StyleTastePreferencesNotifier,
-      List<StyleTastePreference>
-    >(StyleTastePreferencesNotifier.new);
+final styleTasteProfileProvider =
+    AsyncNotifierProvider<StyleTasteProfileNotifier, StyleTasteProfile>(
+      StyleTasteProfileNotifier.new,
+    );
 
-class StyleTastePreferencesNotifier
-    extends AsyncNotifier<List<StyleTastePreference>> {
+class StyleTasteProfileNotifier extends AsyncNotifier<StyleTasteProfile> {
   @override
-  Future<List<StyleTastePreference>> build() =>
-      StyleTasteService().getPreferences();
+  Future<StyleTasteProfile> build() => _fetch();
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => StyleTasteService().getPreferences());
+    state = await AsyncValue.guard(_fetch);
   }
-}
 
-final styleTastePersonalitySummaryProvider =
-    AsyncNotifierProvider<StyleTastePersonalitySummaryNotifier, String>(
-      StyleTastePersonalitySummaryNotifier.new,
-    );
-
-class StyleTastePersonalitySummaryNotifier extends AsyncNotifier<String> {
-  @override
-  Future<String> build() => StyleTasteService().getPersonalitySummary();
+  Future<StyleTasteProfile> _fetch() async {
+    final data = await ProfileService().getMyStyleTaste();
+    return StyleTasteProfile.fromApi(data);
+  }
 }

@@ -13,6 +13,8 @@ class AppListCard extends StatelessWidget {
   final Widget? leading;
   final String? status;
   final String? summary;
+  final double minHeight;
+  final double leadingSize;
 
   const AppListCard({
     super.key,
@@ -24,6 +26,8 @@ class AppListCard extends StatelessWidget {
     this.leading,
     this.status,
     this.summary,
+    this.minHeight = 70,
+    this.leadingSize = 40,
   });
 
   @override
@@ -32,7 +36,12 @@ class AppListCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (leading != null || leadingAsset != null) ...[
-          leading ?? Image.asset(leadingAsset!, width: 40, height: 40),
+          leading ??
+              Image.asset(
+                leadingAsset!,
+                width: leadingSize,
+                height: leadingSize,
+              ),
           const SizedBox(width: 18),
         ],
         Expanded(
@@ -80,7 +89,7 @@ class AppListCard extends StatelessWidget {
     );
 
     final card = Container(
-      constraints: const BoxConstraints(minHeight: 70),
+      constraints: BoxConstraints(minHeight: minHeight),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,

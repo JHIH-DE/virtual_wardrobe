@@ -12,6 +12,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/buttons/filter_button.dart';
+import '../widgets/common/images/petal_loader.dart';
 import '../widgets/outfit/outfit_card.dart';
 
 class GarmentOutfitsPage extends StatefulWidget {
@@ -143,7 +144,7 @@ class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: PetalLoader())
           : _error != null
           ? ErrorStateWidget(error: _error!, onRetry: _load)
           : _buildOutfitsGrid(_filtered()),
@@ -170,8 +171,8 @@ class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: AppDimens.cardSpacing,
+          mainAxisSpacing: AppDimens.cardSpacing,
           mainAxisExtent: AppDimens.outfitCardHeight,
         ),
         itemCount: outfits.length,

@@ -14,17 +14,21 @@ import '../../core/services/daily_outfit_service.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
+import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'garment_details_page.dart';
+import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'trip_details_page.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
-import '../widgets/common/cards/lumi_insight_card.dart';
+import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/outfit/outfit_image.dart';
 import '../widgets/trip/trip_card.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -36,7 +40,18 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   bool _loadingOutfit = true;
-  String? _reasoning;
+  // Every outfit option LUMI generated for today — generation/rendering all
+  // happens server-side on its own schedule now, so this is a plain read;
+  // empty means no plan exists yet for today.
+  List<Outfit> _todayOutfits = const [];
+  // Which of [_todayOutfits] is shown as the main preview — swiping the
+  // carousel below updates this.
+  int _todayOutfitIndex = 0;
+  final PageController _todayOutfitPageController = PageController();
+
+  Outfit? get _todayOutfit => _todayOutfitIndex < _todayOutfits.length
+      ? _todayOutfits[_todayOutfitIndex]
+      : null;
 
   @override
   void initState() {
@@ -44,47 +59,25 @@ class _HomePageState extends ConsumerState<HomePage> {
     _loadDailyOutfit();
   }
 
+  @override
+  void dispose() {
+    _todayOutfitPageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadDailyOutfit() async {
     setState(() => _loadingOutfit = true);
     try {
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      var outfit = await DailyOutfitService().getDailyOutfit(today);
-      if (outfit == null) {
-        await DailyOutfitService().generateDailyOutfit(date: today);
-        outfit = await DailyOutfitService().getDailyOutfit(today);
+      final outfits = await DailyOutfitService().getDailyOutfit(today);
+      if (!mounted) return;
+      setState(() {
+        _todayOutfits = outfits ?? const [];
+        _todayOutfitIndex = 0;
+      });
+      if (_todayOutfitPageController.hasClients) {
+        _todayOutfitPageController.jumpToPage(0);
       }
-      if (outfit == null) return;
-
-      final options =
-          ((outfit['options'] as List?) ?? [])
-              .whereType<Map<String, dynamic>>()
-              .toList()
-            ..sort(
-              (a, b) => ((a['order_index'] as num?) ?? 0).compareTo(
-                (b['order_index'] as num?) ?? 0,
-              ),
-            );
-
-      if (options.isEmpty) {
-        if (mounted) setState(() => _reasoning = null);
-        return;
-      }
-
-      final option = options.first;
-      if (mounted) {
-        final rawReasoning = option['reasoning'];
-        setState(() {
-          if (rawReasoning is List) {
-            _reasoning = rawReasoning.map((e) => '• $e').join('\n');
-          } else {
-            _reasoning = rawReasoning as String?;
-          }
-        });
-      }
-      // The daily outfit's try-on render (an image for `option['look_id']`)
-      // isn't wired up here — the backend's daily/trip try-on generation
-      // endpoint isn't supported yet (currently 503), independent of this
-      // outfit-group API migration.
     } catch (e) {
       if (e is AuthExpiredException) {
         if (mounted) await AuthExpiredHandler.handle(context);
@@ -160,10 +153,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   _buildOutfitImageCard(),
-                  const SizedBox(height: 12),
-                  _buildLumiInsightCard(),
                   _buildUpcomingTripSection(),
                 ],
               ),
@@ -213,11 +204,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       tint: AppColors.statusUpcoming,
                     ),
                     loading: () => _headerChip(
-                      icon: const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
+                      icon: const PetalLoader(size: 14),
                       label: l10n.loadingWeatherEllipsis,
                       tint: AppColors.statusUpcoming,
                     ),
@@ -271,26 +258,29 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  // The daily outfit try-on render (a photo, not just the garment plan
-  // above) isn't wired up here — the backend's daily try-on generation
-  // endpoint isn't supported yet (currently 503), independent of this
-  // outfit-group API migration. Shows a "coming soon" placeholder instead.
   Widget _buildOutfitImageCard() {
     final l10n = AppLocalizations.of(context);
+    final outfit = _todayOutfit;
+    final hasImage =
+        !_loadingOutfit && outfit != null && outfit.imageUrl.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LabeledDivider(label: l10n.todaysOutfit),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: AspectRatio(
             aspectRatio: 1 / 1.15,
-            child: Container(
-              color: AppColors.surface,
-              child: _loadingOutfit
-                  ? LoadingOverlay(label: l10n.generatingOutfitEllipsis)
-                  : Center(
+            child: _loadingOutfit
+                ? Container(
+                    color: AppColors.surface,
+                    child: LoadingOverlay(label: l10n.loading),
+                  )
+                : !hasImage
+                ? Container(
+                    color: AppColors.surface,
+                    child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -301,7 +291,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            l10n.faceReferenceComingSoon,
+                            l10n.noOutfitImageYet,
                             style: AppTextStyle.regular13.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -309,24 +299,87 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ],
                       ),
                     ),
-            ),
+                  )
+                : PageView.builder(
+                    controller: _todayOutfitPageController,
+                    onPageChanged: (index) =>
+                        setState(() => _todayOutfitIndex = index),
+                    itemCount: _todayOutfits.length,
+                    itemBuilder: (_, index) {
+                      final option = _todayOutfits[index];
+                      return GestureDetector(
+                        onTap: () => _openOutfitDetails(option),
+                        child: Container(
+                          color: AppColors.surface,
+                          child: RefreshableNetworkImage(
+                            imageUrl: option.imageUrl,
+                            cacheKey: 'outfit-job-${option.id}',
+                            fit: BoxFit.cover,
+                            errorIconSize: 48,
+                            onRefreshUrl: () => fetchFreshOutfitImageUrl(
+                              option.groupId,
+                              option.id,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ),
+        if (hasImage && _todayOutfits.length > 1) ...[
+          const SizedBox(height: 10),
+          _buildOutfitPageIndicator(),
+        ],
       ],
     );
   }
 
-  Widget _buildLumiInsightCard() {
-    if (_reasoning == null || _reasoning!.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return LumiInsightCard(
-      child: Text(
-        _reasoning!,
-        style: AppTextStyle.regular14.copyWith(
-          color: AppColors.textSecondary,
-          height: 1.5,
-        ),
+  /// Dots marking which of today's outfit options is shown, plus a
+  /// "current / total" counter trailing them — mirrors Outfit Details' own
+  /// version carousel indicator.
+  Widget _buildOutfitPageIndicator() {
+    return SizedBox(
+      height: 20,
+      child: Stack(
+        children: [
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(_todayOutfits.length, (index) {
+                final isActive = index == _todayOutfitIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: isActive ? 18 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.accent : AppColors.borderSubtle,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '${_todayOutfitIndex + 1} / ${_todayOutfits.length}',
+              style: AppTextStyle.regular13.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openOutfitDetails(Outfit outfit) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OutfitDetailsPage(outfit: outfit, isNew: false),
       ),
     );
   }
@@ -347,7 +400,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         LabeledDivider(label: l10n.upcomingTrip),
         const SizedBox(height: 16),
         _buildTripCard(upcoming.first),
@@ -355,21 +408,23 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  // Just the single soonest trip is ever shown here (see
+  // _buildUpcomingTripSection), so unlike a real list of cards this doesn't
+  // need its own trailing cardSpacing — the gap before the next section's
+  // divider comes from that section's own leading spacer instead, the same
+  // way every other divider on this page gets its "before" gap.
   Widget _buildTripCard(Trip trip) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TripCard(
-        key: ValueKey(trip.id),
-        trip: trip,
-        onTap: () => _openTrip(trip),
-        onNameChanged: (name) =>
-            _updateTrip(trip, updated: trip.copyWith(name: name)),
-        onLegsChanged: (legs) =>
-            _updateTrip(trip, updated: trip.copyWith(legs: legs)),
-        onActivitiesChanged: (activities) =>
-            _updateTrip(trip, updated: trip.copyWith(activities: activities)),
-        onDelete: () => _deleteTrip(trip),
-      ),
+    return TripCard(
+      key: ValueKey(trip.id),
+      trip: trip,
+      onTap: () => _openTrip(trip),
+      onNameChanged: (name) =>
+          _updateTrip(trip, updated: trip.copyWith(name: name)),
+      onLegsChanged: (legs) =>
+          _updateTrip(trip, updated: trip.copyWith(legs: legs)),
+      onActivitiesChanged: (activities) =>
+          _updateTrip(trip, updated: trip.copyWith(activities: activities)),
+      onDelete: () => _deleteTrip(trip),
     );
   }
 
@@ -379,10 +434,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         int.parse(trip.id),
         name: updated.name != trip.name ? updated.name : null,
         legs: updated.legs,
-        activities: setEquals(
-              updated.activities.toSet(),
-              trip.activities.toSet(),
-            )
+        activities:
+            setEquals(updated.activities.toSet(), trip.activities.toSet())
             ? null
             : updated.activities,
       );
@@ -404,10 +457,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _deleteTrip(Trip trip) async {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      useSafeArea: false,
+      builder: (_) => LoadingOverlay(label: l10n.deletingTripEllipsis),
     );
     try {
       await TripService().deleteTrip(int.parse(trip.id));
@@ -476,7 +531,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: LabeledDivider(label: l10n.recentlyAdded),
@@ -488,7 +543,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 24),
             itemCount: shown.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (_, __) =>
+                const SizedBox(width: AppDimens.cardSpacing),
             itemBuilder: (context, i) => SizedBox(
               width: AppDimens.garmentCardWidth,
               child: GarmentCard(
