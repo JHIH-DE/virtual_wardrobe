@@ -354,7 +354,7 @@ abstract class AppLocalizations {
   /// No description provided for @customizationOptional.
   ///
   /// In en, this message translates to:
-  /// **'Customize (Optional)'**
+  /// **'Accessories & Scene'**
   String get customizationOptional;
 
   /// No description provided for @currentOutfitLabel.
@@ -404,6 +404,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select {item}'**
   String selectItemTitle(String item);
+
+  /// No description provided for @addItemLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {item}'**
+  String addItemLabel(String item);
 
   /// No description provided for @loadingGarments.
   ///
@@ -782,6 +788,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI'**
   String get aiTag;
+
+  /// No description provided for @matchALookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Match a Look'**
+  String get matchALookTitle;
+
+  /// No description provided for @matchALookSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload a photo and we\'ll find similar pieces from your closet.'**
+  String get matchALookSubtitle;
 
   /// No description provided for @editPhoto.
   ///
@@ -1476,7 +1494,7 @@ abstract class AppLocalizations {
   /// No description provided for @purchaseDateLabel.
   ///
   /// In en, this message translates to:
-  /// **'Purchase date'**
+  /// **'Purchase date (optional)'**
   String get purchaseDateLabel;
 
   /// No description provided for @notUsedInOutfitsYet.

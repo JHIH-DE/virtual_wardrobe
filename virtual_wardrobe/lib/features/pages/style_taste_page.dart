@@ -10,10 +10,10 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/style_taste_dimension_localization.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/lumi_insight_card.dart';
-import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/cards/style_taste_radar_chart.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
 
 /// "How LUMI thinks you like outfits put together" — every learned
 /// preference dimension plotted together on one radar chart, so the shape
@@ -37,17 +37,29 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     final l10n = AppLocalizations.of(context);
     final profileAsync = ref.watch(styleTasteProfileProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      appBar: AppToolBar(title: l10n.styleTaste),
-      body: profileAsync.when(
-        loading: () => const Center(child: PetalLoader()),
-        error: (e, _) => ErrorStateWidget(
-          error: e,
-          onRetry: () => ref.read(styleTasteProfileProvider.notifier).refresh(),
-        ),
-        data: (profile) => _buildContent(context, profile),
+    var isInitialLoading = false;
+    final body = profileAsync.when(
+      loading: () {
+        isInitialLoading = true;
+        return const SizedBox.shrink();
+      },
+      error: (e, _) => ErrorStateWidget(
+        error: e,
+        onRetry: () => ref.read(styleTasteProfileProvider.notifier).refresh(),
       ),
+      data: (profile) => _buildContent(context, profile),
+    );
+
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.pageBackground,
+          appBar: AppToolBar(title: l10n.styleTaste),
+          body: body,
+        ),
+        if (isInitialLoading)
+          Positioned.fill(child: LoadingOverlay(label: l10n.loading)),
+      ],
     );
   }
 

@@ -140,7 +140,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createAnotherVersion => '建立另一個版本';
 
   @override
-  String get customizationOptional => '自訂（選填）';
+  String get customizationOptional => '配件與場景';
 
   @override
   String get currentOutfitLabel => '目前穿搭';
@@ -166,6 +166,11 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String selectItemTitle(String item) {
     return '選擇$item';
+  }
+
+  @override
+  String addItemLabel(String item) {
+    return '新增$item';
   }
 
   @override
@@ -362,6 +367,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiTag => 'AI';
+
+  @override
+  String get matchALookTitle => '比對穿搭';
+
+  @override
+  String get matchALookSubtitle => '上傳一張照片，讓我們從你的衣櫃中找出相似的單品。';
 
   @override
   String get editPhoto => '編輯照片';
@@ -722,7 +733,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get priceHint => '這件衣物的價格是？';
 
   @override
-  String get purchaseDateLabel => '購買日期';
+  String get purchaseDateLabel => '購買日期（選填）';
 
   @override
   String get notUsedInOutfitsYet => '尚未用於任何穿搭';
@@ -1227,7 +1238,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get createAnotherVersion => '建立另一個版本';
 
   @override
-  String get customizationOptional => '自訂（選填）';
+  String get customizationOptional => '配件與場景';
 
   @override
   String get currentOutfitLabel => '目前穿搭';
@@ -1253,6 +1264,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String selectItemTitle(String item) {
     return '選擇$item';
+  }
+
+  @override
+  String addItemLabel(String item) {
+    return '新增$item';
   }
 
   @override
@@ -1449,6 +1465,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiTag => 'AI';
+
+  @override
+  String get matchALookTitle => '比對穿搭';
+
+  @override
+  String get matchALookSubtitle => '上傳一張照片，讓我們從你的衣櫃中找出相似的單品。';
 
   @override
   String get editPhoto => '編輯照片';
@@ -1809,7 +1831,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get priceHint => '這件衣物的價格是？';
 
   @override
-  String get purchaseDateLabel => '購買日期';
+  String get purchaseDateLabel => '購買日期（選填）';
 
   @override
   String get notUsedInOutfitsYet => '尚未用於任何穿搭';

@@ -13,6 +13,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/section_title.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 
 class AccountPage extends StatefulWidget {
@@ -215,7 +216,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_l10n.accountNameLabel, style: AppTextStyle.semibold14),
+        SectionTitle(_l10n.accountNameLabel.toUpperCase()),
         const SizedBox(height: 8),
         AppTextField(controller: _nameCtrl, hint: _l10n.enterYourNameHint),
       ],
@@ -226,7 +227,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_l10n.genderLabel, style: AppTextStyle.semibold14),
+        SectionTitle(_l10n.genderLabel.toUpperCase()),
         const SizedBox(height: 8),
         PickerField(
           text: _selectedGender != null
@@ -281,7 +282,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_l10n.birthdayLabel, style: AppTextStyle.semibold14),
+        SectionTitle(_l10n.birthdayLabel.toUpperCase()),
         const SizedBox(height: 8),
         DateDropdownField(
           value: _selectedBirthDate,
@@ -300,7 +301,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_l10n.homeLocationLabel, style: AppTextStyle.semibold14),
+        SectionTitle(_l10n.homeLocationLabel.toUpperCase()),
         const SizedBox(height: 8),
         TappableFieldDecorator(
           onTap: _pickHomeLocation,

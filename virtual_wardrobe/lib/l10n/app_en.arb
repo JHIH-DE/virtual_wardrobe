@@ -63,7 +63,7 @@
   "outfitNameLabel": "Name of this outfit",
   "saveOutfit": "Save Outfit",
   "createAnotherVersion": "Create Another Version",
-  "customizationOptional": "Customize (Optional)",
+  "customizationOptional": "Accessories & Scene",
   "currentOutfitLabel": "Current Outfit",
   "accessoriesLabel": "Accessories",
   "createOutfit": "Create Outfit",
@@ -73,6 +73,10 @@
   "noneLabel": "None",
   "selectItemTitle": "Select {item}",
   "@selectItemTitle": {
+    "placeholders": { "item": { "type": "String" } }
+  },
+  "addItemLabel": "Add {item}",
+  "@addItemLabel": {
     "placeholders": { "item": { "type": "String" } }
   },
   "loadingGarments": "Loading Garments…",
@@ -171,6 +175,8 @@
 
   "retry": "Retry",
   "aiTag": "AI",
+  "matchALookTitle": "Match a Look",
+  "matchALookSubtitle": "Upload a photo and we'll find similar pieces from your closet.",
   "editPhoto": "Edit Photo",
 
   "uploadImage": "Upload Image",
@@ -330,7 +336,7 @@
   "brandHint": "What is the brand of this clothing?",
   "priceOptionalLabel": "Price (optional)",
   "priceHint": "How much is this clothing?",
-  "purchaseDateLabel": "Purchase date",
+  "purchaseDateLabel": "Purchase date (optional)",
   "notUsedInOutfitsYet": "Not used in any outfits yet",
   "usedInOutfits": "Used in Outfits",
   "selectAColor": "Select Color",

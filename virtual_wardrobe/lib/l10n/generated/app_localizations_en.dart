@@ -147,7 +147,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAnotherVersion => 'Create Another Version';
 
   @override
-  String get customizationOptional => 'Customize (Optional)';
+  String get customizationOptional => 'Accessories & Scene';
 
   @override
   String get currentOutfitLabel => 'Current Outfit';
@@ -173,6 +173,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String selectItemTitle(String item) {
     return 'Select $item';
+  }
+
+  @override
+  String addItemLabel(String item) {
+    return 'Add $item';
   }
 
   @override
@@ -378,6 +383,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiTag => 'AI';
+
+  @override
+  String get matchALookTitle => 'Match a Look';
+
+  @override
+  String get matchALookSubtitle =>
+      'Upload a photo and we\'ll find similar pieces from your closet.';
 
   @override
   String get editPhoto => 'Edit Photo';
@@ -743,7 +755,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get priceHint => 'How much is this clothing?';
 
   @override
-  String get purchaseDateLabel => 'Purchase date';
+  String get purchaseDateLabel => 'Purchase date (optional)';
 
   @override
   String get notUsedInOutfitsYet => 'Not used in any outfits yet';

@@ -140,6 +140,17 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
+  /// Small-caps label above a form field or card — e.g. Add Outfit's
+  /// per-slot category label, Garment Details' field titles. Pair with
+  /// `.toUpperCase()` on the text itself.
+  static const TextStyle overline12 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.5,
+    color: AppColors.textSecondary,
+  );
+
   // Dialog title: Bold 20px, line-height 100%
   static const TextStyle dialogTitle = TextStyle(
     fontFamily: 'text/EN',

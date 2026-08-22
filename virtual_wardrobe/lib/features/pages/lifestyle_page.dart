@@ -177,7 +177,7 @@ class _LifestylePageState extends State<LifestylePage> {
   }
 
   Widget _buildSectionTitle(String label) {
-    return SectionTitle(label);
+    return SectionTitle(label.toUpperCase());
   }
 
   Widget _buildTempAdjuster() {

@@ -21,6 +21,7 @@ import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
 
 /// The user's in-progress slot-by-slot garment picks for this page's manual
@@ -361,6 +362,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         children: [
           _buildInstructions(),
           const SizedBox(height: 24),
+          if (!widget.selectOnly) ...[
+            _buildMatchALookCard(),
+            const SizedBox(height: 24),
+          ],
           ..._buildTopSlots(),
           ..._buildOuterSlot(),
           ..._buildBottomSlot(),
@@ -383,6 +388,108 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     );
   }
 
+  /// Entry point for a not-yet-built "upload a photo, match it to closet
+  /// items" flow — same AI call-out treatment as [LumiInsightCard]
+  /// (gradient tint, sparkle badge, "AI" tag), but with the same trailing
+  /// chevron the slot rows below use instead of an expand affordance.
+  Widget _buildMatchALookCard() {
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_l10n.faceReferenceComingSoon)));
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.surface, AppColors.lumiCardTint],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.lumiCardTint,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Image.asset(
+                'assets/images/camera.png',
+                width: 28,
+                height: 28,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.auto_awesome,
+                        size: 16,
+                        color: AppColors.icon,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(_l10n.matchALookTitle, style: AppTextStyle.bold16),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _l10n.aiTag,
+                          style: AppTextStyle.bold12.copyWith(
+                            color: AppColors.textSecondary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _l10n.matchALookSubtitle,
+                    style: AppTextStyle.regular14.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Image.asset(
+              'assets/images/page_arrow_right.png',
+              width: AppDimens.iconSmallSize,
+              height: AppDimens.iconSmallSize,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildTopSlots() {
     if (!_hasCategory(GarmentCategory.top)) return const [];
     return [
@@ -396,7 +503,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             ? null
             : () => setState(() => _outfit = _outfit.copyWith(clearTop: true)),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 24),
       _slotRow(
         title: _l10n.midLayer,
         iconAsset: 'assets/images/outer.png',
@@ -408,7 +515,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             : () =>
                   setState(() => _outfit = _outfit.copyWith(clearMiddle: true)),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 24),
     ];
   }
 
@@ -426,7 +533,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             : () =>
                   setState(() => _outfit = _outfit.copyWith(clearOuter: true)),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 24),
     ];
   }
 
@@ -444,7 +551,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             : () =>
                   setState(() => _outfit = _outfit.copyWith(clearBottom: true)),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 24),
     ];
   }
 
@@ -464,7 +571,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                 () => _outfit = _outfit.copyWith(clearOnePiece: true),
               ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 24),
     ];
   }
 
@@ -482,7 +589,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             : () =>
                   setState(() => _outfit = _outfit.copyWith(clearShoes: true)),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 24),
     ];
   }
 
@@ -958,78 +1065,87 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         value.id != null &&
         !widget.validGarmentIds!.contains(value.id);
 
-    return AppListCard(
-      onTap: (isOutfitLoading || _isLoadingGarments)
-          ? null
-          : () async {
-              await _ensureFreshGarments();
-              if (!mounted) return;
-              final result = await Navigator.push<SelectGarmentResult>(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SelectGarmentPage(
-                    title: title,
-                    category: category,
-                    garments: _allGarments,
-                    selected: value,
-                  ),
-                ),
-              );
-              if (result == null) return;
-              if (result.garment != null) {
-                onPicked(result.garment!);
-              } else {
-                onClear?.call();
-              }
-            },
-      showArrow: true,
-      // Matches the Customize header's height — only for the empty
-      // placeholder state; a selected garment's image + detail line still
-      // wants the taller default. The 40px leading icon alone would blow
-      // past 56 regardless of minHeight, so it has to shrink too (matching
-      // Customize's own 24px icon) for the constraint to actually bind.
-      minHeight: value == null ? 56 : 70,
-      leadingSize: value == null ? 24 : 40,
-      leadingAsset: (value == null && iconData == null) ? iconAsset : null,
-      leading: value != null
-          ? Stack(
-              clipBehavior: Clip.none,
-              children: [
-                GarmentImage(
-                  url: value.imageUrl,
-                  garmentId: value.id,
-                  width: 40,
-                  height: 40,
-                  memCacheWidth: 80,
-                  memCacheHeight: 80,
-                  borderRadius: 8,
-                  fit: BoxFit.cover,
-                ),
-                if (isInvalid)
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: Icon(
-                      Icons.error,
-                      size: 16,
-                      color: AppColors.error,
-                      shadows: [
-                        Shadow(color: AppColors.surface, blurRadius: 3),
-                      ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: SectionTitle(title.toUpperCase()),
+        ),
+        AppListCard(
+          onTap: (isOutfitLoading || _isLoadingGarments)
+              ? null
+              : () async {
+                  await _ensureFreshGarments();
+                  if (!mounted) return;
+                  final result = await Navigator.push<SelectGarmentResult>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SelectGarmentPage(
+                        title: title,
+                        category: category,
+                        garments: _allGarments,
+                        selected: value,
+                      ),
                     ),
-                  ),
-              ],
-            )
-          : (iconData != null
-                ? Icon(iconData, size: 28, color: AppColors.icon)
-                : null),
-      summary: detail?.isNotEmpty == true ? detail : null,
-      child: Text(
-        value == null ? title : value.name,
-        style: AppTextStyle.bold16,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+                  );
+                  if (result == null) return;
+                  if (result.garment != null) {
+                    onPicked(result.garment!);
+                  } else {
+                    onClear?.call();
+                  }
+                },
+          showArrow: true,
+          // Matches the Customize header's height — only for the empty
+          // placeholder state; a selected garment's image + detail line
+          // still wants the taller default. 32 is as big as the leading
+          // icon can get without the card growing past that same 56 (32 +
+          // the 24 of vertical padding baked into AppListCard).
+          minHeight: value == null ? 56 : 70,
+          leadingSize: value == null ? 32 : 40,
+          leadingAsset: (value == null && iconData == null) ? iconAsset : null,
+          leading: value != null
+              ? Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    GarmentImage(
+                      url: value.imageUrl,
+                      garmentId: value.id,
+                      width: 40,
+                      height: 40,
+                      memCacheWidth: 80,
+                      memCacheHeight: 80,
+                      borderRadius: 8,
+                      fit: BoxFit.cover,
+                    ),
+                    if (isInvalid)
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Icon(
+                          Icons.error,
+                          size: 16,
+                          color: AppColors.error,
+                          shadows: [
+                            Shadow(color: AppColors.surface, blurRadius: 3),
+                          ],
+                        ),
+                      ),
+                  ],
+                )
+              : (iconData != null
+                    ? Icon(iconData, size: 32, color: AppColors.icon)
+                    : null),
+          summary: detail?.isNotEmpty == true ? detail : null,
+          child: Text(
+            value == null ? _l10n.addItemLabel(title) : value.name,
+            style: AppTextStyle.bold16,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

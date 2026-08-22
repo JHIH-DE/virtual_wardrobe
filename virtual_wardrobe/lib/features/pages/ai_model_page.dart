@@ -187,7 +187,7 @@ class _AiModelPageState extends State<AiModelPage> {
               ),
             ),
             const SizedBox(height: 20),
-            SectionTitle(_l10n.faceReferenceLabel),
+            SectionTitle(_l10n.faceReferenceLabel.toUpperCase()),
             const SizedBox(height: 6),
             Text(
               _l10n.faceReferenceDescription,
@@ -205,7 +205,7 @@ class _AiModelPageState extends State<AiModelPage> {
               buttonLabel: _l10n.faceReferenceComingSoon,
             ),
             const SizedBox(height: 24),
-            SectionTitle(_l10n.bodyReferenceLabel),
+            SectionTitle(_l10n.bodyReferenceLabel.toUpperCase()),
             const SizedBox(height: 6),
             Text(
               _l10n.bodyReferenceDescription,
