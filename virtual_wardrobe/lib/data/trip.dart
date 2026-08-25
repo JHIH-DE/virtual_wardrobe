@@ -124,7 +124,7 @@ class Trip {
       legs = [TripLeg.fromJson(json)];
     }
 
-    final rawActivities = json['activities'];
+    final rawActivities = json['activity'];
 
     return Trip(
       id: json['id'].toString(),
@@ -138,8 +138,7 @@ class Trip {
 }
 
 /// Stable trip-activity identifiers, matching the snake_case values sent to
-/// the API — a trip can have any number of these at once (unlike the old
-/// single-select `TripPurpose` this replaced).
+/// the API — a trip can have any number of these at once.
 enum TripActivity { outdoor, business, formalOccasion, waterActivities }
 
 extension TripActivityApi on TripActivity {

@@ -7,6 +7,12 @@ abstract class AppDimens {
   // its own value.
   static const double cardSpacing = 12;
 
+  // Standard corner radius for cards (GarmentCard, OutfitCard, TripCard,
+  // GarmentListCard, AppListCard, UwearisInsightCard, TripDayCard, ...) — kept
+  // as one constant so every card in the app reads as the same shape
+  // instead of each one picking its own radius.
+  static const double cardRadius = 16;
+
   // Outfit Card
   static const double outfitCardHeight = 235;
 
@@ -34,6 +40,6 @@ abstract class AppDimens {
   // Extra bottom padding for scrollable lists/grids on the main tabs, so the
   // last row can scroll clear of the floating nav bar overlay instead of
   // being hidden behind it.
-  static const double floatingNavBarClearance = 110;
-  static const double bottomActionBtnClearance = 75;
+  static const double floatingNavBarClearance = 95;
+  static const double bottomActionBtnClearance = 95;
 }

@@ -135,7 +135,7 @@ class _TripLegDateRangePickerDialogState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(l10n.selectDates, style: AppTextStyle.dialogTitle),
+            Text(l10n.selectDates, style: AppTextStyle.bold20),
             const SizedBox(height: 6),
             Text(
               _rangeStart == null
@@ -195,7 +195,10 @@ class _TripLegDateRangePickerDialogState
               ),
               child: Text(
                 l10n.confirm,
-                style: const TextStyle(color: AppColors.textOnPrimary),
+                style: AppTextStyle.regular14.copyWith(
+                  color: AppColors.textOnPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             const SizedBox(height: 12),

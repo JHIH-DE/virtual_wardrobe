@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
 import '../../data/garment.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/garment/none_garment_card.dart';
 
 /// Full-page grid picker for a single outfit slot (Top/Bottom/Shoes/etc).
 /// Tapping an item — or the "None" tile — immediately pops back with the
@@ -19,12 +19,18 @@ class SelectGarmentPage extends StatefulWidget {
   final List<Garment> garments;
   final Garment? selected;
 
+  /// Whether the "None" tile (clear this slot) shows in the grid — only
+  /// makes sense for optional slots (e.g. Mid Layer, Outerwear); required
+  /// slots are cleared via the slot card's own "x" affordance instead.
+  final bool showNoneOption;
+
   const SelectGarmentPage({
     super.key,
     required this.title,
     required this.category,
     required this.garments,
     this.selected,
+    this.showNoneOption = false,
   });
 
   @override
@@ -132,10 +138,17 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
           mainAxisSpacing: AppDimens.cardSpacing,
           mainAxisExtent: AppDimens.garmentCardHeight,
         ),
-        itemCount: items.length + 1,
+        itemCount: items.length + (widget.showNoneOption ? 1 : 0),
         itemBuilder: (context, i) {
-          if (i == 0) return _buildNoneCard(context, l10n);
-          final g = items[i - 1];
+          if (widget.showNoneOption && i == 0) {
+            return NoneGarmentCard(
+              isSelected: widget.selected == null,
+              label: l10n.noneLabel,
+              onTap: () =>
+                  Navigator.pop(context, const SelectGarmentResult(null)),
+            );
+          }
+          final g = items[widget.showNoneOption ? i - 1 : i];
           return GarmentCard(
             garment: g,
             isSelected:
@@ -143,42 +156,6 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
             onTap: () => Navigator.pop(context, SelectGarmentResult(g)),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildNoneCard(BuildContext context, AppLocalizations l10n) {
-    final isSelected = widget.selected == null;
-    return GestureDetector(
-      onTap: () => Navigator.pop(context, const SelectGarmentResult(null)),
-      child: SizedBox(
-        height: AppDimens.garmentCardHeight,
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.pageBackground : AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: isSelected
-                ? Border.all(color: AppColors.borderStrong, width: 1.5)
-                : null,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowResting,
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.block, size: 32, color: AppColors.icon),
-                const SizedBox(height: 8),
-                Text(l10n.noneLabel, style: AppTextStyle.bold14),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

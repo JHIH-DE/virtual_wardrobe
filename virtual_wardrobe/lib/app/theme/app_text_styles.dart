@@ -3,13 +3,23 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:virtual_wardrobe/app/theme/app_colors.dart';
 
 class AppTextStyle {
-  /// Home App Bar's "Aseri" wordmark. Not `const`: [GoogleFonts.sora] loads/
+  /// Home App Bar's "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads/
   /// caches the font at call time rather than being a const constructor.
   static TextStyle get brandTitle => GoogleFonts.sora(
     fontSize: 22,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.6,
     height: 1.0,
+    color: AppColors.textPrimary,
+  );
+
+  // ── Bold (w700) ────────────────────────────────────────────────────────
+
+  static const TextStyle bold24 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 24,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
@@ -53,13 +63,7 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
-  static const TextStyle bold10 = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 10,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
+  // ── Semibold (w600) ───────────────────────────────────────────────────
 
   static const TextStyle semibold16 = TextStyle(
     fontFamily: 'text/EN',
@@ -77,51 +81,15 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
-  static const TextStyle title22 = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 22,
-    fontWeight: FontWeight.w900,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
+  // ── Medium (w500) ─────────────────────────────────────────────────────
 
-  static const TextStyle title18 = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 18,
-    fontWeight: FontWeight.w900,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
-
-  static const TextStyle bold24 = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 24,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
-
-  static const TextStyle regular16 = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 16,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
-
-  /// Matches AppDialog's primary button label (`regular16` + `w500`) — use
-  /// for other primary call-to-action buttons that should read the same,
-  /// e.g. [BottomActionButton].
+  /// Matches AppDialog's primary button label and body copy (`regular16` +
+  /// `w500`) — use for other primary call-to-action buttons or dialog-style
+  /// paragraphs that should read the same, e.g. [BottomActionButton].
   static const TextStyle medium16 = TextStyle(
     fontFamily: 'text/EN',
     fontSize: 16,
     fontWeight: FontWeight.w500,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
-
-  static const TextStyle regular14 = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 14,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -132,6 +100,22 @@ class AppTextStyle {
     fontWeight: FontWeight.w500,
     letterSpacing: 0,
     color: AppColors.textSecondary,
+  );
+
+  // ── Regular (w400) ────────────────────────────────────────────────────
+
+  static const TextStyle regular16 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 16,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle regular14 = TextStyle(
+    fontFamily: 'text/EN',
+    fontSize: 14,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
   );
 
   static const TextStyle regular13 = TextStyle(
@@ -148,6 +132,8 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
+  // ── Role-specific ─────────────────────────────────────────────────────
+
   /// Small-caps label above a form field or card — e.g. Add Outfit's
   /// per-slot category label, Garment Details' field titles. Pair with
   /// `.toUpperCase()` on the text itself.
@@ -157,25 +143,5 @@ class AppTextStyle {
     fontWeight: FontWeight.w700,
     letterSpacing: 0.5,
     color: AppColors.textSecondary,
-  );
-
-  // Dialog title: Bold 20px, line-height 100%
-  static const TextStyle dialogTitle = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 20,
-    fontWeight: FontWeight.w700,
-    height: 1.0,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
-
-  // Dialog body: Medium 16px, line-height 22px
-  static const TextStyle dialogBody = TextStyle(
-    fontFamily: 'text/EN',
-    fontSize: 16,
-    fontWeight: FontWeight.w500,
-    height: 1.375, // 22px / 16px
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
   );
 }

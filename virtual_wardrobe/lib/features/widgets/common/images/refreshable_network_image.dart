@@ -25,7 +25,7 @@ class RefreshableNetworkImage extends StatefulWidget {
   final int? memCacheHeight;
 
   /// Leave null to use the default placeholder — a centered [PetalLoader]
-  /// — LUMI's one loading animation for every image in the app. Only
+  /// — Uwearis's one loading animation for every image in the app. Only
   /// override this for a genuinely different treatment, not just a
   /// different spinner.
   final Widget Function(BuildContext context)? placeholderBuilder;

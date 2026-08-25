@@ -214,12 +214,18 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
 /// Persists a trip edit (name/legs/activities) and reflects it in
 /// [tripsProvider]. Shared between [TripsPage] and any other entry point
 /// that edits a trip in place (e.g. the Home page's trip card).
+///
+/// Updates [tripsProvider] optimistically, before the network call, so the
+/// edit dialogs (which close immediately on Save, before the PATCH
+/// resolves) always show the just-made edit if reopened right away —
+/// rolled back if the request actually fails.
 Future<void> handleUpdateTrip(
   BuildContext context,
   WidgetRef ref,
   Trip trip, {
   required Trip updated,
 }) async {
+  ref.read(tripsProvider.notifier).updateTrip(updated);
   try {
     await TripService().updateTrip(
       int.parse(trip.id),
@@ -229,11 +235,9 @@ Future<void> handleUpdateTrip(
           ? null
           : updated.activities,
     );
-
-    if (!context.mounted) return;
-    ref.read(tripsProvider.notifier).updateTrip(updated);
   } catch (e) {
     if (!context.mounted) return;
+    ref.read(tripsProvider.notifier).updateTrip(trip);
     if (e is AuthExpiredException) {
       await AuthExpiredHandler.handle(context);
       return;

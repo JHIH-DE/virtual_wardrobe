@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -11,11 +12,25 @@ import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/fields/numeric_unit_field.dart';
-import '../widgets/common/images/photo_upload_field.dart';
+import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/section_title.dart';
 import 'image_editor_page.dart';
+
+/// Height/weight are always stored and saved as cm/kg (see
+/// [ProfileService.updateMyProfile]) — this only controls which unit the
+/// page displays and accepts input in. Not shared outside this page yet;
+/// promote to a provider if another screen needs to display height/weight
+/// in the user's preferred unit too.
+enum _UnitSystem {
+  metric,
+  imperial;
+
+  String get apiValue => this == metric ? 'metric' : 'imperial';
+
+  static _UnitSystem fromApiValue(String? value) =>
+      value == 'imperial' ? imperial : metric;
+}
 
 class AiModelPage extends StatefulWidget {
   const AiModelPage({super.key});
@@ -25,20 +40,38 @@ class AiModelPage extends StatefulWidget {
 }
 
 class _AiModelPageState extends State<AiModelPage> {
+  static const double _cmPerInch = 2.54;
+  static const double _kgPerLb = 0.45359237;
+
+  // Canonical values (always cm/kg) — these are what get saved.
   final _heightCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
+  // Imperial display/input — kept in sync with the canonical controllers
+  // above rather than being a second source of truth (see
+  // _syncImperialFromMetric and _onImperialHeight/WeightChanged).
+  final _heightFeetCtrl = TextEditingController();
+  final _heightInchesCtrl = TextEditingController();
+  final _weightLbCtrl = TextEditingController();
 
   bool _loading = false;
   String? _error;
   String? _fullBodyUrl;
   String? _fullBodyLocalPath;
+  // No backend endpoint for a face reference photo yet (only avatar and
+  // full-body exist) — kept purely as local UI state until one exists, so
+  // this never survives an app restart and _saveProfile never touches it.
+  String? _faceLocalPath;
   String _initialHeight = '';
   String _initialWeight = '';
+  _UnitSystem _unitSystem = _UnitSystem.metric;
+  _UnitSystem _initialUnitSystem = _UnitSystem.metric;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   bool get _isModified =>
-      _heightCtrl.text != _initialHeight || _weightCtrl.text != _initialWeight;
+      _heightCtrl.text != _initialHeight ||
+      _weightCtrl.text != _initialWeight ||
+      _unitSystem != _initialUnitSystem;
 
   @override
   void initState() {
@@ -56,7 +89,55 @@ class _AiModelPageState extends State<AiModelPage> {
   void dispose() {
     _heightCtrl.dispose();
     _weightCtrl.dispose();
+    _heightFeetCtrl.dispose();
+    _heightInchesCtrl.dispose();
+    _weightLbCtrl.dispose();
     super.dispose();
+  }
+
+  void _setUnitSystem(_UnitSystem next) {
+    if (next == _unitSystem) return;
+    setState(() {
+      _unitSystem = next;
+      if (next == _UnitSystem.imperial) _syncImperialFromMetric();
+    });
+  }
+
+  /// Recomputes the ft/in/lb fields from the canonical cm/kg controllers —
+  /// called on load and whenever the toggle switches to imperial, since
+  /// the imperial fields aren't kept live-updated while hidden.
+  void _syncImperialFromMetric() {
+    final cm = double.tryParse(_heightCtrl.text);
+    if (cm != null) {
+      final totalInches = cm / _cmPerInch;
+      final feet = (totalInches / 12).floor();
+      final inches = (totalInches - feet * 12).round();
+      _heightFeetCtrl.text = '$feet';
+      _heightInchesCtrl.text = '$inches';
+    }
+    final kg = double.tryParse(_weightCtrl.text);
+    if (kg != null) {
+      _weightLbCtrl.text = (kg / _kgPerLb).round().toString();
+    }
+  }
+
+  // Imperial fields push into the canonical controllers as the user
+  // types (one-directional — the metric fields aren't visible at the
+  // same time, so there's no risk of the two fighting each other).
+  void _onImperialHeightChanged() {
+    final feet = double.tryParse(_heightFeetCtrl.text) ?? 0;
+    final inches = double.tryParse(_heightInchesCtrl.text) ?? 0;
+    if (_heightFeetCtrl.text.isEmpty && _heightInchesCtrl.text.isEmpty) {
+      return;
+    }
+    final cm = (feet * 12 + inches) * _cmPerInch;
+    _heightCtrl.text = cm.round().toString();
+  }
+
+  void _onImperialWeightChanged() {
+    final lb = double.tryParse(_weightLbCtrl.text);
+    if (lb == null) return;
+    _weightCtrl.text = (lb * _kgPerLb).round().toString();
   }
 
   Future<void> _loadProfile() async {
@@ -80,6 +161,11 @@ class _AiModelPageState extends State<AiModelPage> {
         _fullBodyUrl = fullBodyUrl;
         _initialHeight = _heightCtrl.text;
         _initialWeight = _weightCtrl.text;
+        _unitSystem = _UnitSystem.fromApiValue(
+          profile['unit_system'] as String?,
+        );
+        _initialUnitSystem = _unitSystem;
+        _syncImperialFromMetric();
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -100,7 +186,11 @@ class _AiModelPageState extends State<AiModelPage> {
     try {
       final h = double.tryParse(_heightCtrl.text.trim());
       final w = double.tryParse(_weightCtrl.text.trim());
-      await ProfileService().updateMyProfile(height: h, weight: w);
+      await ProfileService().updateMyProfile(
+        height: h,
+        weight: w,
+        unitSystem: _unitSystem.apiValue,
+      );
       if (!mounted) return;
       Navigator.pop(context);
     } on AuthExpiredException {
@@ -121,6 +211,7 @@ class _AiModelPageState extends State<AiModelPage> {
         builder: (_) => ImageEditorPage(
           initialPath: _fullBodyLocalPath ?? _fullBodyUrl,
           showAnalysis: false,
+          aspectRatio: 3 / 4,
         ),
       ),
     );
@@ -130,6 +221,21 @@ class _AiModelPageState extends State<AiModelPage> {
     if (result.imagePath.startsWith('http')) return;
     setState(() => _fullBodyLocalPath = result.imagePath);
     await _uploadFullBody(result.imagePath);
+  }
+
+  Future<void> _changeFacePhoto() async {
+    final result = await Navigator.push<ImageEditResult?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ImageEditorPage(
+          initialPath: _faceLocalPath,
+          showAnalysis: false,
+          aspectRatio: 3 / 4,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    setState(() => _faceLocalPath = result.imagePath);
   }
 
   Future<void> _uploadFullBody(String localPath) async {
@@ -189,43 +295,155 @@ class _AiModelPageState extends State<AiModelPage> {
             ),
             const SizedBox(height: 20),
             SectionTitle(_l10n.faceReferenceLabel.toUpperCase()),
-            const SizedBox(height: 6),
-            Text(
-              _l10n.faceReferenceDescription,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 10),
-            PhotoUploadField(
-              imageProvider: null,
-              onTap: null,
-              title: _l10n.faceReferenceLabel,
-              subtitle: _l10n.faceReferenceUploadHint,
-              buttonLabel: _l10n.faceReferenceComingSoon,
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            _buildFaceReferenceCard(),
+            const SizedBox(height: 20),
             SectionTitle(_l10n.bodyReferenceLabel.toUpperCase()),
-            const SizedBox(height: 6),
-            Text(
-              _l10n.bodyReferenceDescription,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
+            const SizedBox(height: 8),
+            _buildBodyReferenceCard(),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                SectionTitle(_l10n.bodyMeasurementsLabel.toUpperCase()),
+                const Spacer(),
+                _buildUnitToggle(),
+              ],
             ),
-            const SizedBox(height: 10),
-            _buildPhotoUpload(),
-            const SizedBox(height: 16),
-            _buildHeightWeightFields(),
+            const SizedBox(height: 8),
+            _buildBodyMeasurementsCard(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPhotoUpload() {
+  /// Shared white-card chrome — radius, padding, resting shadow — used by
+  /// both the photo reference cards and the Body Measurements card so
+  /// they read as one family even though their contents differ.
+  Widget _buildCardShell({
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(14),
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowResting,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  /// One card shape for both Face and Body reference rows. [leading] (a
+  /// compact photo/placeholder square) sits beside a stacked block of
+  /// [subtitle] then [action] — [subtitle] pinned to the top edge and
+  /// [action] to the bottom edge (matching [leading]'s height via
+  /// [IntrinsicHeight]), rather than the pair floating centered together.
+  /// [onTap] makes just that block tappable.
+  Widget _buildReferenceCard({
+    required Widget leading,
+    required String subtitle,
+    required Widget action,
+    required VoidCallback? onTap,
+  }) {
+    Widget row = IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          leading,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  subtitle,
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+                Align(alignment: Alignment.centerRight, child: action),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap != null) {
+      row = InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: row,
+      );
+    }
+
+    // Tighter on top/bottom/left so the thumbnail sits close to those
+    // three edges — right stays at the normal card inset so the text/
+    // action column doesn't hug the edge too.
+    return _buildCardShell(
+      padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+      child: row,
+    );
+  }
+
+  Widget _buildPhotoAction(ImageProvider? provider) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          provider != null ? _l10n.changePhotoAction : _l10n.addPhotoAction,
+          style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
+        ),
+        const Icon(Icons.chevron_right, size: 18, color: AppColors.accent),
+      ],
+    );
+  }
+
+  Widget _buildPhotoLeading(ImageProvider? provider, IconData placeholder) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 96,
+        height: 128,
+        child: provider != null
+            ? Image(image: provider, fit: BoxFit.cover)
+            : Container(
+                color: AppColors.placeholderSurface,
+                child: Icon(
+                  placeholder,
+                  color: AppColors.placeholderIcon,
+                  size: 28,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildFaceReferenceCard() {
+    ImageProvider? provider;
+    if (_faceLocalPath != null) {
+      provider = FileImage(File(_faceLocalPath!));
+    }
+
+    return _buildReferenceCard(
+      onTap: _loading ? null : _changeFacePhoto,
+      leading: _buildPhotoLeading(provider, Icons.face_outlined),
+      subtitle: _l10n.faceAppearanceSubtitle,
+      action: _buildPhotoAction(provider),
+    );
+  }
+
+  Widget _buildBodyReferenceCard() {
     ImageProvider? provider;
     if (_fullBodyLocalPath != null) {
       provider = FileImage(File(_fullBodyLocalPath!));
@@ -235,30 +453,149 @@ class _AiModelPageState extends State<AiModelPage> {
       provider = NetworkImage(_fullBodyUrl!);
     }
 
-    return PhotoUploadField(
-      imageProvider: provider,
+    return _buildReferenceCard(
       onTap: _loading ? null : _changeFullBodyPhoto,
-      subtitle: _l10n.chooseClearFullBodyPhotoHint,
+      leading: _buildPhotoLeading(provider, Icons.accessibility_new_outlined),
+      subtitle: _l10n.bodyProportionsSubtitle,
+      action: _buildPhotoAction(provider),
     );
   }
 
-  Widget _buildHeightWeightFields() {
+  Widget _buildBodyMeasurementsCard() {
+    return _buildCardShell(
+      child: _unitSystem == _UnitSystem.metric
+          ? _buildMetricFields()
+          : _buildImperialFields(),
+    );
+  }
+
+  Widget _buildUnitToggle() {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.placeholderSurface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildUnitOption(_UnitSystem.metric, _l10n.unitMetricLabel),
+          _buildUnitOption(_UnitSystem.imperial, _l10n.unitImperialLabel),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnitOption(_UnitSystem value, String label) {
+    final selected = _unitSystem == value;
+    return GestureDetector(
+      onTap: () => _setUnitSystem(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.shadowResting,
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: AppTextStyle.regular12.copyWith(
+            color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static final _decimalFormatters = [
+    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+  ];
+
+  Widget _buildMetricFields() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: NumericUnitField(
+          child: _buildLabeledField(
             controller: _heightCtrl,
-            hint: _l10n.heightHint,
+            label: _l10n.heightHint,
             unit: 'cm',
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: NumericUnitField(
+          child: _buildLabeledField(
             controller: _weightCtrl,
-            hint: _l10n.weightHint,
+            label: _l10n.weightHint,
             unit: 'kg',
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImperialFields() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildLabeledField(
+            controller: _heightFeetCtrl,
+            label: _l10n.feetLabel,
+            unit: 'ft',
+            onChanged: (_) => _onImperialHeightChanged(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildLabeledField(
+            controller: _heightInchesCtrl,
+            label: _l10n.inchesLabel,
+            unit: 'in',
+            onChanged: (_) => _onImperialHeightChanged(),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildLabeledField(
+            controller: _weightLbCtrl,
+            label: _l10n.weightHint,
+            unit: 'lb',
+            onChanged: (_) => _onImperialWeightChanged(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Matches Account page's name field: a small uppercase [SectionTitle]
+  /// sitting above the box rather than a floating label inside it.
+  Widget _buildLabeledField({
+    required TextEditingController controller,
+    required String label,
+    required String unit,
+    ValueChanged<String>? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionTitle(label.toUpperCase()),
+        const SizedBox(height: 8),
+        AppTextField(
+          controller: controller,
+          suffixText: unit,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: _decimalFormatters,
+          onChanged: onChanged,
         ),
       ],
     );

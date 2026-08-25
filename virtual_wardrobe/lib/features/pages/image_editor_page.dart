@@ -31,11 +31,17 @@ class ImageEditorPage extends StatefulWidget {
   /// keep the generic fallback.
   final String? title;
 
+  /// width/height of the crop preview and the final exported image.
+  /// Garment photos default to 1:1 (square product shots); portrait
+  /// reference photos (avatar, AI Model's face/body) pass 3/4 instead.
+  final double aspectRatio;
+
   const ImageEditorPage({
     super.key,
     this.initialPath,
     this.showAnalysis = true,
     this.title,
+    this.aspectRatio = 1.0,
   });
 
   @override
@@ -87,13 +93,15 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     }
   }
 
-  /// Rasterizes exactly what's currently visible in the square preview —
+  /// Rasterizes exactly what's currently visible in the crop preview —
   /// i.e. respects whatever pinch-zoom/pan framing the user applied via
   /// [_transformationController] — rather than re-reading and blindly
-  /// center-cropping the source file. This also means it works the same
-  /// way whether [_currentPath] is a local file or a remote (http) URL:
-  /// either way, the output is always a fresh local file.
-  Future<String> _captureSquareImage() async {
+  /// center-cropping the source file. Its shape follows [widget.aspectRatio]
+  /// since it just captures whatever the preview boundary is laid out as.
+  /// This also means it works the same way whether [_currentPath] is a
+  /// local file or a remote (http) URL: either way, the output is always a
+  /// fresh local file.
+  Future<String> _captureFramedImage() async {
     final boundary =
         _previewBoundaryKey.currentContext!.findRenderObject()
             as RenderRepaintBoundary;
@@ -102,7 +110,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
     final outPath =
-        '${Directory.systemTemp.path}/sq_${DateTime.now().millisecondsSinceEpoch}.png';
+        '${Directory.systemTemp.path}/crop_${DateTime.now().millisecondsSinceEpoch}.png';
     await File(outPath).writeAsBytes(byteData!.buffer.asUint8List());
     return outPath;
   }
@@ -110,7 +118,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Future<void> _handleConfirmed() async {
     if (_currentPath == null || _isAnalyzing) return;
 
-    final processPath = await _captureSquareImage();
+    final processPath = await _captureFramedImage();
 
     if (widget.showAnalysis) {
       setState(() => _isAnalyzing = true);
@@ -200,12 +208,12 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     return Stack(
       children: [
         AspectRatio(
-          aspectRatio: 1.0,
+          aspectRatio: widget.aspectRatio,
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppDimens.cardRadius),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.shadowResting,
@@ -215,9 +223,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppDimens.cardRadius),
               // Inside the clip, so capturing this boundary doesn't bake in
-              // the rounded corners — just the square photo content.
+              // the rounded corners — just the framed photo content.
               child: RepaintBoundary(
                 key: _previewBoundaryKey,
                 child: _buildImageContent(),

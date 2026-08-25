@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
 import '../../data/garment.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/garment/none_garment_card.dart';
 
 /// Full-page grid picker for a single Create Outfit accessory slot. Tapping
 /// an item — or the "None" tile — immediately pops back with the result;
@@ -129,7 +129,14 @@ class _SelectAccessoryPageState extends State<SelectAccessoryPage> {
         ),
         itemCount: items.length + 1,
         itemBuilder: (context, i) {
-          if (i == 0) return _buildNoneCard(context, l10n);
+          if (i == 0) {
+            return NoneGarmentCard(
+              isSelected: widget.selected == null,
+              label: l10n.noneLabel,
+              onTap: () =>
+                  Navigator.pop(context, const SelectGarmentResult(null)),
+            );
+          }
           final g = items[i - 1];
           return GarmentCard(
             garment: g,
@@ -138,42 +145,6 @@ class _SelectAccessoryPageState extends State<SelectAccessoryPage> {
             onTap: () => Navigator.pop(context, SelectGarmentResult(g)),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildNoneCard(BuildContext context, AppLocalizations l10n) {
-    final isSelected = widget.selected == null;
-    return GestureDetector(
-      onTap: () => Navigator.pop(context, const SelectGarmentResult(null)),
-      child: SizedBox(
-        height: AppDimens.garmentCardHeight,
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.pageBackground : AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: isSelected
-                ? Border.all(color: AppColors.borderStrong, width: 1.5)
-                : null,
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowResting,
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.block, size: 32, color: AppColors.icon),
-                const SizedBox(height: 8),
-                Text(l10n.noneLabel, style: AppTextStyle.bold14),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

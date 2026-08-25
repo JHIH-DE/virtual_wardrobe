@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -41,7 +42,7 @@ class TripCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowResting,
@@ -116,8 +117,9 @@ class TripCard extends StatelessWidget {
                                 const SizedBox(width: 12),
                                 Text(
                                   l10n.deleteTrip,
-                                  style: const TextStyle(
+                                  style: AppTextStyle.regular14.copyWith(
                                     color: AppColors.error,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -207,7 +209,16 @@ class TripCard extends StatelessWidget {
   ) {
     return PopupMenuItem(
       value: value,
-      child: Row(children: [icon, const SizedBox(width: 12), Text(label)]),
+      child: Row(
+        children: [
+          icon,
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: AppTextStyle.regular14.copyWith(fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
     );
   }
 

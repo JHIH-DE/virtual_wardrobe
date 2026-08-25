@@ -16,6 +16,7 @@ import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
@@ -38,7 +39,7 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   bool _loadingOutfit = true;
-  // Every outfit option LUMI generated for today — generation/rendering all
+  // Every outfit option Uwearis generated for today — generation/rendering all
   // happens server-side on its own schedule now, so this is a plain read;
   // empty means no plan exists yet for today.
   List<Outfit> _todayOutfits = const [];
@@ -144,11 +145,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     return AppToolBar(
       title: AppLocalizations.of(context).navHome,
       titleWidget: Text(
-        'Aseri',
+        'Uwearis',
         textScaler: TextScaler.noScaling,
         style: AppTextStyle.brandTitle,
       ),
       showBackButton: false,
+      leading: _buildExploreButton(),
+      leadingWidth: 128,
       actions: [
         InkWell(
           onTap: () {
@@ -174,6 +177,45 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         const SizedBox(width: 8),
       ],
+    );
+  }
+
+  // Visual only for now — no destination page/feature wired up yet.
+  Widget _buildExploreButton() {
+    return Padding(
+      // Matches the default back-arrow's effective left inset (IconButton's
+      // own 8px Material padding + its 2px inner glyph padding).
+      padding: const EdgeInsets.only(left: 8),
+      // AppBar's leading slot hands its child a *tight* height constraint
+      // (locked to the full toolbar height) — Center converts that to a
+      // loose constraint so the pill's own `height` below actually applies
+      // instead of being stretched to fill the toolbar.
+      child: Center(
+        child: Container(
+          height: 28,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppColors.accent),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.explore_outlined,
+                size: 15,
+                color: AppColors.accent,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'Explore',
+                style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -275,7 +317,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         LabeledDivider(label: l10n.todaysOutfit),
         const SizedBox(height: 16),
         ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
           child: AspectRatio(
             aspectRatio: 1 / 1.15,
             child: _loadingOutfit
@@ -342,6 +384,14 @@ class _HomePageState extends ConsumerState<HomePage> {
         if (hasImage && _todayOutfits.length > 1) ...[
           const SizedBox(height: 10),
           _buildOutfitPageIndicator(),
+        ],
+        if (hasImage &&
+            outfit.reasoning != null &&
+            outfit.reasoning!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          UwearisInsightCard(
+            child: Text(outfit.reasoning!, style: AppTextStyle.regular14),
+          ),
         ],
       ],
     );

@@ -79,14 +79,14 @@ class _AppDialogState extends State<AppDialog>
               Text(
                 widget.title,
                 textAlign: TextAlign.center,
-                style: AppTextStyle.dialogTitle,
+                style: AppTextStyle.bold20,
               ),
               SizedBox(height: widget.titleSpacing),
               widget.content ??
                   Text(
                     widget.body!,
                     textAlign: TextAlign.center,
-                    style: AppTextStyle.dialogBody,
+                    style: AppTextStyle.medium16,
                   ),
               SizedBox(height: widget.contentToPrimarySpacing),
               if (widget.primaryIsTextButton) ...[
@@ -160,7 +160,10 @@ class _AppDialogState extends State<AppDialog>
                         ),
                         child: Text(
                           widget.secondaryLabel!,
-                          style: const TextStyle(color: AppColors.textPrimary),
+                          style: AppTextStyle.regular14.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
               ],

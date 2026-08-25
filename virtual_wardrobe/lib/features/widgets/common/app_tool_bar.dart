@@ -10,6 +10,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBack;
   final bool showBackButton;
   final Widget? leading;
+  final double? leadingWidth;
   final List<Widget>? actions;
   final PreferredSizeWidget? bottom;
   final bool centerTitle;
@@ -32,6 +33,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     this.onBack,
     this.showBackButton = true,
     this.leading,
+    this.leadingWidth,
     this.actions,
     this.bottom,
     this.centerTitle = true,
@@ -69,6 +71,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: centerTitle,
+        leadingWidth: leadingWidth,
         title: titleWidget != null
             ? Semantics(header: true, label: title, child: titleWidget)
             : Text(

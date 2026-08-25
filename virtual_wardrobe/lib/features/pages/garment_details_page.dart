@@ -21,13 +21,14 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/close_action_button.dart';
 import '../widgets/common/buttons/pill_button.dart';
-import '../widgets/common/cards/lumi_insight_card.dart';
+import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/cards/score_ring.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/compatibility_row.dart';
@@ -254,7 +255,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         children: [
           Icon(icon, color: AppColors.icon),
           const SizedBox(width: 12),
-          Text(label),
+          Text(
+            label,
+            style: AppTextStyle.regular14.copyWith(fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );
@@ -406,7 +410,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
                     const SizedBox(width: 12),
                     Text(
                       _l10n.deleteGarment,
-                      style: const TextStyle(color: AppColors.error),
+                      style: AppTextStyle.regular14.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -450,7 +457,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         children: [
           const SizedBox(height: 20),
           if (uploading) _buildUploadProgress(),
-          if (errorMessage != null) _buildErrorBanner(),
+          if (errorMessage != null)
+            InlineErrorText(
+              message: errorMessage!,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
@@ -472,16 +483,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
       child: LinearProgressIndicator(),
-    );
-  }
-
-  Widget _buildErrorBanner() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Text(
-        errorMessage!,
-        style: const TextStyle(color: AppColors.error),
-      ),
     );
   }
 
@@ -511,7 +512,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final subCategory = _subCategory.text.trim();
     final allGarments = ref.watch(garmentsProvider).valueOrNull ?? const [];
 
-    return LumiInsightCard(
+    return UwearisInsightCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1186,7 +1187,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         width: double.infinity,
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
           border: Border.all(
             color: AppColors.borderSubtle,
             style: BorderStyle.solid,
@@ -1211,11 +1212,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             border: Border.all(color: AppColors.borderSubtle),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             child: AspectRatio(
               aspectRatio: 1.1,
               child: img.startsWith('http')
@@ -1248,7 +1249,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.overlaySubtle,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppDimens.cardRadius),
               ),
               child: const Center(child: PetalLoader()),
             ),

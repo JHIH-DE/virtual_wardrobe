@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
@@ -20,7 +21,7 @@ class GarmentListCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
           boxShadow: [
             BoxShadow(
               color: AppColors.shadowResting,
@@ -35,7 +36,7 @@ class GarmentListCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16),
+                  left: Radius.circular(AppDimens.cardRadius),
                 ),
                 child: SizedBox(
                   width: 80,

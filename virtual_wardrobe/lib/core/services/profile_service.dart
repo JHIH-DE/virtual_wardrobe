@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../data/style_profile.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
@@ -12,6 +13,7 @@ class ProfileService with BaseService {
   static final String _avatarUrl = '$_baseUrl/avatar';
   static final String _fullBodyUrl = '$_baseUrl/full-body';
   static final String _styleTasteUrl = '$_baseUrl/style_taste';
+  static final String _styleProfileUrl = '$_baseUrl/style_profile';
 
   Future<Map<String, dynamic>> getMyProfile() async {
     debugLog('--- getMyProfile ---');
@@ -115,19 +117,6 @@ class ProfileService with BaseService {
     return data['full_body_object_url']?.toString();
   }
 
-  Future<List<String>?> getMyStyle() async {
-    debugLog('--- getMyStyle ---');
-    final uri = Uri.parse(_baseUrl);
-    final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
-    );
-    if (res.statusCode == 404) return null;
-    final envelope = decodeMap(res, op: 'getMyStyle');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    final style = data['style'];
-    return style is List ? style.map((e) => e.toString()).toList() : null;
-  }
-
   /// The user's Style Taste Profile — one entry per learned preference
   /// dimension (`style_balance`, `color_pairing`, ...), each with its own
   /// `score`/`confidence`/`label`/`insight`. When there isn't enough data
@@ -147,6 +136,25 @@ class ProfileService with BaseService {
     return data;
   }
 
+  /// Outfit counts per style tag (`GET /users/me/style_profile`), sorted
+  /// high to low by the backend — powers Style Taste's style profile pie
+  /// chart.
+  Future<List<StyleProfileItem>> getMyStyleProfile() async {
+    debugLog('--- getMyStyleProfile ---');
+    final uri = Uri.parse(_styleProfileUrl);
+    final res = await withAuth(
+      (token) => http.get(uri, headers: authHeaders(token)),
+    );
+    final envelope = decodeMap(res, op: 'getMyStyleProfile');
+    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    final items = data['items'];
+    if (items is! List) return const [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(StyleProfileItem.fromJson)
+        .toList();
+  }
+
   Future<Map<String, dynamic>> updateMyProfile({
     String? name,
     String? gender,
@@ -155,7 +163,6 @@ class ProfileService with BaseService {
     num? weight,
     String? unitSystem,
     String? location,
-    List<String>? style,
     Map<String, String>? weeklySchedule,
     num? temperatureOffsetC,
   }) async {
@@ -170,9 +177,6 @@ class ProfileService with BaseService {
     if (weight != null) payload['weight'] = weight;
     if (unitSystem != null) payload['unit_system'] = unitSystem;
     if (location != null) payload['location'] = location;
-    if (style != null) {
-      payload['style'] = style;
-    }
     if (weeklySchedule != null) payload['weekly_schedule'] = weeklySchedule;
     if (temperatureOffsetC != null) {
       payload['temperature_offset_c'] = temperatureOffsetC;

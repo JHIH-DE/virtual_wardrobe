@@ -250,7 +250,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     const SizedBox(width: 12),
                     Text(
                       _l10n.deleteOutfitTitle,
-                      style: const TextStyle(color: AppColors.error),
+                      style: AppTextStyle.regular14.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -272,7 +275,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         children: [
           Icon(icon, color: AppColors.icon),
           const SizedBox(width: 12),
-          Text(label),
+          Text(
+            label,
+            style: AppTextStyle.regular14.copyWith(fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );
@@ -566,7 +572,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                       ),
                       child: Text(
                         _l10n.save,
-                        style: const TextStyle(color: AppColors.textOnPrimary),
+                        style: AppTextStyle.regular14.copyWith(
+                          color: AppColors.textOnPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -829,7 +838,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             children: [
               const Icon(Icons.refresh, size: 20, color: AppColors.icon),
               const SizedBox(width: 8),
-              Text(_l10n.regenerate),
+              Text(
+                _l10n.regenerate,
+                style: AppTextStyle.regular14.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -844,7 +858,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
               const SizedBox(width: 8),
               Text(
                 _l10n.deleteThisVersion,
-                style: const TextStyle(color: AppColors.error),
+                style: AppTextStyle.regular14.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),

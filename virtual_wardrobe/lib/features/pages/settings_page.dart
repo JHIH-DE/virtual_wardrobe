@@ -11,6 +11,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
+import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -22,7 +23,6 @@ import 'ai_model_page.dart';
 import 'image_editor_page.dart';
 import 'lifestyle_page.dart';
 import 'login_page.dart';
-import 'style_profile_page.dart';
 import 'style_taste_page.dart';
 
 /// Wraps the bottom sheet's chosen locale so a `null` result (System
@@ -113,16 +113,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _changeAvatar() async {
-    final picked = await Navigator.push<String?>(
+    final result = await Navigator.push<ImageEditResult?>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            ImageEditorPage(initialPath: _avatarLocalPath ?? _avatarUrl),
+        builder: (_) => ImageEditorPage(
+          initialPath: _avatarLocalPath ?? _avatarUrl,
+          showAnalysis: false,
+        ),
       ),
     );
-    if (picked == null || picked.isEmpty) return;
-    setState(() => _avatarLocalPath = picked);
-    await _uploadAvatar(picked);
+    if (result == null || !mounted) return;
+    // Confirmed without picking a new photo — imagePath is still the
+    // original signed URL, not a local file. Nothing to upload.
+    if (result.imagePath.startsWith('http')) return;
+    setState(() => _avatarLocalPath = result.imagePath);
+    await _uploadAvatar(result.imagePath);
   }
 
   Future<void> _uploadAvatar(String localPath) async {
@@ -185,11 +190,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildAiModelCard(l10n),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildOutfitStyleCard(l10n),
                 ),
                 const SizedBox(height: 16),
                 Padding(
@@ -268,18 +268,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       showArrow: true,
       summary: _aiModelStatusLabel(l10n),
       child: Text(l10n.aiModel, style: AppTextStyle.bold16),
-    );
-  }
-
-  Widget _buildOutfitStyleCard(AppLocalizations l10n) {
-    return AppListCard(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const StyleProfilePage()),
-      ),
-      leading: const Icon(Icons.style_outlined, color: AppColors.icon),
-      showArrow: true,
-      child: Text(l10n.styleProfile, style: AppTextStyle.bold16),
     );
   }
 

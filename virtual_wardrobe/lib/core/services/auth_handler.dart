@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/pages/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'auth_storage.dart';
 
 class AuthExpiredException implements Exception {
@@ -24,13 +25,14 @@ class AuthExpiredHandler {
       await AuthStorage.clear();
 
       if (!context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       await showDialog(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AppDialog(
-          title: 'Session Expired',
-          body: 'Your session has expired. Please log in again to continue.',
-          primaryLabel: 'OK',
+          title: l10n.sessionExpiredTitle,
+          body: l10n.sessionExpiredMessage,
+          primaryLabel: l10n.ok,
           onPrimary: () => Navigator.of(ctx).pop(),
         ),
       );

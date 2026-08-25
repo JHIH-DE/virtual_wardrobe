@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../l10n/generated/app_localizations.dart';
+import 'locale_provider.dart';
 
 class WeatherData {
   final String location;
@@ -93,6 +97,18 @@ final weatherProvider = AsyncNotifierProvider<WeatherNotifier, WeatherData>(
 
 class WeatherNotifier extends AsyncNotifier<WeatherData> {
   static const String _cacheKey = 'cached_weather';
+
+  // No BuildContext here (this runs outside the widget tree) — resolve the
+  // user's explicit language override if set, else the device locale.
+  AppLocalizations _l10n() {
+    final locale =
+        ref.read(localeProvider) ?? PlatformDispatcher.instance.locale;
+    try {
+      return lookupAppLocalizations(locale);
+    } catch (_) {
+      return lookupAppLocalizations(const Locale('en'));
+    }
+  }
 
   @override
   Future<WeatherData> build() async {
@@ -196,12 +212,13 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
   }
 
   Future<String> _getLocationName(double lat, double lon) async {
+    final unknownLocation = _l10n().unknownLocation;
     try {
       final placemarks = await placemarkFromCoordinates(lat, lon);
       if (placemarks.isNotEmpty) {
-        return placemarks.first.administrativeArea ?? 'Unknown Location';
+        return placemarks.first.administrativeArea ?? unknownLocation;
       }
     } catch (_) {}
-    return 'Unknown Location';
+    return unknownLocation;
   }
 }

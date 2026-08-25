@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'LUMI';
+  String get appTitle => 'Uwearis';
 
   @override
   String get settings => 'Settings';
@@ -22,18 +22,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelDescription =>
-      'These references help LUMI understand your appearance for AI outfit try-on and future generated outfits.';
+      'Add reference photos to help Uwearis create more accurate try-ons.';
 
   @override
   String get faceReferenceLabel => 'Face Reference';
-
-  @override
-  String get faceReferenceDescription =>
-      'Used for your face, hairstyle, and facial features — not your body proportions.';
-
-  @override
-  String get faceReferenceUploadHint =>
-      'Upload a clear, front-facing portrait.';
 
   @override
   String get faceReferenceComingSoon => 'Coming soon';
@@ -42,8 +34,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bodyReferenceLabel => 'Body Reference';
 
   @override
-  String get bodyReferenceDescription =>
-      'Used for your body shape, height, and overall proportions.';
+  String get bodyMeasurementsLabel => 'Body Measurements';
+
+  @override
+  String get faceAppearanceSubtitle => 'Face, hair & facial features';
+
+  @override
+  String get bodyProportionsSubtitle => 'Body shape & proportions';
+
+  @override
+  String get changePhotoAction => 'Change photo';
+
+  @override
+  String get addPhotoAction => 'Add photo';
 
   @override
   String get aiModelReady => 'Ready · Face + Body Configured';
@@ -54,18 +57,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get styleProfile => 'Style Profile';
-
-  @override
   String get styleTaste => 'Style Taste';
 
   @override
+  String get styleTasteDetailsLabel => 'Style Insights';
+
+  @override
   String get styleTasteSummary =>
-      'LUMI learns how you like to put outfits together';
+      'Uwearis learns how you like to put outfits together';
 
   @override
   String get styleTasteHeroSubtitle =>
-      'Based on your saved outfits and feedback, LUMI is learning your style taste.';
+      'Based on your saved outfits and feedback, Uwearis is learning your style taste.';
 
   @override
   String get styleTasteDimensionsInfoTitle => 'What these mean';
@@ -76,6 +79,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get styleTasteRadarCardSubtitle =>
       'A visual summary of your style preferences.';
+
+  @override
+  String get styleProfileCardTitle => 'Style Distribution';
+
+  @override
+  String get styleProfileCardSubtitle =>
+      'How your outfits break down by style.';
+
+  @override
+  String get styleProfileOther => 'Other';
 
   @override
   String styleTasteAnalysisStats(int count, int favoriteCount) {
@@ -102,13 +115,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageTraditionalChinese => '繁體中文';
-
-  @override
-  String get findYourStyle => 'Find Your Style';
-
-  @override
-  String get styleSelectionInstruction =>
-      'Choose your styles for personalized outfit picks.';
 
   @override
   String get save => 'Save';
@@ -156,6 +162,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accessoriesLabel => 'Accessories';
 
   @override
+  String get optionalLabel => 'Optional';
+
+  @override
   String get createOutfit => 'Create Outfit';
 
   @override
@@ -165,7 +174,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sceneLabel => 'Scene';
 
   @override
-  String get sceneSubtitle => 'Choose where this outfit comes to life.';
+  String get sceneSubtitle => 'Choose a background for your outfit.';
 
   @override
   String get noneLabel => 'None';
@@ -176,9 +185,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String addItemLabel(String item) {
-    return 'Add $item';
-  }
+  String get notSelected => 'Not selected';
 
   @override
   String get loadingGarments => 'Loading Garments…';
@@ -233,13 +240,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String garmentsCount(int count) {
     return 'Garments ($count)';
   }
-
-  @override
-  String get setGenderFirstMessage =>
-      'Set your gender in Personal Details first — style tags are picked based on it.';
-
-  @override
-  String get openPersonalDetails => 'Open Personal Details';
 
   @override
   String get styleMinimalist => 'Minimalist';
@@ -395,15 +395,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editPhoto => 'Edit Photo';
 
   @override
-  String get uploadImage => 'Upload Image';
-
-  @override
-  String get chooseClearPhotoHint => 'Please choose a clear photo.';
-
-  @override
-  String get choosePhoto => 'Choose photo';
-
-  @override
   String noOptionsAvailable(String label) {
     return 'No $label available';
   }
@@ -446,11 +437,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get regenerate => 'Regenerate';
 
   @override
-  String get letLumiPlanOutfits => 'Let LUMI Plan Your Trip';
+  String get letUwearisPlanOutfits => 'Let Uwearis Plan Your Trip';
 
   @override
-  String get letLumiPlanOutfitsHint =>
-      'LUMI will build an outfit for every day using what\'s in your suitcase.';
+  String get letUwearisPlanOutfitsHint =>
+      'Uwearis will build an outfit for every day using what\'s in your suitcase.';
 
   @override
   String get regeneratePlanTitle => 'Regenerate outfit plan?';
@@ -473,7 +464,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get insufficientSuitcaseBody =>
-      'LUMI needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.';
+      'Uwearis needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.';
 
   @override
   String get goToSuitcase => 'Go to Suitcase';
@@ -1035,7 +1026,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lifestyleIntroLine1 =>
-      'Tell LUMI what your typical week looks like.';
+      'Tell Uwearis what your typical week looks like.';
 
   @override
   String get lifestyleIntroLine2 =>
@@ -1083,7 +1074,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInWithFacebook => 'Sign in with Facebook';
 
   @override
-  String get copyrightText => 'copyright reserved to LUMI inc.';
+  String get copyrightText => 'copyright reserved to Uwearis inc.';
 
   @override
   String get noItemsFound => 'No items found.';
@@ -1117,18 +1108,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get album => 'Album';
 
   @override
-  String get chooseClearFullBodyPhotoHint =>
-      'Please choose a clear, full-body photo.';
+  String get heightHint => 'Height';
 
   @override
-  String get heightHint => 'height';
+  String get weightHint => 'Weight';
 
   @override
-  String get weightHint => 'weight';
+  String get feetLabel => 'Feet';
+
+  @override
+  String get inchesLabel => 'Inches';
+
+  @override
+  String get unitMetricLabel => 'Metric';
+
+  @override
+  String get unitImperialLabel => 'Imperial';
 
   @override
   String get searchLocationTitle => 'Search Location';
 
   @override
   String get cityNameHint => 'City name...';
+
+  @override
+  String get crashScreenTitle => 'Something went wrong';
+
+  @override
+  String get crashScreenMessage =>
+      'Please restart the app. If the problem continues, contact support.';
+
+  @override
+  String get sessionExpiredTitle => 'Session Expired';
+
+  @override
+  String get sessionExpiredMessage =>
+      'Your session has expired. Please log in again to continue.';
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get googleLoginMissingToken => 'Google login failed: missing ID token';
+
+  @override
+  String get appleLoginMissingToken => 'Apple login failed: missing ID token';
+
+  @override
+  String get unknownLocation => 'Unknown Location';
 }

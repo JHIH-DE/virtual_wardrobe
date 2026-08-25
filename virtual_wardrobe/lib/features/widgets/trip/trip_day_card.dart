@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 /// One day's tile in [TripDetailsPage]'s horizontal day selector — date
@@ -45,7 +46,7 @@ class TripDayCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
       decoration: BoxDecoration(
         color: isSelected ? AppColors.accentTint : AppColors.interactiveArea,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         border: isSelected
             ? Border.all(color: AppColors.accent, width: 2)
             : Border.all(color: AppColors.shadowFaint, width: 1),

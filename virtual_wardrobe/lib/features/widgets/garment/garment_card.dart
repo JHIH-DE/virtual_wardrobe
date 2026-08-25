@@ -32,7 +32,7 @@ class GarmentCard extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             boxShadow: [
               BoxShadow(
                 color: AppColors.shadowResting,
@@ -46,12 +46,12 @@ class GarmentCard extends StatelessWidget {
           // being covered by them.
           foregroundDecoration: isSelected
               ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(AppDimens.cardRadius),
                   border: Border.all(color: AppColors.borderStrong, width: 1.5),
                 )
               : null,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

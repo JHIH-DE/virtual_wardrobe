@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/services/auth_handler.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
@@ -30,7 +31,9 @@ class ErrorStateWidget extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             error.toString(),
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: AppTextStyle.regular16.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 12),
           ElevatedButton(

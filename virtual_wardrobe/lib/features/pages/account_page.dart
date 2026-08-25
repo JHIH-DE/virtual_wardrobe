@@ -48,8 +48,8 @@ class _AccountPageState extends State<AccountPage> {
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   // These map the stable English values stored/sent to the backend to
-  // display text — the stored gender value itself must stay in English so
-  // style_profile_page.dart's gender-based lookup keeps working.
+  // display text — the stored gender value itself must stay in English
+  // since that's the wire format `ProfileService.updateMyProfile` expects.
   String _genderDisplayLabel(String value) {
     switch (value) {
       case 'Male':

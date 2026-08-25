@@ -102,7 +102,7 @@ abstract class AppLocalizations {
   /// The application title
   ///
   /// In en, this message translates to:
-  /// **'LUMI'**
+  /// **'Uwearis'**
   String get appTitle;
 
   /// No description provided for @settings.
@@ -126,7 +126,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiModelDescription.
   ///
   /// In en, this message translates to:
-  /// **'These references help LUMI understand your appearance for AI outfit try-on and future generated outfits.'**
+  /// **'Add reference photos to help Uwearis create more accurate try-ons.'**
   String get aiModelDescription;
 
   /// No description provided for @faceReferenceLabel.
@@ -134,18 +134,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Face Reference'**
   String get faceReferenceLabel;
-
-  /// No description provided for @faceReferenceDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Used for your face, hairstyle, and facial features — not your body proportions.'**
-  String get faceReferenceDescription;
-
-  /// No description provided for @faceReferenceUploadHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload a clear, front-facing portrait.'**
-  String get faceReferenceUploadHint;
 
   /// No description provided for @faceReferenceComingSoon.
   ///
@@ -159,11 +147,35 @@ abstract class AppLocalizations {
   /// **'Body Reference'**
   String get bodyReferenceLabel;
 
-  /// No description provided for @bodyReferenceDescription.
+  /// No description provided for @bodyMeasurementsLabel.
   ///
   /// In en, this message translates to:
-  /// **'Used for your body shape, height, and overall proportions.'**
-  String get bodyReferenceDescription;
+  /// **'Body Measurements'**
+  String get bodyMeasurementsLabel;
+
+  /// No description provided for @faceAppearanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Face, hair & facial features'**
+  String get faceAppearanceSubtitle;
+
+  /// No description provided for @bodyProportionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Body shape & proportions'**
+  String get bodyProportionsSubtitle;
+
+  /// No description provided for @changePhotoAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change photo'**
+  String get changePhotoAction;
+
+  /// No description provided for @addPhotoAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo'**
+  String get addPhotoAction;
 
   /// No description provided for @aiModelReady.
   ///
@@ -177,28 +189,28 @@ abstract class AppLocalizations {
   /// **'{count}/2 References Added'**
   String aiModelReferencesAdded(int count);
 
-  /// No description provided for @styleProfile.
-  ///
-  /// In en, this message translates to:
-  /// **'Style Profile'**
-  String get styleProfile;
-
   /// No description provided for @styleTaste.
   ///
   /// In en, this message translates to:
   /// **'Style Taste'**
   String get styleTaste;
 
+  /// No description provided for @styleTasteDetailsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Style Insights'**
+  String get styleTasteDetailsLabel;
+
   /// No description provided for @styleTasteSummary.
   ///
   /// In en, this message translates to:
-  /// **'LUMI learns how you like to put outfits together'**
+  /// **'Uwearis learns how you like to put outfits together'**
   String get styleTasteSummary;
 
   /// No description provided for @styleTasteHeroSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Based on your saved outfits and feedback, LUMI is learning your style taste.'**
+  /// **'Based on your saved outfits and feedback, Uwearis is learning your style taste.'**
   String get styleTasteHeroSubtitle;
 
   /// No description provided for @styleTasteDimensionsInfoTitle.
@@ -218,6 +230,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A visual summary of your style preferences.'**
   String get styleTasteRadarCardSubtitle;
+
+  /// No description provided for @styleProfileCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Style Distribution'**
+  String get styleProfileCardTitle;
+
+  /// No description provided for @styleProfileCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How your outfits break down by style.'**
+  String get styleProfileCardSubtitle;
+
+  /// No description provided for @styleProfileOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get styleProfileOther;
 
   /// Style Taste insight card's stat line — how many saved outfits were analyzed and how many of those are favorites
   ///
@@ -266,18 +296,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'繁體中文'**
   String get languageTraditionalChinese;
-
-  /// No description provided for @findYourStyle.
-  ///
-  /// In en, this message translates to:
-  /// **'Find Your Style'**
-  String get findYourStyle;
-
-  /// No description provided for @styleSelectionInstruction.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose your styles for personalized outfit picks.'**
-  String get styleSelectionInstruction;
 
   /// No description provided for @save.
   ///
@@ -369,6 +387,12 @@ abstract class AppLocalizations {
   /// **'Accessories'**
   String get accessoriesLabel;
 
+  /// No description provided for @optionalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get optionalLabel;
+
   /// No description provided for @createOutfit.
   ///
   /// In en, this message translates to:
@@ -390,7 +414,7 @@ abstract class AppLocalizations {
   /// No description provided for @sceneSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Choose where this outfit comes to life.'**
+  /// **'Choose a background for your outfit.'**
   String get sceneSubtitle;
 
   /// No description provided for @noneLabel.
@@ -405,11 +429,11 @@ abstract class AppLocalizations {
   /// **'Select {item}'**
   String selectItemTitle(String item);
 
-  /// No description provided for @addItemLabel.
+  /// No description provided for @notSelected.
   ///
   /// In en, this message translates to:
-  /// **'Add {item}'**
-  String addItemLabel(String item);
+  /// **'Not selected'**
+  String get notSelected;
 
   /// No description provided for @loadingGarments.
   ///
@@ -500,18 +524,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Garments ({count})'**
   String garmentsCount(int count);
-
-  /// No description provided for @setGenderFirstMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Set your gender in Personal Details first — style tags are picked based on it.'**
-  String get setGenderFirstMessage;
-
-  /// No description provided for @openPersonalDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Personal Details'**
-  String get openPersonalDetails;
 
   /// No description provided for @styleMinimalist.
   ///
@@ -807,24 +819,6 @@ abstract class AppLocalizations {
   /// **'Edit Photo'**
   String get editPhoto;
 
-  /// No description provided for @uploadImage.
-  ///
-  /// In en, this message translates to:
-  /// **'Upload Image'**
-  String get uploadImage;
-
-  /// No description provided for @chooseClearPhotoHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Please choose a clear photo.'**
-  String get chooseClearPhotoHint;
-
-  /// No description provided for @choosePhoto.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose photo'**
-  String get choosePhoto;
-
   /// Empty state for a filter group with no selectable options
   ///
   /// In en, this message translates to:
@@ -903,17 +897,17 @@ abstract class AppLocalizations {
   /// **'Regenerate'**
   String get regenerate;
 
-  /// No description provided for @letLumiPlanOutfits.
+  /// No description provided for @letUwearisPlanOutfits.
   ///
   /// In en, this message translates to:
-  /// **'Let LUMI Plan Your Trip'**
-  String get letLumiPlanOutfits;
+  /// **'Let Uwearis Plan Your Trip'**
+  String get letUwearisPlanOutfits;
 
-  /// No description provided for @letLumiPlanOutfitsHint.
+  /// No description provided for @letUwearisPlanOutfitsHint.
   ///
   /// In en, this message translates to:
-  /// **'LUMI will build an outfit for every day using what\'s in your suitcase.'**
-  String get letLumiPlanOutfitsHint;
+  /// **'Uwearis will build an outfit for every day using what\'s in your suitcase.'**
+  String get letUwearisPlanOutfitsHint;
 
   /// No description provided for @regeneratePlanTitle.
   ///
@@ -954,7 +948,7 @@ abstract class AppLocalizations {
   /// No description provided for @insufficientSuitcaseBody.
   ///
   /// In en, this message translates to:
-  /// **'LUMI needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.'**
+  /// **'Uwearis needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.'**
   String get insufficientSuitcaseBody;
 
   /// No description provided for @goToSuitcase.
@@ -2022,7 +2016,7 @@ abstract class AppLocalizations {
   /// No description provided for @lifestyleIntroLine1.
   ///
   /// In en, this message translates to:
-  /// **'Tell LUMI what your typical week looks like.'**
+  /// **'Tell Uwearis what your typical week looks like.'**
   String get lifestyleIntroLine1;
 
   /// No description provided for @lifestyleIntroLine2.
@@ -2112,7 +2106,7 @@ abstract class AppLocalizations {
   /// No description provided for @copyrightText.
   ///
   /// In en, this message translates to:
-  /// **'copyright reserved to LUMI inc.'**
+  /// **'copyright reserved to Uwearis inc.'**
   String get copyrightText;
 
   /// No description provided for @noItemsFound.
@@ -2175,23 +2169,41 @@ abstract class AppLocalizations {
   /// **'Album'**
   String get album;
 
-  /// No description provided for @chooseClearFullBodyPhotoHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Please choose a clear, full-body photo.'**
-  String get chooseClearFullBodyPhotoHint;
-
   /// No description provided for @heightHint.
   ///
   /// In en, this message translates to:
-  /// **'height'**
+  /// **'Height'**
   String get heightHint;
 
   /// No description provided for @weightHint.
   ///
   /// In en, this message translates to:
-  /// **'weight'**
+  /// **'Weight'**
   String get weightHint;
+
+  /// No description provided for @feetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Feet'**
+  String get feetLabel;
+
+  /// No description provided for @inchesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Inches'**
+  String get inchesLabel;
+
+  /// No description provided for @unitMetricLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Metric'**
+  String get unitMetricLabel;
+
+  /// No description provided for @unitImperialLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Imperial'**
+  String get unitImperialLabel;
 
   /// No description provided for @searchLocationTitle.
   ///
@@ -2204,6 +2216,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'City name...'**
   String get cityNameHint;
+
+  /// No description provided for @crashScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get crashScreenTitle;
+
+  /// No description provided for @crashScreenMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please restart the app. If the problem continues, contact support.'**
+  String get crashScreenMessage;
+
+  /// No description provided for @sessionExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Session Expired'**
+  String get sessionExpiredTitle;
+
+  /// No description provided for @sessionExpiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please log in again to continue.'**
+  String get sessionExpiredMessage;
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @googleLoginMissingToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Google login failed: missing ID token'**
+  String get googleLoginMissingToken;
+
+  /// No description provided for @appleLoginMissingToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple login failed: missing ID token'**
+  String get appleLoginMissingToken;
+
+  /// No description provided for @unknownLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown Location'**
+  String get unknownLocation;
 }
 
 class _AppLocalizationsDelegate

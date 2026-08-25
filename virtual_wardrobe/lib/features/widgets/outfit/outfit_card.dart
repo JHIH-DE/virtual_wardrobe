@@ -36,7 +36,7 @@ class OutfitCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             boxShadow: [
               BoxShadow(
                 color: AppColors.shadowResting,
@@ -46,7 +46,7 @@ class OutfitCard extends StatelessWidget {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

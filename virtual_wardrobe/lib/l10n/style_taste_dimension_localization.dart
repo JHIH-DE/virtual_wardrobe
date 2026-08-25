@@ -59,7 +59,7 @@ extension StyleTasteDimensionLocalization on StyleTasteDimension {
 
   /// Fixed, general explanation of what this dimension measures — shown in
   /// the "What these mean" dialog. Unlike [StyleTastePreference.description]
-  /// (LUMI's personalized read on where *this user* sits), this text is the
+  /// (Uwearis's personalized read on where *this user* sits), this text is the
   /// same for everyone and never comes from the API.
   String explanation(BuildContext context) {
     final l10n = AppLocalizations.of(context);

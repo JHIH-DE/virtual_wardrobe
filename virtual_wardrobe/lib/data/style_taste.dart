@@ -41,7 +41,7 @@ StyleTasteDimension? styleTasteDimensionFromApiValue(String value) {
   return null;
 }
 
-/// One learned preference bar — LUMI's current read on where the user sits
+/// One learned preference bar — Uwearis's current read on where the user sits
 /// between a dimension's two poles (e.g. Style Balance's Consistent/Mixed).
 /// Purely a visualization of what's been learned; never user-editable.
 class StyleTastePreference {
@@ -50,7 +50,7 @@ class StyleTastePreference {
   /// 0.0 = the dimension's low pole, 1.0 = the high pole.
   final double score;
 
-  /// 0.0-1.0, how confident LUMI is in [score]. Not surfaced in the UI yet —
+  /// 0.0-1.0, how confident Uwearis is in [score]. Not surfaced in the UI yet —
   /// carried through so a future version can show it (e.g. fade bars with
   /// low confidence) without a model change.
   final double confidence;
@@ -97,7 +97,7 @@ class StyleTastePreference {
 }
 
 /// The full `GET /users/me/style_taste` response (`ProfileService
-/// .getMyStyleTaste`) — [summary] is LUMI's one-paragraph read on the
+/// .getMyStyleTaste`) — [summary] is Uwearis's one-paragraph read on the
 /// user's overall style personality (shown in the Style Taste page's
 /// insight card), alongside the per-dimension [preferences] powering the
 /// radar chart. Bundled together since both come from the same fetch —

@@ -203,13 +203,13 @@ class _LifestylePageState extends State<LifestylePage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         onTap: () => _openOccasionPicker(index),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             boxShadow: [
               BoxShadow(
                 color: AppColors.shadowResting,

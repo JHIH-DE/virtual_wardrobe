@@ -14,7 +14,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/filter_button.dart';
-import '../widgets/common/cards/lumi_insight_card.dart';
+import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import 'trip_outfit_selection_page.dart';
@@ -287,7 +287,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
               slivers: [
                 if (_loadingAdvice || advice != null)
                   SliverToBoxAdapter(
-                    child: _buildLumiInsightCard(advice, selectedInCategory),
+                    child: _buildUwearisInsightCard(advice, selectedInCategory),
                   ),
                 _buildGridSliver(items, advice),
               ],
@@ -383,11 +383,11 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  Widget _buildLumiInsightCard(
+  Widget _buildUwearisInsightCard(
     _CategoryAdvice? advice,
     int selectedInCategory,
   ) {
-    return LumiInsightCard(
+    return UwearisInsightCard(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: _loadingAdvice
           ? Text(

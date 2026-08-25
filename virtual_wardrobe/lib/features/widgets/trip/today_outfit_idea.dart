@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/images/refreshable_network_image.dart';
@@ -46,11 +47,11 @@ class TodayOutfitIdea extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         border: Border.all(color: AppColors.borderSubtle),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         child: hasImage ? _buildImage(l10n) : _buildEmptyState(l10n),
       ),
     );
@@ -139,7 +140,7 @@ class TodayOutfitIdea extends StatelessWidget {
     children: [
       Text(
         l10n.noOutfitImageYet,
-        style: AppTextStyle.dialogBody.copyWith(color: AppColors.textSecondary),
+        style: AppTextStyle.medium16.copyWith(color: AppColors.textSecondary),
       ),
       const SizedBox(height: 16),
       ElevatedButton.icon(

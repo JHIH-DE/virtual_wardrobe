@@ -23,7 +23,7 @@ class TripService with BaseService {
     final body = {
       "name": name,
       "legs": legs.map((l) => l.toJson()).toList(),
-      "activities": activities,
+      "activity": activities,
       "days": days,
     };
     debugLog('createTrip body: ${jsonEncode(body)}');
@@ -47,43 +47,11 @@ class TripService with BaseService {
     return id;
   }
 
-  Future<void> generateTripPlan(
-    int tripId, {
-    String? defaultOccasion,
-    String? style,
-    List<Map<String, dynamic>>? days,
-    bool? minimizePacking,
-    Map<String, int>? categoryLimits,
-  }) async {
-    debugLog('--- generateTripPlan id=$tripId ---');
-    final uri = Uri.parse('$_baseUrl/$tripId/generate');
-
-    final body = <String, dynamic>{
-      if (defaultOccasion != null) 'default_occasion': defaultOccasion,
-      if (style != null) 'style': style,
-      if (days != null) 'days': days,
-      if (minimizePacking != null) 'minimize_packing': minimizePacking,
-      if (categoryLimits != null) 'category_limits': categoryLimits,
-    };
-
-    final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ),
-    );
-
-    decodeMap(res, op: 'generateTripPlan');
-  }
-
   Future<void> updateTrip(
     int tripId, {
     String? name,
     List<TripLeg>? legs,
     List<String>? activities,
-    String? defaultOccasion,
-    String? style,
     List<Map<String, dynamic>>? days,
   }) async {
     debugLog('--- updateTrip id=$tripId ---');
@@ -92,9 +60,7 @@ class TripService with BaseService {
     final body = <String, dynamic>{
       if (name != null) 'name': name,
       if (legs != null) 'legs': legs.map((l) => l.toJson()).toList(),
-      if (activities != null) 'activities': activities,
-      if (defaultOccasion != null) 'default_occasion': defaultOccasion,
-      if (style != null) 'style': style,
+      if (activities != null) 'activity': activities,
       if (days != null) 'days': days,
     };
 
@@ -132,6 +98,13 @@ class TripService with BaseService {
         .toList();
   }
 
+  /// Full trip structure with each day's already-tried-on outfits
+  /// (`days[].outfits[]`, same shape as `/api/v1/outfit`'s `Outfit` plus the
+  /// option it came from) — days with nothing tried on yet are
+  /// `{group_id: null, outfits: []}`. Does not include AI-suggested option
+  /// content (reasoning, which garments an untried option picked) — that
+  /// only ever appears in [generateTripPlan]/[autoGenerateTripPlan]'s
+  /// response, immediately after generating.
   Future<Map<String, dynamic>> getTrip(int tripId) async {
     debugLog('--- getTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId');
@@ -144,6 +117,65 @@ class TripService with BaseService {
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
       throw Exception('getTrip: response missing data object');
+    }
+    return data;
+  }
+
+  /// Packs the suitcase into a per-day outfit plan (AI-suggested options,
+  /// not yet rendered as images). Rebuilds every day's `TripPlanDay` from
+  /// scratch — any day that already had a try-on group loses it, GCS
+  /// objects included.
+  Future<Map<String, dynamic>> generateTripPlan(
+    int tripId, {
+    List<Map<String, dynamic>>? days,
+  }) async {
+    debugLog('--- generateTripPlan id=$tripId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/generate');
+
+    final body = <String, dynamic>{if (days != null) 'days': days};
+
+    final res = await withAuth(
+      (token) => http.post(
+        uri,
+        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ),
+    );
+
+    final envelope = decodeMap(res, op: 'generateTripPlan');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('generateTripPlan: response missing data object');
+    }
+    return data;
+  }
+
+  /// Same as [generateTripPlan], but also synchronously renders every
+  /// option on every day (not just the one the user picks via
+  /// [generateOptionOutfit]) — one call covers the whole trip, at the cost
+  /// of a much longer request (measured over 2 minutes for a multi-day
+  /// trip; scale timeouts/loading UI accordingly).
+  Future<Map<String, dynamic>> autoGenerateTripPlan(
+    int tripId, {
+    List<Map<String, dynamic>>? days,
+  }) async {
+    debugLog('--- autoGenerateTripPlan id=$tripId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/auto_generate');
+
+    final body = <String, dynamic>{if (days != null) 'days': days};
+
+    final res = await withAuth(
+      (token) => http.post(
+        uri,
+        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      ),
+    );
+
+    final envelope = decodeMap(res, op: 'autoGenerateTripPlan');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('autoGenerateTripPlan: response missing data object');
     }
     return data;
   }
@@ -217,34 +249,35 @@ class TripService with BaseService {
     return data;
   }
 
-  Future<Map<String, dynamic>> setTryonJobToOption(
-    int outfitId, {
+  /// Synchronously renders [optionId] (one of the options a prior
+  /// [generateTripPlan] call put on that day) into a try-on image. The
+  /// first option tried on for a given day creates that day's shared
+  /// `OutfitGroup`; every other option tried on that same day (whether
+  /// picking a different alternative or redoing the same one) joins that
+  /// same group instead of starting a new one.
+  Future<Map<String, dynamic>> generateOptionOutfit(
+    int tripId, {
     required int optionId,
-    required int tripId,
   }) async {
-    debugLog(
-      '--- setTryonJobToOption tripId=$tripId optionId=$optionId outfitId=$outfitId ---',
-    );
-    final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/job');
+    debugLog('--- generateOptionOutfit tripId=$tripId optionId=$optionId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/outfit');
 
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode({'outfit_id': outfitId}),
-      ),
+      (token) => http.post(uri, headers: authHeaders(token)),
     );
 
-    final envelope = decodeMap(res, op: 'setTryonJobToOption');
+    final envelope = decodeMap(res, op: 'generateOptionOutfit');
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
-      throw Exception('setTryonJobToOption: response missing data object');
+      throw Exception('generateOptionOutfit: response missing data object');
     }
     return data;
   }
 
   /// Manually replaces the garments in a trip outfit option (e.g. the user
-  /// swapping out what LUMI picked for a given day).
+  /// swapping out what Uwearis picked for a given day) — does not call AI
+  /// again. Clears that option's already-tried-on outfit, if any (see
+  /// [generateOptionOutfit] to try it on again with the new garments).
   Future<Map<String, dynamic>> updateOptionItems(
     int tripId, {
     required int optionId,

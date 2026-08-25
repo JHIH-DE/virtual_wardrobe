@@ -78,7 +78,7 @@ class FloatingNavBar extends StatelessWidget {
       bottom: 0,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
           // The bar sits below a blank spacer reserving room for the
           // center button's top half, so the Stack's own bounds fully
           // contain the button — a plain negative `top` offset here would

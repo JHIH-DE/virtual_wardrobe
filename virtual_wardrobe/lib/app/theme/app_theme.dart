@@ -29,7 +29,6 @@ class AppTheme {
         foregroundColor: AppColors.textOnPrimary,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
       ),
     );
   }

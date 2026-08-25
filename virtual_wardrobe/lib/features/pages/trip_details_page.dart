@@ -13,7 +13,7 @@ import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
-import '../widgets/common/cards/lumi_insight_card.dart';
+import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
@@ -173,7 +173,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   List<Garment> get _todayGarments => _currentDayOutfit?.garments ?? const [];
 
   /// True if any of today's outfit garments have since been removed from
-  /// the trip's suitcase — e.g. the user unpacked something after LUMI (or
+  /// the trip's suitcase — e.g. the user unpacked something after Uwearis (or
   /// the user themself) already assigned it to this day.
   bool get _hasMissingSuitcaseItems =>
       _todayGarments.any((g) => g.id != null && !_suitcaseIds.contains(g.id));
@@ -313,7 +313,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   }
 
   /// A suitcase needs at least one upper-body piece (top or one-piece) and
-  /// one lower-body piece (bottom or one-piece) for LUMI to have any chance
+  /// one lower-body piece (bottom or one-piece) for Uwearis to have any chance
   /// of assembling a complete outfit.
   bool _hasViableSuitcase(List<Garment> suitcase) {
     final categories = suitcase.map((g) => g.category).toSet();
@@ -335,7 +335,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     await _fetchSuitcaseGarments();
   }
 
-  /// Asks LUMI to build an outfit for every day of the trip from whatever's
+  /// Asks Uwearis to build an outfit for every day of the trip from whatever's
   /// currently packed in the suitcase. Confirms first if a plan already
   /// exists, since this replaces every day's outfit — including any the
   /// user adjusted by hand.
@@ -398,7 +398,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   /// Lets the user manually swap which suitcase garments make up the
   /// selected day's outfit, reusing [AddOutfitPage]'s per-category slot
-  /// picker. Only reachable once LUMI has generated a plan (there has to be
+  /// picker. Only reachable once Uwearis has generated a plan (there has to be
   /// an existing option to PATCH).
   Future<void> _openDayOutfitEditor() async {
     final optionId = _currentDayOutfit?.optionId;
@@ -522,7 +522,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
               const SizedBox(height: 20),
               _paddedSection(_buildTripHeader()),
               const SizedBox(height: 20),
-              _paddedSection(_buildLumiInsightCard()),
+              _paddedSection(_buildUwearisInsightCard()),
               const SizedBox(height: 20),
               _paddedSection(_buildSuitcaseSection()),
               const SizedBox(height: 20),
@@ -682,7 +682,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 Text(
                   "${DateFormat('MMM d').format(widget.trip.legs[i].dateRange.start)} - "
                   "${DateFormat('MMM d').format(widget.trip.legs[i].dateRange.end)}",
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -915,10 +917,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           children: [
             const Icon(Icons.auto_awesome, color: AppColors.accent, size: 28),
             const SizedBox(height: 8),
-            Text(_l10n.letLumiPlanOutfits, style: AppTextStyle.bold14),
+            Text(_l10n.letUwearisPlanOutfits, style: AppTextStyle.bold14),
             const SizedBox(height: 4),
             Text(
-              _l10n.letLumiPlanOutfitsHint,
+              _l10n.letUwearisPlanOutfitsHint,
               textAlign: TextAlign.center,
               style: AppTextStyle.regular13.copyWith(
                 color: AppColors.textSecondary,
@@ -930,12 +932,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  Widget _buildLumiInsightCard() {
+  Widget _buildUwearisInsightCard() {
     if (!_loadingPackingAdvice &&
         (_packingAdvice == null || _packingAdvice!.isEmpty)) {
       return const SizedBox.shrink();
     }
-    return LumiInsightCard(
+    return UwearisInsightCard(
       child: _loadingPackingAdvice
           ? Row(
               children: [

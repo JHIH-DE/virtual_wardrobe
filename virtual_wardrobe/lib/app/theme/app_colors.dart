@@ -61,8 +61,8 @@ class AppColors {
   static const Color cardShadowTop = Color(0xFFE9E5DC);
   static const Color cardShadowBottom = Color(0xFFD6CFC0);
 
-  // LumiInsightCard — the AI-output call-out's gradient background tint
-  static const Color lumiCardTint = Color(0xFFF3EFE6);
+  // UwearisInsightCard — the AI-output call-out's gradient background tint
+  static const Color uwearisCardTint = Color(0xFFF3EFE6);
 
   // CategoryTag (season/style/collection chips)
   static const Color tagBackground = Color(0xFFEFEAE2);
@@ -70,6 +70,25 @@ class AppColors {
 
   // StylePreferencesPage — selected card's checkmark badge fill
   static const Color styleSelected = accent;
+
+  // Style Profile pie chart's categorical series — a fixed, validated
+  // 5-hue order (adjacent-pairlist CVD ΔE >= 8, normal-vision ΔE >= 15;
+  // see the dataviz skill's reference palette). Never reorder or cycle
+  // these independently of each other, and never add a 7th — past this
+  // many series, fold the remainder into chartOther instead. Some of these
+  // read below 3:1 contrast on `surface`, so a slice must always carry a
+  // visible text label alongside its color, never color alone.
+  static const List<Color> chartCategorical = [
+    Color(0xFF2A78D6), // blue
+    Color(0xFFEB6834), // orange
+    Color(0xFF1BAF7A), // aqua
+    Color(0xFFEDA100), // yellow
+    Color(0xFFE87BA4), // magenta
+  ];
+  // The folded "everything past the top N series" bucket — deliberately a
+  // neutral, not part of the categorical sequence above, since it isn't a
+  // single identity.
+  static const Color chartOther = borderStrong;
 
   // Overlays — composed as base color + alpha so the opacity is explicit
   static const Color overlayScrim = Color(

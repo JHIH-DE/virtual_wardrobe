@@ -1,26 +1,31 @@
 {
   "@@locale": "zh",
-  "appTitle": "LUMI",
+  "appTitle": "Uwearis",
 
   "settings": "設定",
   "account": "帳號",
   "aiModel": "AI 模型",
-  "aiModelDescription": "這些參考資料能幫助 LUMI 了解你的外貌，用於 AI 試穿與未來的 AI 生成穿搭。",
+  "aiModelDescription": "新增參考照片，幫助 Uwearis 打造更精準的試穿效果。",
   "faceReferenceLabel": "臉部參考",
-  "faceReferenceDescription": "用於你的臉部、髮型與五官特徵——不會用於身形比例。",
-  "faceReferenceUploadHint": "請上傳一張清晰的正面大頭照。",
   "faceReferenceComingSoon": "即將推出",
   "bodyReferenceLabel": "身形參考",
-  "bodyReferenceDescription": "用於你的身形、身高與整體比例。",
+  "bodyMeasurementsLabel": "身形數據",
+  "faceAppearanceSubtitle": "臉部、髮型與五官特徵",
+  "bodyProportionsSubtitle": "身形與整體比例",
+  "changePhotoAction": "更換照片",
+  "addPhotoAction": "新增照片",
   "aiModelReady": "已就緒．臉部與身形皆已設定",
   "aiModelReferencesAdded": "已新增 {count}/2 項參考資料",
-  "styleProfile": "風格檔案",
   "styleTaste": "風格品味",
-  "styleTasteSummary": "LUMI 學習你偏好的穿搭組合方式",
-  "styleTasteHeroSubtitle": "根據你收藏的穿搭與回饋，LUMI 正在學習你的風格品味。",
+  "styleTasteDetailsLabel": "風格洞察",
+  "styleTasteSummary": "Uwearis 學習你偏好的穿搭組合方式",
+  "styleTasteHeroSubtitle": "根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。",
   "styleTasteDimensionsInfoTitle": "這些代表什麼",
   "styleTasteRadarCardTitle": "你的風格品味",
   "styleTasteRadarCardSubtitle": "你的風格偏好視覺化總覽。",
+  "styleProfileCardTitle": "風格分布",
+  "styleProfileCardSubtitle": "你的穿搭依風格的分布情況。",
+  "styleProfileOther": "其他",
   "styleTasteAnalysisStats": "已分析 {count} 套穿搭．{favoriteCount} 套收藏",
   "@styleTasteAnalysisStats": {
     "placeholders": {
@@ -40,9 +45,6 @@
   "languageEnglish": "English",
   "languageTraditionalChinese": "繁體中文",
 
-  "findYourStyle": "探索你的風格",
-  "styleSelectionInstruction": "選擇你的風格，獲得個人化穿搭推薦。",
-
   "save": "儲存",
   "cancel": "取消",
   "remove": "移除",
@@ -59,13 +61,14 @@
   "customizationOptional": "配件與場景",
   "currentOutfitLabel": "目前穿搭",
   "accessoriesLabel": "配件",
+  "optionalLabel": "選填",
   "createOutfit": "建立造型",
   "createOutfitHint": "使用這些單品建立另一套穿搭造型",
   "sceneLabel": "場景",
-  "sceneSubtitle": "選擇讓這套穿搭躍然眼前的場景。",
+  "sceneSubtitle": "為你的穿搭選擇背景。",
   "noneLabel": "無",
   "selectItemTitle": "選擇{item}",
-  "addItemLabel": "新增{item}",
+  "notSelected": "尚未選擇",
   "loadingGarments": "載入服飾中…",
   "myCollection": "我的收藏",
   "myOutfit": "我的穿搭",
@@ -84,9 +87,6 @@
   "outfitTitle": "{style}穿搭",
 
   "garmentsCount": "服飾（{count}）",
-
-  "setGenderFirstMessage": "請先在個人資料中設定性別，風格標籤會依據性別顯示。",
-  "openPersonalDetails": "前往個人資料",
 
   "styleMinimalist": "極簡風",
   "styleKorean": "韓系風",
@@ -141,10 +141,6 @@
   "matchALookSubtitle": "上傳一張照片，讓我們從你的衣櫃中找出相似的單品。",
   "editPhoto": "編輯照片",
 
-  "uploadImage": "上傳圖片",
-  "chooseClearPhotoHint": "請選擇一張清晰的照片。",
-  "choosePhoto": "選擇照片",
-
   "noOptionsAvailable": "沒有可用的{label}",
 
   "editTripName": "編輯名稱",
@@ -160,15 +156,15 @@
   "fillAllFieldsError": "請填寫所有欄位",
 
   "regenerate": "重新產生",
-  "letLumiPlanOutfits": "讓 LUMI 規劃你的行程穿搭",
-  "letLumiPlanOutfitsHint": "LUMI 會根據你行李箱裡的衣物，為每一天安排一套穿搭。",
+  "letUwearisPlanOutfits": "讓 Uwearis 規劃你的行程穿搭",
+  "letUwearisPlanOutfitsHint": "Uwearis 會根據你行李箱裡的衣物，為每一天安排一套穿搭。",
   "regeneratePlanTitle": "重新規劃穿搭？",
   "regeneratePlanBody": "這會取代每一天目前的穿搭，包含你手動調整過的部分。",
   "failedToGeneratePlan": "規劃穿搭失敗",
   "generatingPlanEllipsis": "規劃穿搭中…",
   "failedToUpdateDayOutfit": "更新穿搭失敗",
   "insufficientSuitcaseTitle": "行李箱衣物不足",
-  "insufficientSuitcaseBody": "LUMI 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。",
+  "insufficientSuitcaseBody": "Uwearis 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。",
   "goToSuitcase": "前往行李箱",
   "missingFromSuitcaseCount": "還有 {count} 件尚未打包。",
   "addToSuitcase": "加入行李箱",
@@ -361,7 +357,7 @@
   "comfortAdjustment": "舒適度調整",
   "weeklySchedule": "每週排程",
   "perceivedTempOffset": "體感溫度調整",
-  "lifestyleIntroLine1": "告訴 LUMI 你典型的一週作息。",
+  "lifestyleIntroLine1": "告訴 Uwearis 你典型的一週作息。",
   "lifestyleIntroLine2": "我們會根據你的日常推薦合適的穿搭。",
   "comfortAdjustmentIntro": "每個人對冷熱的感受不同，這裡可以微調成適合你的體感。",
   "selectOccasionTitle": "選擇場合",
@@ -378,7 +374,7 @@
   "continueWithApple": "使用 Apple 繼續",
   "signInWithGoogle": "使用 Google 登入",
   "signInWithFacebook": "使用 Facebook 登入",
-  "copyrightText": "版權所有 © LUMI inc.",
+  "copyrightText": "版權所有 © Uwearis inc.",
 
   "noItemsFound": "找不到項目。",
 
@@ -392,10 +388,23 @@
   "retake": "重拍",
   "album": "相簿",
 
-  "chooseClearFullBodyPhotoHint": "請選擇一張清晰的全身照。",
   "heightHint": "身高",
   "weightHint": "體重",
+  "feetLabel": "英尺",
+  "inchesLabel": "英寸",
+  "unitMetricLabel": "公制",
+  "unitImperialLabel": "英制",
 
   "searchLocationTitle": "搜尋地點",
-  "cityNameHint": "城市名稱..."
+  "cityNameHint": "城市名稱...",
+
+  "crashScreenTitle": "發生了一點問題",
+  "crashScreenMessage": "請重新啟動 App，若問題持續請聯繫客服。",
+
+  "sessionExpiredTitle": "登入已過期",
+  "sessionExpiredMessage": "您的登入已過期，請重新登入以繼續使用。",
+  "ok": "確定",
+  "googleLoginMissingToken": "Google 登入失敗：缺少身份權杖",
+  "appleLoginMissingToken": "Apple 登入失敗：缺少身份權杖",
+  "unknownLocation": "未知地點"
 }

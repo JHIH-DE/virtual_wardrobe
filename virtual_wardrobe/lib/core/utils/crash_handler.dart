@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_text_styles.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/generated/app_localizations_zh.dart';
 import 'debug_log.dart';
 
 class GlobalErrorHandler {
@@ -41,8 +44,22 @@ class GlobalErrorHandler {
     // TODO: replace with Crashlytics.recordError(error, stack) before launch
   }
 
+  // ErrorWidget.builder gives no BuildContext, so this can't use
+  // AppLocalizations.of(context) — look the strings up directly from the
+  // device locale instead, falling back to the hardcoded Chinese default if
+  // that locale isn't one gen-l10n knows about (this screen must never
+  // throw itself).
+  static AppLocalizations _errorScreenL10n() {
+    try {
+      return lookupAppLocalizations(PlatformDispatcher.instance.locale);
+    } catch (_) {
+      return AppLocalizationsZh();
+    }
+  }
+
   // Clean error screen shown in release mode instead of red screen
   static Widget _buildErrorWidget(FlutterErrorDetails details) {
+    final l10n = _errorScreenL10n();
     return Scaffold(
       body: Center(
         child: Padding(
@@ -52,12 +69,9 @@ class GlobalErrorHandler {
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppColors.icon),
               const SizedBox(height: 16),
-              const Text(
-                '發生了一點問題',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              Text(l10n.crashScreenTitle, style: AppTextStyle.bold18),
               const SizedBox(height: 8),
-              const Text('請重新啟動 App，若問題持續請聯繫客服。', textAlign: TextAlign.center),
+              Text(l10n.crashScreenMessage, textAlign: TextAlign.center),
             ],
           ),
         ),

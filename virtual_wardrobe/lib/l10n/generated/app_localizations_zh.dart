@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'LUMI';
+  String get appTitle => 'Uwearis';
 
   @override
   String get settings => '設定';
@@ -21,17 +21,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiModel => 'AI 模型';
 
   @override
-  String get aiModelDescription =>
-      '這些參考資料能幫助 LUMI 了解你的外貌，用於 AI 試穿與未來的 AI 生成穿搭。';
+  String get aiModelDescription => '新增參考照片，幫助 Uwearis 打造更精準的試穿效果。';
 
   @override
   String get faceReferenceLabel => '臉部參考';
-
-  @override
-  String get faceReferenceDescription => '用於你的臉部、髮型與五官特徵——不會用於身形比例。';
-
-  @override
-  String get faceReferenceUploadHint => '請上傳一張清晰的正面大頭照。';
 
   @override
   String get faceReferenceComingSoon => '即將推出';
@@ -40,7 +33,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bodyReferenceLabel => '身形參考';
 
   @override
-  String get bodyReferenceDescription => '用於你的身形、身高與整體比例。';
+  String get bodyMeasurementsLabel => '身形數據';
+
+  @override
+  String get faceAppearanceSubtitle => '臉部、髮型與五官特徵';
+
+  @override
+  String get bodyProportionsSubtitle => '身形與整體比例';
+
+  @override
+  String get changePhotoAction => '更換照片';
+
+  @override
+  String get addPhotoAction => '新增照片';
 
   @override
   String get aiModelReady => '已就緒．臉部與身形皆已設定';
@@ -51,16 +56,16 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get styleProfile => '風格檔案';
-
-  @override
   String get styleTaste => '風格品味';
 
   @override
-  String get styleTasteSummary => 'LUMI 學習你偏好的穿搭組合方式';
+  String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，LUMI 正在學習你的風格品味。';
+  String get styleTasteSummary => 'Uwearis 學習你偏好的穿搭組合方式';
+
+  @override
+  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
 
   @override
   String get styleTasteDimensionsInfoTitle => '這些代表什麼';
@@ -70,6 +75,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
+
+  @override
+  String get styleProfileCardTitle => '風格分布';
+
+  @override
+  String get styleProfileCardSubtitle => '你的穿搭依風格的分布情況。';
+
+  @override
+  String get styleProfileOther => '其他';
 
   @override
   String styleTasteAnalysisStats(int count, int favoriteCount) {
@@ -96,12 +110,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get languageTraditionalChinese => '繁體中文';
-
-  @override
-  String get findYourStyle => '探索你的風格';
-
-  @override
-  String get styleSelectionInstruction => '選擇你的風格，獲得個人化穿搭推薦。';
 
   @override
   String get save => '儲存';
@@ -149,6 +157,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accessoriesLabel => '配件';
 
   @override
+  String get optionalLabel => '選填';
+
+  @override
   String get createOutfit => '建立造型';
 
   @override
@@ -158,7 +169,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sceneLabel => '場景';
 
   @override
-  String get sceneSubtitle => '選擇讓這套穿搭躍然眼前的場景。';
+  String get sceneSubtitle => '為你的穿搭選擇背景。';
 
   @override
   String get noneLabel => '無';
@@ -169,9 +180,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String addItemLabel(String item) {
-    return '新增$item';
-  }
+  String get notSelected => '尚未選擇';
 
   @override
   String get loadingGarments => '載入服飾中…';
@@ -223,12 +232,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String garmentsCount(int count) {
     return '服飾（$count）';
   }
-
-  @override
-  String get setGenderFirstMessage => '請先在個人資料中設定性別，風格標籤會依據性別顯示。';
-
-  @override
-  String get openPersonalDetails => '前往個人資料';
 
   @override
   String get styleMinimalist => '極簡風';
@@ -378,15 +381,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editPhoto => '編輯照片';
 
   @override
-  String get uploadImage => '上傳圖片';
-
-  @override
-  String get chooseClearPhotoHint => '請選擇一張清晰的照片。';
-
-  @override
-  String get choosePhoto => '選擇照片';
-
-  @override
   String noOptionsAvailable(String label) {
     return '沒有可用的$label';
   }
@@ -428,10 +422,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get regenerate => '重新產生';
 
   @override
-  String get letLumiPlanOutfits => '讓 LUMI 規劃你的行程穿搭';
+  String get letUwearisPlanOutfits => '讓 Uwearis 規劃你的行程穿搭';
 
   @override
-  String get letLumiPlanOutfitsHint => 'LUMI 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
+  String get letUwearisPlanOutfitsHint => 'Uwearis 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
 
   @override
   String get regeneratePlanTitle => '重新規劃穿搭？';
@@ -453,7 +447,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get insufficientSuitcaseBody =>
-      'LUMI 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
+      'Uwearis 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
 
   @override
   String get goToSuitcase => '前往行李箱';
@@ -1009,7 +1003,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get perceivedTempOffset => '體感溫度調整';
 
   @override
-  String get lifestyleIntroLine1 => '告訴 LUMI 你典型的一週作息。';
+  String get lifestyleIntroLine1 => '告訴 Uwearis 你典型的一週作息。';
 
   @override
   String get lifestyleIntroLine2 => '我們會根據你的日常推薦合適的穿搭。';
@@ -1054,7 +1048,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get signInWithFacebook => '使用 Facebook 登入';
 
   @override
-  String get copyrightText => '版權所有 © LUMI inc.';
+  String get copyrightText => '版權所有 © Uwearis inc.';
 
   @override
   String get noItemsFound => '找不到項目。';
@@ -1087,19 +1081,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get album => '相簿';
 
   @override
-  String get chooseClearFullBodyPhotoHint => '請選擇一張清晰的全身照。';
-
-  @override
   String get heightHint => '身高';
 
   @override
   String get weightHint => '體重';
 
   @override
+  String get feetLabel => '英尺';
+
+  @override
+  String get inchesLabel => '英寸';
+
+  @override
+  String get unitMetricLabel => '公制';
+
+  @override
+  String get unitImperialLabel => '英制';
+
+  @override
   String get searchLocationTitle => '搜尋地點';
 
   @override
   String get cityNameHint => '城市名稱...';
+
+  @override
+  String get crashScreenTitle => '發生了一點問題';
+
+  @override
+  String get crashScreenMessage => '請重新啟動 App，若問題持續請聯繫客服。';
+
+  @override
+  String get sessionExpiredTitle => '登入已過期';
+
+  @override
+  String get sessionExpiredMessage => '您的登入已過期，請重新登入以繼續使用。';
+
+  @override
+  String get ok => '確定';
+
+  @override
+  String get googleLoginMissingToken => 'Google 登入失敗：缺少身份權杖';
+
+  @override
+  String get appleLoginMissingToken => 'Apple 登入失敗：缺少身份權杖';
+
+  @override
+  String get unknownLocation => '未知地點';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1107,7 +1134,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   AppLocalizationsZhTw() : super('zh_TW');
 
   @override
-  String get appTitle => 'LUMI';
+  String get appTitle => 'Uwearis';
 
   @override
   String get settings => '設定';
@@ -1119,17 +1146,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiModel => 'AI 模型';
 
   @override
-  String get aiModelDescription =>
-      '這些參考資料能幫助 LUMI 了解你的外貌，用於 AI 試穿與未來的 AI 生成穿搭。';
+  String get aiModelDescription => '新增參考照片，幫助 Uwearis 打造更精準的試穿效果。';
 
   @override
   String get faceReferenceLabel => '臉部參考';
-
-  @override
-  String get faceReferenceDescription => '用於你的臉部、髮型與五官特徵——不會用於身形比例。';
-
-  @override
-  String get faceReferenceUploadHint => '請上傳一張清晰的正面大頭照。';
 
   @override
   String get faceReferenceComingSoon => '即將推出';
@@ -1138,7 +1158,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get bodyReferenceLabel => '身形參考';
 
   @override
-  String get bodyReferenceDescription => '用於你的身形、身高與整體比例。';
+  String get bodyMeasurementsLabel => '身形數據';
+
+  @override
+  String get faceAppearanceSubtitle => '臉部、髮型與五官特徵';
+
+  @override
+  String get bodyProportionsSubtitle => '身形與整體比例';
+
+  @override
+  String get changePhotoAction => '更換照片';
+
+  @override
+  String get addPhotoAction => '新增照片';
 
   @override
   String get aiModelReady => '已就緒．臉部與身形皆已設定';
@@ -1149,16 +1181,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get styleProfile => '風格檔案';
-
-  @override
   String get styleTaste => '風格品味';
 
   @override
-  String get styleTasteSummary => 'LUMI 學習你偏好的穿搭組合方式';
+  String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，LUMI 正在學習你的風格品味。';
+  String get styleTasteSummary => 'Uwearis 學習你偏好的穿搭組合方式';
+
+  @override
+  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
 
   @override
   String get styleTasteDimensionsInfoTitle => '這些代表什麼';
@@ -1168,6 +1200,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
+
+  @override
+  String get styleProfileCardTitle => '風格分布';
+
+  @override
+  String get styleProfileCardSubtitle => '你的穿搭依風格的分布情況。';
+
+  @override
+  String get styleProfileOther => '其他';
 
   @override
   String styleTasteAnalysisStats(int count, int favoriteCount) {
@@ -1194,12 +1235,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get languageTraditionalChinese => '繁體中文';
-
-  @override
-  String get findYourStyle => '探索你的風格';
-
-  @override
-  String get styleSelectionInstruction => '選擇你的風格，獲得個人化穿搭推薦。';
 
   @override
   String get save => '儲存';
@@ -1247,6 +1282,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get accessoriesLabel => '配件';
 
   @override
+  String get optionalLabel => '選填';
+
+  @override
   String get createOutfit => '建立造型';
 
   @override
@@ -1256,7 +1294,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get sceneLabel => '場景';
 
   @override
-  String get sceneSubtitle => '選擇讓這套穿搭躍然眼前的場景。';
+  String get sceneSubtitle => '為你的穿搭選擇背景。';
 
   @override
   String get noneLabel => '無';
@@ -1267,9 +1305,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String addItemLabel(String item) {
-    return '新增$item';
-  }
+  String get notSelected => '尚未選擇';
 
   @override
   String get loadingGarments => '載入服飾中…';
@@ -1321,12 +1357,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String garmentsCount(int count) {
     return '服飾（$count）';
   }
-
-  @override
-  String get setGenderFirstMessage => '請先在個人資料中設定性別，風格標籤會依據性別顯示。';
-
-  @override
-  String get openPersonalDetails => '前往個人資料';
 
   @override
   String get styleMinimalist => '極簡風';
@@ -1476,15 +1506,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get editPhoto => '編輯照片';
 
   @override
-  String get uploadImage => '上傳圖片';
-
-  @override
-  String get chooseClearPhotoHint => '請選擇一張清晰的照片。';
-
-  @override
-  String get choosePhoto => '選擇照片';
-
-  @override
   String noOptionsAvailable(String label) {
     return '沒有可用的$label';
   }
@@ -1526,10 +1547,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get regenerate => '重新產生';
 
   @override
-  String get letLumiPlanOutfits => '讓 LUMI 規劃你的行程穿搭';
+  String get letUwearisPlanOutfits => '讓 Uwearis 規劃你的行程穿搭';
 
   @override
-  String get letLumiPlanOutfitsHint => 'LUMI 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
+  String get letUwearisPlanOutfitsHint => 'Uwearis 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
 
   @override
   String get regeneratePlanTitle => '重新規劃穿搭？';
@@ -1551,7 +1572,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get insufficientSuitcaseBody =>
-      'LUMI 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
+      'Uwearis 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
 
   @override
   String get goToSuitcase => '前往行李箱';
@@ -2107,7 +2128,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get perceivedTempOffset => '體感溫度調整';
 
   @override
-  String get lifestyleIntroLine1 => '告訴 LUMI 你典型的一週作息。';
+  String get lifestyleIntroLine1 => '告訴 Uwearis 你典型的一週作息。';
 
   @override
   String get lifestyleIntroLine2 => '我們會根據你的日常推薦合適的穿搭。';
@@ -2152,7 +2173,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get signInWithFacebook => '使用 Facebook 登入';
 
   @override
-  String get copyrightText => '版權所有 © LUMI inc.';
+  String get copyrightText => '版權所有 © Uwearis inc.';
 
   @override
   String get noItemsFound => '找不到項目。';
@@ -2185,17 +2206,50 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get album => '相簿';
 
   @override
-  String get chooseClearFullBodyPhotoHint => '請選擇一張清晰的全身照。';
-
-  @override
   String get heightHint => '身高';
 
   @override
   String get weightHint => '體重';
 
   @override
+  String get feetLabel => '英尺';
+
+  @override
+  String get inchesLabel => '英寸';
+
+  @override
+  String get unitMetricLabel => '公制';
+
+  @override
+  String get unitImperialLabel => '英制';
+
+  @override
   String get searchLocationTitle => '搜尋地點';
 
   @override
   String get cityNameHint => '城市名稱...';
+
+  @override
+  String get crashScreenTitle => '發生了一點問題';
+
+  @override
+  String get crashScreenMessage => '請重新啟動 App，若問題持續請聯繫客服。';
+
+  @override
+  String get sessionExpiredTitle => '登入已過期';
+
+  @override
+  String get sessionExpiredMessage => '您的登入已過期，請重新登入以繼續使用。';
+
+  @override
+  String get ok => '確定';
+
+  @override
+  String get googleLoginMissingToken => 'Google 登入失敗：缺少身份權杖';
+
+  @override
+  String get appleLoginMissingToken => 'Apple 登入失敗：缺少身份權杖';
+
+  @override
+  String get unknownLocation => '未知地點';
 }

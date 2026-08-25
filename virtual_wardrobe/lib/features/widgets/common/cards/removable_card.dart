@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/route_observer.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -30,7 +31,7 @@ class RemovableCard extends StatefulWidget {
   final RemovableCardGroup? group;
 
   static const BorderRadius _borderRadius = BorderRadius.all(
-    Radius.circular(16),
+    Radius.circular(AppDimens.cardRadius),
   );
 
   const RemovableCard({

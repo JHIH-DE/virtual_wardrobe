@@ -16,7 +16,6 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
-import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
@@ -164,6 +163,15 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       _outfit.bottom != null ||
       _outfit.onePiece != null ||
       _outfit.shoes != null;
+
+  // Minimum garments to generate an outfit render — Create Outfit stays
+  // hidden until all three are picked. A category the closet has none of
+  // (its slot row isn't even shown, see _hasCategory) doesn't block this —
+  // otherwise a closet with no bottoms could never create an outfit.
+  bool get _hasCoreSlots =>
+      (!_hasCategory(GarmentCategory.top) || _outfit.top != null) &&
+      (!_hasCategory(GarmentCategory.bottom) || _outfit.bottom != null) &&
+      (!_hasCategory(GarmentCategory.shoes) || _outfit.shoes != null);
 
   bool get _isModified {
     bool sameSlot(Garment? a, Garment? b) => a?.id == b?.id;
@@ -347,10 +355,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             ),
             children: [
               _buildInstructions(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               if (!widget.selectOnly) ...[
                 _buildMatchALookCard(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
               ..._buildTopSlots(),
               ..._buildOuterSlot(),
@@ -379,13 +387,13 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       widget.selectOnly
           ? _l10n.editDayOutfitInstruction
           : _l10n.selectCombinationsInstruction,
-      textAlign: TextAlign.center,
+      textAlign: TextAlign.left,
       style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
     );
   }
 
   /// Entry point for a not-yet-built "upload a photo, match it to closet
-  /// items" flow — same AI call-out treatment as [LumiInsightCard]
+  /// items" flow — same AI call-out treatment as [UwearisInsightCard]
   /// (gradient tint, sparkle badge, "AI" tag), but with the same trailing
   /// chevron the slot rows below use instead of an expand affordance.
   Widget _buildMatchALookCard() {
@@ -401,9 +409,9 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.surface, AppColors.lumiCardTint],
+            colors: [AppColors.surface, AppColors.uwearisCardTint],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
           border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
           boxShadow: [
             BoxShadow(
@@ -421,7 +429,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               height: 64,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.lumiCardTint,
+                color: AppColors.uwearisCardTint,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Image.asset(
@@ -502,6 +510,8 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       const SizedBox(height: 24),
       _slotRow(
         title: _l10n.midLayer,
+        optional: true,
+        showNoneOption: true,
         iconAsset: 'assets/images/outer.png',
         value: _outfit.middle,
         category: GarmentCategory.top,
@@ -520,6 +530,8 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     return [
       _slotRow(
         title: _l10n.outerwear,
+        optional: true,
+        showNoneOption: true,
         iconAsset: 'assets/images/outer.png',
         value: _outfit.outer,
         category: GarmentCategory.outer,
@@ -556,6 +568,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     return [
       _slotRow(
         title: GarmentCategory.onePiece.localizedLabel(context),
+        optional: true,
         iconData: Icons.checkroom,
         value: _outfit.onePiece,
         category: GarmentCategory.onePiece,
@@ -597,7 +610,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowResting,
@@ -615,15 +628,15 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               () => _customizationExpanded = !_customizationExpanded,
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.auto_awesome,
-                    size: 24,
-                    color: AppColors.icon,
+                  Image.asset(
+                    'assets/images/accessories.png',
+                    width: 32,
+                    height: 32,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 18),
                   Expanded(
                     child: Text(
                       _l10n.customizationOptional,
@@ -653,11 +666,17 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_l10n.accessoriesLabel, style: AppTextStyle.bold14),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.borderSubtle,
+                  ),
+                  const SizedBox(height: 16),
+                  SectionTitle(_l10n.accessoriesLabel.toUpperCase()),
                   const SizedBox(height: 8),
                   _buildAccessoriesRow(),
-                  const SizedBox(height: 20),
-                  LabeledDivider(label: _l10n.sceneLabel),
+                  const SizedBox(height: 16),
+                  SectionTitle(_l10n.sceneLabel.toUpperCase()),
                   const SizedBox(height: 4),
                   Text(
                     _l10n.sceneSubtitle,
@@ -1035,13 +1054,15 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       // reason to hit "Create Another Version").
       enabled:
           !isOutfitLoading &&
-          _hasSelection &&
+          _hasCoreSlots &&
           (widget.existingOutfit != null || _isModified),
     );
   }
 
   Widget _slotRow({
     required String title,
+    bool optional = false,
+    bool showNoneOption = false,
     String? iconAsset,
     IconData? iconData,
     required Garment? value,
@@ -1065,7 +1086,20 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: SectionTitle(title.toUpperCase()),
+          child: Row(
+            children: [
+              SectionTitle(title.toUpperCase()),
+              if (optional) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '(${_l10n.optionalLabel.toUpperCase()})',
+                  style: AppTextStyle.regular12.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
         AppListCard(
           onTap: (isOutfitLoading || _isLoadingGarments)
@@ -1081,6 +1115,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                         category: category,
                         garments: _allGarments,
                         selected: value,
+                        showNoneOption: showNoneOption,
                       ),
                     ),
                   );
@@ -1097,8 +1132,8 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           // still wants the taller default. 32 is as big as the leading
           // icon can get without the card growing past that same 56 (32 +
           // the 24 of vertical padding baked into AppListCard).
-          minHeight: value == null ? 56 : 70,
-          leadingSize: value == null ? 32 : 40,
+          minHeight: value == null ? 56 : 82,
+          leadingSize: value == null ? 32 : 56,
           leadingAsset: (value == null && iconData == null) ? iconAsset : null,
           leading: value != null
               ? Stack(
@@ -1107,10 +1142,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                     GarmentImage(
                       url: value.imageUrl,
                       garmentId: value.id,
-                      width: 40,
-                      height: 40,
-                      memCacheWidth: 80,
-                      memCacheHeight: 80,
+                      width: 56,
+                      height: 56,
+                      memCacheWidth: 112,
+                      memCacheHeight: 112,
                       borderRadius: 8,
                       fit: BoxFit.cover,
                     ),
@@ -1134,8 +1169,12 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                     : null),
           summary: detail?.isNotEmpty == true ? detail : null,
           child: Text(
-            value == null ? _l10n.addItemLabel(title) : value.name,
-            style: AppTextStyle.bold16,
+            value == null ? _l10n.notSelected : value.name,
+            style: value == null
+                ? AppTextStyle.regular16.copyWith(
+                    color: AppColors.textSecondary,
+                  )
+                : AppTextStyle.bold16,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

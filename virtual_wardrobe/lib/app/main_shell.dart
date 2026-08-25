@@ -12,6 +12,7 @@ import '../features/pages/trips_page.dart';
 import '../features/widgets/common/floating_nav_bar.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// Persistent shell hosting the app's 4 main tabs (Home, My Closet, Outfits,
 /// Trips) in an [IndexedStack]. Unlike pushing each tab as its own
@@ -94,7 +95,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       context: context,
       barrierDismissible: false,
       useSafeArea: false,
-      builder: (_) => const LoadingOverlay(label: 'Loading Garments...'),
+      builder: (_) =>
+          LoadingOverlay(label: AppLocalizations.of(context).loadingGarments),
     );
     try {
       final garments = await ref.read(garmentsProvider.future);
@@ -117,9 +119,11 @@ class _MainShellState extends ConsumerState<MainShell> {
         return;
       }
       debugLog('Failed to load garments: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to load garments')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).failedToLoadGarments),
+        ),
+      );
     }
   }
 

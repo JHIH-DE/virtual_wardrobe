@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "LUMI",
+  "appTitle": "Uwearis",
   "@appTitle": {
     "description": "The application title"
   },
@@ -8,25 +8,30 @@
   "settings": "Settings",
   "account": "Account",
   "aiModel": "AI Model",
-  "aiModelDescription": "These references help LUMI understand your appearance for AI outfit try-on and future generated outfits.",
+  "aiModelDescription": "Add reference photos to help Uwearis create more accurate try-ons.",
   "faceReferenceLabel": "Face Reference",
-  "faceReferenceDescription": "Used for your face, hairstyle, and facial features — not your body proportions.",
-  "faceReferenceUploadHint": "Upload a clear, front-facing portrait.",
   "faceReferenceComingSoon": "Coming soon",
   "bodyReferenceLabel": "Body Reference",
-  "bodyReferenceDescription": "Used for your body shape, height, and overall proportions.",
+  "bodyMeasurementsLabel": "Body Measurements",
+  "faceAppearanceSubtitle": "Face, hair & facial features",
+  "bodyProportionsSubtitle": "Body shape & proportions",
+  "changePhotoAction": "Change photo",
+  "addPhotoAction": "Add photo",
   "aiModelReady": "Ready · Face + Body Configured",
   "aiModelReferencesAdded": "{count}/2 References Added",
   "@aiModelReferencesAdded": {
     "placeholders": { "count": { "type": "int" } }
   },
-  "styleProfile": "Style Profile",
   "styleTaste": "Style Taste",
-  "styleTasteSummary": "LUMI learns how you like to put outfits together",
-  "styleTasteHeroSubtitle": "Based on your saved outfits and feedback, LUMI is learning your style taste.",
+  "styleTasteDetailsLabel": "Style Insights",
+  "styleTasteSummary": "Uwearis learns how you like to put outfits together",
+  "styleTasteHeroSubtitle": "Based on your saved outfits and feedback, Uwearis is learning your style taste.",
   "styleTasteDimensionsInfoTitle": "What these mean",
   "styleTasteRadarCardTitle": "Your Style Taste",
   "styleTasteRadarCardSubtitle": "A visual summary of your style preferences.",
+  "styleProfileCardTitle": "Style Distribution",
+  "styleProfileCardSubtitle": "How your outfits break down by style.",
+  "styleProfileOther": "Other",
   "styleTasteAnalysisStats": "Analyzed {count} outfits · {favoriteCount} favorites",
   "@styleTasteAnalysisStats": {
     "description": "Style Taste insight card's stat line — how many saved outfits were analyzed and how many of those are favorites",
@@ -47,9 +52,6 @@
   "languageEnglish": "English",
   "languageTraditionalChinese": "繁體中文",
 
-  "findYourStyle": "Find Your Style",
-  "styleSelectionInstruction": "Choose your styles for personalized outfit picks.",
-
   "save": "Save",
   "cancel": "Cancel",
   "remove": "Remove",
@@ -66,19 +68,17 @@
   "customizationOptional": "Accessories & Scene",
   "currentOutfitLabel": "Current Outfit",
   "accessoriesLabel": "Accessories",
+  "optionalLabel": "Optional",
   "createOutfit": "Create Outfit",
   "createOutfitHint": "Create another outfit using these garments",
   "sceneLabel": "Scene",
-  "sceneSubtitle": "Choose where this outfit comes to life.",
+  "sceneSubtitle": "Choose a background for your outfit.",
   "noneLabel": "None",
   "selectItemTitle": "Select {item}",
   "@selectItemTitle": {
     "placeholders": { "item": { "type": "String" } }
   },
-  "addItemLabel": "Add {item}",
-  "@addItemLabel": {
-    "placeholders": { "item": { "type": "String" } }
-  },
+  "notSelected": "Not selected",
   "loadingGarments": "Loading Garments…",
   "myCollection": "My Collection",
   "myOutfit": "My Outfit",
@@ -122,9 +122,6 @@
       }
     }
   },
-
-  "setGenderFirstMessage": "Set your gender in Personal Details first — style tags are picked based on it.",
-  "openPersonalDetails": "Open Personal Details",
 
   "styleMinimalist": "Minimalist",
   "styleKorean": "Korean",
@@ -179,10 +176,6 @@
   "matchALookSubtitle": "Upload a photo and we'll find similar pieces from your closet.",
   "editPhoto": "Edit Photo",
 
-  "uploadImage": "Upload Image",
-  "chooseClearPhotoHint": "Please choose a clear photo.",
-  "choosePhoto": "Choose photo",
-
   "noOptionsAvailable": "No {label} available",
   "@noOptionsAvailable": {
     "description": "Empty state for a filter group with no selectable options",
@@ -206,15 +199,15 @@
   "fillAllFieldsError": "Please fill all fields",
 
   "regenerate": "Regenerate",
-  "letLumiPlanOutfits": "Let LUMI Plan Your Trip",
-  "letLumiPlanOutfitsHint": "LUMI will build an outfit for every day using what's in your suitcase.",
+  "letUwearisPlanOutfits": "Let Uwearis Plan Your Trip",
+  "letUwearisPlanOutfitsHint": "Uwearis will build an outfit for every day using what's in your suitcase.",
   "regeneratePlanTitle": "Regenerate outfit plan?",
   "regeneratePlanBody": "This will replace every day's current outfit, including any you've adjusted by hand.",
   "failedToGeneratePlan": "Failed to generate outfit plan",
   "generatingPlanEllipsis": "Planning your outfits…",
   "failedToUpdateDayOutfit": "Failed to update outfit",
   "insufficientSuitcaseTitle": "Not Enough in Your Suitcase",
-  "insufficientSuitcaseBody": "LUMI needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.",
+  "insufficientSuitcaseBody": "Uwearis needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.",
   "goToSuitcase": "Go to Suitcase",
   "missingFromSuitcaseCount": "{count} items aren't packed yet.",
   "@missingFromSuitcaseCount": {
@@ -456,7 +449,7 @@
   "comfortAdjustment": "Comfort Adjustment",
   "weeklySchedule": "Weekly Schedule",
   "perceivedTempOffset": "Perceived temperature offset",
-  "lifestyleIntroLine1": "Tell LUMI what your typical week looks like.",
+  "lifestyleIntroLine1": "Tell Uwearis what your typical week looks like.",
   "lifestyleIntroLine2": "We'll recommend outfits that match your routine.",
   "comfortAdjustmentIntro": "Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.",
   "selectOccasionTitle": "Select Occasion",
@@ -473,7 +466,7 @@
   "continueWithApple": "Continue with Apple",
   "signInWithGoogle": "Sign in with Google",
   "signInWithFacebook": "Sign in with Facebook",
-  "copyrightText": "copyright reserved to LUMI inc.",
+  "copyrightText": "copyright reserved to Uwearis inc.",
 
   "noItemsFound": "No items found.",
 
@@ -487,10 +480,23 @@
   "retake": "Retake",
   "album": "Album",
 
-  "chooseClearFullBodyPhotoHint": "Please choose a clear, full-body photo.",
-  "heightHint": "height",
-  "weightHint": "weight",
+  "heightHint": "Height",
+  "weightHint": "Weight",
+  "feetLabel": "Feet",
+  "inchesLabel": "Inches",
+  "unitMetricLabel": "Metric",
+  "unitImperialLabel": "Imperial",
 
   "searchLocationTitle": "Search Location",
-  "cityNameHint": "City name..."
+  "cityNameHint": "City name...",
+
+  "crashScreenTitle": "Something went wrong",
+  "crashScreenMessage": "Please restart the app. If the problem continues, contact support.",
+
+  "sessionExpiredTitle": "Session Expired",
+  "sessionExpiredMessage": "Your session has expired. Please log in again to continue.",
+  "ok": "OK",
+  "googleLoginMissingToken": "Google login failed: missing ID token",
+  "appleLoginMissingToken": "Apple login failed: missing ID token",
+  "unknownLocation": "Unknown Location"
 }

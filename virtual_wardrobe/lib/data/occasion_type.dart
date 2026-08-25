@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Stable identifiers for the occasion a user assigns to each day of their
-/// weekly routine — this is what LUMI reads to personalize outfit
+/// weekly routine — this is what Uwearis reads to personalize outfit
 /// recommendations. Persisted locally (SharedPreferences); the stored
 /// values must stay stable even if the display label/icon changes.
 enum OccasionType { work, casual, workout, date, travel, party }

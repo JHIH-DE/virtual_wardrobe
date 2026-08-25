@@ -93,7 +93,7 @@ class AppListCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowResting,
@@ -108,7 +108,7 @@ class AppListCard extends StatelessWidget {
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         child: card,
       );
     }

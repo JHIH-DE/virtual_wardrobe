@@ -62,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
       final auth = await account.authentication;
       final idToken = auth.idToken;
       if (idToken == null || idToken.isEmpty) {
-        throw Exception('Google login failed: missing idToken');
+        throw Exception(_l10n.googleLoginMissingToken);
       }
       final tokens = await AuthService().loginWithGoogleIdToken(idToken);
       await AuthStorage.saveAccessToken(tokens.accessToken);
@@ -89,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
 
       final idToken = credential.identityToken;
       if (idToken == null) {
-        throw Exception('Apple login failed: missing idToken');
+        throw Exception(_l10n.appleLoginMissingToken);
       }
 
       final tokens = await AuthService().loginWithAppleIdToken(idToken);

@@ -17,7 +17,7 @@ class LoadingOverlayActivity {
   static final ValueNotifier<int> activeCount = ValueNotifier(0);
 }
 
-/// LUMI's signature "blooming flower" loading animation: petals grow
+/// Uwearis's signature "blooming flower" loading animation: petals grow
 /// outward from the center in sequence (staggered start, eased growth),
 /// hold at full length briefly, then all retract together — then repeats.
 ///

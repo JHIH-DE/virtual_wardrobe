@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-/// Call-out reserved for LUMI's AI-generated text output (packing advice,
+/// Call-out reserved for Uwearis's AI-generated text output (packing advice,
 /// styling tips, etc.) so users can tell "the AI said this" at a glance: a
 /// soft gradient card, a circular sparkle badge, and an "AI" tag next to
-/// the LUMI wordmark. [child] is the body content below that header — a
+/// the Uwearis wordmark. [child] is the body content below that header — a
 /// plain [Text], a loading row, a collapsible section, etc.
-class LumiInsightCard extends StatelessWidget {
+class UwearisInsightCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? margin;
 
-  const LumiInsightCard({super.key, required this.child, this.margin});
+  const UwearisInsightCard({super.key, required this.child, this.margin});
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +27,9 @@ class LumiInsightCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.surface, AppColors.lumiCardTint],
+          colors: [AppColors.surface, AppColors.uwearisCardTint],
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
