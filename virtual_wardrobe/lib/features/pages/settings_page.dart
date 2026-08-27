@@ -48,6 +48,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String? _avatarLocalPath;
   bool _avatarUploading = false;
   String? _fullBodyUrl;
+  String? _faceRefUrl;
   bool _loading = true;
 
   @override
@@ -61,16 +62,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     try {
       final results = await Future.wait([
         ProfileService().getMyProfile(),
-        ProfileService().getMyFullBody(),
+        ProfileService().getBodyRef(),
+        ProfileService().getFaceReference(),
       ]);
       if (!mounted) return;
       final profile = results[0] as Map<String, dynamic>;
       final fullBodyUrl = results[1] as String?;
+      final faceRefUrl = results[2] as String?;
       setState(() {
         _name = profile['name'] as String?;
         _email = profile['email'] as String?;
         _avatarUrl = profile['avatar_object_url'] as String?;
         _fullBodyUrl = fullBodyUrl;
+        _faceRefUrl = faceRefUrl;
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -82,9 +86,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  // Face Reference has no backend upload endpoint yet (see AiModelPage) —
-  // always counts as missing until that ships.
-  bool get _hasFaceReference => false;
+  bool get _hasFaceReference =>
+      _faceRefUrl != null && _faceRefUrl!.isNotEmpty && _faceRefUrl != 'string';
 
   bool get _hasBodyReference =>
       _fullBodyUrl != null &&

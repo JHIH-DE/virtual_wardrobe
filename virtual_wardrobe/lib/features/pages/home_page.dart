@@ -441,7 +441,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => OutfitDetailsPage(outfit: outfit, isNew: false),
+        builder: (_) => OutfitDetailsPage(
+          outfit: outfit,
+          isNew: false,
+          // This outfit's group is `type: "daily"`, not "general" — a
+          // version created here would land back in that same daily group,
+          // which outfits_page.dart's list never fetches (it only reads
+          // `type: "general"` groups), so it'd be unreachable afterwards.
+          // showAddToMyOutfits offers a real way to keep it instead: a
+          // fresh render of the same garments/background into a new
+          // general group.
+          showEditOutfitWhenSaved: false,
+          showAddToMyOutfits: true,
+        ),
       ),
     );
   }

@@ -18,7 +18,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get account => '帳號';
 
   @override
-  String get aiModel => 'AI 模型';
+  String get aiModel => '試穿檔案';
 
   @override
   String get aiModelDescription => '新增參考照片，幫助 Uwearis 打造更精準的試穿效果。';
@@ -148,6 +148,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createAnotherVersion => '建立另一個版本';
 
   @override
+  String get addToMyOutfits => '加入我的穿搭';
+
+  @override
+  String get selectOutfitGroupTitle => '加入穿搭';
+
+  @override
+  String get newOutfitGroup => '新增穿搭';
+
+  @override
   String get customizationOptional => '配件與場景';
 
   @override
@@ -234,52 +243,31 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get styleMinimalist => '極簡風';
+  String get styleMinimal => '極簡 / 無印感';
 
   @override
-  String get styleKorean => '韓系風';
+  String get styleClassic => '經典';
 
   @override
-  String get styleStreetwear => '街頭風';
+  String get styleStreetwear => '街頭';
 
   @override
-  String get styleSmartCasual => '商務休閒風';
+  String get styleSmartCasual => '質感休閒';
 
   @override
-  String get styleChic => '時髦風';
+  String get styleAthleisure => '運動休閒';
 
   @override
-  String get styleAthleisure => '運動休閒風';
+  String get styleVintage => '復古';
 
   @override
-  String get styleOldMoney => '老錢風';
+  String get styleWorkwear => '工裝';
 
   @override
-  String get styleRomantic => '浪漫風';
+  String get stylePreppy => '學院';
 
   @override
-  String get styleVintage => '復古風';
-
-  @override
-  String get styleBohemian => '波希米亞風';
-
-  @override
-  String get styleCityBoy => '城市男孩風';
-
-  @override
-  String get styleAmericanCasual => '美式休閒風';
-
-  @override
-  String get styleWorkwear => '工裝風';
-
-  @override
-  String get styleGorpcore => '山系機能風';
-
-  @override
-  String get styleTechwear => '科技機能風';
-
-  @override
-  String get styleOutdoor => '戶外風';
+  String get styleBusiness => '商務';
 
   @override
   String get styleTasteStyleBalanceTitle => '風格平衡';
@@ -420,6 +408,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get regenerate => '重新產生';
+
+  @override
+  String get setAsCover => '設為代表圖';
 
   @override
   String get letUwearisPlanOutfits => '讓 Uwearis 規劃你的行程穿搭';
@@ -1143,7 +1134,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get account => '帳號';
 
   @override
-  String get aiModel => 'AI 模型';
+  String get aiModel => '試穿檔案';
 
   @override
   String get aiModelDescription => '新增參考照片，幫助 Uwearis 打造更精準的試穿效果。';
@@ -1273,6 +1264,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get createAnotherVersion => '建立另一個版本';
 
   @override
+  String get addToMyOutfits => '加入我的穿搭';
+
+  @override
+  String get selectOutfitGroupTitle => '加入穿搭';
+
+  @override
+  String get newOutfitGroup => '新增穿搭';
+
+  @override
   String get customizationOptional => '配件與場景';
 
   @override
@@ -1359,52 +1359,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get styleMinimalist => '極簡風';
+  String get styleMinimal => '極簡 / 無印感';
 
   @override
-  String get styleKorean => '韓系風';
+  String get styleClassic => '經典';
 
   @override
-  String get styleStreetwear => '街頭風';
+  String get styleStreetwear => '街頭';
 
   @override
-  String get styleSmartCasual => '商務休閒風';
+  String get styleSmartCasual => '質感休閒';
 
   @override
-  String get styleChic => '時髦風';
+  String get styleAthleisure => '運動休閒';
 
   @override
-  String get styleAthleisure => '運動休閒風';
+  String get styleVintage => '復古';
 
   @override
-  String get styleOldMoney => '老錢風';
+  String get styleWorkwear => '工裝';
 
   @override
-  String get styleRomantic => '浪漫風';
+  String get stylePreppy => '學院';
 
   @override
-  String get styleVintage => '復古風';
-
-  @override
-  String get styleBohemian => '波希米亞風';
-
-  @override
-  String get styleCityBoy => '城市男孩風';
-
-  @override
-  String get styleAmericanCasual => '美式休閒風';
-
-  @override
-  String get styleWorkwear => '工裝風';
-
-  @override
-  String get styleGorpcore => '山系機能風';
-
-  @override
-  String get styleTechwear => '科技機能風';
-
-  @override
-  String get styleOutdoor => '戶外風';
+  String get styleBusiness => '商務';
 
   @override
   String get styleTasteStyleBalanceTitle => '風格平衡';
@@ -1545,6 +1524,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get regenerate => '重新產生';
+
+  @override
+  String get setAsCover => '設為代表圖';
 
   @override
   String get letUwearisPlanOutfits => '讓 Uwearis 規劃你的行程穿搭';

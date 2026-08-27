@@ -28,6 +28,14 @@ class Outfit {
   /// report, so it defaults to 1.
   final int versionCount;
 
+  /// The group's chosen cover outfit id (see `PATCH /outfit/{group_id}`) —
+  /// the same value on every [Outfit] in a group, not a per-outfit
+  /// property. Null means "no explicit choice yet, use the backend's
+  /// default (lowest `outfit_id` in the group)". Not part of `OutfitOut`
+  /// itself — [OutfitService] attaches it from the group wrapper after
+  /// parsing (see [getAllOutfits]/[getGroupOutfits]).
+  final int? coverOutfitId;
+
   Outfit({
     required this.id,
     this.groupId = 0,
@@ -43,6 +51,7 @@ class Outfit {
     this.isFavorite = false,
     this.versionCount = 1,
     this.reasoning,
+    this.coverOutfitId,
   });
 
   Outfit copyWith({
@@ -52,6 +61,8 @@ class Outfit {
     List<String>? seasons,
     List<String>? style,
     int? versionCount,
+    int? coverOutfitId,
+    bool clearCoverOutfitId = false,
   }) {
     return Outfit(
       id: id,
@@ -68,6 +79,9 @@ class Outfit {
       isFavorite: isFavorite ?? this.isFavorite,
       versionCount: versionCount ?? this.versionCount,
       reasoning: reasoning,
+      coverOutfitId: clearCoverOutfitId
+          ? null
+          : (coverOutfitId ?? this.coverOutfitId),
     );
   }
 

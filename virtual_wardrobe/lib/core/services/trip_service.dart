@@ -118,6 +118,7 @@ class TripService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('getTrip: response missing data object');
     }
+    debugLog('getTrip id=$tripId response summary: ${_summarizeDays(data)}');
     return data;
   }
 
@@ -303,4 +304,28 @@ class TripService with BaseService {
     }
     return data;
   }
+}
+
+/// One line per day (id/date/group_id + each outfit's id/option_type/
+/// whether it has a result image) instead of the full response — a day's
+/// `result_image_url` alone is a multi-KB signed URL, so dumping the raw
+/// JSON routinely gets truncated in logcat/Console before it's useful.
+String _summarizeDays(Map<String, dynamic> tripData) {
+  final rawDays = tripData['days'];
+  if (rawDays is! List) return '(no days)';
+  final lines = rawDays.whereType<Map<String, dynamic>>().map((day) {
+    final outfits = (day['outfits'] as List?) ?? [];
+    final outfitSummaries = outfits
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (o) =>
+              'outfit_id=${o['outfit_id']} '
+              'option_type=${o['option_type']} '
+              'has_image=${(o['result_image_url'] as String?)?.isNotEmpty == true}',
+        )
+        .join(', ');
+    return '  day id=${day['id']} date=${day['date']} '
+        'group_id=${day['group_id']} outfits=[$outfitSummaries]';
+  });
+  return '\n${lines.join('\n')}';
 }

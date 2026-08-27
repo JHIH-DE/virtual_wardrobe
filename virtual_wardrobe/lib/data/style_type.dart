@@ -2,63 +2,40 @@
 /// persisted in the database or sent/received via the API — never a
 /// localized display label.
 enum StyleType {
-  minimalist,
-  korean,
-  streetwear,
+  minimal,
+  classic,
   smartCasual,
-  chic,
+  streetwear,
   athleisure,
-  oldMoney,
-  romantic,
-  vintage,
-  bohemian,
-  cityBoy,
-  americanCasual,
   workwear,
-  gorpcore,
-  techwear,
-  outdoor,
+  preppy,
+  business,
+  vintage,
 }
 
-/// Wire-format (de)serialization. Kept backward-compatible with the
-/// display-case strings ("City Boy", "Old Money", ...) already stored by
-/// the backend and in existing `Outfit`/profile data, so no API or data
-/// migration is required to introduce this enum.
+/// Wire-format (de)serialization — the backend's outfit-style category
+/// list, snake_case (e.g. `smart_casual`).
 extension StyleTypeApi on StyleType {
   String get apiValue {
     switch (this) {
-      case StyleType.minimalist:
-        return 'Minimalist';
-      case StyleType.korean:
-        return 'Korean';
-      case StyleType.streetwear:
-        return 'Streetwear';
+      case StyleType.minimal:
+        return 'minimal';
+      case StyleType.classic:
+        return 'classic';
       case StyleType.smartCasual:
-        return 'Smart Casual';
-      case StyleType.chic:
-        return 'Chic';
+        return 'smart_casual';
+      case StyleType.streetwear:
+        return 'streetwear';
       case StyleType.athleisure:
-        return 'Athleisure';
-      case StyleType.oldMoney:
-        return 'Old Money';
-      case StyleType.romantic:
-        return 'Romantic';
-      case StyleType.vintage:
-        return 'Vintage';
-      case StyleType.bohemian:
-        return 'Bohemian';
-      case StyleType.cityBoy:
-        return 'City Boy';
-      case StyleType.americanCasual:
-        return 'American Casual';
+        return 'athleisure';
       case StyleType.workwear:
-        return 'Workwear';
-      case StyleType.gorpcore:
-        return 'Gorpcore';
-      case StyleType.techwear:
-        return 'Techwear';
-      case StyleType.outdoor:
-        return 'Outdoor';
+        return 'workwear';
+      case StyleType.preppy:
+        return 'preppy';
+      case StyleType.business:
+        return 'business';
+      case StyleType.vintage:
+        return 'vintage';
     }
   }
 }

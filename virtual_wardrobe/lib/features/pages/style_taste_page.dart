@@ -36,6 +36,23 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
   bool _detailsExpanded = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Neither provider uses .autoDispose, so without this a return visit
+    // would just keep showing whatever was fetched the first time this
+    // page was ever opened — invalidate on mount so every visit reflects
+    // outfits favorited/created/deleted since. Deferred to after the first
+    // frame: invalidating synchronously inside initState reaches for the
+    // ProviderScope's InheritedWidget before this element has finished
+    // mounting, which Flutter rejects.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(styleTasteProfileProvider);
+      ref.invalidate(styleProfileProvider);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final profileAsync = ref.watch(styleTasteProfileProvider);
@@ -245,6 +262,16 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
   Widget _buildStyleProfileCard() {
     final l10n = AppLocalizations.of(context);
     final styleProfileAsync = ref.watch(styleProfileProvider);
+    // A single outfit can carry multiple style tags, so summing per-tag
+    // counts (below) over-counts actual outfits — the donut's center
+    // shows the real general-outfit total instead, same source/definition
+    // as _buildAnalysisCard's "N outfits analyzed" stat.
+    final generalOutfitCount =
+        ref
+            .watch(outfitsProvider)
+            .valueOrNull
+            ?.fold<int>(0, (sum, o) => sum + o.versionCount) ??
+        0;
 
     return styleProfileAsync.when(
       loading: () =>
@@ -301,7 +328,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
                 center: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('$total', style: AppTextStyle.bold20),
+                    Text('$generalOutfitCount', style: AppTextStyle.bold20),
                     Text(
                       l10n.navOutfits,
                       style: AppTextStyle.regular12.copyWith(

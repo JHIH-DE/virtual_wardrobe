@@ -41,5 +41,5 @@ abstract class AppDimens {
   // last row can scroll clear of the floating nav bar overlay instead of
   // being hidden behind it.
   static const double floatingNavBarClearance = 95;
-  static const double bottomActionBtnClearance = 95;
+  static const double bottomActionBtnClearance = 85;
 }

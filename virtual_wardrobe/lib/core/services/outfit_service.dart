@@ -67,9 +67,9 @@ class OutfitService with BaseService {
     }
     // One card per group, not per outfit — a group can hold multiple
     // versions (Outfit Details' "Create Another Version"), but the flat
-    // list only shows the first as that group's representative; every
-    // version is browsable from Outfit Details' own carousel. The
-    // representative still carries the group's real version count (see
+    // list only shows one as that group's representative; every version is
+    // browsable from Outfit Details' own carousel. The representative
+    // still carries the group's real version count (see
     // Outfit.versionCount) for callers that need the true total, like
     // Style Taste's "N outfits analyzed" stat.
     final outfits = <Outfit>[];
@@ -80,10 +80,23 @@ class OutfitService with BaseService {
             .whereType<Map<String, dynamic>>()
             .map(Outfit.fromJson)
             .toList();
-        final primary = parsed.firstOrNull;
-        if (primary != null) {
-          outfits.add(primary.copyWith(versionCount: parsed.length));
-        }
+        if (parsed.isEmpty) continue;
+        final coverOutfitId = (group['cover_outfit_id'] as num?)?.toInt();
+        // Backend's own default rule when cover_outfit_id is null: the
+        // group's lowest outfit_id (its earliest-created outfit).
+        final representative = coverOutfitId != null
+            ? parsed.firstWhere(
+                (o) => o.id == coverOutfitId,
+                orElse: () => parsed.reduce((a, b) => a.id < b.id ? a : b),
+              )
+            : parsed.reduce((a, b) => a.id < b.id ? a : b);
+        outfits.add(
+          representative.copyWith(
+            versionCount: parsed.length,
+            coverOutfitId: coverOutfitId,
+            clearCoverOutfitId: coverOutfitId == null,
+          ),
+        );
       }
     }
     return outfits;
@@ -155,6 +168,31 @@ class OutfitService with BaseService {
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
       throw Exception('regenerateOutfit: response missing outfit data object');
+    }
+    return Outfit.fromJson(data);
+  }
+
+  /// Duplicates [sourceOutfitId] (any group type, must already be fully
+  /// rendered) into [groupId] as a new, independent [Outfit] there — no AI
+  /// re-render, the backend copies the existing image to a new GCS path.
+  /// [groupId] must be a `type: general` group; omit it to create a fresh
+  /// one first. The source outfit itself is untouched (this is a copy, not
+  /// a move).
+  Future<Outfit> copyOutfit({int? groupId, required int sourceOutfitId}) async {
+    groupId ??= await createGroup(type: 'general');
+    debugLog('--- copyOutfit: groupId=$groupId sourceOutfitId=$sourceOutfitId ---');
+    final uri = Uri.parse('$_baseUrl/$groupId/copy');
+    final res = await withAuth(
+      (token) => http.post(
+        uri,
+        headers: authHeaders(token),
+        body: jsonEncode({'source_outfit_id': sourceOutfitId}),
+      ),
+    );
+    final envelope = decodeMap(res, op: 'copyOutfit');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('copyOutfit: response missing outfit data object');
     }
     return Outfit.fromJson(data);
   }
@@ -232,10 +270,36 @@ class OutfitService with BaseService {
     if (outfits is! List) {
       throw Exception('getGroupOutfits: response missing outfits list');
     }
+    final coverOutfitId = data is Map<String, dynamic>
+        ? (data['cover_outfit_id'] as num?)?.toInt()
+        : null;
     return outfits
         .whereType<Map<String, dynamic>>()
         .map(Outfit.fromJson)
+        .map(
+          (o) => o.copyWith(
+            coverOutfitId: coverOutfitId,
+            clearCoverOutfitId: coverOutfitId == null,
+          ),
+        )
         .toList();
+  }
+
+  /// Sets (or, with `null`, clears) [groupId]'s cover outfit — the version
+  /// shown as that group's representative in the flat Outfits list (see
+  /// [getAllOutfits]). [coverOutfitId] must belong to [groupId] and already
+  /// be fully rendered.
+  Future<void> setGroupCover(int groupId, int? coverOutfitId) async {
+    debugLog('--- setGroupCover: groupId=$groupId coverOutfitId=$coverOutfitId ---');
+    final uri = Uri.parse('$_baseUrl/$groupId');
+    final res = await withAuth(
+      (token) => http.patch(
+        uri,
+        headers: authHeaders(token),
+        body: jsonEncode({'cover_outfit_id': coverOutfitId}),
+      ),
+    );
+    decodeMap(res, op: 'setGroupCover');
   }
 
   /// Deletes the whole group, cascading to every outfit (and their GCS

@@ -18,7 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account => 'Account';
 
   @override
-  String get aiModel => 'AI Model';
+  String get aiModel => 'Try-On Profile';
 
   @override
   String get aiModelDescription =>
@@ -153,6 +153,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAnotherVersion => 'Create Another Version';
 
   @override
+  String get addToMyOutfits => 'Add to My Outfits';
+
+  @override
+  String get selectOutfitGroupTitle => 'Add to Outfit';
+
+  @override
+  String get newOutfitGroup => 'New Outfit';
+
+  @override
   String get customizationOptional => 'Accessories & Scene';
 
   @override
@@ -242,10 +251,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get styleMinimalist => 'Minimalist';
+  String get styleMinimal => 'Minimal';
 
   @override
-  String get styleKorean => 'Korean';
+  String get styleClassic => 'Classic';
 
   @override
   String get styleStreetwear => 'Streetwear';
@@ -254,40 +263,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleSmartCasual => 'Smart Casual';
 
   @override
-  String get styleChic => 'Chic';
-
-  @override
   String get styleAthleisure => 'Athleisure';
-
-  @override
-  String get styleOldMoney => 'Old Money';
-
-  @override
-  String get styleRomantic => 'Romantic';
 
   @override
   String get styleVintage => 'Vintage';
 
   @override
-  String get styleBohemian => 'Bohemian';
-
-  @override
-  String get styleCityBoy => 'City Boy';
-
-  @override
-  String get styleAmericanCasual => 'American Casual';
-
-  @override
   String get styleWorkwear => 'Workwear';
 
   @override
-  String get styleGorpcore => 'Gorpcore';
+  String get stylePreppy => 'Preppy';
 
   @override
-  String get styleTechwear => 'Techwear';
-
-  @override
-  String get styleOutdoor => 'Outdoor';
+  String get styleBusiness => 'Business';
 
   @override
   String get styleTasteStyleBalanceTitle => 'Style Balance';
@@ -435,6 +423,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get regenerate => 'Regenerate';
+
+  @override
+  String get setAsCover => 'Set as Cover';
 
   @override
   String get letUwearisPlanOutfits => 'Let Uwearis Plan Your Trip';

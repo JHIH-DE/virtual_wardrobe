@@ -33,10 +33,11 @@ import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
 import 'add_outfit_page.dart';
+import 'select_outfit_group_page.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
 
-enum _VersionMenuAction { regenerate, delete }
+enum _VersionMenuAction { setCover, regenerate, delete }
 
 class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
@@ -62,6 +63,16 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
   /// is hidden entirely in that case instead.
   final bool showEditOutfitWhenSaved;
 
+  /// Shows an "Add to My Outfits" action instead of "Create Another
+  /// Version" — for outfits whose group isn't `type: general` (e.g. a
+  /// daily outfit). Its own group is server-managed and never shows up in
+  /// the Outfits tab (which only lists `type: general` groups), so
+  /// "Create Another Version" would just add another unreachable version
+  /// there. This re-renders the same garments/background into a brand new
+  /// general group instead, so the result actually lands somewhere the
+  /// user can find it again.
+  final bool showAddToMyOutfits;
+
   const OutfitDetailsPage({
     super.key,
     required this.outfit,
@@ -69,6 +80,7 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
     this.confirmLeaveOnBack = true,
     this.navigateToOutfitsTabOnSave = true,
     this.showEditOutfitWhenSaved = true,
+    this.showAddToMyOutfits = false,
   });
 
   @override
@@ -88,9 +100,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   ];
   static const List<String> _styleOptions = [
     'Minimal',
-    'Street',
     'Classic',
-    'Sporty',
+    'Smart Casual',
+    'Streetwear',
+    'Athleisure',
+    'Workwear',
+    'Preppy',
+    'Business',
+    'Vintage',
   ];
   bool _isDeleting = false;
   bool _isSaving = false;
@@ -104,6 +121,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isOpeningTryOn = false;
   // True while regenerateOutfit's AI render is in flight.
   bool _isRegenerating = false;
+  // True while _addToMyOutfits's AI render is in flight.
+  bool _isAddingToMyOutfits = false;
+  // True while _setCover's request is in flight.
+  bool _isSettingCover = false;
 
   // Every outfit in this group, swipeable via [_pageController] — starts
   // with just the seed outfit and gets replaced with the full set once
@@ -125,6 +146,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   List<String> get _effectiveSeasons => _current.seasons;
   List<String> get _effectiveStyle => _current.style;
+
+  /// A daily outfit's group isn't `type: general` — it's server-managed by
+  /// its own daily-plan pipeline, not something the user curates here, so
+  /// none of the image overlay controls (favorite/version menu) or the
+  /// season/style tag editor apply to it.
+  bool get _isDailyOutfit => _current.groupType == 'daily';
   bool get _shouldConfirmLeave => widget.isNew && widget.confirmLeaveOnBack;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -202,7 +229,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                 _buildOutfitImage(),
                 const SizedBox(height: 16),
                 if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
-                const SizedBox(height: 8),
               ],
             ),
             bottomNavigationBar: _buildBottomBar(),
@@ -309,6 +335,15 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
     }
 
+    if (widget.showAddToMyOutfits) {
+      return BottomActionButton(
+        label: _l10n.addToMyOutfits,
+        leading: const Icon(Icons.add),
+        onPressed: _isAddingToMyOutfits ? null : _addToMyOutfits,
+        isLoading: _isAddingToMyOutfits,
+      );
+    }
+
     if (!_showSavedOutfitActions) return const SizedBox.shrink();
 
     return BottomActionButton(
@@ -324,7 +359,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// underneath it that could otherwise cover the date footer.
   bool get _showsBottomActionButton =>
       !_isResolvingSavedStatus &&
-      ((widget.isNew && !_isSaved) || _showSavedOutfitActions);
+      ((widget.isNew && !_isSaved) ||
+          widget.showAddToMyOutfits ||
+          _showSavedOutfitActions);
 
   /// Mirrors the old bottom-bar visibility rule: only once the outfit is
   /// actually saved (either opened as an existing outfit, or freshly
@@ -386,16 +423,44 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
+  /// Opens [SelectOutfitGroupPage] so the user can pick which `type:
+  /// general` group to copy this outfit into (see
+  /// [OutfitDetailsPage.showAddToMyOutfits]) — an existing group or a new
+  /// one. [OutfitService.copyOutfit] duplicates the existing render
+  /// server-side, no AI re-render. Mirrors [_saveOutfit]'s "jump to Outfits
+  /// with a saved toast" ending, since the result is the same: a new
+  /// outfit the user can now find in the Outfits tab.
+  Future<void> _addToMyOutfits() async {
+    if (_isAddingToMyOutfits) return;
+    setState(() => _isAddingToMyOutfits = true);
+    try {
+      final result = await Navigator.push<Outfit>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SelectOutfitGroupPage(sourceOutfit: _current),
+        ),
+      );
+      if (result == null || !mounted) return;
+      final feedback = ref.read(outfitFeedbackProvider.notifier);
+      MainShellScope.of(context)?.selectTab(AppTab.outfits);
+      Navigator.popUntil(context, (route) => route.isFirst);
+      feedback.state = OutfitFeedbackKind.saved;
+    } finally {
+      if (mounted) setState(() => _isAddingToMyOutfits = false);
+    }
+  }
+
+  // Styles come back from the backend snake_case (`smart_casual`); seasons
+  // are single lowercase words either way, so the underscore swap is a
+  // no-op for them.
   String _titleCase(String s) => s
+      .replaceAll('_', ' ')
       .split(' ')
       .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 
   Widget _buildInfoCard() {
-    final tags = [
-      ..._effectiveSeasons.map(_titleCase),
-      ..._effectiveStyle.map(_titleCase),
-    ];
+    final tags = [..._effectiveStyle.map(_titleCase)];
     final tagStyle = AppTextStyle.regular14.copyWith(
       color: AppColors.textSecondary,
     );
@@ -405,23 +470,25 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: _openEditTagsSheet,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: AppColors.accentTint,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.sell_outlined,
-                size: 16,
-                color: AppColors.accent,
+          if (!_isDailyOutfit) ...[
+            GestureDetector(
+              onTap: _openEditTagsSheet,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(
+                  color: AppColors.accentTint,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.sell_outlined,
+                  size: 16,
+                  color: AppColors.accent,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: tags.isEmpty
                 ? Text(_l10n.myCollection, style: tagStyle)
@@ -587,7 +654,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     if (result == null || !mounted) return;
 
     final seasons = result.seasons.map((s) => s.toLowerCase()).toList();
-    final styles = result.styles.map((s) => s.toLowerCase()).toList();
+    // Reverses _titleCase's underscore-to-space swap so multi-word styles
+    // round-trip back to the backend's snake_case wire format.
+    final styles = result.styles
+        .map((s) => s.toLowerCase().replaceAll(' ', '_'))
+        .toList();
     try {
       await OutfitService().updateOutfit(
         target.groupId,
@@ -650,6 +721,43 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateFavorite)));
+    }
+  }
+
+  /// Sets [_current] as this group's cover outfit (`PATCH
+  /// /outfit/{group_id}`) — a group-level choice, so it's applied to every
+  /// entry in [_versions] at once rather than just [_current]. No "unset"
+  /// path: picking a different version as cover already replaces whichever
+  /// one held it before.
+  Future<void> _setCover() async {
+    if (_isSettingCover) return;
+    final target = _current;
+    final previous = List<Outfit>.from(_versions);
+    setState(() {
+      _isSettingCover = true;
+      for (var i = 0; i < _versions.length; i++) {
+        _versions[i] = _versions[i].copyWith(coverOutfitId: target.id);
+      }
+    });
+    try {
+      await OutfitService().setGroupCover(target.groupId, target.id);
+      await ref.read(outfitsProvider.notifier).refresh();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _versions
+          ..clear()
+          ..addAll(previous);
+      });
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isSettingCover = false);
     }
   }
 
@@ -731,7 +839,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     );
                   },
                 ),
-                if (!_isRegenerating) ...[
+                if (!_isRegenerating && !_isDailyOutfit) ...[
                   Positioned(
                     top: 12,
                     right: 12,
@@ -826,10 +934,28 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       constraints: const BoxConstraints(minWidth: 0, maxWidth: 150),
       // Default menuPadding is 8px vertical around the whole item list, on
       // top of each item's own height — shrink it since this menu only
-      // has two short items.
+      // has a few short items.
       menuPadding: const EdgeInsets.symmetric(vertical: 4),
       onSelected: _handleVersionMenuAction,
       itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _VersionMenuAction.setCover,
+          enabled: !_isSettingCover,
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.push_pin_outlined, size: 20, color: AppColors.icon),
+              const SizedBox(width: 8),
+              Text(
+                _l10n.setAsCover,
+                style: AppTextStyle.regular14.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
         PopupMenuItem(
           value: _VersionMenuAction.regenerate,
           height: 48,
@@ -882,6 +1008,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   void _handleVersionMenuAction(_VersionMenuAction action) {
     switch (action) {
+      case _VersionMenuAction.setCover:
+        _setCover();
+        break;
       case _VersionMenuAction.regenerate:
         _regenerateImage();
         break;

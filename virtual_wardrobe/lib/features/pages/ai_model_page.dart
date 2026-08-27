@@ -57,9 +57,7 @@ class _AiModelPageState extends State<AiModelPage> {
   String? _error;
   String? _fullBodyUrl;
   String? _fullBodyLocalPath;
-  // No backend endpoint for a face reference photo yet (only avatar and
-  // full-body exist) — kept purely as local UI state until one exists, so
-  // this never survives an app restart and _saveProfile never touches it.
+  String? _faceRefUrl;
   String? _faceLocalPath;
   String _initialHeight = '';
   String _initialWeight = '';
@@ -148,17 +146,20 @@ class _AiModelPageState extends State<AiModelPage> {
     try {
       final results = await Future.wait([
         ProfileService().getMyProfile(),
-        ProfileService().getMyFullBody(),
+        ProfileService().getBodyRef(),
+        ProfileService().getFaceReference(),
       ]);
       if (!mounted) return;
       final profile = results[0] as Map<String, dynamic>;
       final fullBodyUrl = results[1] as String?;
+      final faceRefUrl = results[2] as String?;
       setState(() {
         final h = profile['height'];
         final w = profile['weight'];
         if (h != null) _heightCtrl.text = (h as num).toStringAsFixed(0);
         if (w != null) _weightCtrl.text = (w as num).toStringAsFixed(0);
         _fullBodyUrl = fullBodyUrl;
+        _faceRefUrl = faceRefUrl;
         _initialHeight = _heightCtrl.text;
         _initialWeight = _weightCtrl.text;
         _unitSystem = _UnitSystem.fromApiValue(
@@ -228,28 +229,53 @@ class _AiModelPageState extends State<AiModelPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ImageEditorPage(
-          initialPath: _faceLocalPath,
+          initialPath: _faceLocalPath ?? _faceRefUrl,
           showAnalysis: false,
           aspectRatio: 3 / 4,
         ),
       ),
     );
     if (result == null || !mounted) return;
+    // Confirmed without picking a new photo — imagePath is still the
+    // original signed URL, not a local file. Nothing to upload.
+    if (result.imagePath.startsWith('http')) return;
     setState(() => _faceLocalPath = result.imagePath);
+    await _uploadFaceRef(result.imagePath);
   }
 
   Future<void> _uploadFullBody(String localPath) async {
     setState(() => _loading = true);
     try {
-      final init = await ProfileService().fullBodyInitUpload();
+      final init = await ProfileService().bodyRefInitUpload();
       await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final url = await ProfileService().fullBodyComplete(
+      final url = await ProfileService().bodyRefComplete(
         objectName: init.objectName,
       );
       if (mounted) {
         setState(() {
           _fullBodyUrl = url;
           _fullBodyLocalPath = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _uploadFaceRef(String localPath) async {
+    setState(() => _loading = true);
+    try {
+      final init = await ProfileService().faceRefInitUpload();
+      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
+      final url = await ProfileService().faceRefComplete(
+        objectName: init.objectName,
+      );
+      if (mounted) {
+        setState(() {
+          _faceRefUrl = url;
+          _faceLocalPath = null;
         });
       }
     } catch (e) {
@@ -433,6 +459,10 @@ class _AiModelPageState extends State<AiModelPage> {
     ImageProvider? provider;
     if (_faceLocalPath != null) {
       provider = FileImage(File(_faceLocalPath!));
+    } else if (_faceRefUrl != null &&
+        _faceRefUrl!.isNotEmpty &&
+        _faceRefUrl != 'string') {
+      provider = NetworkImage(_faceRefUrl!);
     }
 
     return _buildReferenceCard(

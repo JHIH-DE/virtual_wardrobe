@@ -120,7 +120,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiModel.
   ///
   /// In en, this message translates to:
-  /// **'AI Model'**
+  /// **'Try-On Profile'**
   String get aiModel;
 
   /// No description provided for @aiModelDescription.
@@ -369,6 +369,24 @@ abstract class AppLocalizations {
   /// **'Create Another Version'**
   String get createAnotherVersion;
 
+  /// No description provided for @addToMyOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to My Outfits'**
+  String get addToMyOutfits;
+
+  /// No description provided for @selectOutfitGroupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Outfit'**
+  String get selectOutfitGroupTitle;
+
+  /// No description provided for @newOutfitGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'New Outfit'**
+  String get newOutfitGroup;
+
   /// No description provided for @customizationOptional.
   ///
   /// In en, this message translates to:
@@ -525,17 +543,17 @@ abstract class AppLocalizations {
   /// **'Garments ({count})'**
   String garmentsCount(int count);
 
-  /// No description provided for @styleMinimalist.
+  /// No description provided for @styleMinimal.
   ///
   /// In en, this message translates to:
-  /// **'Minimalist'**
-  String get styleMinimalist;
+  /// **'Minimal'**
+  String get styleMinimal;
 
-  /// No description provided for @styleKorean.
+  /// No description provided for @styleClassic.
   ///
   /// In en, this message translates to:
-  /// **'Korean'**
-  String get styleKorean;
+  /// **'Classic'**
+  String get styleClassic;
 
   /// No description provided for @styleStreetwear.
   ///
@@ -549,29 +567,11 @@ abstract class AppLocalizations {
   /// **'Smart Casual'**
   String get styleSmartCasual;
 
-  /// No description provided for @styleChic.
-  ///
-  /// In en, this message translates to:
-  /// **'Chic'**
-  String get styleChic;
-
   /// No description provided for @styleAthleisure.
   ///
   /// In en, this message translates to:
   /// **'Athleisure'**
   String get styleAthleisure;
-
-  /// No description provided for @styleOldMoney.
-  ///
-  /// In en, this message translates to:
-  /// **'Old Money'**
-  String get styleOldMoney;
-
-  /// No description provided for @styleRomantic.
-  ///
-  /// In en, this message translates to:
-  /// **'Romantic'**
-  String get styleRomantic;
 
   /// No description provided for @styleVintage.
   ///
@@ -579,47 +579,23 @@ abstract class AppLocalizations {
   /// **'Vintage'**
   String get styleVintage;
 
-  /// No description provided for @styleBohemian.
-  ///
-  /// In en, this message translates to:
-  /// **'Bohemian'**
-  String get styleBohemian;
-
-  /// No description provided for @styleCityBoy.
-  ///
-  /// In en, this message translates to:
-  /// **'City Boy'**
-  String get styleCityBoy;
-
-  /// No description provided for @styleAmericanCasual.
-  ///
-  /// In en, this message translates to:
-  /// **'American Casual'**
-  String get styleAmericanCasual;
-
   /// No description provided for @styleWorkwear.
   ///
   /// In en, this message translates to:
   /// **'Workwear'**
   String get styleWorkwear;
 
-  /// No description provided for @styleGorpcore.
+  /// No description provided for @stylePreppy.
   ///
   /// In en, this message translates to:
-  /// **'Gorpcore'**
-  String get styleGorpcore;
+  /// **'Preppy'**
+  String get stylePreppy;
 
-  /// No description provided for @styleTechwear.
+  /// No description provided for @styleBusiness.
   ///
   /// In en, this message translates to:
-  /// **'Techwear'**
-  String get styleTechwear;
-
-  /// No description provided for @styleOutdoor.
-  ///
-  /// In en, this message translates to:
-  /// **'Outdoor'**
-  String get styleOutdoor;
+  /// **'Business'**
+  String get styleBusiness;
 
   /// No description provided for @styleTasteStyleBalanceTitle.
   ///
@@ -896,6 +872,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Regenerate'**
   String get regenerate;
+
+  /// No description provided for @setAsCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as Cover'**
+  String get setAsCover;
 
   /// No description provided for @letUwearisPlanOutfits.
   ///

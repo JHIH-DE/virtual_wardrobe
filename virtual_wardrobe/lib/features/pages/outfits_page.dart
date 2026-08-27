@@ -36,9 +36,14 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
   static const List<String> _styles = [
     'All',
     'Minimal',
-    'Street',
     'Classic',
-    'Sporty',
+    'Smart Casual',
+    'Streetwear',
+    'Athleisure',
+    'Workwear',
+    'Preppy',
+    'Business',
+    'Vintage',
   ];
 
   Set<String> _selectedSeasons = {'All'};
@@ -101,12 +106,18 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
           _selectedStyle.contains('All') ||
           o.style.any(
             (s) => _selectedStyle.any(
-              (sel) => sel.toLowerCase() == s.toLowerCase(),
+              (sel) => _normalizeStyle(sel) == _normalizeStyle(s),
             ),
           );
       return okSeason && okStyle;
     }).toList();
   }
+
+  // The backend's style tags are snake_case (`smart_casual`) while the
+  // filter chips show Title Case with spaces ("Smart Casual") — normalize
+  // both sides to compare regardless of separator/case.
+  String _normalizeStyle(String s) =>
+      s.toLowerCase().replaceAll(RegExp(r'[\s_]+'), '');
 
   AppToolBar _buildAppBar(List<Outfit> all) {
     final l10n = AppLocalizations.of(context);
