@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../section_title.dart';
 
 class AppListCard extends StatelessWidget {
   final String? title;
@@ -50,8 +51,8 @@ class AppListCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (title != null) ...[
-                Text(title!, style: AppTextStyle.bold14),
-                const SizedBox(height: 10),
+                SectionTitle(title!),
+                const SizedBox(height: AppDimens.cardHeaderGap),
               ],
               child,
               if (summary != null) ...[

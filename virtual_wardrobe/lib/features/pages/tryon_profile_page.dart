@@ -12,6 +12,7 @@ import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/section_title.dart';
@@ -32,14 +33,14 @@ enum _UnitSystem {
       value == 'imperial' ? imperial : metric;
 }
 
-class AiModelPage extends StatefulWidget {
-  const AiModelPage({super.key});
+class TryonProfilePage extends StatefulWidget {
+  const TryonProfilePage({super.key});
 
   @override
-  State<AiModelPage> createState() => _AiModelPageState();
+  State<TryonProfilePage> createState() => _TryonProfilePageState();
 }
 
-class _AiModelPageState extends State<AiModelPage> {
+class _TryonProfilePageState extends State<TryonProfilePage> {
   static const double _cmPerInch = 2.54;
   static const double _kgPerLb = 0.45359237;
 
@@ -319,23 +320,23 @@ class _AiModelPageState extends State<AiModelPage> {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 20),
-            SectionTitle(_l10n.faceReferenceLabel.toUpperCase()),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimens.sectionSpacing),
+            SectionTitle(_l10n.faceReferenceLabel),
+            const SizedBox(height: AppDimens.cardHeaderGap),
             _buildFaceReferenceCard(),
-            const SizedBox(height: 20),
-            SectionTitle(_l10n.bodyReferenceLabel.toUpperCase()),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimens.sectionSpacing),
+            SectionTitle(_l10n.bodyReferenceLabel),
+            const SizedBox(height: AppDimens.cardHeaderGap),
             _buildBodyReferenceCard(),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppDimens.sectionSpacing),
             Row(
               children: [
-                SectionTitle(_l10n.bodyMeasurementsLabel.toUpperCase()),
+                SectionTitle(_l10n.bodyMeasurementsLabel),
                 const Spacer(),
                 _buildUnitToggle(),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppDimens.cardHeaderGap),
             _buildBodyMeasurementsCard(),
           ],
         ),
@@ -618,7 +619,7 @@ class _AiModelPageState extends State<AiModelPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(label.toUpperCase()),
+        FieldLabel(label.toUpperCase()),
         const SizedBox(height: 8),
         AppTextField(
           controller: controller,

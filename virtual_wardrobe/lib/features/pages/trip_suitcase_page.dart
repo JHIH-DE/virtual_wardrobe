@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
@@ -16,6 +15,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/removable_card.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
 import 'trip_garment_selection_page.dart';
 
@@ -260,8 +260,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   ) {
     if (garments.isEmpty) return const [];
     return [
-      Text(category.localizedLabel(context), style: AppTextStyle.bold16),
-      const SizedBox(height: 12),
+      SectionTitle(category.localizedLabel(context)),
+      const SizedBox(height: AppDimens.cardHeaderGap),
       GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -275,7 +275,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         itemCount: garments.length,
         itemBuilder: (context, i) => _buildGarmentCard(garments[i]),
       ),
-      const SizedBox(height: 20),
+      const SizedBox(height: AppDimens.sectionSpacing),
     ];
   }
 

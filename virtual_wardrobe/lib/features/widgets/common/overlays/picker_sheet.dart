@@ -29,7 +29,7 @@ class PickerSheetHeader extends StatelessWidget {
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: Text(title, style: AppTextStyle.bold18)),
+            Expanded(child: Text(title, style: AppTextStyle.bold20)),
             if (trailing != null) trailing!,
           ],
         ),

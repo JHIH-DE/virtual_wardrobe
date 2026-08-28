@@ -426,14 +426,8 @@ abstract class AppLocalizations {
   /// No description provided for @sceneLabel.
   ///
   /// In en, this message translates to:
-  /// **'Scene'**
+  /// **'Background'**
   String get sceneLabel;
-
-  /// No description provided for @sceneSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose a background for your outfit.'**
-  String get sceneSubtitle;
 
   /// No description provided for @noneLabel.
   ///
@@ -1995,22 +1989,22 @@ abstract class AppLocalizations {
   /// **'Perceived temperature offset'**
   String get perceivedTempOffset;
 
-  /// No description provided for @lifestyleIntroLine1.
+  /// No description provided for @lifestyleDescription.
   ///
   /// In en, this message translates to:
-  /// **'Tell Uwearis what your typical week looks like.'**
-  String get lifestyleIntroLine1;
+  /// **'Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.'**
+  String get lifestyleDescription;
 
-  /// No description provided for @lifestyleIntroLine2.
+  /// No description provided for @weeklyScheduleIntro.
   ///
   /// In en, this message translates to:
-  /// **'We\'ll recommend outfits that match your routine.'**
-  String get lifestyleIntroLine2;
+  /// **'Set what a typical week looks like for you.'**
+  String get weeklyScheduleIntro;
 
   /// No description provided for @comfortAdjustmentIntro.
   ///
   /// In en, this message translates to:
-  /// **'Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.'**
+  /// **'Fine-tune how warm or cool you usually feel.'**
   String get comfortAdjustmentIntro;
 
   /// No description provided for @selectOccasionTitle.

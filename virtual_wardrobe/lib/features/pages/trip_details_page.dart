@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
@@ -18,6 +19,7 @@ import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/trip/trip_day_card.dart';
@@ -590,13 +592,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           body: ListView(
             padding: const EdgeInsets.only(bottom: 32),
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildTripHeader()),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildUwearisInsightCard()),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildSuitcaseSection()),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildDayPlanCard()),
             ],
           ),
@@ -633,15 +635,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(_l10n.dailyOutfitPlan, style: AppTextStyle.bold18),
+            child: SectionTitle(_l10n.dailyOutfitPlan),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           _buildTripDaySelector(),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           _paddedSection(_buildOutfitDateHeader()),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           _paddedSection(_buildOutfitSection()),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           _buildWardrobeSection(),
         ],
       ),
@@ -667,17 +669,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(
-                _l10n.outfitForDate(dateStr),
-                style: AppTextStyle.bold16,
-              ),
-            ),
+            Expanded(child: SectionTitle(_l10n.outfitForDate(dateStr))),
             if (hasOption)
-              IconButton(
-                onPressed: _openDayOutfitEditor,
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _openDayOutfitEditor,
+                child: const Icon(
                   Icons.edit_outlined,
                   size: 20,
                   color: AppColors.icon,
@@ -1026,7 +1023,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           children: [
             const Icon(Icons.auto_awesome, color: AppColors.accent, size: 28),
             const SizedBox(height: 8),
-            Text(_l10n.letUwearisPlanOutfits, style: AppTextStyle.bold14),
+            SectionTitle(_l10n.letUwearisPlanOutfits),
             const SizedBox(height: 4),
             Text(
               _l10n.letUwearisPlanOutfitsHint,
@@ -1074,12 +1071,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 children: [
                   Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          _l10n.tapToViewAiSummary,
-                          style: AppTextStyle.bold14,
-                        ),
-                      ),
+                      Expanded(child: SectionTitle(_l10n.tapToViewAiSummary)),
                       AnimatedRotation(
                         turns: _packingAdviceExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 150),

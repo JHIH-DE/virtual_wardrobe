@@ -46,7 +46,7 @@ class GarmentUploadHelper {
                 Text(
                   l10n.addClothingPrompt,
                   textAlign: TextAlign.center,
-                  style: AppTextStyle.bold16,
+                  style: AppTextStyle.bold20,
                 ),
                 const SizedBox(height: 16),
                 _buildDialogOption(

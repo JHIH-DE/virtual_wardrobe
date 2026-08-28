@@ -23,6 +23,7 @@ import '../widgets/common/buttons/close_action_button.dart';
 import '../widgets/common/buttons/pill_button.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/cards/score_ring.dart';
+import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
@@ -30,7 +31,6 @@ import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
-import '../widgets/common/section_title.dart';
 import '../widgets/garment/compatibility_row.dart';
 import '../widgets/garment/garment_image.dart';
 import 'garment_outfits_page.dart';
@@ -620,7 +620,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               Text(
                 category.pluralLabel(ctx),
                 textAlign: TextAlign.center,
-                style: AppTextStyle.bold18,
+                style: AppTextStyle.bold20,
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -696,7 +696,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.clothingNameLabel.toUpperCase()),
+        FieldLabel(_l10n.clothingNameLabel.toUpperCase()),
         const SizedBox(height: 8),
         AppTextField(
           controller: _nameCtrl,
@@ -713,7 +713,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.clothingCategoryLabel.toUpperCase()),
+        FieldLabel(_l10n.clothingCategoryLabel.toUpperCase()),
         const SizedBox(height: 8),
         PickerField(
           text: _category.localizedLabel(context),
@@ -777,7 +777,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.productType.toUpperCase()),
+        FieldLabel(_l10n.productType.toUpperCase()),
         const SizedBox(height: 8),
         AppTextField(
           controller: _subCategory,
@@ -794,7 +794,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.color.toUpperCase()),
+        FieldLabel(_l10n.color.toUpperCase()),
         const SizedBox(height: 8),
         _colorPicker(),
       ],
@@ -805,7 +805,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.fitLabel.toUpperCase()),
+        FieldLabel(_l10n.fitLabel.toUpperCase()),
         const SizedBox(height: 8),
         _fitSlider(),
       ],
@@ -816,7 +816,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.brandOptionalLabel.toUpperCase()),
+        FieldLabel(_l10n.brandOptionalLabel.toUpperCase()),
         const SizedBox(height: 8),
         AppTextField(controller: _brandCtrl, hint: _l10n.brandHint),
       ],
@@ -827,7 +827,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.priceOptionalLabel.toUpperCase()),
+        FieldLabel(_l10n.priceOptionalLabel.toUpperCase()),
         const SizedBox(height: 8),
         AppTextField(
           controller: _priceCtrl,
@@ -842,7 +842,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.purchaseDateLabel.toUpperCase()),
+        FieldLabel(_l10n.purchaseDateLabel.toUpperCase()),
         const SizedBox(height: 8),
         _purchaseDateField(),
       ],

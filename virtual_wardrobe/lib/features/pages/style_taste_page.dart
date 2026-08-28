@@ -19,6 +19,7 @@ import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/section_title.dart';
 
 /// "How Uwearis thinks you like outfits put together" — every learned
 /// preference dimension plotted together on one radar chart, so the shape
@@ -94,11 +95,11 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
             color: AppColors.textSecondary,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.sectionSpacing),
         _buildAnalysisCard(profile.summary),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.sectionSpacing),
         _buildRadarCard(profile.preferences),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.sectionSpacing),
         _buildStyleProfileCard(),
       ],
     );
@@ -136,7 +137,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -154,33 +155,26 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Text(
-                  l10n.styleTasteRadarCardTitle,
-                  style: AppTextStyle.bold18,
-                ),
-              ),
-              Transform.translate(
-                offset: const Offset(8, 0),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(
-                    Icons.info_outline,
-                    color: AppColors.textSecondary,
-                  ),
-                  onPressed: _showAllDescriptionsDialog,
+              Expanded(child: SectionTitle(l10n.styleTasteRadarCardTitle)),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _showAllDescriptionsDialog,
+                child: const Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 4),
           Text(
             l10n.styleTasteRadarCardSubtitle,
             style: AppTextStyle.regular14.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           LayoutBuilder(
             builder: (context, constraints) => Center(
               child: StyleTasteRadarChart(
@@ -205,12 +199,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
             onTap: () => setState(() => _detailsExpanded = !_detailsExpanded),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    l10n.styleTasteDetailsLabel,
-                    style: AppTextStyle.bold16,
-                  ),
-                ),
+                Expanded(child: SectionTitle(l10n.styleTasteDetailsLabel)),
                 AnimatedRotation(
                   turns: _detailsExpanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 150),
@@ -223,7 +212,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 150),
             crossFadeState: _detailsExpanded
@@ -392,7 +381,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -407,14 +396,15 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.styleProfileCardTitle, style: AppTextStyle.bold18),
+          SectionTitle(l10n.styleProfileCardTitle),
+          const SizedBox(height: 4),
           Text(
             l10n.styleProfileCardSubtitle,
             style: AppTextStyle.regular14.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           child,
         ],
       ),

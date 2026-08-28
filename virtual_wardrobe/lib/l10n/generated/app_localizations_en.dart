@@ -180,10 +180,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createOutfitHint => 'Create another outfit using these garments';
 
   @override
-  String get sceneLabel => 'Scene';
-
-  @override
-  String get sceneSubtitle => 'Choose a background for your outfit.';
+  String get sceneLabel => 'Background';
 
   @override
   String get noneLabel => 'None';
@@ -1016,16 +1013,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get perceivedTempOffset => 'Perceived temperature offset';
 
   @override
-  String get lifestyleIntroLine1 =>
-      'Tell Uwearis what your typical week looks like.';
+  String get lifestyleDescription =>
+      'Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.';
 
   @override
-  String get lifestyleIntroLine2 =>
-      'We\'ll recommend outfits that match your routine.';
+  String get weeklyScheduleIntro =>
+      'Set what a typical week looks like for you.';
 
   @override
   String get comfortAdjustmentIntro =>
-      'Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.';
+      'Fine-tune how warm or cool you usually feel.';
 
   @override
   String get selectOccasionTitle => 'Select Occasion';

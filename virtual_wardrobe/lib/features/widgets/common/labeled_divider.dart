@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_text_styles.dart';
+import 'section_title.dart';
 
 class LabeledDivider extends StatelessWidget {
   final String label;
@@ -35,12 +35,7 @@ class LabeledDivider extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
               ],
-              Text(
-                label,
-                style: AppTextStyle.bold14.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
+              SectionTitle(label),
             ],
           ),
         ),

@@ -409,9 +409,11 @@ class _TripsPageState extends ConsumerState<TripsPage> {
     final items = <Widget>[];
     void addSection(String label, List<Trip> group, Color dotColor) {
       if (group.isEmpty) return;
-      if (items.isNotEmpty) items.add(const SizedBox(height: 8));
+      if (items.isNotEmpty) {
+        items.add(const SizedBox(height: AppDimens.sectionSpacing));
+      }
       items.add(LabeledDivider(label: label, dotColor: dotColor));
-      items.add(const SizedBox(height: 16));
+      items.add(const SizedBox(height: AppDimens.cardHeaderGap));
       for (final trip in group) {
         items.add(_buildTripCard(trip));
       }

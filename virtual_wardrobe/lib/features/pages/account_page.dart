@@ -9,12 +9,12 @@ import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
-import '../widgets/common/section_title.dart';
 import 'location_picker_page.dart';
 
 class AccountPage extends StatefulWidget {
@@ -211,7 +211,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.accountNameLabel.toUpperCase()),
+        FieldLabel(_l10n.accountNameLabel.toUpperCase()),
         const SizedBox(height: 8),
         AppTextField(controller: _nameCtrl, hint: _l10n.enterYourNameHint),
       ],
@@ -222,7 +222,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.genderLabel.toUpperCase()),
+        FieldLabel(_l10n.genderLabel.toUpperCase()),
         const SizedBox(height: 8),
         PickerField(
           text: _selectedGender != null
@@ -277,7 +277,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.birthdayLabel.toUpperCase()),
+        FieldLabel(_l10n.birthdayLabel.toUpperCase()),
         const SizedBox(height: 8),
         DateDropdownField(
           value: _selectedBirthDate,
@@ -296,7 +296,7 @@ class _AccountPageState extends State<AccountPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(_l10n.homeLocationLabel.toUpperCase()),
+        FieldLabel(_l10n.homeLocationLabel.toUpperCase()),
         const SizedBox(height: 8),
         TappableFieldDecorator(
           onTap: _pickHomeLocation,

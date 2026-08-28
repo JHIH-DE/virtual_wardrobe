@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/locale_provider.dart';
 import '../../core/services/auth_handler.dart';
@@ -19,11 +20,11 @@ import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'account_page.dart';
-import 'ai_model_page.dart';
 import 'image_editor_page.dart';
 import 'lifestyle_page.dart';
 import 'login_page.dart';
 import 'style_taste_page.dart';
+import 'tryon_profile_page.dart';
 
 /// Wraps the bottom sheet's chosen locale so a `null` result (System
 /// Default, itself a valid choice) can be told apart from the sheet being
@@ -107,10 +108,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadProfile();
   }
 
-  Future<void> _openAiModel() async {
+  Future<void> _openTryOnProfile() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const AiModelPage()),
+      MaterialPageRoute(builder: (_) => const TryonProfilePage()),
     );
     _loadProfile();
   }
@@ -184,32 +185,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           : ListView(
               children: [
                 _buildProfileCard(l10n),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildAccountCard(l10n),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildAiModelCard(l10n),
+                  child: _buildTryOnProfileCard(l10n),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildStyleTasteCard(l10n),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildLifestyleCard(l10n),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildLanguageCard(l10n),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildLogoutCard(l10n),
@@ -264,9 +265,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildAiModelCard(AppLocalizations l10n) {
+  Widget _buildTryOnProfileCard(AppLocalizations l10n) {
     return AppListCard(
-      onTap: _openAiModel,
+      onTap: _openTryOnProfile,
       leadingAsset: 'assets/images/figure_setting.png',
       showArrow: true,
       summary: _aiModelStatusLabel(l10n),

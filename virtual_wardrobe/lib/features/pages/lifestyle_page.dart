@@ -128,17 +128,25 @@ class _LifestylePageState extends State<LifestylePage> {
           AppDimens.bottomActionBtnClearance,
         ),
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.sectionSpacing),
+          Text(
+            _l10n.lifestyleDescription,
+            style: AppTextStyle.regular14.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sectionSpacing),
           _buildSectionTitle(_l10n.weeklySchedule),
           const SizedBox(height: 8),
           _buildWeeklyScheduleIntro(),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           ...List.generate(7, _buildWeekdayCard),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.sectionSpacing),
           _buildSectionTitle(_l10n.comfortAdjustment),
           const SizedBox(height: 8),
           _buildComfortAdjustmentIntro(),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           _buildTempAdjuster(),
         ],
       ),
@@ -152,17 +160,12 @@ class _LifestylePageState extends State<LifestylePage> {
   }
 
   Widget _buildWeeklyScheduleIntro() {
-    final style = AppTextStyle.regular14.copyWith(
-      color: AppColors.textSecondary,
-      height: 1.4,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(_l10n.lifestyleIntroLine1, style: style),
-        const SizedBox(height: 4),
-        Text(_l10n.lifestyleIntroLine2, style: style),
-      ],
+    return Text(
+      _l10n.weeklyScheduleIntro,
+      style: AppTextStyle.regular14.copyWith(
+        color: AppColors.textSecondary,
+        height: 1.4,
+      ),
     );
   }
 
@@ -177,7 +180,7 @@ class _LifestylePageState extends State<LifestylePage> {
   }
 
   Widget _buildSectionTitle(String label) {
-    return SectionTitle(label.toUpperCase());
+    return SectionTitle(label);
   }
 
   Widget _buildTempAdjuster() {

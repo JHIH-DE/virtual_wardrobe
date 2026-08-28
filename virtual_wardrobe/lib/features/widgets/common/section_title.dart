@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_text_styles.dart';
 
-/// Small-caps label used above a form field or a list section. Pass
-/// [title] already uppercased — this doesn't transform it itself, so the
-/// caller controls exactly what's shown (useful when only part of the
-/// string, e.g. a unit suffix, shouldn't be capitalized).
+/// Heading for a block of content within a page — e.g. Lifestyle's
+/// "Weekly Schedule"/"Comfort Adjustment", Add Outfit's "Accessories"/
+/// "Scene", AI Model's "Face Reference"/"Body Reference"/"Body
+/// Measurements". One step down from the page's own AppBar title, one
+/// step up from a [FieldLabel]. Unlike [FieldLabel], this isn't
+/// small-caps — pass [title] in normal case.
 class SectionTitle extends StatelessWidget {
   final String title;
   final TextStyle? style;
@@ -14,6 +16,6 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: style ?? AppTextStyle.overline12);
+    return Text(title, style: style ?? AppTextStyle.bold18);
   }
 }

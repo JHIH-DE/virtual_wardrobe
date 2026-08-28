@@ -7,6 +7,19 @@ abstract class AppDimens {
   // its own value.
   static const double cardSpacing = 12;
 
+  // Gap between a card's header block (title, or title+subtitle) and the
+  // body content below it — AppListCard, UwearisInsightCard, and every
+  // page-level card with its own title (Style Taste's radar/profile cards,
+  // Daily Outfit Plan, tryon_profile_page's reference sections, ...). Distinct
+  // from [cardSpacing]'s "between separate cards" role.
+  static const double cardHeaderGap = 12;
+
+  // Vertical gap between separate cards/major sections stacked on a page
+  // (as opposed to [cardSpacing], which is for same-type items in a
+  // grid/list). Used between e.g. a page's insight card, suitcase card,
+  // and day-plan card.
+  static const double sectionSpacing = 16;
+
   // Standard corner radius for cards (GarmentCard, OutfitCard, TripCard,
   // GarmentListCard, AppListCard, UwearisInsightCard, TripDayCard, ...) — kept
   // as one constant so every card in the app reads as the same shape

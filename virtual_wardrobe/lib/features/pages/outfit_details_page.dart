@@ -225,9 +225,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
               ),
               children: [
                 _buildInfoCard(),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 _buildOutfitImage(),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppDimens.sectionSpacing),
                 if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
               ],
             ),
@@ -945,7 +945,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             children: [
-              const Icon(Icons.push_pin_outlined, size: 20, color: AppColors.icon),
+              const Icon(
+                Icons.push_pin_outlined,
+                size: 20,
+                color: AppColors.icon,
+              ),
               const SizedBox(width: 8),
               Text(
                 _l10n.setAsCover,
@@ -1029,7 +1033,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             _garments?.length ?? _current.garmentIds.length,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.cardHeaderGap),
         if (_isLoadingGarments)
           const Center(child: PetalLoader())
         else if (_garments != null)

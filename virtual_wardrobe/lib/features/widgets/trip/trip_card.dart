@@ -9,6 +9,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../../l10n/trip_activity_localization.dart';
 import '../common/fields/app_text_field.dart';
 import '../common/overlays/app_dialog.dart';
+import '../common/section_title.dart';
 import 'trip_legs_editor.dart';
 
 enum _TripCardAction { editName, editLegs, editActivities, delete }
@@ -55,16 +56,17 @@ class TripCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            // Trimmed from the original 16/12 top/bottom now that
+            // SectionTitle's default (bold16) renders shorter than it used
+            // to — keeps the header block proportional to the title.
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text(trip.name, style: AppTextStyle.bold24),
-                    ),
+                    Expanded(child: SectionTitle(trip.name)),
                     Transform.translate(
                       offset: const Offset(18, 0),
                       child: PopupMenuButton<_TripCardAction>(

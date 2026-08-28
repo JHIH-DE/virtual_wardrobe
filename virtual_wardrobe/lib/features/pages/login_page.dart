@@ -215,13 +215,7 @@ class _LoginPageState extends State<LoginPage> {
     return Text(
       _l10n.loginHeading,
       textAlign: TextAlign.center,
-      style: GoogleFonts.roboto(
-        fontSize: 18,
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w700,
-        height: 22 / 16,
-        letterSpacing: 16 * 0.02,
-      ),
+      style: AppTextStyle.bold18,
     );
   }
 

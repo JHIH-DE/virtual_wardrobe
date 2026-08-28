@@ -123,7 +123,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppDimens.sectionSpacing),
                   _buildOutfitImageCard(),
                   _buildUpcomingTripSection(),
                 ],
@@ -315,7 +315,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LabeledDivider(label: l10n.todaysOutfit),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.cardHeaderGap),
         ClipRRect(
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
           child: AspectRatio(
@@ -388,7 +388,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         if (hasImage &&
             outfit.reasoning != null &&
             outfit.reasoning!.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppDimens.sectionSpacing),
           UwearisInsightCard(
             child: Text(outfit.reasoning!, style: AppTextStyle.regular14),
           ),
@@ -474,9 +474,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.sectionSpacing),
         LabeledDivider(label: l10n.upcomingTrip),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.cardHeaderGap),
         _buildTripCard(upcoming.first),
       ],
     );
@@ -560,12 +560,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.sectionSpacing),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: LabeledDivider(label: l10n.recentlyAdded),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppDimens.cardHeaderGap),
         SizedBox(
           height: AppDimens.garmentCardHeight,
           child: ListView.separated(

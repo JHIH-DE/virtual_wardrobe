@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../section_title.dart';
 
 /// Call-out reserved for Uwearis's AI-generated text output (packing advice,
 /// styling tips, etc.) so users can tell "the AI said this" at a glance: a
@@ -59,9 +60,9 @@ class UwearisInsightCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
+              SectionTitle(
                 l10n.appTitle,
-                style: AppTextStyle.bold16.copyWith(letterSpacing: 1.5),
+                style: AppTextStyle.bold18.copyWith(letterSpacing: 1.5),
               ),
               const SizedBox(width: 6),
               Container(
@@ -80,7 +81,7 @@ class UwearisInsightCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppDimens.cardHeaderGap),
           child,
         ],
       ),

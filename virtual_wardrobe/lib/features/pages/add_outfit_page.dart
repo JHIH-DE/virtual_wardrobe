@@ -15,6 +15,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
+import '../widgets/common/field_label.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
@@ -355,10 +356,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
             ),
             children: [
               _buildInstructions(),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppDimens.sectionSpacing),
               if (!widget.selectOnly) ...[
                 _buildMatchALookCard(),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppDimens.sectionSpacing),
               ],
               ..._buildTopSlots(),
               ..._buildOuterSlot(),
@@ -451,7 +452,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                         color: AppColors.icon,
                       ),
                       const SizedBox(width: 6),
-                      Text(_l10n.matchALookTitle, style: AppTextStyle.bold16),
+                      SectionTitle(_l10n.matchALookTitle),
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -640,7 +641,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                   Expanded(
                     child: Text(
                       _l10n.customizationOptional,
-                      style: AppTextStyle.bold16,
+                      style: AppTextStyle.regular16,
                     ),
                   ),
                   AnimatedRotation(
@@ -672,19 +673,12 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                     color: AppColors.borderSubtle,
                   ),
                   const SizedBox(height: 16),
-                  SectionTitle(_l10n.accessoriesLabel.toUpperCase()),
-                  const SizedBox(height: 8),
+                  FieldLabel(_l10n.accessoriesLabel.toUpperCase()),
+                  const SizedBox(height: AppDimens.cardHeaderGap),
                   _buildAccessoriesRow(),
-                  const SizedBox(height: 16),
-                  SectionTitle(_l10n.sceneLabel.toUpperCase()),
-                  const SizedBox(height: 4),
-                  Text(
-                    _l10n.sceneSubtitle,
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppDimens.cardHeaderGap),
+                  FieldLabel(_l10n.sceneLabel.toUpperCase()),
+                  const SizedBox(height: AppDimens.cardHeaderGap),
                   _buildSceneSelector(),
                 ],
               ),
@@ -1088,7 +1082,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Row(
             children: [
-              SectionTitle(title.toUpperCase()),
+              FieldLabel(title.toUpperCase()),
               if (optional) ...[
                 const SizedBox(width: 4),
                 Text(

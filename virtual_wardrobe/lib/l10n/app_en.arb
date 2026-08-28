@@ -74,8 +74,7 @@
   "optionalLabel": "Optional",
   "createOutfit": "Create Outfit",
   "createOutfitHint": "Create another outfit using these garments",
-  "sceneLabel": "Scene",
-  "sceneSubtitle": "Choose a background for your outfit.",
+  "sceneLabel": "Background",
   "noneLabel": "None",
   "selectItemTitle": "Select {item}",
   "@selectItemTitle": {
@@ -446,9 +445,9 @@
   "comfortAdjustment": "Comfort Adjustment",
   "weeklySchedule": "Weekly Schedule",
   "perceivedTempOffset": "Perceived temperature offset",
-  "lifestyleIntroLine1": "Tell Uwearis what your typical week looks like.",
-  "lifestyleIntroLine2": "We'll recommend outfits that match your routine.",
-  "comfortAdjustmentIntro": "Everyone feels temperature differently — fine-tune this to match how you personally feel hot or cold.",
+  "lifestyleDescription": "Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.",
+  "weeklyScheduleIntro": "Set what a typical week looks like for you.",
+  "comfortAdjustmentIntro": "Fine-tune how warm or cool you usually feel.",
   "selectOccasionTitle": "Select Occasion",
 
   "todaysOutfit": "Today's Outfit",

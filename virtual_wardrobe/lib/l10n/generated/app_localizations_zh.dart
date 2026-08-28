@@ -175,10 +175,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
 
   @override
-  String get sceneLabel => '場景';
-
-  @override
-  String get sceneSubtitle => '為你的穿搭選擇背景。';
+  String get sceneLabel => '背景';
 
   @override
   String get noneLabel => '無';
@@ -994,13 +991,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get perceivedTempOffset => '體感溫度調整';
 
   @override
-  String get lifestyleIntroLine1 => '告訴 Uwearis 你典型的一週作息。';
+  String get lifestyleDescription => '告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。';
 
   @override
-  String get lifestyleIntroLine2 => '我們會根據你的日常推薦合適的穿搭。';
+  String get weeklyScheduleIntro => '設定你一週的典型作息。';
 
   @override
-  String get comfortAdjustmentIntro => '每個人對冷熱的感受不同，這裡可以微調成適合你的體感。';
+  String get comfortAdjustmentIntro => '微調你平常感受到的冷熱程度。';
 
   @override
   String get selectOccasionTitle => '選擇場合';
@@ -1291,10 +1288,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
 
   @override
-  String get sceneLabel => '場景';
-
-  @override
-  String get sceneSubtitle => '為你的穿搭選擇背景。';
+  String get sceneLabel => '背景';
 
   @override
   String get noneLabel => '無';
@@ -2110,13 +2104,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get perceivedTempOffset => '體感溫度調整';
 
   @override
-  String get lifestyleIntroLine1 => '告訴 Uwearis 你典型的一週作息。';
+  String get lifestyleDescription => '告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。';
 
   @override
-  String get lifestyleIntroLine2 => '我們會根據你的日常推薦合適的穿搭。';
+  String get weeklyScheduleIntro => '設定你一週的典型作息。';
 
   @override
-  String get comfortAdjustmentIntro => '每個人對冷熱的感受不同，這裡可以微調成適合你的體感。';
+  String get comfortAdjustmentIntro => '微調你平常感受到的冷熱程度。';
 
   @override
   String get selectOccasionTitle => '選擇場合';
