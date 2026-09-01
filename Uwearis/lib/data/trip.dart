@@ -83,6 +83,19 @@ class Trip {
       })
       .join(' • ');
 
+  /// Every date actually covered by some leg — skips any gap between legs
+  /// in a multi-leg trip that [dateRange]'s min-max span would otherwise
+  /// include. Used when sending `days` to the backend (e.g. after a legs
+  /// edit changes which dates the trip covers), since it rejects `days`
+  /// entries for dates no leg covers.
+  List<DateTime> get coveredDates {
+    final totalDays = dateRange.duration.inDays + 1;
+    return List.generate(
+      totalDays,
+      (i) => dateRange.start.add(Duration(days: i)),
+    ).where((date) => legForDate(date) != null).toList();
+  }
+
   /// The leg active on [date], if any.
   TripLeg? legForDate(DateTime date) {
     for (final leg in legs) {

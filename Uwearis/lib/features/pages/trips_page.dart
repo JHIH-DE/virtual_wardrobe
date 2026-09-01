@@ -1,10 +1,5 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -15,7 +10,6 @@ import '../../core/utils/debug_log.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/floating_nav_bar.dart';
-import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
@@ -31,8 +25,6 @@ class TripsPage extends ConsumerStatefulWidget {
   ConsumerState<TripsPage> createState() => _TripsPageState();
 }
 
-final _dateFmt = DateFormat('yyyy-MM-dd');
-
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 enum _TripStatus { ongoing, upcoming, past }
@@ -43,130 +35,6 @@ _TripStatus _tripStatus(Trip trip, DateTime today) {
   if (today.isBefore(start)) return _TripStatus.upcoming;
   if (today.isAfter(end)) return _TripStatus.past;
   return _TripStatus.ongoing;
-}
-
-/// Fetches per-day mean temperature for a leg, keyed by "yyyy-MM-dd".
-/// Legs within Open-Meteo's ~16-day forecast horizon use live forecast
-/// data; legs further out (forecasts don't exist that far ahead) fall
-/// back to last year's actual weather for the same calendar dates as an
-/// estimate.
-Future<Map<String, _DailyTemp>> _fetchLegDailyTemps(TripLeg leg) async {
-  final today = _dateOnly(DateTime.now());
-  final startOffset = _dateOnly(leg.dateRange.start).difference(today).inDays;
-  if (startOffset > 15) {
-    return _fetchHistoricalLegTemps(leg);
-  }
-  return _fetchForecastLegTemps(leg);
-}
-
-Future<Map<String, _DailyTemp>> _fetchForecastLegTemps(TripLeg leg) async {
-  final today = _dateOnly(DateTime.now());
-  final startOffset = _dateOnly(leg.dateRange.start).difference(today).inDays;
-  final duration = leg.dateRange.duration.inDays + 1;
-  final lat = leg.location.latitude;
-  final lon = leg.location.longitude;
-  int daysNeeded = startOffset + duration;
-  if (daysNeeded > 16) daysNeeded = 16;
-  if (daysNeeded < 7) daysNeeded = 7;
-  final url =
-      'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon'
-      '&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=$daysNeeded';
-  return _fetchDailyMap(url);
-}
-
-/// Beyond the forecast horizon there's no real forecast to fetch, so this
-/// pulls last year's actual weather for the same calendar dates from
-/// Open-Meteo's historical archive and shifts those dates forward a year
-/// to key them onto this trip's real dates.
-Future<Map<String, _DailyTemp>> _fetchHistoricalLegTemps(TripLeg leg) async {
-  final start = leg.dateRange.start;
-  final end = leg.dateRange.end;
-  final histStart = DateTime(start.year - 1, start.month, start.day);
-  final histEnd = DateTime(end.year - 1, end.month, end.day);
-  final lat = leg.location.latitude;
-  final lon = leg.location.longitude;
-  final url =
-      'https://archive-api.open-meteo.com/v1/archive?latitude=$lat&longitude=$lon'
-      '&start_date=${_dateFmt.format(histStart)}&end_date=${_dateFmt.format(histEnd)}'
-      '&daily=temperature_2m_max,temperature_2m_min&timezone=auto';
-
-  final histTemps = await _fetchDailyMap(url);
-  final shifted = <String, _DailyTemp>{};
-  histTemps.forEach((dateStr, temp) {
-    final d = DateTime.parse(dateStr);
-    shifted[_dateFmt.format(DateTime(d.year + 1, d.month, d.day))] = temp;
-  });
-  return shifted;
-}
-
-/// One day's high/low, as the trip_plans API now wants them
-/// (`temperature_max_c`/`temperature_min_c`) rather than a single mean.
-class _DailyTemp {
-  final double max;
-  final double min;
-  const _DailyTemp(this.max, this.min);
-}
-
-/// Calls an Open-Meteo daily-temperature endpoint and maps its own
-/// returned dates to values, rather than assuming a fixed offset from
-/// "today" — the response's date range doesn't always start exactly where
-/// requested.
-Future<Map<String, _DailyTemp>> _fetchDailyMap(String url) async {
-  try {
-    final res = await http.get(Uri.parse(url));
-    if (res.statusCode == 200) {
-      final data = json.decode(res.body);
-      final times = List<String>.from(data['daily']['time']);
-      final maxTemps = List<double>.from(
-        data['daily']['temperature_2m_max'].map((t) => (t as num).toDouble()),
-      );
-      final minTemps = List<double>.from(
-        data['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()),
-      );
-      return {
-        for (int i = 0; i < times.length; i++)
-          times[i]: _DailyTemp(maxTemps[i], minTemps[i]),
-      };
-    }
-    debugLog(
-      'Fetch daily temps failed: HTTP ${res.statusCode} for $url\n${res.body}',
-    );
-  } catch (e) {
-    debugLog('Fetch daily temps failed: $e (url: $url)');
-  }
-  return const {};
-}
-
-/// Builds one `{date, temperature_max_c, temperature_min_c}` entry per day
-/// of the whole trip by looking up, for each day, which leg covers it and
-/// pulling that leg's high/low for that specific date.
-Future<List<Map<String, dynamic>>> _fetchDailyTemperatures(Trip trip) async {
-  final legTemps = <Map<String, _DailyTemp>>[];
-  for (final leg in trip.legs) {
-    legTemps.add(await _fetchLegDailyTemps(leg));
-  }
-
-  final totalDays = trip.dateRange.duration.inDays + 1;
-
-  // Only include dates actually covered by a leg — the backend rejects
-  // `days` entries for gap dates between legs.
-  final days = <Map<String, dynamic>>[];
-  for (int i = 0; i < totalDays; i++) {
-    final date = trip.dateRange.start.add(Duration(days: i));
-    final leg = trip.legForDate(date);
-    if (leg == null) continue;
-
-    final dateStr = _dateFmt.format(date);
-    final legIndex = trip.legs.indexOf(leg);
-    final temp = legTemps[legIndex][dateStr];
-
-    days.add({
-      'date': dateStr,
-      'temperature_max_c': (temp?.max ?? 0.0).round(),
-      'temperature_min_c': (temp?.min ?? 0.0).round(),
-    });
-  }
-  return days;
 }
 
 /// Shows the "New Trip" creation flow (location/date form, then weather
@@ -211,37 +79,21 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
   }
 }
 
-/// Persists a trip edit (name/legs/activities) and reflects it in
-/// [tripsProvider]. Shared between [TripsPage] and any other entry point
-/// that edits a trip in place (e.g. the Home page's trip card).
-///
-/// Updates [tripsProvider] optimistically, before the network call, so the
-/// edit dialogs (which close immediately on Save, before the PATCH
-/// resolves) always show the just-made edit if reopened right away —
-/// rolled back if the request actually fails.
-Future<void> handleUpdateTrip(
+/// Renames a trip in place and reflects it in [tripsProvider]. Shared
+/// between [TripsPage]'s own card and any other list-style trip card (e.g.
+/// the Home page's). Destination/activity edits and deletion-with-
+/// navigation live on [TripDetailsPage]'s own app bar menu instead — a
+/// list card only ever needs the lightweight rename+delete pair.
+Future<void> handleRenameTrip(
   BuildContext context,
   WidgetRef ref,
-  Trip trip, {
-  required Trip updated,
-}) async {
+  Trip trip,
+  String name,
+) async {
+  final updated = trip.copyWith(name: name);
   ref.read(tripsProvider.notifier).updateTrip(updated);
   try {
-    // `legs` and `days` are independent on the backend — changing the leg
-    // date range doesn't implicitly resize the day records, so a leg edit
-    // has to resend `days` for the new range (same computation as trip
-    // creation) or added/removed days silently don't take effect.
-    final legsChanged = !identical(updated.legs, trip.legs);
-    final days = legsChanged ? await _fetchDailyTemperatures(updated) : null;
-    await TripService().updateTrip(
-      int.parse(trip.id),
-      name: updated.name != trip.name ? updated.name : null,
-      legs: updated.legs,
-      activities: setEquals(updated.activities.toSet(), trip.activities.toSet())
-          ? null
-          : updated.activities,
-      days: days,
-    );
+    await TripService().updateTrip(int.parse(trip.id), name: name);
   } catch (e) {
     if (!context.mounted) return;
     ref.read(tripsProvider.notifier).updateTrip(trip);
@@ -249,7 +101,7 @@ Future<void> handleUpdateTrip(
       await AuthExpiredHandler.handle(context);
       return;
     }
-    debugLog('Failed to update trip: $e');
+    debugLog('Failed to rename trip: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).failedToUpdateTrip)),
     );
@@ -257,8 +109,10 @@ Future<void> handleUpdateTrip(
 }
 
 /// Deletes a trip (with a loading overlay for the round trip) and removes
-/// it from [tripsProvider]. Shared between [TripsPage] and any other entry
-/// point that can delete a trip (e.g. the Home page's trip card).
+/// it from [tripsProvider]. Shared between [TripsPage] and any other list
+/// entry point that can delete a trip (e.g. the Home page's trip card) —
+/// unlike [TripDetailsPage]'s own delete action, there's no page to pop out
+/// of here, just a card to drop from the list.
 Future<void> handleDeleteTrip(
   BuildContext context,
   WidgetRef ref,
@@ -292,16 +146,15 @@ Future<void> handleDeleteTrip(
   }
 }
 
-/// Fetches the per-day weather needed by the backend, then creates the trip
-/// plan record and returns it as a [Trip].
+/// Creates the trip plan record and returns it as a [Trip] — per-day
+/// temperature isn't sent; the backend derives every day from [legs] and
+/// fills it in on its own (forecast within its window, historical average
+/// otherwise).
 Future<Trip> _createTrip(Trip input) async {
-  final days = await _fetchDailyTemperatures(input);
-  debugLog('createTrip days: $days');
   final id = await TripService().createTrip(
     name: input.name,
     legs: input.legs,
     activities: input.activities,
-    days: days,
   );
   return Trip(
     id: id.toString(),
@@ -360,7 +213,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
       body: SafeArea(
         bottom: false,
         child: tripsAsync.when(
-          loading: () => const Center(child: PetalLoader()),
+          loading: () => const SizedBox.shrink(),
           error: (e, _) => ErrorStateWidget(
             error: e,
             onRetry: () => ref.read(tripsProvider.notifier).refresh(),
@@ -416,9 +269,9 @@ class _TripsPageState extends ConsumerState<TripsPage> {
     final items = <Widget>[];
     void addSection(String label, List<Trip> group, Color dotColor) {
       if (group.isEmpty) return;
-      if (items.isNotEmpty) {
-        items.add(const SizedBox(height: AppDimens.sectionSpacing));
-      }
+      // No extra gap needed here even between sections — every card
+      // (including each section's last) already ends in its own
+      // AppDimens.sectionSpacing via _buildTripCard's bottom padding.
       items.add(LabeledDivider(label: label, dotColor: dotColor));
       items.add(const SizedBox(height: AppDimens.cardHeaderGap));
       for (final trip in group) {
@@ -447,29 +300,12 @@ class _TripsPageState extends ConsumerState<TripsPage> {
 
   Widget _buildTripCard(Trip trip) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimens.cardSpacing),
+      padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
       child: TripCard(
         key: ValueKey(trip.id),
         trip: trip,
         onTap: () => _handleOpenTrip(trip),
-        onNameChanged: (name) => handleUpdateTrip(
-          context,
-          ref,
-          trip,
-          updated: trip.copyWith(name: name),
-        ),
-        onLegsChanged: (legs) => handleUpdateTrip(
-          context,
-          ref,
-          trip,
-          updated: trip.copyWith(legs: legs),
-        ),
-        onActivitiesChanged: (activities) => handleUpdateTrip(
-          context,
-          ref,
-          trip,
-          updated: trip.copyWith(activities: activities),
-        ),
+        onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
         onDelete: () => handleDeleteTrip(context, ref, trip),
       ),
     );

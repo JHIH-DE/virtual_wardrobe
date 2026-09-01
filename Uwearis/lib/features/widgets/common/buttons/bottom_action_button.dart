@@ -37,11 +37,10 @@ class BottomActionButton extends StatelessWidget {
     ),
   });
 
-  bool get _isDisabled => !enabled || isLoading || onPressed == null;
-
-  // Genuinely disabled (not just mid-request) — hide the whole button
-  // instead of showing a grayed-out state.
-  bool get _isUnavailable => !isLoading && (!enabled || onPressed == null);
+  // Hidden whenever the action can't currently be taken — genuinely
+  // disabled, or a request for it is already in flight — rather than
+  // showing a grayed-out or spinner state in place.
+  bool get _isUnavailable => !enabled || onPressed == null || isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +52,10 @@ class BottomActionButton extends StatelessWidget {
     );
   }
 
+  // Only ever built while the action is actually available (see
+  // _isUnavailable), so onPressed is always non-null here — no disabled
+  // styling to account for.
   Widget _buildButton({required Key key}) {
-    final iconColor = _isDisabled ? AppColors.textSecondary : textColor;
-
     return Padding(
       key: key,
       padding: panelPadding,
@@ -67,50 +67,39 @@ class BottomActionButton extends StatelessWidget {
           width: double.infinity,
           height: _height,
           child: ElevatedButton(
-            onPressed: _isDisabled ? null : onPressed,
+            onPressed: onPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: buttonColor,
-              disabledBackgroundColor: AppColors.borderSubtle,
               foregroundColor: textColor,
-              disabledForegroundColor: AppColors.textSecondary,
               elevation: 0,
               side: borderSide,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
-            child: isLoading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: textColor,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (leading != null) ...[
-                        IconTheme(
-                          data: IconThemeData(color: iconColor),
-                          child: leading!,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Text(
-                        label,
-                        style: AppTextStyle.medium16.copyWith(color: iconColor),
-                      ),
-                      if (trailing != null) ...[
-                        const SizedBox(width: 8),
-                        IconTheme(
-                          data: IconThemeData(color: iconColor),
-                          child: trailing!,
-                        ),
-                      ],
-                    ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (leading != null) ...[
+                  IconTheme(
+                    data: IconThemeData(color: textColor),
+                    child: leading!,
                   ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label,
+                  style: AppTextStyle.medium16.copyWith(color: textColor),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  IconTheme(
+                    data: IconThemeData(color: textColor),
+                    child: trailing!,
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

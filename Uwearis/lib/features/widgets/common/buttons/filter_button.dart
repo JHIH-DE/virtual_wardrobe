@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../app_divider.dart';
 import '../fields/selectable_chip.dart';
 import '../overlays/picker_sheet.dart';
 
@@ -67,12 +68,11 @@ class FilterButton extends StatelessWidget {
               const SizedBox(height: 20),
               for (var i = 0; i < groups.length; i++) ...[
                 Text(groups[i].label, style: AppTextStyle.bold16),
-                Divider(
-                  height: 16,
-                  thickness: 1,
+                const AppDivider(
+                  topSpacing: 8,
+                  bottomSpacing: 12,
                   color: AppColors.dividerSubtle,
                 ),
-                const SizedBox(height: 12),
                 groups[i].options.isEmpty
                     ? Text(
                         groups[i].emptyMessage ??

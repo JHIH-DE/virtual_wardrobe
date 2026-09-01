@@ -19,6 +19,8 @@ import '../../data/outfit.dart';
 import '../../data/background_option.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_divider.dart';
+import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -624,11 +626,13 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           appBar: _buildAppBar(),
           body: ListView(
             physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               20,
               24,
               20,
-              AppDimens.bottomActionBtnClearance,
+              _showsBottomActionButton
+                  ? AppDimens.bottomActionBtnClearance
+                  : 24,
             ),
             children: [
               _buildInstructions(),
@@ -849,29 +853,18 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               ],
             ),
           ),
-          PopupMenuButton<_MatchALookCardAction>(
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.more_vert, color: AppColors.icon),
-            color: AppColors.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+          AppPopupMenu<_MatchALookCardAction>(
             onSelected: (action) {
               switch (action) {
                 case _MatchALookCardAction.remove:
                   _clearMatchALookSession();
               }
             },
-            itemBuilder: (context) => [
-              PopupMenuItem(
+            items: [
+              AppPopupMenu.item(
                 value: _MatchALookCardAction.remove,
-                child: Text(
-                  _l10n.removeReferenceLook,
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                label: _l10n.removeReferenceLook,
+                isDestructive: true,
               ),
             ],
           ),
@@ -1088,12 +1081,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.borderSubtle,
+                  const AppDivider(
+                    topSpacing: 0,
+                    bottomSpacing: AppDimens.sectionSpacing,
                   ),
-                  const SizedBox(height: 16),
                   FieldLabel(_l10n.accessoriesLabel.toUpperCase()),
                   const SizedBox(height: AppDimens.cardHeaderGap),
                   _buildAccessoriesRow(),
@@ -1275,7 +1266,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   }
 
   static const _backgroundCardWidth = 120.0;
-  static const _backgroundCardSpacing = AppDimens.cardSpacing;
+  static const _backgroundCardSpacing = AppDimens.sectionSpacing;
 
   /// Scrolls so the just-selected background at [index] is fully in view,
   /// centered in the row — tapping a card near either edge would otherwise
@@ -1458,6 +1449,12 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       ),
     );
   }
+
+  bool get _showsBottomActionButton => widget.selectOnly
+      ? (_hasSelection && _isModified)
+      : (!isOutfitLoading &&
+            _hasCoreSlots &&
+            (widget.existingOutfit != null || _isModified));
 
   Widget _buildBottomBar() {
     if (widget.selectOnly) {

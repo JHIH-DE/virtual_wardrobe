@@ -121,9 +121,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remove => '移除';
 
   @override
-  String get discard => '捨棄';
-
-  @override
   String get rename => '重新命名';
 
   @override
@@ -140,9 +137,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get outfitNameLabel => '這套穿搭的名稱';
-
-  @override
-  String get saveOutfit => '儲存穿搭';
 
   @override
   String get createAnotherVersion => '建立另一個版本';
@@ -205,12 +199,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get failedToLoadGarments => '服飾載入失敗';
-
-  @override
-  String get saveThisOutfitTitle => '儲存這套穿搭？';
-
-  @override
-  String get saveThisOutfitBody => '要將這套穿搭加入你的收藏嗎？';
 
   @override
   String get deleteOutfitTitle => '刪除穿搭';
@@ -1051,7 +1039,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get comfortAdjustmentIntro => '微調你平常感受到的冷熱程度。';
 
   @override
-  String get selectOccasionTitle => '選擇場合';
+  String selectOccasionTitle(String day) {
+    return '選擇$day的場合';
+  }
 
   @override
   String get todaysOutfit => '今日穿搭';
@@ -1285,9 +1275,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get remove => '移除';
 
   @override
-  String get discard => '捨棄';
-
-  @override
   String get rename => '重新命名';
 
   @override
@@ -1304,9 +1291,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get outfitNameLabel => '這套穿搭的名稱';
-
-  @override
-  String get saveOutfit => '儲存穿搭';
 
   @override
   String get createAnotherVersion => '建立另一個版本';
@@ -1369,12 +1353,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get failedToLoadGarments => '服飾載入失敗';
-
-  @override
-  String get saveThisOutfitTitle => '儲存這套穿搭？';
-
-  @override
-  String get saveThisOutfitBody => '要將這套穿搭加入你的收藏嗎？';
 
   @override
   String get deleteOutfitTitle => '刪除穿搭';
@@ -2215,7 +2193,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get comfortAdjustmentIntro => '微調你平常感受到的冷熱程度。';
 
   @override
-  String get selectOccasionTitle => '選擇場合';
+  String selectOccasionTitle(String day) {
+    return '選擇$day的場合';
+  }
 
   @override
   String get todaysOutfit => '今日穿搭';

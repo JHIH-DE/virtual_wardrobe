@@ -315,12 +315,6 @@ abstract class AppLocalizations {
   /// **'Remove'**
   String get remove;
 
-  /// No description provided for @discard.
-  ///
-  /// In en, this message translates to:
-  /// **'Discard'**
-  String get discard;
-
   /// No description provided for @rename.
   ///
   /// In en, this message translates to:
@@ -356,12 +350,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Name of this outfit'**
   String get outfitNameLabel;
-
-  /// No description provided for @saveOutfit.
-  ///
-  /// In en, this message translates to:
-  /// **'Save Outfit'**
-  String get saveOutfit;
 
   /// No description provided for @createAnotherVersion.
   ///
@@ -482,18 +470,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load garments'**
   String get failedToLoadGarments;
-
-  /// No description provided for @saveThisOutfitTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Save this outfit?'**
-  String get saveThisOutfitTitle;
-
-  /// No description provided for @saveThisOutfitBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Would you like to save this outfit to your collection?'**
-  String get saveThisOutfitBody;
 
   /// No description provided for @deleteOutfitTitle.
   ///
@@ -2112,8 +2088,8 @@ abstract class AppLocalizations {
   /// No description provided for @selectOccasionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Select Occasion'**
-  String get selectOccasionTitle;
+  /// **'Select {day}\'s Occasion'**
+  String selectOccasionTitle(String day);
 
   /// No description provided for @todaysOutfit.
   ///

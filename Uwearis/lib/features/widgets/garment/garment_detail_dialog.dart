@@ -5,6 +5,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../common/app_divider.dart';
 import '../common/buttons/close_action_button.dart';
 import '../common/cards/category_tag.dart';
 import 'garment_image.dart';
@@ -65,9 +66,7 @@ class GarmentDetailDialog extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: AppColors.borderSubtle),
-            const SizedBox(height: 12),
+            const AppDivider(topSpacing: 14, bottomSpacing: 12),
             _detailRow(l10n.brand, garment.brand ?? '--'),
             const SizedBox(height: 8),
             _detailRow(
@@ -76,9 +75,7 @@ class GarmentDetailDialog extends StatelessWidget {
                   ? '\$${garment.price!.toStringAsFixed(0)}'
                   : '--',
             ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: AppColors.borderSubtle),
-            const SizedBox(height: 16),
+            const AppDivider(topSpacing: 12, bottomSpacing: 16),
             Center(
               child: CloseActionButton(
                 onPressed: () => Navigator.of(context).pop(),

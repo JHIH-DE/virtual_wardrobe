@@ -77,7 +77,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
             : Text(
                 title,
                 textScaler: TextScaler.noScaling,
-                style: AppTextStyle.bold16,
+                style: AppTextStyle.bold20,
               ),
         leading:
             leading ??

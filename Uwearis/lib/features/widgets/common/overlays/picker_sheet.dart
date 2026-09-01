@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../app_divider.dart';
 
 /// Shared chrome for every "pick one from a list" bottom sheet in the app
 /// (Occasion, Gender, Language, Color): a drag handle, a title row (with
@@ -42,7 +43,7 @@ class PickerSheetHeader extends StatelessWidget {
             ),
           ),
         ],
-        Divider(height: 16, thickness: 1, color: AppColors.dividerSubtle),
+        const AppDivider(spacing: 8, color: AppColors.dividerSubtle),
       ],
     );
   }

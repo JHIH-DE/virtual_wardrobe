@@ -17,6 +17,8 @@ import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_divider.dart';
+import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/close_action_button.dart';
@@ -27,9 +29,9 @@ import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
-import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/garment/compatibility_row.dart';
 import '../widgets/garment/garment_image.dart';
@@ -158,10 +160,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     if (gid == null) return;
     try {
       final outfits = await OutfitService().getOutfitsByGarments([gid]);
-      // `is_saved` is no longer part of the outfit schema this endpoint
-      // returns (always parses false), so filtering by it excluded every
-      // result — count everything getOutfitsByGarments actually found.
-      final count = outfits.length;
+      // `by-garments` also returns daily/trip-generated outfits, which
+      // GarmentOutfitsPage excludes — keep this count in sync with what
+      // that page actually shows.
+      final count = outfits.where((o) => o.groupType == 'general').length;
       if (mounted) setState(() => _outfitCount = count);
     } catch (e) {
       // Tile just stays in its loading state; not worth surfacing an error
@@ -242,26 +244,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(_l10n.shareComingSoon)));
-  }
-
-  PopupMenuItem<_GarmentMenuAction> _menuItem(
-    _GarmentMenuAction value,
-    IconData icon,
-    String label,
-  ) {
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.icon),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: AppTextStyle.regular14.copyWith(fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
   }
 
   /// Instant rename, independent of the full-form Save button — mirrors
@@ -374,49 +356,45 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: _title,
+      // Blank — the name shows as its own block below the app bar instead
+      // (see [_buildForm]), so it isn't in the toolbar at all.
+      title: '',
       onBack: () async {
         final shouldPop = await _onWillPop();
         if (shouldPop && mounted) Navigator.pop(context);
       },
       actions: [
         if (!_isAddMode)
-          PopupMenuButton<_GarmentMenuAction>(
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.more_vert, color: AppColors.icon),
-            color: AppColors.surface,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+          AppPopupMenu<_GarmentMenuAction>(
             onSelected: _handleMenuAction,
-            itemBuilder: (context) => [
-              _menuItem(
-                _GarmentMenuAction.rename,
-                Icons.edit_outlined,
-                _l10n.rename,
-              ),
-              _menuItem(
-                _GarmentMenuAction.share,
-                Icons.share_outlined,
-                _l10n.share,
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: _GarmentMenuAction.delete,
-                child: Row(
-                  children: [
-                    const Icon(Icons.delete_outline, color: AppColors.icon),
-                    const SizedBox(width: 12),
-                    Text(
-                      _l10n.deleteGarment,
-                      style: AppTextStyle.regular14.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+            items: [
+              AppPopupMenu.item(
+                value: _GarmentMenuAction.rename,
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                  color: AppColors.icon,
                 ),
+                label: _l10n.rename,
+              ),
+              AppPopupMenu.item(
+                value: _GarmentMenuAction.share,
+                icon: const Icon(
+                  Icons.share_outlined,
+                  size: 20,
+                  color: AppColors.icon,
+                ),
+                label: _l10n.share,
+              ),
+              AppPopupMenu.item(
+                value: _GarmentMenuAction.delete,
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.icon,
+                ),
+                label: _l10n.deleteGarment,
+                isDestructive: true,
               ),
             ],
           ),
@@ -450,12 +428,27 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
+  bool get _showsBottomActionButton => _isModified && !uploading;
+
   Widget _buildForm() {
     return Form(
       key: _formKey,
       child: ListView(
+        padding: EdgeInsets.only(
+          bottom: _showsBottomActionButton
+              ? AppDimens.bottomActionBtnClearance
+              : 20,
+        ),
         children: [
           const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(_title, style: AppTextStyle.bold20),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: AppDivider(topSpacing: 12, bottomSpacing: 16),
+          ),
           if (uploading) _buildUploadProgress(),
           if (errorMessage != null)
             InlineErrorText(
@@ -473,6 +466,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               child: _buildOutfitPotentialCard(),
             ),
           ],
+          const SizedBox(height: AppDimens.sectionSpacing),
           _buildDetailsSection(),
         ],
       ),
@@ -659,17 +653,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   Widget _buildDetailsSection() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
       decoration: const BoxDecoration(color: AppColors.pageBackground),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!_isAddMode) _buildUsedInOutfitsTile(),
-          const Divider(
-            height: 24,
-            thickness: 1,
-            color: AppColors.borderSubtle,
-          ),
+          const AppDivider(),
           // Editing an existing garment renames via the App Bar's ⋮ ▸
           // Rename dialog instead (see _showRenameDialog) — this inline
           // field is only needed in Add Mode, before a rename option even
@@ -914,56 +904,51 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final zero = count == 0;
     final navigable = !zero;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        onTap: navigable ? _openUsedInOutfits : null,
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.checkroom_outlined,
-                size: 24,
-                color: AppColors.icon,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  zero ? _l10n.notUsedInOutfitsYet : _l10n.usedInOutfits,
-                  style: AppTextStyle.regular14.copyWith(
-                    color: zero
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
-                  ),
+    return GestureDetector(
+      onTap: navigable ? _openUsedInOutfits : null,
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.checkroom_outlined,
+              size: 24,
+              color: AppColors.icon,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                zero ? _l10n.notUsedInOutfitsYet : _l10n.usedInOutfits,
+                style: AppTextStyle.regular14.copyWith(
+                  color: zero ? AppColors.textSecondary : AppColors.textPrimary,
                 ),
               ),
-              if (loading)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else if (navigable) ...[
-                Text(
-                  '$count',
-                  style: AppTextStyle.bold14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  size: 20,
+            ),
+            if (loading)
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (navigable) ...[
+              Text(
+                '$count',
+                style: AppTextStyle.bold14.copyWith(
                   color: AppColors.textSecondary,
                 ),
-              ],
+              ),
+              Image.asset(
+                'assets/images/page_arrow_right.png',
+                width: AppDimens.iconSmallSize,
+                height: AppDimens.iconSmallSize,
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -1246,12 +1231,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         ),
         if (_isAnalyzing)
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.overlaySubtle,
-                borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-              ),
-              child: const Center(child: PetalLoader()),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+              child: LoadingOverlay(label: _l10n.analyzingClothingEllipsis),
             ),
           ),
       ],

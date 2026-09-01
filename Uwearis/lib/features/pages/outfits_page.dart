@@ -129,7 +129,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
           Text(
             l10n.navOutfits,
             textScaler: TextScaler.noScaling,
-            style: AppTextStyle.bold16,
+            style: AppTextStyle.bold20,
           ),
           const SizedBox(width: 8),
           CountPill(count: _filtered(all).length),

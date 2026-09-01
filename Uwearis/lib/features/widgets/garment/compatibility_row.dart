@@ -65,10 +65,12 @@ class _CompatibilityRowState extends State<CompatibilityRow>
                   style: AppTextStyle.bold16.copyWith(color: AppColors.accent),
                 ),
                 const SizedBox(width: 2),
-                const Icon(
-                  Icons.chevron_right,
+                Image.asset(
+                  'assets/images/page_arrow_right.png',
+                  width: 20,
+                  height: 20,
                   color: AppColors.accent,
-                  size: 20,
+                  colorBlendMode: BlendMode.srcIn,
                 ),
               ],
             ),

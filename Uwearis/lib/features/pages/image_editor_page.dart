@@ -178,6 +178,11 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                 _buildPinchHint(),
                 const SizedBox(height: 32),
                 _buildActionButtons(),
+                SizedBox(
+                  height: _showsBottomActionButton
+                      ? AppDimens.bottomActionBtnClearance
+                      : 0,
+                ),
               ],
             ),
           ),
@@ -191,6 +196,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   bool get _hasImage => _currentPath != null && _currentPath!.isNotEmpty;
+
+  bool get _showsBottomActionButton => _hasImage && !_isAnalyzing;
 
   Widget _buildConfirmButton() {
     return BottomActionButton(

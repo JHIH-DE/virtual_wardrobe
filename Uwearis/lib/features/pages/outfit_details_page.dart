@@ -16,6 +16,8 @@ import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_divider.dart';
+import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
@@ -23,7 +25,7 @@ import '../widgets/common/cards/category_tag.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/selectable_chip.dart';
 import '../widgets/common/floating_nav_bar.dart';
-import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
@@ -41,26 +43,26 @@ enum _VersionMenuAction { setCover, regenerate, delete }
 
 class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
+
+  /// True right after this outfit's try-on was rendered (the Add Outfit
+  /// flow) — leaving the page then always keeps it and jumps to the
+  /// Outfits tab (see [navigateToOutfitsTabOnSave]) rather than just
+  /// popping. There's no "discard" choice at leave time: the outfit is
+  /// already persisted server-side the instant it's rendered, so getting
+  /// rid of an unwanted one is always the explicit Delete action, same as
+  /// any other outfit.
   final bool isNew;
 
-  /// When [isNew] is true, back normally prompts to save/discard before
-  /// leaving. Set this to false to skip that prompt and pop straight back
-  /// (e.g. when the outfit is a daily outfit that already exists
-  /// server-side, so there's nothing unsaved to lose).
-  final bool confirmLeaveOnBack;
-
-  /// After tapping "Save Outfit", whether to jump to the Outfits tab
-  /// (popping back to the shell root) or just pop this page. Jumping to
-  /// Outfits makes sense when the outfit was created standalone (Home / Add
-  /// Outfit), but not when it was opened from a specific flow like Trip
-  /// Details, where the user expects Save to return them to what they were
-  /// doing.
+  /// When [isNew], whether leaving jumps to the Outfits tab (popping back
+  /// to the shell root) or just pops this page. Jumping to Outfits makes
+  /// sense when the outfit was created standalone (Home / Add Outfit), but
+  /// not when it was opened from a specific flow like Trip Details, where
+  /// the user expects to return to what they were doing.
   final bool navigateToOutfitsTabOnSave;
 
-  /// Once the outfit is saved, whether to still offer the "Edit Outfit"
-  /// entry card. Set this to false for entry points (e.g. Trip Details)
-  /// where a saved outfit shouldn't offer to be edited from here — the card
-  /// is hidden entirely in that case instead.
+  /// Whether to offer the "Edit Outfit" entry card. Set this to false for
+  /// entry points (e.g. Trip Details) where an outfit shouldn't offer to be
+  /// edited from here — the card is hidden entirely in that case instead.
   final bool showEditOutfitWhenSaved;
 
   /// Shows an "Add to My Outfits" action instead of "Create Another
@@ -77,7 +79,6 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
     super.key,
     required this.outfit,
     this.isNew = false,
-    this.confirmLeaveOnBack = true,
     this.navigateToOutfitsTabOnSave = true,
     this.showEditOutfitWhenSaved = true,
     this.showAddToMyOutfits = false,
@@ -110,8 +111,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     'Vintage',
   ];
   bool _isDeleting = false;
-  bool _isSaving = false;
-  bool _isSaved = false;
+  // True while leaving a freshly-rendered outfit refreshes the outfits
+  // list before jumping to the Outfits tab — see _leaveNewOutfit.
+  bool _isLeaving = false;
   // True while we're waiting on _fetchOutfitDetails for entry points that
   // hide the action bar once saved — avoids flashing the "Save Outfit"
   // button before the rest of the outfit's details have loaded.
@@ -152,18 +154,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// none of the image overlay controls (favorite/version menu) or the
   /// season/style tag editor apply to it.
   bool get _isDailyOutfit => _current.groupType == 'daily';
-  bool get _shouldConfirmLeave => widget.isNew && widget.confirmLeaveOnBack;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void initState() {
     super.initState();
-    // The backend no longer has an is_saved concept — every outfit is
-    // persisted the moment it's created. isNew is what actually means
-    // "not yet confirmed kept" here: fresh outfits start unconfirmed (so
-    // Save/leave-without-saving can still offer to delete it), anything
-    // opened from elsewhere is already real and treated as kept.
-    _isSaved = !widget.isNew;
     if (widget.outfit.garmentIds.isNotEmpty) _loadGarments();
     if (widget.isNew) {
       _isResolvingSavedStatus = !widget.showEditOutfitWhenSaved;
@@ -188,12 +183,21 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         widget.outfit.groupId,
       );
       if (!mounted || outfits.isEmpty) return;
+      // getGroupOutfits doesn't necessarily return the cover version
+      // first — the grid card that opened this page shows whichever
+      // version is the group's cover, so re-select that same one here by
+      // id rather than assuming index 0, or the photo/name would flash to
+      // a different version the instant this resolves.
+      final matchedIndex = outfits.indexWhere((o) => o.id == widget.outfit.id);
       setState(() {
         _versions
           ..clear()
           ..addAll(outfits);
-        _currentIndex = 0;
+        _currentIndex = matchedIndex >= 0 ? matchedIndex : 0;
       });
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
       _loadGarments();
     } catch (_) {
       // Leave the single seed version already showing.
@@ -205,10 +209,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     return Stack(
       children: [
         PopScope(
-          canPop: !_shouldConfirmLeave,
+          canPop: !widget.isNew,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            _showLeaveDialog();
+            _leaveNewOutfit();
           },
           child: Scaffold(
             backgroundColor: AppColors.pageBackground,
@@ -217,15 +221,17 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             body: ListView(
               padding: EdgeInsets.fromLTRB(
                 20,
-                12,
+                20,
                 20,
                 _showsBottomActionButton
                     ? AppDimens.bottomActionBtnClearance
                     : 30,
               ),
               children: [
+                Text(_title, style: AppTextStyle.bold20),
+                const AppDivider(topSpacing: 12, bottomSpacing: 4),
                 _buildInfoCard(),
-                const SizedBox(height: AppDimens.sectionSpacing),
+                const SizedBox(height: 4),
                 _buildOutfitImage(),
                 const SizedBox(height: AppDimens.sectionSpacing),
                 if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
@@ -236,77 +242,55 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         ),
         if (_isOpeningTryOn)
           Positioned.fill(child: LoadingOverlay(label: _l10n.loadingGarments)),
+        if (_isLeaving)
+          Positioned.fill(child: LoadingOverlay(label: _l10n.loading)),
       ],
     );
   }
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: _title,
-      onBack: _shouldConfirmLeave ? _showLeaveDialog : null,
+      // Blank — the name shows as its own block below the app bar instead
+      // (see build's ListView), so it isn't in the toolbar at all.
+      title: '',
+      onBack: widget.isNew ? _leaveNewOutfit : null,
       actions: [
         if (!widget.isNew)
-          PopupMenuButton<_OutfitMenuAction>(
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.more_vert, color: AppColors.icon),
-            color: AppColors.surface,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+          AppPopupMenu<_OutfitMenuAction>(
             onSelected: _handleMenuAction,
-            itemBuilder: (context) => [
-              _menuItem(
-                _OutfitMenuAction.rename,
-                Icons.edit_outlined,
-                _l10n.rename,
+            items: [
+              AppPopupMenu.item(
+                value: _OutfitMenuAction.rename,
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                  color: AppColors.icon,
+                ),
+                label: _l10n.rename,
               ),
-              _menuItem(
-                _OutfitMenuAction.share,
-                Icons.share_outlined,
-                _l10n.share,
+              AppPopupMenu.item(
+                value: _OutfitMenuAction.share,
+                icon: const Icon(
+                  Icons.share_outlined,
+                  size: 20,
+                  color: AppColors.icon,
+                ),
+                label: _l10n.share,
               ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
+              AppPopupMenu.item(
                 value: _OutfitMenuAction.delete,
                 enabled: !_isDeleting,
-                child: Row(
-                  children: [
-                    const Icon(Icons.delete_outline, color: AppColors.icon),
-                    const SizedBox(width: 12),
-                    Text(
-                      _l10n.deleteOutfitTitle,
-                      style: AppTextStyle.regular14.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.icon,
                 ),
+                label: _l10n.deleteOutfitTitle,
+                isDestructive: true,
               ),
             ],
           ),
       ],
-    );
-  }
-
-  PopupMenuItem<_OutfitMenuAction> _menuItem(
-    _OutfitMenuAction value,
-    IconData icon,
-    String label,
-  ) {
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.icon),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: AppTextStyle.regular14.copyWith(fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
     );
   }
 
@@ -327,14 +311,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   Widget _buildBottomBar() {
     if (_isResolvingSavedStatus) return const SizedBox.shrink();
 
-    if (widget.isNew && !_isSaved) {
-      return BottomActionButton(
-        label: _l10n.saveOutfit,
-        onPressed: _isSaving ? null : _saveOutfit,
-        isLoading: _isSaving,
-      );
-    }
-
     if (widget.showAddToMyOutfits) {
       return BottomActionButton(
         label: _l10n.addToMyOutfits,
@@ -344,7 +320,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
     }
 
-    if (!_showSavedOutfitActions) return const SizedBox.shrink();
+    if (!widget.showEditOutfitWhenSaved) return const SizedBox.shrink();
 
     return BottomActionButton(
       label: _l10n.createAnotherVersion,
@@ -353,24 +329,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// True whenever [_buildBottomBar] actually renders a [BottomActionButton]
-  /// (as opposed to a shrunk placeholder) — used to only reserve the extra
-  /// bottom clearance in the scrollable body when there's a real bar
-  /// underneath it that could otherwise cover the date footer.
   bool get _showsBottomActionButton =>
       !_isResolvingSavedStatus &&
-      ((widget.isNew && !_isSaved) ||
-          widget.showAddToMyOutfits ||
-          _showSavedOutfitActions);
-
-  /// Mirrors the old bottom-bar visibility rule: only once the outfit is
-  /// actually saved (either opened as an existing outfit, or freshly
-  /// saved), and not for entry points that opt out via
-  /// [OutfitDetailsPage.showEditOutfitWhenSaved].
-  bool get _showSavedOutfitActions =>
-      !_isResolvingSavedStatus &&
-      !(widget.isNew && !_isSaved) &&
-      !(_isSaved && !widget.showEditOutfitWhenSaved);
+      (widget.showAddToMyOutfits || widget.showEditOutfitWhenSaved);
 
   /// Opens Add Outfit in "Create Another Version" mode — its bottom button
   /// calls `generateOutfit` into this outfit's *same* group instead of a
@@ -427,7 +388,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// general` group to copy this outfit into (see
   /// [OutfitDetailsPage.showAddToMyOutfits]) — an existing group or a new
   /// one. [OutfitService.copyOutfit] duplicates the existing render
-  /// server-side, no AI re-render. Mirrors [_saveOutfit]'s "jump to Outfits
+  /// server-side, no AI re-render. Mirrors [_leaveNewOutfit]'s "jump to Outfits
   /// with a saved toast" ending, since the result is the same: a new
   /// outfit the user can now find in the Outfits tab.
   Future<void> _addToMyOutfits() async {
@@ -924,80 +885,37 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// [_deleteThisOutfit] for what "delete" actually does depending on
   /// whether this outfit has siblings in its group).
   Widget _buildVersionMenuButton() {
-    return PopupMenuButton<_VersionMenuAction>(
-      padding: EdgeInsets.zero,
-      color: AppColors.surface,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      // Narrower than the default 112-280 range — this menu's items are
-      // both short, so the default min width leaves a lot of empty space.
-      constraints: const BoxConstraints(minWidth: 0, maxWidth: 150),
-      // Default menuPadding is 8px vertical around the whole item list, on
-      // top of each item's own height — shrink it since this menu only
-      // has a few short items.
-      menuPadding: const EdgeInsets.symmetric(vertical: 4),
+    return AppPopupMenu<_VersionMenuAction>(
       onSelected: _handleVersionMenuAction,
-      itemBuilder: (context) => [
-        PopupMenuItem(
+      items: [
+        AppPopupMenu.item(
           value: _VersionMenuAction.setCover,
           enabled: !_isSettingCover,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.push_pin_outlined,
-                size: 20,
-                color: AppColors.icon,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _l10n.setAsCover,
-                style: AppTextStyle.regular14.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          icon: const Icon(
+            Icons.push_pin_outlined,
+            size: 20,
+            color: AppColors.icon,
           ),
+          label: _l10n.setAsCover,
         ),
-        PopupMenuItem(
+        AppPopupMenu.item(
           value: _VersionMenuAction.regenerate,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              const Icon(Icons.refresh, size: 20, color: AppColors.icon),
-              const SizedBox(width: 8),
-              Text(
-                _l10n.regenerate,
-                style: AppTextStyle.regular14.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+          icon: const Icon(Icons.refresh, size: 20, color: AppColors.icon),
+          label: _l10n.regenerate,
         ),
-        PopupMenuItem(
+        AppPopupMenu.item(
           value: _VersionMenuAction.delete,
           enabled: !_isDeleting,
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              const Icon(Icons.delete_outline, size: 20, color: AppColors.icon),
-              const SizedBox(width: 8),
-              Text(
-                _l10n.deleteThisVersion,
-                style: AppTextStyle.regular14.copyWith(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          icon: const Icon(
+            Icons.delete_outline,
+            size: 20,
+            color: AppColors.icon,
           ),
+          label: _l10n.deleteThisVersion,
+          isDestructive: true,
         ),
       ],
-      child: Container(
+      trigger: Container(
         width: 36,
         height: 36,
         decoration: BoxDecoration(
@@ -1034,8 +952,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
         ),
         const SizedBox(height: AppDimens.cardHeaderGap),
-        if (_isLoadingGarments)
-          const Center(child: PetalLoader())
+        if (_isLoadingGarments && !_isRegenerating)
+          const Center(child: AppSpinner())
         else if (_garments != null)
           ..._garments!.map(_buildGarmentCard),
       ],
@@ -1044,7 +962,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   Widget _buildGarmentCard(Garment g) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimens.cardSpacing),
+      padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
       child: GarmentListCard(
         garment: g,
         onTap: () => GarmentDetailDialog.show(context, g),
@@ -1107,15 +1025,17 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  Future<void> _saveOutfit() async {
-    setState(() => _isSaving = true);
+  /// Leaving a freshly-rendered outfit's page (back arrow, system back
+  /// gesture) — see [OutfitDetailsPage.isNew]. The outfit is already
+  /// persisted server-side the instant it's rendered, so there's nothing to
+  /// confirm: this just refreshes the outfits list (so it isn't stale) and
+  /// jumps to the Outfits tab. Getting rid of an unwanted outfit is always
+  /// the explicit Delete action instead, same as any other outfit.
+  Future<void> _leaveNewOutfit() async {
+    setState(() => _isLeaving = true);
     try {
-      // The outfit is already persisted (created it as soon as the try-on
-      // job was made) — "saving" is purely local: mark it confirmed-kept so
-      // leaving the page from here on doesn't offer to delete it.
       await ref.read(outfitsProvider.notifier).refresh();
       if (!mounted) return;
-      setState(() => _isSaved = true);
       if (widget.navigateToOutfitsTabOnSave) {
         final feedback = ref.read(outfitFeedbackProvider.notifier);
         MainShellScope.of(context)?.selectTab(AppTab.outfits);
@@ -1133,41 +1053,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) setState(() => _isLeaving = false);
     }
-  }
-
-  Future<void> _showLeaveDialog() async {
-    if (_isSaved) {
-      Navigator.pop(context);
-      return;
-    }
-    final save = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.saveThisOutfitTitle,
-        body: _l10n.saveThisOutfitBody,
-        primaryLabel: _l10n.save,
-        onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.discard,
-        onSecondary: () => Navigator.pop(ctx, false),
-      ),
-    );
-    if (!mounted || save == null) return;
-
-    try {
-      if (save) {
-        // Already persisted — nothing to call, just stop offering to
-        // delete it.
-        await ref.read(outfitsProvider.notifier).refresh();
-      } else {
-        await OutfitService().deleteOutfit(
-          widget.outfit.groupId,
-          widget.outfit.id,
-        );
-      }
-    } catch (_) {}
-    if (mounted) Navigator.pop(context);
   }
 
   /// The app bar's "..." menu action — always deletes the whole group (and

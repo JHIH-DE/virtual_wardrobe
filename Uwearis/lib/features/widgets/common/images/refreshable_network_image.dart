@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import 'petal_loader.dart';
+import 'app_spinner.dart';
 
 /// A [CachedNetworkImage] that self-heals once when [imageUrl] fails to load
 /// (e.g. an expired signed URL) by asking [onRefreshUrl] for a fresh one and
@@ -24,8 +24,8 @@ class RefreshableNetworkImage extends StatefulWidget {
   final int? memCacheWidth;
   final int? memCacheHeight;
 
-  /// Leave null to use the default placeholder — a centered [PetalLoader]
-  /// — Uwearis's one loading animation for every image in the app. Only
+  /// Leave null to use the default placeholder — a centered [AppSpinner]
+  /// — Uwearis's one loading indicator for every image in the app. Only
   /// override this for a genuinely different treatment, not just a
   /// different spinner.
   final Widget Function(BuildContext context)? placeholderBuilder;
@@ -125,7 +125,7 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
       fadeInDuration: widget.fadeInDuration,
       placeholder: (_, __) => widget.placeholderBuilder != null
           ? widget.placeholderBuilder!(context)
-          : const Center(child: PetalLoader(size: 28)),
+          : const Center(child: AppSpinner(size: 28)),
       errorWidget: (_, __, ___) {
         if (widget.onRefreshUrl != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());

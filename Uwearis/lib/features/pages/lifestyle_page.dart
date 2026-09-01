@@ -15,7 +15,6 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
-import '../widgets/common/section_title.dart';
 
 class LifestylePage extends StatefulWidget {
   const LifestylePage({super.key});
@@ -114,6 +113,8 @@ class _LifestylePageState extends State<LifestylePage> {
     return AppToolBar(title: _l10n.lifestyle);
   }
 
+  bool get _showsBottomActionButton => _isModified && !_saving;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,11 +122,11 @@ class _LifestylePageState extends State<LifestylePage> {
       extendBody: true,
       appBar: _buildAppBar(),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           16,
           0,
           16,
-          AppDimens.bottomActionBtnClearance,
+          _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 20,
         ),
         children: [
           const SizedBox(height: AppDimens.sectionSpacing),
@@ -137,17 +138,9 @@ class _LifestylePageState extends State<LifestylePage> {
             ),
           ),
           const SizedBox(height: AppDimens.sectionSpacing),
-          _buildSectionTitle(_l10n.weeklySchedule),
-          const SizedBox(height: 8),
-          _buildWeeklyScheduleIntro(),
-          const SizedBox(height: AppDimens.cardHeaderGap),
-          ...List.generate(7, _buildWeekdayCard),
+          _buildWeeklyScheduleCard(),
           const SizedBox(height: AppDimens.sectionSpacing),
-          _buildSectionTitle(_l10n.comfortAdjustment),
-          const SizedBox(height: 8),
-          _buildComfortAdjustmentIntro(),
-          const SizedBox(height: AppDimens.cardHeaderGap),
-          _buildTempAdjuster(),
+          _buildComfortAdjustmentCard(),
         ],
       ),
       bottomNavigationBar: BottomActionButton(
@@ -159,93 +152,136 @@ class _LifestylePageState extends State<LifestylePage> {
     );
   }
 
-  Widget _buildWeeklyScheduleIntro() {
-    return Text(
-      _l10n.weeklyScheduleIntro,
-      style: AppTextStyle.regular14.copyWith(
-        color: AppColors.textSecondary,
-        height: 1.4,
+  /// Shared white-card chrome — radius, shadow — matching every other
+  /// page-level card in the app (see tryon_profile_page.dart's own
+  /// _buildCardShell): same [AppDimens.cardRadius], same resting shadow.
+  Widget _buildCardShell(Widget child, {double bottomPadding = 20}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPadding),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowResting,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  /// A card's own title+subtitle header — same sizing as Style Taste's
+  /// radar/profile cards (bold18 title, regular14 secondary subtitle) so
+  /// every "titled card" in the app reads as one family.
+  Widget _buildCardHeader(String title, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTextStyle.bold18),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: AppTextStyle.regular14.copyWith(
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeeklyScheduleCard() {
+    return _buildCardShell(
+      bottomPadding: 6,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardHeader(_l10n.weeklySchedule, _l10n.weeklyScheduleIntro),
+          const SizedBox(height: AppDimens.cardHeaderGap),
+          const Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
+          for (var i = 0; i < 7; i++) ...[
+            _buildWeekdayRow(i),
+            if (i < 6)
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.borderSubtle,
+              ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _buildComfortAdjustmentIntro() {
-    return Text(
-      _l10n.comfortAdjustmentIntro,
-      style: AppTextStyle.regular14.copyWith(
-        color: AppColors.textSecondary,
-        height: 1.4,
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String label) {
-    return SectionTitle(label);
-  }
-
-  Widget _buildTempAdjuster() {
-    return NumberStepper(
-      label: _l10n.perceivedTempOffset,
-      valueLabel: '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°',
-      onDecrement: () {
-        if (_temperatureOffset > -5) setState(() => _temperatureOffset--);
-      },
-      onIncrement: () {
-        if (_temperatureOffset < 5) setState(() => _temperatureOffset++);
-      },
-    );
-  }
-
-  Widget _buildWeekdayCard(int index) {
+  Widget _buildWeekdayRow(int index) {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
     final date = monday.add(Duration(days: index));
     final occasion =
         occasionTypeFromApiValue(_weeklyOccasions[index]) ?? OccasionType.work;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        onTap: () => _openOccasionPicker(index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowResting,
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+    return InkWell(
+      onTap: () => _openOccasionPicker(index),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                DateFormat('EEEE').format(date),
+                style: AppTextStyle.semibold16,
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  DateFormat('EEEE').format(date),
-                  style: AppTextStyle.semibold16,
-                ),
-              ),
-              Icon(occasion.icon, size: 18, color: AppColors.icon),
-              const SizedBox(width: 6),
-              Text(
-                occasion.localizedLabel(context),
-                style: AppTextStyle.regular14.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 2),
-              const Icon(
-                Icons.chevron_right,
-                size: 20,
+            ),
+            Icon(occasion.icon, size: 18, color: AppColors.icon),
+            const SizedBox(width: 6),
+            Text(
+              occasion.localizedLabel(context),
+              style: AppTextStyle.regular14.copyWith(
                 color: AppColors.textSecondary,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 2),
+            Image.asset(
+              'assets/images/page_arrow_right.png',
+              width: 20,
+              height: 20,
+              color: AppColors.textSecondary,
+              colorBlendMode: BlendMode.srcIn,
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildComfortAdjustmentCard() {
+    return _buildCardShell(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardHeader(
+            _l10n.comfortAdjustment,
+            _l10n.comfortAdjustmentIntro,
+          ),
+          const SizedBox(height: AppDimens.cardHeaderGap),
+          NumberStepper(
+            label: _l10n.perceivedTempOffset,
+            valueLabel:
+                '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°',
+            onDecrement: () {
+              if (_temperatureOffset > -5) {
+                setState(() => _temperatureOffset--);
+              }
+            },
+            onIncrement: () {
+              if (_temperatureOffset < 5) setState(() => _temperatureOffset++);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -253,6 +289,9 @@ class _LifestylePageState extends State<LifestylePage> {
   Future<void> _openOccasionPicker(int index) async {
     final current =
         occasionTypeFromApiValue(_weeklyOccasions[index]) ?? OccasionType.work;
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final dayName = DateFormat('EEEE').format(monday.add(Duration(days: index)));
     final selected = await showPickerSheet<OccasionType>(
       context,
       builder: (sheetContext) => RadioGroup<OccasionType>(
@@ -264,7 +303,7 @@ class _LifestylePageState extends State<LifestylePage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PickerSheetHeader(_l10n.selectOccasionTitle),
+            PickerSheetHeader(_l10n.selectOccasionTitle(dayName)),
             for (final occasion in OccasionType.values)
               ListTile(
                 contentPadding: EdgeInsets.zero,

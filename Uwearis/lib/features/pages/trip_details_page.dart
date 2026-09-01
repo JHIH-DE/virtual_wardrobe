@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -5,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
 import '../../core/services/trip_service.dart';
@@ -13,11 +15,15 @@ import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/trip_activity_localization.dart';
+import '../widgets/common/app_divider.dart';
+import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expand_arrow_icon.dart';
+import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
@@ -25,15 +31,29 @@ import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/trip/trip_day_card.dart';
+import '../widgets/trip/trip_legs_editor.dart';
 import 'add_outfit_page.dart';
 import 'trip_suitcase_page.dart';
 
-/// One trip day's primary *already tried-on* outfit, built from
-/// `TripService.getTrip`'s `days[].outfits[]` — unlike the old `options[]`
-/// shape, `GET /trip_plans/{id}` only reports outfits that have actually
-/// been rendered (`POST /options/{option_id}/outfit`); a day nobody's
-/// tried anything on for comes back with no outfits at all, even if
-/// `POST generate` suggested one. See [_parseTripDayOutfit].
+/// Actions in [TripDetailsPage]'s app bar "⋮" menu — moved here from
+/// [TripCard] (the Trips-tab list item) so a trip's own metadata edits live
+/// on its detail page instead of duplicated across every card that links
+/// to it.
+enum _TripMenuAction {
+  editName,
+  editLegs,
+  editActivities,
+  regeneratePlan,
+  delete,
+}
+
+/// One trip day's primary outfit — either an *already tried-on* result
+/// (built from `TripService.getTrip`'s `days[].outfits[]`, see
+/// [_parseTripDayOutfit]) or an AI-suggested option nobody's rendered yet
+/// (built from `TripService.getTripPlan`/`generateTripPlan`'s
+/// `days[].options[]`, see [_parseGeneratedTripDayOutfit]) — both parse
+/// into this same shape so the rest of the page doesn't need to care which
+/// one a given day came from.
 class TripDayOutfit {
   /// This day's own date, straight from `day['date']` — the day selector
   /// and header label read this instead of computing a date from the
@@ -221,18 +241,26 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 
   /// Fetches everything [TripDetailsPage] needs up front, so the page can be
   /// pushed only once loading is complete (no in-page spinner on open).
+  ///
+  /// Uses `getTripPlan` (`GET /{trip_id}/plan`), not `getTrip` — the latter
+  /// only reports days with an already-rendered outfit, so a plan that's
+  /// been generated (`POST /generate`) but never rendered into an image
+  /// would come back looking exactly like no plan exists at all. `/plan`'s
+  /// `days[].options[]` covers both cases (rendered options still carry
+  /// their `outfit_id`/`result_image_url`), same shape [_generatePlan]
+  /// already parses via [_parseGeneratedTripDayOutfit] — no closet lookup
+  /// needed since each option's items embed their own image/name/category.
   static Future<TripDetailsInitialData> preload(Trip trip) async {
     List<TripDayOutfit> dayOutfits = [];
     Set<int> suitcaseIds = {};
     try {
-      final tripData = await TripService().getTrip(int.parse(trip.id));
-      final closetGarments = await GarmentService().getGarments();
-      final rawDays = (tripData['days'] as List?) ?? [];
+      final planData = await TripService().getTripPlan(int.parse(trip.id));
+      final rawDays = (planData['days'] as List?) ?? [];
       dayOutfits = rawDays
           .whereType<Map<String, dynamic>>()
-          .map((day) => _parseTripDayOutfit(day, closetGarments))
+          .map(_parseGeneratedTripDayOutfit)
           .toList();
-      suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']);
+      suitcaseIds = _parseSuitcaseItemIds(planData['suitcase_items']);
     } catch (e) {
       if (e is AuthExpiredException) rethrow;
       debugLog('Failed to load trip outfits: $e');
@@ -256,6 +284,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   int _selectedDayIndex = 0;
   final ScrollController _dayScrollController = ScrollController();
+
+  // Mutable local copy — the app bar's edit menu (name/destinations/
+  // activities) needs to update what's on screen immediately, and
+  // [widget.trip] is otherwise a fixed snapshot from whoever pushed this
+  // page. Kept in sync with [tripsProvider] by [_updateTrip].
+  late Trip _trip = widget.trip;
 
   late List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
   late Set<int> _suitcaseIds = widget.initialData.suitcaseIds;
@@ -350,7 +384,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Future<void> _ensureFreshDayGarments() async {
     if (!_hasStaleGarmentImages) return;
     try {
-      final tripData = await TripService().getTrip(int.parse(widget.trip.id));
+      final tripData = await TripService().getTrip(int.parse(_trip.id));
       final closetGarments = await GarmentService().getGarments();
       final rawDays = (tripData['days'] as List?) ?? [];
       final dayOutfits = rawDays
@@ -368,9 +402,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Future<void> _loadPackingAdvice() async {
     setState(() => _loadingPackingAdvice = true);
     try {
-      final data = await TripService().getTripSuggestion(
-        int.parse(widget.trip.id),
-      );
+      final data = await TripService().getTripSuggestion(int.parse(_trip.id));
       if (mounted) {
         setState(() {
           _packingAdvice = data['overall_advice'] as String?;
@@ -409,7 +441,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// error) if the fetch fails.
   Future<List<Garment>?> _fetchSuitcaseGarments() async {
     try {
-      final tripData = await TripService().getTrip(int.parse(widget.trip.id));
+      final tripData = await TripService().getTrip(int.parse(_trip.id));
       final rawSuitcaseItems = (tripData['suitcase_items'] as List?) ?? [];
       final suitcase = rawSuitcaseItems
           .whereType<Map<String, dynamic>>()
@@ -454,7 +486,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Future<void> _openSuitcase() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: widget.trip)),
+      MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: _trip)),
     );
     if (!mounted) return;
     await _fetchSuitcaseGarments();
@@ -509,7 +541,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       // uses the primary option) — ask for none explicitly, since the
       // backend now defaults to generating up to 2 unused ones per day.
       final planData = await TripService().generateTripPlan(
-        int.parse(widget.trip.id),
+        int.parse(_trip.id),
         alternativesPerDay: 0,
       );
       final rawDays = (planData['days'] as List?) ?? [];
@@ -539,21 +571,34 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// try-on image — this is [TripGenerationAction.generateOutfit]/
   /// [TripGenerationAction.regenerateOutfit]'s handler, reachable from
   /// either the bottom CTA or the outfit card's "⋮" menu once it already
-  /// has an image. Captures the day index up front and re-checks it still
-  /// points at the same option before applying the result, so a slow
-  /// request landing after the user has switched days (or edited this same
-  /// day's garments again) can't clobber a different day's state.
+  /// has an image. Branches on whether this option already has an
+  /// `outfit_id` — the backend now splits first render
+  /// ([TripService.generateOptionOutfit], 409s if already rendered) from
+  /// re-rendering an existing one ([TripService.regenerateOptionOutfit],
+  /// 400s if never rendered) into two endpoints, so calling the wrong one
+  /// for the option's current state fails outright. Captures the day index
+  /// up front and re-checks it still points at the same option before
+  /// applying the result, so a slow request landing after the user has
+  /// switched days (or edited this same day's garments again) can't
+  /// clobber a different day's state.
   Future<void> _generateSelectedDayOutfit() async {
     final dayIndex = _selectedDayIndex;
-    final optionId = _dayOutfits[dayIndex].optionId;
+    final before = _dayOutfits[dayIndex];
+    final optionId = before.optionId;
     if (optionId == null) return;
+    final isRegenerate = before.outfitId != null;
 
     setState(() => _generatingOutfit = true);
     try {
-      final result = await TripService().generateOptionOutfit(
-        int.parse(widget.trip.id),
-        optionId: optionId,
-      );
+      final result = isRegenerate
+          ? await TripService().regenerateOptionOutfit(
+              int.parse(_trip.id),
+              optionId: optionId,
+            )
+          : await TripService().generateOptionOutfit(
+              int.parse(_trip.id),
+              optionId: optionId,
+            );
       if (!mounted) return;
       final current = dayIndex < _dayOutfits.length
           ? _dayOutfits[dayIndex]
@@ -618,7 +663,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
     try {
       final updated = await TripService().updateOptionItems(
-        int.parse(widget.trip.id),
+        int.parse(_trip.id),
         optionId: optionId,
         garmentIds: result.toList(),
       );
@@ -669,10 +714,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
     try {
       for (final id in missingIds) {
-        await TripService().addSuitcaseItem(
-          int.parse(widget.trip.id),
-          garmentId: id,
-        );
+        await TripService().addSuitcaseItem(int.parse(_trip.id), garmentId: id);
       }
       if (!mounted) return;
       setState(() => _suitcaseIds.addAll(missingIds));
@@ -692,49 +734,277 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: widget.trip.name,
+      // Blank — the name shows as its own block below the app bar instead
+      // (see build's ListView), so it isn't in the toolbar at all.
+      title: '',
       actions: [
-        // Regenerating the whole plan stays available once one exists, but
-        // demoted to a secondary action — the bottom CTA is reserved for
-        // whichever single next step applies (see [_primaryAction]).
-        if (_hasTripPlan)
-          PopupMenuButton<int>(
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.more_vert, color: AppColors.icon),
-            color: AppColors.surface,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            onSelected: (_) {
-              if (!_generatingPlan) _generatePlan();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 0,
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.auto_awesome_outlined,
-                      size: 18,
-                      color: AppColors.icon,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _l10n.regenerateTripPlan,
-                      style: AppTextStyle.regular14.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+        AppPopupMenu<_TripMenuAction>(
+          onSelected: _handleTripMenuAction,
+          items: [
+            AppPopupMenu.item(
+              value: _TripMenuAction.editName,
+              icon: Image.asset(
+                'assets/images/edit.png',
+                width: 20,
+                height: 20,
               ),
-            ],
-          ),
+              label: _l10n.editTripName,
+            ),
+            AppPopupMenu.item(
+              value: _TripMenuAction.editLegs,
+              icon: const Icon(
+                Icons.map_outlined,
+                size: 20,
+                color: AppColors.icon,
+              ),
+              label: _l10n.editDestinations,
+            ),
+            AppPopupMenu.item(
+              value: _TripMenuAction.editActivities,
+              icon: const Icon(
+                Icons.flight_takeoff,
+                size: 20,
+                color: AppColors.icon,
+              ),
+              label: _l10n.editTripActivities,
+            ),
+            // Regenerating the whole plan stays available once one exists,
+            // but demoted to a secondary action — the bottom CTA is
+            // reserved for whichever single next step applies (see
+            // [_primaryAction]).
+            if (_hasTripPlan)
+              AppPopupMenu.item(
+                value: _TripMenuAction.regeneratePlan,
+                icon: const Icon(
+                  Icons.auto_awesome_outlined,
+                  size: 20,
+                  color: AppColors.icon,
+                ),
+                label: _l10n.regenerateTripPlan,
+              ),
+            AppPopupMenu.item(
+              value: _TripMenuAction.delete,
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: AppColors.icon,
+              ),
+              label: _l10n.deleteTrip,
+              isDestructive: true,
+            ),
+          ],
+        ),
       ],
     );
+  }
+
+  void _handleTripMenuAction(_TripMenuAction action) {
+    switch (action) {
+      case _TripMenuAction.editName:
+        _editTripName();
+      case _TripMenuAction.editLegs:
+        _editTripLegs();
+      case _TripMenuAction.editActivities:
+        _editTripActivities();
+      case _TripMenuAction.regeneratePlan:
+        if (!_generatingPlan) _generatePlan();
+      case _TripMenuAction.delete:
+        _confirmDeleteTrip();
+    }
+  }
+
+  Future<void> _editTripName() async {
+    final controller = TextEditingController(text: _trip.name);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.editTripName,
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          style: AppTextStyle.bold16,
+          decoration: appInputDecoration(hint: _l10n.enterTripName),
+        ),
+        primaryLabel: _l10n.save,
+        onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx),
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+
+    if (result == null || result.isEmpty || result == _trip.name) return;
+    await _updateTrip(_trip.copyWith(name: result));
+  }
+
+  Future<void> _editTripLegs() async {
+    final legsNotifier = ValueNotifier<List<TripLeg>>(List.of(_trip.legs));
+    final result = await showDialog<List<TripLeg>>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.editDestinations,
+        content: TripLegsEditor(legsNotifier: legsNotifier),
+        primaryLabel: _l10n.save,
+        onPrimary: () => Navigator.pop(ctx, legsNotifier.value),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx),
+      ),
+    );
+    legsNotifier.dispose();
+
+    if (result == null || result.isEmpty) return;
+    await _updateTrip(_trip.copyWith(legs: result));
+  }
+
+  Future<void> _editTripActivities() async {
+    final selected = _trip.activities
+        .map(tripActivityFromApiValue)
+        .whereType<TripActivity>()
+        .toSet();
+
+    final result = await showDialog<Set<TripActivity>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AppDialog(
+          title: _l10n.editTripActivities,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final activity in TripActivity.values)
+                CheckboxListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  activeColor: AppColors.accent,
+                  value: selected.contains(activity),
+                  title: Text(
+                    activity.localizedLabel(context),
+                    style: AppTextStyle.regular16,
+                  ),
+                  onChanged: (checked) => setDialogState(() {
+                    if (checked == true) {
+                      selected.add(activity);
+                    } else {
+                      selected.remove(activity);
+                    }
+                  }),
+                ),
+            ],
+          ),
+          primaryLabel: _l10n.save,
+          onPrimary: () => Navigator.pop(ctx, selected),
+          secondaryLabel: _l10n.cancel,
+          onSecondary: () => Navigator.pop(ctx),
+        ),
+      ),
+    );
+
+    if (result == null) return;
+    await _updateTrip(
+      _trip.copyWith(activities: result.map((a) => a.apiValue).toList()),
+    );
+  }
+
+  /// Persists a trip metadata edit (name/legs/activities) and reflects it
+  /// both locally and in [tripsProvider] — mirrors the optimistic-then-
+  /// rollback pattern `TripsPage`'s equivalent used to follow before this
+  /// menu moved here. A legs edit also reshuffles which dates the trip
+  /// covers, so [_dayOutfits]/[_suitcaseIds] get refreshed from scratch
+  /// afterward rather than trying to patch them in place.
+  Future<void> _updateTrip(Trip updated) async {
+    final previous = _trip;
+    final legsChanged = !identical(updated.legs, previous.legs);
+    setState(() => _trip = updated);
+    ref.read(tripsProvider.notifier).updateTrip(updated);
+    try {
+      // `legs` and `days` are independent on the backend — changing the leg
+      // date range doesn't implicitly resize the day records, so a leg edit
+      // has to resend `days` for the new range or added/removed days
+      // silently don't take effect. Just the dates — the backend fills in
+      // temperature on its own, and omitting `activity` keeps each
+      // existing day's current value.
+      final days = legsChanged
+          ? updated.coveredDates
+                .map((d) => {'date': DateFormat('yyyy-MM-dd').format(d)})
+                .toList()
+          : null;
+      await TripService().updateTrip(
+        int.parse(previous.id),
+        name: updated.name != previous.name ? updated.name : null,
+        legs: updated.legs,
+        activities:
+            setEquals(updated.activities.toSet(), previous.activities.toSet())
+            ? null
+            : updated.activities,
+        days: days,
+      );
+      if (legsChanged && mounted) {
+        final refreshed = await TripDetailsPage.preload(updated);
+        if (mounted) {
+          setState(() {
+            _dayOutfits = refreshed.dayOutfits;
+            _suitcaseIds = refreshed.suitcaseIds;
+            _selectedDayIndex = _dayOutfits.isEmpty
+                ? 0
+                : _selectedDayIndex.clamp(0, _dayOutfits.length - 1);
+          });
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _trip = previous);
+      ref.read(tripsProvider.notifier).updateTrip(previous);
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to update trip: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateTrip)));
+    }
+  }
+
+  Future<void> _confirmDeleteTrip() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.deleteTrip,
+        body: _l10n.deleteTripConfirmation,
+        primaryLabel: _l10n.delete,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useSafeArea: false,
+      builder: (_) => LoadingOverlay(label: _l10n.deletingTripEllipsis),
+    );
+    try {
+      await TripService().deleteTrip(int.parse(_trip.id));
+      if (!mounted) return;
+      ref.read(tripsProvider.notifier).remove(_trip.id);
+      Navigator.pop(context); // close loading indicator
+      Navigator.pop(context); // back out of Trip Details — the trip is gone
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // close loading indicator
+      if (e is AuthExpiredException) {
+        await AuthExpiredHandler.handle(context);
+        return;
+      }
+      debugLog('Failed to delete trip: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.failedToDeleteTrip)));
+    }
   }
 
   /// The single primary CTA for this page — see [_primaryAction]. Returns
@@ -770,20 +1040,38 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Only reserve the floating button's full clearance when one is
+    // actually showing (_buildBottomBar can return null) — otherwise the
+    // last card (garment thumbnails included) has nothing to scroll clear
+    // of and ends up covered/cut off by it, same fix outfit_details_page
+    // already applies for its own bottom bar.
+    final bottomBar = _buildBottomBar();
     return Stack(
       children: [
         Scaffold(
           backgroundColor: AppColors.pageBackground,
+          extendBody: true,
           appBar: _buildAppBar(),
-          bottomNavigationBar: _buildBottomBar(),
+          bottomNavigationBar: bottomBar,
           // A single scrollable list (rather than a fixed header Column with
           // only the bottom section scrolling) so dragging from anywhere on
           // screen — including the trip header/insight/suitcase/day-selector
           // area — scrolls the whole page, not just the section below them.
           body: ListView(
-            padding: const EdgeInsets.only(bottom: 32),
+            padding: EdgeInsets.only(
+              bottom: bottomBar != null
+                  ? AppDimens.bottomActionBtnClearance
+                  : 32,
+            ),
             children: [
-              const SizedBox(height: AppDimens.sectionSpacing),
+              const SizedBox(height: 20),
+              _paddedSection(Text(_trip.name, style: AppTextStyle.bold20)),
+              _paddedSection(
+                const AppDivider(
+                  topSpacing: 12,
+                  bottomSpacing: AppDimens.sectionSpacing,
+                ),
+              ),
               _paddedSection(_buildTripHeader()),
               const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildUwearisInsightCard()),
@@ -849,7 +1137,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Widget _buildOutfitDateHeader() {
     final date =
         _currentDayOutfit?.date ??
-        widget.trip.dateRange.start.add(Duration(days: _selectedDayIndex));
+        _trip.dateRange.start.add(Duration(days: _selectedDayIndex));
     final dateStr = DateFormat('EEEE, MMM d').format(date);
     final hasOption = _currentDayOutfit?.optionId != null;
     final leg = _legForDate(date);
@@ -933,7 +1221,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     final outfitId = _currentDayOutfit?.outfitId;
     if (outfitId == null) return null;
     try {
-      final tripData = await TripService().getTrip(int.parse(widget.trip.id));
+      final tripData = await TripService().getTrip(int.parse(_trip.id));
       final rawDays = (tripData['days'] as List?) ?? [];
       if (_selectedDayIndex >= rawDays.length) return null;
       final day = rawDays[_selectedDayIndex];
@@ -961,7 +1249,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (int i = 0; i < widget.trip.legs.length; i++) ...[
+          for (int i = 0; i < _trip.legs.length; i++) ...[
             if (i > 0) _buildLegDivider(),
             Row(
               children: [
@@ -969,14 +1257,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    widget.trip.legs[i].location.name,
+                    _trip.legs[i].location.name,
                     style: AppTextStyle.bold16,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  "${DateFormat('MMM d').format(widget.trip.legs[i].dateRange.start)} - "
-                  "${DateFormat('MMM d').format(widget.trip.legs[i].dateRange.end)}",
+                  "${DateFormat('MMM d').format(_trip.legs[i].dateRange.start)} - "
+                  "${DateFormat('MMM d').format(_trip.legs[i].dateRange.end)}",
                   style: AppTextStyle.regular14.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -991,8 +1279,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   Widget _buildLegDivider() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      child: Divider(height: 1, thickness: 1, color: AppColors.dividerStrong),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: const AppDivider(spacing: 8, color: AppColors.dividerStrong),
     );
   }
 
@@ -1024,7 +1312,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 : null;
             final date =
                 dayOutfit?.date ??
-                widget.trip.dateRange.start.add(Duration(days: index));
+                _trip.dateRange.start.add(Duration(days: index));
             return TripDayCard(
               date: date,
               isSelected: index == _selectedDayIndex,
@@ -1072,7 +1360,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   TripLeg? _legForDate(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
-    for (final leg in widget.trip.legs) {
+    for (final leg in _trip.legs) {
       final start = leg.dateRange.start;
       final end = leg.dateRange.end;
       final startDay = DateTime(start.year, start.month, start.day);

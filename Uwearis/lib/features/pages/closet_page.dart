@@ -173,7 +173,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
           Text(
             AppLocalizations.of(context).navCloset,
             textScaler: TextScaler.noScaling,
-            style: AppTextStyle.bold16,
+            style: AppTextStyle.bold20,
           ),
           const SizedBox(width: 8),
           CountPill(count: _currentListCount(all)),

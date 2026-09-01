@@ -48,7 +48,6 @@
   "save": "儲存",
   "cancel": "取消",
   "remove": "移除",
-  "discard": "捨棄",
   "rename": "重新命名",
   "share": "分享",
   "delete": "刪除",
@@ -56,7 +55,6 @@
 
   "renameOutfit": "重新命名穿搭",
   "outfitNameLabel": "這套穿搭的名稱",
-  "saveOutfit": "儲存穿搭",
   "createAnotherVersion": "建立另一個版本",
   "addToMyOutfits": "加入我的穿搭",
   "selectOutfitGroupTitle": "加入穿搭",
@@ -78,8 +76,6 @@
   "failedToLoadImage": "圖片載入失敗",
   "failedToLoadGarments": "服飾載入失敗",
 
-  "saveThisOutfitTitle": "儲存這套穿搭？",
-  "saveThisOutfitBody": "要將這套穿搭加入你的收藏嗎？",
   "deleteOutfitTitle": "刪除穿搭",
   "deleteOutfitConfirmation": "確定要刪除這個版本嗎？",
   "deleteOutfitGroupConfirmation": "這麼做也會一併刪除跟這套穿搭同批產生的其他穿搭，且無法復原。",
@@ -378,7 +374,10 @@
   "lifestyleDescription": "告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。",
   "weeklyScheduleIntro": "設定你一週的典型作息。",
   "comfortAdjustmentIntro": "微調你平常感受到的冷熱程度。",
-  "selectOccasionTitle": "選擇場合",
+  "selectOccasionTitle": "選擇{day}的場合",
+  "@selectOccasionTitle": {
+    "placeholders": { "day": { "type": "String" } }
+  },
 
   "todaysOutfit": "今日穿搭",
   "loadingWeatherEllipsis": "載入天氣中…",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:virtual_wardrobe/app/theme/app_colors.dart';
+
+import 'app_colors.dart';
 
 class AppTextStyle {
   /// Home App Bar's "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads/

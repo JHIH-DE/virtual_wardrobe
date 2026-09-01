@@ -8,7 +8,7 @@ import '../../core/utils/debug_log.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/outfit/outfit_card.dart';
@@ -67,7 +67,7 @@ class _TripOutfitSelectionPageState extends State<TripOutfitSelectionPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: AppToolBar(title: l10n.selectAnOutfitTitle),
       body: _loading
-          ? const Center(child: PetalLoader())
+          ? const Center(child: AppSpinner())
           : _error != null
           ? ErrorStateWidget(error: _error!, onRetry: _load)
           : _buildGrid(l10n),

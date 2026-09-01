@@ -18,7 +18,6 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/floating_nav_bar.dart';
-import '../widgets/common/images/petal_loader.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/garment/garment_card.dart';
@@ -220,7 +219,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildHeader() {
-    final l10n = AppLocalizations.of(context);
     final weatherAsync = ref.watch(weatherProvider);
     final dateStr = DateFormat('EEEE, MMM d').format(DateTime.now());
 
@@ -251,11 +249,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       label: '${w.low}°C - ${w.high}°C',
                       tint: AppColors.statusUpcoming,
                     ),
-                    loading: () => _headerChip(
-                      icon: const PetalLoader(size: 14),
-                      label: l10n.loadingWeatherEllipsis,
-                      tint: AppColors.statusUpcoming,
-                    ),
+                    loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
                   weatherAsync.maybeWhen(
@@ -492,24 +486,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       key: ValueKey(trip.id),
       trip: trip,
       onTap: () => _openTrip(trip),
-      onNameChanged: (name) => handleUpdateTrip(
-        context,
-        ref,
-        trip,
-        updated: trip.copyWith(name: name),
-      ),
-      onLegsChanged: (legs) => handleUpdateTrip(
-        context,
-        ref,
-        trip,
-        updated: trip.copyWith(legs: legs),
-      ),
-      onActivitiesChanged: (activities) => handleUpdateTrip(
-        context,
-        ref,
-        trip,
-        updated: trip.copyWith(activities: activities),
-      ),
+      onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
       onDelete: () => handleDeleteTrip(context, ref, trip),
     );
   }
@@ -573,7 +550,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             itemCount: shown.length,
             separatorBuilder: (_, __) =>
-                const SizedBox(width: AppDimens.cardSpacing),
+                const SizedBox(width: AppDimens.sectionSpacing),
             itemBuilder: (context, i) => SizedBox(
               width: AppDimens.garmentCardWidth,
               child: GarmentCard(

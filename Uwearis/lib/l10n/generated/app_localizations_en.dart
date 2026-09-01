@@ -126,9 +126,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remove => 'Remove';
 
   @override
-  String get discard => 'Discard';
-
-  @override
   String get rename => 'Rename';
 
   @override
@@ -145,9 +142,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outfitNameLabel => 'Name of this outfit';
-
-  @override
-  String get saveOutfit => 'Save Outfit';
 
   @override
   String get createAnotherVersion => 'Create Another Version';
@@ -210,13 +204,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToLoadGarments => 'Failed to load garments';
-
-  @override
-  String get saveThisOutfitTitle => 'Save this outfit?';
-
-  @override
-  String get saveThisOutfitBody =>
-      'Would you like to save this outfit to your collection?';
 
   @override
   String get deleteOutfitTitle => 'Delete Outfit';
@@ -1082,7 +1069,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Fine-tune how warm or cool you usually feel.';
 
   @override
-  String get selectOccasionTitle => 'Select Occasion';
+  String selectOccasionTitle(String day) {
+    return 'Select $day\'s Occasion';
+  }
 
   @override
   String get todaysOutfit => 'Today\'s Outfit';

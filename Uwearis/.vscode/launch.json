@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "virtual_wardrobe (dev)",
+      "name": "Uwearis (dev)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "debug",

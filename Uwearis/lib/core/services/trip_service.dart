@@ -55,10 +55,17 @@ class TripService with BaseService {
     return id;
   }
 
-  /// [days] is a full-replace, not a merge — every date covered by [legs]
-  /// must be present or that day's plan (options/group/rendered outfits)
-  /// gets torn down. A date that's missing today but present in [days]
-  /// comes back as a fresh empty day.
+  /// [days] is non-destructive for dates that still exist — it derives the
+  /// full set of dates from [legs]' span same as [createTrip], but an
+  /// existing date only has its `activity`/temperature touched (options,
+  /// `group_id`, and any already-tried-on outfits are left alone). Only a
+  /// date that drops out of [legs]' span entirely gets torn down (that
+  /// day's plan and its `OutfitGroup`/rendered outfits/GCS objects are
+  /// deleted with it); a date newly covered by [legs] comes back as a
+  /// fresh empty day. Per day: omitting `activity` keeps its current
+  /// value, omitting both temperature fields makes the backend refetch
+  /// them (forecast within 15 days, historical average otherwise) rather
+  /// than leaving them stale.
   ///
   /// [activities] is a known no-op against the current backend contract —
   /// `activity` moved from the trip itself down to each `TripPlanDay`
@@ -205,46 +212,6 @@ class TripService with BaseService {
     return data;
   }
 
-  /// Same as [generateTripPlan], but also synchronously renders every
-  /// option on every day (not just the one the user picks via
-  /// [generateOptionOutfit]) — one call covers the whole trip, at the cost
-  /// of a much longer request (roughly a minute per day for just the
-  /// primary option, scaling linearly with day count and
-  /// `alternativesPerDay`; measured over 2 minutes for a real multi-day
-  /// trip — scale timeouts/loading UI accordingly). A single option's
-  /// render failing doesn't fail the whole call — that option's
-  /// `outfit_id`/`result_image_url` just stay `null`, so check per-option
-  /// rather than relying on this throwing.
-  Future<Map<String, dynamic>> autoGenerateTripPlan(
-    int tripId, {
-    List<Map<String, dynamic>>? days,
-    int? alternativesPerDay,
-  }) async {
-    debugLog('--- autoGenerateTripPlan id=$tripId ---');
-    final uri = Uri.parse('$_baseUrl/$tripId/auto_generate');
-
-    final body = <String, dynamic>{
-      if (days != null) 'days': days,
-      if (alternativesPerDay != null)
-        'alternatives_per_day': alternativesPerDay,
-    };
-
-    final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ),
-    );
-
-    final envelope = decodeMap(res, op: 'autoGenerateTripPlan');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('autoGenerateTripPlan: response missing data object');
-    }
-    return data;
-  }
-
   Future<void> addSuitcaseItem(int tripId, {required int garmentId}) async {
     debugLog('--- addSuitcaseItem tripId=$tripId garmentId=$garmentId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/suitcase-items');
@@ -315,17 +282,18 @@ class TripService with BaseService {
   }
 
   /// Synchronously renders [optionId] (one of the options a prior
-  /// [generateTripPlan] call put on that day) into a try-on image —
-  /// background is whichever location that day's `TripLeg` covers, not a
-  /// user-picked scene. The first option tried on for a given day creates
-  /// that day's shared `OutfitGroup`; every other option tried on that same
-  /// day (whether picking a different alternative or redoing the same one)
-  /// joins that same group instead of starting a new one. Repeat calls on
-  /// the *same* option overwrite its one outfit rather than accumulating —
-  /// the previous render's `Outfit` and GCS object are deleted, so don't
-  /// assume the prior result is still reachable after this resolves.
-  /// `result_image_url` is a GCS signed URL good for 15 minutes; re-fetch
-  /// via [getTrip]/[getTripPlan] rather than caching it past that.
+  /// [generateTripPlan] call put on that day) into a try-on image for the
+  /// *first* time — background is whichever location that day's `TripLeg`
+  /// covers, not a user-picked scene. The first option tried on for a
+  /// given day creates that day's shared `OutfitGroup`; every other option
+  /// tried on that same day (whether picking a different alternative or
+  /// this same one) joins that same group instead of starting a new one.
+  /// Only valid while [optionId]'s `outfit_id` is still `null` — call this
+  /// again on an option that's already rendered and the backend rejects it
+  /// with `409 OPTION_ALREADY_RENDERED` rather than re-rendering; use
+  /// [regenerateOptionOutfit] for that instead. `result_image_url` is a GCS
+  /// signed URL good for 15 minutes; re-fetch via [getTrip]/[getTripPlan]
+  /// rather than caching it past that.
   Future<Map<String, dynamic>> generateOptionOutfit(
     int tripId, {
     required int optionId,
@@ -341,6 +309,45 @@ class TripService with BaseService {
     final data = envelope['data'];
     if (data is! Map<String, dynamic>) {
       throw Exception('generateOptionOutfit: response missing data object');
+    }
+    return data;
+  }
+
+  /// Re-renders [optionId]'s *already-rendered* outfit in place — same
+  /// garments, same `outfit_id` (never a new one), just a fresh render;
+  /// only [backgroundId] (from `GET /api/v1/backgrounds`) can change what
+  /// comes out, defaulting to whatever scene the existing render already
+  /// used. Only valid once [optionId] actually has an `outfit_id` — call
+  /// this on an option that's never been rendered and the backend rejects
+  /// it with `400 OPTION_NOT_RENDERED`; use [generateOptionOutfit] for
+  /// that instead. Same 15-minute signed-URL caveat as
+  /// [generateOptionOutfit] applies to the returned `result_image_url`.
+  Future<Map<String, dynamic>> regenerateOptionOutfit(
+    int tripId, {
+    required int optionId,
+    int? backgroundId,
+  }) async {
+    debugLog(
+      '--- regenerateOptionOutfit tripId=$tripId optionId=$optionId ---',
+    );
+    final uri = Uri.parse(
+      '$_baseUrl/$tripId/options/$optionId/outfit/regenerate',
+    );
+
+    final res = await withAuth(
+      (token) => http.post(
+        uri,
+        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
+        body: jsonEncode({
+          if (backgroundId != null) 'background_id': backgroundId,
+        }),
+      ),
+    );
+
+    final envelope = decodeMap(res, op: 'regenerateOptionOutfit');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('regenerateOptionOutfit: response missing data object');
     }
     return data;
   }

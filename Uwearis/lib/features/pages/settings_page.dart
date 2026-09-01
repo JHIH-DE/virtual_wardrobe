@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,15 +10,13 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
-import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
-import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'account_page.dart';
-import 'image_editor_page.dart';
 import 'lifestyle_page.dart';
 import 'login_page.dart';
 import 'style_taste_page.dart';
@@ -45,9 +41,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // Profile
   String? _name;
   String? _email;
+  // Read-only here — editing the avatar now happens on AccountPage; this
+  // just mirrors whatever's saved there.
   String? _avatarUrl;
-  String? _avatarLocalPath;
-  bool _avatarUploading = false;
   String? _fullBodyUrl;
   String? _faceRefUrl;
   bool _loading = true;
@@ -116,45 +112,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _loadProfile();
   }
 
-  Future<void> _changeAvatar() async {
-    final result = await Navigator.push<ImageEditResult?>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ImageEditorPage(
-          initialPath: _avatarLocalPath ?? _avatarUrl,
-          showAnalysis: false,
-        ),
-      ),
-    );
-    if (result == null || !mounted) return;
-    // Confirmed without picking a new photo — imagePath is still the
-    // original signed URL, not a local file. Nothing to upload.
-    if (result.imagePath.startsWith('http')) return;
-    setState(() => _avatarLocalPath = result.imagePath);
-    await _uploadAvatar(result.imagePath);
-  }
-
-  Future<void> _uploadAvatar(String localPath) async {
-    setState(() => _avatarUploading = true);
-    try {
-      final init = await ProfileService().avatarInitUpload();
-      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final url = await ProfileService().avatarComplete(
-        objectName: init.objectName,
-      );
-      if (mounted) {
-        setState(() {
-          _avatarUrl = url;
-          _avatarLocalPath = null;
-        });
-      }
-    } catch (e) {
-      debugLog('SettingsPage avatar upload error: $e');
-    } finally {
-      if (mounted) setState(() => _avatarUploading = false);
-    }
-  }
-
   Future<void> _logout() async {
     final refreshToken = await AuthStorage.getRefreshToken() ?? '';
     try {
@@ -181,7 +138,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(l10n),
       body: _loading
-          ? const Center(child: PetalLoader())
+          ? const Center(child: AppSpinner())
           : ListView(
               children: [
                 _buildProfileCard(l10n),
@@ -223,22 +180,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildProfileCard(AppLocalizations l10n) {
     ImageProvider? avatarProvider;
-    if (_avatarLocalPath != null) {
-      avatarProvider = FileImage(File(_avatarLocalPath!));
-    } else if (_avatarUrl != null &&
+    if (_avatarUrl != null &&
         _avatarUrl!.isNotEmpty &&
         _avatarUrl != 'string') {
       avatarProvider = NetworkImage(_avatarUrl!);
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.only(top: 24),
       child: Column(
         children: [
-          ProfileAvatar(
-            image: avatarProvider,
-            size: 120,
-            onTap: _avatarUploading ? null : _changeAvatar,
-          ),
+          // Read-only — see AccountPage for the editable version.
+          ProfileAvatar(image: avatarProvider, size: 120, showEditLabel: false),
           const SizedBox(height: 16),
           Text(
             (_name != null && _name!.isNotEmpty) ? _name! : '---',

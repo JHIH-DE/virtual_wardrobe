@@ -4,6 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../common/app_popup_menu.dart';
 import '../common/images/refreshable_network_image.dart';
 import '../common/overlays/loading_overlay.dart';
 
@@ -111,13 +112,7 @@ class TodayOutfitIdea extends StatelessWidget {
   }
 
   Widget _buildMenuButton(AppLocalizations l10n) {
-    return PopupMenuButton<_OutfitCardMenuAction>(
-      padding: EdgeInsets.zero,
-      color: AppColors.surface,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      constraints: const BoxConstraints(minWidth: 0, maxWidth: 180),
-      menuPadding: const EdgeInsets.symmetric(vertical: 4),
+    return AppPopupMenu<_OutfitCardMenuAction>(
       onSelected: (action) {
         switch (action) {
           case _OutfitCardMenuAction.regenerate:
@@ -126,49 +121,25 @@ class TodayOutfitIdea extends StatelessWidget {
             onChangeGarments?.call();
         }
       },
-      itemBuilder: (context) => [
+      items: [
         if (onRegenerate != null)
-          PopupMenuItem(
+          AppPopupMenu.item(
             value: _OutfitCardMenuAction.regenerate,
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                const Icon(Icons.refresh, size: 18, color: AppColors.icon),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.regenerateOutfit,
-                  style: AppTextStyle.regular14.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+            icon: const Icon(Icons.refresh, size: 20, color: AppColors.icon),
+            label: l10n.regenerateOutfit,
           ),
         if (onChangeGarments != null)
-          PopupMenuItem(
+          AppPopupMenu.item(
             value: _OutfitCardMenuAction.changeGarments,
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.checkroom_outlined,
-                  size: 18,
-                  color: AppColors.icon,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.changeGarments,
-                  style: AppTextStyle.regular14.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            icon: const Icon(
+              Icons.checkroom_outlined,
+              size: 20,
+              color: AppColors.icon,
             ),
+            label: l10n.changeGarments,
           ),
       ],
-      child: Container(
+      trigger: Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(

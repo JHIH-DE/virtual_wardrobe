@@ -11,12 +11,13 @@ import '../../data/style_taste.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/style_taste_dimension_localization.dart';
 import '../../l10n/style_type_localization.dart';
+import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/cards/style_profile_pie_chart.dart';
 import '../widgets/common/cards/style_taste_radar_chart.dart';
 import '../widgets/common/expand_arrow_icon.dart';
-import '../widgets/common/images/petal_loader.dart';
+import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
@@ -222,12 +223,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final preference in preferences) ...[
-                    const Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: AppColors.borderSubtle,
-                    ),
-                    const SizedBox(height: 12),
+                    const AppDivider(topSpacing: 0, bottomSpacing: 12),
                     _buildInsightRow(preference),
                     const SizedBox(height: 12),
                   ],
@@ -262,7 +258,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
 
     return styleProfileAsync.when(
       loading: () =>
-          _buildStyleProfileCardShell(const Center(child: PetalLoader())),
+          _buildStyleProfileCardShell(const Center(child: AppSpinner())),
       error: (_, __) => const SizedBox.shrink(),
       data: (items) {
         final total = items.fold<int>(0, (sum, i) => sum + i.count);

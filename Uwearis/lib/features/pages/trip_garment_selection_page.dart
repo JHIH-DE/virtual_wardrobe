@@ -76,6 +76,8 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
   bool get _isModified => !setEquals(_selectedIds, widget.initiallySelectedIds);
 
+  bool get _showsBottomActionButton => _isModified;
+
   @override
   void initState() {
     super.initState();
@@ -334,11 +336,11 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       );
     }
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         16,
         16,
         16,
-        AppDimens.bottomActionBtnClearance,
+        _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 16,
       ),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

@@ -290,6 +290,8 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     return AppToolBar(title: _l10n.aiModel);
   }
 
+  bool get _showsBottomActionButton => _isModified && !_loading;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -303,11 +305,11 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
         enabled: _isModified,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           16,
           16,
           16,
-          AppDimens.bottomActionBtnClearance,
+          _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 16,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,22 +323,10 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
               ),
             ),
             const SizedBox(height: AppDimens.sectionSpacing),
-            SectionTitle(_l10n.faceReferenceLabel),
-            const SizedBox(height: AppDimens.cardHeaderGap),
             _buildFaceReferenceCard(),
             const SizedBox(height: AppDimens.sectionSpacing),
-            SectionTitle(_l10n.bodyReferenceLabel),
-            const SizedBox(height: AppDimens.cardHeaderGap),
             _buildBodyReferenceCard(),
             const SizedBox(height: AppDimens.sectionSpacing),
-            Row(
-              children: [
-                SectionTitle(_l10n.bodyMeasurementsLabel),
-                const Spacer(),
-                _buildUnitToggle(),
-              ],
-            ),
-            const SizedBox(height: AppDimens.cardHeaderGap),
             _buildBodyMeasurementsCard(),
           ],
         ),
@@ -370,28 +360,43 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
   }
 
   /// One card shape for both Face and Body reference rows. [leading] (a
-  /// compact photo/placeholder square) sits beside a stacked block of
-  /// [subtitle] then [action] — [subtitle] pinned to the top edge and
-  /// [action] to the bottom edge (matching [leading]'s height via
-  /// [IntrinsicHeight]), rather than the pair floating centered together.
-  /// [onTap] makes just that block tappable.
+  /// compact photo/placeholder square) sits on the right; [title] and
+  /// [subtitle] stack at the top-left and [action] follows below them
+  /// (matching [leading]'s height via [IntrinsicHeight]), so the photo
+  /// occupies the same vertical band as the title rather than starting
+  /// below it. [onTap] only makes [action] itself tappable — the rest of
+  /// the card (title, subtitle, photo) is inert, so a stray tap elsewhere
+  /// doesn't accidentally open the photo picker.
   Widget _buildReferenceCard({
+    required String title,
     required Widget leading,
     required String subtitle,
     required Widget action,
     required VoidCallback? onTap,
   }) {
-    Widget row = IntrinsicHeight(
+    Widget tappableAction = action;
+    if (onTap != null) {
+      tappableAction = InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: tappableAction,
+      );
+    }
+
+    // Title+subtitle share the row with the thumbnail (rather than sitting
+    // in a full-width strip above it) so the photo can occupy the same
+    // vertical band as the title instead of only starting below it.
+    final row = IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          leading,
-          const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                SectionTitle(title),
+                const SizedBox(height: 6),
                 Text(
                   subtitle,
                   style: AppTextStyle.regular14.copyWith(
@@ -399,26 +404,22 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
                     height: 1.3,
                   ),
                 ),
-                Align(alignment: Alignment.centerRight, child: action),
+                const SizedBox(height: 10),
+                tappableAction,
               ],
             ),
           ),
+          const SizedBox(width: 14),
+          leading,
         ],
       ),
     );
-    if (onTap != null) {
-      row = InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: row,
-      );
-    }
 
-    // Tighter on top/bottom/left so the thumbnail sits close to those
-    // three edges — right stays at the normal card inset so the text/
-    // action column doesn't hug the edge too.
+    // Tighter on top/bottom/right now that the thumbnail sits on the
+    // right — left stays at the normal card inset so the text column
+    // doesn't hug that edge too.
     return _buildCardShell(
-      padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
       child: row,
     );
   }
@@ -431,7 +432,13 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
           provider != null ? _l10n.changePhotoAction : _l10n.addPhotoAction,
           style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
         ),
-        const Icon(Icons.chevron_right, size: 18, color: AppColors.accent),
+        Image.asset(
+          'assets/images/page_arrow_right.png',
+          width: 18,
+          height: 18,
+          color: AppColors.accent,
+          colorBlendMode: BlendMode.srcIn,
+        ),
       ],
     );
   }
@@ -467,6 +474,7 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     }
 
     return _buildReferenceCard(
+      title: _l10n.faceReferenceLabel,
       onTap: _loading ? null : _changeFacePhoto,
       leading: _buildPhotoLeading(provider, Icons.face_outlined),
       subtitle: _l10n.faceAppearanceSubtitle,
@@ -485,6 +493,7 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     }
 
     return _buildReferenceCard(
+      title: _l10n.bodyReferenceLabel,
       onTap: _loading ? null : _changeFullBodyPhoto,
       leading: _buildPhotoLeading(provider, Icons.accessibility_new_outlined),
       subtitle: _l10n.bodyProportionsSubtitle,
@@ -494,9 +503,22 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
 
   Widget _buildBodyMeasurementsCard() {
     return _buildCardShell(
-      child: _unitSystem == _UnitSystem.metric
-          ? _buildMetricFields()
-          : _buildImperialFields(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SectionTitle(_l10n.bodyMeasurementsLabel),
+              const Spacer(),
+              _buildUnitToggle(),
+            ],
+          ),
+          const SizedBox(height: AppDimens.cardHeaderGap),
+          _unitSystem == _UnitSystem.metric
+              ? _buildMetricFields()
+              : _buildImperialFields(),
+        ],
+      ),
     );
   }
 

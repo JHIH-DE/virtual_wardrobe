@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -5,6 +7,8 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
+import '../../core/utils/debug_log.dart';
+import '../../data/image_edit_result.dart';
 import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -15,6 +19,8 @@ import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/profile_avatar.dart';
+import 'image_editor_page.dart';
 import 'location_picker_page.dart';
 
 class AccountPage extends StatefulWidget {
@@ -32,6 +38,9 @@ class _AccountPageState extends State<AccountPage> {
   String? _selectedGender;
   DateTime? _selectedBirthDate;
   String? _homeLocation;
+  String? _avatarUrl;
+  String? _avatarLocalPath;
+  bool _avatarUploading = false;
 
   String _initialName = '';
   String? _initialGender;
@@ -100,6 +109,7 @@ class _AccountPageState extends State<AccountPage> {
         _nameCtrl.text = profile['name'] ?? '';
         _selectedGender = profile['gender'] as String?;
         _homeLocation = profile['location'] as String?;
+        _avatarUrl = profile['avatar_object_url'] as String?;
         final birthdayStr = profile['birthday'] as String?;
         if (birthdayStr != null && birthdayStr.isNotEmpty) {
           try {
@@ -119,6 +129,45 @@ class _AccountPageState extends State<AccountPage> {
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _changeAvatar() async {
+    final result = await Navigator.push<ImageEditResult?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ImageEditorPage(
+          initialPath: _avatarLocalPath ?? _avatarUrl,
+          showAnalysis: false,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    // Confirmed without picking a new photo — imagePath is still the
+    // original signed URL, not a local file. Nothing to upload.
+    if (result.imagePath.startsWith('http')) return;
+    setState(() => _avatarLocalPath = result.imagePath);
+    await _uploadAvatar(result.imagePath);
+  }
+
+  Future<void> _uploadAvatar(String localPath) async {
+    setState(() => _avatarUploading = true);
+    try {
+      final init = await ProfileService().avatarInitUpload();
+      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
+      final url = await ProfileService().avatarComplete(
+        objectName: init.objectName,
+      );
+      if (mounted) {
+        setState(() {
+          _avatarUrl = url;
+          _avatarLocalPath = null;
+        });
+      }
+    } catch (e) {
+      debugLog('AccountPage avatar upload error: $e');
+    } finally {
+      if (mounted) setState(() => _avatarUploading = false);
     }
   }
 
@@ -166,6 +215,7 @@ class _AccountPageState extends State<AccountPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildAvatarSection(),
                   if (_error != null)
                     InlineErrorText(
                       message: _error!,
@@ -183,6 +233,35 @@ class _AccountPageState extends State<AccountPage> {
             enabled: _isModified,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarSection() {
+    ImageProvider? avatarProvider;
+    if (_avatarLocalPath != null) {
+      avatarProvider = FileImage(File(_avatarLocalPath!));
+    } else if (_avatarUrl != null &&
+        _avatarUrl!.isNotEmpty &&
+        _avatarUrl != 'string') {
+      avatarProvider = NetworkImage(_avatarUrl!);
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      decoration: const BoxDecoration(
+        color: AppColors.pageBackground,
+        image: DecorationImage(
+          image: AssetImage('assets/images/background.png'),
+          repeat: ImageRepeat.repeat,
+        ),
+      ),
+      child: Center(
+        child: ProfileAvatar(
+          image: avatarProvider,
+          size: 120,
+          onTap: _avatarUploading ? null : _changeAvatar,
+        ),
       ),
     );
   }
