@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -81,6 +82,20 @@ void main() {
           () => client,
         ),
         throwsA(isA<Exception>()),
+      );
+    });
+
+    // The GET carries a .timeout(); a stalled request must surface a
+    // TimeoutException rather than hang the caller forever.
+    test('surfaces a TimeoutException from a stalled request', () async {
+      await expectLater(
+        http.runWithClient(
+          () => DailyOutfitService().getDailyOutfit('2026-09-02'),
+          () => MockClient((request) async {
+            throw TimeoutException('simulated slow request');
+          }),
+        ),
+        throwsA(isA<TimeoutException>()),
       );
     });
   });

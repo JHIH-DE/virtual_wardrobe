@@ -20,7 +20,9 @@ class DailyOutfitService with BaseService {
     debugLog('--- getDailyOutfit: $targetDate ---');
     final uri = Uri.parse('$_baseUrl/$targetDate');
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'getDailyOutfit');
     final data = envelope['data'];
