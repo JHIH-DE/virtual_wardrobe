@@ -199,7 +199,7 @@ void main() {
       expect(json['name'], 'Navy Blazer');
       expect(json['category'], 'Outer');
       expect(json['sub_category'], 'Blazer');
-      expect(json['purchase_date'], startsWith('2025-03-14'));
+      expect(json['purchase_date'], '2025-03-14');
       expect(json['upload_url'], 'https://example.com/upload');
       expect(json['object_name'], 'garments/7.jpg');
     });
@@ -207,6 +207,23 @@ void main() {
     test('serializes a null purchase_date as null, not an exception', () {
       final garment = Garment.fromJson({'name': 'No Date'});
       expect(garment.toJson()['purchase_date'], isNull);
+    });
+
+    // The backend `purchase_date` is a Pydantic `date` — it rejects a
+    // datetime string with a non-zero time component. A picked date can carry
+    // a time (or a future default might), so toJson must always emit
+    // `yyyy-MM-dd`, matching GarmentService.completeUpload's own serialization.
+    test('serializes purchase_date as date-only even when the DateTime has a time', () {
+      final garment = Garment(
+        name: 'Timed',
+        category: GarmentCategory.top,
+        subCategory: '',
+        uploadUrl: '',
+        objectName: '',
+        purchaseDate: DateTime(2025, 3, 14, 9, 30, 45),
+      );
+      expect(garment.purchaseDateApiValue, '2025-03-14');
+      expect(garment.toJson()['purchase_date'], '2025-03-14');
     });
   });
 }

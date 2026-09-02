@@ -293,6 +293,14 @@ class Garment {
     );
   }
 
+  /// `purchase_date` as the API expects it: a date-only `yyyy-MM-dd` string.
+  /// The backend field is a Pydantic `date` and rejects a datetime carrying a
+  /// non-zero time component, so every request path must send date-only —
+  /// [toJson] (the PATCH payload) and `GarmentService.completeUpload` both
+  /// serialize through this so the two can't drift apart.
+  String? get purchaseDateApiValue =>
+      purchaseDate?.toIso8601String().split('T').first;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -306,7 +314,7 @@ class Garment {
       'formality': formality,
       'sub_category': subCategory,
       'category': category.apiValue,
-      'purchase_date': purchaseDate?.toIso8601String(),
+      'purchase_date': purchaseDateApiValue,
       'upload_url': uploadUrl,
       'object_name': objectName,
       'image_url': imageUrl,

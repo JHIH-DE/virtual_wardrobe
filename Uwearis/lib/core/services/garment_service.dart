@@ -78,9 +78,6 @@ class GarmentService with BaseService {
   ) async {
     debugLog('--- completeUpload ---');
     final uri = Uri.parse('$_baseUrl/complete');
-    final String? dateStr = garment.purchaseDate?.toIso8601String().split(
-      'T',
-    )[0];
 
     final payload = <String, dynamic>{
       'name': garment.name,
@@ -91,7 +88,7 @@ class GarmentService with BaseService {
       'color': garment.color,
       'fit': garment.fit,
       'price': garment.price,
-      'purchase_date': dateStr,
+      'purchase_date': garment.purchaseDateApiValue,
       'thickness': garment.thickness,
       'formality': garment.formality,
       'metadata': metaData,
@@ -171,6 +168,10 @@ class GarmentService with BaseService {
           .delete(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
     );
+    // withAuth returns the raw response even when the post-refresh retry
+    // still 401s; convert that to AuthExpiredException so the page layer's
+    // handler runs instead of a generic "delete failed" fallback.
+    throwIfAuthExpired(res);
     if (res.statusCode == 200 ||
         res.statusCode == 204 ||
         res.statusCode == 404) {
@@ -207,13 +208,23 @@ class GarmentService with BaseService {
     debugLog('--- setFavorite: $garmentId / $isFavorite ---');
     final uri = Uri.parse('$_baseUrl/$garmentId');
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'is_favorite': isFavorite}),
-      ),
+      (token) => http
+          .patch(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'is_favorite': isFavorite}),
+          )
+          .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'setFavorite');
+
+    // Keep the in-memory cache coherent with the state the server just
+    // accepted. Runs only after decodeMap: a non-2xx, a 401 (AuthExpired),
+    // or a malformed body all throw above and leave the cache untouched.
+    final cached = _cache[garmentId];
+    if (cached != null) {
+      _cache[garmentId] = cached.copyWith(isFavorite: isFavorite);
+    }
   }
 
   Future<AnalyzeGarmentResult> analyzeGarment(String localPath) async {
