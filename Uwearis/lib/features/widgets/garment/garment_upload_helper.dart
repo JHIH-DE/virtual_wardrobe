@@ -141,6 +141,7 @@ class GarmentUploadHelper {
     }
 
     if (imagePath != null) {
+      if (!context.mounted) return;
       // 1. Navigate to the edit page
       final result = await Navigator.push<ImageEditResult>(
         context,

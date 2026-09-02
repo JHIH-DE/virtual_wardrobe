@@ -31,7 +31,7 @@ class PickerSheetHeader extends StatelessWidget {
         Row(
           children: [
             Expanded(child: Text(title, style: AppTextStyle.bold20)),
-            if (trailing != null) trailing!,
+            ?trailing,
           ],
         ),
         if (description != null) ...[

@@ -119,6 +119,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     if (_currentPath == null || _isAnalyzing) return;
 
     final processPath = await _captureFramedImage();
+    if (!mounted) return;
 
     if (widget.showAnalysis) {
       setState(() => _isAnalyzing = true);
@@ -255,7 +256,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         ? Image.network(
             _currentPath!,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Center(
+            errorBuilder: (_, _, _) => const Center(
               child: Icon(Icons.broken_image, size: 50, color: AppColors.icon),
             ),
           )

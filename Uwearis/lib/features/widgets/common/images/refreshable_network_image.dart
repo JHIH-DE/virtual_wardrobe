@@ -123,10 +123,10 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
       fit: widget.fit,
       alignment: widget.alignment,
       fadeInDuration: widget.fadeInDuration,
-      placeholder: (_, __) => widget.placeholderBuilder != null
+      placeholder: (_, _) => widget.placeholderBuilder != null
           ? widget.placeholderBuilder!(context)
           : const Center(child: AppSpinner(size: 28)),
-      errorWidget: (_, __, ___) {
+      errorWidget: (_, _, _) {
         if (widget.onRefreshUrl != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
         }

@@ -128,7 +128,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
               ),
             ),
             loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
           ),
         ],
       ),
@@ -252,14 +252,14 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     final generalOutfitCount =
         ref
             .watch(outfitsProvider)
-            .valueOrNull
+            .value
             ?.fold<int>(0, (sum, o) => sum + o.versionCount) ??
         0;
 
     return styleProfileAsync.when(
       loading: () =>
           _buildStyleProfileCardShell(const Center(child: AppSpinner())),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (items) {
         final total = items.fold<int>(0, (sum, i) => sum + i.count);
         if (total == 0) {

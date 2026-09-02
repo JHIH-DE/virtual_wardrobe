@@ -321,6 +321,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         if (!mounted) return;
         Navigator.pop(context, 'deleted');
       } catch (e) {
+        if (!mounted) return;
         if (e is AuthExpiredException) {
           await AuthExpiredHandler.handle(context);
           return;
@@ -409,9 +410,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) {
-          Navigator.of(context).pop();
-        }
+        if (!shouldPop) return;
+        if (!context.mounted) return;
+        Navigator.of(context).pop();
       },
       child: Scaffold(
         backgroundColor: AppColors.pageBackground,
@@ -504,7 +505,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       (sum, item) => sum + ((item['compatible_count'] as num?)?.toInt() ?? 0),
     );
     final subCategory = _subCategory.text.trim();
-    final allGarments = ref.watch(garmentsProvider).valueOrNull ?? const [];
+    final allGarments = ref.watch(garmentsProvider).value ?? const [];
 
     return UwearisInsightCard(
       child: Column(
@@ -598,7 +599,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final category = GarmentCategoryX.fromApiValue(
       breakdownItem['category'] as String?,
     );
-    final all = ref.read(garmentsProvider).valueOrNull ?? const [];
+    final all = ref.read(garmentsProvider).value ?? const [];
     final garments = _resolveGarments(breakdownItem, all, limit: 9);
 
     showDialog<void>(
@@ -889,6 +890,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         _isAnalyzing = false;
       });
     } catch (e) {
+      if (!mounted) return;
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;
@@ -1208,7 +1210,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
                   ? Image.network(
                       img,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Center(
+                      errorBuilder: (_, _, _) => const Center(
                         child: Icon(Icons.broken_image, color: AppColors.icon),
                       ),
                     )

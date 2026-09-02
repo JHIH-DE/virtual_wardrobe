@@ -250,7 +250,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       tint: AppColors.statusUpcoming,
                     ),
                     loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                   ),
                   weatherAsync.maybeWhen(
                     data: (w) => _headerChip(
@@ -383,10 +383,32 @@ class _HomePageState extends ConsumerState<HomePage> {
             outfit.reasoning != null &&
             outfit.reasoning!.isNotEmpty) ...[
           const SizedBox(height: AppDimens.sectionSpacing),
-          UwearisInsightCard(
-            child: Text(outfit.reasoning!, style: AppTextStyle.regular14),
-          ),
+          UwearisInsightCard(child: _buildReasoningLines(outfit.reasoning!)),
         ],
+      ],
+    );
+  }
+
+  /// Outfit.reasoning joins multiple points into one string with `\n` —
+  /// render each as its own bulleted line rather than one dense paragraph.
+  Widget _buildReasoningLines(String reasoning) {
+    final lines = reasoning.split('\n').where((l) => l.trim().isNotEmpty);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in lines)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('•  ', style: AppTextStyle.regular14),
+                Expanded(
+                  child: Text(line.trim(), style: AppTextStyle.regular14),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -457,7 +479,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Same "upcoming" grouping trips_page.dart uses for its own section —
   /// just the single soonest trip, since Home only has room for a preview.
   Widget _buildUpcomingTripSection() {
-    final trips = ref.watch(tripsProvider).valueOrNull ?? const <Trip>[];
+    final trips = ref.watch(tripsProvider).value ?? const <Trip>[];
     final today = _dateOnly(DateTime.now());
     final upcoming =
         trips.where((t) => _dateOnly(t.dateRange.start).isAfter(today)).toList()
@@ -526,7 +548,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// id is assumed auto-incrementing, so sorting by it descending is the
   /// best available "most recently added first" ordering.
   Widget _buildRecentlyAddedSection() {
-    final garments = ref.watch(garmentsProvider).valueOrNull ?? const [];
+    final garments = ref.watch(garmentsProvider).value ?? const [];
     if (garments.isEmpty) return const SizedBox.shrink();
 
     final recent = [...garments]
@@ -549,7 +571,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 24),
             itemCount: shown.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, _) =>
                 const SizedBox(width: AppDimens.sectionSpacing),
             itemBuilder: (context, i) => SizedBox(
               width: AppDimens.garmentCardWidth,

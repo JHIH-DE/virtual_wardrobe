@@ -410,6 +410,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       if (e is AuthExpiredException) {
         await AuthExpiredHandler.handle(context);
         return;

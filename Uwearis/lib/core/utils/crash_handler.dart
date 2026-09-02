@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
@@ -41,7 +42,11 @@ class GlobalErrorHandler {
 
   static void _log(String source, Object error, StackTrace? stack) {
     debugLog('[$source] $error', error: error, stackTrace: stack);
-    // TODO: replace with Crashlytics.recordError(error, stack) before launch
+    Sentry.captureException(
+      error,
+      stackTrace: stack,
+      withScope: (scope) => scope.setTag('source', source),
+    );
   }
 
   // ErrorWidget.builder gives no BuildContext, so this can't use

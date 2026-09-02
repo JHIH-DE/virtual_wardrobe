@@ -15,7 +15,7 @@ class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
   /// True if any cached garment's signed image URL has expired (or is about
   /// to), meaning the cached list should be re-fetched before display.
   bool get isStale {
-    final garments = state.valueOrNull;
+    final garments = state.value;
     if (garments == null || garments.isEmpty) return false;
     return garments.any((g) {
       final url = g.imageUrl;
@@ -37,24 +37,24 @@ class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
   }
 
   void addGarment(Garment garment) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData([garment, ...current]);
   }
 
   void updateGarment(Garment garment) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData(
       current.map((g) => g.id == garment.id ? garment : g).toList(),
     );
   }
 
   void removeGarment(int garmentId) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData(current.where((g) => g.id != garmentId).toList());
   }
 
   void updateFavorite(int garmentId, {required bool isFavorite}) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData(
       current
           .map(

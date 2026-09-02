@@ -175,7 +175,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     final outfitsAsync = ref.watch(outfitsProvider);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(outfitsAsync.valueOrNull ?? []),
+      appBar: _buildAppBar(outfitsAsync.value ?? []),
       body: outfitsAsync.when(
         // Shell-level overlay (see _reportLoadingState) covers the whole
         // screen including the nav bar while loading.

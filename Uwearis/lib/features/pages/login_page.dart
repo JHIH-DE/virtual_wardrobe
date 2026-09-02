@@ -24,15 +24,22 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  late final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: Platform.isIOS && Env.googleIosClientId.isNotEmpty
-        ? Env.googleIosClientId
-        : null,
-    serverClientId: Env.googleClientId,
-    scopes: const ['email', 'profile', 'openid'],
-  );
-
+  bool _googleSignInInitialized = false;
   bool _isLoading = false;
+
+  /// `GoogleSignIn.instance.initialize()` must be called exactly once and
+  /// awaited before any other GoogleSignIn method — unlike the old
+  /// constructor-configured instance, this is a process-wide singleton.
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_googleSignInInitialized) return;
+    await GoogleSignIn.instance.initialize(
+      clientId: Platform.isIOS && Env.googleIosClientId.isNotEmpty
+          ? Env.googleIosClientId
+          : null,
+      serverClientId: Env.googleClientId,
+    );
+    _googleSignInInitialized = true;
+  }
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -55,12 +62,11 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _isLoading = true);
     try {
-      await _googleSignIn.signOut();
-      final account = await _googleSignIn.signIn();
-      if (account == null) return;
+      await _ensureGoogleSignInInitialized();
+      await GoogleSignIn.instance.signOut();
+      final account = await GoogleSignIn.instance.authenticate();
 
-      final auth = await account.authentication;
-      final idToken = auth.idToken;
+      final idToken = account.authentication.idToken;
       if (idToken == null || idToken.isEmpty) {
         throw Exception(_l10n.googleLoginMissingToken);
       }
@@ -70,6 +76,10 @@ class _LoginPageState extends State<LoginPage> {
 
       Fluttertoast.showToast(msg: _l10n.googleLoginSuccess);
       await _goHome();
+    } on GoogleSignInException catch (e) {
+      // User dismissed the account picker — not an error worth showing.
+      if (e.code == GoogleSignInExceptionCode.canceled) return;
+      _showSnack(e.description ?? e.toString());
     } catch (e) {
       _showSnack(e.toString().replaceFirst('Exception: ', ''));
     } finally {

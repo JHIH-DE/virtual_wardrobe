@@ -36,6 +36,15 @@ class Outfit {
   /// parsing (see [getAllOutfits]/[getGroupOutfits]).
   final int? coverOutfitId;
 
+  /// The group's own name (see `PATCH /outfit/{group_id}`) — same value on
+  /// every [Outfit] in a group, distinct from [name] (this specific
+  /// outfit's own name). Null until either the user sets one explicitly or
+  /// the group's first rendered outfit auto-seeds it (backend behavior,
+  /// one-time only). Not part of `OutfitOut` itself — [OutfitService]
+  /// attaches it from the group wrapper after parsing (see
+  /// [getAllOutfits]/[getGroupOutfits]).
+  final String? groupName;
+
   Outfit({
     required this.id,
     this.groupId = 0,
@@ -52,6 +61,7 @@ class Outfit {
     this.versionCount = 1,
     this.reasoning,
     this.coverOutfitId,
+    this.groupName,
   });
 
   Outfit copyWith({
@@ -63,6 +73,8 @@ class Outfit {
     int? versionCount,
     int? coverOutfitId,
     bool clearCoverOutfitId = false,
+    String? groupName,
+    bool clearGroupName = false,
   }) {
     return Outfit(
       id: id,
@@ -82,6 +94,7 @@ class Outfit {
       coverOutfitId: clearCoverOutfitId
           ? null
           : (coverOutfitId ?? this.coverOutfitId),
+      groupName: clearGroupName ? null : (groupName ?? this.groupName),
     );
   }
 

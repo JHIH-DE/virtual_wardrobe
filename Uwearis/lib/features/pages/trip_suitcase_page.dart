@@ -92,7 +92,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   Future<void> _handleAddGarment(List<Garment> allGarments) async {
     await ref.read(garmentsProvider.notifier).refreshIfNeeded();
     if (!mounted) return;
-    final garments = ref.read(garmentsProvider).valueOrNull ?? allGarments;
+    final garments = ref.read(garmentsProvider).value ?? allGarments;
 
     final result = await Navigator.push<Set<int>>(
       context,
@@ -207,7 +207,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     // Only needed for the "Add" picker's full closet — the packed list
     // itself now renders straight from _packedGarments (embedded fields
     // from the trip response), so it isn't gated on this loading/erroring.
-    final closetGarments = ref.watch(garmentsProvider).valueOrNull ?? [];
+    final closetGarments = ref.watch(garmentsProvider).value ?? [];
 
     return Stack(
       children: [

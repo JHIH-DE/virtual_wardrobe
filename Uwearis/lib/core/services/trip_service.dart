@@ -32,7 +32,7 @@ class TripService with BaseService {
       "name": name,
       "legs": legs.map((l) => l.toJson()).toList(),
       "activity": activities,
-      if (days != null) "days": days,
+      "days": ?days,
     };
     debugLog('createTrip body: ${jsonEncode(body)}');
 
@@ -85,10 +85,10 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId');
 
     final body = <String, dynamic>{
-      if (name != null) 'name': name,
+      'name': ?name,
       if (legs != null) 'legs': legs.map((l) => l.toJson()).toList(),
-      if (activities != null) 'activity': activities,
-      if (days != null) 'days': days,
+      'activity': ?activities,
+      'days': ?days,
     };
 
     final res = await withAuth(
@@ -191,9 +191,8 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/generate');
 
     final body = <String, dynamic>{
-      if (days != null) 'days': days,
-      if (alternativesPerDay != null)
-        'alternatives_per_day': alternativesPerDay,
+      'days': ?days,
+      'alternatives_per_day': ?alternativesPerDay,
     };
 
     final res = await withAuth(
@@ -339,7 +338,7 @@ class TripService with BaseService {
         uri,
         headers: {...authHeaders(token), 'Content-Type': 'application/json'},
         body: jsonEncode({
-          if (backgroundId != null) 'background_id': backgroundId,
+          'background_id': ?backgroundId,
         }),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import '../../data/outfit.dart';
 import '../services/outfit_service.dart';
@@ -28,7 +29,7 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
   /// True if any cached outfit's signed image URL has expired (or is about
   /// to), meaning the cached list should be re-fetched before display.
   bool get isStale {
-    final outfits = state.valueOrNull;
+    final outfits = state.value;
     if (outfits == null || outfits.isEmpty) return false;
     return outfits.any(
       (o) => o.imageUrl.isNotEmpty && isSignedUrlExpired(o.imageUrl),
@@ -49,19 +50,26 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
   }
 
   void add(Outfit outfit) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData([outfit, ...current]);
   }
 
   void removeById(int id) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData(current.where((o) => o.id != id).toList());
   }
 
-  void updateName(int id, {required String name}) {
-    final current = state.valueOrNull ?? [];
+  /// [name] is a group-level property (see `Outfit.groupName`) — matches by
+  /// [groupId] rather than a specific outfit id, since every version in the
+  /// group shares the same name.
+  void updateGroupName(int groupId, {required String name}) {
+    final current = state.value ?? [];
     state = AsyncData(
-      current.map((o) => o.id == id ? o.copyWith(name: name) : o).toList(),
+      current
+          .map(
+            (o) => o.groupId == groupId ? o.copyWith(groupName: name) : o,
+          )
+          .toList(),
     );
   }
 }

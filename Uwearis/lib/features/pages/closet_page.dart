@@ -164,7 +164,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
   }
 
   AppToolBar _buildAppBar(AsyncValue<List<Garment>> garmentsAsync) {
-    final all = garmentsAsync.valueOrNull ?? [];
+    final all = garmentsAsync.value ?? [];
     return AppToolBar(
       title: AppLocalizations.of(context).navCloset,
       titleWidget: Row(

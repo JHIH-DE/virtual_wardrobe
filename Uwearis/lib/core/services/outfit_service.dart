@@ -53,7 +53,7 @@ class OutfitService with BaseService {
         'type': type,
         'page': '$page',
         'size': '$size',
-        if (sort != null) 'sort': sort,
+        'sort': ?sort,
       },
     );
     final res = await withAuth(
@@ -82,6 +82,7 @@ class OutfitService with BaseService {
             .toList();
         if (parsed.isEmpty) continue;
         final coverOutfitId = (group['cover_outfit_id'] as num?)?.toInt();
+        final groupName = group['name'] as String?;
         // Backend's own default rule when cover_outfit_id is null: the
         // group's lowest outfit_id (its earliest-created outfit).
         final representative = coverOutfitId != null
@@ -95,6 +96,8 @@ class OutfitService with BaseService {
             versionCount: parsed.length,
             coverOutfitId: coverOutfitId,
             clearCoverOutfitId: coverOutfitId == null,
+            groupName: groupName,
+            clearGroupName: groupName == null,
           ),
         );
       }
@@ -122,7 +125,7 @@ class OutfitService with BaseService {
     final uri = Uri.parse('$_baseUrl/$groupId/generate');
     final payload = <String, dynamic>{
       'garment_ids': garmentIds,
-      if (backgroundId != null) 'background_id': backgroundId,
+      'background_id': ?backgroundId,
       'is_favorite': isFavorite,
     };
     final res = await withAuth(
@@ -155,7 +158,7 @@ class OutfitService with BaseService {
     );
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId/regenerate');
     final payload = <String, dynamic>{
-      if (backgroundId != null) 'background_id': backgroundId,
+      'background_id': ?backgroundId,
     };
     final res = await withAuth(
       (token) => http.post(
@@ -224,10 +227,10 @@ class OutfitService with BaseService {
     debugLog('--- updateOutfit: groupId=$groupId outfitId=$outfitId ---');
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId');
     final payload = <String, dynamic>{
-      if (isFavorite != null) 'is_favorite': isFavorite,
-      if (name != null) 'name': name,
-      if (style != null) 'style': style,
-      if (season != null) 'season': season,
+      'is_favorite': ?isFavorite,
+      'name': ?name,
+      'style': ?style,
+      'season': ?season,
     };
     final res = await withAuth(
       (token) => http.patch(
@@ -273,6 +276,9 @@ class OutfitService with BaseService {
     final coverOutfitId = data is Map<String, dynamic>
         ? (data['cover_outfit_id'] as num?)?.toInt()
         : null;
+    final groupName = data is Map<String, dynamic>
+        ? data['name'] as String?
+        : null;
     return outfits
         .whereType<Map<String, dynamic>>()
         .map(Outfit.fromJson)
@@ -280,26 +286,43 @@ class OutfitService with BaseService {
           (o) => o.copyWith(
             coverOutfitId: coverOutfitId,
             clearCoverOutfitId: coverOutfitId == null,
+            groupName: groupName,
+            clearGroupName: groupName == null,
           ),
         )
         .toList();
   }
 
-  /// Sets (or, with `null`, clears) [groupId]'s cover outfit — the version
-  /// shown as that group's representative in the flat Outfits list (see
-  /// [getAllOutfits]). [coverOutfitId] must belong to [groupId] and already
-  /// be fully rendered.
-  Future<void> setGroupCover(int groupId, int? coverOutfitId) async {
-    debugLog('--- setGroupCover: groupId=$groupId coverOutfitId=$coverOutfitId ---');
+  /// Partial update to [groupId] itself — [name] and/or [coverOutfitId].
+  /// Only pass what changed; everything else is left untouched server-side.
+  /// [coverOutfitId] is the version shown as the group's representative in
+  /// the flat Outfits list (see [getAllOutfits]) and must already be fully
+  /// rendered; pass [clearCoverOutfitId] to explicitly null it out (falls
+  /// back to the group's lowest outfit_id).
+  Future<void> updateGroup(
+    int groupId, {
+    String? name,
+    int? coverOutfitId,
+    bool clearCoverOutfitId = false,
+  }) async {
+    debugLog(
+      '--- updateGroup: groupId=$groupId name=$name '
+      'coverOutfitId=$coverOutfitId clearCoverOutfitId=$clearCoverOutfitId ---',
+    );
     final uri = Uri.parse('$_baseUrl/$groupId');
+    final payload = <String, dynamic>{
+      'name': ?name,
+      if (coverOutfitId != null || clearCoverOutfitId)
+        'cover_outfit_id': coverOutfitId,
+    };
     final res = await withAuth(
       (token) => http.patch(
         uri,
         headers: authHeaders(token),
-        body: jsonEncode({'cover_outfit_id': coverOutfitId}),
+        body: jsonEncode(payload),
       ),
     );
-    decodeMap(res, op: 'setGroupCover');
+    decodeMap(res, op: 'updateGroup');
   }
 
   /// Deletes the whole group, cascading to every outfit (and their GCS

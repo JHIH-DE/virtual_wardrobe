@@ -140,11 +140,25 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// garments, and the Regenerate/Delete actions all apply to this one.
   Outfit get _current => _versions[_currentIndex];
 
-  /// [_versions] first entry — the app bar title/tags always reflect this
-  /// one regardless of which version is currently swiped to, so the header
-  /// reads as this outfit *group*'s identity rather than flickering
-  /// per-version as the user swipes.
-  Outfit get _primary => _versions[0];
+  /// The group's actual cover version — the app bar title/tags always
+  /// reflect this one regardless of which version is currently swiped to,
+  /// so the header reads as this outfit *group*'s identity rather than
+  /// flickering per-version as the user swipes. Resolved by
+  /// `coverOutfitId` (every entry in [_versions] carries the same one —
+  /// see [_loadGroupOutfits]/[_setCover]), falling back to the lowest id
+  /// when unset, exactly mirroring [OutfitService.getAllOutfits]'s own
+  /// "representative" pick for the grid card this page was opened from —
+  /// [_versions]' array order doesn't necessarily put that version first.
+  Outfit get _primary {
+    final coverId = _current.coverOutfitId;
+    if (coverId == null) {
+      return _versions.reduce((a, b) => a.id < b.id ? a : b);
+    }
+    return _versions.firstWhere(
+      (o) => o.id == coverId,
+      orElse: () => _versions.reduce((a, b) => a.id < b.id ? a : b),
+    );
+  }
 
   List<String> get _effectiveSeasons => _current.seasons;
   List<String> get _effectiveStyle => _current.style;
@@ -701,7 +715,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       }
     });
     try {
-      await OutfitService().setGroupCover(target.groupId, target.id);
+      await OutfitService().updateGroup(
+        target.groupId,
+        coverOutfitId: target.id,
+      );
       await ref.read(outfitsProvider.notifier).refresh();
     } catch (e) {
       if (!mounted) return;
@@ -1000,7 +1017,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       // instead of always hitting the network per garment — but skip stale
       // cache entries whose signed image URL has expired, so photos don't
       // render as broken images.
-      final cached = ref.read(garmentsProvider).valueOrNull ?? const [];
+      final cached = ref.read(garmentsProvider).value ?? const [];
       final cachedById = _indexGarmentsById(cached);
       final idsToLoad = _current.garmentIds.toSet();
 
@@ -1155,6 +1172,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   String get _title {
+    final groupName = _primary.groupName;
+    if (groupName != null && groupName.isNotEmpty) return groupName;
     final name = _primary.name;
     if (name != null && name.isNotEmpty) return name;
     final parts = [..._effectiveSeasons, ..._effectiveStyle];
@@ -1167,7 +1186,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   Future<void> _showEditNameDialog() async {
-    final controller = TextEditingController(text: _primary.name ?? '');
+    final controller = TextEditingController(text: _primary.groupName ?? '');
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
@@ -1189,14 +1208,18 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
     if (result == null || result.isEmpty || !mounted) return;
     try {
-      await OutfitService().updateOutfit(
-        _primary.groupId,
-        _primary.id,
-        name: result,
-      );
+      await OutfitService().updateGroup(_primary.groupId, name: result);
       if (!mounted) return;
-      setState(() => _versions[0] = _primary.copyWith(name: result));
-      ref.read(outfitsProvider.notifier).updateName(_primary.id, name: result);
+      // The name is a group-level property — every version shares it, not
+      // just the one currently shown.
+      setState(() {
+        for (var i = 0; i < _versions.length; i++) {
+          _versions[i] = _versions[i].copyWith(groupName: result);
+        }
+      });
+      ref
+          .read(outfitsProvider.notifier)
+          .updateGroupName(_primary.groupId, name: result);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);

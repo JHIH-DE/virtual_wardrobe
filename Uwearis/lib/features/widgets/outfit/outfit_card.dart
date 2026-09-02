@@ -14,6 +14,9 @@ class OutfitCard extends StatelessWidget {
   const OutfitCard({super.key, required this.outfit, required this.onTap});
 
   String _label(AppLocalizations l10n) {
+    if (outfit.groupName != null && outfit.groupName!.isNotEmpty) {
+      return outfit.groupName!;
+    }
     if (outfit.name != null && outfit.name!.isNotEmpty) return outfit.name!;
     final parts = [
       ...outfit.style,

@@ -28,7 +28,7 @@ class CategorySelector extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           scrollDirection: Axis.horizontal,
           itemCount: categories.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          separatorBuilder: (_, _) => const SizedBox(width: 12),
           itemBuilder: (context, i) {
             final category = categories[i];
             return SelectableChip(

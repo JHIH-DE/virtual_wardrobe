@@ -196,8 +196,10 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
     if (last != null) return last;
 
     return Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.low,
-      timeLimit: const Duration(seconds: 5),
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.low,
+        timeLimit: Duration(seconds: 5),
+      ),
     );
   }
 
@@ -214,7 +216,7 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
   Future<String> _getLocationName(double lat, double lon) async {
     final unknownLocation = _l10n().unknownLocation;
     try {
-      final placemarks = await placemarkFromCoordinates(lat, lon);
+      final placemarks = await Geocoding().placemarkFromCoordinates(lat, lon);
       if (placemarks.isNotEmpty) {
         return placemarks.first.administrativeArea ?? unknownLocation;
       }

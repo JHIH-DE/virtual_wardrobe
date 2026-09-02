@@ -48,7 +48,7 @@ class StyleProfilePieChart extends StatelessWidget {
             size: Size.square(size),
             painter: _DonutPainter(slices: slices),
           ),
-          if (center != null) center!,
+          ?center,
         ],
       ),
     );

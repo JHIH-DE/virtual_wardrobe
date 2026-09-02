@@ -1176,7 +1176,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _accessories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) => SizedBox(
           width: _accessoryTileSize,
           height: _accessoryTileSize,
@@ -1256,7 +1256,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           controller: _backgroundScrollController,
           scrollDirection: Axis.horizontal,
           itemCount: BackgroundOption.all.length,
-          separatorBuilder: (_, __) =>
+          separatorBuilder: (_, _) =>
               const SizedBox(width: _backgroundCardSpacing),
           itemBuilder: (context, i) =>
               _buildBackgroundCard(BackgroundOption.all[i], i),

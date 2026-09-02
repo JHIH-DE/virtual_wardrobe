@@ -222,7 +222,7 @@ class FloatingNavBar extends StatelessWidget {
       barrierLabel: l10n.quickActions,
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 150),
-      pageBuilder: (context, _, __) => SafeArea(
+      pageBuilder: (context, _, _) => SafeArea(
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Padding(

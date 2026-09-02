@@ -17,17 +17,17 @@ class TripsNotifier extends AsyncNotifier<List<Trip>> {
   }
 
   void add(Trip trip) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData([trip, ...current]);
   }
 
   void remove(String id) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData(current.where((t) => t.id != id).toList());
   }
 
   void updateTrip(Trip trip) {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     state = AsyncData(current.map((t) => t.id == trip.id ? trip : t).toList());
   }
 }
