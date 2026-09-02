@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -110,6 +111,25 @@ void main() {
         ),
         throwsA(isA<Exception>()),
       );
+    });
+
+    // A JSON encoder can serialize the new id as a float (9.0); parse it via
+    // num rather than rejecting anything that isn't exactly an int.
+    test('accepts an id returned as a float', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({'id': 9.0})),
+      );
+
+      final id = await http.runWithClient(
+        () => TripService().createTrip(
+          name: 'Trip',
+          legs: [_leg()],
+          activities: const [],
+        ),
+        () => client,
+      );
+
+      expect(id, 9);
     });
   });
 
@@ -243,6 +263,21 @@ void main() {
         {'date': '2026-10-01'},
       ]);
       expect(payload['alternatives_per_day'], 3);
+    });
+
+    // The generate POST carries a .timeout(); a stalled request must surface a
+    // TimeoutException rather than hang the caller. (A MockClient throwing
+    // TimeoutException reproduces what .timeout() does when it fires.)
+    test('surfaces a TimeoutException from a stalled generation', () async {
+      await expectLater(
+        http.runWithClient(
+          () => TripService().generateTripPlan(9),
+          () => MockClient((request) async {
+            throw TimeoutException('simulated slow generation');
+          }),
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
     });
   });
 

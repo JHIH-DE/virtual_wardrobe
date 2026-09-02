@@ -37,11 +37,9 @@ class TripService with BaseService {
     debugLog('createTrip body: ${jsonEncode(body)}');
 
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ),
+      (token) => http
+          .post(uri, headers: authHeaders(token), body: jsonEncode(body))
+          .timeout(const Duration(seconds: 15)),
     );
 
     final envelope = decodeMap(res, op: 'createTrip');
@@ -50,8 +48,8 @@ class TripService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('createTrip: response missing data object');
     }
-    final id = data['id'];
-    if (id is! int) throw Exception('createTrip: missing id in response');
+    final id = (data['id'] as num?)?.toInt();
+    if (id == null) throw Exception('createTrip: missing id in response');
     return id;
   }
 
@@ -92,11 +90,9 @@ class TripService with BaseService {
     };
 
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ),
+      (token) => http
+          .patch(uri, headers: authHeaders(token), body: jsonEncode(body))
+          .timeout(const Duration(seconds: 15)),
     );
 
     decodeMap(res, op: 'updateTrip');
@@ -107,7 +103,9 @@ class TripService with BaseService {
     final uri = Uri.parse(_baseUrl);
 
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
 
     final envelope = decodeMap(res, op: 'getTrips');
@@ -140,7 +138,9 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId');
 
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
 
     final envelope = decodeMap(res, op: 'getTrip');
@@ -165,7 +165,9 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/plan');
 
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
 
     final envelope = decodeMap(res, op: 'getTripPlan');
@@ -196,11 +198,10 @@ class TripService with BaseService {
     };
 
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ),
+      (token) => http
+          .post(uri, headers: authHeaders(token), body: jsonEncode(body))
+          // AI plan generation (Gemini, per day) — generous ceiling.
+          .timeout(const Duration(seconds: 90)),
     );
 
     final envelope = decodeMap(res, op: 'generateTripPlan');
@@ -216,11 +217,13 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/suitcase-items');
 
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode({'garment_id': garmentId}),
-      ),
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'garment_id': garmentId}),
+          )
+          .timeout(const Duration(seconds: 15)),
     );
 
     decodeMap(res, op: 'addSuitcaseItem');
@@ -231,7 +234,9 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/suitcase-items/$garmentId');
 
     final res = await withAuth(
-      (token) => http.delete(uri, headers: authHeaders(token)),
+      (token) => http
+          .delete(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
 
     decodeMap(res, op: 'removeSuitcaseItem');
@@ -242,7 +247,9 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId');
 
     final res = await withAuth(
-      (token) => http.delete(uri, headers: authHeaders(token)),
+      (token) => http
+          .delete(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
 
     decodeMap(res, op: 'deleteTrip');
@@ -253,7 +260,10 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
     final res = await withAuth(
-      (token) => http.post(uri, headers: authHeaders(token)),
+      (token) => http
+          .post(uri, headers: authHeaders(token))
+          // AI call (Gemini) — generous ceiling, just bounds a wedged request.
+          .timeout(const Duration(seconds: 90)),
     );
 
     final envelope = decodeMap(res, op: 'analyzeTrip');
@@ -269,7 +279,9 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
 
     final envelope = decodeMap(res, op: 'getTripSuggestion');
@@ -301,7 +313,10 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/outfit');
 
     final res = await withAuth(
-      (token) => http.post(uri, headers: authHeaders(token)),
+      (token) => http
+          .post(uri, headers: authHeaders(token))
+          // AI call (Gemini) — generous ceiling, just bounds a wedged request.
+          .timeout(const Duration(seconds: 90)),
     );
 
     final envelope = decodeMap(res, op: 'generateOptionOutfit');
@@ -334,13 +349,14 @@ class TripService with BaseService {
     );
 
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'background_id': ?backgroundId,
-        }),
-      ),
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'background_id': ?backgroundId}),
+          )
+          // AI render — generous ceiling, just bounds a wedged request.
+          .timeout(const Duration(seconds: 90)),
     );
 
     final envelope = decodeMap(res, op: 'regenerateOptionOutfit');
@@ -366,11 +382,13 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/items');
 
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: {...authHeaders(token), 'Content-Type': 'application/json'},
-        body: jsonEncode({'garment_ids': garmentIds}),
-      ),
+      (token) => http
+          .patch(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'garment_ids': garmentIds}),
+          )
+          .timeout(const Duration(seconds: 15)),
     );
 
     final envelope = decodeMap(res, op: 'updateOptionItems');
