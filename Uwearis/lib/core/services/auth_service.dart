@@ -10,118 +10,87 @@ import 'base_service.dart';
 class AuthService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/auth';
 
-  Future<({String accessToken, String refreshToken})> loginWithGoogleIdToken(
-    String idToken,
-  ) async {
-    debugLog('--- loginWithGoogleIdToken ---');
-    final uri = Uri.parse('$_baseUrl/google');
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'id_token': idToken}),
-    );
+  /// One unauthenticated JSON POST against `/auth`, time-bounded so a login
+  /// or refresh can't hang the sign-in flow forever.
+  Future<http.Response> _postJson(String path, Map<String, dynamic> body) {
+    return http
+        .post(
+          Uri.parse('$_baseUrl$path'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 15));
+  }
 
-    final envelope = decodeMap(res, op: 'loginWithGoogle');
+  /// Pulls the issued `access_token`/`refresh_token` pair out of a decoded
+  /// response envelope, throwing a clear [label]-prefixed error if either is
+  /// missing or blank.
+  ({String accessToken, String refreshToken}) _tokenPair(
+    Map<String, dynamic> envelope, {
+    required String label,
+  }) {
     final data = envelope['data'] as Map<String, dynamic>?;
-    if (data == null) throw Exception('Google login: response missing data');
+    if (data == null) throw Exception('$label: response missing data');
 
     final accessToken = data['access_token'] as String?;
     final refreshToken = data['refresh_token'] as String?;
     if (accessToken == null || accessToken.isEmpty) {
-      throw Exception('Google login: missing access_token');
+      throw Exception('$label: missing access_token');
     }
     if (refreshToken == null || refreshToken.isEmpty) {
-      throw Exception('Google login: missing refresh_token');
+      throw Exception('$label: missing refresh_token');
     }
     return (accessToken: accessToken, refreshToken: refreshToken);
+  }
+
+  Future<({String accessToken, String refreshToken})> loginWithGoogleIdToken(
+    String idToken,
+  ) async {
+    debugLog('--- loginWithGoogleIdToken ---');
+    final res = await _postJson('/google', {'id_token': idToken});
+    return _tokenPair(
+      decodeMap(res, op: 'loginWithGoogle'),
+      label: 'Google login',
+    );
   }
 
   Future<({String accessToken, String refreshToken})> loginWithAppleIdToken(
     String idToken,
   ) async {
     debugLog('--- loginWithAppleIdToken ---');
-    final uri = Uri.parse('$_baseUrl/apple');
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'id_token': idToken}),
+    final res = await _postJson('/apple', {'id_token': idToken});
+    return _tokenPair(
+      decodeMap(res, op: 'loginWithApple'),
+      label: 'Apple login',
     );
-
-    final envelope = decodeMap(res, op: 'loginWithApple');
-    final data = envelope['data'] as Map<String, dynamic>?;
-    if (data == null) throw Exception('Apple login: response missing data');
-
-    final accessToken = data['access_token'] as String?;
-    final refreshToken = data['refresh_token'] as String?;
-    if (accessToken == null || accessToken.isEmpty) {
-      throw Exception('Apple login: missing access_token');
-    }
-    if (refreshToken == null || refreshToken.isEmpty) {
-      throw Exception('Apple login: missing refresh_token');
-    }
-    return (accessToken: accessToken, refreshToken: refreshToken);
   }
 
   Future<({String accessToken, String refreshToken})> loginWithFacebookIdToken(
     String idToken,
   ) async {
     debugLog('--- loginWithFacebook ---');
-    final uri = Uri.parse('$_baseUrl/facebook');
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'id_token': idToken}),
+    final res = await _postJson('/facebook', {'id_token': idToken});
+    return _tokenPair(
+      decodeMap(res, op: 'loginWithFacebook'),
+      label: 'Facebook login',
     );
-
-    final envelope = decodeMap(res, op: 'loginWithFacebook');
-    final data = envelope['data'] as Map<String, dynamic>?;
-    if (data == null) throw Exception('Facebook login: response missing data');
-
-    final accessToken = data['access_token'] as String?;
-    final refreshToken = data['refresh_token'] as String?;
-    if (accessToken == null || accessToken.isEmpty) {
-      throw Exception('Facebook login: missing access_token');
-    }
-    if (refreshToken == null || refreshToken.isEmpty) {
-      throw Exception('Facebook login: missing refresh_token');
-    }
-    return (accessToken: accessToken, refreshToken: refreshToken);
   }
 
   Future<void> logout(String refreshToken) async {
     debugLog('--- logout ---');
-    final uri = Uri.parse('$_baseUrl/logout');
-    await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'refresh_token': refreshToken}),
-    );
+    // Best-effort: local tokens are cleared by the caller regardless of the
+    // server's response, so this deliberately doesn't check the status.
+    await _postJson('/logout', {'refresh_token': refreshToken});
   }
 
   Future<({String accessToken, String refreshToken})> refreshAccessToken(
     String refreshToken,
   ) async {
     debugLog('--- refreshAccessToken ---');
-    final uri = Uri.parse('$_baseUrl/refresh');
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'refresh_token': refreshToken}),
+    final res = await _postJson('/refresh', {'refresh_token': refreshToken});
+    return _tokenPair(
+      decodeMap(res, op: 'refreshAccessToken'),
+      label: 'Token refresh',
     );
-
-    final envelope = decodeMap(res, op: 'refreshAccessToken');
-    final data = envelope['data'] as Map<String, dynamic>?;
-    if (data == null) throw Exception('Token refresh: response missing data');
-
-    final accessToken = data['access_token'] as String?;
-    final newRefreshToken = data['refresh_token'] as String?;
-    if (accessToken == null || accessToken.isEmpty) {
-      throw Exception('Token refresh: missing access_token');
-    }
-    if (newRefreshToken == null || newRefreshToken.isEmpty) {
-      throw Exception('Token refresh: missing refresh_token');
-    }
-
-    return (accessToken: accessToken, refreshToken: newRefreshToken);
   }
 }

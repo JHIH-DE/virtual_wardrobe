@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -108,6 +109,43 @@ void main() {
         () => client,
       );
       expect(captured.url.toString(), '$_base/facebook');
+    });
+
+    // The three social logins share one token-pair validator — Apple and
+    // Facebook must reject a missing token just like Google does.
+    test('Apple and Facebook also throw on a missing token', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({'access_token': 'a'})),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => AuthService().loginWithAppleIdToken('t'),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
+      );
+      await expectLater(
+        http.runWithClient(
+          () => AuthService().loginWithFacebookIdToken('t'),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
+
+  group('timeout', () {
+    test('a stalled login surfaces a TimeoutException', () async {
+      await expectLater(
+        http.runWithClient(
+          () => AuthService().loginWithGoogleIdToken('id-token'),
+          () => MockClient((request) async {
+            throw TimeoutException('simulated slow login');
+          }),
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
     });
   });
 
