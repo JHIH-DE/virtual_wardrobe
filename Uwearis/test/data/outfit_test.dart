@@ -70,6 +70,20 @@ void main() {
       expect(outfit.id, 0);
     });
 
+    // An external API can serialize an integer id as a float (e.g. 101.0);
+    // that must parse to 101, not silently collapse to 0.
+    test('parses ids given as a float, same as ints', () {
+      final outfit = Outfit.fromJson({
+        'outfit_id': 101.0,
+        'group_id': 12.0,
+        'garment_ids': [12.0, 55, '88'],
+      });
+
+      expect(outfit.id, 101);
+      expect(outfit.groupId, 12);
+      expect(outfit.garmentIds, [12, 55, 88]);
+    });
+
     test('accepts season/style as a single string, not just a list', () {
       final outfit = Outfit.fromJson({
         'outfit_id': 1,

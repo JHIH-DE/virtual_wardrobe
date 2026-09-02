@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -86,6 +87,21 @@ void main() {
         http.runWithClient(() => OutfitService().createGroup(), () => client),
         throwsA(isA<Exception>()),
       );
+    });
+
+    // A JSON encoder can emit an integer id as a float; the `num`-based parse
+    // must accept it rather than a raw `as int` cast blowing up.
+    test('accepts a group_id returned as a float', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({'group_id': 12.0})),
+      );
+
+      final groupId = await http.runWithClient(
+        () => OutfitService().createGroup(),
+        () => client,
+      );
+
+      expect(groupId, 12);
     });
   });
 
@@ -277,6 +293,22 @@ void main() {
       expect(captured.url.toString(), '$_base/7/generate');
       final payload = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(payload['background_id'], 3);
+    });
+
+    // The render POST carries a .timeout(); a stalled request must surface a
+    // TimeoutException instead of hanging the caller forever. (A MockClient
+    // throwing TimeoutException reproduces what .timeout() does when it fires,
+    // without a real wall-clock wait.)
+    test('surfaces a TimeoutException from a stalled render', () async {
+      await expectLater(
+        http.runWithClient(
+          () => OutfitService().generateOutfit(garmentIds: [1], groupId: 7),
+          () => MockClient((request) async {
+            throw TimeoutException('simulated slow render');
+          }),
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
     });
   });
 

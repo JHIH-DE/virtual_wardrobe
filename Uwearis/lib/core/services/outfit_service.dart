@@ -22,16 +22,18 @@ class OutfitService with BaseService {
     debugLog('--- createGroup: type=$type ---');
     final uri = Uri.parse(_baseUrl);
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'type': type}),
-      ),
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'type': type}),
+          )
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'createGroup');
     final data = envelope['data'];
     final groupId = data is Map<String, dynamic>
-        ? data['group_id'] as int?
+        ? (data['group_id'] as num?)?.toInt()
         : null;
     if (groupId == null) {
       throw Exception('createGroup: response missing group_id');
@@ -57,7 +59,9 @@ class OutfitService with BaseService {
       },
     );
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'getAllOutfits');
     final data = envelope['data'];
@@ -129,11 +133,11 @@ class OutfitService with BaseService {
       'is_favorite': isFavorite,
     };
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode(payload),
-      ),
+      (token) => http
+          .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
+          // AI render — synchronous on the backend (~10-15s), but retries on
+          // rate limits can stack; generous ceiling just bounds a wedged call.
+          .timeout(const Duration(seconds: 90)),
     );
     final envelope = decodeMap(res, op: 'generateOutfit');
     final data = envelope['data'];
@@ -157,15 +161,13 @@ class OutfitService with BaseService {
       'backgroundId=$backgroundId ---',
     );
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId/regenerate');
-    final payload = <String, dynamic>{
-      'background_id': ?backgroundId,
-    };
+    final payload = <String, dynamic>{'background_id': ?backgroundId};
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode(payload),
-      ),
+      (token) => http
+          .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
+          // AI render — synchronous on the backend (~10-15s), but retries on
+          // rate limits can stack; generous ceiling just bounds a wedged call.
+          .timeout(const Duration(seconds: 90)),
     );
     final envelope = decodeMap(res, op: 'regenerateOutfit');
     final data = envelope['data'];
@@ -183,14 +185,18 @@ class OutfitService with BaseService {
   /// a move).
   Future<Outfit> copyOutfit({int? groupId, required int sourceOutfitId}) async {
     groupId ??= await createGroup(type: 'general');
-    debugLog('--- copyOutfit: groupId=$groupId sourceOutfitId=$sourceOutfitId ---');
+    debugLog(
+      '--- copyOutfit: groupId=$groupId sourceOutfitId=$sourceOutfitId ---',
+    );
     final uri = Uri.parse('$_baseUrl/$groupId/copy');
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'source_outfit_id': sourceOutfitId}),
-      ),
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'source_outfit_id': sourceOutfitId}),
+          )
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'copyOutfit');
     final data = envelope['data'];
@@ -204,7 +210,9 @@ class OutfitService with BaseService {
     debugLog('--- getOutfit: groupId=$groupId outfitId=$outfitId ---');
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId');
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'getOutfit');
     final data = envelope['data'];
@@ -233,11 +241,9 @@ class OutfitService with BaseService {
       'season': ?season,
     };
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode(payload),
-      ),
+      (token) => http
+          .patch(uri, headers: authHeaders(token), body: jsonEncode(payload))
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'updateOutfit');
     final data = envelope['data'];
@@ -253,7 +259,9 @@ class OutfitService with BaseService {
     debugLog('--- deleteOutfit: groupId=$groupId outfitId=$outfitId ---');
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId');
     final res = await withAuth(
-      (token) => http.delete(uri, headers: authHeaders(token)),
+      (token) => http
+          .delete(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'deleteOutfit');
   }
@@ -265,7 +273,9 @@ class OutfitService with BaseService {
     debugLog('--- getGroupOutfits: groupId=$groupId ---');
     final uri = Uri.parse('$_baseUrl/$groupId');
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'getGroupOutfits');
     final data = envelope['data'];
@@ -316,11 +326,9 @@ class OutfitService with BaseService {
         'cover_outfit_id': coverOutfitId,
     };
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode(payload),
-      ),
+      (token) => http
+          .patch(uri, headers: authHeaders(token), body: jsonEncode(payload))
+          .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'updateGroup');
   }
@@ -331,7 +339,9 @@ class OutfitService with BaseService {
     debugLog('--- deleteGroup: groupId=$groupId ---');
     final uri = Uri.parse('$_baseUrl/$groupId');
     final res = await withAuth(
-      (token) => http.delete(uri, headers: authHeaders(token)),
+      (token) => http
+          .delete(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'deleteGroup');
   }
@@ -342,11 +352,13 @@ class OutfitService with BaseService {
     debugLog('--- getOutfitsByGarments: garmentIds=$garmentIds ---');
     final uri = Uri.parse('$_baseUrl/by-garments');
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'garment_ids': garmentIds}),
-      ),
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'garment_ids': garmentIds}),
+          )
+          .timeout(const Duration(seconds: 15)),
     );
     final envelope = decodeMap(res, op: 'getOutfitsByGarments');
     final data = envelope['data'];
