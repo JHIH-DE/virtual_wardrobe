@@ -1,3 +1,8 @@
+/// Stable per-outfit cache-key identity for [ImageCacheBust]/image widgets —
+/// pass the same key everywhere a given outfit's rendered image is cached
+/// or bumped so a regenerate in one place busts the cache everywhere else.
+String outfitImageCacheKey(int outfitId) => 'outfit-job-$outfitId';
+
 /// One outfit from the OutfitGroup + Outfit API (`/api/v1/outfit`). The
 /// render result lives directly on the outfit itself (`result_image_url`/
 /// `error_message`/`status`) — `regenerate` overwrites this same outfit's

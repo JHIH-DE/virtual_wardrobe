@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../../app/theme/app_colors.dart';
+import '../../core/utils/debug_log.dart';
 import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -43,6 +44,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               .toList();
         });
       }
+    } catch (e) {
+      debugLog('LocationPickerPage search error: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       setState(() => _isLoading = false);
     }

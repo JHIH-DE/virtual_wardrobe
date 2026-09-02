@@ -1,3 +1,25 @@
+/// Season filter/tag catalog shared by outfits_page.dart,
+/// garment_outfits_page.dart (as filter options, with an extra leading
+/// 'All' sentinel), and outfit_details_page.dart (as the Edit Tags sheet's
+/// catalog) — kept as one list so the three stay in sync.
+const List<String> seasonOptions = ['Spring', 'Summer', 'Autumn', 'Winter'];
+
+/// Style filter/tag catalog shared by outfits_page.dart,
+/// garment_outfits_page.dart (as filter options, with an extra leading
+/// 'All' sentinel), and outfit_details_page.dart (as the Edit Tags sheet's
+/// catalog) — kept as one list so the three stay in sync.
+const List<String> styleOptions = [
+  'Minimal',
+  'Classic',
+  'Smart Casual',
+  'Streetwear',
+  'Athleisure',
+  'Workwear',
+  'Preppy',
+  'Business',
+  'Vintage',
+];
+
 /// Stable style identifiers. These are the only values that should be
 /// persisted in the database or sent/received via the API — never a
 /// localized display label.

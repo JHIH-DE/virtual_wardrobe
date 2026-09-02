@@ -8,11 +8,13 @@ import '../utils/debug_log.dart';
 import 'base_service.dart';
 
 class AuthService with BaseService {
+  static final String _baseUrl = '${AppConfig.fullApiUrl}/auth';
+
   Future<({String accessToken, String refreshToken})> loginWithGoogleIdToken(
     String idToken,
   ) async {
     debugLog('--- loginWithGoogleIdToken ---');
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/google');
+    final uri = Uri.parse('$_baseUrl/google');
     final res = await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},
@@ -38,7 +40,7 @@ class AuthService with BaseService {
     String idToken,
   ) async {
     debugLog('--- loginWithAppleIdToken ---');
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/apple');
+    final uri = Uri.parse('$_baseUrl/apple');
     final res = await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},
@@ -60,11 +62,11 @@ class AuthService with BaseService {
     return (accessToken: accessToken, refreshToken: refreshToken);
   }
 
-  Future<({String accessToken, String refreshToken})> loginWithFaceBookIdToken(
+  Future<({String accessToken, String refreshToken})> loginWithFacebookIdToken(
     String idToken,
   ) async {
-    debugLog('--- loginWithFaceBookIdToken ---');
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/facebook');
+    debugLog('--- loginWithFacebook ---');
+    final uri = Uri.parse('$_baseUrl/facebook');
     final res = await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},
@@ -88,7 +90,7 @@ class AuthService with BaseService {
 
   Future<void> logout(String refreshToken) async {
     debugLog('--- logout ---');
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/logout');
+    final uri = Uri.parse('$_baseUrl/logout');
     await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},
@@ -100,7 +102,7 @@ class AuthService with BaseService {
     String refreshToken,
   ) async {
     debugLog('--- refreshAccessToken ---');
-    final uri = Uri.parse('${AppConfig.fullApiUrl}/auth/refresh');
+    final uri = Uri.parse('$_baseUrl/refresh');
     final res = await http.post(
       uri,
       headers: {'Content-Type': 'application/json'},

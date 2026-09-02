@@ -65,9 +65,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   bool _isImageChanged = false;
   bool _isAnalyzing = false;
-  bool uploading = false;
+  bool _uploading = false;
   int? _id;
-  String? errorMessage;
+  String? _errorMessage;
   String? _imagePathOrUrl;
   GarmentColor? _selectedColor;
   GarmentFit? _selectedFit;
@@ -247,7 +247,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   /// Instant rename, independent of the full-form Save button — mirrors
-  /// `OutfitDetailsPage._showEditNameDialog`. Unlike the rest of this
+  /// `OutfitDetailsPage._showRenameDialog`. Unlike the rest of this
   /// form's fields (batched into one `updateGarment` PATCH on Save), this
   /// persists immediately via the same endpoint with just the name
   /// changed, then syncs [_nameCtrl]/[_initialName] so the bottom Save
@@ -326,7 +326,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           await AuthExpiredHandler.handle(context);
           return;
         }
-        setState(() => errorMessage = _l10n.deleteFailedPrefix(e.toString()));
+        setState(() => _errorMessage = _l10n.deleteFailedPrefix(e.toString()));
       }
     }
   }
@@ -423,13 +423,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         bottomNavigationBar: BottomActionButton(
           label: _isAddMode ? _l10n.addToCloset : _l10n.save,
           onPressed: _isModified ? _saveGarment : null,
-          isLoading: uploading,
+          isLoading: _uploading,
         ),
       ),
     );
   }
 
-  bool get _showsBottomActionButton => _isModified && !uploading;
+  bool get _showsBottomActionButton => _isModified && !_uploading;
 
   Widget _buildForm() {
     return Form(
@@ -450,10 +450,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: AppDivider(topSpacing: 12, bottomSpacing: 16),
           ),
-          if (uploading) _buildUploadProgress(),
-          if (errorMessage != null)
+          if (_uploading) _buildUploadProgress(),
+          if (_errorMessage != null)
             InlineErrorText(
-              message: errorMessage!,
+              message: _errorMessage!,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             ),
           Padding(
@@ -1292,8 +1292,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   Future<void> _saveGarment() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
-      uploading = true;
-      errorMessage = null;
+      _uploading = true;
+      _errorMessage = null;
     });
 
     try {
@@ -1311,8 +1311,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       }
       if (mounted) {
         setState(() {
-          errorMessage = e.toString();
-          uploading = false;
+          _errorMessage = e.toString();
+          _uploading = false;
         });
       }
     }

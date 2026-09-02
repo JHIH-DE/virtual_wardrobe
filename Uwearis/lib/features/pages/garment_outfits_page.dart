@@ -6,6 +6,7 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/outfit_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/outfit.dart';
+import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
@@ -25,25 +26,8 @@ class GarmentOutfitsPage extends StatefulWidget {
 }
 
 class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
-  static const List<String> _seasons = [
-    'All',
-    'Spring',
-    'Summer',
-    'Autumn',
-    'Winter',
-  ];
-  static const List<String> _styles = [
-    'All',
-    'Minimal',
-    'Classic',
-    'Smart Casual',
-    'Streetwear',
-    'Athleisure',
-    'Workwear',
-    'Preppy',
-    'Business',
-    'Vintage',
-  ];
+  static const List<String> _seasons = ['All', ...seasonOptions];
+  static const List<String> _styles = ['All', ...styleOptions];
 
   Set<String> _selectedSeasons = {'All'};
   Set<String> _selectedStyle = {'All'};

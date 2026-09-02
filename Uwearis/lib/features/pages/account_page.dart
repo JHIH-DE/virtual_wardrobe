@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
@@ -208,6 +209,12 @@ class _AccountPageState extends State<AccountPage> {
       backgroundColor: AppColors.pageBackground,
       extendBody: true,
       appBar: _buildAppBar(),
+      bottomNavigationBar: BottomActionButton(
+        label: _l10n.save,
+        onPressed: _saveProfile,
+        isLoading: _loading,
+        enabled: _isModified,
+      ),
       body: Column(
         children: [
           Expanded(
@@ -222,20 +229,21 @@ class _AccountPageState extends State<AccountPage> {
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     ),
                   _buildFormFields(),
+                  SizedBox(
+                    height: _showsBottomActionButton
+                        ? AppDimens.bottomActionBtnClearance
+                        : 0,
+                  ),
                 ],
               ),
             ),
-          ),
-          BottomActionButton(
-            label: _l10n.save,
-            onPressed: _saveProfile,
-            isLoading: _loading,
-            enabled: _isModified,
           ),
         ],
       ),
     );
   }
+
+  bool get _showsBottomActionButton => _isModified && !_loading;
 
   Widget _buildAvatarSection() {
     ImageProvider? avatarProvider;

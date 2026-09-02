@@ -140,7 +140,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
       body: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        padding: AppDimens.pageGridPadding,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: AppDimens.cardSpacing,

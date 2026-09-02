@@ -77,7 +77,7 @@ void main() {
     });
   });
 
-  group('loginWithAppleIdToken / loginWithFaceBookIdToken', () {
+  group('loginWithAppleIdToken / loginWithFacebookIdToken', () {
     test('Apple login hits the apple endpoint', () async {
       late http.Request captured;
       final client = MockClient((request) async {
@@ -104,7 +104,7 @@ void main() {
       });
 
       await http.runWithClient(
-        () => AuthService().loginWithFaceBookIdToken('fb-token'),
+        () => AuthService().loginWithFacebookIdToken('fb-token'),
         () => client,
       );
       expect(captured.url.toString(), '$_base/facebook');

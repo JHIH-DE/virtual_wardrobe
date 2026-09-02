@@ -79,7 +79,7 @@ class _TripOutfitSelectionPageState extends State<TripOutfitSelectionPage> {
       return Center(child: EmptyStatePlaceholder(message: l10n.noOutfitsYet));
     }
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: AppDimens.pageGridPadding,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: AppDimens.cardSpacing,

@@ -12,6 +12,7 @@ import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
@@ -334,31 +335,6 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     );
   }
 
-  /// Shared white-card chrome — radius, padding, resting shadow — used by
-  /// both the photo reference cards and the Body Measurements card so
-  /// they read as one family even though their contents differ.
-  Widget _buildCardShell({
-    required Widget child,
-    EdgeInsetsGeometry padding = const EdgeInsets.all(14),
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowResting,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-
   /// One card shape for both Face and Body reference rows. [leading] (a
   /// compact photo/placeholder square) sits on the right; [title] and
   /// [subtitle] stack at the top-left and [action] follows below them
@@ -418,7 +394,7 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     // Tighter on top/bottom/right now that the thumbnail sits on the
     // right — left stays at the normal card inset so the text column
     // doesn't hug that edge too.
-    return _buildCardShell(
+    return AppCardShell(
       padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
       child: row,
     );
@@ -502,7 +478,7 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
   }
 
   Widget _buildBodyMeasurementsCard() {
-    return _buildCardShell(
+    return AppCardShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -630,7 +606,7 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     );
   }
 
-  /// Matches Account page's name field: a small uppercase [SectionTitle]
+  /// Matches Account page's name field: a small uppercase [FieldLabel]
   /// sitting above the box rather than a floating label inside it.
   Widget _buildLabeledField({
     required TextEditingController controller,

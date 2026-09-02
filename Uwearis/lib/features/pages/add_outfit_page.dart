@@ -24,6 +24,7 @@ import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
+import '../widgets/common/edge_fade_scrim.dart';
 import '../widgets/common/expand_arrow_icon.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
@@ -1249,8 +1250,13 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// selects it immediately, no separate picker page needed since there
   /// are only a handful of backgrounds.
   Widget _buildBackgroundSelector() {
-    return _fadeHorizontalEdges(
-      SizedBox(
+    return EdgeFadeScrim(
+      edgeWidth: 28,
+      leftIcon: Icons.chevron_left,
+      rightIcon: Icons.chevron_right,
+      leftVisible: _canScrollBackgroundLeft,
+      rightVisible: _canScrollBackgroundRight,
+      child: SizedBox(
         height: 170,
         child: ListView.separated(
           controller: _backgroundScrollController,
@@ -1281,66 +1287,6 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       target.clamp(0.0, position.maxScrollExtent),
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
-    );
-  }
-
-  /// Overlays a short same-color scrim on each edge of [child] so content
-  /// sliding past doesn't end abruptly.
-  Widget _fadeHorizontalEdges(Widget child) {
-    Widget scrim(Alignment begin, Alignment end, IconData icon, bool visible) {
-      return IgnorePointer(
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 150),
-          opacity: visible ? 1 : 0,
-          child: Container(
-            width: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: begin,
-                end: end,
-                colors: [
-                  AppColors.surface,
-                  AppColors.surface.withValues(alpha: 0),
-                ],
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 28,
-              color: AppColors.icon.withValues(alpha: 0.4),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        child,
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: scrim(
-            Alignment.centerLeft,
-            Alignment.centerRight,
-            Icons.chevron_left,
-            _canScrollBackgroundLeft,
-          ),
-        ),
-        Positioned(
-          right: 0,
-          top: 0,
-          bottom: 0,
-          child: scrim(
-            Alignment.centerRight,
-            Alignment.centerLeft,
-            Icons.chevron_right,
-            _canScrollBackgroundRight,
-          ),
-        ),
-      ],
     );
   }
 

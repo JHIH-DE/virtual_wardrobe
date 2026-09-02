@@ -128,7 +128,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
-        final tokens = await AuthService().loginWithFaceBookIdToken(
+        final tokens = await AuthService().loginWithFacebookIdToken(
           accessToken.tokenString,
         );
         await AuthStorage.saveAccessToken(tokens.accessToken);

@@ -22,6 +22,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
+import '../widgets/common/edge_fade_scrim.dart';
 import '../widgets/common/expand_arrow_icon.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/overlays/app_dialog.dart';
@@ -1245,7 +1246,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1298,8 +1299,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     // from the span can drift out of sync with what _dayOutfits[index]
     // actually holds.
     final int totalDays = _dayOutfits.length;
-    return _fadeHorizontalEdges(
-      SizedBox(
+    return EdgeFadeScrim(
+      child: SizedBox(
         height: 102,
         child: ListView.separated(
           controller: _dayScrollController,
@@ -1375,49 +1376,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// has room for (and only wants) the city part.
   String _cityOnly(String locationName) => locationName.split(',').first.trim();
 
-  /// Fades a horizontally-scrolling child out near its left/right edges, so
-  /// content sliding past doesn't end abruptly at the card's border. Uses a
-  /// same-color scrim overlay (matching the card background) rather than a
-  /// ShaderMask blend — blending against the list's own colors made the
-  /// fade look washed out / flash white during scroll.
-  Widget _fadeHorizontalEdges(Widget child) {
-    Widget scrim(Alignment begin, Alignment end) {
-      return IgnorePointer(
-        child: Container(
-          width: 24,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: begin,
-              end: end,
-              colors: [
-                AppColors.surface,
-                AppColors.surface.withValues(alpha: 0),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        child,
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: scrim(Alignment.centerLeft, Alignment.centerRight),
-        ),
-        Positioned(
-          right: 0,
-          top: 0,
-          bottom: 0,
-          child: scrim(Alignment.centerRight, Alignment.centerLeft),
-        ),
-      ],
-    );
-  }
-
   Widget _buildWardrobeSection() {
     final hasOption = _currentDayOutfit?.optionId != null;
     return Column(
@@ -1441,8 +1399,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 : _buildGeneratePlanCta(),
           )
         else ...[
-          _fadeHorizontalEdges(
-            SizedBox(
+          EdgeFadeScrim(
+            child: SizedBox(
               height: 100,
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1514,7 +1472,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
           border: Border.all(color: AppColors.borderSubtle),
         ),
         child: Column(

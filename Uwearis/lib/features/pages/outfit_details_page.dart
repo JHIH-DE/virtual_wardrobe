@@ -15,6 +15,7 @@ import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
+import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
@@ -89,27 +90,6 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
-  // Editorial tag catalog for the Edit Tags sheet — same options
-  // outfits_page.dart/garment_outfits_page.dart offer as filters (minus
-  // their 'All' sentinel, which doesn't apply to editing an outfit's own
-  // tags).
-  static const List<String> _seasonOptions = [
-    'Spring',
-    'Summer',
-    'Autumn',
-    'Winter',
-  ];
-  static const List<String> _styleOptions = [
-    'Minimal',
-    'Classic',
-    'Smart Casual',
-    'Streetwear',
-    'Athleisure',
-    'Workwear',
-    'Preppy',
-    'Business',
-    'Vintage',
-  ];
   bool _isDeleting = false;
   // True while leaving a freshly-rendered outfit refreshes the outfits
   // list before jumping to the Outfits tab — see _leaveNewOutfit.
@@ -311,7 +291,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   void _handleMenuAction(_OutfitMenuAction action) {
     switch (action) {
       case _OutfitMenuAction.rename:
-        _showEditNameDialog();
+        _showRenameDialog();
         break;
       case _OutfitMenuAction.share:
         _shareOutfit();
@@ -591,11 +571,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                   const SizedBox(height: 4),
                   Text(_l10n.seasonLabel, style: AppTextStyle.bold16),
                   const SizedBox(height: 12),
-                  chipGroup(_seasonOptions, selectedSeasons),
+                  chipGroup(seasonOptions, selectedSeasons),
                   const SizedBox(height: 24),
                   Text(_l10n.styleLabel, style: AppTextStyle.bold16),
                   const SizedBox(height: 12),
-                  chipGroup(_styleOptions, selectedStyles),
+                  chipGroup(styleOptions, selectedStyles),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -760,7 +740,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       // Trip pages) so they all move to a cache key that's never been seen
       // before instead of keep serving pre-regenerate bytes from a
       // stable key's cache entry.
-      ImageCacheBust.bump('outfit-job-${target.id}');
+      ImageCacheBust.bump(outfitImageCacheKey(target.id));
       await ref.read(outfitsProvider.notifier).refresh();
     } on AuthExpiredException {
       if (!mounted) return;
@@ -804,7 +784,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     // (OutfitImage elsewhere included), so nothing keeps
                     // serving pre-regenerate bytes from a stable key's
                     // cache entry.
-                    final baseKey = 'outfit-job-${outfit.id}';
+                    final baseKey = outfitImageCacheKey(outfit.id);
                     final cacheKey =
                         '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
                     return RefreshableNetworkImage(
@@ -1185,7 +1165,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     return _l10n.outfitTitle(capitalized);
   }
 
-  Future<void> _showEditNameDialog() async {
+  Future<void> _showRenameDialog() async {
     final controller = TextEditingController(text: _primary.groupName ?? '');
     final result = await showDialog<String>(
       context: context,

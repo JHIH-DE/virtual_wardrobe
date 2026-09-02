@@ -13,8 +13,10 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/occasion_type_localization.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/section_title.dart';
 
 class LifestylePage extends StatefulWidget {
   const LifestylePage({super.key});
@@ -152,36 +154,14 @@ class _LifestylePageState extends State<LifestylePage> {
     );
   }
 
-  /// Shared white-card chrome — radius, shadow — matching every other
-  /// page-level card in the app (see tryon_profile_page.dart's own
-  /// _buildCardShell): same [AppDimens.cardRadius], same resting shadow.
-  Widget _buildCardShell(Widget child, {double bottomPadding = 20}) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomPadding),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowResting,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-
   /// A card's own title+subtitle header — same sizing as Style Taste's
-  /// radar/profile cards (bold18 title, regular14 secondary subtitle) so
-  /// every "titled card" in the app reads as one family.
+  /// radar/profile cards ([SectionTitle] title, regular14 secondary
+  /// subtitle) so every "titled card" in the app reads as one family.
   Widget _buildCardHeader(String title, String subtitle) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: AppTextStyle.bold18),
+        SectionTitle(title),
         const SizedBox(height: 4),
         Text(
           subtitle,
@@ -195,9 +175,9 @@ class _LifestylePageState extends State<LifestylePage> {
   }
 
   Widget _buildWeeklyScheduleCard() {
-    return _buildCardShell(
-      bottomPadding: 6,
-      Column(
+    return AppCardShell(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardHeader(_l10n.weeklySchedule, _l10n.weeklyScheduleIntro),
@@ -259,8 +239,9 @@ class _LifestylePageState extends State<LifestylePage> {
   }
 
   Widget _buildComfortAdjustmentCard() {
-    return _buildCardShell(
-      Column(
+    return AppCardShell(
+      padding: const EdgeInsets.all(20),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardHeader(

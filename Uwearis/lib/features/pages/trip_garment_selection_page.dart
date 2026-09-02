@@ -16,6 +16,7 @@ import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expand_arrow_icon.dart';
+import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import 'trip_outfit_selection_page.dart';
@@ -323,15 +324,10 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     if (items.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
-        child: Center(
-          child: Text(
-            AppLocalizations.of(
-              context,
-            ).noGarmentsInCategory(_selectedCategory.localizedLabel(context)),
-            style: AppTextStyle.regular16.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
+        child: EmptyStatePlaceholder(
+          message: AppLocalizations.of(
+            context,
+          ).noGarmentsInCategory(_selectedCategory.localizedLabel(context)),
         ),
       );
     }

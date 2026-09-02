@@ -4,6 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/outfit_service.dart';
 import '../../../core/utils/image_cache_bust.dart';
+import '../../../data/outfit.dart';
 import '../common/images/refreshable_network_image.dart';
 
 /// Single source of truth for "what is this outfit's image URL right now" —
@@ -81,8 +82,8 @@ class OutfitImage extends StatelessWidget {
     // image can also be overwritten in place at this exact URL by
     // OutfitService.regenerateOutfit (see outfit_details_page.dart), which a
     // stable-URL/stable-key cache would otherwise never see as a change.
-    final cacheKey =
-        'outfit-job-$outfitId-v${ImageCacheBust.versionOf('outfit-job-$outfitId')}';
+    final baseKey = outfitImageCacheKey(outfitId);
+    final cacheKey = '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
     final image = imageUrl.isEmpty
         ? _fallback(Icons.image_outlined, noImageLabel)
         : RefreshableNetworkImage(

@@ -48,8 +48,8 @@ class MatchLookService with BaseService {
   /// Steps 1+2 of match-look-api.md's flow: request a signed upload slot,
   /// then PUT the reference photo straight to it.
   Future<InitUploadResult> _initUpload() async {
+    debugLog('--- _initUpload ---');
     final uri = Uri.parse('$_baseUrl/reference/init-upload');
-    debugLog('POST $uri');
     final res = await withAuth(
       (token) => http
           .post(
@@ -59,7 +59,6 @@ class MatchLookService with BaseService {
           )
           .timeout(const Duration(seconds: 15)),
     );
-    debugLog('POST $uri -> ${res.statusCode}');
     final data = _decode(res, op: 'matchLookInitUpload')['data'];
     if (data is! Map<String, dynamic>) {
       throw const MatchLookException(null, 'matchLookInitUpload: no data');
@@ -73,13 +72,11 @@ class MatchLookService with BaseService {
   /// ([matchLook] is separate). Overwrites whatever reference the user had
   /// active before; the backend only ever keeps one per user.
   Future<void> uploadReference(String localImagePath) async {
+    debugLog('--- uploadReference: $localImagePath ---');
     final init = await _initUpload();
-    debugLog('PUT ${init.uploadUrl}');
     await putJpegToSignedUrl(init.uploadUrl, localImagePath);
-    debugLog('PUT ${init.uploadUrl} -> ok');
 
     final uri = Uri.parse('$_baseUrl/reference');
-    debugLog('POST $uri');
     final res = await withAuth(
       (token) => http
           .post(
@@ -89,7 +86,6 @@ class MatchLookService with BaseService {
           )
           .timeout(const Duration(seconds: 45)),
     );
-    debugLog('POST $uri -> ${res.statusCode} ${res.body}');
     _decode(res, op: 'matchLookReference');
   }
 
@@ -98,14 +94,13 @@ class MatchLookService with BaseService {
   /// backend re-runs against its stored reference, so this alone is
   /// enough to refresh recommendations after the closet changes.
   Future<MatchALookResult> matchLook() async {
+    debugLog('--- matchLook ---');
     final uri = Uri.parse('$_baseUrl/match');
-    debugLog('POST $uri');
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 30)),
     );
-    debugLog('POST $uri -> ${res.statusCode} ${res.body}');
     final data = _decode(res, op: 'matchLookMatch')['data'];
     if (data is! Map<String, dynamic>) {
       throw const MatchLookException(null, 'matchLookMatch: no data');
@@ -117,14 +112,13 @@ class MatchLookService with BaseService {
   /// to remove) is treated as success — same "already gone" tolerance as
   /// [GarmentService.deleteGarment].
   Future<void> removeReference() async {
+    debugLog('--- removeReference ---');
     final uri = Uri.parse('$_baseUrl/reference');
-    debugLog('DELETE $uri');
     final res = await withAuth(
       (token) => http
           .delete(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
     );
-    debugLog('DELETE $uri -> ${res.statusCode}');
     if (res.statusCode == 404) return;
     _decode(res, op: 'matchLookRemoveReference');
   }

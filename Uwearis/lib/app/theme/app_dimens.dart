@@ -1,4 +1,12 @@
+import 'package:flutter/widgets.dart';
+
 abstract class AppDimens {
+  // Standard page-level grid padding — a plain content grid's outer
+  // padding (Select Garment/Accessory, Trip Outfit Selection, ...). Kept
+  // as one constant so every full-page grid in the app uses the same
+  // inset instead of each screen repeating the same literal.
+  static const EdgeInsets pageGridPadding = EdgeInsets.fromLTRB(16, 16, 16, 24);
+
   // Standard gap between cards — grid cross/main axis spacing, the space
   // between successive cards in a vertical list, and horizontal-scroller
   // separators (GarmentCard, OutfitCard, TripCard, GarmentListCard,

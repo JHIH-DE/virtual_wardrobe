@@ -27,7 +27,7 @@ flutter test test/widget_test.dart  # single test file
 **Layer structure:**
 
 - `lib/data/` — plain Dart model classes (`Garment`, `Outfit`, `TripPlan`). Each has `fromJson`/`toJson` and uses `copyWith` with `clearX` bool flags for nullable fields.
-- `lib/core/services/` — REST API clients. All mix in `BaseService`, which provides `getSafeToken()`, `authHeaders()`, `decodeMap()`, and `throwIfAuthExpired()`. Services are singletons via `factory` + `_internal()`.
+- `lib/core/services/` — REST API clients. All mix in `BaseService`, which provides `getSafeToken()`, `authHeaders()`, `decodeMap()`, and `throwIfAuthExpired()`. Most services are plain classes instantiated per call. `GarmentService` and `MatchLookService` are singletons via `factory` + `_internal()` because they hold shared mutable state (e.g. `GarmentService`'s in-memory cache) — other services should stay plain classes unless they gain similar shared state.
 - `lib/core/providers/` — Riverpod `AsyncNotifierProvider` wrappers over services. Providers expose `refresh()` and optimistic mutation methods (e.g. `addGarment`, `removeGarment`).
 - `lib/core/config/` — `Env` reads `String.fromEnvironment` values; `AppConfig` exposes `fullApiUrl`.
 - `lib/features/` — screens/pages. Multi-tab pages (`FittingRoomPage`, `OutfitPlannerPage`) use `DefaultTabController`.

@@ -354,7 +354,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           color: AppColors.surface,
                           child: RefreshableNetworkImage(
                             imageUrl: option.imageUrl,
-                            cacheKey: 'outfit-job-${option.id}',
+                            cacheKey: outfitImageCacheKey(option.id),
                             fit: BoxFit.cover,
                             errorIconSize: 48,
                             // Plain white background instead of a loading
