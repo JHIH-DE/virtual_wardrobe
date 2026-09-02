@@ -39,6 +39,20 @@ void main() {
       expect(alt.garmentId, 12);
       expect(alt.rank, 1);
     });
+
+    test('parses a float garment_id/rank', () {
+      final alt = RoleAlternative.fromJson({'garment_id': 12.0, 'rank': 1.0});
+      expect(alt.garmentId, 12);
+      expect(alt.rank, 1);
+    });
+
+    // A malformed entry must default rather than throw — one bad alternative
+    // would otherwise blow up the whole match-result parse.
+    test('defaults to 0 when garment_id / rank are missing', () {
+      final alt = RoleAlternative.fromJson({});
+      expect(alt.garmentId, 0);
+      expect(alt.rank, 0);
+    });
   });
 
   group('RoleMatch', () {

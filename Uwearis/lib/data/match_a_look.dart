@@ -92,8 +92,10 @@ class RoleAlternative {
 
   factory RoleAlternative.fromJson(Map<String, dynamic> json) {
     return RoleAlternative(
-      garmentId: (json['garment_id'] as num).toInt(),
-      rank: (json['rank'] as num).toInt(),
+      // Defensive, like every other parse in this file: one malformed
+      // alternative must not throw and kill the whole match result.
+      garmentId: (json['garment_id'] as num?)?.toInt() ?? 0,
+      rank: (json['rank'] as num?)?.toInt() ?? 0,
     );
   }
 }

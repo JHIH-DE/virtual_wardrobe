@@ -22,11 +22,10 @@ class MatchLookException implements Exception {
   String toString() => 'MatchLookException($errorCode, $message)';
 }
 
+/// Plain per-call service — it holds no state, so there is nothing to make it
+/// a singleton for (see the service-layer rules in CLAUDE.md).
 class MatchLookService with BaseService {
-  static final MatchLookService _instance = MatchLookService._internal();
   static final String _baseUrl = '${AppConfig.fullApiUrl}/match_look';
-  factory MatchLookService() => _instance;
-  MatchLookService._internal();
 
   Map<String, dynamic> _decode(http.Response res, {required String op}) {
     throwIfAuthExpired(res);
