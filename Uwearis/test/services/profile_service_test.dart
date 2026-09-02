@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -110,6 +111,41 @@ void main() {
         () => client,
       );
       expect(url, isNull);
+    });
+
+    // avatar / body-ref / face-ref completes share one helper — body-ref and
+    // face-ref must reject a missing object_url just like avatar does.
+    test('bodyRefComplete and faceRefComplete throw on a missing object_url', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({})),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => ProfileService().bodyRefComplete(objectName: 'x'),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
+      );
+      await expectLater(
+        http.runWithClient(
+          () => ProfileService().faceRefComplete(objectName: 'x'),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('a stalled avatarComplete surfaces a TimeoutException', () async {
+      await expectLater(
+        http.runWithClient(
+          () => ProfileService().avatarComplete(objectName: 'x'),
+          () => MockClient((request) async {
+            throw TimeoutException('simulated slow complete');
+          }),
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
     });
   });
 

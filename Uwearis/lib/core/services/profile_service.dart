@@ -16,159 +16,119 @@ class ProfileService with BaseService {
   static final String _styleTasteUrl = '$_baseUrl/style_taste';
   static final String _styleProfileUrl = '$_baseUrl/style_profile';
 
+  static const _quick = Duration(seconds: 15);
+  // `complete` can kick off server-side base-model / face generation.
+  static const _completeTimeout = Duration(seconds: 60);
+
+  /// `data` out of a decoded envelope, falling back to the whole envelope for
+  /// a bare (un-enveloped) response — the shape every method here expects.
+  Map<String, dynamic> _data(Map<String, dynamic> envelope) =>
+      (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+
   Future<Map<String, dynamic>> getMyProfile() async {
     debugLog('--- getMyProfile ---');
-    final uri = Uri.parse(_baseUrl);
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(Uri.parse(_baseUrl), headers: authHeaders(token))
+          .timeout(_quick),
     );
-    final envelope = decodeMap(res, op: 'getMyProfile');
-    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    return _data(decodeMap(res, op: 'getMyProfile'));
   }
 
-  Future<InitUploadResult> avatarInitUpload() async {
-    debugLog('--- avatarInitUpload ---');
-    final uri = Uri.parse('$_avatarUrl/init-upload');
+  // ---- signed-URL upload flow, shared by avatar / body-ref / face-ref ----
+
+  Future<InitUploadResult> _refInitUpload(
+    String baseUrl, {
+    required String op,
+  }) async {
+    debugLog('--- $op ---');
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'content_type': 'image/jpeg'}),
-      ),
+      (token) => http
+          .post(
+            Uri.parse('$baseUrl/init-upload'),
+            headers: authHeaders(token),
+            body: jsonEncode({'content_type': 'image/jpeg'}),
+          )
+          .timeout(_quick),
     );
-    final envelope = decodeMap(res, op: 'avatarInitUpload');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    return InitUploadResult.fromJson(data);
+    return InitUploadResult.fromJson(_data(decodeMap(res, op: op)));
   }
 
-  Future<String> avatarComplete({required String objectName}) async {
-    debugLog('--- avatarComplete ---');
-    final uri = Uri.parse('$_avatarUrl/complete');
+  Future<String> _refComplete(
+    String baseUrl,
+    String objectName, {
+    required String op,
+  }) async {
+    debugLog('--- $op ---');
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'object_name': objectName}),
-      ),
+      (token) => http
+          .post(
+            Uri.parse('$baseUrl/complete'),
+            headers: authHeaders(token),
+            body: jsonEncode({'object_name': objectName}),
+          )
+          .timeout(_completeTimeout),
     );
-    final envelope = decodeMap(res, op: 'avatarComplete');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    final url = data['object_url']?.toString();
+    final url = _data(decodeMap(res, op: op))['object_url']?.toString();
     if (url == null) {
-      throw Exception('avatarComplete: response missing object_url');
+      throw Exception('$op: response missing object_url');
     }
     return url;
   }
+
+  Future<InitUploadResult> avatarInitUpload() =>
+      _refInitUpload(_avatarUrl, op: 'avatarInitUpload');
+
+  Future<String> avatarComplete({required String objectName}) =>
+      _refComplete(_avatarUrl, objectName, op: 'avatarComplete');
+
+  Future<InitUploadResult> bodyRefInitUpload() =>
+      _refInitUpload(_bodyRefUrl, op: 'bodyRefInitUpload');
+
+  Future<String> bodyRefComplete({required String objectName}) =>
+      _refComplete(_bodyRefUrl, objectName, op: 'bodyRefComplete');
+
+  Future<InitUploadResult> faceRefInitUpload() =>
+      _refInitUpload(_faceRefUrl, op: 'faceRefInitUpload');
+
+  Future<String> faceRefComplete({required String objectName}) =>
+      _refComplete(_faceRefUrl, objectName, op: 'faceRefComplete');
+
+  // ---- image reads (a 404 means "not set yet", not an error) ----
 
   Future<String?> getMyAvatar() async {
     debugLog('--- getMyAvatar ---');
-    final uri = Uri.parse(_avatarUrl);
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(Uri.parse(_avatarUrl), headers: authHeaders(token))
+          .timeout(_quick),
     );
     if (res.statusCode == 404) return null;
-    final envelope = decodeMap(res, op: 'getMyAvatar');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    return data['object_url']?.toString();
+    return _data(decodeMap(res, op: 'getMyAvatar'))['object_url']?.toString();
   }
 
-  Future<InitUploadResult> bodyRefInitUpload() async {
-    debugLog('--- bodyRefInitUpload ---');
-    final uri = Uri.parse('$_bodyRefUrl/init-upload');
+  /// Body-ref and face-ref have no dedicated GET — both are bundled into the
+  /// main profile response under their own key.
+  Future<String?> _profileImageField(String key, {required String op}) async {
+    debugLog('--- $op ---');
     final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'content_type': 'image/jpeg'}),
-      ),
-    );
-    final envelope = decodeMap(res, op: 'bodyRefInitUpload');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    return InitUploadResult.fromJson(data);
-  }
-
-  Future<String> bodyRefComplete({required String objectName}) async {
-    debugLog('--- bodyRefComplete ---');
-    final uri = Uri.parse('$_bodyRefUrl/complete');
-    final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'object_name': objectName}),
-      ),
-    );
-    final envelope = decodeMap(res, op: 'bodyRefComplete');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    final url = data['object_url']?.toString();
-    if (url == null) {
-      throw Exception('bodyRefComplete: response missing object_url');
-    }
-    return url;
-  }
-
-  Future<String?> getBodyRef() async {
-    debugLog('--- getBodyRef ---');
-    final uri = Uri.parse(_baseUrl);
-    final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(Uri.parse(_baseUrl), headers: authHeaders(token))
+          .timeout(_quick),
     );
     if (res.statusCode == 404) return null;
-    final envelope = decodeMap(res, op: 'getBodyRef');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    return data['body_reference_object_url']?.toString();
+    return _data(decodeMap(res, op: op))[key]?.toString();
   }
 
-  Future<InitUploadResult> faceRefInitUpload() async {
-    debugLog('--- faceRefInitUpload ---');
-    final uri = Uri.parse('$_faceRefUrl/init-upload');
-    final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'content_type': 'image/jpeg'}),
-      ),
-    );
-    final envelope = decodeMap(res, op: 'faceRefInitUpload');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    return InitUploadResult.fromJson(data);
-  }
+  Future<String?> getBodyRef() =>
+      _profileImageField('body_reference_object_url', op: 'getBodyRef');
 
-  Future<String> faceRefComplete({required String objectName}) async {
-    debugLog('--- faceRefComplete ---');
-    final uri = Uri.parse('$_faceRefUrl/complete');
-    final res = await withAuth(
-      (token) => http.post(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode({'object_name': objectName}),
-      ),
-    );
-    final envelope = decodeMap(res, op: 'faceRefComplete');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    final url = data['object_url']?.toString();
-    if (url == null) {
-      throw Exception('faceRefComplete: response missing object_url');
-    }
-    return url;
-  }
-
-  /// Mirrors [getBodyRef] — bundled into the main profile GET rather
-  /// than a dedicated fetch endpoint. The response key
-  /// (`face_reference_object_url`) is inferred from the `face-reference`
-  /// URL path since there's no backend response sample to confirm
-  /// against yet; verify once the endpoint is live and adjust if the key
-  /// differs.
-  Future<String?> getFaceReference() async {
-    debugLog('--- getFaceReference ---');
-    final uri = Uri.parse(_baseUrl);
-    final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
-    );
-    if (res.statusCode == 404) return null;
-    final envelope = decodeMap(res, op: 'getFaceReference');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-    return data['face_reference_object_url']?.toString();
-  }
+  /// The response key (`face_reference_object_url`) is inferred from the
+  /// `face-reference` URL path since there's no backend response sample to
+  /// confirm against yet; verify once the endpoint is live and adjust if the
+  /// key differs.
+  Future<String?> getFaceReference() =>
+      _profileImageField('face_reference_object_url', op: 'getFaceReference');
 
   /// The user's Style Taste Profile — one entry per learned preference
   /// dimension (`style_balance`, `color_pairing`, ...), each with its own
@@ -179,12 +139,12 @@ class ProfileService with BaseService {
   /// unreliable in that case.
   Future<Map<String, dynamic>> getMyStyleTaste() async {
     debugLog('--- getMyStyleTaste ---');
-    final uri = Uri.parse(_styleTasteUrl);
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(Uri.parse(_styleTasteUrl), headers: authHeaders(token))
+          .timeout(_quick),
     );
-    final envelope = decodeMap(res, op: 'getMyStyleTaste');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    final data = _data(decodeMap(res, op: 'getMyStyleTaste'));
     debugLog('--- getMyStyleTaste data: $data ---');
     return data;
   }
@@ -194,12 +154,12 @@ class ProfileService with BaseService {
   /// chart.
   Future<List<StyleProfileItem>> getMyStyleProfile() async {
     debugLog('--- getMyStyleProfile ---');
-    final uri = Uri.parse(_styleProfileUrl);
     final res = await withAuth(
-      (token) => http.get(uri, headers: authHeaders(token)),
+      (token) => http
+          .get(Uri.parse(_styleProfileUrl), headers: authHeaders(token))
+          .timeout(_quick),
     );
-    final envelope = decodeMap(res, op: 'getMyStyleProfile');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    final data = _data(decodeMap(res, op: 'getMyStyleProfile'));
     debugLog('--- getMyStyleProfile data: $data ---');
     final items = data['items'];
     if (items is! List) return const [];
@@ -239,14 +199,11 @@ class ProfileService with BaseService {
     if (locale != null) payload['locale'] = locale;
 
     final res = await withAuth(
-      (token) => http.patch(
-        uri,
-        headers: authHeaders(token),
-        body: jsonEncode(payload),
-      ),
+      (token) => http
+          .patch(uri, headers: authHeaders(token), body: jsonEncode(payload))
+          .timeout(_quick),
     );
 
-    final envelope = decodeMap(res, op: 'updateMyProfile');
-    return (envelope['data'] as Map<String, dynamic>?) ?? envelope;
+    return _data(decodeMap(res, op: 'updateMyProfile'));
   }
 }
