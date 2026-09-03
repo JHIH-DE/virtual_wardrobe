@@ -416,11 +416,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Future<void> _loadPackingAdvice() async {
     setState(() => _loadingPackingAdvice = true);
     try {
-      final data = await TripService().getTripSuggestion(int.parse(_trip.id));
+      final analysis = await TripService().getTripSuggestion(
+        int.parse(_trip.id),
+      );
       if (mounted) {
         setState(() {
-          _packingAdvice = data['overall_advice'] as String?;
-          _recommendedTotal = _sumRecommendedQuantity(data['categories']);
+          _packingAdvice = analysis.overallAdvice;
+          _recommendedTotal = analysis.categories.isEmpty
+              ? null
+              : analysis.recommendedTotal;
         });
       }
     } on AuthExpiredException {
@@ -433,20 +437,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     } finally {
       if (mounted) setState(() => _loadingPackingAdvice = false);
     }
-  }
-
-  /// Sums `recommended_quantity` across every category in a
-  /// `getTripSuggestion` response, for the Suitcase card's packed/recommended
-  /// progress summary.
-  int? _sumRecommendedQuantity(dynamic categories) {
-    if (categories is! List) return null;
-    var total = 0;
-    for (final item in categories) {
-      if (item is Map && item['recommended_quantity'] is num) {
-        total += (item['recommended_quantity'] as num).toInt();
-      }
-    }
-    return total;
   }
 
   /// Fetches the trip's current suitcase, resolved to full [Garment]

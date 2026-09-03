@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/services/trip_service.dart';
+import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
 
@@ -324,10 +325,7 @@ void main() {
         return _jsonResponse(_envelope(null));
       });
 
-      await http.runWithClient(
-        () => TripService().deleteTrip(9),
-        () => client,
-      );
+      await http.runWithClient(() => TripService().deleteTrip(9), () => client);
 
       expect(captured.method, 'DELETE');
       expect(captured.url.toString(), '$_base/9');
@@ -335,22 +333,43 @@ void main() {
   });
 
   group('packing analysis', () {
-    test('analyzeTrip POSTs to packing-analysis', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({'overall_advice': 'Pack light.'}));
-      });
+    test(
+      'analyzeTrip POSTs to packing-analysis and parses the analysis',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({
+              'overall_advice': 'Pack light.',
+              'categories': [
+                {
+                  'category': 'Top',
+                  'recommended_quantity': 3,
+                  'suggested_garment_ids': [7, 8],
+                  'reasoning': ['line one', 'line two'],
+                },
+                {'category': 'Shoes', 'recommended_quantity': 2},
+              ],
+            }),
+          );
+        });
 
-      final data = await http.runWithClient(
-        () => TripService().analyzeTrip(9),
-        () => client,
-      );
+        final analysis = await http.runWithClient(
+          () => TripService().analyzeTrip(9),
+          () => client,
+        );
 
-      expect(captured.method, 'POST');
-      expect(captured.url.toString(), '$_base/9/packing-analysis');
-      expect(data['overall_advice'], 'Pack light.');
-    });
+        expect(captured.method, 'POST');
+        expect(captured.url.toString(), '$_base/9/packing-analysis');
+        expect(analysis.overallAdvice, 'Pack light.');
+        expect(analysis.recommendedTotal, 5);
+        final top = analysis.forCategory(GarmentCategory.top)!;
+        expect(top.recommendedQuantity, 3);
+        expect(top.suggestedGarmentIds, {7, 8});
+        expect(top.reasoning, 'line one\nline two');
+      },
+    );
 
     test('getTripSuggestion GETs the same packing-analysis path', () async {
       late http.Request captured;
@@ -359,13 +378,15 @@ void main() {
         return _jsonResponse(_envelope({'overall_advice': 'Pack light.'}));
       });
 
-      await http.runWithClient(
+      final analysis = await http.runWithClient(
         () => TripService().getTripSuggestion(9),
         () => client,
       );
 
       expect(captured.method, 'GET');
       expect(captured.url.toString(), '$_base/9/packing-analysis');
+      expect(analysis.categories, isEmpty);
+      expect(analysis.recommendedTotal, 0);
     });
   });
 
@@ -410,7 +431,11 @@ void main() {
       });
 
       await http.runWithClient(
-        () => TripService().regenerateOptionOutfit(9, optionId: 42, backgroundId: 7),
+        () => TripService().regenerateOptionOutfit(
+          9,
+          optionId: 42,
+          backgroundId: 7,
+        ),
         () => client,
       );
 
@@ -425,7 +450,11 @@ void main() {
       });
 
       await http.runWithClient(
-        () => TripService().updateOptionItems(9, optionId: 42, garmentIds: [1, 2]),
+        () => TripService().updateOptionItems(
+          9,
+          optionId: 42,
+          garmentIds: [1, 2],
+        ),
         () => client,
       );
 

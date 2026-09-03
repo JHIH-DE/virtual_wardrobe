@@ -9,6 +9,7 @@ import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
+import '../../data/packing_analysis.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -20,18 +21,6 @@ import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import 'trip_outfit_selection_page.dart';
-
-class _CategoryAdvice {
-  final int recommendedQuantity;
-  final String reasoning;
-  final Set<int> suggestedGarmentIds;
-
-  const _CategoryAdvice({
-    required this.recommendedQuantity,
-    required this.reasoning,
-    required this.suggestedGarmentIds,
-  });
-}
 
 class TripGarmentSelectionPage extends StatefulWidget {
   final int tripId;
@@ -68,7 +57,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   late GarmentCategory _selectedCategory = _availableCategories.isEmpty
       ? GarmentCategory.top
       : _availableCategories.first;
-  final Map<GarmentCategory, _CategoryAdvice> _adviceByCategory = {};
+  final Map<GarmentCategory, PackingCategory> _adviceByCategory = {};
   bool _loadingAdvice = true;
   bool _reasoningExpanded = false;
 
@@ -87,14 +76,10 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
   Future<void> _loadAdvice() async {
     try {
-      final data = await TripService().getTripSuggestion(widget.tripId);
-      final categories = data['categories'];
-      if (categories is List) {
-        for (final item in categories) {
-          if (item is! Map) continue;
-          _applyCategoryAdvice(item);
-        }
-      }
+      final analysis = await TripService().getTripSuggestion(widget.tripId);
+      _adviceByCategory
+        ..clear()
+        ..addEntries(analysis.categories.map((c) => MapEntry(c.category, c)));
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
       return;
@@ -103,28 +88,6 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     } finally {
       if (mounted) setState(() => _loadingAdvice = false);
     }
-  }
-
-  void _applyCategoryAdvice(Map item) {
-    final category = GarmentCategoryX.fromApiValue(item['category'] as String?);
-    final suggestedIds = item['suggested_garment_ids'];
-
-    // Robust reasoning parsing to handle both String and List from API
-    final rawReasoning = item['reasoning'];
-    String reasoning = '';
-    if (rawReasoning is List) {
-      reasoning = rawReasoning.join('\n');
-    } else if (rawReasoning is String) {
-      reasoning = rawReasoning;
-    }
-
-    _adviceByCategory[category] = _CategoryAdvice(
-      recommendedQuantity: (item['recommended_quantity'] as num?)?.toInt() ?? 0,
-      reasoning: reasoning,
-      suggestedGarmentIds: suggestedIds is List
-          ? suggestedIds.whereType<int>().toSet()
-          : {},
-    );
   }
 
   void _toggle(Garment garment) {
@@ -249,7 +212,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
   /// Suggested garments (per the AI packing advice) sort to the front of
   /// their category's grid.
-  List<Garment> _sortedItemsForCategory(_CategoryAdvice? advice) {
+  List<Garment> _sortedItemsForCategory(PackingCategory? advice) {
     final items = _filtered;
     if (advice == null) return items;
     items.sort((a, b) {
@@ -309,7 +272,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  Widget _buildGridSliver(List<Garment> items, _CategoryAdvice? advice) {
+  Widget _buildGridSliver(List<Garment> items, PackingCategory? advice) {
     if (items.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
@@ -342,7 +305,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  Widget _buildGarmentGridItem(Garment g, _CategoryAdvice? advice) {
+  Widget _buildGarmentGridItem(Garment g, PackingCategory? advice) {
     final selected = _selectedIds.contains(g.id);
     final suggested = advice?.suggestedGarmentIds.contains(g.id) ?? false;
     return Stack(
@@ -353,7 +316,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  Widget _buildSuggestedBadge(_CategoryAdvice? advice) {
+  Widget _buildSuggestedBadge(PackingCategory? advice) {
     return Positioned(
       top: 8,
       left: 8,
@@ -372,7 +335,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   }
 
   Widget _buildUwearisInsightCard(
-    _CategoryAdvice? advice,
+    PackingCategory? advice,
     int selectedInCategory,
   ) {
     return UwearisInsightCard(
@@ -388,7 +351,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  Widget _buildAdviceContent(_CategoryAdvice advice, int selectedInCategory) {
+  Widget _buildAdviceContent(PackingCategory advice, int selectedInCategory) {
     return ExpandableInsightBody(
       title: Text(
         AppLocalizations.of(context).recommendedSelectedCount(

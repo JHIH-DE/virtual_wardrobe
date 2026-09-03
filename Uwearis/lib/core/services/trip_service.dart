@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../data/packing_analysis.dart';
 import '../../data/trip.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
@@ -10,6 +11,16 @@ import 'base_service.dart';
 
 class TripService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/trip_plans';
+
+  /// `decodeMap` + the `data` key, asserting it's a JSON object — the shape
+  /// every non-void trip endpoint returns.
+  Map<String, dynamic> _dataObject(http.Response res, {required String op}) {
+    final data = decodeMap(res, op: op)['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('$op: response missing data object');
+    }
+    return data;
+  }
 
   /// [days] can be omitted entirely — the backend derives one day per date
   /// in [legs]'s span on its own. [activities] is only a creation-time
@@ -148,11 +159,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    final envelope = decodeMap(res, op: 'getTrip');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('getTrip: response missing data object');
-    }
+    final data = _dataObject(res, op: 'getTrip');
     debugLog('getTrip id=$tripId response summary: ${_summarizeDays(data)}');
     return data;
   }
@@ -175,12 +182,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    final envelope = decodeMap(res, op: 'getTripPlan');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('getTripPlan: response missing data object');
-    }
-    return data;
+    return _dataObject(res, op: 'getTripPlan');
   }
 
   /// Packs the suitcase into a per-day outfit plan (AI-suggested options,
@@ -209,12 +211,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    final envelope = decodeMap(res, op: 'generateTripPlan');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('generateTripPlan: response missing data object');
-    }
-    return data;
+    return _dataObject(res, op: 'generateTripPlan');
   }
 
   Future<void> addSuitcaseItem(int tripId, {required int garmentId}) async {
@@ -260,7 +257,9 @@ class TripService with BaseService {
     decodeMap(res, op: 'deleteTrip');
   }
 
-  Future<Map<String, dynamic>> analyzeTrip(int tripId) async {
+  /// Runs the AI packing analysis (`POST .../packing-analysis`). Use
+  /// [getTripSuggestion] to just re-read the last result without re-running it.
+  Future<PackingAnalysis> analyzeTrip(int tripId) async {
     debugLog('--- analyzeTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
@@ -271,15 +270,10 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    final envelope = decodeMap(res, op: 'analyzeTrip');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('analyzeTrip: response missing data object');
-    }
-    return data;
+    return PackingAnalysis.fromJson(_dataObject(res, op: 'analyzeTrip'));
   }
 
-  Future<Map<String, dynamic>> getTripSuggestion(int tripId) async {
+  Future<PackingAnalysis> getTripSuggestion(int tripId) async {
     debugLog('--- getTripSuggestion id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
@@ -289,12 +283,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    final envelope = decodeMap(res, op: 'getTripSuggestion');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('getTripSuggestion: response missing data object');
-    }
-    return data;
+    return PackingAnalysis.fromJson(_dataObject(res, op: 'getTripSuggestion'));
   }
 
   /// Synchronously renders [optionId] (one of the options a prior
@@ -324,12 +313,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    final envelope = decodeMap(res, op: 'generateOptionOutfit');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('generateOptionOutfit: response missing data object');
-    }
-    return data;
+    return _dataObject(res, op: 'generateOptionOutfit');
   }
 
   /// Re-renders [optionId]'s *already-rendered* outfit in place — same
@@ -364,12 +348,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    final envelope = decodeMap(res, op: 'regenerateOptionOutfit');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('regenerateOptionOutfit: response missing data object');
-    }
-    return data;
+    return _dataObject(res, op: 'regenerateOptionOutfit');
   }
 
   /// Manually replaces the garments in a trip outfit option (e.g. the user
@@ -396,12 +375,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    final envelope = decodeMap(res, op: 'updateOptionItems');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('updateOptionItems: response missing data object');
-    }
-    return data;
+    return _dataObject(res, op: 'updateOptionItems');
   }
 }
 
