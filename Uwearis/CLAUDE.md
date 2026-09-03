@@ -196,7 +196,7 @@ These are the **target for new and substantively-touched code**. `lib/features/`
 ## Logging
 
 - Every public service method that performs an HTTP call opens with `debugLog('--- methodName: relevant params ---');`, placed *after* any early-return cache check or parameter resolution needed to make the logged values meaningful — e.g. `GarmentService.getGarment` logs only once it's past its cache-hit fast path, and `OutfitService.generateOutfit` resolves `groupId` before logging so the line carries a real value, not `null`. `base_service.dart`'s internal helpers (`decodeMap`, `withAuth`) do not log directly — logging responsibility stays with the calling method so nothing double-logs. Methods that don't perform an HTTP call (pure getters, trivial wrappers) aren't required to log.
-- **Never log**: access tokens, `Authorization` header values, signed URLs, photo/image bytes or data URIs, email addresses, or any other personally-identifying data. A log line naming *which* garment/outfit/trip id was involved is fine; logging the credential or the payload that proves who the user is, is not.
+- **Never log**: access tokens, `Authorization` header values, signed URLs, photo/image bytes or data URIs, email addresses, or any other personally-identifying data. A log line naming *which* garment/outfit/trip id was involved is fine; logging the credential or the payload that proves who the user is, is not. Also don't log a local filesystem path to a user-picked image — it isn't a credential, but it exposes device directory layout for negligible debugging value (`MatchLookService.uploadReference` still does this — [Migration debt register](#migration-debt-register-flutter) item 10; new code must not copy it).
 
 ## Canonical example files (Flutter)
 
@@ -204,7 +204,7 @@ Each file below is canonical **only for the specific things listed** — it is n
 
 | Category | File | Demonstrates | Known violations — do not copy these parts |
 |---|---|---|---|
-| Service | `lib/core/services/trip_service.dart` | Canonical **for these concerns only**: `_baseUrl` convention, `decodeMap`-based error handling, the "one `debugLog` per HTTP method" habit | Two things not to copy: (1) log line omits the colon separator (`'--- updateTrip id=$tripId ---'`) — follow the [Logging](#logging) format; (2) `createTrip` logs the whole request body (`debugLog('createTrip body: ${jsonEncode(body)}')`) and `getTrip` logs a day-by-day response summary — see [Migration debt register](#migration-debt-register-flutter) item 4; new methods must log only the `--- method: id/params ---` line, never a full payload or free-text / date content |
+| Service | `lib/core/services/trip_service.dart` | Canonical **for these concerns only**: `_baseUrl` convention, `decodeMap`-based error handling, the "one `debugLog` per HTTP method" habit | Not to copy: the `debugLog` lines omit the colon separator ([Logging](#logging) specifies `'--- updateTrip: id=$tripId ---'`; the file writes `'--- updateTrip id=$tripId ---'`). The full-request-body / day-by-day-summary logging this file used to carry was removed in `6255da9` (see the *Recently resolved* note in the [Migration debt register](#migration-debt-register-flutter)) — every method now logs only the `--- method id/params ---` line |
 | Service (singleton) | `lib/core/services/garment_service.dart` | Cache-backed singleton shape, `.timeout()` on every call, cache kept coherent after a successful mutation, `deleteIdempotent`-based delete | `uploadImage()` is a redundant single-caller wrapper over `BaseService.putJpegToSignedUrl` ([Migration debt register](#migration-debt-register-flutter) item 3) — call `putJpegToSignedUrl` directly in new code |
 | Service (minimal shape) | `lib/core/services/daily_outfit_service.dart` | Minimal stateless (non-singleton) service shape | — |
 | Provider | `lib/core/providers/garments_provider.dart` | `AsyncNotifier` `refresh()` shape, verb+noun mutation naming | — (`trips_provider.dart`/`outfits_provider.dart` don't fully mirror this file's naming yet — see [Naming conventions](#naming-conventions)) |
@@ -237,6 +237,7 @@ Known gaps between the current code and the rules above. Each is deliberately **
 
 - `BaseService.withAuth`'s `/auth/refresh` POST had no timeout → fixed in `8036b16`: 15s cap; a `TimeoutException` / transport error on the refresh call now propagates unchanged instead of being masked as `AuthExpiredException`.
 - `Garment.fromJson` / `fromTripItemJson` cast `id` / `garment_id` with a raw `as int?` → fixed in `894d31e`: all three sites go through `Garment._parseNullableId` (int / integer-valued double → int; `null` → `null`; fractional / `NaN` / `Infinity` → `FormatException`; numeric string / bool → `TypeError`, unchanged).
+- `TripService` logged full request / response payloads → **removed in `6255da9`**. `createTrip` no longer logs `jsonEncode(body)` (which had carried the trip name, `legs` / location names, dates and free-text activity strings); `getTrip` no longer logs a day-by-day response summary (which had included the trip's dates); the private `_summarizeDays` helper that built that summary was deleted. Every `TripService` HTTP method is back to a single id-only `--- method id=… ---` line. Endpoints, request bodies, response parsing, exception behaviour, timeouts and public signatures were untouched by that change.
 
 ### 1. `_l10n` getter not adopted in ~14 pages
 
@@ -259,42 +260,56 @@ Known gaps between the current code and the rules above. Each is deliberately **
 - **Deferred reason**: `021349c` folded in the implementation but stopped short of deleting the wrapper and repointing the last caller.
 - **Trigger for revisiting**: Next time `garment_details_page.dart`'s add-garment flow is touched — inline the `putJpegToSignedUrl` call and delete `uploadImage`.
 
-### 4. `TripService` logs full request / response payloads
-
-- **Scope**:
-  - `trip_service.dart`'s `createTrip` logs `jsonEncode(body)` — the entire create payload (`name`, `legs`, `activity` list, `days`).
-  - `getTrip` logs a day-by-day response summary via `_summarizeDays`: per-day `id` / `date` / `group_id`, and per-outfit `outfit_id` / `option_type` / `has_image` (a bool). No free text, location names, garment payloads, tokens or signed URLs — but it does include the trip's **dates**.
-- **Risk**: Medium. The `createTrip` body can carry location / place names (inside `legs`), dates, the user's own trip name, and free-text activity strings — all user-supplied. Logging it in full conflicts with the [Logging](#logging) rule against logging a whole payload or personally-identifying data.
-- **Deferred reason**: This CLAUDE.md change is documentation-only — the code fix is not mixed into it.
-- **Trigger for revisiting**: **Dedicated immediate cleanup right after this CLAUDE.md commit.** Replace `createTrip`'s full-body log, and trim `getTrip`'s summary, down to a single safe operation line carrying only non-sensitive identifiers or counts (e.g. `--- createTrip: N legs, N days ---`). Do not log location, dates, free text, garment payload, token, signed URL, or a full response.
-
-### 5. Widget-level duplicate `_buildXxx` helpers and loading/empty/error shape drift
+### 4. Widget-level duplicate `_buildXxx` helpers and loading/empty/error shape drift
 
 - **Scope**: Copy-pasted private `_buildXxx` blocks and slightly divergent hand-rolled loading/empty/error layouts remain in `lib/features/` beyond the widgets the refactor extracted (`OutfitGrid`, `main_tab_async`, `ExpandableInsightBody`, …). `select_outfit_group_page.dart` and `trip_outfit_selection_page.dart` also still hand-roll their own outfit grid.
 - **Risk**: Low-medium — maintainability; a fix applied to one copy can miss the others.
 - **Deferred reason**: Cross-cutting; each extraction needs its own design and visual QA.
 - **Trigger for revisiting**: At the **second** substantially-identical call site, you must evaluate extracting a shared widget/helper (this matches the "2+ places" bar in [Forbidden patterns](#forbidden-patterns-flutter)). At the **third**, extraction is the default — skip it only with a clearly documented product or behaviour difference. A genuine difference is not duplication: e.g. `select_outfit_group_page.dart` / `trip_outfit_selection_page.dart` keep their own outfit grid for a custom leading card and different refresh behaviour — that stays. When a loading/empty/error state is edited, align it with `EmptyStatePlaceholder` / `ErrorStateWidget` / the standard shapes in [Loading/empty/error state](#loadingemptyerror-state).
 
-### 6. UI render-test gaps
+### 5. UI render-test gaps
 
 - **Scope**: 20+ page files and most of `lib/features/widgets/` have no render/widget test. Covered today: services, data models, the three list providers, four large detail pages (`test/pages/`), and a few shared widgets.
 - **Risk**: Medium — `flutter analyze` + `flutter test` do **not** catch a layout / navigation / loading regression on an untested page.
 - **Deferred reason**: Page render tests need per-page harness setup (preloaded providers, mock HTTP, real l10n delegates); they're being added opportunistically, not in one batch.
 - **Trigger for revisiting**: Any change to an untested page's visual layout, loading state, or navigation flow — do manual QA of that screen before commit (step 3 of [Pre-change / post-change checks](#pre-change--post-change-checks-flutter)), and add at least a smoke test for that page if feasible.
 
-### 7. Backend daily try-on quota error not surfaced specifically
+### 6. Backend daily try-on quota error not surfaced specifically
 
 - **Scope**: The backend enforces a per-user daily try-on generation limit. Flutter has no branch for it — the rejection falls through to the generic error path (SnackBar / inline error), with no dedicated `error_code` handling or "limit reached" copy.
 - **Risk**: Low-medium — the failure *is* shown, just not explained; a user at the cap sees a vague error.
 - **Deferred reason**: Needs a product decision on the message and confirmation of the exact `error_code` the backend returns; outside the consistency-refactor scope.
 - **Trigger for revisiting**: When the daily / trip try-on UX is next revised, or when the backend's quota `error_code` is confirmed — add an `error_code` branch with an ARB string.
 
-### 8. Backend consistency work — out of scope for this repo
+### 7. Backend consistency work — out of scope for this repo
 
 - **Scope**: `virtual-wardrobe-backend` has its own layering / naming debt (service-layer `db.query`, a route-layer violation in `analyze_instant`, dead job-era code). Tracked in that repo against its own `CLAUDE.md`.
 - **Risk**: N/A here — no Flutter code involved.
 - **Deferred reason**: The consistency refactor was explicitly scoped to the Flutter frontend only.
 - **Trigger for revisiting**: A dedicated backend pass, driven from the backend repo — never from frontend work.
+
+### 8. Third-party HTTP calls without a timeout
+
+- **Scope**: Two direct `package:http` calls that don't go through `BaseService` (which always caps its own calls) have no `.timeout()`:
+  - `weather_provider.dart`'s Open-Meteo forecast fetch (`_fetchWeatherApi`).
+  - `location_picker_page.dart`'s Open-Meteo geocoding search (`_search`).
+- **Risk**: Low-medium — if the third-party request stays pending, the provider / page can sit in a loading state indefinitely. Neither call touches auth or user data, and both already have status/error handling around the response.
+- **Deferred reason**: Not on the `BaseService` path, so each needs its own timeout-UX decision (duration, error copy, retry) and its own test approach; outside the core service slice the consistency refactor covered.
+- **Trigger for revisiting**: Next time the weather or location integration is touched, or if a request-hang / stuck-loading bug is reported — add a consistent `.timeout()` and test the post-timeout UI / provider state.
+
+### 9. `location_picker_page.dart` passes raw JSON coordinates into `double` fields
+
+- **Scope**: `_search` builds `LocationResult(latitude: r['latitude'], longitude: r['longitude'], ...)` straight from the decoded Open-Meteo geocoding JSON — the `dynamic` values go into `LocationResult`'s `double` fields with no `num`-tolerant conversion. `trip.dart` parses the same fields correctly with `(json['latitude'] as num?)?.toDouble()`.
+- **Risk**: Low — Open-Meteo returns fractional coordinates in practice, but an integer-valued response would throw a `TypeError` at construction.
+- **Deferred reason**: `location_picker_page.dart` has no render/unit test, so the fix wants a parsing change plus at least a smoke test added in the same pass.
+- **Trigger for revisiting**: Next time the location picker is touched — switch to `num`-tolerant `.toDouble()` parsing and test int / double / null / malformed input.
+
+### 10. `MatchLookService.uploadReference` logs a local image path
+
+- **Scope**: `match_look_service.dart`'s `uploadReference` opens with `debugLog('--- uploadReference: $localImagePath ---')` — the device-local filesystem path of the user-picked image. It is not the image bytes, a data URI, or a signed URL, so it isn't a [Logging](#logging) "never log" violation, but a local path exposes device directory layout for negligible debugging value.
+- **Risk**: Low.
+- **Deferred reason**: Documentation-only pass; the one-line code fix isn't mixed into it.
+- **Trigger for revisiting**: Next time `MatchLookService` is touched — reduce the line to the method name only (`--- uploadReference ---`). New code must not log local file paths.
 
 ## Pre-change / post-change checks (Flutter)
 
@@ -302,7 +317,7 @@ Before committing any change under `lib/` or `test/`:
 
 1. `flutter analyze` — zero issues.
 2. `flutter test` — all passing; if you touched a service or data model with existing coverage in `test/services/` or `test/data/`, its tests must still pass, and a behavior change needs a matching test update, not just a passing run.
-3. If you touched a page's visual layout, loading state, or navigation flow, manually run the app (`flutter run --dart-define-from-file=dart_defines/dev.json`) and exercise the changed screen. `test/` now covers services, data models, the three list providers (`test/providers/`), four large detail pages (`test/pages/`), and a handful of shared widgets (`test/widgets/`) — but 20+ page files and most of `lib/features/widgets/` still have **no render test** (see [Migration debt register](#migration-debt-register-flutter) item 6), so on those screens analyzer + unit tests alone do not catch a UI regression.
+3. If you touched a page's visual layout, loading state, or navigation flow, manually run the app (`flutter run --dart-define-from-file=dart_defines/dev.json`) and exercise the changed screen. `test/` now covers services, data models, the three list providers (`test/providers/`), four large detail pages (`test/pages/`), and a handful of shared widgets (`test/widgets/`) — but 20+ page files and most of `lib/features/widgets/` still have **no render test** (see [Migration debt register](#migration-debt-register-flutter) item 5), so on those screens analyzer + unit tests alone do not catch a UI regression.
 4. A rename of a public method/class (service, provider, or otherwise) requires grepping the whole `lib/`/`test/` tree for the old name before considering the change done.
 
 ---
