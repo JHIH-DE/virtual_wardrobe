@@ -622,7 +622,12 @@ void main() {
         return _jsonResponse(
           _envelope({
             'metadata': {'color': 'navy'},
-            'versatility': {'score': 0.8},
+            'versatility': {
+              'score': 80,
+              'breakdown': [
+                {'category': 'Bottom', 'compatible_count': 3},
+              ],
+            },
           }),
         );
       });
@@ -635,7 +640,9 @@ void main() {
       expect(captured.method, 'POST');
       expect(captured.url.toString(), '$_base/analyze-instant');
       expect(result.metadata, {'color': 'navy'});
-      expect(result.versatility, {'score': 0.8});
+      expect(result.versatility?.score, 80);
+      expect(result.versatility?.breakdown.single.category, GarmentCategory.bottom);
+      expect(result.versatility?.breakdown.single.compatibleCount, 3);
       expect(result.processedImagePath, isNull);
     });
   });

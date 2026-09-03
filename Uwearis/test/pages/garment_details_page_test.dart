@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/data/versatility.dart';
 import 'package:uwearis/features/pages/garment_details_page.dart';
 
 import '../helpers/fake_auth.dart';
@@ -66,9 +67,9 @@ void main() {
       useTallSurface(tester);
       await pumpApp(
         tester,
-        const GarmentDetailsPage(
-          initialAnalysisData: {'name': 'Tee', 'category': 'Top'},
-          initialVersatility: {
+        GarmentDetailsPage(
+          initialAnalysisData: const {'name': 'Tee', 'category': 'Top'},
+          initialVersatility: Versatility.fromJson(const {
             'score': 82,
             'breakdown': [
               {
@@ -77,7 +78,7 @@ void main() {
                 'compatible_garment_ids': [1, 2],
               },
             ],
-          },
+          }),
         ),
       );
       await tester.pump();

@@ -8,6 +8,7 @@ import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../data/garment.dart';
+import '../../data/versatility.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
@@ -15,7 +16,7 @@ import 'base_service.dart';
 
 class AnalyzeGarmentResult {
   final Map<String, dynamic> metadata;
-  final Map<String, dynamic>? versatility;
+  final Versatility? versatility;
   final String? processedImagePath;
 
   const AnalyzeGarmentResult({
@@ -227,7 +228,10 @@ class GarmentService with BaseService {
     final envelope = decodeMap(res, op: 'analyzeInstantGarment');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? {};
     final metadata = (data['metadata'] as Map<String, dynamic>?) ?? {};
-    final versatility = data['versatility'] as Map<String, dynamic>?;
+    final versatilityJson = data['versatility'] as Map<String, dynamic>?;
+    final versatility = versatilityJson == null
+        ? null
+        : Versatility.fromJson(versatilityJson);
 
     String? processedImagePath;
     final base64Str = data['processed_image_base64'] as String?;

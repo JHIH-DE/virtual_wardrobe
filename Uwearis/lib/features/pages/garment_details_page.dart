@@ -16,6 +16,7 @@ import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/outfit.dart';
+import '../../data/versatility.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
@@ -44,7 +45,7 @@ enum _GarmentMenuAction { rename, share, delete }
 class GarmentDetailsPage extends ConsumerStatefulWidget {
   final Garment? initialGarment;
   final Map<String, dynamic>? initialAnalysisData;
-  final Map<String, dynamic>? initialVersatility;
+  final Versatility? initialVersatility;
 
   const GarmentDetailsPage({
     super.key,
@@ -76,7 +77,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
-  Map<String, dynamic>? _versatility;
+  Versatility? _versatility;
   int? _outfitCount;
 
   /// The App Bar title's source of truth — mirrors
@@ -488,12 +489,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  void _showCompatibleGarments(Map<String, dynamic> breakdownItem) {
-    final category = GarmentCategoryX.fromApiValue(
-      breakdownItem['category'] as String?,
-    );
+  void _showCompatibleGarments(VersatilityCategory row) {
+    final category = row.category;
     final all = ref.read(garmentsProvider).value ?? const [];
-    final garments = _resolveCompatibleGarments(breakdownItem, all, limit: 9);
+    final garments = _resolveCompatibleGarments(row, all, limit: 9);
 
     showDialog<void>(
       context: context,
@@ -1262,22 +1261,16 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 }
 
-/// Resolves a versatility breakdown item's `compatible_garment_ids` against
-/// the user's already-loaded closet, for both a row's preview thumbnails
-/// and the full "see all" dialog grid.
+/// Resolves a versatility breakdown row's `compatibleGarmentIds` against the
+/// user's already-loaded closet, for both a row's preview thumbnails and the
+/// full "see all" dialog grid.
 List<Garment> _resolveCompatibleGarments(
-  Map<String, dynamic> breakdownItem,
+  VersatilityCategory row,
   List<Garment> all, {
   int? limit,
 }) {
-  final ids =
-      (breakdownItem['compatible_garment_ids'] as List?)
-          ?.whereType<num>()
-          .map((n) => n.toInt())
-          .toList() ??
-      const [];
   final matched = <Garment>[
-    for (final id in ids)
+    for (final id in row.compatibleGarmentIds)
       for (final g in all)
         if (g.id == id) g,
   ];
@@ -1286,13 +1279,13 @@ List<Garment> _resolveCompatibleGarments(
 
 /// The "outfit potential" insight card shown in add-garment mode — a
 /// versatility score ring plus a per-category compatibility breakdown.
-/// Renders nothing when [versatility] carries no score yet. [onRowTap] gets
-/// the raw breakdown item for the category whose row was tapped.
+/// Renders nothing until [versatility] carries a score. [onRowTap] gets the
+/// breakdown row for the category whose row was tapped.
 class _OutfitPotentialCard extends StatelessWidget {
-  final Map<String, dynamic>? versatility;
+  final Versatility? versatility;
   final String subCategory;
   final List<Garment> allGarments;
-  final void Function(Map<String, dynamic> breakdownItem) onRowTap;
+  final void Function(VersatilityCategory row) onRowTap;
 
   const _OutfitPotentialCard({
     required this.versatility,
@@ -1312,19 +1305,15 @@ class _OutfitPotentialCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final score = (versatility?['score'] as num?)?.toInt();
+    final score = versatility?.score;
     final breakdown =
-        (versatility?['breakdown'] as List?)
-            ?.whereType<Map<String, dynamic>>()
-            .where((item) {
-              final count = (item['compatible_count'] as num?)?.toInt() ?? 0;
-              if (count == 0) return false;
-              final category = GarmentCategoryX.fromApiValue(
-                item['category'] as String?,
-              );
-              return category != GarmentCategory.accessory &&
-                  category != GarmentCategory.socks;
-            })
+        versatility?.breakdown
+            .where(
+              (row) =>
+                  row.compatibleCount > 0 &&
+                  row.category != GarmentCategory.accessory &&
+                  row.category != GarmentCategory.socks,
+            )
             .toList() ??
         const [];
 
@@ -1332,7 +1321,7 @@ class _OutfitPotentialCard extends StatelessWidget {
 
     final totalItems = breakdown.fold<int>(
       0,
-      (sum, item) => sum + ((item['compatible_count'] as num?)?.toInt() ?? 0),
+      (sum, row) => sum + row.compatibleCount,
     );
 
     return UwearisInsightCard(
@@ -1375,10 +1364,8 @@ class _OutfitPotentialCard extends StatelessWidget {
             for (var i = 0; i < breakdown.length; i++) ...[
               if (i > 0) const SizedBox(height: 8),
               CompatibilityRow(
-                label: GarmentCategoryX.fromApiValue(
-                  breakdown[i]['category'] as String?,
-                ).pluralLabel(context),
-                count: (breakdown[i]['compatible_count'] as num?)?.toInt() ?? 0,
+                label: breakdown[i].category.pluralLabel(context),
+                count: breakdown[i].compatibleCount,
                 previewGarments: _resolveCompatibleGarments(
                   breakdown[i],
                   allGarments,
