@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../data/garment.dart';
 import '../../data/packing_analysis.dart';
 import '../../data/trip.dart';
 import '../../data/trip_plan.dart';
@@ -300,7 +301,7 @@ class TripService with BaseService {
   /// [regenerateOptionOutfit] for that instead. `result_image_url` is a GCS
   /// signed URL good for 15 minutes; re-fetch via [getTrip]/[getTripPlan]
   /// rather than caching it past that.
-  Future<Map<String, dynamic>> generateOptionOutfit(
+  Future<TripOptionRender> generateOptionOutfit(
     int tripId, {
     required int optionId,
   }) async {
@@ -314,7 +315,9 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    return _dataObject(res, op: 'generateOptionOutfit');
+    return TripOptionRender.fromJson(
+      _dataObject(res, op: 'generateOptionOutfit'),
+    );
   }
 
   /// Re-renders [optionId]'s *already-rendered* outfit in place — same
@@ -326,7 +329,7 @@ class TripService with BaseService {
   /// it with `400 OPTION_NOT_RENDERED`; use [generateOptionOutfit] for
   /// that instead. Same 15-minute signed-URL caveat as
   /// [generateOptionOutfit] applies to the returned `result_image_url`.
-  Future<Map<String, dynamic>> regenerateOptionOutfit(
+  Future<TripOptionRender> regenerateOptionOutfit(
     int tripId, {
     required int optionId,
     int? backgroundId,
@@ -349,14 +352,19 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    return _dataObject(res, op: 'regenerateOptionOutfit');
+    return TripOptionRender.fromJson(
+      _dataObject(res, op: 'regenerateOptionOutfit'),
+    );
   }
 
   /// Manually replaces the garments in a trip outfit option (e.g. the user
   /// swapping out what Uwearis picked for a given day) — does not call AI
   /// again. Clears that option's already-tried-on outfit, if any (see
   /// [generateOptionOutfit] to try it on again with the new garments).
-  Future<Map<String, dynamic>> updateOptionItems(
+  /// Returns the option's garments *after* the swap, parsed from the
+  /// response's embedded `items[]` (each carries its own image/name/
+  /// category, so no closet lookup).
+  Future<List<Garment>> updateOptionItems(
     int tripId, {
     required int optionId,
     required List<int> garmentIds,
@@ -376,7 +384,12 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    return _dataObject(res, op: 'updateOptionItems');
+    final items =
+        (_dataObject(res, op: 'updateOptionItems')['items'] as List?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(Garment.fromTripItemJson)
+        .toList();
   }
 }
 

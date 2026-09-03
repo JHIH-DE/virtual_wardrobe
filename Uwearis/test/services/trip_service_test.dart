@@ -415,20 +415,27 @@ void main() {
   });
 
   group('option outfit rendering', () {
-    test('generateOptionOutfit POSTs to the option outfit path', () async {
+    test('generateOptionOutfit POSTs and parses the render result', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
-        return _jsonResponse(_envelope({'outfit_id': 3}));
+        return _jsonResponse(
+          _envelope({
+            'outfit_id': 3,
+            'result_image_url': 'https://img/3.png',
+          }),
+        );
       });
 
-      await http.runWithClient(
+      final render = await http.runWithClient(
         () => TripService().generateOptionOutfit(9, optionId: 42),
         () => client,
       );
 
       expect(captured.method, 'POST');
       expect(captured.url.toString(), '$_base/9/options/42/outfit');
+      expect(render.outfitId, 3);
+      expect(render.resultImageUrl, 'https://img/3.png');
     });
 
     test('regenerateOptionOutfit omits background_id when null', () async {
@@ -466,14 +473,22 @@ void main() {
       expect(jsonDecode(captured.body), {'background_id': 7});
     });
 
-    test('updateOptionItems PATCHes garment_ids', () async {
+    test('updateOptionItems PATCHes garment_ids and returns the new garments', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
-        return _jsonResponse(_envelope({'option_id': 42}));
+        return _jsonResponse(
+          _envelope({
+            'option_id': 42,
+            'items': [
+              {'garment_id': 1, 'name': 'Tee', 'category': 'Top'},
+              {'garment_id': 2, 'name': 'Jeans', 'category': 'Bottom'},
+            ],
+          }),
+        );
       });
 
-      await http.runWithClient(
+      final garments = await http.runWithClient(
         () => TripService().updateOptionItems(
           9,
           optionId: 42,
@@ -487,6 +502,8 @@ void main() {
       expect(jsonDecode(captured.body), {
         'garment_ids': [1, 2],
       });
+      expect(garments.map((g) => g.id), [1, 2]);
+      expect(garments.first.category, GarmentCategory.top);
     });
   });
 }

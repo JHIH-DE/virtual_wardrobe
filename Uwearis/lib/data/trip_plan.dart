@@ -154,6 +154,23 @@ class TripPlan {
   }
 }
 
+/// What a `generate` / `regenerate` option-outfit render returns — just
+/// the freshly-rendered `outfit_id` and its (15-minute) signed
+/// `result_image_url`.
+class TripOptionRender {
+  final int? outfitId;
+  final String? resultImageUrl;
+
+  const TripOptionRender({this.outfitId, this.resultImageUrl});
+
+  factory TripOptionRender.fromJson(Map<String, dynamic> json) {
+    return TripOptionRender(
+      outfitId: (json['outfit_id'] as num?)?.toInt(),
+      resultImageUrl: json['result_image_url'] as String?,
+    );
+  }
+}
+
 /// `suitcase_items` comes back either as `{garment_id: int, ...}` objects or
 /// bare ints.
 Set<int> parseSuitcaseItemIds(dynamic rawItems) {

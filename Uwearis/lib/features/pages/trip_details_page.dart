@@ -421,8 +421,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           date: current.date,
           optionId: optionId,
           garments: current.garments,
-          outfitId: (result['outfit_id'] as num?)?.toInt(),
-          resultImageUrl: result['result_image_url'] as String?,
+          outfitId: result.outfitId,
+          resultImageUrl: result.resultImageUrl,
           temperatureMaxC: current.temperatureMaxC,
           temperatureMinC: current.temperatureMinC,
           everHadOutfit: true,
@@ -473,16 +473,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     if (result == null || !mounted) return;
 
     try {
-      final updated = await TripService().updateOptionItems(
+      final newGarments = await TripService().updateOptionItems(
         int.parse(_trip.id),
         optionId: optionId,
         garmentIds: result.toList(),
       );
-      final items = (updated['items'] as List?) ?? [];
-      final newGarments = items
-          .whereType<Map<String, dynamic>>()
-          .map(Garment.fromTripItemJson)
-          .toList();
       if (!mounted) return;
       setState(() {
         // updateOptionItems clears this option's already-tried-on outfit
