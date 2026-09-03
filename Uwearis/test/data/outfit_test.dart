@@ -21,7 +21,7 @@ void main() {
 
       expect(outfit.id, 101);
       expect(outfit.groupId, 12);
-      expect(outfit.groupType, 'general');
+      expect(outfit.groupType, OutfitGroupType.general);
       expect(outfit.status, 'completed');
       expect(outfit.name, 'Relaxed City Layers');
       expect(outfit.garmentIds, [12, 55, 88]);
@@ -37,7 +37,7 @@ void main() {
       final outfit = Outfit.fromJson({'outfit_id': 1});
 
       expect(outfit.groupId, 0);
-      expect(outfit.groupType, 'general');
+      expect(outfit.groupType, OutfitGroupType.general);
       expect(outfit.status, 'completed');
       expect(outfit.name, isNull);
       expect(outfit.garmentIds, isEmpty);

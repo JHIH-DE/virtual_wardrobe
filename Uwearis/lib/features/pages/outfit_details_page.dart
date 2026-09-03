@@ -147,7 +147,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// its own daily-plan pipeline, not something the user curates here, so
   /// none of the image overlay controls (favorite/version menu) or the
   /// season/style tag editor apply to it.
-  bool get _isDailyOutfit => _current.groupType == 'daily';
+  bool get _isDailyOutfit => _current.groupType == OutfitGroupType.daily;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override

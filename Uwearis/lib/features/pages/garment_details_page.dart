@@ -15,6 +15,7 @@ import '../../core/utils/debug_log.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
+import '../../data/outfit.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
@@ -163,7 +164,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       // `by-garments` also returns daily/trip-generated outfits, which
       // GarmentOutfitsPage excludes — keep this count in sync with what
       // that page actually shows.
-      final count = outfits.where((o) => o.groupType == 'general').length;
+      final count = outfits
+          .where((o) => o.groupType == OutfitGroupType.general)
+          .length;
       if (mounted) setState(() => _outfitCount = count);
     } catch (e) {
       // Tile just stays in its loading state; not worth surfacing an error

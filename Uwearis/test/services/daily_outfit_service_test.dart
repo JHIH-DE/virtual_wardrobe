@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/services/daily_outfit_service.dart';
+import 'package:uwearis/data/outfit.dart';
 
 import '../helpers/fake_auth.dart';
 
@@ -55,7 +56,7 @@ void main() {
       expect(captured.method, 'GET');
       expect(captured.url.toString(), '$_base/2026-09-02');
       expect(outfits, hasLength(1));
-      expect(outfits!.single.groupType, 'daily');
+      expect(outfits!.single.groupType, OutfitGroupType.daily);
     });
 
     test('returns null when data is null (no plan for that date yet)', () async {

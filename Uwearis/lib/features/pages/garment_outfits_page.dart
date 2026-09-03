@@ -58,7 +58,9 @@ class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
       // `by-garments` also returns daily/trip-generated outfits, which
       // shouldn't surface here — this page is about the garment's saved
       // (general) outfits only.
-      final general = result.where((o) => o.groupType == 'general').toList();
+      final general = result
+          .where((o) => o.groupType == OutfitGroupType.general)
+          .toList();
       if (!mounted) return;
       setState(() => _allOutfits = general);
     } on AuthExpiredException {

@@ -3,6 +3,27 @@
 /// or bumped so a regenerate in one place busts the cache everywhere else.
 String outfitImageCacheKey(int outfitId) => 'outfit-job-$outfitId';
 
+/// The kind of `OutfitGroup` an outfit belongs to (backend `OutfitGroupType`).
+/// Every outfit under a group shares its group's type; it's only ever a
+/// filter/tag, never per-outfit state.
+enum OutfitGroupType { general, daily, trip }
+
+extension OutfitGroupTypeApi on OutfitGroupType {
+  String get apiValue => switch (this) {
+    OutfitGroupType.general => 'general',
+    OutfitGroupType.daily => 'daily',
+    OutfitGroupType.trip => 'trip',
+  };
+
+  /// Anything unrecognized (or null) falls back to [OutfitGroupType.general],
+  /// the default group type.
+  static OutfitGroupType fromApiValue(String? value) => switch (value) {
+    'daily' => OutfitGroupType.daily,
+    'trip' => OutfitGroupType.trip,
+    _ => OutfitGroupType.general,
+  };
+}
+
 /// One outfit from the OutfitGroup + Outfit API (`/api/v1/outfit`). The
 /// render result lives directly on the outfit itself (`result_image_url`/
 /// `error_message`/`status`) — `regenerate` overwrites this same outfit's
@@ -10,7 +31,7 @@ String outfitImageCacheKey(int outfitId) => 'outfit-job-$outfitId';
 class Outfit {
   final int id;
   final int groupId;
-  final String groupType;
+  final OutfitGroupType groupType;
   final String status;
   final String? name;
   final List<int> garmentIds;
@@ -53,7 +74,7 @@ class Outfit {
   Outfit({
     required this.id,
     this.groupId = 0,
-    this.groupType = 'general',
+    this.groupType = OutfitGroupType.general,
     this.status = 'completed',
     this.name,
     this.garmentIds = const [],
@@ -133,7 +154,7 @@ class Outfit {
     return Outfit(
       id: parseId(json['outfit_id']),
       groupId: parseId(json['group_id']),
-      groupType: json['group_type'] as String? ?? 'general',
+      groupType: OutfitGroupTypeApi.fromApiValue(json['group_type'] as String?),
       status: json['status'] as String? ?? 'completed',
       name: json['name'] as String?,
       garmentIds: parseIds(json['garment_ids']),
@@ -151,7 +172,7 @@ class Outfit {
     return {
       'outfit_id': id,
       'group_id': groupId,
-      'group_type': groupType,
+      'group_type': groupType.apiValue,
       'status': status,
       'name': name,
       'garment_ids': garmentIds,

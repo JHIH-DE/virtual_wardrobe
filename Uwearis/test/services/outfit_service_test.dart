@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/outfit_service.dart';
+import 'package:uwearis/data/outfit.dart';
 
 import '../helpers/fake_auth.dart';
 
@@ -516,7 +517,7 @@ void main() {
         'garment_ids': [12, 55],
       });
       expect(outfits, hasLength(2));
-      expect(outfits[1].groupType, 'daily');
+      expect(outfits[1].groupType, OutfitGroupType.daily);
     });
   });
 
