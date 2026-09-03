@@ -146,6 +146,43 @@ Future<void> handleDeleteTrip(
   }
 }
 
+/// Opens [TripDetailsPage] with a shell loading overlay covering the preload.
+/// Shared between [TripsPage]'s own cards and the Home page's trip card —
+/// [tab] just picks which `AppTab`'s overlay to drive.
+Future<void> openTripDetails(
+  BuildContext context,
+  WidgetRef ref,
+  Trip trip, {
+  required AppTab tab,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  MainShellScope.of(
+    context,
+  )?.setLoading(true, label: l10n.loadingTripEllipsis, tab: tab);
+  try {
+    final data = await TripDetailsPage.preload(trip);
+    if (!context.mounted) return;
+    MainShellScope.of(context)?.setLoading(false, tab: tab);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TripDetailsPage(trip: trip, initialData: data),
+      ),
+    );
+  } on AuthExpiredException {
+    if (!context.mounted) return;
+    MainShellScope.of(context)?.setLoading(false, tab: tab);
+    await AuthExpiredHandler.handle(context);
+  } catch (e) {
+    if (!context.mounted) return;
+    MainShellScope.of(context)?.setLoading(false, tab: tab);
+    debugLog('Failed to load trip details: $e');
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadTripDetails)));
+  }
+}
+
 /// Creates the trip plan record and returns it as a [Trip] — per-day
 /// temperature isn't sent; the backend derives every day from [legs] and
 /// fills it in on its own (forecast within its window, historical average
@@ -304,46 +341,11 @@ class _TripsPageState extends ConsumerState<TripsPage> {
       child: TripCard(
         key: ValueKey(trip.id),
         trip: trip,
-        onTap: () => _handleOpenTrip(trip),
+        onTap: () =>
+            openTripDetails(context, ref, trip, tab: AppTab.tripPlanner),
         onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
         onDelete: () => handleDeleteTrip(context, ref, trip),
       ),
     );
-  }
-
-  Future<void> _handleOpenTrip(Trip trip) async {
-    final l10n = AppLocalizations.of(context);
-    MainShellScope.of(context)?.setLoading(
-      true,
-      label: l10n.loadingTripEllipsis,
-      tab: AppTab.tripPlanner,
-    );
-    try {
-      final data = await TripDetailsPage.preload(trip);
-
-      if (!mounted || !context.mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: AppTab.tripPlanner);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TripDetailsPage(trip: trip, initialData: data),
-        ),
-      );
-    } catch (e) {
-      if (!mounted || !context.mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: AppTab.tripPlanner);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to load trip details: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).failedToLoadTripDetails),
-          ),
-        );
-      }
-    }
   }
 }

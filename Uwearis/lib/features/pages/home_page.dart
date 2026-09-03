@@ -26,7 +26,6 @@ import '../widgets/trip/trip_card.dart';
 import 'garment_details_page.dart';
 import 'outfit_details_page.dart';
 import 'settings_page.dart';
-import 'trip_details_page.dart';
 import 'trips_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -506,41 +505,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     return TripCard(
       key: ValueKey(trip.id),
       trip: trip,
-      onTap: () => _openTrip(trip),
+      onTap: () => openTripDetails(context, ref, trip, tab: AppTab.home),
       onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
       onDelete: () => handleDeleteTrip(context, ref, trip),
     );
-  }
-
-  Future<void> _openTrip(Trip trip) async {
-    final l10n = AppLocalizations.of(context);
-    MainShellScope.of(
-      context,
-    )?.setLoading(true, label: l10n.loadingTripEllipsis, tab: AppTab.home);
-    try {
-      final data = await TripDetailsPage.preload(trip);
-      if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: AppTab.home);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TripDetailsPage(trip: trip, initialData: data),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: AppTab.home);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
-      debugLog('Failed to load trip details: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadTripDetails)));
-      }
-    }
   }
 
   /// The backend doesn't return a created-at timestamp for garments yet —

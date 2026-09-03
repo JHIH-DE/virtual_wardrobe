@@ -13,10 +13,9 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/count_pill.dart';
 import '../widgets/common/floating_nav_bar.dart';
-import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
-import '../widgets/outfit/outfit_card.dart';
+import '../widgets/outfit/outfit_grid.dart';
 import 'outfit_details_page.dart';
 
 class OutfitsPage extends ConsumerStatefulWidget {
@@ -168,53 +167,23 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
           error: e,
           onRetry: () => ref.read(outfitsProvider.notifier).refresh(),
         ),
-        data: (all) => _buildOutfitsGrid(_filtered(all)),
-      ),
-    );
-  }
-
-  Widget _buildOutfitsGrid(List<Outfit> outfits) {
-    if (outfits.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: EmptyStatePlaceholder(
-            message: AppLocalizations.of(context).noOutfitsYet,
+        data: (all) => OutfitGrid(
+          outfits: _filtered(all),
+          onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
+          emptyMessage: AppLocalizations.of(context).noOutfitsYet,
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            AppDimens.floatingNavBarClearance,
+          ),
+          onOutfitTap: (outfit) => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OutfitDetailsPage(outfit: outfit),
+            ),
           ),
         ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
-      color: AppColors.primary,
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          AppDimens.floatingNavBarClearance,
-        ),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: AppDimens.cardSpacing,
-          mainAxisSpacing: AppDimens.cardSpacing,
-          mainAxisExtent: AppDimens.outfitCardHeight,
-        ),
-        itemCount: outfits.length,
-        itemBuilder: (context, index) =>
-            _buildOutfitCard(context, outfits[index]),
-      ),
-    );
-  }
-
-  Widget _buildOutfitCard(BuildContext context, Outfit outfit) {
-    return OutfitCard(
-      outfit: outfit,
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => OutfitDetailsPage(outfit: outfit)),
       ),
     );
   }
