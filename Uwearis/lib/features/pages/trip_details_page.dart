@@ -884,7 +884,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                   bottomSpacing: AppDimens.sectionSpacing,
                 ),
               ),
-              _paddedSection(_buildTripHeader()),
+              _paddedSection(_TripDestinationsHeader(trip: _trip)),
               const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildUwearisInsightCard()),
               const SizedBox(height: AppDimens.sectionSpacing),
@@ -1055,51 +1055,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  Widget _buildTripHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (int i = 0; i < _trip.legs.length; i++) ...[
-            if (i > 0) _buildLegDivider(),
-            Row(
-              children: [
-                const Icon(Icons.location_on, color: AppColors.icon, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _trip.legs[i].location.name,
-                    style: AppTextStyle.bold16,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "${DateFormat('MMM d').format(_trip.legs[i].dateRange.start)} - "
-                  "${DateFormat('MMM d').format(_trip.legs[i].dateRange.end)}",
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLegDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: const AppDivider(spacing: 8, color: AppColors.dividerStrong),
-    );
-  }
-
   /// A freely-scrolling day list — selection only changes when a card is
   /// tapped (no more "whichever page is centered" from swiping). Tapping a
   /// card scrolls it fully into view if it's partially cut off at an edge,
@@ -1210,7 +1165,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                       ),
                     ),
                   )
-                : _buildGeneratePlanCta(),
+                : _GeneratePlanCta(
+                    onTap: _generatingPlan ? null : _generatePlan,
+                  ),
           )
         else ...[
           EdgeFadeScrim(
@@ -1220,8 +1177,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: _todayGarments.length,
-                itemBuilder: (context, index) =>
-                    _buildGarmentItem(_todayGarments[index]),
+                itemBuilder: (context, index) {
+                  final g = _todayGarments[index];
+                  return _TripGarmentThumb(
+                    garment: g,
+                    isMissing: g.id != null && !_suitcaseIds.contains(g.id),
+                  );
+                },
               ),
             ),
           ),
@@ -1274,36 +1236,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGeneratePlanCta() {
-    return GestureDetector(
-      onTap: _generatingPlan ? null : _generatePlan,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-          border: Border.all(color: AppColors.borderSubtle),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.auto_awesome, color: AppColors.accent, size: 28),
-            const SizedBox(height: 8),
-            SectionTitle(_l10n.letUwearisPlanOutfits),
-            const SizedBox(height: 4),
-            Text(
-              _l10n.letUwearisPlanOutfitsHint,
-              textAlign: TextAlign.center,
-              style: AppTextStyle.regular13.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1366,9 +1298,109 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       ),
     );
   }
+}
 
-  Widget _buildGarmentItem(Garment g) {
-    final isMissing = g.id != null && !_suitcaseIds.contains(g.id);
+/// The trip's destinations + date ranges, one row per leg — a static readout
+/// of [trip]'s own metadata with no interaction of its own.
+class _TripDestinationsHeader extends StatelessWidget {
+  final Trip trip;
+
+  const _TripDestinationsHeader({required this.trip});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < trip.legs.length; i++) ...[
+            if (i > 0)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: AppDivider(spacing: 8, color: AppColors.dividerStrong),
+              ),
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: AppColors.icon, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    trip.legs[i].location.name,
+                    style: AppTextStyle.bold16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "${DateFormat('MMM d').format(trip.legs[i].dateRange.start)} - "
+                  "${DateFormat('MMM d').format(trip.legs[i].dateRange.end)}",
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The "let Uwearis plan your outfits" call-to-action card shown while a trip
+/// still has no plan. [onTap] is null while a generation is already running.
+class _GeneratePlanCta extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const _GeneratePlanCta({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.auto_awesome, color: AppColors.accent, size: 28),
+            const SizedBox(height: 8),
+            SectionTitle(l10n.letUwearisPlanOutfits),
+            const SizedBox(height: 4),
+            Text(
+              l10n.letUwearisPlanOutfitsHint,
+              textAlign: TextAlign.center,
+              style: AppTextStyle.regular13.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One 80px-wide thumbnail in a trip day's horizontal garment strip, with an
+/// error badge when [isMissing] (the garment is no longer in the suitcase).
+class _TripGarmentThumb extends StatelessWidget {
+  final Garment garment;
+  final bool isMissing;
+
+  const _TripGarmentThumb({required this.garment, required this.isMissing});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: 80,
       margin: const EdgeInsets.only(right: 10),
@@ -1381,8 +1413,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         children: [
           Positioned.fill(
             child: GarmentImage(
-              url: g.imageUrl,
-              garmentId: g.id,
+              url: garment.imageUrl,
+              garmentId: garment.id,
               memCacheWidth: 160,
               fit: BoxFit.cover,
               borderRadius: 12,
