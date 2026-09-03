@@ -208,6 +208,33 @@ void main() {
       expect(data['id'], 9);
     });
 
+    test('getTrip returns the nested days payload unchanged', () async {
+      final days = [
+        {
+          'id': 1,
+          'date': '2026-10-01',
+          'group_id': 42,
+          'outfits': [
+            {
+              'outfit_id': 7,
+              'option_type': 'ai',
+              'result_image_url': 'https://signed.example/x.jpg',
+            },
+          ],
+        },
+      ];
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({'id': 9, 'days': days})),
+      );
+
+      final data = await http.runWithClient(
+        () => TripService().getTrip(9),
+        () => client,
+      );
+
+      expect(data['days'], days);
+    });
+
     test('getTripPlan GETs /{id}/plan and parses a typed TripPlan', () async {
       late http.Request captured;
       final client = MockClient((request) async {
