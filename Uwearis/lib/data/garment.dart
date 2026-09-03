@@ -293,20 +293,22 @@ class Garment {
 
   /// Builds a display-only Garment straight from a trip-plan item's own
   /// embedded fields (`TripSuitcaseItemResponse`/`TripOutfitItemResponse`,
-  /// which now return `image_url`/`category`/`name` inline) — trip pages no
-  /// longer need to fetch the whole closet and cross-reference `garment_id`
-  /// against it just to show a suitcase/day-outfit thumbnail. Note [json]'s
-  /// own `id` is the trip item's row id, not the garment's — [id] here is
-  /// deliberately set from `garment_id` instead, since that's what every
-  /// other call site treats as "the garment's id". Fields the trip item
-  /// response doesn't carry (brand/color/fit/price/subCategory/...) stay at
-  /// their defaults; nothing in the trip UI reads them for these garments.
+  /// which return `image_url`/`category`/`name`/`color` inline) — trip pages
+  /// no longer need to fetch the whole closet and cross-reference
+  /// `garment_id` against it just to show a suitcase/day-outfit thumbnail.
+  /// Note [json]'s own `id` is the trip item's row id, not the garment's —
+  /// [id] here is deliberately set from `garment_id` instead, since that's
+  /// what every other call site treats as "the garment's id". Fields the
+  /// trip item response still doesn't carry (brand/fit/price/subCategory/...)
+  /// stay at their defaults; nothing in the trip UI reads them for these
+  /// garments.
   factory Garment.fromTripItemJson(Map<String, dynamic> json) {
     final garmentId = _parseNullableId(json['garment_id']);
     return Garment(
       id: garmentId,
       garmentId: garmentId,
       name: (json['name'] as String?) ?? '',
+      color: json['color'] as String?,
       category: GarmentCategoryX.fromApiValue(json['category'] as String?),
       subCategory: '',
       uploadUrl: '',

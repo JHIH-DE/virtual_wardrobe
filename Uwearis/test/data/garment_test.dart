@@ -165,6 +165,7 @@ void main() {
       final garment = Garment.fromTripItemJson({
         'garment_id': 42,
         'name': 'White Sneakers',
+        'color': 'White',
         'category': 'Shoes',
         'image_url': 'https://example.com/42.jpg',
       });
@@ -172,6 +173,7 @@ void main() {
       expect(garment.id, 42);
       expect(garment.garmentId, 42);
       expect(garment.name, 'White Sneakers');
+      expect(garment.color, 'White');
       expect(garment.category, GarmentCategory.shoes);
       expect(garment.imageUrl, 'https://example.com/42.jpg');
       // Fields the trip item response doesn't carry stay at their defaults.
@@ -179,6 +181,11 @@ void main() {
       expect(garment.uploadUrl, '');
       expect(garment.objectName, '');
       expect(garment.brand, isNull);
+    });
+
+    test('leaves color null when the trip item omits it', () {
+      final garment = Garment.fromTripItemJson({'garment_id': 1});
+      expect(garment.color, isNull);
     });
 
     test('parses a garment_id sent as an integer-valued double', () {
