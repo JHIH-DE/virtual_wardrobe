@@ -11,10 +11,16 @@ class AppCardShell extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
+  /// Resting-shadow blur. Defaults to the app-wide 8; a few larger content
+  /// cards (Style Taste) use a softer 16 — pass it explicitly there rather
+  /// than hand-rolling the whole `BoxDecoration`.
+  final double blurRadius;
+
   const AppCardShell({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(14),
+    this.blurRadius = 8,
   });
 
   @override
@@ -28,7 +34,7 @@ class AppCardShell extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowResting,
-            blurRadius: 8,
+            blurRadius: blurRadius,
             offset: const Offset(0, 4),
           ),
         ],

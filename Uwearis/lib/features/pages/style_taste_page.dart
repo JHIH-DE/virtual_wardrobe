@@ -13,6 +13,7 @@ import '../../l10n/style_taste_dimension_localization.dart';
 import '../../l10n/style_type_localization.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/cards/style_profile_pie_chart.dart';
 import '../widgets/common/cards/style_taste_radar_chart.dart';
@@ -137,20 +138,9 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
 
   Widget _buildRadarCard(List<StyleTastePreference> preferences) {
     final l10n = AppLocalizations.of(context);
-    return Container(
-      width: double.infinity,
+    return AppCardShell(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowResting,
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      blurRadius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -373,20 +363,9 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
 
   Widget _buildStyleProfileCardShell(Widget child) {
     final l10n = AppLocalizations.of(context);
-    return Container(
-      width: double.infinity,
+    return AppCardShell(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowResting,
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      blurRadius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
