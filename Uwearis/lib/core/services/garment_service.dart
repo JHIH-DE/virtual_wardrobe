@@ -58,18 +58,7 @@ class GarmentService with BaseService {
 
   Future<void> uploadImage(String uploadUrl, String localPath) async {
     debugLog('--- uploadImage ---');
-    final file = File(localPath);
-    final bytes = await file.readAsBytes();
-    final uri = Uri.parse(uploadUrl);
-    final res = await http
-        .put(uri, headers: {'Content-Type': 'image/jpeg'}, body: bytes)
-        .timeout(const Duration(seconds: 45));
-
-    if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception(
-        'PUT to signed url failed: ${res.statusCode} ${res.body}',
-      );
-    }
+    await putJpegToSignedUrl(uploadUrl, localPath);
   }
 
   Future<Garment> completeUpload(

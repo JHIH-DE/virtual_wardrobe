@@ -96,15 +96,24 @@ mixin BaseService {
     (errorDecode ?? decodeMap)(res, op: op);
   }
 
-  Future<void> putJpegToSignedUrl(String uploadUrl, String localPath) async {
+  /// PUTs a local JPEG straight to a signed GCS upload URL (step 2 of every
+  /// init-upload → PUT → complete flow). [timeout] guards against a stalled
+  /// upload hanging the caller forever.
+  Future<void> putJpegToSignedUrl(
+    String uploadUrl,
+    String localPath, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
     final bytes = await File(localPath).readAsBytes();
-    final res = await http.put(
-      Uri.parse(uploadUrl),
-      headers: {'Content-Type': 'image/jpeg'},
-      body: bytes,
-    );
+    final res = await http
+        .put(
+          Uri.parse(uploadUrl),
+          headers: {'Content-Type': 'image/jpeg'},
+          body: bytes,
+        )
+        .timeout(timeout);
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception('PUT failed');
+      throw Exception('PUT to signed url failed (${res.statusCode})');
     }
   }
 }

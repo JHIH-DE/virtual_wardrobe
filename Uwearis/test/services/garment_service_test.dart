@@ -639,6 +639,49 @@ void main() {
       expect(result.processedImagePath, isNull);
     });
   });
+
+  group('uploadImage', () {
+    test('PUTs the file bytes as image/jpeg to the signed url', () async {
+      final tempFile = await _writeTempJpeg();
+      addTearDown(() => tempFile.delete());
+
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response('', 200);
+      });
+
+      await http.runWithClient(
+        () => GarmentService().uploadImage(
+          'https://upload.example.com/signed',
+          tempFile.path,
+        ),
+        () => client,
+      );
+
+      expect(captured.method, 'PUT');
+      expect(captured.url.toString(), 'https://upload.example.com/signed');
+      expect(captured.headers['Content-Type'], 'image/jpeg');
+      expect(captured.bodyBytes, [0xFF, 0xD8, 0xFF, 0xD9]);
+    });
+
+    test('throws with the status code on a non-2xx response', () async {
+      final tempFile = await _writeTempJpeg();
+      addTearDown(() => tempFile.delete());
+
+      final client = MockClient((_) async => http.Response('denied', 403));
+
+      await expectLater(
+        http.runWithClient(
+          () => GarmentService().uploadImage('https://x/y', tempFile.path),
+          () => client,
+        ),
+        throwsA(
+          isA<Exception>().having((e) => e.toString(), 'message', contains('403')),
+        ),
+      );
+    });
+  });
 }
 
 Future<File> _writeTempJpeg() async {
