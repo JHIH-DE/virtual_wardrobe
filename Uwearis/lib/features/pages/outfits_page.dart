@@ -5,7 +5,6 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/outfits_provider.dart';
-import '../../core/services/auth_handler.dart';
 import '../../data/outfit.dart';
 import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -13,7 +12,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/count_pill.dart';
 import '../widgets/common/floating_nav_bar.dart';
-import '../widgets/common/overlays/error_state_widget.dart';
+import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/outfit/outfit_grid.dart';
 import 'outfit_details_page.dart';
@@ -37,13 +36,13 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _reportLoadingState(ref.read(outfitsProvider));
-      ref.listenManual(outfitsProvider, (_, next) {
-        if (next.hasError && next.error is AuthExpiredException) {
-          AuthExpiredHandler.handle(context);
-        }
-        _reportLoadingState(next);
-      });
+      final report = mainTabReporter(
+        context,
+        loadingLabel: AppLocalizations.of(context).loadingOutfitsEllipsis,
+        tab: AppTab.outfits,
+      );
+      report(ref.read(outfitsProvider));
+      ref.listenManual(outfitsProvider, (_, next) => report(next));
       ref.listenManual(outfitFeedbackProvider, (_, next) {
         if (next == null) return;
         final l10n = AppLocalizations.of(context);
@@ -60,17 +59,6 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
       });
       ref.read(outfitsProvider.notifier).refreshIfNeeded();
     });
-  }
-
-  /// Mirrors outfitsProvider's loading state up to MainShell, which shows a
-  /// full-screen overlay above the floating nav bar — see
-  /// MainShellScope.setLoading for why this can't just be built inline.
-  void _reportLoadingState(AsyncValue<List<Outfit>> state) {
-    MainShellScope.of(context)?.setLoading(
-      state.isLoading,
-      label: AppLocalizations.of(context).loadingOutfitsEllipsis,
-      tab: AppTab.outfits,
-    );
   }
 
   bool get _isFiltered =>
@@ -159,14 +147,8 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(outfitsAsync.value ?? []),
-      body: outfitsAsync.when(
-        // Shell-level overlay (see _reportLoadingState) covers the whole
-        // screen including the nav bar while loading.
-        loading: () => const SizedBox.shrink(),
-        error: (e, _) => ErrorStateWidget(
-          error: e,
-          onRetry: () => ref.read(outfitsProvider.notifier).refresh(),
-        ),
+      body: outfitsAsync.mainTabBody(
+        onRetry: () => ref.read(outfitsProvider.notifier).refresh(),
         data: (all) => OutfitGrid(
           outfits: _filtered(all),
           onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),

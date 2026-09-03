@@ -11,8 +11,8 @@ import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
+import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
-import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/trip/trip_card.dart';
 import '../widgets/trip/trip_create_dialog.dart';
@@ -221,25 +221,14 @@ class _TripsPageState extends ConsumerState<TripsPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _reportLoadingState(ref.read(tripsProvider));
-      ref.listenManual(tripsProvider, (_, next) {
-        if (next.hasError && next.error is AuthExpiredException) {
-          AuthExpiredHandler.handle(context);
-        }
-        _reportLoadingState(next);
-      });
+      final report = mainTabReporter(
+        context,
+        loadingLabel: AppLocalizations.of(context).loadingTripsEllipsis,
+        tab: AppTab.tripPlanner,
+      );
+      report(ref.read(tripsProvider));
+      ref.listenManual(tripsProvider, (_, next) => report(next));
     });
-  }
-
-  /// Mirrors tripsProvider's loading state up to MainShell, which shows a
-  /// full-screen overlay above the floating nav bar — see
-  /// MainShellScope.setLoading for why this can't just be built inline.
-  void _reportLoadingState(AsyncValue<List<Trip>> state) {
-    MainShellScope.of(context)?.setLoading(
-      state.isLoading,
-      label: AppLocalizations.of(context).loadingTripsEllipsis,
-      tab: AppTab.tripPlanner,
-    );
   }
 
   @override
@@ -249,13 +238,9 @@ class _TripsPageState extends ConsumerState<TripsPage> {
       backgroundColor: AppColors.pageBackground,
       body: SafeArea(
         bottom: false,
-        child: tripsAsync.when(
-          loading: () => const SizedBox.shrink(),
-          error: (e, _) => ErrorStateWidget(
-            error: e,
-            onRetry: () => ref.read(tripsProvider.notifier).refresh(),
-          ),
-          data: (trips) => _buildTripList(trips),
+        child: tripsAsync.mainTabBody(
+          data: _buildTripList,
+          onRetry: () => ref.read(tripsProvider.notifier).refresh(),
         ),
       ),
     );

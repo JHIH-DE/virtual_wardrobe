@@ -15,8 +15,8 @@ import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/count_pill.dart';
 import '../widgets/common/cards/favorite_card.dart';
 import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
-import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
@@ -42,26 +42,15 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _reportLoadingState(ref.read(garmentsProvider));
-      ref.listenManual(garmentsProvider, (_, next) {
-        if (next.hasError && next.error is AuthExpiredException) {
-          AuthExpiredHandler.handle(context);
-        }
-        _reportLoadingState(next);
-      });
+      final report = mainTabReporter(
+        context,
+        loadingLabel: AppLocalizations.of(context).loadingClosetEllipsis,
+        tab: AppTab.closet,
+      );
+      report(ref.read(garmentsProvider));
+      ref.listenManual(garmentsProvider, (_, next) => report(next));
       ref.read(garmentsProvider.notifier).refreshIfNeeded();
     });
-  }
-
-  /// Mirrors garmentsProvider's loading state up to MainShell, which shows
-  /// a full-screen overlay above the floating nav bar — see
-  /// MainShellScope.setLoading for why this can't just be built inline.
-  void _reportLoadingState(AsyncValue<List<Garment>> state) {
-    MainShellScope.of(context)?.setLoading(
-      state.isLoading,
-      label: AppLocalizations.of(context).loadingClosetEllipsis,
-      tab: AppTab.closet,
-    );
   }
 
   static const _allCategories = [
@@ -192,16 +181,9 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(garmentsAsync),
-      body: garmentsAsync.when(
-        // The shell-level overlay (via MainShellScope.setLoading, wired up
-        // in initState) covers the whole screen including the nav bar, so
-        // there's nothing to render here while loading.
-        loading: () => const SizedBox.shrink(),
-        error: (e, _) => ErrorStateWidget(
-          error: e,
-          onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
-        ),
+      body: garmentsAsync.mainTabBody(
         data: _buildBody,
+        onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
       ),
     );
   }
