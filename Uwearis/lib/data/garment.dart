@@ -157,8 +157,11 @@ class Garment {
   final String? imageUrl;
   final GarmentCategory category;
   final String subCategory;
-  final double thickness;
-  final double formality;
+
+  /// Backend-side these are integer scales (0–5); the model matches. Not
+  /// read by any UI today — parsed and echoed straight back on upload.
+  final int thickness;
+  final int formality;
   final String uploadUrl;
   final String objectName;
   final Map<String, dynamic>? metadata;
@@ -170,8 +173,8 @@ class Garment {
     required this.subCategory,
     required this.uploadUrl,
     required this.objectName,
-    this.thickness = 0.0,
-    this.formality = 0.0,
+    this.thickness = 0,
+    this.formality = 0,
     this.isFavorite = false,
     this.id,
     this.garmentId,
@@ -195,8 +198,8 @@ class Garment {
     DateTime? purchaseDate,
     GarmentCategory? category,
     String? subCategory,
-    double? thickness,
-    double? formality,
+    int? thickness,
+    int? formality,
     String? uploadUrl,
     String? objectName,
     String? imageUrl,
@@ -248,6 +251,8 @@ class Garment {
       return null;
     }
 
+    int? parseIntField(dynamic v) => parseNum(v)?.round();
+
     return Garment(
       id: json['id'] as int?,
       garmentId: json['garment_id'] as int?,
@@ -256,8 +261,8 @@ class Garment {
       color: json['color'] as String?,
       fit: json['fit'] as String?,
       price: parseNum(json['price']),
-      thickness: parseNum(json['thickness']) ?? 0.0,
-      formality: parseNum(json['formality']) ?? 0.0,
+      thickness: parseIntField(json['thickness']) ?? 0,
+      formality: parseIntField(json['formality']) ?? 0,
       purchaseDate: parseDate(json['purchase_date']),
       category: GarmentCategoryX.fromApiValue(json['category'] as String?),
       subCategory: (json['sub_category'] as String?) ?? '',

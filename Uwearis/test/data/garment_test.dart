@@ -38,8 +38,8 @@ void main() {
         'color': 'Navy',
         'fit': 'Regular',
         'price': 89.99,
-        'thickness': 2.5,
-        'formality': 4.0,
+        'thickness': 2,
+        'formality': 4,
         'purchase_date': '2025-03-14',
         'category': 'Outer',
         'sub_category': 'Blazer',
@@ -57,8 +57,8 @@ void main() {
       expect(garment.color, 'Navy');
       expect(garment.fit, 'Regular');
       expect(garment.price, 89.99);
-      expect(garment.thickness, 2.5);
-      expect(garment.formality, 4.0);
+      expect(garment.thickness, 2);
+      expect(garment.formality, 4);
       expect(garment.purchaseDate, DateTime.parse('2025-03-14'));
       expect(garment.category, GarmentCategory.outer);
       expect(garment.subCategory, 'Blazer');
@@ -79,8 +79,8 @@ void main() {
       expect(garment.color, isNull);
       expect(garment.fit, isNull);
       expect(garment.price, isNull);
-      expect(garment.thickness, 0.0);
-      expect(garment.formality, 0.0);
+      expect(garment.thickness, 0);
+      expect(garment.formality, 0);
       expect(garment.purchaseDate, isNull);
       expect(garment.category, GarmentCategory.top);
       expect(garment.subCategory, '');
@@ -95,12 +95,18 @@ void main() {
       final garment = Garment.fromJson({
         'price': '49.5',
         'thickness': '1',
-        'formality': '3.5',
+        'formality': '4',
       });
 
       expect(garment.price, 49.5);
-      expect(garment.thickness, 1.0);
-      expect(garment.formality, 3.5);
+      expect(garment.thickness, 1);
+      expect(garment.formality, 4);
+    });
+
+    test('rounds a non-integer thickness/formality to the nearest int', () {
+      final garment = Garment.fromJson({'thickness': 2.6, 'formality': '3.2'});
+      expect(garment.thickness, 3);
+      expect(garment.formality, 3);
     });
 
     test('treats an unparseable purchase_date as null rather than throwing', () {
