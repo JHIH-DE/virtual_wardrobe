@@ -259,6 +259,47 @@ void main() {
     });
   });
 
+  group('getMyStyleTaste', () {
+    test('GETs style_taste and parses a typed StyleTasteProfile', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope({
+            'status': 'ready',
+            'summary': 'Balanced, colour-confident.',
+            'style_balance': {'score': 0.7, 'confidence': 0.9, 'insight': 'x'},
+            'color_pairing': {'score': 0.4, 'confidence': 0.6},
+          }),
+        );
+      });
+
+      final profile = await http.runWithClient(
+        () => ProfileService().getMyStyleTaste(),
+        () => client,
+      );
+
+      expect(captured.url.toString(), '$_base/style_taste');
+      expect(profile.status, 'ready');
+      expect(profile.summary, 'Balanced, colour-confident.');
+      expect(profile.preferences, hasLength(2));
+      expect(profile.preferences.first.score, 0.7);
+    });
+
+    test('defaults status to "learning" on an empty response', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({})),
+      );
+
+      final profile = await http.runWithClient(
+        () => ProfileService().getMyStyleTaste(),
+        () => client,
+      );
+      expect(profile.status, 'learning');
+      expect(profile.preferences, isEmpty);
+    });
+  });
+
   group('updateMyProfile', () {
     test('only sends the fields that were actually passed', () async {
       late http.Request captured;

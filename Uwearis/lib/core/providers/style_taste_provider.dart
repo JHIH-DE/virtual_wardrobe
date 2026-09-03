@@ -17,8 +17,5 @@ class StyleTasteProfileNotifier extends AsyncNotifier<StyleTasteProfile> {
     state = await AsyncValue.guard(_fetch);
   }
 
-  Future<StyleTasteProfile> _fetch() async {
-    final data = await ProfileService().getMyStyleTaste();
-    return StyleTasteProfile.fromApi(data);
-  }
+  Future<StyleTasteProfile> _fetch() => ProfileService().getMyStyleTaste();
 }

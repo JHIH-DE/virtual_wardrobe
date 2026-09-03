@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../data/style_profile.dart';
+import '../../data/style_taste.dart';
 import '../../data/user_profile.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
@@ -138,7 +139,7 @@ class ProfileService with BaseService {
   /// `"learning"` instead of `"ready"` rather than the backend fabricating
   /// untrustworthy scores — callers should treat scores/confidence as
   /// unreliable in that case.
-  Future<Map<String, dynamic>> getMyStyleTaste() async {
+  Future<StyleTasteProfile> getMyStyleTaste() async {
     debugLog('--- getMyStyleTaste ---');
     final res = await withAuth(
       (token) => http
@@ -146,8 +147,8 @@ class ProfileService with BaseService {
           .timeout(_quick),
     );
     final data = _data(decodeMap(res, op: 'getMyStyleTaste'));
-    debugLog('--- getMyStyleTaste data: $data ---');
-    return data;
+    debugLog('--- getMyStyleTaste status: ${data['status']} ---');
+    return StyleTasteProfile.fromApi(data);
   }
 
   /// Outfit counts per style tag (`GET /users/me/style_profile`), sorted
