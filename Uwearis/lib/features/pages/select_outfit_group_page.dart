@@ -29,8 +29,7 @@ class SelectOutfitGroupPage extends ConsumerStatefulWidget {
       _SelectOutfitGroupPageState();
 }
 
-class _SelectOutfitGroupPageState
-    extends ConsumerState<SelectOutfitGroupPage> {
+class _SelectOutfitGroupPageState extends ConsumerState<SelectOutfitGroupPage> {
   bool _isCopying = false;
 
   /// Pass null to create a fresh group instead of copying into an existing
@@ -78,29 +77,35 @@ class _SelectOutfitGroupPageState
             data: (groups) => _buildGrid(groups),
           ),
         ),
-        if (_isCopying) Positioned.fill(child: LoadingOverlay(label: l10n.loading)),
+        if (_isCopying)
+          Positioned.fill(child: LoadingOverlay(label: l10n.loading)),
       ],
     );
   }
 
   Widget _buildGrid(List<Outfit> groups) {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: AppDimens.cardSpacing,
-        mainAxisSpacing: AppDimens.cardSpacing,
-        mainAxisExtent: AppDimens.outfitCardHeight,
+    return RefreshIndicator(
+      onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
+      color: AppColors.primary,
+      child: GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: AppDimens.cardSpacing,
+          mainAxisSpacing: AppDimens.cardSpacing,
+          mainAxisExtent: AppDimens.outfitCardHeight,
+        ),
+        itemCount: groups.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) return _buildNewGroupCard();
+          final outfit = groups[index - 1];
+          return OutfitCard(
+            outfit: outfit,
+            onTap: () => _copyInto(outfit.groupId),
+          );
+        },
       ),
-      itemCount: groups.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) return _buildNewGroupCard();
-        final outfit = groups[index - 1];
-        return OutfitCard(
-          outfit: outfit,
-          onTap: () => _copyInto(outfit.groupId),
-        );
-      },
     );
   }
 

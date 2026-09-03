@@ -9,9 +9,8 @@ import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
-import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
-import '../widgets/outfit/outfit_card.dart';
+import '../widgets/outfit/outfit_grid.dart';
 
 /// Lets the user pick one of their saved outfits, so its garments can be
 /// added to a trip's suitcase in one go — pops with the chosen [Outfit], or
@@ -69,30 +68,13 @@ class _TripOutfitSelectionPageState extends State<TripOutfitSelectionPage> {
           ? const Center(child: AppSpinner())
           : _error != null
           ? ErrorStateWidget(error: _error!, onRetry: _load)
-          : _buildGrid(l10n),
-    );
-  }
-
-  Widget _buildGrid(AppLocalizations l10n) {
-    if (_outfits.isEmpty) {
-      return Center(child: EmptyStatePlaceholder(message: l10n.noOutfitsYet));
-    }
-    return GridView.builder(
-      padding: AppDimens.pageGridPadding,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: AppDimens.cardSpacing,
-        mainAxisSpacing: AppDimens.cardSpacing,
-        mainAxisExtent: AppDimens.outfitCardHeight,
-      ),
-      itemCount: _outfits.length,
-      itemBuilder: (context, i) {
-        final outfit = _outfits[i];
-        return OutfitCard(
-          outfit: outfit,
-          onTap: () => Navigator.pop(context, outfit),
-        );
-      },
+          : OutfitGrid(
+              outfits: _outfits,
+              onRefresh: _load,
+              emptyMessage: l10n.noOutfitsYet,
+              padding: AppDimens.pageGridPadding,
+              onOutfitTap: (outfit) => Navigator.pop(context, outfit),
+            ),
     );
   }
 }

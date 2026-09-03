@@ -27,33 +27,34 @@ class OutfitGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (outfits.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: EmptyStatePlaceholder(message: emptyMessage),
-        ),
-      );
-    }
-
     return RefreshIndicator(
       onRefresh: onRefresh,
       color: AppColors.primary,
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: padding,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: AppDimens.cardSpacing,
-          mainAxisSpacing: AppDimens.cardSpacing,
-          mainAxisExtent: AppDimens.outfitCardHeight,
-        ),
-        itemCount: outfits.length,
-        itemBuilder: (context, index) {
-          final outfit = outfits[index];
-          return OutfitCard(outfit: outfit, onTap: () => onOutfitTap(outfit));
-        },
-      ),
+      child: outfits.isEmpty
+          ? Center(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: EmptyStatePlaceholder(message: emptyMessage),
+              ),
+            )
+          : GridView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: padding,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: AppDimens.cardSpacing,
+                mainAxisSpacing: AppDimens.cardSpacing,
+                mainAxisExtent: AppDimens.outfitCardHeight,
+              ),
+              itemCount: outfits.length,
+              itemBuilder: (context, index) {
+                final outfit = outfits[index];
+                return OutfitCard(
+                  outfit: outfit,
+                  onTap: () => onOutfitTap(outfit),
+                );
+              },
+            ),
     );
   }
 }
