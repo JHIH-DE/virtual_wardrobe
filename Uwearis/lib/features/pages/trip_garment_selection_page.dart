@@ -95,11 +95,10 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
           _applyCategoryAdvice(item);
         }
       }
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to load packing advice: $e');
     } finally {
       if (mounted) setState(() => _loadingAdvice = false);

@@ -78,11 +78,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           .map(Garment.fromTripItemJson)
           .toList();
       if (mounted) setState(() => _packedGarments = garments);
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to load suitcase items: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -129,11 +128,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       for (final id in toRemove) {
         await TripService().removeSuitcaseItem(_tripId, garmentId: id);
       }
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to update suitcase: $e');
       if (mounted) {
         ScaffoldMessenger.of(

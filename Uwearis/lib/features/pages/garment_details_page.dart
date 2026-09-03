@@ -292,11 +292,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         _initialName = updated.name;
       });
       ref.read(garmentsProvider.notifier).updateGarment(updated);
+    } on AuthExpiredException {
+      await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -323,12 +322,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         await GarmentService().deleteGarment(_id!);
         if (!mounted) return;
         Navigator.pop(context, 'deleted');
+      } on AuthExpiredException {
+        if (!mounted) return;
+        await AuthExpiredHandler.handle(context);
+        return;
       } catch (e) {
         if (!mounted) return;
-        if (e is AuthExpiredException) {
-          await AuthExpiredHandler.handle(context);
-          return;
-        }
         setState(() => _errorMessage = _l10n.deleteFailedPrefix(e.toString()));
       }
     }
@@ -892,12 +891,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         _versatility = result.versatility;
         _isAnalyzing = false;
       });
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
       if (!mounted) return;
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('AI Analysis failed: $e');
       setState(() => _isAnalyzing = false);
     }
@@ -1307,11 +1306,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
       if (!mounted) return;
       Navigator.of(context).pop(result);
+    } on AuthExpiredException {
+      await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       if (mounted) {
         setState(() {
           _errorMessage = e.toString();

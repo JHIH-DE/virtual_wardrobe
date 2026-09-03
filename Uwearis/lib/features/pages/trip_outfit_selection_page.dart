@@ -48,11 +48,10 @@ class _TripOutfitSelectionPageState extends State<TripOutfitSelectionPage> {
       // always excluded every result now.
       if (!mounted) return;
       setState(() => _outfits = outfits);
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to load outfits: $e');
       if (mounted) setState(() => _error = e.toString());
     } finally {

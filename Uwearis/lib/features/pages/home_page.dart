@@ -85,11 +85,10 @@ class _HomePageState extends ConsumerState<HomePage> {
       if (_todayOutfitPageController.hasClients) {
         _todayOutfitPageController.jumpToPage(0);
       }
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to load daily outfit: $e');
     } finally {
       if (mounted) {

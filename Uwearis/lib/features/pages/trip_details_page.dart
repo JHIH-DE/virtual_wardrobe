@@ -262,8 +262,9 @@ class TripDetailsPage extends ConsumerStatefulWidget {
           .map(_parseGeneratedTripDayOutfit)
           .toList();
       suitcaseIds = _parseSuitcaseItemIds(planData['suitcase_items']);
+    } on AuthExpiredException {
+      rethrow;
     } catch (e) {
-      if (e is AuthExpiredException) rethrow;
       debugLog('Failed to load trip outfits: $e');
     }
 
@@ -410,12 +411,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           _recommendedTotal = _sumRecommendedQuantity(data['categories']);
         });
       }
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
       if (!mounted) return;
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to analyze trip plan: $e');
     } finally {
       if (mounted) setState(() => _loadingPackingAdvice = false);
@@ -456,11 +457,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         );
       }
       return suitcase;
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return null;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return null;
-      }
       debugLog('Failed to load suitcase: $e');
       if (mounted) {
         ScaffoldMessenger.of(
@@ -553,11 +553,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           .toList();
       if (!mounted) return;
       setState(() => _dayOutfits = dayOutfits);
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to generate trip plan: $e');
       if (mounted) {
         ScaffoldMessenger.of(
@@ -618,11 +617,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           everHadOutfit: true,
         );
       });
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to generate day outfit: $e');
       if (mounted) {
         ScaffoldMessenger.of(
@@ -690,11 +688,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           everHadOutfit: _currentDayOutfit?.everHadOutfit ?? false,
         );
       });
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to update day outfit: $e');
       if (mounted) {
         ScaffoldMessenger.of(
@@ -720,11 +717,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       }
       if (!mounted) return;
       setState(() => _suitcaseIds.addAll(missingIds));
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to re-add missing suitcase items: $e');
       if (mounted) {
         ScaffoldMessenger.of(
