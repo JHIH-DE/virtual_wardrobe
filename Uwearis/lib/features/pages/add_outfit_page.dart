@@ -639,7 +639,13 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               _buildInstructions(),
               const SizedBox(height: AppDimens.sectionSpacing),
               if (!widget.selectOnly) ...[
-                _buildMatchALookCard(),
+                _MatchALookCard(
+                  referenceImagePath: _referenceImagePath,
+                  matchedSlotCount: _aiPopulatedSlots.length,
+                  onStart: _startMatchALookFlow,
+                  onChange: _changeReferenceLook,
+                  onRemove: _clearMatchALookSession,
+                ),
                 const SizedBox(height: AppDimens.sectionSpacing),
               ],
               ..._buildTopSlots(),
@@ -675,202 +681,6 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           : _l10n.selectCombinationsInstruction,
       textAlign: TextAlign.left,
       style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
-    );
-  }
-
-  /// "Upload a photo, match it to closet items" entry point — idle before a
-  /// reference photo has been matched, [_buildActiveReferenceCard] once one
-  /// has. Same AI call-out treatment as [UwearisInsightCard] (gradient
-  /// tint, sparkle badge, "AI" tag).
-  Widget _buildMatchALookCard() {
-    if (_referenceImagePath != null) return _buildActiveReferenceCard();
-    return _buildIdleMatchALookCard();
-  }
-
-  Widget _buildIdleMatchALookCard() {
-    return GestureDetector(
-      onTap: _startMatchALookFlow,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.surface, AppColors.uwearisCardTint],
-          ),
-          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.uwearisCardTint,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Image.asset(
-                'assets/images/camera.png',
-                width: 28,
-                height: 28,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.auto_awesome,
-                        size: 16,
-                        color: AppColors.icon,
-                      ),
-                      const SizedBox(width: 6),
-                      SectionTitle(_l10n.matchALookTitle),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          _l10n.aiTag,
-                          style: AppTextStyle.bold12.copyWith(
-                            color: AppColors.textSecondary,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _l10n.matchALookSubtitle,
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Image.asset(
-              'assets/images/page_arrow_right.png',
-              width: AppDimens.iconSmallSize,
-              height: AppDimens.iconSmallSize,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Replaces [_buildIdleMatchALookCard] once a reference photo has been
-  /// matched — same card chrome, now showing the reference thumbnail and
-  /// how many slots it filled, plus Change/Remove actions instead of the
-  /// whole card being one big tap target. No destructive-looking button:
-  /// "Remove Reference Look" lives in the overflow menu per the design
-  /// brief.
-  Widget _buildActiveReferenceCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.surface, AppColors.uwearisCardTint],
-        ),
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.file(
-              File(_referenceImagePath!),
-              width: 64,
-              height: 64,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.auto_awesome,
-                      size: 16,
-                      color: AppColors.icon,
-                    ),
-                    const SizedBox(width: 6),
-                    SectionTitle(_l10n.referenceLookLabel),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _l10n.piecesMatchedCount(_aiPopulatedSlots.length),
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _changeReferenceLook,
-                  child: Text(
-                    _l10n.change,
-                    style: AppTextStyle.bold14.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          AppPopupMenu<_MatchALookCardAction>(
-            onSelected: (action) {
-              switch (action) {
-                case _MatchALookCardAction.remove:
-                  _clearMatchALookSession();
-              }
-            },
-            items: [
-              AppPopupMenu.item(
-                value: _MatchALookCardAction.remove,
-                label: _l10n.removeReferenceLook,
-                isDestructive: true,
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -1556,6 +1366,206 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// "Upload a photo, match it to closet items" entry point — idle before a
+/// reference photo has been matched ([referenceImagePath] null), the
+/// active reference readout once one has. Same AI call-out treatment as
+/// [UwearisInsightCard] (gradient tint, sparkle badge, "AI" tag).
+class _MatchALookCard extends StatelessWidget {
+  final String? referenceImagePath;
+  final int matchedSlotCount;
+  final VoidCallback onStart;
+  final VoidCallback onChange;
+  final VoidCallback onRemove;
+
+  const _MatchALookCard({
+    required this.referenceImagePath,
+    required this.matchedSlotCount,
+    required this.onStart,
+    required this.onChange,
+    required this.onRemove,
+  });
+
+  static final BoxDecoration _cardDecoration = BoxDecoration(
+    gradient: const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [AppColors.surface, AppColors.uwearisCardTint],
+    ),
+    borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+    border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+    boxShadow: [
+      BoxShadow(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        blurRadius: 16,
+        offset: const Offset(0, 6),
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return referenceImagePath != null ? _active(context) : _idle(context);
+  }
+
+  Widget _idle(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return GestureDetector(
+      onTap: onStart,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: _cardDecoration,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.uwearisCardTint,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Image.asset(
+                'assets/images/camera.png',
+                width: 28,
+                height: 28,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.auto_awesome,
+                        size: 16,
+                        color: AppColors.icon,
+                      ),
+                      const SizedBox(width: 6),
+                      SectionTitle(l10n.matchALookTitle),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          l10n.aiTag,
+                          style: AppTextStyle.bold12.copyWith(
+                            color: AppColors.textSecondary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.matchALookSubtitle,
+                    style: AppTextStyle.regular14.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Image.asset(
+              'assets/images/page_arrow_right.png',
+              width: AppDimens.iconSmallSize,
+              height: AppDimens.iconSmallSize,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Replaces [_idle] once a reference photo has been matched — same card
+  /// chrome, now showing the reference thumbnail and how many slots it
+  /// filled, plus Change/Remove actions instead of the whole card being one
+  /// big tap target. No destructive-looking button: "Remove Reference Look"
+  /// lives in the overflow menu per the design brief.
+  Widget _active(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.file(
+              File(referenceImagePath!),
+              width: 64,
+              height: 64,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: AppColors.icon,
+                    ),
+                    const SizedBox(width: 6),
+                    SectionTitle(l10n.referenceLookLabel),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.piecesMatchedCount(matchedSlotCount),
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: onChange,
+                  child: Text(
+                    l10n.change,
+                    style: AppTextStyle.bold14.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppPopupMenu<_MatchALookCardAction>(
+            onSelected: (action) {
+              switch (action) {
+                case _MatchALookCardAction.remove:
+                  onRemove();
+              }
+            },
+            items: [
+              AppPopupMenu.item(
+                value: _MatchALookCardAction.remove,
+                label: l10n.removeReferenceLook,
+                isDestructive: true,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
