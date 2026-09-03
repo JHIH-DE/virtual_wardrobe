@@ -8,6 +8,7 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/trip.dart';
+import '../../data/trip_plan.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
@@ -209,7 +210,7 @@ Future<Trip> _createTrip(Trip input) async {
 void _goToNewTripDetails(
   BuildContext context,
   Trip trip,
-  TripDetailsInitialData initialData,
+  TripPlan initialData,
 ) {
   MainShellScope.of(context)?.selectTab(AppTab.tripPlanner);
   final route = MaterialPageRoute(

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../data/packing_analysis.dart';
 import '../../data/trip.dart';
+import '../../data/trip_plan.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
@@ -172,7 +173,7 @@ class TripService with BaseService {
   /// response is the only other place this content appears, and that's
   /// only for the instant right after generating — refetch this instead of
   /// trying to keep that response around across navigation.
-  Future<Map<String, dynamic>> getTripPlan(int tripId) async {
+  Future<TripPlan> getTripPlan(int tripId) async {
     debugLog('--- getTripPlan id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/plan');
 
@@ -182,7 +183,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    return _dataObject(res, op: 'getTripPlan');
+    return TripPlan.fromPlanResponse(_dataObject(res, op: 'getTripPlan'));
   }
 
   /// Packs the suitcase into a per-day outfit plan (AI-suggested options,
@@ -191,7 +192,7 @@ class TripService with BaseService {
   /// exactly as-is, but each date in [days] must already exist on the trip
   /// (`TRIP_TARGET_DATES_NOT_FOUND` otherwise); omit it to regenerate every
   /// day instead, which does tear down each rendered day's outfit group.
-  Future<Map<String, dynamic>> generateTripPlan(
+  Future<TripPlan> generateTripPlan(
     int tripId, {
     List<Map<String, dynamic>>? days,
     int? alternativesPerDay,
@@ -211,7 +212,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    return _dataObject(res, op: 'generateTripPlan');
+    return TripPlan.fromPlanResponse(_dataObject(res, op: 'generateTripPlan'));
   }
 
   Future<void> addSuitcaseItem(int tripId, {required int garmentId}) async {

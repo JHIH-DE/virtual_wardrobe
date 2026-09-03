@@ -208,19 +208,43 @@ void main() {
       expect(data['id'], 9);
     });
 
-    test('getTripPlan GETs /{id}/plan', () async {
+    test('getTripPlan GETs /{id}/plan and parses a typed TripPlan', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
-        return _jsonResponse(_envelope({'id': 9}));
+        return _jsonResponse(
+          _envelope({
+            'suitcase_items': [
+              {'garment_id': 5},
+            ],
+            'days': [
+              {
+                'date': '2026-10-01',
+                'options': [
+                  {
+                    'id': 3,
+                    'order_index': 0,
+                    'outfit_id': 71,
+                    'items': [
+                      {'garment_id': 5, 'name': 'Tee', 'category': 'Top'},
+                    ],
+                  },
+                ],
+              },
+            ],
+          }),
+        );
       });
 
-      await http.runWithClient(
+      final plan = await http.runWithClient(
         () => TripService().getTripPlan(9),
         () => client,
       );
 
       expect(captured.url.toString(), '$_base/9/plan');
+      expect(plan.suitcaseIds, {5});
+      expect(plan.days.single.optionId, 3);
+      expect(plan.days.single.outfitId, 71);
     });
   });
 

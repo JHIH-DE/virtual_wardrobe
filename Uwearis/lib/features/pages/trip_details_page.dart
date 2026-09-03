@@ -14,6 +14,7 @@ import '../../core/utils/debug_log.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/trip.dart';
+import '../../data/trip_plan.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/trip_activity_localization.dart';
 import '../widgets/common/app_divider.dart';
@@ -48,58 +49,6 @@ enum _TripMenuAction {
   delete,
 }
 
-/// One trip day's primary outfit — either an *already tried-on* result
-/// (built from `TripService.getTrip`'s `days[].outfits[]`, see
-/// [_parseTripDayOutfit]) or an AI-suggested option nobody's rendered yet
-/// (built from `TripService.getTripPlan`/`generateTripPlan`'s
-/// `days[].options[]`, see [_parseGeneratedTripDayOutfit]) — both parse
-/// into this same shape so the rest of the page doesn't need to care which
-/// one a given day came from.
-class TripDayOutfit {
-  /// This day's own date, straight from `day['date']` — the day selector
-  /// and header label read this instead of computing a date from the
-  /// trip's overall span + list index, since the backend's `days[]` isn't
-  /// guaranteed to tile that span with zero gaps (e.g. multi-leg trips
-  /// with a stretch between legs covered by no leg at all).
-  final DateTime? date;
-  final int? optionId;
-  final List<Garment> garments;
-  final int? outfitId;
-  final String? resultImageUrl;
-  final double? temperatureMaxC;
-  final double? temperatureMinC;
-
-  /// Sticky across garment edits — unlike [outfitId] (which the backend
-  /// clears the moment this day's garments change, see
-  /// `TripService.updateOptionItems`), this never resets once true. Its
-  /// only job is telling "Generate Outfit" (never rendered before) apart
-  /// from "Regenerate Outfit" (this slot had an image once; the garments
-  /// backing it just changed since) — see
-  /// [_TripDetailsPageState._primaryAction].
-  final bool everHadOutfit;
-
-  const TripDayOutfit({
-    this.date,
-    this.optionId,
-    this.garments = const [],
-    this.outfitId,
-    this.resultImageUrl,
-    this.temperatureMaxC,
-    this.temperatureMinC,
-    this.everHadOutfit = false,
-  });
-}
-
-class TripDetailsInitialData {
-  final List<TripDayOutfit> dayOutfits;
-  final Set<int> suitcaseIds;
-
-  const TripDetailsInitialData({
-    required this.dayOutfits,
-    required this.suitcaseIds,
-  });
-}
-
 /// The page's single "what's the next step" CTA — see
 /// [_TripDetailsPageState._primaryAction]. Never more than one of these is
 /// active at once, by construction: [generateOutfit]/[regenerateOutfit] are
@@ -111,128 +60,9 @@ enum TripGenerationAction {
   none,
 }
 
-/// Parses `suitcase_items` from a `getTrip` response — items may come back
-/// either as `{garment_id: int, ...}` objects or bare ints.
-Set<int> _parseSuitcaseItemIds(dynamic rawItems) {
-  final ids = <int>{};
-  if (rawItems is List) {
-    for (final item in rawItems) {
-      if (item is Map && item['garment_id'] is int) {
-        ids.add(item['garment_id'] as int);
-      } else if (item is int) {
-        ids.add(item);
-      }
-    }
-  }
-  return ids;
-}
-
-/// Picks the primary already-tried-on outfit for one trip day out of
-/// `day['outfits']` — unlike the old `options[].items[]` shape, an entry
-/// here only carries `garment_ids` (no embedded image/name/category), so
-/// [closetGarments] (the user's full closet, not just the suitcase — a
-/// garment can be unpacked from the suitcase after being tried on, see
-/// `_hasMissingSuitcaseItems`) is used to resolve them. The day's
-/// temperature range comes straight from the trip plan itself
-/// (`temperature_max_c` / `temperature_min_c`), not a separate weather fetch.
-TripDayOutfit _parseTripDayOutfit(
-  Map<String, dynamic> day,
-  List<Garment> closetGarments,
-) {
-  final date = DateTime.tryParse((day['date'] as String?) ?? '');
-  final temperatureMaxC = (day['temperature_max_c'] as num?)?.toDouble();
-  final temperatureMinC = (day['temperature_min_c'] as num?)?.toDouble();
-  final outfits = ((day['outfits'] as List?) ?? [])
-      .whereType<Map<String, dynamic>>()
-      .toList();
-  if (outfits.isEmpty) {
-    return TripDayOutfit(
-      date: date,
-      temperatureMaxC: temperatureMaxC,
-      temperatureMinC: temperatureMinC,
-    );
-  }
-
-  final primary = outfits.firstWhere(
-    (o) => o['option_type'] == 'primary',
-    orElse: () => outfits.first,
-  );
-  final garmentIds = ((primary['garment_ids'] as List?) ?? [])
-      .whereType<num>()
-      .map((n) => n.toInt());
-  final closetById = {
-    for (final g in closetGarments)
-      if (g.id != null) g.id!: g,
-  };
-  final garments = garmentIds
-      .map((id) => closetById[id])
-      .whereType<Garment>()
-      .toList();
-  final outfitId = (primary['outfit_id'] as num?)?.toInt();
-
-  return TripDayOutfit(
-    date: date,
-    optionId: (primary['trip_option_id'] as num?)?.toInt(),
-    garments: garments,
-    outfitId: outfitId,
-    resultImageUrl: primary['result_image_url'] as String?,
-    temperatureMaxC: temperatureMaxC,
-    temperatureMinC: temperatureMinC,
-    everHadOutfit: outfitId != null,
-  );
-}
-
-/// Picks the primary (lowest `order_index`) suggested option for one trip
-/// day out of `POST /generate`'s own `day['options']` — unlike
-/// [_parseTripDayOutfit] (which reads already-tried-on results from `GET
-/// /trip_plans/{id}`), this is the *only* place an untried suggestion's
-/// garments are ever available, so `_generatePlan` must parse this
-/// response directly instead of re-fetching the trip afterward. Each
-/// option's items still come back with `image_url`/`category`/`name`
-/// embedded (`TripOutfitItemResponse`) — this endpoint's shape hasn't
-/// changed, so no closet lookup is needed here.
-TripDayOutfit _parseGeneratedTripDayOutfit(Map<String, dynamic> day) {
-  final date = DateTime.tryParse((day['date'] as String?) ?? '');
-  final temperatureMaxC = (day['temperature_max_c'] as num?)?.toDouble();
-  final temperatureMinC = (day['temperature_min_c'] as num?)?.toDouble();
-  final options =
-      ((day['options'] as List?) ?? [])
-          .whereType<Map<String, dynamic>>()
-          .toList()
-        ..sort(
-          (a, b) => ((a['order_index'] as num?) ?? 0).compareTo(
-            (b['order_index'] as num?) ?? 0,
-          ),
-        );
-  if (options.isEmpty) {
-    return TripDayOutfit(
-      date: date,
-      temperatureMaxC: temperatureMaxC,
-      temperatureMinC: temperatureMinC,
-    );
-  }
-
-  final primary = options.first;
-  final items = ((primary['items'] as List?) ?? [])
-      .whereType<Map<String, dynamic>>();
-  final garments = items.map(Garment.fromTripItemJson).toList();
-  final outfitId = (primary['outfit_id'] as num?)?.toInt();
-
-  return TripDayOutfit(
-    date: date,
-    optionId: (primary['id'] as num?)?.toInt(),
-    garments: garments,
-    outfitId: outfitId,
-    resultImageUrl: primary['result_image_url'] as String?,
-    temperatureMaxC: temperatureMaxC,
-    temperatureMinC: temperatureMinC,
-    everHadOutfit: outfitId != null,
-  );
-}
-
 class TripDetailsPage extends ConsumerStatefulWidget {
   final Trip trip;
-  final TripDetailsInitialData initialData;
+  final TripPlan initialData;
 
   const TripDetailsPage({
     super.key,
@@ -247,31 +77,17 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   /// only reports days with an already-rendered outfit, so a plan that's
   /// been generated (`POST /generate`) but never rendered into an image
   /// would come back looking exactly like no plan exists at all. `/plan`'s
-  /// `days[].options[]` covers both cases (rendered options still carry
-  /// their `outfit_id`/`result_image_url`), same shape [_generatePlan]
-  /// already parses via [_parseGeneratedTripDayOutfit] — no closet lookup
-  /// needed since each option's items embed their own image/name/category.
-  static Future<TripDetailsInitialData> preload(Trip trip) async {
-    List<TripDayOutfit> dayOutfits = [];
-    Set<int> suitcaseIds = {};
+  /// `days[].options[]` covers both cases and is self-contained (each
+  /// option's items embed their own image/name/category — no closet lookup).
+  static Future<TripPlan> preload(Trip trip) async {
     try {
-      final planData = await TripService().getTripPlan(int.parse(trip.id));
-      final rawDays = (planData['days'] as List?) ?? [];
-      dayOutfits = rawDays
-          .whereType<Map<String, dynamic>>()
-          .map(_parseGeneratedTripDayOutfit)
-          .toList();
-      suitcaseIds = _parseSuitcaseItemIds(planData['suitcase_items']);
+      return await TripService().getTripPlan(int.parse(trip.id));
     } on AuthExpiredException {
       rethrow;
     } catch (e) {
       debugLog('Failed to load trip outfits: $e');
+      return const TripPlan();
     }
-
-    return TripDetailsInitialData(
-      dayOutfits: dayOutfits,
-      suitcaseIds: suitcaseIds,
-    );
   }
 
   @override
@@ -293,7 +109,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   // page. Kept in sync with [tripsProvider] by [_updateTrip].
   late Trip _trip = widget.trip;
 
-  late List<TripDayOutfit> _dayOutfits = widget.initialData.dayOutfits;
+  late List<TripDayOutfit> _dayOutfits = widget.initialData.days;
   late Set<int> _suitcaseIds = widget.initialData.suitcaseIds;
 
   bool _loadingPackingAdvice = false;
@@ -393,18 +209,17 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   );
 
   /// Day outfit garments are resolved against the closet (see
-  /// [_parseTripDayOutfit]), so refreshing a stale image URL means
+  /// [TripPlan.fromRenderedResponse]), so refreshing a stale image URL means
   /// re-fetching both the trip and the closet.
   Future<void> _ensureFreshDayGarments() async {
     if (!_hasStaleGarmentImages) return;
     try {
       final tripData = await TripService().getTrip(int.parse(_trip.id));
       final closetGarments = await GarmentService().getGarments();
-      final rawDays = (tripData['days'] as List?) ?? [];
-      final dayOutfits = rawDays
-          .whereType<Map<String, dynamic>>()
-          .map((day) => _parseTripDayOutfit(day, closetGarments))
-          .toList();
+      final dayOutfits = TripPlan.fromRenderedResponse(
+        tripData,
+        closetGarments,
+      ).days;
       if (!mounted) return;
       setState(() => _dayOutfits = dayOutfits);
     } catch (_) {
@@ -454,8 +269,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           .toList();
       if (mounted) {
         setState(
-          () =>
-              _suitcaseIds = _parseSuitcaseItemIds(tripData['suitcase_items']),
+          () => _suitcaseIds = parseSuitcaseItemIds(tripData['suitcase_items']),
         );
       }
       return suitcase;
@@ -541,20 +355,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       // Parsed straight from this response, not re-fetched via getTrip —
       // GET only ever reports already-tried-on outfits, so a plain
       // refresh right after generating would just show every day as empty.
-      // No UI browses alternatives (_parseGeneratedTripDayOutfit only ever
+      // No UI browses alternatives (TripDayOutfit.fromPlanDay only ever
       // uses the primary option) — ask for none explicitly, since the
       // backend now defaults to generating up to 2 unused ones per day.
-      final planData = await TripService().generateTripPlan(
+      final plan = await TripService().generateTripPlan(
         int.parse(_trip.id),
         alternativesPerDay: 0,
       );
-      final rawDays = (planData['days'] as List?) ?? [];
-      final dayOutfits = rawDays
-          .whereType<Map<String, dynamic>>()
-          .map(_parseGeneratedTripDayOutfit)
-          .toList();
       if (!mounted) return;
-      setState(() => _dayOutfits = dayOutfits);
+      setState(() => _dayOutfits = plan.days);
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
       return;
@@ -944,7 +753,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         final refreshed = await TripDetailsPage.preload(updated);
         if (mounted) {
           setState(() {
-            _dayOutfits = refreshed.dayOutfits;
+            _dayOutfits = refreshed.days;
             _suitcaseIds = refreshed.suitcaseIds;
             _selectedDayIndex = _dayOutfits.isEmpty
                 ? 0
