@@ -60,7 +60,11 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
 
   try {
     final newTrip = await _createTrip(input);
-    ref.read(tripsProvider.notifier).addTrip(newTrip);
+    // Re-fetch from the server rather than an optimistic insert: this runs
+    // while the loading overlay is still up (so the AsyncLoading flash is
+    // hidden), and a plain `addTrip` gets clobbered if the provider's
+    // initial `getTrips()` future is still resolving when it fires.
+    await ref.read(tripsProvider.notifier).refresh();
     final initialData = await TripDetailsPage.preload(newTrip);
 
     if (!context.mounted) return;
