@@ -162,5 +162,26 @@ void main() {
       );
       // No exception means the 404-tolerance path was taken.
     });
+
+    // The shared BaseService.deleteIdempotent helper routes a real failure
+    // through MatchLookService's own _decode, so it keeps surfacing a
+    // MatchLookException (with the backend error_code) rather than a plain
+    // Exception.
+    test('a 500 still surfaces a MatchLookException', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(
+          {'error_code': 'INTERNAL_SERVER_ERROR', 'message': 'boom'},
+          status: 500,
+        ),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => MatchLookService().removeReference(),
+          () => client,
+        ),
+        throwsA(isA<MatchLookException>()),
+      );
+    });
   });
 }

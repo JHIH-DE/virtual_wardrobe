@@ -162,23 +162,11 @@ class GarmentService with BaseService {
 
   Future<void> deleteGarment(int garmentId) async {
     debugLog('--- deleteGarment: $garmentId ---');
-    final uri = Uri.parse('$_baseUrl/$garmentId');
-    final res = await withAuth(
-      (token) => http
-          .delete(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
+    await deleteIdempotent(
+      Uri.parse('$_baseUrl/$garmentId'),
+      op: 'deleteGarment',
     );
-    // withAuth returns the raw response even when the post-refresh retry
-    // still 401s; convert that to AuthExpiredException so the page layer's
-    // handler runs instead of a generic "delete failed" fallback.
-    throwIfAuthExpired(res);
-    if (res.statusCode == 200 ||
-        res.statusCode == 204 ||
-        res.statusCode == 404) {
-      _cache.remove(garmentId);
-      return;
-    }
-    throw Exception('deleteGarment failed (${res.statusCode})');
+    _cache.remove(garmentId);
   }
 
   Future<Garment> updateGarment(Garment garment) async {

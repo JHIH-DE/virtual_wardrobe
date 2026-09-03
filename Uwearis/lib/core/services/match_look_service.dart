@@ -112,13 +112,10 @@ class MatchLookService with BaseService {
   /// [GarmentService.deleteGarment].
   Future<void> removeReference() async {
     debugLog('--- removeReference ---');
-    final uri = Uri.parse('$_baseUrl/reference');
-    final res = await withAuth(
-      (token) => http
-          .delete(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
+    await deleteIdempotent(
+      Uri.parse('$_baseUrl/reference'),
+      op: 'matchLookRemoveReference',
+      errorDecode: _decode,
     );
-    if (res.statusCode == 404) return;
-    _decode(res, op: 'matchLookRemoveReference');
   }
 }

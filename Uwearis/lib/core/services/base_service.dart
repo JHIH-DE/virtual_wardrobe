@@ -74,6 +74,28 @@ mixin BaseService {
     if (res.statusCode == 401) throw AuthExpiredException();
   }
 
+  /// Sends an idempotent authenticated `DELETE` to [uri]: a `404` means the
+  /// resource is already gone, which for a delete is success, not an error;
+  /// any `2xx` (with or without a body) is likewise success. Anything else
+  /// is routed through [errorDecode] — [decodeMap] by default — so the
+  /// failure message is still built in exactly one place. A `401` that
+  /// survived [withAuth]'s refresh/retry becomes [AuthExpiredException].
+  Future<void> deleteIdempotent(
+    Uri uri, {
+    required String op,
+    Duration timeout = const Duration(seconds: 15),
+    Map<String, dynamic> Function(http.Response res, {required String op})?
+    errorDecode,
+  }) async {
+    final res = await withAuth(
+      (token) => http.delete(uri, headers: authHeaders(token)).timeout(timeout),
+    );
+    throwIfAuthExpired(res);
+    if (res.statusCode == 404) return;
+    if (res.statusCode >= 200 && res.statusCode < 300) return;
+    (errorDecode ?? decodeMap)(res, op: op);
+  }
+
   Future<void> putJpegToSignedUrl(String uploadUrl, String localPath) async {
     final bytes = await File(localPath).readAsBytes();
     final res = await http.put(
