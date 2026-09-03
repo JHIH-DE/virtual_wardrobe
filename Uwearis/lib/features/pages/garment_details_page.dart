@@ -466,7 +466,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildOutfitPotentialCard(),
+              child: _OutfitPotentialCard(
+                versatility: _versatility,
+                subCategory: _subCategory.text.trim(),
+                allGarments: ref.watch(garmentsProvider).value ?? const [],
+                onRowTap: _showCompatibleGarments,
+              ),
             ),
           ],
           const SizedBox(height: AppDimens.sectionSpacing),
@@ -483,126 +488,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  Widget _buildOutfitPotentialCard() {
-    final score = (_versatility?['score'] as num?)?.toInt();
-    final breakdown =
-        (_versatility?['breakdown'] as List?)
-            ?.whereType<Map<String, dynamic>>()
-            .where((item) {
-              final count = (item['compatible_count'] as num?)?.toInt() ?? 0;
-              if (count == 0) return false;
-              final category = GarmentCategoryX.fromApiValue(
-                item['category'] as String?,
-              );
-              return category != GarmentCategory.accessory &&
-                  category != GarmentCategory.socks;
-            })
-            .toList() ??
-        const [];
-
-    if (score == null) return const SizedBox.shrink();
-
-    final totalItems = breakdown.fold<int>(
-      0,
-      (sum, item) => sum + ((item['compatible_count'] as num?)?.toInt() ?? 0),
-    );
-    final subCategory = _subCategory.text.trim();
-    final allGarments = ref.watch(garmentsProvider).value ?? const [];
-
-    return UwearisInsightCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  ScoreRing(score: score, size: 70),
-                  const SizedBox(height: 6),
-                  Text(
-                    _scoreTierLabel(score),
-                    style: AppTextStyle.bold12.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    subCategory.isEmpty
-                        ? _l10n.garmentPairsWellWithGeneric(totalItems)
-                        : _l10n.garmentPairsWellWith(subCategory, totalItems),
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (breakdown.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            for (var i = 0; i < breakdown.length; i++) ...[
-              if (i > 0) const SizedBox(height: 8),
-              CompatibilityRow(
-                label: GarmentCategoryX.fromApiValue(
-                  breakdown[i]['category'] as String?,
-                ).pluralLabel(context),
-                count: (breakdown[i]['compatible_count'] as num?)?.toInt() ?? 0,
-                previewGarments: _resolveGarments(
-                  breakdown[i],
-                  allGarments,
-                  limit: 3,
-                ),
-                onTap: () => _showCompatibleGarments(breakdown[i]),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _scoreTierLabel(int score) {
-    if (score >= 90) return _l10n.scoreTierExcellent;
-    if (score >= 75) return _l10n.scoreTierHighlyVersatile;
-    if (score >= 55) return _l10n.scoreTierGoodMatch;
-    if (score >= 35) return _l10n.scoreTierLimitedMatch;
-    return _l10n.scoreTierHardToStyle;
-  }
-
-  /// Resolves a breakdown item's `compatible_garment_ids` against the
-  /// user's already-loaded closet, for both the row's preview thumbnails
-  /// and the full dialog grid.
-  List<Garment> _resolveGarments(
-    Map<String, dynamic> breakdownItem,
-    List<Garment> all, {
-    int? limit,
-  }) {
-    final ids =
-        (breakdownItem['compatible_garment_ids'] as List?)
-            ?.whereType<num>()
-            .map((n) => n.toInt())
-            .toList() ??
-        const [];
-    final matched = <Garment>[
-      for (final id in ids)
-        for (final g in all)
-          if (g.id == id) g,
-    ];
-    return limit == null ? matched : matched.take(limit).toList();
-  }
-
   void _showCompatibleGarments(Map<String, dynamic> breakdownItem) {
     final category = GarmentCategoryX.fromApiValue(
       breakdownItem['category'] as String?,
     );
     final all = ref.read(garmentsProvider).value ?? const [];
-    final garments = _resolveGarments(breakdownItem, all, limit: 9);
+    final garments = _resolveCompatibleGarments(breakdownItem, all, limit: 9);
 
     showDialog<void>(
       context: context,
@@ -1368,5 +1259,137 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       }
     }
     return null;
+  }
+}
+
+/// Resolves a versatility breakdown item's `compatible_garment_ids` against
+/// the user's already-loaded closet, for both a row's preview thumbnails
+/// and the full "see all" dialog grid.
+List<Garment> _resolveCompatibleGarments(
+  Map<String, dynamic> breakdownItem,
+  List<Garment> all, {
+  int? limit,
+}) {
+  final ids =
+      (breakdownItem['compatible_garment_ids'] as List?)
+          ?.whereType<num>()
+          .map((n) => n.toInt())
+          .toList() ??
+      const [];
+  final matched = <Garment>[
+    for (final id in ids)
+      for (final g in all)
+        if (g.id == id) g,
+  ];
+  return limit == null ? matched : matched.take(limit).toList();
+}
+
+/// The "outfit potential" insight card shown in add-garment mode — a
+/// versatility score ring plus a per-category compatibility breakdown.
+/// Renders nothing when [versatility] carries no score yet. [onRowTap] gets
+/// the raw breakdown item for the category whose row was tapped.
+class _OutfitPotentialCard extends StatelessWidget {
+  final Map<String, dynamic>? versatility;
+  final String subCategory;
+  final List<Garment> allGarments;
+  final void Function(Map<String, dynamic> breakdownItem) onRowTap;
+
+  const _OutfitPotentialCard({
+    required this.versatility,
+    required this.subCategory,
+    required this.allGarments,
+    required this.onRowTap,
+  });
+
+  String _scoreTierLabel(AppLocalizations l10n, int score) {
+    if (score >= 90) return l10n.scoreTierExcellent;
+    if (score >= 75) return l10n.scoreTierHighlyVersatile;
+    if (score >= 55) return l10n.scoreTierGoodMatch;
+    if (score >= 35) return l10n.scoreTierLimitedMatch;
+    return l10n.scoreTierHardToStyle;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final score = (versatility?['score'] as num?)?.toInt();
+    final breakdown =
+        (versatility?['breakdown'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .where((item) {
+              final count = (item['compatible_count'] as num?)?.toInt() ?? 0;
+              if (count == 0) return false;
+              final category = GarmentCategoryX.fromApiValue(
+                item['category'] as String?,
+              );
+              return category != GarmentCategory.accessory &&
+                  category != GarmentCategory.socks;
+            })
+            .toList() ??
+        const [];
+
+    if (score == null) return const SizedBox.shrink();
+
+    final totalItems = breakdown.fold<int>(
+      0,
+      (sum, item) => sum + ((item['compatible_count'] as num?)?.toInt() ?? 0),
+    );
+
+    return UwearisInsightCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                children: [
+                  ScoreRing(score: score, size: 70),
+                  const SizedBox(height: 6),
+                  Text(
+                    _scoreTierLabel(l10n, score),
+                    style: AppTextStyle.bold12.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    subCategory.isEmpty
+                        ? l10n.garmentPairsWellWithGeneric(totalItems)
+                        : l10n.garmentPairsWellWith(subCategory, totalItems),
+                    style: AppTextStyle.regular14.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (breakdown.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            for (var i = 0; i < breakdown.length; i++) ...[
+              if (i > 0) const SizedBox(height: 8),
+              CompatibilityRow(
+                label: GarmentCategoryX.fromApiValue(
+                  breakdown[i]['category'] as String?,
+                ).pluralLabel(context),
+                count: (breakdown[i]['compatible_count'] as num?)?.toInt() ?? 0,
+                previewGarments: _resolveCompatibleGarments(
+                  breakdown[i],
+                  allGarments,
+                  limit: 3,
+                ),
+                onTap: () => onRowTap(breakdown[i]),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
   }
 }
