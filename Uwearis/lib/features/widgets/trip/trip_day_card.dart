@@ -62,34 +62,40 @@ class TripDayCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.textPrimary,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '${date.day}',
-                  style: AppTextStyle.bold14.copyWith(
-                    color: AppColors.textOnPrimary,
+          // scaleDown so a wide weekday abbreviation (or a wider glyph set
+          // under a different locale/font) shrinks to fit the fixed card
+          // width instead of overflowing the row.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AppColors.textPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${date.day}',
+                    style: AppTextStyle.bold14.copyWith(
+                      color: AppColors.textOnPrimary,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Container(width: 1, height: 24, color: AppColors.borderSubtle),
-              const SizedBox(width: 6),
-              Text(
-                DateFormat('E').format(date),
-                style: AppTextStyle.bold14.copyWith(
-                  color: AppColors.textPrimary,
+                const SizedBox(width: 6),
+                Container(width: 1, height: 24, color: AppColors.borderSubtle),
+                const SizedBox(width: 6),
+                Text(
+                  DateFormat('E').format(date),
+                  style: AppTextStyle.bold14.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           if (_temperatureLabel != null) ...[
             const SizedBox(height: 6),

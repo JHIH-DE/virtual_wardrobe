@@ -131,10 +131,6 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      // TripDayCard's fixed-width date row overflows by a hair under the
-      // test font's wider glyph metrics — cosmetic, not what this test is
-      // about.
-      tester.takeException();
 
       expect(find.text('Daily Outfit Plan'), findsOneWidget);
     }, packingAdviceClient);
