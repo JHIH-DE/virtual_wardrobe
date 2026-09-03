@@ -39,7 +39,10 @@ class TripService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token), body: jsonEncode(body))
-          .timeout(const Duration(seconds: 15)),
+          // Create fans out a per-day weather lookup (geocode + Open-Meteo
+          // forecast/archive) server-side, so it runs past the 15s the quick
+          // calls use.
+          .timeout(const Duration(seconds: 45)),
     );
 
     final envelope = decodeMap(res, op: 'createTrip');
@@ -92,7 +95,9 @@ class TripService with BaseService {
     final res = await withAuth(
       (token) => http
           .patch(uri, headers: authHeaders(token), body: jsonEncode(body))
-          .timeout(const Duration(seconds: 15)),
+          // Editing legs/days re-resolves those days' weather server-side
+          // (see createTrip).
+          .timeout(const Duration(seconds: 45)),
     );
 
     decodeMap(res, op: 'updateTrip');

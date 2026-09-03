@@ -323,6 +323,18 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// before overwriting.
   bool get _hasTripPlan => _dayOutfits.any((d) => d.optionId != null);
 
+  /// Gate for the "Generate Trip Plan" CTA: the suitcase must hold at least
+  /// half the recommended item count. Generating a whole trip's outfits
+  /// from almost nothing just produces an unusable plan. While the
+  /// recommendation is still loading (or couldn't be fetched) this falls
+  /// back to "at least one item packed".
+  bool get _meetsPackingThreshold {
+    final packed = _suitcaseIds.length;
+    final recommended = _recommendedTotal;
+    if (recommended == null || recommended <= 0) return packed > 0;
+    return packed * 2 >= recommended;
+  }
+
   /// True once a not-yet-rendered day's assignment leans on a garment no
   /// longer in the suitcase — generating that day's outfit would try on
   /// something that isn't packed anymore. Deliberately narrower than "any
@@ -502,7 +514,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     final fetched = await _fetchSuitcaseGarments();
     if (fetched == null || !mounted) return;
 
-    if (!_hasViableSuitcase(fetched)) {
+    if (!_meetsPackingThreshold || !_hasViableSuitcase(fetched)) {
       final goToSuitcase = await showDialog<bool>(
         context: context,
         builder: (ctx) => AppDialog(
@@ -1015,7 +1027,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       case TripGenerationAction.generateTripPlan:
         return BottomActionButton(
           label: _l10n.generateTripPlan,
-          onPressed: _generatingPlan ? null : _generatePlan,
+          onPressed: (_generatingPlan || !_meetsPackingThreshold)
+              ? null
+              : _generatePlan,
           isLoading: _generatingPlan,
           leading: const Icon(Icons.auto_awesome_outlined),
         );
