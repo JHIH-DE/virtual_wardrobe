@@ -1084,6 +1084,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
           ),
+        if (_generatingOutfit)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.generatingOutfitEllipsis),
+          ),
         if (_loadingEditor)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.loadingSuitcaseEllipsis),
