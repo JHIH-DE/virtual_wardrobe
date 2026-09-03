@@ -10,6 +10,7 @@ import '../../core/utils/debug_log.dart';
 import '../../data/trip.dart';
 import '../../data/trip_plan.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/main_tab_async.dart';
@@ -234,17 +235,24 @@ class _TripsPageState extends ConsumerState<TripsPage> {
     });
   }
 
+  AppToolBar _buildAppBar(AsyncValue<List<Trip>> tripsAsync) {
+    return AppToolBar(
+      title: AppLocalizations.of(context).navTrips,
+      titleCount: (tripsAsync.value ?? const []).length,
+      centerTitle: false,
+      showBackButton: false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tripsAsync = ref.watch(tripsProvider);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      body: SafeArea(
-        bottom: false,
-        child: tripsAsync.mainTabBody(
-          data: _buildTripList,
-          onRetry: () => ref.read(tripsProvider.notifier).refresh(),
-        ),
+      appBar: _buildAppBar(tripsAsync),
+      body: tripsAsync.mainTabBody(
+        data: _buildTripList,
+        onRetry: () => ref.read(tripsProvider.notifier).refresh(),
       ),
     );
   }
