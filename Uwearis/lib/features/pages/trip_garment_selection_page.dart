@@ -15,7 +15,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
-import '../widgets/common/expand_arrow_icon.dart';
+import '../widgets/common/expandable_insight_body.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
@@ -399,47 +399,18 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   }
 
   Widget _buildAdviceContent(_CategoryAdvice advice, int selectedInCategory) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: advice.reasoning.isEmpty
-          ? null
-          : () => setState(() => _reasoningExpanded = !_reasoningExpanded),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context).recommendedSelectedCount(
-                    advice.recommendedQuantity,
-                    selectedInCategory,
-                  ),
-                  style: AppTextStyle.regular16,
-                ),
-              ),
-              if (advice.reasoning.isNotEmpty)
-                ExpandArrowIcon(expanded: _reasoningExpanded),
-            ],
-          ),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 150),
-            crossFadeState: _reasoningExpanded
-                ? CrossFadeState.showFirst
-                : CrossFadeState.showSecond,
-            firstChild: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                advice.reasoning,
-                style: AppTextStyle.regular14.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-            secondChild: const SizedBox.shrink(),
-          ),
-        ],
+    return ExpandableInsightBody(
+      title: Text(
+        AppLocalizations.of(context).recommendedSelectedCount(
+          advice.recommendedQuantity,
+          selectedInCategory,
+        ),
+        style: AppTextStyle.regular16,
       ),
+      detail: advice.reasoning,
+      showToggle: advice.reasoning.isNotEmpty,
+      expanded: _reasoningExpanded,
+      onToggle: () => setState(() => _reasoningExpanded = !_reasoningExpanded),
     );
   }
 }

@@ -3,14 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../data/outfit.dart';
 import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
-import '../widgets/common/cards/count_pill.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
@@ -94,18 +92,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: l10n.navOutfits,
-      titleWidget: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.navOutfits,
-            textScaler: TextScaler.noScaling,
-            style: AppTextStyle.bold20,
-          ),
-          const SizedBox(width: 8),
-          CountPill(count: _filtered(all).length),
-        ],
-      ),
+      titleCount: _filtered(all).length,
       centerTitle: false,
       showBackButton: false,
       actions: [

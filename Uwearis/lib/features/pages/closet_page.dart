@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
-import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
@@ -12,7 +11,6 @@ import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
-import '../widgets/common/cards/count_pill.dart';
 import '../widgets/common/cards/favorite_card.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
@@ -156,18 +154,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     final all = garmentsAsync.value ?? [];
     return AppToolBar(
       title: AppLocalizations.of(context).navCloset,
-      titleWidget: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            AppLocalizations.of(context).navCloset,
-            textScaler: TextScaler.noScaling,
-            style: AppTextStyle.bold20,
-          ),
-          const SizedBox(width: 8),
-          CountPill(count: _currentListCount(all)),
-        ],
-      ),
+      titleCount: _currentListCount(all),
       centerTitle: false,
       showBackButton: false,
       actions: [_buildFilterButton(all), const SizedBox(width: 8)],

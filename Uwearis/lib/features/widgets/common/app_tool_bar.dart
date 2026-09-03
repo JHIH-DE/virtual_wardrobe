@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import 'cards/count_pill.dart';
 
 class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final Widget? titleWidget;
+
+  /// When set (and [titleWidget] is null), the title renders as
+  /// `<title>  <CountPill>` — the My Closet / Outfits tab header shape.
+  final int? titleCount;
   final VoidCallback? onBack;
   final bool showBackButton;
   final Widget? leading;
@@ -30,6 +35,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.title,
     this.titleWidget,
+    this.titleCount,
     this.onBack,
     this.showBackButton = true,
     this.leading,
@@ -45,6 +51,23 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size.fromHeight(
     AppDimens.toolbarHeight + (bottom?.preferredSize.height ?? 0),
   );
+
+  Widget _buildTitle() {
+    final text = Text(
+      title,
+      textScaler: TextScaler.noScaling,
+      style: AppTextStyle.bold20,
+    );
+    if (titleCount == null) return text;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        text,
+        const SizedBox(width: 8),
+        CountPill(count: titleCount!),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,11 +97,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         leadingWidth: leadingWidth,
         title: titleWidget != null
             ? Semantics(header: true, label: title, child: titleWidget)
-            : Text(
-                title,
-                textScaler: TextScaler.noScaling,
-                style: AppTextStyle.bold20,
-              ),
+            : _buildTitle(),
         leading:
             leading ??
             (showBackButton

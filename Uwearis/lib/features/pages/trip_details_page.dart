@@ -23,7 +23,7 @@ import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/edge_fade_scrim.dart';
-import '../widgets/common/expand_arrow_icon.dart';
+import '../widgets/common/expandable_insight_body.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
@@ -1513,43 +1513,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 ),
               ],
             )
-          : GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(
-                () => _packingAdviceExpanded = !_packingAdviceExpanded,
+          : ExpandableInsightBody(
+              title: SectionTitle(
+                _l10n.outfitAdviceLabel,
+                style: AppTextStyle.regular16,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SectionTitle(
-                          _l10n.outfitAdviceLabel,
-                          style: AppTextStyle.regular16,
-                        ),
-                      ),
-                      ExpandArrowIcon(expanded: _packingAdviceExpanded),
-                    ],
-                  ),
-                  AnimatedCrossFade(
-                    duration: const Duration(milliseconds: 150),
-                    crossFadeState: _packingAdviceExpanded
-                        ? CrossFadeState.showFirst
-                        : CrossFadeState.showSecond,
-                    firstChild: Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        _packingAdvice!,
-                        style: AppTextStyle.regular14.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                    secondChild: const SizedBox.shrink(),
-                  ),
-                ],
+              detail: _packingAdvice!,
+              detailLineHeight: 1.5,
+              expanded: _packingAdviceExpanded,
+              onToggle: () => setState(
+                () => _packingAdviceExpanded = !_packingAdviceExpanded,
               ),
             ),
     );
