@@ -761,14 +761,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           });
         }
       }
+    } on AuthExpiredException {
+      if (!mounted) return;
+      setState(() => _trip = previous);
+      ref.read(tripsProvider.notifier).updateTrip(previous);
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       setState(() => _trip = previous);
       ref.read(tripsProvider.notifier).updateTrip(previous);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to update trip: $e');
       ScaffoldMessenger.of(
         context,
@@ -803,13 +804,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       ref.read(tripsProvider.notifier).removeTrip(_trip.id);
       Navigator.pop(context); // close loading indicator
       Navigator.pop(context); // back out of Trip Details — the trip is gone
+    } on AuthExpiredException {
+      if (!mounted) return;
+      Navigator.pop(context); // close loading indicator
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // close loading indicator
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to delete trip: $e');
       ScaffoldMessenger.of(
         context,

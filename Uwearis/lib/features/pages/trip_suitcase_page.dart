@@ -160,12 +160,12 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
     try {
       await TripService().removeSuitcaseItem(_tripId, garmentId: id);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      setState(() => _packedGarments = previousGarments);
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (mounted) setState(() => _packedGarments = previousGarments);
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to remove suitcase item: $e');
       if (mounted) {
         ScaffoldMessenger.of(

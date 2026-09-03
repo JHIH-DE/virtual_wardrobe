@@ -67,13 +67,13 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
     _goToNewTripDetails(context, newTrip, initialData);
+  } on AuthExpiredException {
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    await AuthExpiredHandler.handle(context);
   } catch (e) {
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
-    if (e is AuthExpiredException) {
-      await AuthExpiredHandler.handle(context);
-      return;
-    }
     debugLog('Failed to create trip: $e');
     ScaffoldMessenger.of(
       context,
@@ -96,13 +96,13 @@ Future<void> handleRenameTrip(
   ref.read(tripsProvider.notifier).updateTrip(updated);
   try {
     await TripService().updateTrip(int.parse(trip.id), name: name);
+  } on AuthExpiredException {
+    if (!context.mounted) return;
+    ref.read(tripsProvider.notifier).updateTrip(trip);
+    await AuthExpiredHandler.handle(context);
   } catch (e) {
     if (!context.mounted) return;
     ref.read(tripsProvider.notifier).updateTrip(trip);
-    if (e is AuthExpiredException) {
-      await AuthExpiredHandler.handle(context);
-      return;
-    }
     debugLog('Failed to rename trip: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).failedToUpdateTrip)),
@@ -135,13 +135,13 @@ Future<void> handleDeleteTrip(
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
     ref.read(tripsProvider.notifier).removeTrip(trip.id);
+  } on AuthExpiredException {
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    await AuthExpiredHandler.handle(context);
   } catch (e) {
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
-    if (e is AuthExpiredException) {
-      await AuthExpiredHandler.handle(context);
-      return;
-    }
     debugLog('Failed to delete trip: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context).failedToDeleteTrip)),

@@ -363,13 +363,13 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         );
       }
       await ref.read(outfitsProvider.notifier).refresh();
-    } catch (e) {
+    } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
+      await AuthExpiredHandler.handle(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isOpeningTryOn = false);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -594,13 +594,13 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         target.id,
         isFavorite: next,
       );
-    } catch (e) {
+    } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _versions[index] = target);
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
+      await AuthExpiredHandler.handle(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _versions[index] = target);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateFavorite)));
@@ -628,6 +628,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         coverOutfitId: target.id,
       );
       await ref.read(outfitsProvider.notifier).refresh();
+    } on AuthExpiredException {
+      if (!mounted) return;
+      setState(() {
+        _versions
+          ..clear()
+          ..addAll(previous);
+      });
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -635,10 +643,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ..clear()
           ..addAll(previous);
       });
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));

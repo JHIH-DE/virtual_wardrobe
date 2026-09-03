@@ -258,12 +258,11 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: next);
     try {
       await GarmentService().setFavorite(id, isFavorite: next);
-    } catch (e) {
+    } on AuthExpiredException {
       ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: !next);
-      if (e is AuthExpiredException) {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      }
+      if (mounted) await AuthExpiredHandler.handle(context);
+    } catch (_) {
+      ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: !next);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

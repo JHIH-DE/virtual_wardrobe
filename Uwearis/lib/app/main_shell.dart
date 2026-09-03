@@ -112,13 +112,13 @@ class _MainShellState extends ConsumerState<MainShell> {
           ),
         ),
       );
+    } on AuthExpiredException {
+      if (!mounted) return;
+      Navigator.pop(context); // close loading indicator
+      await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // close loading indicator
-      if (e is AuthExpiredException) {
-        await AuthExpiredHandler.handle(context);
-        return;
-      }
       debugLog('Failed to load garments: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
