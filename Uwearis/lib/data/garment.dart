@@ -237,6 +237,23 @@ class Garment {
     );
   }
 
+  /// Parses a nullable API identifier (`id` / `garment_id`).
+  ///
+  /// These arrive as whole JSON numbers. Unlike the general numeric fields
+  /// ([parseIntField] in [fromJson]) this deliberately does **not** accept a
+  /// numeric string, and it rejects a fractional / `NaN` / `Infinity` value
+  /// by throwing rather than silently truncating it — a rounded id would
+  /// point at a different row. `null` / absent stays `null`; a non-number
+  /// (string, bool, …) throws a `TypeError` from the `as num` cast, matching
+  /// the previous `as int?` behaviour.
+  static int? _parseNullableId(dynamic value) {
+    if (value == null) return null;
+    final n = value as num;
+    if (n is int) return n;
+    if (n.isFinite && n == n.truncateToDouble()) return n.toInt();
+    throw FormatException('API identifier must be a whole finite number: $n');
+  }
+
   factory Garment.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(dynamic v) {
       if (v == null) return null;
@@ -254,8 +271,8 @@ class Garment {
     int? parseIntField(dynamic v) => parseNum(v)?.round();
 
     return Garment(
-      id: json['id'] as int?,
-      garmentId: json['garment_id'] as int?,
+      id: _parseNullableId(json['id']),
+      garmentId: _parseNullableId(json['garment_id']),
       name: (json['name'] as String?) ?? '',
       brand: json['brand'] as String?,
       color: json['color'] as String?,
@@ -285,7 +302,7 @@ class Garment {
   /// response doesn't carry (brand/color/fit/price/subCategory/...) stay at
   /// their defaults; nothing in the trip UI reads them for these garments.
   factory Garment.fromTripItemJson(Map<String, dynamic> json) {
-    final garmentId = json['garment_id'] as int?;
+    final garmentId = _parseNullableId(json['garment_id']);
     return Garment(
       id: garmentId,
       garmentId: garmentId,

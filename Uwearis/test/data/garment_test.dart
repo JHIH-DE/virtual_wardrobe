@@ -109,6 +109,51 @@ void main() {
       expect(garment.formality, 3);
     });
 
+    test('parses id/garment_id sent as an integer-valued double', () {
+      final garment = Garment.fromJson({'id': 5.0, 'garment_id': 5.0});
+      expect(garment.id, 5);
+      expect(garment.garmentId, 5);
+    });
+
+    test('leaves id/garment_id null when the key is absent or null', () {
+      final garment = Garment.fromJson({'id': null});
+      expect(garment.id, isNull);
+      expect(garment.garmentId, isNull);
+    });
+
+    // id/garment_id are always JSON numbers on this endpoint — unlike
+    // price/thickness/formality they have never accepted a numeric string, so
+    // a string (or any non-number) still throws rather than being coerced.
+    test('throws on a non-numeric id/garment_id, contract unchanged', () {
+      expect(() => Garment.fromJson({'id': 'abc'}), throwsA(isA<TypeError>()));
+      expect(() => Garment.fromJson({'id': '7'}), throwsA(isA<TypeError>()));
+      expect(
+        () => Garment.fromJson({'garment_id': true}),
+        throwsA(isA<TypeError>()),
+      );
+    });
+
+    // A fractional / non-finite id must never be truncated to a whole number
+    // — that would silently point the app at a different garment row.
+    test('throws on a fractional, NaN or Infinity id/garment_id', () {
+      expect(
+        () => Garment.fromJson({'id': 5.5}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Garment.fromJson({'id': double.nan}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Garment.fromJson({'garment_id': double.infinity}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Garment.fromJson({'garment_id': double.negativeInfinity}),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
     test('treats an unparseable purchase_date as null rather than throwing', () {
       final garment = Garment.fromJson({'purchase_date': 'not-a-date'});
       expect(garment.purchaseDate, isNull);
@@ -134,6 +179,40 @@ void main() {
       expect(garment.uploadUrl, '');
       expect(garment.objectName, '');
       expect(garment.brand, isNull);
+    });
+
+    test('parses a garment_id sent as an integer-valued double', () {
+      final garment = Garment.fromTripItemJson({'garment_id': 42.0});
+      expect(garment.id, 42);
+      expect(garment.garmentId, 42);
+    });
+
+    test('leaves id/garmentId null when garment_id is absent', () {
+      final garment = Garment.fromTripItemJson({'image_url': 'x'});
+      expect(garment.id, isNull);
+      expect(garment.garmentId, isNull);
+    });
+
+    test('throws on a non-numeric garment_id', () {
+      expect(
+        () => Garment.fromTripItemJson({'garment_id': 'abc'}),
+        throwsA(isA<TypeError>()),
+      );
+    });
+
+    test('throws on a fractional, NaN or Infinity garment_id', () {
+      expect(
+        () => Garment.fromTripItemJson({'garment_id': 5.5}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Garment.fromTripItemJson({'garment_id': double.nan}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Garment.fromTripItemJson({'garment_id': double.infinity}),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 
