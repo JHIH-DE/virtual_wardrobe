@@ -14,8 +14,8 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
-import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
+import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/section_title.dart';
 import 'image_editor_page.dart';
@@ -605,27 +605,21 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     );
   }
 
-  /// Matches Account page's name field: a small uppercase [FieldLabel]
-  /// sitting above the box rather than a floating label inside it.
   Widget _buildLabeledField({
     required TextEditingController controller,
     required String label,
     required String unit,
     ValueChanged<String>? onChanged,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(label.toUpperCase()),
-        const SizedBox(height: 8),
-        AppTextField(
-          controller: controller,
-          suffixText: unit,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: _decimalFormatters,
-          onChanged: onChanged,
-        ),
-      ],
+    return LabeledField(
+      label: label,
+      child: AppTextField(
+        controller: controller,
+        suffixText: unit,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: _decimalFormatters,
+        onChanged: onChanged,
+      ),
     );
   }
 }

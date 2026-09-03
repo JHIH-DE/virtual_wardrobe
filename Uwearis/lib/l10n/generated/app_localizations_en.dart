@@ -437,9 +437,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripNameLabel => 'Trip Name';
 
   @override
-  String get tripActivitiesLabel => 'Trip Activities (Optional)';
-
-  @override
   String get create => 'Create';
 
   @override

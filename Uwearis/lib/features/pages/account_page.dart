@@ -14,8 +14,8 @@ import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
+import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
@@ -290,30 +290,22 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Widget _buildNameField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.accountNameLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        AppTextField(controller: _nameCtrl, hint: _l10n.enterYourNameHint),
-      ],
+    return LabeledField(
+      label: _l10n.accountNameLabel,
+      child: AppTextField(controller: _nameCtrl, hint: _l10n.enterYourNameHint),
     );
   }
 
   Widget _buildGenderField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.genderLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        PickerField(
-          text: _selectedGender != null
-              ? _genderDisplayLabel(_selectedGender!)
-              : '',
-          hint: _l10n.selectGenderHint,
-          onTap: _loading ? null : _openGenderPicker,
-        ),
-      ],
+    return LabeledField(
+      label: _l10n.genderLabel,
+      child: PickerField(
+        text: _selectedGender != null
+            ? _genderDisplayLabel(_selectedGender!)
+            : '',
+        hint: _l10n.selectGenderHint,
+        onTap: _loading ? null : _openGenderPicker,
+      ),
     );
   }
 
@@ -356,51 +348,43 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Widget _buildBirthdayField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.birthdayLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        DateDropdownField(
-          value: _selectedBirthDate,
-          hint: _l10n.selectBirthdayHint,
-          firstDate: DateTime(1900),
-          lastDate: DateTime.now(),
-          onChanged: _loading
-              ? null
-              : (d) => setState(() => _selectedBirthDate = d),
-        ),
-      ],
+    return LabeledField(
+      label: _l10n.birthdayLabel,
+      child: DateDropdownField(
+        value: _selectedBirthDate,
+        hint: _l10n.selectBirthdayHint,
+        firstDate: DateTime(1900),
+        lastDate: DateTime.now(),
+        onChanged: _loading
+            ? null
+            : (d) => setState(() => _selectedBirthDate = d),
+      ),
     );
   }
 
   Widget _buildLocationField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.homeLocationLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        TappableFieldDecorator(
-          onTap: _pickHomeLocation,
-          children: [
-            Expanded(
-              child: Text(
-                _homeLocation ?? _l10n.selectYourCityHint,
-                style: AppTextStyle.regular16.copyWith(
-                  color: _homeLocation == null
-                      ? AppColors.textSecondary
-                      : AppColors.textPrimary,
-                ),
+    return LabeledField(
+      label: _l10n.homeLocationLabel,
+      child: TappableFieldDecorator(
+        onTap: _pickHomeLocation,
+        children: [
+          Expanded(
+            child: Text(
+              _homeLocation ?? _l10n.selectYourCityHint,
+              style: AppTextStyle.regular16.copyWith(
+                color: _homeLocation == null
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
               ),
             ),
-            const Icon(
-              Icons.location_on_outlined,
-              size: 18,
-              color: AppColors.icon,
-            ),
-          ],
-        ),
-      ],
+          ),
+          const Icon(
+            Icons.location_on_outlined,
+            size: 18,
+            color: AppColors.icon,
+          ),
+        ],
+      ),
     );
   }
 

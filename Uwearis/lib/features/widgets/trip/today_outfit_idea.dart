@@ -5,6 +5,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/app_popup_menu.dart';
+import '../common/buttons/primary_action_button.dart';
 import '../common/images/refreshable_network_image.dart';
 import '../common/overlays/loading_overlay.dart';
 
@@ -35,6 +36,15 @@ class TodayOutfitIdea extends StatelessWidget {
   final VoidCallback? onRegenerate;
   final VoidCallback? onChangeGarments;
 
+  /// Kicks off a (first or repeat) render for a day that already has an
+  /// assigned option but no image yet — shown as a button in place of the
+  /// plain "no image yet" text. Null keeps the informational text.
+  final VoidCallback? onGenerate;
+
+  /// Label for the [onGenerate] button (e.g. "Generate Outfit" /
+  /// "Regenerate Outfit"). Ignored when [onGenerate] is null.
+  final String? generateLabel;
+
   /// Called at most once if [imageUrl] fails to load (e.g. an expired
   /// signed URL) — return a fresh URL to retry with. See
   /// [RefreshableNetworkImage.onRefreshUrl].
@@ -56,6 +66,8 @@ class TodayOutfitIdea extends StatelessWidget {
     this.errorMessage,
     this.onRegenerate,
     this.onChangeGarments,
+    this.onGenerate,
+    this.generateLabel,
     this.onRefreshUrl,
     this.cacheKey,
   });
@@ -152,10 +164,11 @@ class TodayOutfitIdea extends StatelessWidget {
     );
   }
 
-  /// No outfit image yet — an error, or one of two informational messages
-  /// depending on [hasAssignment]. No action button in any case; the bottom
-  /// CTA is the only way to trigger generation, and while a first render is
-  /// running [TripDetailsPage]'s own full-screen overlay covers this card.
+  /// No outfit image yet — an error, or one of two informational states
+  /// depending on [hasAssignment]. When the day has an option but no image,
+  /// [onGenerate] (if given) turns that state into a "Generate Outfit"
+  /// button; while a render is running [TripDetailsPage]'s own full-screen
+  /// overlay covers this card.
   Widget _buildEmptyState(AppLocalizations l10n) {
     return SizedBox(
       height: 140,
@@ -186,10 +199,22 @@ class TodayOutfitIdea extends StatelessWidget {
     ],
   );
 
-  Widget _buildNoImageView(AppLocalizations l10n) => Text(
-    l10n.noOutfitImageYet,
-    style: AppTextStyle.medium16.copyWith(color: AppColors.textSecondary),
-  );
+  Widget _buildNoImageView(AppLocalizations l10n) {
+    final onGenerate = this.onGenerate;
+    if (onGenerate == null) {
+      return Text(
+        l10n.noOutfitImageYet,
+        style: AppTextStyle.medium16.copyWith(color: AppColors.textSecondary),
+      );
+    }
+    return PrimaryActionButton(
+      label: generateLabel ?? l10n.generateOutfit,
+      icon: Icons.auto_awesome_outlined,
+      onPressed: onGenerate,
+      backgroundColor: AppColors.accent,
+      foregroundColor: AppColors.textOnPrimary,
+    );
+  }
 
   Widget _buildNoAssignmentView(AppLocalizations l10n) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20),

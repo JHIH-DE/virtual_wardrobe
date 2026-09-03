@@ -158,7 +158,6 @@
   "deleteTripConfirmation": "確定要刪除這個行程嗎？",
   "viewPlan": "查看行程",
   "tripNameLabel": "行程名稱",
-  "tripActivitiesLabel": "行程活動（選填）",
   "create": "建立",
   "fillAllFieldsError": "請填寫所有欄位",
 

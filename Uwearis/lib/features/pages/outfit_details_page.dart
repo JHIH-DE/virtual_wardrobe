@@ -21,9 +21,9 @@ import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/category_tag.dart';
-import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/selectable_chip.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
@@ -32,6 +32,7 @@ import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
@@ -764,7 +765,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
         ),
         const SizedBox(height: 12),
-        _ImagePageIndicator(
+        CarouselDotsIndicator(
           count: _versions.length,
           currentIndex: _currentIndex,
         ),
@@ -1063,27 +1064,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   Future<void> _showRenameDialog() async {
-    final controller = TextEditingController(text: _primary.groupName ?? '');
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.renameOutfit,
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          style: AppTextStyle.bold16,
-          decoration: appInputDecoration(hint: _l10n.outfitNameLabel),
-        ),
-        primaryLabel: _l10n.save,
-        onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx),
-      ),
+    final result = await showTextInputDialog(
+      context,
+      title: _l10n.renameOutfit,
+      hint: _l10n.outfitNameLabel,
+      initialValue: _primary.groupName ?? '',
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
 
-    if (result == null || result.isEmpty || !mounted) return;
+    if (result == null || !mounted) return;
     try {
       await OutfitService().updateGroup(_primary.groupId, name: result);
       if (!mounted) return;
@@ -1184,55 +1172,6 @@ class _CollapsingTagsRow extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-/// The outfit photo carousel's page dots ("● ● ●" with the active one
-/// stretched) plus an "n / total" counter. Renders nothing for a single
-/// version.
-class _ImagePageIndicator extends StatelessWidget {
-  final int count;
-  final int currentIndex;
-
-  const _ImagePageIndicator({required this.count, required this.currentIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    if (count < 2) return const SizedBox.shrink();
-    return SizedBox(
-      height: 20,
-      child: Stack(
-        children: [
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(count, (index) {
-                final isActive = index == currentIndex;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: isActive ? 18 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.accent : AppColors.borderSubtle,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                );
-              }),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              '${currentIndex + 1} / $count',
-              style: AppTextStyle.regular13.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

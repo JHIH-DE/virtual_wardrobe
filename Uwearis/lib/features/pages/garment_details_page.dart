@@ -27,14 +27,15 @@ import '../widgets/common/buttons/close_action_button.dart';
 import '../widgets/common/buttons/pill_button.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/cards/score_ring.dart';
-import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
+import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/compatibility_row.dart';
 import '../widgets/garment/garment_image.dart';
 import 'garment_outfits_page.dart';
@@ -258,27 +259,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// button's "unsaved changes" detection doesn't treat the rename itself
   /// as a pending edit.
   Future<void> _showRenameDialog() async {
-    final controller = TextEditingController(text: _name ?? '');
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.renameGarment,
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          style: AppTextStyle.bold16,
-          decoration: appInputDecoration(hint: _l10n.clothingNameLabel),
-        ),
-        primaryLabel: _l10n.save,
-        onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx),
-      ),
+    final result = await showTextInputDialog(
+      context,
+      title: _l10n.renameGarment,
+      hint: _l10n.clothingNameLabel,
+      initialValue: _name ?? '',
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
 
-    if (result == null || result.isEmpty || !mounted) return;
+    if (result == null || !mounted) return;
     if (_editingGarment == null) return;
 
     try {
@@ -576,33 +564,25 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   Widget _buildNameField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.clothingNameLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        AppTextField(
-          controller: _nameCtrl,
-          hint: _l10n.nameTheClothingHint,
-          validator: (v) => (v == null || v.trim().isEmpty)
-              ? _l10n.pleaseEnterNameError
-              : null,
-        ),
-      ],
+    return LabeledField(
+      label: _l10n.clothingNameLabel,
+      child: AppTextField(
+        controller: _nameCtrl,
+        hint: _l10n.nameTheClothingHint,
+        validator: (v) => (v == null || v.trim().isEmpty)
+            ? _l10n.pleaseEnterNameError
+            : null,
+      ),
     );
   }
 
   Widget _buildCategoryField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.clothingCategoryLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        PickerField(
-          text: _category.localizedLabel(context),
-          onTap: _openCategoryPicker,
-        ),
-      ],
+    return LabeledField(
+      label: _l10n.clothingCategoryLabel,
+      child: PickerField(
+        text: _category.localizedLabel(context),
+        onTap: _openCategoryPicker,
+      ),
     );
   }
 
@@ -657,78 +637,48 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   Widget _buildSubCategoryField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.productType.toUpperCase()),
-        const SizedBox(height: 8),
-        AppTextField(
-          controller: _subCategory,
-          hint: _l10n.productTypeHint,
-          validator: (v) => (v == null || v.trim().isEmpty)
-              ? _l10n.pleaseEnterProductTypeError
-              : null,
-        ),
-      ],
+    return LabeledField(
+      label: _l10n.productType,
+      child: AppTextField(
+        controller: _subCategory,
+        hint: _l10n.productTypeHint,
+        validator: (v) => (v == null || v.trim().isEmpty)
+            ? _l10n.pleaseEnterProductTypeError
+            : null,
+      ),
     );
   }
 
   Widget _buildColorField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.color.toUpperCase()),
-        const SizedBox(height: 8),
-        _colorPicker(),
-      ],
-    );
+    return LabeledField(label: _l10n.color, child: _colorPicker());
   }
 
   Widget _buildFitField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.fitLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        _fitSlider(),
-      ],
-    );
+    return LabeledField(label: _l10n.fitLabel, child: _fitSlider());
   }
 
   Widget _buildBrandField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.brandOptionalLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        AppTextField(controller: _brandCtrl, hint: _l10n.brandHint),
-      ],
+    return LabeledField(
+      label: _l10n.brandOptionalLabel,
+      child: AppTextField(controller: _brandCtrl, hint: _l10n.brandHint),
     );
   }
 
   Widget _buildPriceField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.priceOptionalLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        AppTextField(
-          controller: _priceCtrl,
-          hint: _l10n.priceHint,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        ),
-      ],
+    return LabeledField(
+      label: _l10n.priceOptionalLabel,
+      child: AppTextField(
+        controller: _priceCtrl,
+        hint: _l10n.priceHint,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      ),
     );
   }
 
   Widget _buildPurchaseDateSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.purchaseDateLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        _purchaseDateField(),
-      ],
+    return LabeledField(
+      label: _l10n.purchaseDateLabel,
+      child: _purchaseDateField(),
     );
   }
 

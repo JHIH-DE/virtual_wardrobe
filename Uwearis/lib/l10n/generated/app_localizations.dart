@@ -885,12 +885,6 @@ abstract class AppLocalizations {
   /// **'Trip Name'**
   String get tripNameLabel;
 
-  /// No description provided for @tripActivitiesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Trip Activities (Optional)'**
-  String get tripActivitiesLabel;
-
   /// No description provided for @create.
   ///
   /// In en, this message translates to:

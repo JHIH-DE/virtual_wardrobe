@@ -14,12 +14,13 @@ import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/buttons/filter_button.dart';
+import '../widgets/common/buttons/garment_color_type_filter.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expandable_insight_body.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/garment/garment_grid.dart';
 import 'trip_outfit_selection_page.dart';
 
 class TripGarmentSelectionPage extends StatefulWidget {
@@ -61,8 +62,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   bool _loadingAdvice = true;
   bool _reasoningExpanded = false;
 
-  Set<String> _selectedColors = {'All'};
-  Set<String> _selectedTypes = {'All'};
+  final _filter = GarmentColorTypeFilter();
 
   bool get _isModified => !setEquals(_selectedIds, widget.initiallySelectedIds);
 
@@ -136,49 +136,6 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   List<Garment> get _byCategory =>
       widget.garments.where((g) => g.category == _selectedCategory).toList();
 
-  List<String> get _availableColors {
-    final colors =
-        _byCategory
-            .map((g) => g.color)
-            .whereType<String>()
-            .where((c) => c.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
-    return ['All', ...colors];
-  }
-
-  List<String> get _availableTypes {
-    final types =
-        _byCategory
-            .map((g) => g.subCategory)
-            .where((t) => t.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
-    return ['All', ...types];
-  }
-
-  bool get _isFiltered =>
-      !_selectedColors.contains('All') || !_selectedTypes.contains('All');
-
-  List<Garment> get _filtered {
-    return _byCategory.where((g) {
-      final okColor =
-          _selectedColors.contains('All') ||
-          (g.color != null &&
-              _selectedColors.any(
-                (c) => c.toLowerCase() == g.color!.toLowerCase(),
-              ));
-      final okType =
-          _selectedTypes.contains('All') ||
-          _selectedTypes.any(
-            (t) => t.toLowerCase() == g.subCategory.toLowerCase(),
-          );
-      return okColor && okType;
-    }).toList();
-  }
-
   AppToolBar _buildAppBar() {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
@@ -189,22 +146,10 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
           icon: const Icon(Icons.style_outlined, color: AppColors.icon),
           onPressed: _pickFromOutfit,
         ),
-        FilterButton(
-          isFiltered: _isFiltered,
-          groups: [
-            FilterGroup.toggleAll(
-              label: l10n.color,
-              options: _availableColors,
-              selected: () => _selectedColors,
-              onChanged: (next) => setState(() => _selectedColors = next),
-            ),
-            FilterGroup.toggleAll(
-              label: l10n.productType,
-              options: _availableTypes,
-              selected: () => _selectedTypes,
-              onChanged: (next) => setState(() => _selectedTypes = next),
-            ),
-          ],
+        _filter.buildButton(
+          l10n,
+          _byCategory,
+          onChanged: () => setState(() {}),
         ),
       ],
     );
@@ -213,7 +158,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
   /// Suggested garments (per the AI packing advice) sort to the front of
   /// their category's grid.
   List<Garment> _sortedItemsForCategory(PackingCategory? advice) {
-    final items = _filtered;
+    final items = _filter.apply(_byCategory);
     if (advice == null) return items;
     items.sort((a, b) {
       final aSuggested = advice.suggestedGarmentIds.contains(a.id) ? 0 : 1;
@@ -265,8 +210,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       selectedCategory: _selectedCategory,
       onSelected: (category) => setState(() {
         _selectedCategory = category;
-        _selectedColors = {'All'};
-        _selectedTypes = {'All'};
+        _filter.reset();
         _reasoningExpanded = false;
       }),
     );
@@ -291,12 +235,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
         _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 16,
       ),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: AppDimens.cardSpacing,
-          mainAxisSpacing: AppDimens.cardSpacing,
-          mainAxisExtent: AppDimens.garmentCardHeight,
-        ),
+        gridDelegate: GarmentGrid.gridDelegate,
         delegate: SliverChildBuilderDelegate(
           (context, i) => _buildGarmentGridItem(items[i], advice),
           childCount: items.length,

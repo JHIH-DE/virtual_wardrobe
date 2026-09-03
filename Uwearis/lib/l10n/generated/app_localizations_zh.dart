@@ -418,9 +418,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tripNameLabel => '行程名稱';
 
   @override
-  String get tripActivitiesLabel => '行程活動（選填）';
-
-  @override
   String get create => '建立';
 
   @override
@@ -1570,9 +1567,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get tripNameLabel => '行程名稱';
-
-  @override
-  String get tripActivitiesLabel => '行程活動（選填）';
 
   @override
   String get create => '建立';

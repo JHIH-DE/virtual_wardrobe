@@ -17,6 +17,7 @@ import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/garment/garment_grid.dart';
 import 'trip_garment_selection_page.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
@@ -260,16 +261,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     return [
       SectionTitle(category.localizedLabel(context)),
       const SizedBox(height: AppDimens.cardHeaderGap),
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+      GarmentGrid(
+        scrollable: false,
         padding: EdgeInsets.zero,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: AppDimens.cardSpacing,
-          mainAxisSpacing: AppDimens.cardSpacing,
-          mainAxisExtent: AppDimens.garmentCardHeight,
-        ),
         itemCount: garments.length,
         itemBuilder: (context, i) => _buildGarmentCard(garments[i]),
       ),

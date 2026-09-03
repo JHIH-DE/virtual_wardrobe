@@ -135,4 +135,52 @@ void main() {
       expect(find.text('Daily Outfit Plan'), findsOneWidget);
     }, packingAdviceClient);
   });
+
+  testWidgets('with no plan the outfit image card is hidden', (tester) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        TripDetailsPage(
+          trip: _trip(),
+          initialData: TripPlan(suitcaseIds: {1, 2, 3, 4, 5, 6}),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      // No "no image / no outfit planned" empty state before a plan exists.
+      expect(find.text('No outfit image yet'), findsNothing);
+      expect(find.text('No outfit planned yet'), findsNothing);
+      expect(find.text('Generate Outfit'), findsNothing);
+    }, packingAdviceClient);
+  });
+
+  testWidgets('a planned but unrendered day shows a Generate Outfit button', (
+    tester,
+  ) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      final plan = TripPlan(
+        suitcaseIds: {1},
+        days: [
+          TripDayOutfit(
+            date: DateTime(2026, 11, 1),
+            optionId: 10,
+            garments: [_garment(1)],
+          ),
+        ],
+      );
+      await pumpApp(
+        tester,
+        TripDetailsPage(trip: _trip(), initialData: plan),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      // The per-day action is a button on the card, not on the bottom bar.
+      expect(find.text('Generate Outfit'), findsOneWidget);
+      expect(find.text('No outfit image yet'), findsNothing);
+    }, packingAdviceClient);
+  });
 }

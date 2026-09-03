@@ -18,6 +18,7 @@ import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/garment/garment_grid.dart';
 import 'garment_details_page.dart';
 
 class ClosetPage extends ConsumerStatefulWidget {
@@ -221,18 +222,12 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
       );
     }
 
-    return GridView.builder(
+    return GarmentGrid(
       padding: const EdgeInsets.fromLTRB(
         16,
         0,
         16,
         AppDimens.floatingNavBarClearance,
-      ),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: AppDimens.cardSpacing,
-        mainAxisSpacing: AppDimens.cardSpacing,
-        mainAxisExtent: AppDimens.garmentCardHeight,
       ),
       itemCount: garments.length,
       itemBuilder: (context, index) => _buildGarmentCard(garments[index]),

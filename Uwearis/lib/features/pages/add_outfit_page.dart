@@ -33,7 +33,6 @@ import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
 import 'image_editor_page.dart';
 import 'outfit_details_page.dart';
-import 'select_accessory_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
 /// The page's own identity for each garment slot — distinct from
@@ -966,10 +965,12 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     final result = await Navigator.push<SelectGarmentResult>(
       context,
       MaterialPageRoute(
-        builder: (_) => SelectAccessoryPage(
+        builder: (_) => SelectGarmentPage(
           title: _l10n.selectItemTitle('Accessory'),
+          category: null,
           garments: _accessoryCandidatesFor(index),
           selected: _accessories[index],
+          showNoneOption: true,
         ),
       ),
     );

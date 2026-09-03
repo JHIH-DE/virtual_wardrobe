@@ -7,8 +7,8 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/app_popup_menu.dart';
-import '../common/fields/app_text_field.dart';
 import '../common/overlays/app_dialog.dart';
+import '../common/overlays/text_input_dialog.dart';
 import '../common/section_title.dart';
 
 enum _TripCardAction { editName, delete }
@@ -173,28 +173,13 @@ class TripCard extends StatelessWidget {
 
   Future<void> _editName(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController(text: trip.name);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: l10n.editTripName,
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          style: AppTextStyle.bold16,
-          decoration: appInputDecoration(hint: l10n.enterTripName),
-        ),
-        primaryLabel: l10n.save,
-        onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
-        secondaryLabel: l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx),
-      ),
+    final result = await showTextInputDialog(
+      context,
+      title: l10n.editTripName,
+      hint: l10n.enterTripName,
+      initialValue: trip.name,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
-
-    if (result == null || result.isEmpty || result == trip.name) return;
-    onNameChanged(result);
+    if (result != null) onNameChanged(result);
   }
 
   Future<void> _confirmDelete(BuildContext context) async {

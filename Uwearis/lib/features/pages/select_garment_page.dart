@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../data/garment.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/filter_button.dart';
+import '../widgets/common/buttons/garment_color_type_filter.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/garment/garment_grid.dart';
 import '../widgets/garment/none_garment_card.dart';
 
-/// Full-page grid picker for a single outfit slot (Top/Bottom/Shoes/etc).
-/// Tapping an item — or the "None" tile — immediately pops back with the
-/// result; there's no separate confirm step. Mirrors SelectAccessoryPage's
-/// design.
+/// Full-page grid picker for a single outfit slot (Top/Bottom/Shoes/etc) or
+/// for an accessory slot. Tapping an item — or the "None" tile — immediately
+/// pops back with the result; there's no separate confirm step.
 class SelectGarmentPage extends StatefulWidget {
   final String title;
-  final GarmentCategory category;
+
+  /// The slot's category. Null = don't pre-filter by category (the caller
+  /// already passed the exact candidate list — e.g. the Add Outfit accessory
+  /// picker, which mixes accessories and socks).
+  final GarmentCategory? category;
+
   final List<Garment> garments;
   final Garment? selected;
 
   /// Whether the "None" tile (clear this slot) shows in the grid — only
-  /// makes sense for optional slots (e.g. Mid Layer, Outerwear); required
-  /// slots are cleared via the slot card's own "x" affordance instead.
+  /// makes sense for optional slots (e.g. Mid Layer, Outerwear, accessories);
+  /// required slots are cleared via the slot card's own "x" affordance
+  /// instead.
   final bool showNoneOption;
 
   /// Match a Look's AI ranking for this slot, #1 first — up to 4 ids.
@@ -35,7 +40,7 @@ class SelectGarmentPage extends StatefulWidget {
   const SelectGarmentPage({
     super.key,
     required this.title,
-    required this.category,
+    this.category,
     required this.garments,
     this.selected,
     this.showNoneOption = false,
@@ -47,76 +52,20 @@ class SelectGarmentPage extends StatefulWidget {
 }
 
 class _SelectGarmentPageState extends State<SelectGarmentPage> {
-  Set<String> _selectedColors = {'All'};
-  Set<String> _selectedTypes = {'All'};
+  final _filter = GarmentColorTypeFilter();
 
-  List<Garment> get _byCategory =>
-      widget.garments.where((g) => g.category == widget.category).toList();
-
-  List<String> get _availableColors {
-    final colors =
-        _byCategory
-            .map((g) => g.color)
-            .whereType<String>()
-            .where((c) => c.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
-    return ['All', ...colors];
-  }
-
-  List<String> get _availableTypes {
-    final types =
-        _byCategory
-            .map((g) => g.subCategory)
-            .where((t) => t.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
-    return ['All', ...types];
-  }
-
-  bool get _isFiltered =>
-      !_selectedColors.contains('All') || !_selectedTypes.contains('All');
-
-  List<Garment> get _filtered {
-    return _byCategory.where((g) {
-      final okColor =
-          _selectedColors.contains('All') ||
-          (g.color != null &&
-              _selectedColors.any(
-                (c) => c.toLowerCase() == g.color!.toLowerCase(),
-              ));
-      final okType =
-          _selectedTypes.contains('All') ||
-          _selectedTypes.any(
-            (t) => t.toLowerCase() == g.subCategory.toLowerCase(),
-          );
-      return okColor && okType;
-    }).toList();
-  }
+  List<Garment> get _byCategory => widget.category == null
+      ? widget.garments
+      : widget.garments.where((g) => g.category == widget.category).toList();
 
   AppToolBar _buildAppBar() {
-    final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: widget.title,
       actions: [
-        FilterButton(
-          isFiltered: _isFiltered,
-          groups: [
-            FilterGroup.toggleAll(
-              label: l10n.color,
-              options: _availableColors,
-              selected: () => _selectedColors,
-              onChanged: (next) => setState(() => _selectedColors = next),
-            ),
-            FilterGroup.toggleAll(
-              label: l10n.productType,
-              options: _availableTypes,
-              selected: () => _selectedTypes,
-              onChanged: (next) => setState(() => _selectedTypes = next),
-            ),
-          ],
+        _filter.buildButton(
+          AppLocalizations.of(context),
+          _byCategory,
+          onChanged: () => setState(() {}),
         ),
       ],
     );
@@ -125,18 +74,11 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final items = _filtered;
+    final items = _filter.apply(_byCategory);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
-      body: GridView.builder(
-        padding: AppDimens.pageGridPadding,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: AppDimens.cardSpacing,
-          mainAxisSpacing: AppDimens.cardSpacing,
-          mainAxisExtent: AppDimens.garmentCardHeight,
-        ),
+      body: GarmentGrid(
         itemCount: items.length + (widget.showNoneOption ? 1 : 0),
         itemBuilder: (context, i) {
           if (widget.showNoneOption && i == 0) {

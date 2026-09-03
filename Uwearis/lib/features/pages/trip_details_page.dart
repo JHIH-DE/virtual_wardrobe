@@ -25,11 +25,12 @@ import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/edge_fade_scrim.dart';
 import '../widgets/common/expandable_insight_body.dart';
-import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/common/section_title.dart';
+import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/trip/trip_day_card.dart';
@@ -49,10 +50,12 @@ enum _TripMenuAction {
   delete,
 }
 
-/// The page's single "what's the next step" CTA — see
+/// The page's "what's the next step" hint — see
 /// [_TripDetailsPageState._primaryAction]. Never more than one of these is
 /// active at once, by construction: [generateOutfit]/[regenerateOutfit] are
 /// per-day and only ever apply once a non-stale trip plan already exists.
+/// [generateTripPlan] drives the bottom CTA; the per-day actions drive the
+/// outfit card's own "Generate Outfit" button instead.
 enum TripGenerationAction {
   generateTripPlan,
   generateOutfit,
@@ -618,27 +621,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   }
 
   Future<void> _editTripName() async {
-    final controller = TextEditingController(text: _trip.name);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.editTripName,
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          style: AppTextStyle.bold16,
-          decoration: appInputDecoration(hint: _l10n.enterTripName),
-        ),
-        primaryLabel: _l10n.save,
-        onPrimary: () => Navigator.pop(ctx, controller.text.trim()),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx),
-      ),
+    final result = await showTextInputDialog(
+      context,
+      title: _l10n.editTripName,
+      hint: _l10n.enterTripName,
+      initialValue: _trip.name,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
-
-    if (result == null || result.isEmpty || result == _trip.name) return;
+    if (result == null) return;
     await _updateTrip(_trip.copyWith(name: result));
   }
 
@@ -813,35 +802,18 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// The single primary CTA for this page — see [_primaryAction]. Returns
-  /// null (no bottom bar at all) once the selected day already has a
-  /// current outfit image, so it never competes with the "⋮" menu on the
-  /// image itself.
+  /// This page's bottom CTA only ever offers "Generate Trip Plan" — per-day
+  /// outfit generation lives on the outfit card itself now (a "Generate
+  /// Outfit" button in place of its empty state — see [_buildOutfitSection]),
+  /// so the bottom bar disappears entirely once a non-stale plan exists.
   Widget? _buildBottomBar() {
-    switch (_primaryAction) {
-      case TripGenerationAction.generateTripPlan:
-        return BottomActionButton(
-          label: _l10n.generateTripPlan,
-          onPressed: (_generatingPlan || !_meetsPackingThreshold)
-              ? null
-              : _generatePlan,
-          isLoading: _generatingPlan,
-          leading: const Icon(Icons.auto_awesome_outlined),
-        );
-      case TripGenerationAction.generateOutfit:
-        return _buildOutfitActionButton(_l10n.generateOutfit);
-      case TripGenerationAction.regenerateOutfit:
-        return _buildOutfitActionButton(_l10n.regenerateOutfit);
-      case TripGenerationAction.none:
-        return null;
-    }
-  }
-
-  Widget _buildOutfitActionButton(String label) {
+    if (_primaryAction != TripGenerationAction.generateTripPlan) return null;
     return BottomActionButton(
-      label: label,
-      onPressed: _generatingOutfit ? null : _generateSelectedDayOutfit,
-      isLoading: _generatingOutfit,
+      label: _l10n.generateTripPlan,
+      onPressed: (_generatingPlan || !_meetsPackingThreshold)
+          ? null
+          : _generatePlan,
+      isLoading: _generatingPlan,
       leading: const Icon(Icons.auto_awesome_outlined),
     );
   }
@@ -933,8 +905,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           const SizedBox(height: AppDimens.cardHeaderGap),
           _paddedSection(_buildOutfitDateHeader()),
           const SizedBox(height: AppDimens.cardHeaderGap),
-          _paddedSection(_buildOutfitSection()),
-          const SizedBox(height: AppDimens.cardHeaderGap),
+          // The outfit image / "Generate Outfit" card only appears once a
+          // trip plan exists — before that the wardrobe section's own
+          // "let Uwearis plan" CTA (and the bottom bar) carry the next step.
+          if (_hasTripPlan) ...[
+            _paddedSection(_buildOutfitSection()),
+            const SizedBox(height: AppDimens.cardHeaderGap),
+          ],
           _buildWardrobeSection(),
         ],
       ),
@@ -1006,14 +983,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// Purely a display of the selected day's outfit — the actual "generate"/
-  /// "regenerate" action lives on the single bottom CTA (see
-  /// [_buildBottomBar]) so this card never competes with it. Once an image
-  /// exists, its own "⋮" menu covers regenerating or changing garments
-  /// without needing a visible primary button at all.
+  /// The selected day's outfit image. When the day has an option but no
+  /// rendered image yet, its empty state becomes a "Generate Outfit" /
+  /// "Regenerate Outfit" button (driven by [_primaryAction]) — the page's
+  /// bottom CTA is reserved for "Generate Trip Plan" only. Once an image
+  /// exists, the card's own "⋮" menu covers regenerating or changing
+  /// garments.
   Widget _buildOutfitSection() {
     final outfit = _currentDayOutfit;
     final outfitId = outfit?.outfitId;
+    final action = _primaryAction;
+    final showGenerateButton =
+        action == TripGenerationAction.generateOutfit ||
+        action == TripGenerationAction.regenerateOutfit;
     return TodayOutfitIdea(
       imageUrl: outfit?.resultImageUrl,
       hasAssignment: outfit?.optionId != null,
@@ -1023,6 +1005,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       onRefreshUrl: outfitId == null ? null : _refreshOutfitImageUrl,
       onRegenerate: outfitId == null ? null : _generateSelectedDayOutfit,
       onChangeGarments: outfitId == null ? null : _openDayOutfitEditor,
+      onGenerate: showGenerateButton ? _generateSelectedDayOutfit : null,
+      generateLabel: action == TripGenerationAction.regenerateOutfit
+          ? _l10n.regenerateOutfit
+          : _l10n.generateOutfit,
     );
   }
 
@@ -1178,6 +1164,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                   return _TripGarmentThumb(
                     garment: g,
                     isMissing: g.id != null && !_suitcaseIds.contains(g.id),
+                    onTap: () => GarmentDetailDialog.show(context, g),
                   );
                 },
               ),
@@ -1392,42 +1379,50 @@ class _GeneratePlanCta extends StatelessWidget {
 class _TripGarmentThumb extends StatelessWidget {
   final Garment garment;
   final bool isMissing;
+  final VoidCallback? onTap;
 
-  const _TripGarmentThumb({required this.garment, required this.isMissing});
+  const _TripGarmentThumb({
+    required this.garment,
+    required this.isMissing,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.only(right: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: GarmentImage(
-              url: garment.imageUrl,
-              garmentId: garment.id,
-              memCacheWidth: 160,
-              fit: BoxFit.cover,
-              borderRadius: 12,
-            ),
-          ),
-          if (isMissing)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: Icon(
-                Icons.error,
-                size: 16,
-                color: AppColors.error,
-                shadows: [Shadow(color: AppColors.surface, blurRadius: 3)],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderSubtle),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GarmentImage(
+                url: garment.imageUrl,
+                garmentId: garment.id,
+                memCacheWidth: 160,
+                fit: BoxFit.cover,
+                borderRadius: 12,
               ),
             ),
-        ],
+            if (isMissing)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Icon(
+                  Icons.error,
+                  size: 16,
+                  color: AppColors.error,
+                  shadows: [Shadow(color: AppColors.surface, blurRadius: 3)],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -5,10 +5,9 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../data/outfit.dart';
-import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/filter_button.dart';
+import '../widgets/common/buttons/outfit_season_style_filter.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
@@ -23,11 +22,7 @@ class OutfitsPage extends ConsumerStatefulWidget {
 }
 
 class _OutfitsPageState extends ConsumerState<OutfitsPage> {
-  static const List<String> _seasons = ['All', ...seasonOptions];
-  static const List<String> _styles = ['All', ...styleOptions];
-
-  Set<String> _selectedSeasons = {'All'};
-  Set<String> _selectedStyle = {'All'};
+  final _filter = OutfitSeasonStyleFilter();
 
   @override
   void initState() {
@@ -59,60 +54,15 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     });
   }
 
-  bool get _isFiltered =>
-      !_selectedSeasons.contains('All') || !_selectedStyle.contains('All');
-
-  List<Outfit> _filtered(List<Outfit> all) {
-    return all.where((o) {
-      final okSeason =
-          _selectedSeasons.contains('All') ||
-          o.seasons.any(
-            (s) => _selectedSeasons.any(
-              (sel) => sel.toLowerCase() == s.toLowerCase(),
-            ),
-          );
-      final okStyle =
-          _selectedStyle.contains('All') ||
-          o.style.any(
-            (s) => _selectedStyle.any(
-              (sel) => _normalizeStyle(sel) == _normalizeStyle(s),
-            ),
-          );
-      return okSeason && okStyle;
-    }).toList();
-  }
-
-  // The backend's style tags are snake_case (`smart_casual`) while the
-  // filter chips show Title Case with spaces ("Smart Casual") — normalize
-  // both sides to compare regardless of separator/case.
-  String _normalizeStyle(String s) =>
-      s.toLowerCase().replaceAll(RegExp(r'[\s_]+'), '');
-
   AppToolBar _buildAppBar(List<Outfit> all) {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: l10n.navOutfits,
-      titleCount: _filtered(all).length,
+      titleCount: _filter.apply(all).length,
       centerTitle: false,
       showBackButton: false,
       actions: [
-        FilterButton(
-          isFiltered: _isFiltered,
-          groups: [
-            FilterGroup.toggleAll(
-              label: l10n.seasonLabel,
-              options: _seasons,
-              selected: () => _selectedSeasons,
-              onChanged: (next) => setState(() => _selectedSeasons = next),
-            ),
-            FilterGroup.toggleAll(
-              label: l10n.styleLabel,
-              options: _styles,
-              selected: () => _selectedStyle,
-              onChanged: (next) => setState(() => _selectedStyle = next),
-            ),
-          ],
-        ),
+        _filter.buildButton(l10n, onChanged: () => setState(() {})),
         const SizedBox(width: 8),
       ],
     );
@@ -127,7 +77,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
       body: outfitsAsync.mainTabBody(
         onRetry: () => ref.read(outfitsProvider.notifier).refresh(),
         data: (all) => OutfitGrid(
-          outfits: _filtered(all),
+          outfits: _filter.apply(all),
           onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
           emptyMessage: AppLocalizations.of(context).noOutfitsYet,
           padding: const EdgeInsets.fromLTRB(

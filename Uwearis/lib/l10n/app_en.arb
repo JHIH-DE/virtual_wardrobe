@@ -201,7 +201,6 @@
   "deleteTripConfirmation": "Are you sure you want to delete this trip?",
   "viewPlan": "View Plan",
   "tripNameLabel": "Trip Name",
-  "tripActivitiesLabel": "Trip Activities (Optional)",
   "create": "Create",
   "fillAllFieldsError": "Please fill all fields",
 

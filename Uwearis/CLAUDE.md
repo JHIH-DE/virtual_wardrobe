@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Several rules below distinguish **current state** (what the codebase actually looks like right now, evidence-checked), **target pattern** (what new or substantively-touched code must follow), and **migration debt** (existing code that doesn't yet match the target — not to be mass-migrated as a side effect of unrelated work). Where a rule doesn't make this distinction explicitly, it's because current state and target already match.
 
+## Meaning of substantively touched
+
+A file is **substantively touched** when the current task changes its behaviour, data flow, provider/service interaction, state handling, navigation, or visible layout. A comment edit, typo fix, import cleanup, generated-code update, mechanical rename, or unrelated one-line correction does not trigger a full migration of every debt item in that file.
+
+When a trigger fires, fix the relevant local debt that can be safely verified within the same task. Do not turn a small feature or bug fix into an unbounded file-wide rewrite. Widget reuse is the exception to this narrow-scope rule: before adding a new visual component, always perform the reuse search in [Widget reuse and extraction](#widget-reuse-and-extraction), because creating another near-duplicate makes the codebase permanently harder to converge.
+
 ## Language
 
 Respond to the user in Traditional Chinese (繁體中文). Code, identifiers, and commit messages stay in English as usual.
@@ -46,8 +52,8 @@ flutter test test/services/garment_service_test.dart   # single test file
 - `lib/core/config/` — `Env` reads `String.fromEnvironment` values; `AppConfig` exposes `fullApiUrl`.
 - `lib/core/utils/` — cross-cutting helpers: `debug_log.dart` (logging), `signed_url.dart` (GCS signed-URL expiry), `crash_handler.dart`, `route_observer.dart`, `image_cache_bust.dart`, `try_on_mixin.dart`.
 - `lib/app/` — app shell. `main_shell.dart` hosts `MainShell`, the persistent 4-tab (`Home`/`My Closet`/`Outfits`/`Trips`) `IndexedStack` shell — see [Navigation](#navigation). `lib/app/theme/` has `AppColors`, `AppTextStyle`, `AppDimens`, `AppTheme` (Material 3).
-- `lib/features/pages/` — one file per screen, `ConsumerStatefulWidget`/`StatefulWidget` (Riverpod only where a provider is actually used).
-- `lib/features/widgets/` — reusable UI components, organized `common/{buttons,cards,fields,images,overlays}` plus per-domain `garment/`, `outfit/`, `trip/`.
+- `lib/features/pages/` — one file per screen. A page owns route arguments, provider/service coordination, navigation, screen-level loading/error handling, and composition of the screen's major sections. It should not reimplement reusable visual objects that already exist under `lib/features/widgets/`.
+- `lib/features/widgets/` — reusable UI components, organized `common/{buttons,cards,fields,images,overlays}` plus per-domain `garment/`, `outfit/`, `trip/`. Similar UI objects across pages must converge on one canonical Widget whenever they represent the same product concept and behaviour; see [Widget reuse and extraction](#widget-reuse-and-extraction).
 - `lib/l10n/` — ARB source files (`app_en.arb`, ...); `flutter gen-l10n` generates `lib/l10n/generated/app_localizations.dart` (`AppLocalizations`). There is no `AppStrings` class — all user-facing strings go through ARB.
 
 ### Navigation
@@ -100,6 +106,111 @@ See [Error handling (UI)](#error-handling-ui) below for the full request-to-reco
 - Add `copyWith` with `clearX` bool flags for nullable fields **only when the app actually mutates that model's fields in place** (matches `Garment`, `Outfit`). A model that's only ever read, never locally patched, doesn't need one — don't add `copyWith` speculatively.
 
 ## UI / page rules
+
+### Widget reuse and extraction
+
+The default design goal is **one canonical Widget per recurring UI concept**. Pages compose those Widgets; they do not create local look-alikes. Reuse is preferred over copying, renaming, or creating a second Widget with slightly different padding, colors, labels, or callbacks.
+
+Throughout this section "**Widget**" is shorthand for any reusable UI unit: a `StatelessWidget` / `StatefulWidget` class, *and* a shared `showXxxDialog()` / `showXxxSheet()` function of the kind already in `common/overlays/` (`showTextInputDialog`, `showPickerSheet`, `showFeedbackOverlay`). The reuse search, canonical-location, duplicate-use, and test rules below apply to both forms — a rename dialog copied into a fourth page is exactly the kind of duplication this section forbids, whether it is a class or a function.
+
+#### Required reuse search before creating UI
+
+Before adding a new Widget class, a new `showXxxDialog()` / `showXxxSheet()` helper, or a non-trivial `_buildXxx()` block:
+
+1. Search `lib/features/widgets/`, `lib/features/pages/`, and call sites for the intended product concept, visible label, layout shape, and likely class names.
+2. Inspect existing candidates' constructors and behaviour; filename or class-name differences are not proof that a new Widget is needed.
+3. Check `common/` and the relevant domain folder (`garment/`, `outfit/`, `trip/`, etc.).
+4. State in the change plan which existing Widget will be reused or why none is compatible.
+5. If a compatible Widget exists, reuse it. Do not copy its implementation into the page.
+
+A new Widget is allowed only when the existing candidates cannot represent the required product or behavioural contract without becoming misleading or overly configurable.
+
+#### Canonical Widget rule
+
+When multiple pages show the same product concept — for example the same garment card, outfit grid, section header, empty state, selection row, image frame, action area, or loading treatment — they must use the same canonical Widget.
+
+- Cosmetic differences should normally be expressed through existing theme tokens, a small named variant enum, a slot such as `leading`/`trailing`, or one clearly-scoped optional parameter.
+- Prefer a semantic variant enum (a hypothetical `GarmentCardVariant.compact`, say) over clusters of booleans such as `dense`, `smallImage`, `hideSubtitle`, and `flat`. **Target shape, not current state**: no shared Widget in `lib/features/widgets/` carries a variant enum today, so don't go looking for an existing example — reach for this pattern the first time a real second call site needs a cosmetic difference. (Widget-child slots already exist and are fine — e.g. `BottomActionButton`'s optional `leading` icon.)
+- Add a variant only when at least one real call site needs it. Do not add speculative variants.
+- A visual fix to the canonical Widget should reach every caller that shares the same contract.
+- If two existing Widgets are substantially identical, prefer consolidating callers onto the better-named/better-tested one and removing the duplicate in a dedicated, reviewable change.
+
+Do not merge Widgets merely because they look similar. Separate implementations are justified when selection rules, refresh behaviour, navigation, state ownership, accessibility semantics, or product meaning genuinely differ. Record a short reason in code or the migration debt register when the distinction is not obvious.
+
+#### Placement
+
+- Put genuinely domain-independent components in `lib/features/widgets/common/` (`buttons/`, `cards/`, `fields/`, `images/`, `overlays/`).
+- Put reusable domain components in `lib/features/widgets/<domain>/`, such as `garment/`, `outfit/`, or `trip/`.
+- Keep a single-page component as a private Widget class in the page file when it has a clear independent responsibility but no reuse case yet.
+- Do not move a page-specific component into `common/` merely because it has more than one visual element.
+- Do not create parallel `common`, `shared`, `base`, and `generic` versions of the same concept. One canonical location wins.
+
+#### Keep a private `_buildXxx()` helper when
+
+A private helper is appropriate when the block is page-specific, short, visually simple, has no independent interaction/loading/error state, and mainly makes `build()` easier to scan. A private helper is not debt merely because it returns a Widget.
+
+Do not use a large `_buildXxx()` helper to hide a reusable card, list item, selector, grid, action area, or stateful section that appears elsewhere. Those belong in a Widget.
+
+#### Use a private page-local Widget when
+
+Extract a block into a private Widget class in the same page file when it has a clear visual responsibility, meaningful conditional layout or local UI state, can rebuild independently, or would benefit from focused testing — even if only one page uses it today. Keep screen-level provider/service orchestration and navigation in the Page.
+
+Do not move business logic into a presentational Widget merely to shorten a Page. A presentational Widget may render data, own purely local UI state (focus, expansion, animation, temporary selection), and emit user intent through named callbacks; it should not call REST services directly, know auth/token-refresh details, or mutate unrelated providers.
+
+#### Duplicate-use threshold
+
+- **First use:** a page-local helper or private Widget is acceptable.
+- **Second substantially-identical use:** the trigger is *adding* the second copy. If this change is what introduces it, reuse or extract a shared canonical Widget in the same change instead — “faster for now” is not sufficient, and keeping two copies requires a concrete documented product/behaviour difference. If the second copy *already exists* and you are only editing near it for an unrelated reason, you are not required to extract it in that change — that is [migration debt](#migration-debt-register-flutter) (item 4), revisited on its own trigger — but you must not let your change add a third.
+- **Third substantially-identical use:** duplicate implementations are forbidden. Consolidate them before adding the third caller unless the documented contracts genuinely differ.
+
+Similar names are not enough to establish duplication, and different names do not prove uniqueness. Compare structure, product meaning, interaction, data source, loading/error states, refresh behaviour, accessibility, and future change ownership.
+
+#### Avoid parameter explosion and false reuse
+
+Do not create a “universal” Widget whose constructor mirrors most of the parent State. Warning signs include many unrelated primitive parameters, several independent mode booleans, numerous implementation-detail callbacks, or controllers passed only to move code out of the Page.
+
+When extraction causes parameter explosion, prefer in this order:
+
+1. Reuse an existing cohesive domain model.
+2. Pass a small immutable view-data object when presentation data genuinely differs from the domain model and has multiple meaningful fields.
+3. Use a small semantic variant or slot.
+4. Keep the component page-local if its contract is genuinely page-specific.
+5. Move orchestration into a provider/controller if the real problem is state ownership, not rendering.
+
+Do not create a one-use view-data class or abstraction solely to make a constructor appear shorter.
+
+#### Page complexity review
+
+Line count alone does not make a Page a god object. Review a Page when it coordinates unrelated business flows, owns several independent mutation/loading flags, contains multiple large interactive sections, hides substantial conditional behaviour in `_buildXxx()` methods, or requires reading most of the file to understand one section.
+
+When a Page needs decomposition:
+
+1. Inventory existing shared Widgets first.
+2. Reuse them before extracting anything new.
+3. Extract independent leaf UI sections one at a time.
+4. Keep screen-level orchestration in the Page.
+5. Move business/state logic to the appropriate provider/service rather than into a visual Widget.
+6. Keep each extraction independently testable and reviewable; do not rewrite the whole Page merely to reduce line count.
+
+#### Naming
+
+- Reusable classes use a product-facing noun: `GarmentCard`, `TripDayCard`, `OutfitGrid`.
+- A shared dialog or sheet exposed as a function is named for the user-facing verb, matching the `_showXxxDialog()` convention in [Naming conventions](#naming-conventions): `showTextInputDialog`, `showPickerSheet` — not `textInputWidget` or `renameDialogHelper`.
+- Private page-local classes use an underscore: `_TripSummaryCard`, `_PreferenceSection`.
+- `_buildXxx()` names describe the rendered responsibility: `_buildPackingSummary()`, not `_buildSection2()`.
+- Avoid vague or parallel names such as `CommonCard`, `CustomWidget`, `ReusableContainer`, `NewGarmentCard`, or `GarmentCardV2`. Extend or replace the canonical Widget instead.
+
+#### Tests and visual verification
+
+Add or update a Widget test when a shared/extracted Widget has conditional states, interaction, selection behaviour, loading/empty/error presentation, callbacks whose arguments matter, or layout shared by multiple screens.
+
+After creating, consolidating, or changing a shared Widget:
+
+1. List every caller found by repository-wide search.
+2. Run the focused Widget/page tests and the full test suite.
+3. Run `flutter analyze` and `git diff --check`.
+4. Manually verify every affected screen that lacks render coverage, including spacing, scrolling, navigation, loading overlays, empty/error states, accessibility labels, and bottom actions.
+5. Confirm that the change did not create a second near-duplicate Widget elsewhere.
 
 ### Loading/empty/error state
 
@@ -177,7 +288,7 @@ Never place `BottomActionButton` inline inside the scrollable body as a sibling 
 ### Section headers and field labels
 
 - A card/section title is `SectionTitle` (bold16, normal case). A field label above a form input is `FieldLabel` (small-caps). Never hand-build `Text(title, style: AppTextStyle.bold18)` as a substitute for `SectionTitle`.
-- If two pages need the same card chrome (border, padding, shadow), it's a shared widget in `lib/features/widgets/common/cards/`, not two private `_buildCardShell` copies.
+- If two pages need the same card chrome (border, padding, shadow), reuse or extract one shared Widget in `lib/features/widgets/common/cards/`; do not create two private `_buildCardShell` copies. Follow the full decision rules in [Widget reuse and extraction](#widget-reuse-and-extraction).
 
 ### Localization
 
@@ -211,6 +322,9 @@ Each file below is canonical **only for the specific things listed** — it is n
 | Data model | `lib/data/outfit.dart` | `copyWith` `clearX` flags, extracted cache-key helper (`outfitImageCacheKey`), `num`-tolerant `parseId`, `OutfitGroupType` enum with `apiValue`/`fromApiValue` | — |
 | Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading, `on AuthExpiredException` clause shape | one raw `BorderRadius.circular(16)` instead of `AppDimens.cardRadius` |
 | Shared widget | `lib/features/widgets/common/buttons/bottom_action_button.dart` | Full compliance — colors via `AppColors`, no hardcoded text, documented literals | — |
+| Shared grid | `lib/features/widgets/outfit/outfit_grid.dart` / `lib/features/widgets/garment/garment_grid.dart` | Canonical grid per product concept: shared delegate + padding + (for `OutfitGrid`) empty state / refresh; per-screen item wrappers stay at the call site via `itemBuilder`. `GarmentGrid.gridDelegate` is exposed for the one raw `SliverGrid` call site | — |
+| Shared filter state | `lib/features/widgets/common/buttons/garment_color_type_filter.dart` / `outfit_season_style_filter.dart` | Non-widget state class that owns a `FilterButton`'s data: derives the option lists, holds the selected sets, `apply()`s the filter. The "move orchestration to a controller" resolution for repeated filter blocks | — |
+| Shared dialog helper | `lib/features/widgets/common/overlays/text_input_dialog.dart` | `showXxxDialog()` function form of a shared overlay: one canonical single-field-input dialog behind every rename flow (trip / outfit / garment), callers differ only in `title`/`hint` and result handling | — |
 
 When adding a new page/service/provider/model, start from the primary example above for the property you need and follow its shape for that property — don't assume the rest of the file is equally clean.
 
@@ -223,7 +337,10 @@ When adding a new page/service/provider/model, start from the primary example ab
 - A service building its own HTTP-error message string instead of going through `BaseService.decodeMap`.
 - A raw `as int?`/`as double?` cast on a JSON field sourced from an external API.
 - A bare provider mutation-method verb (`add`/`remove`) instead of verb+noun (`addGarment`/`removeGarment`) in new code.
-- Copy-pasting a private helper method (`_buildXxx`, a filter-option list, a dialog builder) into a second file instead of extracting a shared widget/constant once it's needed in 2+ places.
+- Copy-pasting a substantially-identical private helper, Widget (class *or* `showXxx()` dialog/sheet function), filter-option list, dialog builder, or card/list/grid implementation into a second file. When your change adds the second copy, reuse or extract a canonical shared component instead unless a concrete product/behaviour difference is documented; a third equivalent implementation is forbidden (see [Widget reuse and extraction](#widget-reuse-and-extraction)).
+- Creating a new Widget without first searching existing common/domain Widgets and their call sites for a compatible canonical component.
+- Creating parallel near-duplicates distinguished only by vague names (`CommonX`, `CustomX`, `NewX`, `X2`, `XCardV2`) or cosmetic defaults that should be a semantic variant/theme token.
+- Expanding a shared Widget into a boolean-heavy universal component instead of keeping genuinely different product contracts separate.
 - A new abstraction layer, base class, or wrapper introduced for something used in exactly one place "for future flexibility."
 - `BottomActionButton` placed inline in the body instead of via `Scaffold.bottomNavigationBar`.
 - Logging an access token, `Authorization` header, signed URL, image payload, email, or other personal data (see [Logging](#logging)).
@@ -235,6 +352,7 @@ Known gaps between the current code and the rules above. Each is deliberately **
 
 **Recently resolved — no longer debt, listed only for cross-reference:**
 
+- **Widget-reuse slice (5 batches):** the 5 hand-rolled garment grids collapsed onto `GarmentGrid` (`lib/features/widgets/garment/garment_grid.dart`, + its `gridDelegate` constant for the one sliver call site); the colour/product-type and season/style filter state (option lists + `apply` + the 2-group `FilterButton`) moved into `GarmentColorTypeFilter` / `OutfitSeasonStyleFilter` (`lib/features/widgets/common/buttons/`) — `closet_page.dart` deliberately keeps its own colour filter (enum-ordered, category-scoped); the "label + 8px gap + field" scaffold became `LabeledField` (`lib/features/widgets/common/fields/`); the outfit/version carousel dots became `CarouselDotsIndicator` (`lib/features/widgets/common/`); and `SelectAccessoryPage` was folded into `SelectGarmentPage` (now takes a nullable `category`), so the file is gone.
 - `BaseService.withAuth`'s `/auth/refresh` POST had no timeout → fixed in `8036b16`: 15s cap; a `TimeoutException` / transport error on the refresh call now propagates unchanged instead of being masked as `AuthExpiredException`.
 - `Garment.fromJson` / `fromTripItemJson` cast `id` / `garment_id` with a raw `as int?` → fixed in `894d31e`: all three sites go through `Garment._parseNullableId` (int / integer-valued double → int; `null` → `null`; fractional / `NaN` / `Infinity` → `FormatException`; numeric string / bool → `TypeError`, unchanged).
 - `TripService` logged full request / response payloads → **removed in `6255da9`**. `createTrip` no longer logs `jsonEncode(body)` (which had carried the trip name, `legs` / location names, dates and free-text activity strings); `getTrip` no longer logs a day-by-day response summary (which had included the trip's dates); the private `_summarizeDays` helper that built that summary was deleted. Every `TripService` HTTP method is back to a single id-only `--- method id=… ---` line. Endpoints, request bodies, response parsing, exception behaviour, timeouts and public signatures were untouched by that change.
@@ -262,10 +380,10 @@ Known gaps between the current code and the rules above. Each is deliberately **
 
 ### 4. Widget-level duplicate `_buildXxx` helpers and loading/empty/error shape drift
 
-- **Scope**: Copy-pasted private `_buildXxx` blocks and slightly divergent hand-rolled loading/empty/error layouts remain in `lib/features/` beyond the widgets the refactor extracted (`OutfitGrid`, `main_tab_async`, `ExpandableInsightBody`, …). `select_outfit_group_page.dart` and `trip_outfit_selection_page.dart` also still hand-roll their own outfit grid.
+- **Scope**: Copy-pasted private `_buildXxx` blocks and slightly divergent hand-rolled loading/empty/error layouts remain in `lib/features/` beyond the widgets the refactor extracted (`OutfitGrid`, `GarmentGrid`, `main_tab_async`, `ExpandableInsightBody`, `CarouselDotsIndicator`, …). Known remaining: `select_outfit_group_page.dart` still hand-rolls its outfit grid (for the virtual "new group" leading card); the single-select bottom sheet (`RadioGroup` + `PickerSheetHeader` + `ListTile`s) is still open-coded in `garment_details_page.dart` / `account_page.dart` / `lifestyle_page.dart` / `settings_page.dart`; the "titled card + subtitle" header is open-coded in `lifestyle_page.dart` / `style_taste_page.dart` / `tryon_profile_page.dart`; `add_outfit_page.dart`'s `_slotRow` is a ~130-line helper wrapping `AppListCard`.
 - **Risk**: Low-medium — maintainability; a fix applied to one copy can miss the others.
 - **Deferred reason**: Cross-cutting; each extraction needs its own design and visual QA.
-- **Trigger for revisiting**: At the **second** substantially-identical call site, you must evaluate extracting a shared widget/helper (this matches the "2+ places" bar in [Forbidden patterns](#forbidden-patterns-flutter)). At the **third**, extraction is the default — skip it only with a clearly documented product or behaviour difference. A genuine difference is not duplication: e.g. `select_outfit_group_page.dart` / `trip_outfit_selection_page.dart` keep their own outfit grid for a custom leading card and different refresh behaviour — that stays. When a loading/empty/error state is edited, align it with `EmptyStatePlaceholder` / `ErrorStateWidget` / the standard shapes in [Loading/empty/error state](#loadingemptyerror-state).
+- **Trigger for revisiting**: When any listed page/helper is substantively touched, perform the required reuse search from [Widget reuse and extraction](#widget-reuse-and-extraction). At the **second** substantially-identical use, reuse or extract a canonical shared Widget in that change unless a concrete product/behaviour difference is documented. A **third** equivalent implementation is not allowed. A genuine difference is not duplication: `select_outfit_group_page.dart` may keep its own grid only while its custom leading-card and copy-into-group selection contract genuinely differ (or give `OutfitGrid` a `leading` slot). When a loading/empty/error state is edited, align it with `EmptyStatePlaceholder`, `ErrorStateWidget`, or the standard shapes in [Loading/empty/error state](#loadingemptyerror-state).
 
 ### 5. UI render-test gaps
 
@@ -318,7 +436,8 @@ Before committing any change under `lib/` or `test/`:
 1. `flutter analyze` — zero issues.
 2. `flutter test` — all passing; if you touched a service or data model with existing coverage in `test/services/` or `test/data/`, its tests must still pass, and a behavior change needs a matching test update, not just a passing run.
 3. If you touched a page's visual layout, loading state, or navigation flow, manually run the app (`flutter run --dart-define-from-file=dart_defines/dev.json`) and exercise the changed screen. `test/` now covers services, data models, the three list providers (`test/providers/`), four large detail pages (`test/pages/`), and a handful of shared widgets (`test/widgets/`) — but 20+ page files and most of `lib/features/widgets/` still have **no render test** (see [Migration debt register](#migration-debt-register-flutter) item 5), so on those screens analyzer + unit tests alone do not catch a UI regression.
-4. A rename of a public method/class (service, provider, or otherwise) requires grepping the whole `lib/`/`test/` tree for the old name before considering the change done.
+4. If you added or changed a visual object, record the repository-wide search used to find existing Widgets and list every affected caller. Confirm that the result reuses the canonical Widget and does not introduce a near-duplicate.
+5. A rename of a public method/class (service, provider, or otherwise) requires grepping the whole `lib/`/`test/` tree for the old name before considering the change done.
 
 ---
 

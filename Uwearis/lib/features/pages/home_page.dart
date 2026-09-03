@@ -16,6 +16,7 @@ import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
@@ -375,7 +376,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         if (hasImage && _todayOutfits.length > 1) ...[
           const SizedBox(height: 10),
-          _buildOutfitPageIndicator(),
+          CarouselDotsIndicator(
+            count: _todayOutfits.length,
+            currentIndex: _todayOutfitIndex,
+          ),
         ],
         if (hasImage &&
             outfit.reasoning != null &&
@@ -408,46 +412,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
       ],
-    );
-  }
-
-  /// Dots marking which of today's outfit options is shown, plus a
-  /// "current / total" counter trailing them — mirrors Outfit Details' own
-  /// version carousel indicator.
-  Widget _buildOutfitPageIndicator() {
-    return SizedBox(
-      height: 20,
-      child: Stack(
-        children: [
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(_todayOutfits.length, (index) {
-                final isActive = index == _todayOutfitIndex;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: isActive ? 18 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.accent : AppColors.borderSubtle,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                );
-              }),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              '${_todayOutfitIndex + 1} / ${_todayOutfits.length}',
-              style: AppTextStyle.regular13.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
