@@ -23,8 +23,15 @@ mixin BaseService {
     return token;
   }
 
-  /// Makes an authenticated request. On 401, silently refreshes tokens and retries once.
-  /// Throws [AuthExpiredException] if refresh fails or no refresh token is stored.
+  /// Makes an authenticated request. On 401, silently refreshes tokens and
+  /// retries the original request once.
+  ///
+  /// Throws [AuthExpiredException] when the session genuinely can't be
+  /// recovered: no stored refresh token, or the refresh endpoint answers
+  /// non-200 or without a fresh token pair. A transport-level failure on the
+  /// refresh call itself — including a `TimeoutException` from its 15s cap —
+  /// propagates unchanged rather than being masked as [AuthExpiredException],
+  /// so callers can tell "logged out" apart from "network/server unavailable".
   Future<http.Response> withAuth(
     Future<http.Response> Function(String token) request,
   ) async {
@@ -35,29 +42,26 @@ mixin BaseService {
     final storedRefresh = await AuthStorage.getRefreshToken();
     if (storedRefresh == null) throw AuthExpiredException();
 
-    try {
-      final refreshRes = await http.post(
-        Uri.parse('${AppConfig.fullApiUrl}/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': storedRefresh}),
-      );
-      if (refreshRes.statusCode != 200) throw AuthExpiredException();
+    final refreshRes = await http
+        .post(
+          Uri.parse('${AppConfig.fullApiUrl}/auth/refresh'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'refresh_token': storedRefresh}),
+        )
+        .timeout(const Duration(seconds: 15));
+    if (refreshRes.statusCode != 200) throw AuthExpiredException();
 
-      final body = jsonDecode(refreshRes.body) as Map<String, dynamic>;
-      final data = body['data'] as Map<String, dynamic>?;
-      final newAccessToken = data?['access_token'] as String?;
-      final newRefreshToken = data?['refresh_token'] as String?;
-      if (newAccessToken == null || newRefreshToken == null) {
-        throw AuthExpiredException();
-      }
-
-      await AuthStorage.saveAccessToken(newAccessToken);
-      await AuthStorage.saveRefreshToken(newRefreshToken);
-      return await request(newAccessToken);
-    } catch (e) {
-      if (e is AuthExpiredException) rethrow;
+    final body = jsonDecode(refreshRes.body) as Map<String, dynamic>;
+    final data = body['data'] as Map<String, dynamic>?;
+    final newAccessToken = data?['access_token'] as String?;
+    final newRefreshToken = data?['refresh_token'] as String?;
+    if (newAccessToken == null || newRefreshToken == null) {
       throw AuthExpiredException();
     }
+
+    await AuthStorage.saveAccessToken(newAccessToken);
+    await AuthStorage.saveRefreshToken(newRefreshToken);
+    return await request(newAccessToken);
   }
 
   Map<String, dynamic> decodeMap(http.Response res, {required String op}) {
