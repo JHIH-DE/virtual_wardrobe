@@ -982,6 +982,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.transparent,
       useSafeArea: false,
       builder: (_) => LoadingOverlay(label: _l10n.deletingTripEllipsis),
     );

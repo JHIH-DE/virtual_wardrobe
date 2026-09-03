@@ -53,6 +53,7 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
   showDialog(
     context: context,
     barrierDismissible: false,
+    barrierColor: Colors.transparent,
     useSafeArea: false,
     builder: (_) => LoadingOverlay(label: l10n.creatingTripEllipsis),
   );
@@ -122,6 +123,7 @@ Future<void> handleDeleteTrip(
   showDialog(
     context: context,
     barrierDismissible: false,
+    barrierColor: Colors.transparent,
     useSafeArea: false,
     builder: (_) => LoadingOverlay(label: l10n.deletingTripEllipsis),
   );

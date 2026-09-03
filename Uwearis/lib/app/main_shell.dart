@@ -94,6 +94,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     showDialog(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.transparent,
       useSafeArea: false,
       builder: (_) =>
           LoadingOverlay(label: AppLocalizations.of(context).loadingGarments),
