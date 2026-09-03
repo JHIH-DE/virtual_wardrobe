@@ -25,6 +25,28 @@ class FilterGroup {
     required this.onToggle,
     this.emptyMessage,
   });
+
+  /// The common case: an 'All'-sentinel multi-select group. [selected] reads
+  /// the current set, [onChanged] receives the next set (call `setState`
+  /// there) — the [FilterButton.toggleWithAll] plumbing is handled here so
+  /// each call site doesn't repeat it (and can't mismatch the set it reads
+  /// vs. the set it writes).
+  factory FilterGroup.toggleAll({
+    required String label,
+    required List<String> options,
+    required Set<String> Function() selected,
+    required void Function(Set<String> next) onChanged,
+    String? emptyMessage,
+  }) {
+    return FilterGroup(
+      label: label,
+      options: options,
+      selected: selected,
+      onToggle: (option) =>
+          onChanged(FilterButton.toggleWithAll(selected(), option)),
+      emptyMessage: emptyMessage,
+    );
+  }
 }
 
 /// Filter icon button that opens a bottom sheet built from [groups].

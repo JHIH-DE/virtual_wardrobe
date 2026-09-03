@@ -106,27 +106,17 @@ class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
         FilterButton(
           isFiltered: _isFiltered,
           groups: [
-            FilterGroup(
+            FilterGroup.toggleAll(
               label: l10n.seasonLabel,
               options: _seasons,
               selected: () => _selectedSeasons,
-              onToggle: (s) => setState(
-                () => _selectedSeasons = FilterButton.toggleWithAll(
-                  _selectedSeasons,
-                  s,
-                ),
-              ),
+              onChanged: (next) => setState(() => _selectedSeasons = next),
             ),
-            FilterGroup(
+            FilterGroup.toggleAll(
               label: l10n.styleLabel,
               options: _styles,
               selected: () => _selectedStyle,
-              onToggle: (s) => setState(
-                () => _selectedStyle = FilterButton.toggleWithAll(
-                  _selectedStyle,
-                  s,
-                ),
-              ),
+              onChanged: (next) => setState(() => _selectedStyle = next),
             ),
           ],
         ),

@@ -84,27 +84,17 @@ class _SelectAccessoryPageState extends State<SelectAccessoryPage> {
         FilterButton(
           isFiltered: _isFiltered,
           groups: [
-            FilterGroup(
+            FilterGroup.toggleAll(
               label: l10n.color,
               options: _availableColors,
               selected: () => _selectedColors,
-              onToggle: (v) => setState(
-                () => _selectedColors = FilterButton.toggleWithAll(
-                  _selectedColors,
-                  v,
-                ),
-              ),
+              onChanged: (next) => setState(() => _selectedColors = next),
             ),
-            FilterGroup(
+            FilterGroup.toggleAll(
               label: l10n.productType,
               options: _availableTypes,
               selected: () => _selectedTypes,
-              onToggle: (v) => setState(
-                () => _selectedTypes = FilterButton.toggleWithAll(
-                  _selectedTypes,
-                  v,
-                ),
-              ),
+              onChanged: (next) => setState(() => _selectedTypes = next),
             ),
           ],
         ),

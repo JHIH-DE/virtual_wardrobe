@@ -116,27 +116,17 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     return FilterButton(
       isFiltered: _isFiltered,
       groups: [
-        FilterGroup(
+        FilterGroup.toggleAll(
           label: l10n.color,
           options: availableColors,
           selected: () => _selectedColors,
-          onToggle: (v) => setState(
-            () => _selectedColors = FilterButton.toggleWithAll(
-              _selectedColors,
-              v,
-            ),
-          ),
+          onChanged: (next) => setState(() => _selectedColors = next),
         ),
-        FilterGroup(
+        FilterGroup.toggleAll(
           label: l10n.productType,
           options: availableTypes,
           selected: () => _selectedProductTypes,
-          onToggle: (v) => setState(
-            () => _selectedProductTypes = FilterButton.toggleWithAll(
-              _selectedProductTypes,
-              v,
-            ),
-          ),
+          onChanged: (next) => setState(() => _selectedProductTypes = next),
         ),
       ],
     );
