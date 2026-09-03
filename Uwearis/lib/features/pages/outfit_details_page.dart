@@ -447,82 +447,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           Expanded(
             child: tags.isEmpty
                 ? Text(_l10n.myCollection, style: tagStyle)
-                : _buildTagsRow(tags),
+                : _CollapsingTagsRow(tags: tags),
           ),
         ],
       ),
-    );
-  }
-
-  /// Lays out [tags] on a single line, collapsing whatever doesn't fit into
-  /// a trailing "+N" tag instead of wrapping to another line.
-  Widget _buildTagsRow(List<String> tags) {
-    const tagSpacing = 8.0;
-    const tagHPadding = 20.0; // CategoryTag's horizontal padding (10 * 2).
-    final tagTextStyle = AppTextStyle.bold12;
-
-    double textWidth(String text) {
-      final painter = TextPainter(
-        text: TextSpan(text: text, style: tagTextStyle),
-        maxLines: 1,
-        textDirection: ui.TextDirection.ltr,
-      )..layout();
-      return painter.width;
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final tagWidths = tags.map((t) => textWidth(t) + tagHPadding).toList();
-
-        var visibleCount = tags.length;
-        var usedWidth = 0.0;
-        for (var i = 0; i < tags.length; i++) {
-          final width = tagWidths[i] + (i > 0 ? tagSpacing : 0);
-          if (usedWidth + width > maxWidth) {
-            visibleCount = i;
-            break;
-          }
-          usedWidth += width;
-        }
-
-        if (visibleCount == tags.length) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < tags.length; i++) ...[
-                if (i > 0) const SizedBox(width: tagSpacing),
-                CategoryTag(label: tags[i]),
-              ],
-            ],
-          );
-        }
-
-        // Shrink further if needed so the trailing "+N" tag also fits.
-        var count = visibleCount;
-        while (count > 0) {
-          final overflowLabel = '+${tags.length - count}';
-          var used = tagSpacing + textWidth(overflowLabel) + tagHPadding;
-          for (var i = 0; i < count; i++) {
-            used += tagWidths[i] + (i > 0 ? tagSpacing : 0);
-          }
-          if (used <= maxWidth) break;
-          count--;
-        }
-        count = count.clamp(1, tags.length);
-
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < count; i++) ...[
-              if (i > 0) const SizedBox(width: tagSpacing),
-              CategoryTag(label: tags[i]),
-            ],
-            const SizedBox(width: tagSpacing),
-            CategoryTag(label: '+${tags.length - count}'),
-          ],
-        );
-      },
     );
   }
 
@@ -832,51 +760,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
         ),
         const SizedBox(height: 12),
-        _buildImagePageIndicator(),
+        _ImagePageIndicator(
+          count: _versions.length,
+          currentIndex: _currentIndex,
+        ),
       ],
     );
   }
 
   /// Dots marking which version's photo is shown, plus a "current / total"
   /// counter trailing them — hidden entirely when there's only one version.
-  Widget _buildImagePageIndicator() {
-    if (_versions.length < 2) return const SizedBox.shrink();
-    return SizedBox(
-      height: 20,
-      child: Stack(
-        children: [
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(_versions.length, (index) {
-                final isActive = index == _currentIndex;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: isActive ? 18 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.accent : AppColors.borderSubtle,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                );
-              }),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              '${_currentIndex + 1} / ${_versions.length}',
-              style: AppTextStyle.regular13.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// The photo's own "..." corner menu — Regenerate and Delete this
   /// version for whichever version is currently shown (see
   /// [_deleteThisOutfit] for what "delete" actually does depending on
@@ -1209,5 +1102,133 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
+  }
+}
+
+/// Lays [tags] out on a single line, collapsing whatever doesn't fit into a
+/// trailing "+N" tag instead of wrapping to a second line.
+class _CollapsingTagsRow extends StatelessWidget {
+  final List<String> tags;
+
+  const _CollapsingTagsRow({required this.tags});
+
+  @override
+  Widget build(BuildContext context) {
+    const tagSpacing = 8.0;
+    const tagHPadding = 20.0; // CategoryTag's horizontal padding (10 * 2).
+    final tagTextStyle = AppTextStyle.bold12;
+
+    double textWidth(String text) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: tagTextStyle),
+        maxLines: 1,
+        textDirection: ui.TextDirection.ltr,
+      )..layout();
+      return painter.width;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        final tagWidths = tags.map((t) => textWidth(t) + tagHPadding).toList();
+
+        var visibleCount = tags.length;
+        var usedWidth = 0.0;
+        for (var i = 0; i < tags.length; i++) {
+          final width = tagWidths[i] + (i > 0 ? tagSpacing : 0);
+          if (usedWidth + width > maxWidth) {
+            visibleCount = i;
+            break;
+          }
+          usedWidth += width;
+        }
+
+        if (visibleCount == tags.length) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < tags.length; i++) ...[
+                if (i > 0) const SizedBox(width: tagSpacing),
+                CategoryTag(label: tags[i]),
+              ],
+            ],
+          );
+        }
+
+        // Shrink further if needed so the trailing "+N" tag also fits.
+        var count = visibleCount;
+        while (count > 0) {
+          final overflowLabel = '+${tags.length - count}';
+          var used = tagSpacing + textWidth(overflowLabel) + tagHPadding;
+          for (var i = 0; i < count; i++) {
+            used += tagWidths[i] + (i > 0 ? tagSpacing : 0);
+          }
+          if (used <= maxWidth) break;
+          count--;
+        }
+        count = count.clamp(1, tags.length);
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < count; i++) ...[
+              if (i > 0) const SizedBox(width: tagSpacing),
+              CategoryTag(label: tags[i]),
+            ],
+            const SizedBox(width: tagSpacing),
+            CategoryTag(label: '+${tags.length - count}'),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// The outfit photo carousel's page dots ("● ● ●" with the active one
+/// stretched) plus an "n / total" counter. Renders nothing for a single
+/// version.
+class _ImagePageIndicator extends StatelessWidget {
+  final int count;
+  final int currentIndex;
+
+  const _ImagePageIndicator({required this.count, required this.currentIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    if (count < 2) return const SizedBox.shrink();
+    return SizedBox(
+      height: 20,
+      child: Stack(
+        children: [
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(count, (index) {
+                final isActive = index == currentIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: isActive ? 18 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.accent : AppColors.borderSubtle,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '${currentIndex + 1} / $count',
+              style: AppTextStyle.regular13.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
