@@ -29,11 +29,23 @@ void main() {
   setUp(setUpFakeAuth);
 
   group('getMyProfile', () {
-    test('GETs the profile root and returns data', () async {
+    test('GETs the profile root and parses a typed UserProfile', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
-        return _jsonResponse(_envelope({'name': 'Jason', 'email': 'j@example.com'}));
+        return _jsonResponse(
+          _envelope({
+            'name': 'Jason',
+            'email': 'j@example.com',
+            'gender': 'male',
+            'location': 'Taipei',
+            'avatar_object_url': 'https://img/a.png',
+            'birthday': '1996-03-11',
+            'height': 178,
+            'weight': 70.5,
+            'unit_system': 'metric',
+          }),
+        );
       });
 
       final profile = await http.runWithClient(
@@ -42,7 +54,30 @@ void main() {
       );
 
       expect(captured.url.toString(), _base);
-      expect(profile['name'], 'Jason');
+      expect(profile.name, 'Jason');
+      expect(profile.email, 'j@example.com');
+      expect(profile.gender, 'male');
+      expect(profile.location, 'Taipei');
+      expect(profile.avatarObjectUrl, 'https://img/a.png');
+      expect(profile.birthDate, DateTime(1996, 3, 11));
+      expect(profile.height, 178);
+      expect(profile.weight, 70.5);
+      expect(profile.unitSystem, 'metric');
+    });
+
+    test('tolerates a missing/blank birthday and absent fields', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({'name': 'Jason'})),
+      );
+
+      final profile = await http.runWithClient(
+        () => ProfileService().getMyProfile(),
+        () => client,
+      );
+
+      expect(profile.birthDate, isNull);
+      expect(profile.height, isNull);
+      expect(profile.gender, isNull);
     });
   });
 

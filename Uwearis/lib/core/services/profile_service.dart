@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../data/style_profile.dart';
+import '../../data/user_profile.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
@@ -25,14 +26,14 @@ class ProfileService with BaseService {
   Map<String, dynamic> _data(Map<String, dynamic> envelope) =>
       (envelope['data'] as Map<String, dynamic>?) ?? envelope;
 
-  Future<Map<String, dynamic>> getMyProfile() async {
+  Future<UserProfile> getMyProfile() async {
     debugLog('--- getMyProfile ---');
     final res = await withAuth(
       (token) => http
           .get(Uri.parse(_baseUrl), headers: authHeaders(token))
           .timeout(_quick),
     );
-    return _data(decodeMap(res, op: 'getMyProfile'));
+    return UserProfile.fromJson(_data(decodeMap(res, op: 'getMyProfile')));
   }
 
   // ---- signed-URL upload flow, shared by avatar / body-ref / face-ref ----
@@ -169,7 +170,7 @@ class ProfileService with BaseService {
         .toList();
   }
 
-  Future<Map<String, dynamic>> updateMyProfile({
+  Future<UserProfile> updateMyProfile({
     String? name,
     String? gender,
     String? birthday,
@@ -204,6 +205,6 @@ class ProfileService with BaseService {
           .timeout(_quick),
     );
 
-    return _data(decodeMap(res, op: 'updateMyProfile'));
+    return UserProfile.fromJson(_data(decodeMap(res, op: 'updateMyProfile')));
   }
 }

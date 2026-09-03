@@ -107,16 +107,11 @@ class _AccountPageState extends State<AccountPage> {
       final profile = await ProfileService().getMyProfile();
       if (!mounted) return;
       setState(() {
-        _nameCtrl.text = profile['name'] ?? '';
-        _selectedGender = profile['gender'] as String?;
-        _homeLocation = profile['location'] as String?;
-        _avatarUrl = profile['avatar_object_url'] as String?;
-        final birthdayStr = profile['birthday'] as String?;
-        if (birthdayStr != null && birthdayStr.isNotEmpty) {
-          try {
-            _selectedBirthDate = DateTime.parse(birthdayStr);
-          } catch (_) {}
-        }
+        _nameCtrl.text = profile.name;
+        _selectedGender = profile.gender;
+        _homeLocation = profile.location;
+        _avatarUrl = profile.avatarObjectUrl;
+        _selectedBirthDate = profile.birthDate;
         _initialName = _nameCtrl.text.trim();
         _initialGender = _selectedGender;
         _initialBirthDate = _selectedBirthDate;

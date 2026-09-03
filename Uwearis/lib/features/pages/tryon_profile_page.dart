@@ -9,6 +9,7 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../data/image_edit_result.dart';
+import '../../data/user_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
@@ -152,21 +153,19 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
         ProfileService().getFaceReference(),
       ]);
       if (!mounted) return;
-      final profile = results[0] as Map<String, dynamic>;
+      final profile = results[0] as UserProfile;
       final fullBodyUrl = results[1] as String?;
       final faceRefUrl = results[2] as String?;
       setState(() {
-        final h = profile['height'];
-        final w = profile['weight'];
-        if (h != null) _heightCtrl.text = (h as num).toStringAsFixed(0);
-        if (w != null) _weightCtrl.text = (w as num).toStringAsFixed(0);
+        final h = profile.height;
+        final w = profile.weight;
+        if (h != null) _heightCtrl.text = h.toStringAsFixed(0);
+        if (w != null) _weightCtrl.text = w.toStringAsFixed(0);
         _fullBodyUrl = fullBodyUrl;
         _faceRefUrl = faceRefUrl;
         _initialHeight = _heightCtrl.text;
         _initialWeight = _weightCtrl.text;
-        _unitSystem = _UnitSystem.fromApiValue(
-          profile['unit_system'] as String?,
-        );
+        _unitSystem = _UnitSystem.fromApiValue(profile.unitSystem);
         _initialUnitSystem = _unitSystem;
         _syncImperialFromMetric();
       });

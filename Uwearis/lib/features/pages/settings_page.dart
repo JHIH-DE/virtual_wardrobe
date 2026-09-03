@@ -10,6 +10,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
+import '../../data/user_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -63,13 +64,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ProfileService().getFaceReference(),
       ]);
       if (!mounted) return;
-      final profile = results[0] as Map<String, dynamic>;
+      final profile = results[0] as UserProfile;
       final fullBodyUrl = results[1] as String?;
       final faceRefUrl = results[2] as String?;
       setState(() {
-        _name = profile['name'] as String?;
-        _email = profile['email'] as String?;
-        _avatarUrl = profile['avatar_object_url'] as String?;
+        _name = profile.name;
+        _email = profile.email;
+        _avatarUrl = profile.avatarObjectUrl;
         _fullBodyUrl = fullBodyUrl;
         _faceRefUrl = faceRefUrl;
       });
