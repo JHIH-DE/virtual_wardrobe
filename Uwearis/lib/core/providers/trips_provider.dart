@@ -16,12 +16,12 @@ class TripsNotifier extends AsyncNotifier<List<Trip>> {
     state = await AsyncValue.guard(() => TripService().getTrips());
   }
 
-  void add(Trip trip) {
+  void addTrip(Trip trip) {
     final current = state.value ?? [];
     state = AsyncData([trip, ...current]);
   }
 
-  void remove(String id) {
+  void removeTrip(String id) {
     final current = state.value ?? [];
     state = AsyncData(current.where((t) => t.id != id).toList());
   }

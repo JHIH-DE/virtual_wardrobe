@@ -49,12 +49,12 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
     state = await AsyncValue.guard(() => OutfitService().getAllOutfits());
   }
 
-  void add(Outfit outfit) {
+  void addOutfit(Outfit outfit) {
     final current = state.value ?? [];
     state = AsyncData([outfit, ...current]);
   }
 
-  void removeById(int id) {
+  void removeOutfit(int id) {
     final current = state.value ?? [];
     state = AsyncData(current.where((o) => o.id != id).toList());
   }

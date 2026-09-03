@@ -992,7 +992,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     try {
       await TripService().deleteTrip(int.parse(_trip.id));
       if (!mounted) return;
-      ref.read(tripsProvider.notifier).remove(_trip.id);
+      ref.read(tripsProvider.notifier).removeTrip(_trip.id);
       Navigator.pop(context); // close loading indicator
       Navigator.pop(context); // back out of Trip Details — the trip is gone
     } catch (e) {

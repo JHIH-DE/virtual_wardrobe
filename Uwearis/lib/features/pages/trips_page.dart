@@ -59,7 +59,7 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
 
   try {
     final newTrip = await _createTrip(input);
-    ref.read(tripsProvider.notifier).add(newTrip);
+    ref.read(tripsProvider.notifier).addTrip(newTrip);
     final initialData = await TripDetailsPage.preload(newTrip);
 
     if (!context.mounted) return;
@@ -131,7 +131,7 @@ Future<void> handleDeleteTrip(
 
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
-    ref.read(tripsProvider.notifier).remove(trip.id);
+    ref.read(tripsProvider.notifier).removeTrip(trip.id);
   } catch (e) {
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator

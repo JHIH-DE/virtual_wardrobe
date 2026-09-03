@@ -1077,7 +1077,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     try {
       await OutfitService().deleteGroup(widget.outfit.groupId);
       for (final version in _versions) {
-        ref.read(outfitsProvider.notifier).removeById(version.id);
+        ref.read(outfitsProvider.notifier).removeOutfit(version.id);
       }
       final feedback = ref.read(outfitFeedbackProvider.notifier);
       if (mounted) Navigator.pop(context);
