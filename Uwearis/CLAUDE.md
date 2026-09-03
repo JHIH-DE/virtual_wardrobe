@@ -41,7 +41,7 @@ flutter test test/services/garment_service_test.dart   # single test file
 **Layer structure:**
 
 - `lib/data/` — plain Dart model classes (`Garment`, `Outfit`, `Trip`, ...). Each has `fromJson`/`toJson`; models with nullable fields that are genuinely mutated in place also get `copyWith` with `clearX` bool flags (see [Data models](#data-models) below — not every model needs this).
-- `lib/core/services/` — REST API clients. All mix in `BaseService`, which provides `getSafeToken()`, `authHeaders()`, `decodeMap()`, `throwIfAuthExpired()`, and `withAuth()`. Most services are plain classes instantiated per call. `GarmentService` is a singleton via `factory` + `_internal()` because it holds shared mutable state (an in-memory cache) — do not make a new service singleton unless it holds equivalent shared state. `MatchLookService` is also currently a singleton, but for consistency with `GarmentService` rather than any state of its own (it has zero instance fields) — it's a known outlier, flagged as a candidate to demote to a plain class rather than a pattern to copy.
+- `lib/core/services/` — REST API clients. All mix in `BaseService`, which provides `getSafeToken()`, `authHeaders()`, `decodeMap()`, `throwIfAuthExpired()`, and `withAuth()`. Most services are plain classes instantiated per call. `GarmentService` is the sole singleton (via `factory` + `_internal()`) because it holds shared mutable state (an in-memory cache) — do not make a new service singleton unless it holds equivalent shared state.
 - `lib/core/providers/` — Riverpod `AsyncNotifierProvider` wrappers over services. Providers expose `refresh()` and verb+noun mutation methods (`addGarment`, `removeGarment` — see [Naming](#naming-conventions)).
 - `lib/core/config/` — `Env` reads `String.fromEnvironment` values; `AppConfig` exposes `fullApiUrl`.
 - `lib/core/utils/` — cross-cutting helpers: `debug_log.dart` (logging), `signed_url.dart` (GCS signed-URL expiry), `crash_handler.dart`, `route_observer.dart`, `image_cache_bust.dart`, `try_on_mixin.dart`.
@@ -75,8 +75,8 @@ flutter test test/services/garment_service_test.dart   # single test file
 
 ## Service layer rules
 
-- **Singleton policy**: plain class by default. Only use `factory` + `_internal()` when the service holds real shared mutable state (an in-memory cache, a live connection) — not for DI convenience, not "for consistency." (See the `MatchLookService` note under [Architecture](#architecture) above.)
-- **HTTP errors**: never hand-build an error message string outside `BaseService.decodeMap`. If a status code needs special handling (e.g. treat 404 as success for an idempotent delete), check `res.statusCode` *before* calling `decodeMap`, don't catch and reformat its exception. If the same "treat 404 as success" branch is needed in more than one service, add a shared helper on `BaseService` rather than repeating the branch — this condition is already met today (`GarmentService.deleteGarment` and `MatchLookService.removeReference` both need it) and hasn't been acted on yet.
+- **Singleton policy**: plain class by default. Only use `factory` + `_internal()` when the service holds real shared mutable state (an in-memory cache, a live connection) — not for DI convenience, not "for consistency." `GarmentService` is the only service that qualifies.
+- **HTTP errors**: never hand-build an error message string outside `BaseService.decodeMap`. If a status code needs special handling (e.g. treat 404 as success for an idempotent delete), check `res.statusCode` *before* calling `decodeMap`, don't catch and reformat its exception. Idempotent `DELETE`s go through `BaseService.deleteIdempotent` (404/2xx = success, everything else routed through `decodeMap` or a passed-in `errorDecode` so the message is still built in one place) rather than each service re-rolling the branch — `GarmentService.deleteGarment` and `MatchLookService.removeReference` both use it.
 - **JSON numeric parsing**: always `(json['x'] as num?)?.toDouble()` / `.toInt()` — never a raw `as int?`/`as double?` cast on a field that comes from an external API. APIs can serialize the same field as an int or a float depending on the value; a raw cast crashes the first time it doesn't match.
 - **Signed URLs**: use `lib/core/utils/signed_url.dart`'s expiry helper rather than re-deriving "is this URL stale" inline at each call site.
 
@@ -136,7 +136,7 @@ try {
 
 `on AuthExpiredException` is its own clause, checked before the generic `catch`. Every network call has a `catch` regardless of which shape is used — a bare `try { ... } finally { ... }` around a network call is a bug, not a style choice, in both the current and target patterns.
 
-**Current state — this is not yet how most of the codebase looks.** As of this document's last evidence-based validation, the codebase has roughly 19 call sites using the target `on AuthExpiredException` shape above and roughly 30 using `if (e is AuthExpiredException)` inside one shared `catch` block (including inside pages otherwise held up elsewhere in this document as canonical examples — see the caveats in [Canonical example files](#canonical-example-files-flutter)). The `if (e is ...)` shape is **existing migration debt**, not an acceptable pattern to add to: don't write it in new code, but also don't mass-migrate the ~30 existing sites as a standalone change. Migrate a call site to the target shape when you're already substantively editing the surrounding method for another reason.
+**Current state.** Every page/feature-layer call site now uses the target `on AuthExpiredException` shape — the old `if (e is AuthExpiredException)` shared-`catch` shape has been fully migrated out. The one remaining `if (e is AuthExpiredException)` in `lib/` is in `BaseService.withAuth` itself (`e is AuthExpiredException ? rethrow : throw AuthExpiredException()`), which is a deliberate rethrow-guard while *converting* other failures, not the page-layer handle-vs-fallback shape — leave it. Don't reintroduce the `if (e is ...)` shape in new code (it's in [Forbidden patterns](#forbidden-patterns-flutter)).
 
 ### `BottomActionButton`
 
@@ -187,11 +187,11 @@ Each file below is canonical **only for the specific things listed** — it is n
 | Category | File | Demonstrates | Known violations — do not copy these parts |
 |---|---|---|---|
 | Service | `lib/core/services/trip_service.dart` | `_baseUrl` convention, `debugLog`-per-method convention, `decodeMap`-based error handling | Log line format omits the colon separator (`'--- updateTrip id=$tripId ---'`) — follow the written [Logging](#logging) rule's format, not this file's literal string shape |
-| Service (singleton) | `lib/core/services/garment_service.dart` | Cache-backed singleton shape | `setFavorite` is missing `.timeout()` (every other method has one); `deleteGarment` hand-builds an error message that currently swallows `AuthExpiredException` on an unrecoverable 401 (known bug, not fixed by this document) — don't copy `deleteGarment`'s error handling |
+| Service (singleton) | `lib/core/services/garment_service.dart` | Cache-backed singleton shape, `.timeout()` on every call, cache kept coherent after a successful mutation, `deleteIdempotent`-based delete | — |
 | Service (minimal shape) | `lib/core/services/daily_outfit_service.dart` | Minimal stateless (non-singleton) service shape | — |
 | Provider | `lib/core/providers/garments_provider.dart` | `AsyncNotifier` `refresh()` shape, verb+noun mutation naming | — (`trips_provider.dart`/`outfits_provider.dart` don't fully mirror this file's naming yet — see [Naming conventions](#naming-conventions)) |
 | Data model | `lib/data/outfit.dart` | `copyWith` `clearX` flags, extracted cache-key helper (`outfitImageCacheKey`) | `parseId` doesn't handle a `double`/`num` id (only `int`/`String`) — a non-integer id would silently parse as `0`; `groupType` is a raw `String` with no enum despite being this document's own named example for the enum rule — don't copy either |
-| Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading | Mixes both `AuthExpiredException` handling shapes in the same file (see [current-state note](#error-handling-ui)) — when adding new error handling here, use the target shape, not whichever neighboring one you copy from; one raw `BorderRadius.circular(16)` instead of `AppDimens.cardRadius` |
+| Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading, `on AuthExpiredException` clause shape | one raw `BorderRadius.circular(16)` instead of `AppDimens.cardRadius` |
 | Shared widget | `lib/features/widgets/common/buttons/bottom_action_button.dart` | Full compliance — colors via `AppColors`, no hardcoded text, documented literals | — |
 
 When adding a new page/service/provider/model, start from the primary example above for the property you need and follow its shape for that property — don't assume the rest of the file is equally clean.
@@ -209,7 +209,7 @@ When adding a new page/service/provider/model, start from the primary example ab
 - A new abstraction layer, base class, or wrapper introduced for something used in exactly one place "for future flexibility."
 - `BottomActionButton` placed inline in the body instead of via `Scaffold.bottomNavigationBar`.
 - Logging an access token, `Authorization` header, signed URL, image payload, email, or other personal data (see [Logging](#logging)).
-- The `if (e is AuthExpiredException)` shared-catch shape in **new** code — see [current-state note](#error-handling-ui) for why this isn't retroactive.
+- The `if (e is AuthExpiredException)` shared-catch shape (use the `on AuthExpiredException` clause instead — see [Error handling (UI)](#error-handling-ui)). The codebase is fully migrated to the clause shape apart from `BaseService.withAuth`'s own rethrow-guard.
 
 ## Pre-change / post-change checks (Flutter)
 
