@@ -152,25 +152,19 @@ class TodayOutfitIdea extends StatelessWidget {
     );
   }
 
-  /// No outfit image yet — loading, an error, or one of two informational
-  /// messages depending on [hasAssignment]. No action button in any case;
-  /// the bottom CTA is the only way to trigger generation.
+  /// No outfit image yet — an error, or one of two informational messages
+  /// depending on [hasAssignment]. No action button in any case; the bottom
+  /// CTA is the only way to trigger generation, and while a first render is
+  /// running [TripDetailsPage]'s own full-screen overlay covers this card.
   Widget _buildEmptyState(AppLocalizations l10n) {
     return SizedBox(
       height: 140,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (!isLoading)
-            Center(
-              child: errorMessage != null
-                  ? _buildErrorView(l10n)
-                  : (hasAssignment
-                        ? _buildNoImageView(l10n)
-                        : _buildNoAssignmentView(l10n)),
-            ),
-          if (isLoading) LoadingOverlay(label: jobStatus ?? l10n.loading),
-        ],
+      child: Center(
+        child: errorMessage != null
+            ? _buildErrorView(l10n)
+            : (hasAssignment
+                  ? _buildNoImageView(l10n)
+                  : _buildNoAssignmentView(l10n)),
       ),
     );
   }
