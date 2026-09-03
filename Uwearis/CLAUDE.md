@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It is the **binding engineering standard** for this project — new code and refactors must follow it. If a rule here conflicts with existing code that hasn't been migrated yet, the rule wins for new code; migrating old code to match is tracked separately (see the project's consistency-refactor plan), not silently done as a side effect of unrelated work.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It is the **binding engineering standard** for this project — new code and refactors must follow it. If a rule here conflicts with existing code that hasn't been migrated yet, the rule wins for new code; migrating old code to match is tracked separately (see [Migration debt register](#migration-debt-register-flutter) below), not silently done as a side effect of unrelated work.
 
 Several rules below distinguish **current state** (what the codebase actually looks like right now, evidence-checked), **target pattern** (what new or substantively-touched code must follow), and **migration debt** (existing code that doesn't yet match the target — not to be mass-migrated as a side effect of unrelated work). Where a rule doesn't make this distinction explicitly, it's because current state and target already match.
 
@@ -50,13 +50,21 @@ flutter test test/services/garment_service_test.dart   # single test file
 - `lib/features/widgets/` — reusable UI components, organized `common/{buttons,cards,fields,images,overlays}` plus per-domain `garment/`, `outfit/`, `trip/`.
 - `lib/l10n/` — ARB source files (`app_en.arb`, ...); `flutter gen-l10n` generates `lib/l10n/generated/app_localizations.dart` (`AppLocalizations`). There is no `AppStrings` class — all user-facing strings go through ARB.
 
-**Navigation**: imperative throughout (`Navigator.push`/`MaterialPageRoute`). No named-route or go_router setup. The 4 main tabs are never pushed as routes — `MainShell` (`lib/app/main_shell.dart`) keeps them alive in one `IndexedStack` and swaps the visible index via `setState`, so switching tabs preserves scroll position/filters and never re-runs `initState`. `MainShellScope` (`lib/features/widgets/common/floating_nav_bar.dart`) is an `InheritedWidget` exposing `selectTab`/`setLoading` down to any descendant — a main-tab page calls `MainShellScope.of(context).setLoading(true, tab: AppTab.home)` instead of showing its own loading overlay (see [Loading/empty/error state](#loadingemptyerror-state)). `FloatingNavBar` (same file) is built once by `MainShell`, not per-page.
+### Navigation
 
-**Virtual try-on**: `generate`/`regenerate` on the backend's `OutfitGroup`/`Outfit` API are synchronous — the AI render finishes before the HTTP call returns. `TryOnMixin` (`lib/core/utils/try_on_mixin.dart`) reflects this: a single `await OutfitService().generateOutfit(...)`, no polling, no `Timer`/`Completer`. `TripService.generateOptionOutfit`/`regenerateOptionOutfit` is a second, separate try-on path (used from Trip Plans) that follows the same synchronous single-call shape — don't reintroduce polling in either path; there is no async job/queue on the backend to poll. Note: `Outfit.status`/`Outfit.errorMessage` (`lib/data/outfit.dart`) are parsed from and serialized to JSON but not currently read anywhere in `lib/` — they're a harmless leftover from an earlier job-based design, not something to build new logic on.
+Imperative throughout (`Navigator.push`/`MaterialPageRoute`). No named-route or go_router setup. The 4 main tabs are never pushed as routes — `MainShell` (`lib/app/main_shell.dart`) keeps them alive in one `IndexedStack` and swaps the visible index via `setState`, so switching tabs preserves scroll position/filters and never re-runs `initState`. `MainShellScope` (`lib/features/widgets/common/floating_nav_bar.dart`) is an `InheritedWidget` exposing `selectTab`/`setLoading` down to any descendant — a main-tab page calls `MainShellScope.of(context).setLoading(true, tab: AppTab.home)` instead of showing its own loading overlay (see [Loading/empty/error state](#loadingemptyerror-state)). `FloatingNavBar` (same file) is built once by `MainShell`, not per-page.
 
-**Garment image upload**: three-step flow — `initUpload()` → PUT to signed GCS URL → `completeUpload()`. `analyzeGarment()` is a separate multipart POST called during the add-garment flow to pre-fill metadata (category, color, style, versatility score).
+### Virtual try-on
 
-**Auth expiry** — see [Error handling (UI)](#error-handling-ui) below for the full request-to-recovery flow and the current/target distinction for how pages should catch it.
+`generate`/`regenerate` on the backend's `OutfitGroup`/`Outfit` API are synchronous — the AI render finishes before the HTTP call returns. `TryOnMixin` (`lib/core/utils/try_on_mixin.dart`) reflects this: a single `await OutfitService().generateOutfit(...)`, no polling, no `Timer`/`Completer`. `TripService.generateOptionOutfit`/`regenerateOptionOutfit` is a second, separate try-on path (used from Trip Plans) that follows the same synchronous single-call shape — don't reintroduce polling in either path; there is no async job/queue on the backend to poll. Note: `Outfit.status`/`Outfit.errorMessage` (`lib/data/outfit.dart`) are parsed from and serialized to JSON but not currently read anywhere in `lib/` — they're a harmless leftover from an earlier job-based design, not something to build new logic on.
+
+### Garment image upload
+
+Three-step flow — `initUpload()` → PUT to signed GCS URL → `completeUpload()`. `analyzeGarment()` is a separate multipart POST called during the add-garment flow to pre-fill metadata (category, color, style, versatility score).
+
+### Auth expiry
+
+See [Error handling (UI)](#error-handling-ui) below for the full request-to-recovery flow and the current/target distinction for how pages should catch it.
 
 ## Naming conventions
 
@@ -108,14 +116,14 @@ flutter test test/services/garment_service_test.dart   # single test file
 ```
 HTTP 401
   → BaseService.withAuth: silent token refresh + retry the original request once
-  → refresh/retry still fails (no stored refresh token, refresh call itself fails, or the retry 401s again)
+  → refresh/retry unrecoverable (no stored refresh token, refresh endpoint answers non-200 / without a new token pair, or the retry 401s again)
   → AuthExpiredException thrown
   → caught at the page layer
   → AuthExpiredHandler.handle(context)
   → static _isHandling flag dedupes concurrent triggers (e.g. several tabs' listeners firing at once)
 ```
 
-So "`AuthExpiredException` on 401" really means *unrecoverable* 401 — most transient 401s never reach a page's `catch` at all because `withAuth` already recovered from them.
+So "`AuthExpiredException` on 401" really means *unrecoverable* 401 — most transient 401s never reach a page's `catch` at all because `withAuth` already recovered from them. A transport error or timeout *on the refresh call itself* is not an auth problem: since `8036b16` it propagates as itself (`TimeoutException` / `ClientException`), not as `AuthExpiredException`, so a page's generic `catch` handles it as "network/server unavailable".
 
 **Target pattern — required for new code and any method being substantively touched:**
 
@@ -136,7 +144,14 @@ try {
 
 `on AuthExpiredException` is its own clause, checked before the generic `catch`. Every network call has a `catch` regardless of which shape is used — a bare `try { ... } finally { ... }` around a network call is a bug, not a style choice, in both the current and target patterns.
 
-**Current state.** Every page/feature-layer call site now uses the target `on AuthExpiredException` shape — the old `if (e is AuthExpiredException)` shared-`catch` shape has been fully migrated out. The one remaining `if (e is AuthExpiredException)` in `lib/` is in `BaseService.withAuth` itself (`e is AuthExpiredException ? rethrow : throw AuthExpiredException()`), which is a deliberate rethrow-guard while *converting* other failures, not the page-layer handle-vs-fallback shape — leave it. Don't reintroduce the `if (e is ...)` shape in new code (it's in [Forbidden patterns](#forbidden-patterns-flutter)).
+**Current state.** Every page/feature-layer `catch` site uses the target `on AuthExpiredException` clause — the old `if (e is AuthExpiredException)` shared-`catch` shape has been fully migrated out, and `8036b16` removed the last `if (e is AuthExpiredException)` catch-guard (the one inside `BaseService.withAuth`; `withAuth` now has no `try`/`catch` at all).
+
+The only `is AuthExpiredException` checks left in `lib/` are three **provider-state inspections**, not `catch` blocks, and they are legitimate and expected:
+
+- `main_tab_async.dart` and `trip_suitcase_page.dart` (`ref.listenManual`) — read `AsyncValue.error` in a listener callback to route an already-surfaced auth-expiry to `AuthExpiredHandler.handle`.
+- `error_state_widget.dart` — checks `error is AuthExpiredException` in `build` to render nothing (the page-level listener owns the recovery UI).
+
+These inspect a provider's error *value*; they are not the handle-vs-fallback `catch` shape. Don't reintroduce the `if (e is ...)` shape in a `catch` (it's in [Forbidden patterns](#forbidden-patterns-flutter)).
 
 ### `BottomActionButton`
 
@@ -166,14 +181,17 @@ Never place `BottomActionButton` inline inside the scrollable body as a sibling 
 
 ### Localization
 
-- Every page defines `AppLocalizations get _l10n => AppLocalizations.of(context);` and uses `_l10n.xxx` throughout — never call `AppLocalizations.of(context).xxx` inline more than once in the same file.
-- No hardcoded `Text('...')` literals for user-facing copy. Every string, including nouns interpolated into a template string (`_l10n.selectItemTitle('Accessory')`), goes through ARB.
+- **Target (new code, and any page you substantively touch):** define `AppLocalizations get _l10n => AppLocalizations.of(context);` once and use `_l10n.xxx` throughout — never call `AppLocalizations.of(context).xxx` inline more than once in the same file.
+- **Current state:** about half of `lib/features/pages/` follows this; ~14 pages still call `AppLocalizations.of(context)` inline (see [Migration debt register](#migration-debt-register-flutter) item 1). This is the accessor idiom only — those pages' strings are already all ARB-sourced. Don't batch-migrate the 14; add the getter to a file when you're editing it for another reason.
+- No hardcoded `Text('...')` literals for user-facing copy — this part *is* fully current across the app. Every string, including nouns interpolated into a template string (`_l10n.selectItemTitle('Accessory')`), goes through ARB.
 
 ### Design tokens
 
-- Never `Color(0x...)` — always `AppColors.*`.
-- Never a raw pixel literal that duplicates an existing `AppDimens` constant (`16`/`12` for spacing, `EdgeInsets.fromLTRB(16, 16, 16, 24)` for page grid padding — use `AppDimens.sectionSpacing`/`AppDimens.cardSpacing`/`AppDimens.pageGridPadding`). If a new spacing/radius value is genuinely needed in more than one place, add it to `AppDimens` rather than repeating the literal.
-- `BorderRadius.circular(AppDimens.cardRadius)` for cards — check `AppDimens` before writing a raw `circular(N)`; only use a raw literal when the value is deliberately different from every existing token.
+These are the **target for new and substantively-touched code**. `lib/features/` is only partially migrated — see [Migration debt register](#migration-debt-register-flutter) item 2.
+
+- Never `Color(0x...)` in the **UI / theme layer** — always `AppColors.*`. Exception: `garment.dart`'s `GarmentColor.color` swatch map is a *domain* palette (the real-world colour of a garment), not a theme token — its hex literals are intentional and are **not** a violation of this rule.
+- Prefer an `AppDimens` constant over a raw pixel literal that duplicates one (`16`/`12` for spacing, `EdgeInsets.fromLTRB(16, 16, 16, 24)` for page grid padding — use `AppDimens.sectionSpacing`/`AppDimens.cardSpacing`/`AppDimens.pageGridPadding`). If a new spacing/radius value is genuinely needed in more than one place, add it to `AppDimens` rather than repeating the literal.
+- `BorderRadius.circular(AppDimens.cardRadius)` for cards — check `AppDimens` before writing a raw `circular(N)`; only use a raw literal when the value is deliberately different from every existing token. Note: `lib/features/` still contains many raw `circular(N)` literals not yet reconciled against the tokens — fix them in a widget when you're already editing its chrome, not as a sweep.
 
 ## Logging
 
@@ -186,8 +204,8 @@ Each file below is canonical **only for the specific things listed** — it is n
 
 | Category | File | Demonstrates | Known violations — do not copy these parts |
 |---|---|---|---|
-| Service | `lib/core/services/trip_service.dart` | `_baseUrl` convention, `debugLog`-per-method convention, `decodeMap`-based error handling | Log line format omits the colon separator (`'--- updateTrip id=$tripId ---'`) — follow the written [Logging](#logging) rule's format, not this file's literal string shape |
-| Service (singleton) | `lib/core/services/garment_service.dart` | Cache-backed singleton shape, `.timeout()` on every call, cache kept coherent after a successful mutation, `deleteIdempotent`-based delete | — |
+| Service | `lib/core/services/trip_service.dart` | Canonical **for these concerns only**: `_baseUrl` convention, `decodeMap`-based error handling, the "one `debugLog` per HTTP method" habit | Two things not to copy: (1) log line omits the colon separator (`'--- updateTrip id=$tripId ---'`) — follow the [Logging](#logging) format; (2) `createTrip` logs the whole request body (`debugLog('createTrip body: ${jsonEncode(body)}')`) and `getTrip` logs a day-by-day response summary — see [Migration debt register](#migration-debt-register-flutter) item 4; new methods must log only the `--- method: id/params ---` line, never a full payload or free-text / date content |
+| Service (singleton) | `lib/core/services/garment_service.dart` | Cache-backed singleton shape, `.timeout()` on every call, cache kept coherent after a successful mutation, `deleteIdempotent`-based delete | `uploadImage()` is a redundant single-caller wrapper over `BaseService.putJpegToSignedUrl` ([Migration debt register](#migration-debt-register-flutter) item 3) — call `putJpegToSignedUrl` directly in new code |
 | Service (minimal shape) | `lib/core/services/daily_outfit_service.dart` | Minimal stateless (non-singleton) service shape | — |
 | Provider | `lib/core/providers/garments_provider.dart` | `AsyncNotifier` `refresh()` shape, verb+noun mutation naming | — (`trips_provider.dart`/`outfits_provider.dart` don't fully mirror this file's naming yet — see [Naming conventions](#naming-conventions)) |
 | Data model | `lib/data/outfit.dart` | `copyWith` `clearX` flags, extracted cache-key helper (`outfitImageCacheKey`), `num`-tolerant `parseId`, `OutfitGroupType` enum with `apiValue`/`fromApiValue` | — |
@@ -209,7 +227,74 @@ When adding a new page/service/provider/model, start from the primary example ab
 - A new abstraction layer, base class, or wrapper introduced for something used in exactly one place "for future flexibility."
 - `BottomActionButton` placed inline in the body instead of via `Scaffold.bottomNavigationBar`.
 - Logging an access token, `Authorization` header, signed URL, image payload, email, or other personal data (see [Logging](#logging)).
-- The `if (e is AuthExpiredException)` shared-catch shape (use the `on AuthExpiredException` clause instead — see [Error handling (UI)](#error-handling-ui)). The codebase is fully migrated to the clause shape apart from `BaseService.withAuth`'s own rethrow-guard.
+- The `if (e is AuthExpiredException)` shape inside a `catch` (use the `on AuthExpiredException` clause instead — see [Error handling (UI)](#error-handling-ui)). The codebase is fully migrated; the only `is AuthExpiredException` uses left are three legitimate `AsyncValue.error` checks in build/listener callbacks, which are not `catch` blocks.
+
+## Migration debt register (Flutter)
+
+Known gaps between the current code and the rules above. Each is deliberately **not** mass-fixed as a side effect of unrelated work — touch it only when its *trigger* fires, or in a dedicated pass. New code still follows the rule.
+
+**Recently resolved — no longer debt, listed only for cross-reference:**
+
+- `BaseService.withAuth`'s `/auth/refresh` POST had no timeout → fixed in `8036b16`: 15s cap; a `TimeoutException` / transport error on the refresh call now propagates unchanged instead of being masked as `AuthExpiredException`.
+- `Garment.fromJson` / `fromTripItemJson` cast `id` / `garment_id` with a raw `as int?` → fixed in `894d31e`: all three sites go through `Garment._parseNullableId` (int / integer-valued double → int; `null` → `null`; fractional / `NaN` / `Infinity` → `FormatException`; numeric string / bool → `TypeError`, unchanged).
+
+### 1. `_l10n` getter not adopted in ~14 pages
+
+- **Scope**: ~14 files in `lib/features/pages/` call `AppLocalizations.of(context)` inline instead of the `AppLocalizations get _l10n =>` alias — e.g. `trips_page.dart`, `style_taste_page.dart`, `closet_page.dart`, `outfits_page.dart`, `home_page.dart`, and the `select_*` / `trip_*` selection pages. Strings are already all ARB-sourced; this is the accessor idiom only.
+- **Risk**: Low — readability only, no behaviour or localization-correctness impact.
+- **Deferred reason**: Each conversion is a whole-file edit, and most of these pages have no test coverage, so a batch rename is high-churn and hard to review for zero functional gain.
+- **Trigger for revisiting**: When you substantively touch one of these pages for another reason, add the getter and convert that file then. A dedicated sweep is acceptable but low priority.
+
+### 2. Design-token migration incomplete in `lib/features/`
+
+- **Scope**: Dozens of raw `BorderRadius.circular(<literal>)` calls and a few raw spacing literals remain across `lib/features/pages/` and `lib/features/widgets/`. Only files touched by the consistency-refactor slices were cleaned. (Not `Color(0x...)` — those are already absent from the UI layer; the `garment.dart` swatch palette is an intentional domain exception, see [Design tokens](#design-tokens).)
+- **Risk**: Low — visual constants; a stale value is a design nit, not a bug.
+- **Deferred reason**: Needs a judgement call per literal (stale duplicate of a token vs. deliberately distinct value), so it can't be mechanically swept.
+- **Trigger for revisiting**: When editing a widget's chrome, replace that widget's literals with `AppDimens.*` (adding a token if the value recurs in 2+ places).
+
+### 3. `GarmentService.uploadImage` thin wrapper
+
+- **Scope**: `garment_service.dart`'s `uploadImage()` is a 2-line pass-through to `BaseService.putJpegToSignedUrl` with a single remaining caller (`garment_details_page.dart`). The other three upload sites already call `putJpegToSignedUrl` directly.
+- **Risk**: Very low — works correctly; it's redundant indirection and trips the "no wrapper for a single call site" forbidden pattern.
+- **Deferred reason**: `021349c` folded in the implementation but stopped short of deleting the wrapper and repointing the last caller.
+- **Trigger for revisiting**: Next time `garment_details_page.dart`'s add-garment flow is touched — inline the `putJpegToSignedUrl` call and delete `uploadImage`.
+
+### 4. `TripService` logs full request / response payloads
+
+- **Scope**:
+  - `trip_service.dart`'s `createTrip` logs `jsonEncode(body)` — the entire create payload (`name`, `legs`, `activity` list, `days`).
+  - `getTrip` logs a day-by-day response summary via `_summarizeDays`: per-day `id` / `date` / `group_id`, and per-outfit `outfit_id` / `option_type` / `has_image` (a bool). No free text, location names, garment payloads, tokens or signed URLs — but it does include the trip's **dates**.
+- **Risk**: Medium. The `createTrip` body can carry location / place names (inside `legs`), dates, the user's own trip name, and free-text activity strings — all user-supplied. Logging it in full conflicts with the [Logging](#logging) rule against logging a whole payload or personally-identifying data.
+- **Deferred reason**: This CLAUDE.md change is documentation-only — the code fix is not mixed into it.
+- **Trigger for revisiting**: **Dedicated immediate cleanup right after this CLAUDE.md commit.** Replace `createTrip`'s full-body log, and trim `getTrip`'s summary, down to a single safe operation line carrying only non-sensitive identifiers or counts (e.g. `--- createTrip: N legs, N days ---`). Do not log location, dates, free text, garment payload, token, signed URL, or a full response.
+
+### 5. Widget-level duplicate `_buildXxx` helpers and loading/empty/error shape drift
+
+- **Scope**: Copy-pasted private `_buildXxx` blocks and slightly divergent hand-rolled loading/empty/error layouts remain in `lib/features/` beyond the widgets the refactor extracted (`OutfitGrid`, `main_tab_async`, `ExpandableInsightBody`, …). `select_outfit_group_page.dart` and `trip_outfit_selection_page.dart` also still hand-roll their own outfit grid.
+- **Risk**: Low-medium — maintainability; a fix applied to one copy can miss the others.
+- **Deferred reason**: Cross-cutting; each extraction needs its own design and visual QA.
+- **Trigger for revisiting**: At the **second** substantially-identical call site, you must evaluate extracting a shared widget/helper (this matches the "2+ places" bar in [Forbidden patterns](#forbidden-patterns-flutter)). At the **third**, extraction is the default — skip it only with a clearly documented product or behaviour difference. A genuine difference is not duplication: e.g. `select_outfit_group_page.dart` / `trip_outfit_selection_page.dart` keep their own outfit grid for a custom leading card and different refresh behaviour — that stays. When a loading/empty/error state is edited, align it with `EmptyStatePlaceholder` / `ErrorStateWidget` / the standard shapes in [Loading/empty/error state](#loadingemptyerror-state).
+
+### 6. UI render-test gaps
+
+- **Scope**: 20+ page files and most of `lib/features/widgets/` have no render/widget test. Covered today: services, data models, the three list providers, four large detail pages (`test/pages/`), and a few shared widgets.
+- **Risk**: Medium — `flutter analyze` + `flutter test` do **not** catch a layout / navigation / loading regression on an untested page.
+- **Deferred reason**: Page render tests need per-page harness setup (preloaded providers, mock HTTP, real l10n delegates); they're being added opportunistically, not in one batch.
+- **Trigger for revisiting**: Any change to an untested page's visual layout, loading state, or navigation flow — do manual QA of that screen before commit (step 3 of [Pre-change / post-change checks](#pre-change--post-change-checks-flutter)), and add at least a smoke test for that page if feasible.
+
+### 7. Backend daily try-on quota error not surfaced specifically
+
+- **Scope**: The backend enforces a per-user daily try-on generation limit. Flutter has no branch for it — the rejection falls through to the generic error path (SnackBar / inline error), with no dedicated `error_code` handling or "limit reached" copy.
+- **Risk**: Low-medium — the failure *is* shown, just not explained; a user at the cap sees a vague error.
+- **Deferred reason**: Needs a product decision on the message and confirmation of the exact `error_code` the backend returns; outside the consistency-refactor scope.
+- **Trigger for revisiting**: When the daily / trip try-on UX is next revised, or when the backend's quota `error_code` is confirmed — add an `error_code` branch with an ARB string.
+
+### 8. Backend consistency work — out of scope for this repo
+
+- **Scope**: `virtual-wardrobe-backend` has its own layering / naming debt (service-layer `db.query`, a route-layer violation in `analyze_instant`, dead job-era code). Tracked in that repo against its own `CLAUDE.md`.
+- **Risk**: N/A here — no Flutter code involved.
+- **Deferred reason**: The consistency refactor was explicitly scoped to the Flutter frontend only.
+- **Trigger for revisiting**: A dedicated backend pass, driven from the backend repo — never from frontend work.
 
 ## Pre-change / post-change checks (Flutter)
 
@@ -217,7 +302,7 @@ Before committing any change under `lib/` or `test/`:
 
 1. `flutter analyze` — zero issues.
 2. `flutter test` — all passing; if you touched a service or data model with existing coverage in `test/services/` or `test/data/`, its tests must still pass, and a behavior change needs a matching test update, not just a passing run.
-3. If you touched a page's visual layout, loading state, or navigation flow, manually run the app (`flutter run --dart-define-from-file=dart_defines/dev.json`) and exercise the changed screen — `test/` currently has zero coverage for `lib/core/providers/` and `lib/features/`, so analyzer + unit tests alone do not catch a UI regression.
+3. If you touched a page's visual layout, loading state, or navigation flow, manually run the app (`flutter run --dart-define-from-file=dart_defines/dev.json`) and exercise the changed screen. `test/` now covers services, data models, the three list providers (`test/providers/`), four large detail pages (`test/pages/`), and a handful of shared widgets (`test/widgets/`) — but 20+ page files and most of `lib/features/widgets/` still have **no render test** (see [Migration debt register](#migration-debt-register-flutter) item 6), so on those screens analyzer + unit tests alone do not catch a UI regression.
 4. A rename of a public method/class (service, provider, or otherwise) requires grepping the whole `lib/`/`test/` tree for the old name before considering the change done.
 
 ---
