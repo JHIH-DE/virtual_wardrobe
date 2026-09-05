@@ -9,6 +9,37 @@ enum OccasionType { work, casual, workout, date, travel, party }
 extension OccasionTypeApi on OccasionType {
   String get apiValue => name;
 
+  /// The occasion string sent to `POST /api/v1/outfit/advice` ("Complete
+  /// with AI") — deliberately **not** [apiValue]. That backend endpoint
+  /// only applies its formality pre-filter to a fixed vocabulary
+  /// (`casual_daily` / `smart_casual` / `business` / `business_formal` /
+  /// `interview` / `date_night` / `party` / `wedding_guest` / `outdoor` /
+  /// `travel` / `sport` / `home_lounge` — see the Outfit Advice tech pack);
+  /// anything else is accepted but silently skips the filter. [apiValue]
+  /// stays a stable identifier used for local persistence (Lifestyle's
+  /// weekly occasion routine, `lifestyle_page.dart`) and must never change
+  /// shape to chase an unrelated backend's vocabulary.
+  ///
+  /// This app is casual-leaning, so `work` maps to `smart_casual` rather
+  /// than `business`/`business_formal`/`interview` — those finer corporate
+  /// dress-code tiers aren't a distinction this app's users make.
+  String get outfitAdviceOccasion {
+    switch (this) {
+      case OccasionType.work:
+        return 'smart_casual';
+      case OccasionType.casual:
+        return 'casual_daily';
+      case OccasionType.workout:
+        return 'sport';
+      case OccasionType.date:
+        return 'date_night';
+      case OccasionType.travel:
+        return 'travel';
+      case OccasionType.party:
+        return 'party';
+    }
+  }
+
   IconData get icon {
     switch (this) {
       case OccasionType.work:

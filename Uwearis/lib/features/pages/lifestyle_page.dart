@@ -15,7 +15,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/number_stepper.dart';
-import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/overlays/occasion_picker_sheet.dart';
 import '../widgets/common/section_title.dart';
 
 class LifestylePage extends StatefulWidget {
@@ -273,54 +273,10 @@ class _LifestylePageState extends State<LifestylePage> {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
     final dayName = DateFormat('EEEE').format(monday.add(Duration(days: index)));
-    final selected = await showPickerSheet<OccasionType>(
+    final selected = await showOccasionPickerSheet(
       context,
-      builder: (sheetContext) => RadioGroup<OccasionType>(
-        groupValue: current,
-        onChanged: (v) {
-          if (v != null) Navigator.pop(sheetContext, v);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PickerSheetHeader(_l10n.selectOccasionTitle(dayName)),
-            for (final occasion in OccasionType.values)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: occasion == current
-                      ? BoxDecoration(
-                          color: AppColors.accentTint,
-                          borderRadius: BorderRadius.circular(10),
-                        )
-                      : null,
-                  child: Icon(
-                    occasion.icon,
-                    size: 18,
-                    color: occasion == current
-                        ? AppColors.accent
-                        : AppColors.icon,
-                  ),
-                ),
-                title: Text(
-                  occasion.localizedLabel(sheetContext),
-                  style: occasion == current
-                      ? AppTextStyle.bold16
-                      : AppTextStyle.regular16,
-                ),
-                trailing: Radio<OccasionType>(
-                  value: occasion,
-                  activeColor: AppColors.accent,
-                ),
-                onTap: () => Navigator.pop(sheetContext, occasion),
-              ),
-          ],
-        ),
-      ),
+      current: current,
+      title: _l10n.selectOccasionTitle(dayName),
     );
 
     if (selected == null || selected == current) return;

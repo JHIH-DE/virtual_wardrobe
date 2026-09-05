@@ -16,6 +16,7 @@ class AppListCard extends StatelessWidget {
   final String? summary;
   final double minHeight;
   final double leadingSize;
+  final Widget? trailing;
 
   const AppListCard({
     super.key,
@@ -29,6 +30,7 @@ class AppListCard extends StatelessWidget {
     this.summary,
     this.minHeight = 70,
     this.leadingSize = 40,
+    this.trailing,
   });
 
   @override
@@ -86,6 +88,7 @@ class AppListCard extends StatelessWidget {
             height: AppDimens.iconSmallSize,
           ),
         ],
+        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
       ],
     );
 

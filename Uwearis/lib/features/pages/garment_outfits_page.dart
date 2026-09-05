@@ -69,7 +69,11 @@ class _GarmentOutfitsPageState extends State<GarmentOutfitsPage> {
     return AppToolBar(
       title: l10n.usedInOutfits,
       actions: [
-        _filter.buildButton(l10n, onChanged: () => setState(() {})),
+        _filter.buildButton(
+          l10n,
+          _allOutfits,
+          onChanged: () => setState(() {}),
+        ),
       ],
     );
   }

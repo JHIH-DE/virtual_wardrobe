@@ -62,7 +62,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
       centerTitle: false,
       showBackButton: false,
       actions: [
-        _filter.buildButton(l10n, onChanged: () => setState(() {})),
+        _filter.buildButton(l10n, all, onChanged: () => setState(() {})),
         const SizedBox(width: 8),
       ],
     );

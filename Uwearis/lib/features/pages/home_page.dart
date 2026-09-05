@@ -16,6 +16,7 @@ import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/floating_nav_bar.dart';
@@ -186,32 +187,12 @@ class _HomePageState extends ConsumerState<HomePage> {
       padding: const EdgeInsets.only(left: 8),
       // AppBar's leading slot hands its child a *tight* height constraint
       // (locked to the full toolbar height) — Center converts that to a
-      // loose constraint so the pill's own `height` below actually applies
-      // instead of being stretched to fill the toolbar.
+      // loose constraint so the pill's own height applies instead of being
+      // stretched to fill the toolbar.
       child: Center(
-        child: Container(
-          height: 28,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: AppColors.accent),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.explore_outlined,
-                size: 15,
-                color: AppColors.accent,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                'Explore',
-                style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
-              ),
-            ],
-          ),
+        child: AccentPillButton(
+          label: AppLocalizations.of(context).explore,
+          icon: Icons.explore_outlined,
         ),
       ),
     );

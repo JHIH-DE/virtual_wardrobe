@@ -1,7 +1,7 @@
 class Env {
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
+    defaultValue: 'https://vw-backend-staging-662955046370.asia-east1.run.app',
   );
 
   static const String googleClientId = String.fromEnvironment(

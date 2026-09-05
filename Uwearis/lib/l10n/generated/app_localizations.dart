@@ -375,12 +375,6 @@ abstract class AppLocalizations {
   /// **'New Outfit'**
   String get newOutfitGroup;
 
-  /// No description provided for @customizationOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'Accessories & Background'**
-  String get customizationOptional;
-
   /// No description provided for @currentOutfitLabel.
   ///
   /// In en, this message translates to:
@@ -452,6 +446,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My Outfit'**
   String get myOutfit;
+
+  /// No description provided for @yourOutfitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Outfit'**
+  String get yourOutfitLabel;
 
   /// No description provided for @shareComingSoon.
   ///
@@ -692,6 +692,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Home'**
   String get navHome;
+
+  /// No description provided for @explore.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore'**
+  String get explore;
+
+  /// No description provided for @completeWithAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete with AI'**
+  String get completeWithAi;
+
+  /// No description provided for @completeOutfitSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your outfit'**
+  String get completeOutfitSheetTitle;
+
+  /// No description provided for @completeOutfitSheetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll keep your locked pieces and complete the look based on your style and the current conditions.'**
+  String get completeOutfitSheetBody;
+
+  /// No description provided for @lockedPiecesStayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked pieces will stay in your outfit.'**
+  String get lockedPiecesStayHint;
+
+  /// No description provided for @occasionFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Occasion'**
+  String get occasionFieldLabel;
+
+  /// No description provided for @weatherFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather'**
+  String get weatherFieldLabel;
+
+  /// No description provided for @outfitContextSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit context'**
+  String get outfitContextSheetTitle;
+
+  /// No description provided for @completeWithAiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete your outfit with AI — please try again.'**
+  String get completeWithAiUnavailable;
 
   /// No description provided for @navCloset.
   ///
@@ -1641,12 +1695,6 @@ abstract class AppLocalizations {
   /// **'Outerwear'**
   String get outerwear;
 
-  /// No description provided for @selectCombinationsInstruction.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose the pieces you want to wear.'**
-  String get selectCombinationsInstruction;
-
   /// No description provided for @editDayOutfitInstruction.
   ///
   /// In en, this message translates to:
@@ -1994,6 +2042,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add Garment'**
   String get addGarment;
+
+  /// No description provided for @browseYourClosetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse your closet'**
+  String get browseYourClosetHint;
+
+  /// No description provided for @addAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addAction;
 
   /// No description provided for @noGarmentsPackedYet.
   ///

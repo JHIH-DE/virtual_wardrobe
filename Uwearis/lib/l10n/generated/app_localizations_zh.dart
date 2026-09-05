@@ -151,9 +151,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newOutfitGroup => '新增穿搭';
 
   @override
-  String get customizationOptional => '配件與背景';
-
-  @override
   String get currentOutfitLabel => '目前穿搭';
 
   @override
@@ -190,6 +187,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get myOutfit => '我的穿搭';
+
+  @override
+  String get yourOutfitLabel => '你的穿搭';
 
   @override
   String get shareComingSoon => '分享功能即將推出';
@@ -316,6 +316,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get navHome => '首頁';
+
+  @override
+  String get explore => '探索';
+
+  @override
+  String get completeWithAi => 'AI 完成穿搭';
+
+  @override
+  String get completeOutfitSheetTitle => '完成你的穿搭';
+
+  @override
+  String get completeOutfitSheetBody => '我們會保留你鎖定的單品，並依照你的風格與目前環境條件補完整套穿搭。';
+
+  @override
+  String get lockedPiecesStayHint => '鎖定的單品會保留在穿搭中。';
+
+  @override
+  String get occasionFieldLabel => '場合';
+
+  @override
+  String get weatherFieldLabel => '天氣';
+
+  @override
+  String get outfitContextSheetTitle => '穿搭條件';
+
+  @override
+  String get completeWithAiUnavailable => 'AI 無法完成穿搭建議，請稍後再試。';
 
   @override
   String get navCloset => '衣櫃';
@@ -807,9 +834,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outerwear => '外套';
 
   @override
-  String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立造型」查看試穿結果！';
-
-  @override
   String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
 
   @override
@@ -992,6 +1016,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addGarment => '新增衣物';
+
+  @override
+  String get browseYourClosetHint => '瀏覽你的衣櫃';
+
+  @override
+  String get addAction => '新增';
 
   @override
   String get noGarmentsPackedYet => '尚未打包任何衣物';
@@ -1302,9 +1332,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get newOutfitGroup => '新增穿搭';
 
   @override
-  String get customizationOptional => '配件與背景';
-
-  @override
   String get currentOutfitLabel => '目前穿搭';
 
   @override
@@ -1341,6 +1368,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get myOutfit => '我的穿搭';
+
+  @override
+  String get yourOutfitLabel => '你的穿搭';
 
   @override
   String get shareComingSoon => '分享功能即將推出';
@@ -1467,6 +1497,33 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get navHome => '首頁';
+
+  @override
+  String get explore => '探索';
+
+  @override
+  String get completeWithAi => 'AI 完成穿搭';
+
+  @override
+  String get completeOutfitSheetTitle => '完成你的穿搭';
+
+  @override
+  String get completeOutfitSheetBody => '我們會保留你鎖定的單品，並依照你的風格與目前環境條件補完整套穿搭。';
+
+  @override
+  String get lockedPiecesStayHint => '鎖定的單品會保留在穿搭中。';
+
+  @override
+  String get occasionFieldLabel => '場合';
+
+  @override
+  String get weatherFieldLabel => '天氣';
+
+  @override
+  String get outfitContextSheetTitle => '穿搭條件';
+
+  @override
+  String get completeWithAiUnavailable => 'AI 無法完成穿搭建議，請稍後再試。';
 
   @override
   String get navCloset => '衣櫃';
@@ -1958,9 +2015,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get outerwear => '外套';
 
   @override
-  String get selectCombinationsInstruction => '選擇你想嘗試的衣物組合，然後點選「建立造型」查看試穿結果！';
-
-  @override
   String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
 
   @override
@@ -2143,6 +2197,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get addGarment => '新增衣物';
+
+  @override
+  String get browseYourClosetHint => '瀏覽你的衣櫃';
+
+  @override
+  String get addAction => '新增';
 
   @override
   String get noGarmentsPackedYet => '尚未打包任何衣物';

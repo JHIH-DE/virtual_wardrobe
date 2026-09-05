@@ -156,9 +156,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newOutfitGroup => 'New Outfit';
 
   @override
-  String get customizationOptional => 'Accessories & Background';
-
-  @override
   String get currentOutfitLabel => 'Current Outfit';
 
   @override
@@ -195,6 +192,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myOutfit => 'My Outfit';
+
+  @override
+  String get yourOutfitLabel => 'Your Outfit';
 
   @override
   String get shareComingSoon => 'Share coming soon';
@@ -328,6 +328,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navHome => 'Home';
+
+  @override
+  String get explore => 'Explore';
+
+  @override
+  String get completeWithAi => 'Complete with AI';
+
+  @override
+  String get completeOutfitSheetTitle => 'Complete your outfit';
+
+  @override
+  String get completeOutfitSheetBody =>
+      'We\'ll keep your locked pieces and complete the look based on your style and the current conditions.';
+
+  @override
+  String get lockedPiecesStayHint => 'Locked pieces will stay in your outfit.';
+
+  @override
+  String get occasionFieldLabel => 'Occasion';
+
+  @override
+  String get weatherFieldLabel => 'Weather';
+
+  @override
+  String get outfitContextSheetTitle => 'Outfit context';
+
+  @override
+  String get completeWithAiUnavailable =>
+      'Couldn\'t complete your outfit with AI — please try again.';
 
   @override
   String get navCloset => 'Closet';
@@ -831,10 +860,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outerwear => 'Outerwear';
 
   @override
-  String get selectCombinationsInstruction =>
-      'Choose the pieces you want to wear.';
-
-  @override
   String get editDayOutfitInstruction =>
       'Choose which suitcase items make up this day\'s outfit.';
 
@@ -1019,6 +1044,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addGarment => 'Add Garment';
+
+  @override
+  String get browseYourClosetHint => 'Browse your closet';
+
+  @override
+  String get addAction => 'Add';
 
   @override
   String get noGarmentsPackedYet => 'No garments packed yet';

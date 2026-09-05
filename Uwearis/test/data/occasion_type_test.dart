@@ -17,5 +17,18 @@ void main() {
     test('occasionTypeFromApiValue returns null for an unrecognized value', () {
       expect(occasionTypeFromApiValue('sleeping'), isNull);
     });
+
+    test(
+      'outfitAdviceOccasion maps to the backend formality vocabulary '
+      '(independent of apiValue)',
+      () {
+        expect(OccasionType.work.outfitAdviceOccasion, 'smart_casual');
+        expect(OccasionType.casual.outfitAdviceOccasion, 'casual_daily');
+        expect(OccasionType.workout.outfitAdviceOccasion, 'sport');
+        expect(OccasionType.date.outfitAdviceOccasion, 'date_night');
+        expect(OccasionType.travel.outfitAdviceOccasion, 'travel');
+        expect(OccasionType.party.outfitAdviceOccasion, 'party');
+      },
+    );
   });
 }
