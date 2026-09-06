@@ -351,11 +351,11 @@ abstract class AppLocalizations {
   /// **'Name of this outfit'**
   String get outfitNameLabel;
 
-  /// No description provided for @createAnotherVersion.
+  /// No description provided for @newVersion.
   ///
   /// In en, this message translates to:
-  /// **'Create Another Version'**
-  String get createAnotherVersion;
+  /// **'New Version'**
+  String get newVersion;
 
   /// No description provided for @addToMyOutfits.
   ///
@@ -470,6 +470,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load garments'**
   String get failedToLoadGarments;
+
+  /// No description provided for @saveOutfitPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this outfit?'**
+  String get saveOutfitPromptTitle;
+
+  /// No description provided for @saveOutfitPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If you don\'t save it, this outfit will be deleted.'**
+  String get saveOutfitPromptBody;
 
   /// No description provided for @deleteOutfitTitle.
   ///
@@ -699,29 +711,23 @@ abstract class AppLocalizations {
   /// **'Explore'**
   String get explore;
 
-  /// No description provided for @completeWithAi.
+  /// No description provided for @finishOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Complete with AI'**
-  String get completeWithAi;
+  /// **'Finish Outfit'**
+  String get finishOutfit;
 
-  /// No description provided for @completeOutfitSheetTitle.
+  /// No description provided for @finishOutfitPromptBody.
   ///
   /// In en, this message translates to:
-  /// **'Complete your outfit'**
-  String get completeOutfitSheetTitle;
+  /// **'Let AI complete your selected pieces.'**
+  String get finishOutfitPromptBody;
 
-  /// No description provided for @completeOutfitSheetBody.
+  /// No description provided for @finishWithAi.
   ///
   /// In en, this message translates to:
-  /// **'We\'ll keep your locked pieces and complete the look based on your style and the current conditions.'**
-  String get completeOutfitSheetBody;
-
-  /// No description provided for @lockedPiecesStayHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Locked pieces will stay in your outfit.'**
-  String get lockedPiecesStayHint;
+  /// **'Finish with AI'**
+  String get finishWithAi;
 
   /// No description provided for @occasionFieldLabel.
   ///
@@ -729,17 +735,11 @@ abstract class AppLocalizations {
   /// **'Occasion'**
   String get occasionFieldLabel;
 
-  /// No description provided for @weatherFieldLabel.
+  /// No description provided for @temperatureFieldLabel.
   ///
   /// In en, this message translates to:
-  /// **'Weather'**
-  String get weatherFieldLabel;
-
-  /// No description provided for @outfitContextSheetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Outfit context'**
-  String get outfitContextSheetTitle;
+  /// **'Temperature'**
+  String get temperatureFieldLabel;
 
   /// No description provided for @completeWithAiUnavailable.
   ///

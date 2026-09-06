@@ -139,7 +139,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get createAnotherVersion => '建立另一個版本';
+  String get newVersion => '新版本';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -199,6 +199,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get failedToLoadGarments => '服飾載入失敗';
+
+  @override
+  String get saveOutfitPromptTitle => '要儲存這件穿搭嗎？';
+
+  @override
+  String get saveOutfitPromptBody => '如果不儲存，這件穿搭將會被刪除。';
 
   @override
   String get deleteOutfitTitle => '刪除穿搭';
@@ -321,25 +327,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get explore => '探索';
 
   @override
-  String get completeWithAi => 'AI 完成穿搭';
+  String get finishOutfit => '完成穿搭';
 
   @override
-  String get completeOutfitSheetTitle => '完成你的穿搭';
+  String get finishOutfitPromptBody => '讓 AI 補完你已選的單品。';
 
   @override
-  String get completeOutfitSheetBody => '我們會保留你鎖定的單品，並依照你的風格與目前環境條件補完整套穿搭。';
-
-  @override
-  String get lockedPiecesStayHint => '鎖定的單品會保留在穿搭中。';
+  String get finishWithAi => '使用 AI 完成';
 
   @override
   String get occasionFieldLabel => '場合';
 
   @override
-  String get weatherFieldLabel => '天氣';
-
-  @override
-  String get outfitContextSheetTitle => '穿搭條件';
+  String get temperatureFieldLabel => '溫度';
 
   @override
   String get completeWithAiUnavailable => 'AI 無法完成穿搭建議，請稍後再試。';
@@ -1320,7 +1320,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get createAnotherVersion => '建立另一個版本';
+  String get newVersion => '新版本';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -1380,6 +1380,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get failedToLoadGarments => '服飾載入失敗';
+
+  @override
+  String get saveOutfitPromptTitle => '要儲存這件穿搭嗎？';
+
+  @override
+  String get saveOutfitPromptBody => '如果不儲存，這件穿搭將會被刪除。';
 
   @override
   String get deleteOutfitTitle => '刪除穿搭';
@@ -1502,25 +1508,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get explore => '探索';
 
   @override
-  String get completeWithAi => 'AI 完成穿搭';
+  String get finishOutfit => '完成穿搭';
 
   @override
-  String get completeOutfitSheetTitle => '完成你的穿搭';
+  String get finishOutfitPromptBody => '讓 AI 補完你已選的單品。';
 
   @override
-  String get completeOutfitSheetBody => '我們會保留你鎖定的單品，並依照你的風格與目前環境條件補完整套穿搭。';
-
-  @override
-  String get lockedPiecesStayHint => '鎖定的單品會保留在穿搭中。';
+  String get finishWithAi => '使用 AI 完成';
 
   @override
   String get occasionFieldLabel => '場合';
 
   @override
-  String get weatherFieldLabel => '天氣';
-
-  @override
-  String get outfitContextSheetTitle => '穿搭條件';
+  String get temperatureFieldLabel => '溫度';
 
   @override
   String get completeWithAiUnavailable => 'AI 無法完成穿搭建議，請稍後再試。';

@@ -144,7 +144,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outfitNameLabel => 'Name of this outfit';
 
   @override
-  String get createAnotherVersion => 'Create Another Version';
+  String get newVersion => 'New Version';
 
   @override
   String get addToMyOutfits => 'Add to My Outfits';
@@ -204,6 +204,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToLoadGarments => 'Failed to load garments';
+
+  @override
+  String get saveOutfitPromptTitle => 'Save this outfit?';
+
+  @override
+  String get saveOutfitPromptBody =>
+      'If you don\'t save it, this outfit will be deleted.';
 
   @override
   String get deleteOutfitTitle => 'Delete Outfit';
@@ -333,26 +340,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get explore => 'Explore';
 
   @override
-  String get completeWithAi => 'Complete with AI';
+  String get finishOutfit => 'Finish Outfit';
 
   @override
-  String get completeOutfitSheetTitle => 'Complete your outfit';
+  String get finishOutfitPromptBody => 'Let AI complete your selected pieces.';
 
   @override
-  String get completeOutfitSheetBody =>
-      'We\'ll keep your locked pieces and complete the look based on your style and the current conditions.';
-
-  @override
-  String get lockedPiecesStayHint => 'Locked pieces will stay in your outfit.';
+  String get finishWithAi => 'Finish with AI';
 
   @override
   String get occasionFieldLabel => 'Occasion';
 
   @override
-  String get weatherFieldLabel => 'Weather';
-
-  @override
-  String get outfitContextSheetTitle => 'Outfit context';
+  String get temperatureFieldLabel => 'Temperature';
 
   @override
   String get completeWithAiUnavailable =>

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -38,6 +37,7 @@ import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/occasion_picker_sheet.dart';
 import '../widgets/common/section_title.dart';
@@ -202,10 +202,20 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   final Set<int> _lockedGarmentIds = {};
   final Set<int> _excludedGarmentIds = {};
   OccasionType _completeWithAiOccasion = OccasionType.casual;
-  // null = use the live weather reading; set once the user nudges the
-  // stepper in the context sheet, overriding it for this outfit only.
-  double? _completeWithAiTemperatureOverride;
+  // Absolute temperature (°C) Finish Outfit should dress for. null = follow
+  // the live weather reading (the stepper still shows that reading as its
+  // starting value); set once the user nudges the stepper, then it wins for
+  // this outfit only (not persisted).
+  double? _weatherTempOverrideC;
   bool _isCompletingWithAi = false;
+  // Synchronous re-entrancy guards for the two costly AI actions on this
+  // page — set before the first `await` in their handlers and cleared in a
+  // `finally`, so a double-tap during a pre-flight `await` (a delete
+  // round-trip, the Finish Outfit dialog) can't start a second AI render.
+  // See CLAUDE.md "Guarding costly / mutating actions against
+  // double-invocation".
+  bool _tryOnRequested = false;
+  bool _completeWithAiInFlight = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -357,8 +367,9 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       (!_hasCategory(GarmentCategory.bottom) || _outfit.bottom != null) &&
       (!_hasCategory(GarmentCategory.shoes) || _outfit.shoes != null);
 
-  /// The Top/Bottom/Shoes progress checklist under the "Your Outfit" row —
-  /// only categories the closet actually has, in that order.
+  /// The Top/Bottom/Shoes core categories a complete try-on needs — only
+  /// the ones the closet actually has, in that order. Drives whether
+  /// [_startTryOn] runs Finish Outfit first to fill the gaps.
   List<GarmentCategory> get _coreChecklist => const [
     GarmentCategory.top,
     GarmentCategory.bottom,
@@ -700,38 +711,66 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   }
 
   Future<void> _startTryOn() async {
-    final ids = _selectedGarmentIds();
-    if (ids.isEmpty) return;
-    if (tryOnOutfitId != 0) {
-      await deleteOutfitJob(tryOnGroupId, tryOnOutfitId);
-    }
-
-    await performTryOn(
-      ids,
-      // existingOutfit mode: land the new outfit in that outfit's group
-      // instead of starting a fresh one (Outfit Details' "Create Another
-      // Version").
-      groupId: widget.existingOutfit?.groupId,
-      backgroundId: _backgroundCustomized ? _background.backgroundId : null,
-    );
-    if (!mounted) return;
-
-    if (tryOnResultUrl != null) {
-      if (widget.existingOutfit != null) {
-        Navigator.pop(context, tryOnOutfit);
-      } else {
-        await _showTryOnResult(ids);
+    // Synchronous re-entrancy guard — set before any `await`. The
+    // `deleteOutfitJob` path below yields before `performTryOn` raises
+    // `isOutfitLoading` (and `BottomActionButton`'s hide animation keeps the
+    // old button tappable for ~200ms), so a double-tap could otherwise fire
+    // two AI renders.
+    if (_tryOnRequested || isOutfitLoading || _isCompletingWithAi) return;
+    setState(() => _tryOnRequested = true);
+    try {
+      // If any core slot (Top / Bottom / Shoes) is still empty, run Finish
+      // Outfit first to fill the gaps, then render. A closet with none of
+      // those three categories skips this (Finish Outfit can't help there).
+      if (_isCreateFlow &&
+          widget.existingOutfit == null &&
+          _coreChecklist.isNotEmpty &&
+          !_coreComplete) {
+        await _completeWithAi();
+        if (!mounted) return;
+        // Finish Outfit couldn't complete the core slots — it already
+        // surfaced the failure, so just stop here.
+        if (!_coreComplete) return;
       }
-    } else if (tryOnErrorMessage != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tryOnErrorMessage!)));
-      resetTryOnState();
+
+      final ids = _selectedGarmentIds();
+      if (ids.isEmpty) return;
+
+      if (tryOnOutfitId != 0) {
+        await deleteOutfitJob(tryOnGroupId, tryOnOutfitId);
+      }
+
+      await performTryOn(
+        ids,
+        // existingOutfit mode: land the new outfit in that outfit's group
+        // instead of starting a fresh one (Outfit Details' "Create Another
+        // Version").
+        groupId: widget.existingOutfit?.groupId,
+        backgroundId: _backgroundCustomized ? _background.backgroundId : null,
+      );
+      if (!mounted) return;
+
+      if (tryOnResultUrl != null) {
+        if (widget.existingOutfit != null) {
+          Navigator.pop(context, tryOnOutfit);
+        } else {
+          await _showTryOnResult(ids);
+        }
+      } else if (tryOnErrorMessage != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(tryOnErrorMessage!)));
+        resetTryOnState();
+      }
+    } finally {
+      if (mounted) setState(() => _tryOnRequested = false);
     }
   }
 
   Future<void> _showTryOnResult(List<int> garmentIds) async {
-    await Navigator.push<void>(
+    // OutfitDetailsPage pops `true` when the user keeps the outfit ("Save"),
+    // `false`/null when they discard it or back out.
+    final saved = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => OutfitDetailsPage(
@@ -745,16 +784,18 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         ),
       ),
     );
-    if (mounted) {
-      resetTryOnState();
-      setState(() {
-        _accessories
-          ..clear()
-          ..add(null);
-        _background = BackgroundOption.all.first;
-        _backgroundCustomized = false;
-        _customizationExpanded = false;
-      });
+    if (!mounted) return;
+    resetTryOnState();
+    setState(() {
+      _accessories
+        ..clear()
+        ..add(null);
+      _background = BackgroundOption.all.first;
+      _backgroundCustomized = false;
+      _customizationExpanded = false;
+    });
+    if (saved == true) {
+      showFeedbackOverlay(context, message: _l10n.outfitSaved);
     }
   }
 
@@ -766,7 +807,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           : existingOutfit != null
           ? (existingOutfit.name?.isNotEmpty == true
                 ? existingOutfit.name!
-                : _l10n.createAnotherVersion)
+                : _l10n.newVersion)
           : _l10n.quickActionAddOutfit,
       onBack: widget.onBack,
     );
@@ -832,9 +873,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     ];
   }
 
-  /// The default "New Outfit" layout: Match a Look, a vertical list of the
-  /// picked garments (+ an "Add garment" row), and a collapsible Background
-  /// picker (collapsed by default).
+  /// The default "New Outfit" layout: Match a Look, the collapsible
+  /// BACKGROUND section, then the "Your Outfit" header (with the Finish
+  /// Outfit action) and a vertical list of the picked garments (+ an "Add
+  /// garment" row). Occasion/temperature live in the Finish Outfit dialog.
   List<Widget> _buildCreateFlowBody() {
     return [
       _hInset(
@@ -847,46 +889,9 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         ),
       ),
       const SizedBox(height: AppDimens.sectionSpacing),
-      _hInset(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                FieldLabel(_l10n.yourOutfitLabel.toUpperCase()),
-                const Spacer(),
-                AccentPillButton(
-                  label: _l10n.completeWithAi,
-                  icon: Icons.auto_awesome,
-                  // Complete with AI works with 0, 1, or many locked
-                  // garments — it never requires a selection first.
-                  enabled:
-                      !isOutfitLoading &&
-                      !_isCompletingWithAi &&
-                      !_isLoadingGarments,
-                  onPressed: _handleCompleteWithAiTap,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            _buildAiContextRow(),
-          ],
-        ),
-      ),
-      const SizedBox(height: AppDimens.cardHeaderGap),
-      _hInset(_buildYourOutfitRow()),
-      const SizedBox(height: AppDimens.cardHeaderGap),
-      _hInset(
-        _CoreSlotChecklist(
-          items: [
-            for (final c in _coreChecklist)
-              (label: c.localizedLabel(context), met: _coreSlotMet(c)),
-          ],
-        ),
-      ),
-      const SizedBox(height: AppDimens.sectionSpacing),
       _hInset(_buildBackgroundSectionHeader()),
       AnimatedCrossFade(
+        key: const ValueKey('backgroundSection'),
         duration: const Duration(milliseconds: 150),
         crossFadeState: _customizationExpanded
             ? CrossFadeState.showFirst
@@ -899,6 +904,29 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         ),
         secondChild: const SizedBox.shrink(),
       ),
+      const SizedBox(height: AppDimens.sectionSpacing),
+      _hInset(
+        Row(
+          children: [
+            FieldLabel(_l10n.yourOutfitLabel.toUpperCase()),
+            const Spacer(),
+            AccentPillButton(
+              label: _l10n.finishOutfit,
+              icon: Icons.auto_awesome,
+              // Finish Outfit works with 0, 1, or many locked garments —
+              // it never requires a selection first.
+              enabled:
+                  !isOutfitLoading &&
+                  !_isCompletingWithAi &&
+                  !_completeWithAiInFlight &&
+                  !_isLoadingGarments,
+              onPressed: _handleCompleteWithAiTap,
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppDimens.cardHeaderGap),
+      _hInset(_buildYourOutfitRow()),
     ];
   }
 
@@ -914,7 +942,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   // The "Add garment" row's dashed placeholder icon — unrelated to the real
   // garment thumbnail width below, which bleeds edge-to-edge instead.
   static const double _addGarmentIconSize = 56;
-  static const double _outfitThumbnailWidth = 92;
+  static const double _outfitThumbnailWidth = 78;
 
   /// Vertical list: a pinned "Add garment" row on top, then one row per
   /// current pick (core slots first, then accessories — see
@@ -1021,10 +1049,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
                   child: Row(
                     children: [
                       Expanded(
@@ -1331,46 +1356,53 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     });
   }
 
-  static const _completeWithAiIntroSeenKey = 'complete_with_ai_intro_seen';
   static const double _defaultTemperatureC = 20;
 
-  /// Small "Casual · 24°C ›"-style row under the "Your Outfit" header —
-  /// shows (and lets the user change) the occasion and temperature
-  /// "Complete with AI" uses. Wrapped in its own [Consumer] rather than
-  /// converting the whole (already large) page to `ConsumerStatefulWidget`,
-  /// since this is the only spot that needs to stay live as the weather
-  /// provider resolves.
-  Widget _buildAiContextRow() {
-    return Consumer(
-      builder: (context, ref, _) {
-        final liveTemp = ref
-            .watch(weatherProvider)
-            .maybeWhen(data: (w) => w.temp, orElse: () => null);
-        final displayTemp = _completeWithAiTemperatureOverride ?? liveTemp;
-        final occasionLabel = _completeWithAiOccasion.localizedLabel(context);
-        final label = displayTemp != null
-            ? '$occasionLabel · ${displayTemp.round()}°C'
-            : occasionLabel;
-        return GestureDetector(
-          onTap: _showContextSettingsDialog,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: AppTextStyle.regular12.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+  /// "Occasion   [icon] Casual  ›" row shown in the Finish Outfit dialog —
+  /// same layout as Lifestyle's weekday rows; tapping it opens the shared
+  /// [showOccasionPickerSheet]. [onChanged] rebuilds the host dialog after a
+  /// pick (page `setState` alone doesn't reach the dialog route).
+  Widget _buildOccasionPickerRow({VoidCallback? onChanged}) {
+    return InkWell(
+      onTap: () async {
+        final selected = await showOccasionPickerSheet(
+          context,
+          current: _completeWithAiOccasion,
+          title: _l10n.occasionFieldLabel,
+        );
+        if (selected == null || !mounted) return;
+        setState(() => _completeWithAiOccasion = selected);
+        onChanged?.call();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _l10n.occasionFieldLabel,
+                style: AppTextStyle.semibold16,
               ),
-              const Icon(
-                Icons.chevron_right,
-                size: 14,
+            ),
+            Icon(_completeWithAiOccasion.icon, size: 18, color: AppColors.icon),
+            const SizedBox(width: 6),
+            Text(
+              _completeWithAiOccasion.localizedLabel(context),
+              style: AppTextStyle.regular14.copyWith(
                 color: AppColors.textSecondary,
               ),
-            ],
-          ),
-        );
-      },
+            ),
+            const SizedBox(width: 2),
+            Image.asset(
+              'assets/images/page_arrow_right.png',
+              width: 20,
+              height: 20,
+              color: AppColors.textSecondary,
+              colorBlendMode: BlendMode.srcIn,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1379,162 +1411,87 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// [GarmentRecommendationService.completeOutfit]. Never throws.
   Future<WeatherData?> _fetchWeatherBestEffort() async {
     try {
-      return await ProviderScope.containerOf(context, listen: false)
-          .read(weatherProvider.future)
-          .timeout(const Duration(seconds: 5));
+      return await ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(weatherProvider.future).timeout(const Duration(seconds: 5));
     } catch (_) {
       return null;
     }
   }
 
   Future<void> _handleCompleteWithAiTap() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    if (prefs.getBool(_completeWithAiIntroSeenKey) == true) {
-      await _completeWithAi();
-    } else {
-      await _showCompleteWithAiIntroDialog(prefs);
+    // Re-entrancy guard — the dialog and `_completeWithAi` both run before
+    // `_isCompletingWithAi` is raised, so a double-tap could otherwise stack
+    // two dialogs / fire two recommendation requests.
+    if (_isCompletingWithAi || _completeWithAiInFlight) return;
+    setState(() => _completeWithAiInFlight = true);
+    try {
+      final proceed = await _showFinishOutfitDialog();
+      if (proceed == true && mounted) await _completeWithAi();
+    } finally {
+      if (mounted) setState(() => _completeWithAiInFlight = false);
     }
   }
 
-  /// The Occasion picker + temperature stepper shared by the first-use
-  /// intro sheet and the context row's own settings sheet — [liveTemp]
-  /// seeds the stepper the first time it's touched; after that,
-  /// [_completeWithAiTemperatureOverride] wins.
-  Widget _buildContextEditorFields(
-    BuildContext sheetContext,
-    StateSetter setSheetState,
-    double? liveTemp,
-  ) {
-    final workingTemp =
-        _completeWithAiTemperatureOverride ?? liveTemp ?? _defaultTemperatureC;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(_l10n.occasionFieldLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        GestureDetector(
-          onTap: () async {
-            final selected = await showOccasionPickerSheet(
-              sheetContext,
-              current: _completeWithAiOccasion,
-              title: _l10n.occasionFieldLabel,
+  /// The "Finish Outfit" dialog opened from the header pill — a short
+  /// explainer plus the Occasion / Weather knobs, confirmed with "Finish
+  /// with AI". Shown every time (no first-use gating). Wrapped in a
+  /// [Consumer] so the stepper seeds from the live weather reading, and a
+  /// [StatefulBuilder] so occasion/temperature edits rebuild it. Returns
+  /// `true` when the user confirms.
+  Future<bool?> _showFinishOutfitDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => Consumer(
+          builder: (context, ref, _) {
+            final liveTemp = ref
+                .watch(weatherProvider)
+                .maybeWhen(data: (w) => w.temp, orElse: () => null);
+            final tempC =
+                _weatherTempOverrideC ?? liveTemp ?? _defaultTemperatureC;
+            return AppDialog(
+              title: _l10n.finishOutfit,
+              contentToPrimarySpacing: 8,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _l10n.finishOutfitPromptBody,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.regular14.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildOccasionPickerRow(
+                    onChanged: () => setDialogState(() {}),
+                  ),
+                  const AppDivider(topSpacing: 0, bottomSpacing: 0),
+                  NumberStepper(
+                    variant: NumberStepperVariant.row,
+                    label: _l10n.temperatureFieldLabel,
+                    valueLabel: '${tempC.round()}°C',
+                    onDecrement: () {
+                      setState(() => _weatherTempOverrideC = tempC - 1);
+                      setDialogState(() {});
+                    },
+                    onIncrement: () {
+                      setState(() => _weatherTempOverrideC = tempC + 1);
+                      setDialogState(() {});
+                    },
+                  ),
+                ],
+              ),
+              primaryLabel: _l10n.finishWithAi,
+              primaryIcon: Icons.auto_awesome,
+              onPrimary: () => Navigator.pop(dialogContext, true),
+              secondaryLabel: _l10n.cancel,
+              onSecondary: () => Navigator.pop(dialogContext),
             );
-            if (selected == null) return;
-            setState(() => _completeWithAiOccasion = selected);
-            setSheetState(() {});
-          },
-          child: _buildContextChip(
-            icon: _completeWithAiOccasion.icon,
-            label: _completeWithAiOccasion.localizedLabel(sheetContext),
-          ),
-        ),
-        const SizedBox(height: AppDimens.cardHeaderGap),
-        FieldLabel(_l10n.weatherFieldLabel.toUpperCase()),
-        const SizedBox(height: 8),
-        NumberStepper(
-          label: _l10n.weatherFieldLabel,
-          valueLabel: '${workingTemp.round()}°C',
-          onDecrement: () {
-            setState(() => _completeWithAiTemperatureOverride = workingTemp - 1);
-            setSheetState(() {});
-          },
-          onIncrement: () {
-            setState(() => _completeWithAiTemperatureOverride = workingTemp + 1);
-            setSheetState(() {});
           },
         ),
-      ],
-    );
-  }
-
-  /// First-use-only explainer (item 6) — shown once, then
-  /// [_completeWithAiIntroSeenKey] keeps it from reappearing.
-  Future<void> _showCompleteWithAiIntroDialog(SharedPreferences prefs) async {
-    final weather = await _fetchWeatherBestEffort();
-    if (!mounted) return;
-
-    final proceed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AppDialog(
-          title: _l10n.completeOutfitSheetTitle,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _l10n.completeOutfitSheetBody,
-                textAlign: TextAlign.center,
-                style: AppTextStyle.regular14.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppDimens.sectionSpacing),
-              _buildContextEditorFields(
-                dialogContext,
-                setDialogState,
-                weather?.temp,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _l10n.lockedPiecesStayHint,
-                textAlign: TextAlign.center,
-                style: AppTextStyle.regular12.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          primaryLabel: _l10n.completeWithAi,
-          onPrimary: () => Navigator.pop(dialogContext, true),
-        ),
-      ),
-    );
-
-    await prefs.setBool(_completeWithAiIntroSeenKey, true);
-    if (proceed == true && mounted) await _completeWithAi();
-  }
-
-  /// Reached by tapping the lightweight context row — lets the user adjust
-  /// Occasion / temperature on their own schedule instead of only ever
-  /// through "Complete with AI"'s own (one-time) intro dialog.
-  Future<void> _showContextSettingsDialog() async {
-    final weather = await _fetchWeatherBestEffort();
-    if (!mounted) return;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AppDialog(
-          title: _l10n.outfitContextSheetTitle,
-          content: _buildContextEditorFields(
-            dialogContext,
-            setDialogState,
-            weather?.temp,
-          ),
-          primaryLabel: _l10n.confirm,
-          onPrimary: () => Navigator.pop(dialogContext),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContextChip({required IconData icon, required String label}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.pageBackground,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: AppColors.icon),
-          const SizedBox(width: 6),
-          Text(label, style: AppTextStyle.bold14),
-        ],
       ),
     );
   }
@@ -1545,12 +1502,13 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// — nothing to fetch or send from here. Text-only: no Try-On image is
   /// generated here, only [_startTryOn] (behind "Create Outfit") does that.
   Future<void> _completeWithAi() async {
+    if (_isCompletingWithAi) return;
     setState(() => _isCompletingWithAi = true);
     try {
-      // A user-set temperature (via the context row/intro sheet) always
-      // wins over the live reading.
+      // The user's explicit override wins; otherwise the live reading (or
+      // null when there's neither — the backend then decides on its own).
       final temperatureC =
-          _completeWithAiTemperatureOverride ?? (await _fetchWeatherBestEffort())?.temp;
+          _weatherTempOverrideC ?? (await _fetchWeatherBestEffort())?.temp;
       final ids = await GarmentRecommendationService().completeOutfit(
         garmentIds: _lockedGarmentIds.toList(),
         excludeGarmentIds: _excludedGarmentIds.toList(),
@@ -1769,7 +1727,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                   ),
                   const SizedBox(width: 18),
                   Expanded(
-                    child: Text(_l10n.accessoriesLabel, style: AppTextStyle.regular16),
+                    child: Text(
+                      _l10n.accessoriesLabel,
+                      style: AppTextStyle.regular16,
+                    ),
                   ),
                   ExpandArrowIcon(expanded: _customizationExpanded),
                 ],
@@ -1933,16 +1894,50 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// [selectOnly]/edit flow's [_buildCustomizationBlock] uses; the two
   /// bodies are mutually exclusive per page instance, so sharing it doesn't
   /// conflict).
-  Widget _buildBackgroundSectionHeader() {
+  Widget _buildBackgroundSectionHeader() => _collapsibleSectionHeader(
+    label: _l10n.backgroundLabel.toUpperCase(),
+    expanded: _customizationExpanded,
+    onToggle: () =>
+        setState(() => _customizationExpanded = !_customizationExpanded),
+    trailing: _customizationExpanded
+        ? null
+        : _sectionSummaryText(_background.label),
+  );
+
+  /// The grey one-line summary shown in a collapsed
+  /// [_collapsibleSectionHeader] — OUTFIT CONTEXT's "Casual · 16°C",
+  /// BACKGROUND's selected preset name.
+  Widget _sectionSummaryText(String text) => Text(
+    text,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: AppTextStyle.regular12.copyWith(color: AppColors.textSecondary),
+  );
+
+  /// Shared "FieldLabel + expand arrow" tappable header behind the create
+  /// flow's two collapsible sections (OUTFIT CONTEXT and BACKGROUND).
+  /// [trailing] sits just before the arrow — used for each section's
+  /// collapsed-state summary.
+  Widget _collapsibleSectionHeader({
+    required String label,
+    required bool expanded,
+    required VoidCallback onToggle,
+    Widget? trailing,
+  }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () =>
-          setState(() => _customizationExpanded = !_customizationExpanded),
+      onTap: onToggle,
       child: Row(
         children: [
-          FieldLabel(_l10n.backgroundLabel.toUpperCase()),
-          const Spacer(),
-          ExpandArrowIcon(expanded: _customizationExpanded),
+          FieldLabel(label),
+          const SizedBox(width: 12),
+          Expanded(
+            child: trailing == null
+                ? const SizedBox.shrink()
+                : Align(alignment: Alignment.centerRight, child: trailing),
+          ),
+          const SizedBox(width: 8),
+          ExpandArrowIcon(expanded: expanded),
         ],
       ),
     );
@@ -2102,22 +2097,31 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// The create flow gates Create Outfit on the Top/Bottom/Shoes checklist
-  /// (the same one shown under the "Your Outfit" row). A closet missing all
-  /// three of those categories falls back to "at least 2 garments picked".
+  /// Create Outfit is always shown in the create flow now — if Top/Bottom/
+  /// Shoes aren't all picked, [_startTryOn] runs Finish Outfit to fill the
+  /// gaps before rendering. It's only *disabled* while a costly AI action is
+  /// already running, or — for a closet with none of those three categories,
+  /// where Finish Outfit can't help — until at least 2 garments are picked.
   bool get _createFlowReady {
-    if (isOutfitLoading) return false;
+    if (isOutfitLoading ||
+        _isLoadingGarments ||
+        _tryOnRequested ||
+        _isCompletingWithAi ||
+        _completeWithAiInFlight) {
+      return false;
+    }
     if (_coreChecklist.isEmpty) return _selectedGarmentIds().length >= 2;
-    return _coreComplete;
+    return true;
   }
 
   bool get _showsBottomActionButton {
     if (widget.selectOnly) return _hasSelection && _isModified;
-    // Deliberately keyed on existingOutfit, not _isCreateFlow — the two now
-    // share a layout, but a fresh outfit and "Create Another Version" still
-    // have different readiness rules (see _buildBottomBar).
-    if (widget.existingOutfit == null) return _createFlowReady;
+    // Create Outfit is always present in the create flow (it just toggles
+    // enabled — see _buildBottomBar), so its clearance stays reserved.
+    // "Create Another Version" keeps its own readiness rule.
+    if (widget.existingOutfit == null) return true;
     return !isOutfitLoading &&
+        !_tryOnRequested &&
         _hasCoreSlots &&
         (widget.existingOutfit != null || _isModified);
   }
@@ -2146,6 +2150,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       enabled: widget.existingOutfit == null
           ? _createFlowReady
           : (!isOutfitLoading &&
+                !_tryOnRequested &&
                 _hasCoreSlots &&
                 (widget.existingOutfit != null || _isModified)),
     );
@@ -2476,56 +2481,6 @@ class _MatchALookCard extends StatelessWidget {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Small card under the "Your Outfit" row showing which core categories
-/// (Top / Bottom / Shoes) are still missing for a complete try-on — an
-/// outline circle turns into a filled check once that slot is filled.
-class _CoreSlotChecklist extends StatelessWidget {
-  final List<({String label, bool met})> items;
-
-  const _CoreSlotChecklist({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.pageBackground,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          for (final item in items)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  item.met ? Icons.check_circle : Icons.radio_button_unchecked,
-                  size: 18,
-                  // Green = a system-completed check, not the app accent.
-                  color: item.met ? AppColors.success : AppColors.hintText,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  item.label,
-                  style:
-                      (item.met ? AppTextStyle.bold14 : AppTextStyle.regular14)
-                          .copyWith(
-                            color: item.met
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                          ),
-                ),
-              ],
-            ),
         ],
       ),
     );

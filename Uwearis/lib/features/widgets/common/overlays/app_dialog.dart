@@ -10,6 +10,9 @@ class AppDialog extends StatefulWidget {
   final Widget? content;
   final String primaryLabel;
   final VoidCallback onPrimary;
+
+  /// Optional leading icon on the (non-text-button) primary button.
+  final IconData? primaryIcon;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
   final String? tertiaryLabel;
@@ -40,6 +43,7 @@ class AppDialog extends StatefulWidget {
     this.content,
     required this.primaryLabel,
     required this.onPrimary,
+    this.primaryIcon,
     this.secondaryLabel,
     this.onSecondary,
     this.tertiaryLabel,
@@ -112,20 +116,44 @@ class _AppDialogState extends State<AppDialog>
                       onPressed: widget.onPrimary,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
-                        minimumSize: const Size(double.infinity, 54),
+                        // Matches BottomActionButton's height.
+                        minimumSize: const Size(double.infinity, 48),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(27),
+                          borderRadius: BorderRadius.circular(24),
                         ),
                         elevation: 0,
                         side: widget.borderSide,
                       ),
-                      child: Text(
-                        widget.primaryLabel,
-                        style: AppTextStyle.regular16.copyWith(
-                          color: AppColors.textOnPrimary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      child: widget.primaryIcon == null
+                          ? Text(
+                              widget.primaryLabel,
+                              style: AppTextStyle.regular16.copyWith(
+                                color: AppColors.textOnPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  widget.primaryIcon,
+                                  size: 18,
+                                  color: AppColors.textOnPrimary,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    widget.primaryLabel,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyle.regular16.copyWith(
+                                      color: AppColors.textOnPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
               if (widget.secondaryLabel != null) ...[
                 SizedBox(height: widget.secondaryIsTextButton ? 12 : 16),

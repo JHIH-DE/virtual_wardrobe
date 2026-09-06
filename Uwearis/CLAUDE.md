@@ -220,6 +220,33 @@ After creating, consolidating, or changing a shared Widget:
 - **Empty lists**: `EmptyStatePlaceholder` — never hand-roll an empty-state `Text`.
 - **Provider `.when()` error branches**: `ErrorStateWidget`.
 
+### Guarding costly / mutating actions against double-invocation {#double-invocation-guard}
+
+A handler that starts an AI render, creates/copies a record, or makes any other backend call that is expensive or wrong to run twice must hold a **synchronous re-entrancy guard**: a `bool` field set as the handler's first statement — *before any `await`* — and cleared in a `finally`.
+
+```dart
+Future<void> _doCostlyThing() async {
+  if (_thingInFlight) return;
+  setState(() => _thingInFlight = true);
+  try {
+    // ... awaits, dialogs, the actual call ...
+  } finally {
+    if (mounted) setState(() => _thingInFlight = false);
+  }
+}
+```
+
+This is a plain local flag, not a job/queue — it does not reintroduce the polling this codebase deliberately removed (see [Virtual try-on](#virtual-try-on)).
+
+Hiding or disabling the trigger button is **not** a substitute:
+
+- A flag the operation only raises *after* its first `await` — a pre-flight suitcase fetch, a `SharedPreferences` read, a confirm dialog, or a loading flag set inside a helper (e.g. `performTryOn` raising `isOutfitLoading`) — leaves the button live during that first `await`, so a double-tap lands two calls before the flag is ever set.
+- A full-screen `LoadingOverlay` only absorbs taps from the frame *after* `setState`, and `BottomActionButton`'s `AnimatedSwitcher` keeps the outgoing button hit-testable for ~200ms after it is told to hide.
+
+When the action has a pre-flight phase, keep the **guard flag distinct from the visual "generating" flag** — drive the overlay off the latter so it doesn't show over the confirm dialog — and wire the guard flag into the trigger's own disabled/hidden condition so the button also *looks* unavailable during the pre-flight phase.
+
+**Current state.** `_regenerateImage` / `_setCover` / `_addToMyOutfits` (`outfit_details_page.dart`) and `_generateSelectedDayOutfit` (`trip_details_page.dart`) already raise their flag synchronously and are the pattern to copy. `_startTryOn` / `_handleCompleteWithAiTap` (`add_outfit_page.dart`) and `_generatePlan` (`trip_details_page.dart`, via the `_generatePlan` → `_generatePlanFlow` wrapper) were brought in line with it.
+
 ### Error handling (UI) {#error-handling-ui}
 
 **Actual request-to-recovery flow.** A `BaseService`-mixed-in call that gets HTTP 401 does not throw immediately:
@@ -320,7 +347,7 @@ Each file below is canonical **only for the specific things listed** — it is n
 | Service (minimal shape) | `lib/core/services/daily_outfit_service.dart` | Minimal stateless (non-singleton) service shape | — |
 | Provider | `lib/core/providers/garments_provider.dart` | `AsyncNotifier` `refresh()` shape, verb+noun mutation naming | — (`trips_provider.dart`/`outfits_provider.dart` don't fully mirror this file's naming yet — see [Naming conventions](#naming-conventions)) |
 | Data model | `lib/data/outfit.dart` | `copyWith` `clearX` flags, extracted cache-key helper (`outfitImageCacheKey`), `num`-tolerant `parseId`, `OutfitGroupType` enum with `apiValue`/`fromApiValue` | — |
-| Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading, `on AuthExpiredException` clause shape | one raw `BorderRadius.circular(16)` instead of `AppDimens.cardRadius` |
+| Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading, `on AuthExpiredException` clause shape, synchronous re-entrancy guard on costly actions (`_regenerateImage`/`_setCover` — see [Guarding costly / mutating actions against double-invocation](#double-invocation-guard)) | one raw `BorderRadius.circular(16)` instead of `AppDimens.cardRadius` |
 | Shared widget | `lib/features/widgets/common/buttons/bottom_action_button.dart` | Full compliance — colors via `AppColors`, no hardcoded text, documented literals | — |
 | Shared grid | `lib/features/widgets/outfit/outfit_grid.dart` / `lib/features/widgets/garment/garment_grid.dart` | Canonical grid per product concept: shared delegate + padding + (for `OutfitGrid`) empty state / refresh; per-screen item wrappers stay at the call site via `itemBuilder`. `GarmentGrid.gridDelegate` is exposed for the one raw `SliverGrid` call site | — |
 | Shared filter state | `lib/features/widgets/common/buttons/garment_color_type_filter.dart` / `outfit_season_style_filter.dart` | Non-widget state class that owns a `FilterButton`'s data: derives the option lists, holds the selected sets, `apply()`s the filter. The "move orchestration to a controller" resolution for repeated filter blocks | — |
@@ -343,6 +370,7 @@ When adding a new page/service/provider/model, start from the primary example ab
 - Expanding a shared Widget into a boolean-heavy universal component instead of keeping genuinely different product contracts separate.
 - A new abstraction layer, base class, or wrapper introduced for something used in exactly one place "for future flexibility."
 - `BottomActionButton` placed inline in the body instead of via `Scaffold.bottomNavigationBar`.
+- An AI-render / create / copy / paid-call handler with no synchronous re-entrancy guard before its first `await` — relying only on a later-set loading flag, a hidden/disabled button, or the loading overlay to stop a double-tap (see [Guarding costly / mutating actions against double-invocation](#double-invocation-guard)).
 - Logging an access token, `Authorization` header, signed URL, image payload, email, or other personal data (see [Logging](#logging)).
 - The `if (e is AuthExpiredException)` shape inside a `catch` (use the `on AuthExpiredException` clause instead — see [Error handling (UI)](#error-handling-ui)). The codebase is fully migrated; the only `is AuthExpiredException` uses left are three legitimate `AsyncValue.error` checks in build/listener callbacks, which are not `catch` blocks.
 

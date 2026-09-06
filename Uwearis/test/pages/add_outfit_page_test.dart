@@ -66,16 +66,12 @@ void main() {
     // Nothing picked yet — only the "Add Garment" row is in the list.
     expect(find.text('Add Garment'), findsOneWidget);
 
-    // Fewer than two garments, so the Create Outfit bar is gated off
-    // (hidden, not greyed) — see BottomActionButton._isUnavailable.
-    expect(find.text('Create Outfit'), findsNothing);
-    expect(
-      find.byKey(const ValueKey('bottomActionButton-hidden')),
-      findsOneWidget,
-    );
+    // Create Outfit is always shown now — missing core slots get filled by
+    // Finish Outfit before the render (see _startTryOn).
+    expect(find.text('Create Outfit'), findsOneWidget);
   });
 
-  testWidgets('Create Outfit stays hidden until the checklist is complete', (
+  testWidgets('Create Outfit shows even when the checklist is incomplete', (
     tester,
   ) async {
     useTallSurface(tester);
@@ -87,7 +83,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('Create Outfit'), findsNothing);
+    expect(find.text('Create Outfit'), findsOneWidget);
   });
 
   testWidgets('Create Outfit appears once Top, Bottom and Shoes are all set', (
@@ -105,25 +101,57 @@ void main() {
     expect(find.text('Create Outfit'), findsOneWidget);
   });
 
-  testWidgets('the core checklist shows Top/Bottom/Shoes progress', (
-    tester,
-  ) async {
-    useTallSurface(tester);
-    await pumpApp(
-      tester,
-      AddOutfitPage(
-        preloadedGarments: closet,
-        initialGarments: [closet[0]], // just the top
-      ),
-    );
-    await tester.pump();
+  testWidgets(
+    'Create Outfit with a missing core slot runs Finish Outfit before rendering',
+    (tester) async {
+      useTallSurface(tester);
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        if (request.url.path.endsWith('/outfit/advice')) {
+          return jsonResponse(
+            envelope({
+              'outfit_name': 'AI Pick',
+              'selected_garment_ids': [1, 2, 3],
+              'items': const [
+                {'garment_id': 1, 'role': 'top', 'order': 0, 'reason': null},
+                {'garment_id': 2, 'role': 'bottom', 'order': 1, 'reason': null},
+                {'garment_id': 3, 'role': 'shoes', 'order': 2, 'reason': null},
+              ],
+              'styling_tips': null,
+              'reasoning': null,
+            }),
+          );
+        }
+        // The try-on generate call that follows — fail it so the flow stops
+        // after the Finish Outfit step (this test only asserts the ordering).
+        return jsonResponse(envelope(null), status: 500);
+      });
 
-    expect(find.text('Bottom'), findsOneWidget); // checklist only
-    expect(find.text('Shoes'), findsOneWidget);
-    // Top satisfied, Bottom + Shoes still open.
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
-    expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(2));
-  });
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          AddOutfitPage(
+            preloadedGarments: closet,
+            initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
+          ),
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Create Outfit'));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 6)); // weather timeout
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 6));
+        await tester.pump();
+
+        expect(
+          requests.any((r) => r.url.path.endsWith('/outfit/advice')),
+          isTrue,
+        );
+      }, () => client);
+    },
+  );
 
   testWidgets(
     'a manually added garment is locked by default; removing it clears the lock',
@@ -167,49 +195,66 @@ void main() {
     expect(find.byIcon(Icons.lock), findsOneWidget);
   });
 
-  testWidgets('the Complete with AI pill is enabled with zero garments picked', (
-    tester,
-  ) async {
-    useTallSurface(tester);
-    await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
-    await tester.pump();
-
-    final pill = tester.widget<AccentPillButton>(find.byType(AccentPillButton));
-    expect(pill.enabled, isTrue);
-  });
-
   testWidgets(
-    'the context row opens a settings sheet to adjust occasion and temperature',
+    'the Complete with AI pill is enabled with zero garments picked',
     (tester) async {
       useTallSurface(tester);
       await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
       await tester.pump();
 
-      // No weather in tests — the row starts showing just the occasion.
-      await tester.tap(find.text('Casual'));
+      final pill = tester.widget<AccentPillButton>(
+        find.byType(AccentPillButton),
+      );
+      expect(pill.enabled, isTrue);
+    },
+  );
+
+  testWidgets(
+    'the Finish Outfit dialog holds the occasion + temperature knobs',
+    (tester) async {
+      useTallSurface(tester);
+      await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
       await tester.pump();
-      await tester.pump(const Duration(seconds: 6)); // weather lookup timeout
+      await tester.pump(const Duration(seconds: 6)); // weather lookup settles
       await tester.pumpAndSettle();
 
-      expect(find.text('Outfit context'), findsOneWidget);
+      // No occasion/temperature UI on the page itself anymore.
+      expect(find.text('Occasion'), findsNothing);
+
+      await tester.tap(find.byType(AccentPillButton));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+
+      // The dialog: explainer, occasion row, temperature stepper, CTA.
+      expect(
+        find.text('Let AI complete your selected pieces.'),
+        findsOneWidget,
+      );
+      expect(find.text('Occasion'), findsOneWidget);
+      expect(find.text('Temperature'), findsOneWidget);
       expect(find.text('20°C'), findsOneWidget); // fallback default
+      expect(
+        find.widgetWithText(ElevatedButton, 'Finish with AI'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byIcon(Icons.add_circle_outline));
       await tester.pump();
       expect(find.text('21°C'), findsOneWidget);
 
-      await tester.tap(find.text('Confirm'));
+      // Occasion picked via the shared bottom sheet, dialog stays open.
+      await tester.tap(find.text('Occasion'));
       await tester.pumpAndSettle();
-      expect(find.text('Outfit context'), findsNothing);
-
-      // The row itself now reflects the adjusted temperature.
-      expect(find.text('Casual · 21°C'), findsOneWidget);
+      await tester.tap(find.text('Work'));
+      await tester.pumpAndSettle();
+      expect(find.text('Work'), findsOneWidget);
+      expect(find.text('21°C'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'Complete with AI shows the intro dialog once, applies the recommended '
-    'garments, then skips the dialog on a later tap',
+    'Finish Outfit dialog applies the AI picks; a later run excludes them',
     (tester) async {
       useTallSurface(tester);
       final requests = <http.Request>[];
@@ -230,35 +275,28 @@ void main() {
         );
       });
 
+      // Open the Finish Outfit dialog and confirm with "Finish with AI".
+      // Plain pumps after confirm: _completeWithAi's LoadingOverlay spinner
+      // animates forever, so pumpAndSettle would time out.
+      Future<void> runFinishWithAi() async {
+        await tester.tap(find.byType(AccentPillButton));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 6));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ElevatedButton, 'Finish with AI'));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 6));
+        await tester.pump();
+      }
+
       await http.runWithClient(() async {
         await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
         await tester.pump();
 
-        await tester.tap(find.byType(AccentPillButton));
-        await tester.pump();
-        // Fast-forward past the (best-effort, unmocked-in-tests) weather
-        // lookup's own timeout so the dialog's build isn't left waiting on
-        // it — geolocator has no mock handler registered here, so it hangs
-        // rather than throwing, same as flutter_secure_storage.
-        await tester.pump(const Duration(seconds: 6));
-        await tester.pumpAndSettle();
-        expect(find.text('Complete your outfit'), findsOneWidget);
-
-        // Confirming calls _completeWithAi, which does its own best-effort
-        // weather lookup before the (mocked) recommendation request. Plain
-        // (not pumpAndSettle) pumps here: the in-flight LoadingOverlay's
-        // spinner animates forever, which would make pumpAndSettle time out
-        // regardless of the async work underneath.
-        await tester.tap(
-          find.widgetWithText(ElevatedButton, 'Complete with AI'),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 6));
-        await tester.pump();
-        expect(find.text('Complete your outfit'), findsNothing);
+        await runFinishWithAi();
 
         // The recommended garments are now in place, unlocked, and the
-        // Top/Bottom/Shoes checklist is satisfied.
+        // Create Outfit gate is satisfied.
         expect(find.text('Create Outfit'), findsOneWidget);
         expect(find.byIcon(Icons.lock_open), findsNWidgets(3));
         expect(requests, hasLength(1));
@@ -267,13 +305,9 @@ void main() {
           <int>[],
         );
 
-        // Second tap: the intro dialog doesn't reappear, and this run asks
-        // the AI to avoid repeating the first run's (unlocked) picks.
-        await tester.tap(find.byType(AccentPillButton));
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 6));
-        await tester.pump();
-        expect(find.text('Complete your outfit'), findsNothing);
+        // A second run: the dialog shows again (no first-use gating), and
+        // this run asks the AI to avoid repeating the first run's picks.
+        await runFinishWithAi();
         expect(requests, hasLength(2));
         expect(
           jsonDecode(requests[1].body)['exclude_garment_ids'],
@@ -283,7 +317,7 @@ void main() {
     },
   );
 
-  testWidgets('Complete with AI surfaces a SnackBar when the request fails', (
+  testWidgets('Finish Outfit surfaces a SnackBar when the request fails', (
     tester,
   ) async {
     useTallSurface(tester);
@@ -299,13 +333,19 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 6));
       await tester.pumpAndSettle();
-      expect(find.text('Complete your outfit'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Finish with AI'),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Complete with AI'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Finish with AI'));
       await tester.pump();
       await tester.pump(const Duration(seconds: 6));
       await tester.pump();
-      expect(find.text('Complete your outfit'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Finish with AI'),
+        findsNothing,
+      );
       expect(
         find.text("Couldn't complete your outfit with AI — please try again."),
         findsOneWidget,
@@ -404,8 +444,9 @@ void main() {
       expect(find.text('BACKGROUND'), findsOneWidget);
       expect(find.text('(OPTIONAL)'), findsNothing);
 
-      AnimatedCrossFade crossFade() =>
-          tester.widget<AnimatedCrossFade>(find.byType(AnimatedCrossFade));
+      AnimatedCrossFade crossFade() => tester.widget<AnimatedCrossFade>(
+        find.byKey(const ValueKey('backgroundSection')),
+      );
       expect(crossFade().crossFadeState, CrossFadeState.showSecond);
 
       await tester.tap(find.text('BACKGROUND'));

@@ -20,6 +20,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
@@ -30,6 +31,7 @@ import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
@@ -47,41 +49,30 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
 
   /// True right after this outfit's try-on was rendered (the Add Outfit
-  /// flow) — leaving the page then always keeps it and jumps to the
-  /// Outfits tab (see [navigateToOutfitsTabOnSave]) rather than just
-  /// popping. There's no "discard" choice at leave time: the outfit is
-  /// already persisted server-side the instant it's rendered, so getting
-  /// rid of an unwanted one is always the explicit Delete action, same as
-  /// any other outfit.
+  /// flow). The page shows a "Save" bottom action; tapping it stays on the
+  /// page and shows the "Outfit Saved" confirmation ([_save]). Leaving
+  /// before that (back arrow / system back) prompts "Save this outfit?" —
+  /// "Save" pops back with `true` so Add Outfit shows the confirmation,
+  /// "Don't Save" deletes the whole group. See [_leaveNewOutfit].
   final bool isNew;
-
-  /// When [isNew], whether leaving jumps to the Outfits tab (popping back
-  /// to the shell root) or just pops this page. Jumping to Outfits makes
-  /// sense when the outfit was created standalone (Home / Add Outfit), but
-  /// not when it was opened from a specific flow like Trip Details, where
-  /// the user expects to return to what they were doing.
-  final bool navigateToOutfitsTabOnSave;
 
   /// Whether to offer the "Edit Outfit" entry card. Set this to false for
   /// entry points (e.g. Trip Details) where an outfit shouldn't offer to be
   /// edited from here — the card is hidden entirely in that case instead.
   final bool showEditOutfitWhenSaved;
 
-  /// Shows an "Add to My Outfits" action instead of "Create Another
-  /// Version" — for outfits whose group isn't `type: general` (e.g. a
-  /// daily outfit). Its own group is server-managed and never shows up in
-  /// the Outfits tab (which only lists `type: general` groups), so
-  /// "Create Another Version" would just add another unreachable version
-  /// there. This re-renders the same garments/background into a brand new
-  /// general group instead, so the result actually lands somewhere the
-  /// user can find it again.
+  /// Shows an "Add to My Outfits" bottom action — for outfits whose group
+  /// isn't `type: general` (e.g. a daily outfit). Its own group is
+  /// server-managed and never shows up in the Outfits tab (which only lists
+  /// `type: general` groups), so this re-renders the same
+  /// garments/background into a brand new general group, landing the result
+  /// somewhere the user can find it again.
   final bool showAddToMyOutfits;
 
   const OutfitDetailsPage({
     super.key,
     required this.outfit,
     this.isNew = false,
-    this.navigateToOutfitsTabOnSave = true,
     this.showEditOutfitWhenSaved = true,
     this.showAddToMyOutfits = false,
   });
@@ -101,7 +92,13 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isResolvingSavedStatus = false;
   List<Garment>? _garments;
   bool _isLoadingGarments = false;
+  // True while "Create Another Version" is resolving the closet / has Add
+  // Outfit pushed on top — also the re-entrancy guard for its handler.
   bool _isOpeningTryOn = false;
+  // [isNew] only — set once the user taps "Save": the page stays put and
+  // just shows the "Outfit Saved" confirmation, and leaving afterward no
+  // longer prompts.
+  bool _saved = false;
   // True while regenerateOutfit's AI render is in flight.
   bool _isRegenerating = false;
   // True while _addToMyOutfits's AI render is in flight.
@@ -204,7 +201,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     return Stack(
       children: [
         PopScope(
-          canPop: !widget.isNew,
+          canPop: !widget.isNew || _saved,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             _leaveNewOutfit();
@@ -223,7 +220,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     : 30,
               ),
               children: [
-                Text(_title, style: AppTextStyle.bold20),
+                Row(
+                  children: [
+                    Expanded(child: Text(_title, style: AppTextStyle.bold20)),
+                    _buildTitleAction(),
+                  ],
+                ),
                 const AppDivider(topSpacing: 12, bottomSpacing: 4),
                 _buildInfoCard(),
                 const SizedBox(height: 4),
@@ -306,6 +308,19 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   Widget _buildBottomBar() {
     if (_isResolvingSavedStatus) return const SizedBox.shrink();
 
+    // Straight from the Add Outfit flow: tapping "Save" keeps the user here
+    // and just shows the "Outfit Saved" confirmation (the outfit is already
+    // persisted server-side). The button hides once used. (A version
+    // rendered here via "Create Another Version" keeps its title pill.)
+    if (widget.isNew) {
+      return BottomActionButton(
+        label: _l10n.save,
+        leading: const Icon(Icons.check),
+        enabled: !_saved,
+        onPressed: _save,
+      );
+    }
+
     if (widget.showAddToMyOutfits) {
       return BottomActionButton(
         label: _l10n.addToMyOutfits,
@@ -315,18 +330,35 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
     }
 
-    if (!widget.showEditOutfitWhenSaved) return const SizedBox.shrink();
-
-    return BottomActionButton(
-      label: _l10n.createAnotherVersion,
-      leading: const Icon(Icons.edit_outlined),
-      onPressed: _openCreateAnotherVersion,
-    );
+    return const SizedBox.shrink();
   }
 
   bool get _showsBottomActionButton =>
       !_isResolvingSavedStatus &&
-      (widget.showAddToMyOutfits || widget.showEditOutfitWhenSaved);
+      ((widget.isNew && !_saved) || widget.showAddToMyOutfits);
+
+  /// The pill next to the title — "Create Another Version" for an
+  /// already-saved outfit (including one just rendered here via that same
+  /// action), which opens Add Outfit to render another version into this
+  /// same group. Hidden straight from the Add Outfit flow (its "Save" lives
+  /// in the bottom bar), for daily outfits (their own "Add to My Outfits"
+  /// bottom action), and for entry points that hide editing.
+  Widget _buildTitleAction() {
+    if (widget.isNew ||
+        widget.showAddToMyOutfits ||
+        !widget.showEditOutfitWhenSaved) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 12),
+      child: AccentPillButton(
+        label: _l10n.newVersion,
+        icon: Icons.add,
+        enabled: !_isOpeningTryOn,
+        onPressed: _openCreateAnotherVersion,
+      ),
+    );
+  }
 
   /// Opens Add Outfit in "Create Another Version" mode — its bottom button
   /// calls `generateOutfit` into this outfit's *same* group instead of a
@@ -334,6 +366,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// brand new [Outfit] alongside this one, appended to [_versions] and
   /// swiped into view.
   Future<void> _openCreateAnotherVersion() async {
+    if (_isOpeningTryOn) return;
     setState(() => _isOpeningTryOn = true);
     try {
       final closetGarments = await ref.read(garmentsProvider.future);
@@ -920,25 +953,58 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
+  /// "Save" button — the outfit is already persisted server-side, so this
+  /// just keeps the outfits list fresh and shows the "Outfit Saved"
+  /// confirmation *without leaving the page*. The button then hides and
+  /// leaving no longer prompts.
+  void _save() {
+    if (_saved) return;
+    setState(() => _saved = true);
+    ref.read(outfitsProvider.notifier).refresh();
+    showFeedbackOverlay(context, message: _l10n.outfitSaved);
+  }
+
   /// Leaving a freshly-rendered outfit's page (back arrow, system back
-  /// gesture) — see [OutfitDetailsPage.isNew]. The outfit is already
-  /// persisted server-side the instant it's rendered, so there's nothing to
-  /// confirm: this just refreshes the outfits list (so it isn't stale) and
-  /// jumps to the Outfits tab. Getting rid of an unwanted outfit is always
-  /// the explicit Delete action instead, same as any other outfit.
+  /// gesture) — see [OutfitDetailsPage.isNew]. If the user already tapped
+  /// "Save", this just pops. Otherwise it asks: "Save" pops back with `true`
+  /// so Add Outfit shows the confirmation, "Don't Save" deletes the whole
+  /// group first, "Cancel" stays on the page.
   Future<void> _leaveNewOutfit() async {
+    if (_saved) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.saveOutfitPromptTitle,
+        body: _l10n.saveOutfitPromptBody,
+        primaryLabel: _l10n.save,
+        onPrimary: () => Navigator.pop(ctx, 'save'),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, 'cancel'),
+        tertiaryLabel: _l10n.dontSave,
+        onTertiary: () => Navigator.pop(ctx, 'discard'),
+      ),
+    );
+    if (!mounted || choice == null || choice == 'cancel') return;
+
+    if (choice == 'save') {
+      ref.read(outfitsProvider.notifier).refresh();
+      Navigator.pop(context, true);
+      return;
+    }
+
+    // 'discard' — delete the whole group, then leave.
     setState(() => _isLeaving = true);
     try {
-      await ref.read(outfitsProvider.notifier).refresh();
+      await OutfitService().deleteGroup(widget.outfit.groupId);
       if (!mounted) return;
-      if (widget.navigateToOutfitsTabOnSave) {
-        final feedback = ref.read(outfitFeedbackProvider.notifier);
-        MainShellScope.of(context)?.selectTab(AppTab.outfits);
-        Navigator.popUntil(context, (route) => route.isFirst);
-        feedback.state = OutfitFeedbackKind.saved;
-      } else {
-        Navigator.pop(context);
+      for (final version in _versions) {
+        ref.read(outfitsProvider.notifier).removeOutfit(version.id);
       }
+      Navigator.pop(context, false);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -1068,7 +1134,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       context,
       title: _l10n.renameOutfit,
       hint: _l10n.outfitNameLabel,
-      initialValue: _primary.groupName ?? '',
+      // Seed with the name currently shown in the title — the group's own
+      // name if set, otherwise the cover version's auto-generated one.
+      initialValue: _title,
     );
 
     if (result == null || !mounted) return;

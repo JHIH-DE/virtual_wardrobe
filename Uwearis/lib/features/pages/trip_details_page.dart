@@ -122,6 +122,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   bool _generatingPlan = false;
   bool _generatingOutfit = false;
   bool _loadingEditor = false;
+  // Re-entrancy guard covering the *whole* generate-plan action, including
+  // its pre-flight suitcase fetch + confirm dialogs — those run before
+  // [_generatingPlan] (the overlay flag) is set, so without this a
+  // double-tap during that window starts two whole-trip AI generations. See
+  // CLAUDE.md "Guarding costly / mutating actions against double-invocation".
+  bool _planActionInFlight = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -318,6 +324,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// exists, since this replaces every day's outfit — including any the
   /// user adjusted by hand.
   Future<void> _generatePlan() async {
+    // Guard the entire flow (pre-flight suitcase fetch + confirm dialogs
+    // included) against a double-tap — [_generatingPlan] only goes up once
+    // generation actually starts, well after those awaits.
+    if (_planActionInFlight) return;
+    setState(() => _planActionInFlight = true);
+    try {
+      await _generatePlanFlow();
+    } finally {
+      if (mounted) setState(() => _planActionInFlight = false);
+    }
+  }
+
+  Future<void> _generatePlanFlow() async {
     final fetched = await _fetchSuitcaseGarments();
     if (fetched == null || !mounted) return;
 
@@ -614,7 +633,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       case _TripMenuAction.editActivities:
         _editTripActivities();
       case _TripMenuAction.regeneratePlan:
-        if (!_generatingPlan) _generatePlan();
+        if (!_generatingPlan && !_planActionInFlight) _generatePlan();
       case _TripMenuAction.delete:
         _confirmDeleteTrip();
     }
@@ -810,7 +829,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     if (_primaryAction != TripGenerationAction.generateTripPlan) return null;
     return BottomActionButton(
       label: _l10n.generateTripPlan,
-      onPressed: (_generatingPlan || !_meetsPackingThreshold)
+      onPressed:
+          (_generatingPlan || _planActionInFlight || !_meetsPackingThreshold)
           ? null
           : _generatePlan,
       isLoading: _generatingPlan,
@@ -1148,7 +1168,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                     ),
                   )
                 : _GeneratePlanCta(
-                    onTap: _generatingPlan ? null : _generatePlan,
+                    onTap: (_generatingPlan || _planActionInFlight)
+                        ? null
+                        : _generatePlan,
                   ),
           )
         else ...[

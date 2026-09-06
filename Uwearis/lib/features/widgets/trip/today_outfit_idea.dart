@@ -5,7 +5,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/app_popup_menu.dart';
-import '../common/buttons/primary_action_button.dart';
+import '../common/buttons/accent_pill_button.dart';
 import '../common/images/refreshable_network_image.dart';
 import '../common/overlays/loading_overlay.dart';
 
@@ -207,12 +207,10 @@ class TodayOutfitIdea extends StatelessWidget {
         style: AppTextStyle.medium16.copyWith(color: AppColors.textSecondary),
       );
     }
-    return PrimaryActionButton(
+    return AccentPillButton(
       label: generateLabel ?? l10n.generateOutfit,
-      icon: Icons.auto_awesome_outlined,
+      icon: Icons.auto_awesome,
       onPressed: onGenerate,
-      backgroundColor: AppColors.accent,
-      foregroundColor: AppColors.textOnPrimary,
     );
   }
 
