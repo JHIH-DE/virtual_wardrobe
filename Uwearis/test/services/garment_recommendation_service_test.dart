@@ -4,12 +4,13 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/garment_recommendation_service.dart';
 import 'package:uwearis/data/occasion_type.dart';
 
 import '../helpers/fake_auth.dart';
 
-const _base = 'http://10.0.2.2:8000/api/v1/outfit/advice';
+const _base = '${AppConfig.baseUrl}${AppConfig.apiPath}/outfit/advice';
 
 http.Response _jsonResponse(Object? body, {int status = 200}) {
   return http.Response(

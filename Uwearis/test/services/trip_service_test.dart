@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/trip_service.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
@@ -12,7 +13,7 @@ import 'package:uwearis/data/trip.dart';
 
 import '../helpers/fake_auth.dart';
 
-const _base = 'http://10.0.2.2:8000/api/v1/trip_plans';
+const _base = '${AppConfig.baseUrl}${AppConfig.apiPath}/trip_plans';
 
 http.Response _jsonResponse(Object? body, {int status = 200}) {
   return http.Response(

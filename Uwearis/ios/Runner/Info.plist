@@ -60,6 +60,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the camera to photograph your clothing items.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app uses your location to show local weather and tailor outfit suggestions to your area.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app saves outfit photos to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

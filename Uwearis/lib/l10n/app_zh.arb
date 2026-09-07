@@ -365,6 +365,7 @@
   "failedToUpdateSuitcase": "更新行李箱失敗",
   "failedToRemoveItem": "移除項目失敗",
   "loadingSuitcaseEllipsis": "載入行李箱中…",
+  "updatingSuitcaseEllipsis": "更新行李箱中…",
   "addGarment": "新增衣物",
   "browseYourClosetHint": "瀏覽你的衣櫃",
   "addAction": "新增",

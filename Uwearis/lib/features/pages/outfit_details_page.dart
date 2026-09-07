@@ -20,6 +20,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/accent_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
@@ -114,6 +115,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
+  // False until [_loadGroupOutfits] has resolved (or isn't run at all). The
+  // version action row stays hidden until then, so it doesn't first render
+  // as the single-version "+ New Version" pill and then snap to the compact
+  // "+" once sibling versions load in.
+  bool _versionsResolved = false;
+
   /// The version currently shown in the carousel — photo, favorite,
   /// garments, and the Regenerate/Delete actions all apply to this one.
   Outfit get _current => _versions[_currentIndex];
@@ -154,6 +161,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     if (widget.outfit.garmentIds.isNotEmpty) _loadGarments();
     if (widget.isNew) {
       _isResolvingSavedStatus = !widget.showEditOutfitWhenSaved;
+      _versionsResolved = true;
       _fetchOutfitDetails();
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadGroupOutfits());
@@ -174,7 +182,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       final outfits = await OutfitService().getGroupOutfits(
         widget.outfit.groupId,
       );
-      if (!mounted || outfits.isEmpty) return;
+      if (!mounted) return;
+      if (outfits.isEmpty) {
+        setState(() => _versionsResolved = true);
+        return;
+      }
       // getGroupOutfits doesn't necessarily return the cover version
       // first — the grid card that opened this page shows whichever
       // version is the group's cover, so re-select that same one here by
@@ -186,6 +198,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ..clear()
           ..addAll(outfits);
         _currentIndex = matchedIndex >= 0 ? matchedIndex : 0;
+        _versionsResolved = true;
       });
       if (_pageController.hasClients) {
         _pageController.jumpToPage(_currentIndex);
@@ -193,6 +206,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       _loadGarments();
     } catch (_) {
       // Leave the single seed version already showing.
+      if (mounted) setState(() => _versionsResolved = true);
     }
   }
 
@@ -220,12 +234,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     : 30,
               ),
               children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(_title, style: AppTextStyle.bold20)),
-                    _buildTitleAction(),
-                  ],
-                ),
+                Text(_title, style: AppTextStyle.bold20),
                 const AppDivider(topSpacing: 12, bottomSpacing: 4),
                 _buildInfoCard(),
                 const SizedBox(height: 4),
@@ -337,29 +346,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       !_isResolvingSavedStatus &&
       ((widget.isNew && !_saved) || widget.showAddToMyOutfits);
 
-  /// The pill next to the title — "Create Another Version" for an
-  /// already-saved outfit (including one just rendered here via that same
-  /// action), which opens Add Outfit to render another version into this
-  /// same group. Hidden straight from the Add Outfit flow (its "Save" lives
-  /// in the bottom bar), for daily outfits (their own "Add to My Outfits"
-  /// bottom action), and for entry points that hide editing.
-  Widget _buildTitleAction() {
-    if (widget.isNew ||
-        widget.showAddToMyOutfits ||
-        !widget.showEditOutfitWhenSaved) {
-      return const SizedBox.shrink();
-    }
-    return Padding(
-      padding: const EdgeInsets.only(left: 12),
-      child: AccentPillButton(
-        label: _l10n.newVersion,
-        icon: Icons.add,
-        enabled: !_isOpeningTryOn,
-        onPressed: _openCreateAnotherVersion,
-      ),
-    );
-  }
-
   /// Opens Add Outfit in "Create Another Version" mode — its bottom button
   /// calls `generateOutfit` into this outfit's *same* group instead of a
   /// fresh one (see [AddOutfitPage.existingOutfit]), so the result is a
@@ -460,21 +446,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!_isDailyOutfit) ...[
-            GestureDetector(
-              onTap: _openEditTagsSheet,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentTint,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.sell_outlined,
-                  size: 16,
-                  color: AppColors.accent,
-                ),
-              ),
+            AccentIconButton(
+              icon: Icons.sell_outlined,
+              onPressed: _openEditTagsSheet,
             ),
             const SizedBox(width: 10),
           ],
@@ -798,10 +772,57 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
         ),
         const SizedBox(height: 12),
+        _buildVersionActionRow(),
+      ],
+    );
+  }
+
+  /// The row under the carousel: with more than one version it's the dots +
+  /// "n / total" counter with a compact "+" on the left to add another
+  /// version; with a single version there are no dots, so the full
+  /// "+ New Version" pill takes the row, left-aligned. Both collapse to
+  /// nothing where adding a version isn't offered (see
+  /// [_openCreateAnotherVersion]: the Add Outfit flow, daily outfits,
+  /// edit-hidden entry points).
+  Widget _buildVersionActionRow() {
+    final canAddVersion =
+        !widget.isNew &&
+        !widget.showAddToMyOutfits &&
+        widget.showEditOutfitWhenSaved;
+
+    // Wait until the real version count is known — otherwise this first
+    // renders the single-version pill and then snaps to the compact "+".
+    if (!_versionsResolved) return const SizedBox.shrink();
+
+    if (_versions.length < 2) {
+      if (!canAddVersion) return const SizedBox.shrink();
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: AccentPillButton(
+          label: _l10n.newVersion,
+          icon: Icons.add,
+          enabled: !_isOpeningTryOn,
+          onPressed: _openCreateAnotherVersion,
+        ),
+      );
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
         CarouselDotsIndicator(
           count: _versions.length,
           currentIndex: _currentIndex,
         ),
+        if (canAddVersion)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: AccentIconButton(
+              icon: Icons.add,
+              enabled: !_isOpeningTryOn,
+              onPressed: _openCreateAnotherVersion,
+            ),
+          ),
       ],
     );
   }
@@ -1176,13 +1197,24 @@ class _CollapsingTagsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     const tagSpacing = 8.0;
     const tagHPadding = 20.0; // CategoryTag's horizontal padding (10 * 2).
-    final tagTextStyle = AppTextStyle.bold12;
+    // Per-tag slack: the measured width can trail the rendered width by a
+    // sub-pixel or two (font hinting, the DefaultTextStyle merge that the
+    // real CategoryTag goes through). Reserve a little so a near-miss
+    // collapses into "+N" instead of tripping a RenderFlex overflow.
+    const tagSlack = 3.0;
+    // Match what CategoryTag's Text actually resolves to: its own style
+    // merged onto the inherited DefaultTextStyle, at the current textScaler.
+    final tagTextStyle = DefaultTextStyle.of(
+      context,
+    ).style.merge(AppTextStyle.bold12);
+    final textScaler = MediaQuery.textScalerOf(context);
 
     double textWidth(String text) {
       final painter = TextPainter(
         text: TextSpan(text: text, style: tagTextStyle),
         maxLines: 1,
         textDirection: ui.TextDirection.ltr,
+        textScaler: textScaler,
       )..layout();
       return painter.width;
     }
@@ -1190,7 +1222,9 @@ class _CollapsingTagsRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        final tagWidths = tags.map((t) => textWidth(t) + tagHPadding).toList();
+        final tagWidths = tags
+            .map((t) => textWidth(t) + tagHPadding + tagSlack)
+            .toList();
 
         var visibleCount = tags.length;
         var usedWidth = 0.0;
@@ -1203,23 +1237,30 @@ class _CollapsingTagsRow extends StatelessWidget {
           usedWidth += width;
         }
 
+        // Wrapped so that if a width estimate still trails the real render
+        // by a hair, the extra is clipped by the (non-scrolling) viewport
+        // rather than throwing a RenderFlex overflow.
+        Widget oneLine(List<Widget> children) => SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          child: Row(mainAxisSize: MainAxisSize.min, children: children),
+        );
+
         if (visibleCount == tags.length) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < tags.length; i++) ...[
-                if (i > 0) const SizedBox(width: tagSpacing),
-                CategoryTag(label: tags[i]),
-              ],
+          return oneLine([
+            for (var i = 0; i < tags.length; i++) ...[
+              if (i > 0) const SizedBox(width: tagSpacing),
+              CategoryTag(label: tags[i]),
             ],
-          );
+          ]);
         }
 
         // Shrink further if needed so the trailing "+N" tag also fits.
         var count = visibleCount;
         while (count > 0) {
           final overflowLabel = '+${tags.length - count}';
-          var used = tagSpacing + textWidth(overflowLabel) + tagHPadding;
+          var used =
+              tagSpacing + textWidth(overflowLabel) + tagHPadding + tagSlack;
           for (var i = 0; i < count; i++) {
             used += tagWidths[i] + (i > 0 ? tagSpacing : 0);
           }
@@ -1228,17 +1269,14 @@ class _CollapsingTagsRow extends StatelessWidget {
         }
         count = count.clamp(1, tags.length);
 
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < count; i++) ...[
-              if (i > 0) const SizedBox(width: tagSpacing),
-              CategoryTag(label: tags[i]),
-            ],
-            const SizedBox(width: tagSpacing),
-            CategoryTag(label: '+${tags.length - count}'),
+        return oneLine([
+          for (var i = 0; i < count; i++) ...[
+            if (i > 0) const SizedBox(width: tagSpacing),
+            CategoryTag(label: tags[i]),
           ],
-        );
+          const SizedBox(width: tagSpacing),
+          CategoryTag(label: '+${tags.length - count}'),
+        ]);
       },
     );
   }

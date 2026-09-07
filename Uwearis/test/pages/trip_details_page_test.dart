@@ -7,6 +7,8 @@ import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/trip_plan.dart';
 import 'package:uwearis/features/pages/trip_details_page.dart';
+import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
+import 'package:uwearis/features/widgets/common/expandable_insight_body.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -125,10 +127,7 @@ void main() {
           ),
         ],
       );
-      await pumpApp(
-        tester,
-        TripDetailsPage(trip: _trip(), initialData: plan),
-      );
+      await pumpApp(tester, TripDetailsPage(trip: _trip(), initialData: plan));
       await tester.pump();
       await tester.pump();
 
@@ -171,16 +170,92 @@ void main() {
           ),
         ],
       );
-      await pumpApp(
-        tester,
-        TripDetailsPage(trip: _trip(), initialData: plan),
-      );
+      await pumpApp(tester, TripDetailsPage(trip: _trip(), initialData: plan));
       await tester.pump();
       await tester.pump();
 
       // The per-day action is a button on the card, not on the bottom bar.
       expect(find.text('Generate Outfit'), findsOneWidget);
       expect(find.text('No outfit image yet'), findsNothing);
+    }, packingAdviceClient);
+  });
+
+  ExpandableInsightBody adviceBody(WidgetTester tester) =>
+      tester.widget<ExpandableInsightBody>(find.byType(ExpandableInsightBody));
+
+  testWidgets('justCreated opens the packing advice expanded', (tester) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        TripDetailsPage(
+          trip: _trip(),
+          initialData: const TripPlan(),
+          justCreated: true,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(adviceBody(tester).expanded, isTrue);
+    }, packingAdviceClient);
+  });
+
+  testWidgets('re-opening a trip keeps the packing advice collapsed', (
+    tester,
+  ) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        TripDetailsPage(trip: _trip(), initialData: const TripPlan()),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(adviceBody(tester).expanded, isFalse);
+    }, packingAdviceClient);
+  });
+
+  AppListCard suitcaseCard(WidgetTester tester) =>
+      tester.widget<AppListCard>(find.widgetWithText(AppListCard, 'Suitcase'));
+
+  testWidgets(
+    'the Suitcase card is highlighted while it blocks plan generation',
+    (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          TripDetailsPage(
+            trip: _trip(),
+            initialData: TripPlan(suitcaseIds: {1}), // 1 packed, target 3
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(suitcaseCard(tester).highlighted, isTrue);
+      }, packingAdviceClient);
+    },
+  );
+
+  testWidgets('the Suitcase card stops highlighting once packed enough', (
+    tester,
+  ) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        TripDetailsPage(
+          trip: _trip(),
+          initialData: TripPlan(suitcaseIds: {1, 2, 3, 4, 5, 6}),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(suitcaseCard(tester).highlighted, isFalse);
     }, packingAdviceClient);
   });
 }

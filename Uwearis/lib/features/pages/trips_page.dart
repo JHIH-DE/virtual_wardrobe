@@ -8,7 +8,6 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/trip.dart';
-import '../../data/trip_plan.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/floating_nav_bar.dart';
@@ -43,8 +42,17 @@ _TripStatus _tripStatus(Trip trip, DateTime today) {
 /// prefetch + create call) and adds the result to [tripsProvider]. Shared
 /// between [TripsPage]'s own "+" and any other entry point (e.g. the
 /// Home page's quick-actions menu).
-Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
+Future<void> handleCreateTrip(
+  BuildContext context,
+  WidgetRef ref, {
+  VoidCallback? onCreated,
+}) async {
   final l10n = AppLocalizations.of(context);
+  // Captured up front: `context` can't be trusted for navigation after the
+  // create dialog + the network round-trips below, and the loading overlay
+  // must be popped from the same navigator that showDialog pushes it onto.
+  final navigator = Navigator.of(context, rootNavigator: true);
+
   final input = await showDialog<Trip>(
     context: context,
     barrierDismissible: false,
@@ -65,20 +73,30 @@ Future<void> handleCreateTrip(BuildContext context, WidgetRef ref) async {
     ref.read(tripsProvider.notifier).addTrip(newTrip);
     final initialData = await TripDetailsPage.preload(newTrip);
 
-    if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
-    _goToNewTripDetails(context, newTrip, initialData);
+    navigator.pop(); // close loading indicator
+    // Switch the shell to the Trips tab first, so popping back off Trip
+    // Details lands there regardless of where creation was started from.
+    onCreated?.call();
+    navigator.push(
+      MaterialPageRoute(
+        builder: (_) => TripDetailsPage(
+          trip: newTrip,
+          initialData: initialData,
+          justCreated: true,
+        ),
+      ),
+    );
   } on AuthExpiredException {
-    if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
-    await AuthExpiredHandler.handle(context);
+    navigator.pop(); // close loading indicator
+    if (context.mounted) await AuthExpiredHandler.handle(context);
   } catch (e) {
-    if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
+    navigator.pop(); // close loading indicator
     debugLog('Failed to create trip: $e');
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.failedToCreateTrip)));
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.failedToCreateTrip)));
+    }
   }
 }
 
@@ -203,21 +221,6 @@ Future<Trip> _createTrip(Trip input) async {
     legs: input.legs,
     activities: input.activities,
   );
-}
-
-/// Jumps the shell to the Trips tab so that popping back off of Trip
-/// Details always lands there, regardless of where trip creation was
-/// started from (e.g. Home's quick-actions menu), then pushes Trip Details.
-void _goToNewTripDetails(
-  BuildContext context,
-  Trip trip,
-  TripPlan initialData,
-) {
-  MainShellScope.of(context)?.selectTab(AppTab.tripPlanner);
-  final route = MaterialPageRoute(
-    builder: (_) => TripDetailsPage(trip: trip, initialData: initialData),
-  );
-  Navigator.push(context, route);
 }
 
 class _TripsPageState extends ConsumerState<TripsPage> {

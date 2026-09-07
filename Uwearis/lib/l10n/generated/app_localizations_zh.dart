@@ -1015,6 +1015,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingSuitcaseEllipsis => '載入行李箱中…';
 
   @override
+  String get updatingSuitcaseEllipsis => '更新行李箱中…';
+
+  @override
   String get addGarment => '新增衣物';
 
   @override
@@ -2194,6 +2197,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get loadingSuitcaseEllipsis => '載入行李箱中…';
+
+  @override
+  String get updatingSuitcaseEllipsis => '更新行李箱中…';
 
   @override
   String get addGarment => '新增衣物';

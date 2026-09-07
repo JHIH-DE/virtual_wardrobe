@@ -454,6 +454,7 @@
   "failedToUpdateSuitcase": "Failed to update suitcase",
   "failedToRemoveItem": "Failed to remove item",
   "loadingSuitcaseEllipsis": "Loading Suitcase…",
+  "updatingSuitcaseEllipsis": "Updating Suitcase…",
   "addGarment": "Add Garment",
   "browseYourClosetHint": "Browse your closet",
   "addAction": "Add",

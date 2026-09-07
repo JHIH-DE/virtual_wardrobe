@@ -18,6 +18,11 @@ class AppListCard extends StatelessWidget {
   final double leadingSize;
   final Widget? trailing;
 
+  /// Adds an accent outline — for drawing the eye to a card the user should
+  /// act on next (e.g. Trip Details' Suitcase while it's blocking plan
+  /// generation).
+  final bool highlighted;
+
   const AppListCard({
     super.key,
     this.title,
@@ -31,6 +36,7 @@ class AppListCard extends StatelessWidget {
     this.minHeight = 70,
     this.leadingSize = 40,
     this.trailing,
+    this.highlighted = false,
   });
 
   @override
@@ -98,6 +104,9 @@ class AppListCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+        border: highlighted
+            ? Border.all(color: AppColors.accent, width: 1.5)
+            : null,
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowResting,

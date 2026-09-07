@@ -3,6 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
+/// `NotoSansTC` is a variable font (single `wght`-axis file). Skia/Android
+/// derives the axis value from `fontWeight`, but iOS CoreText does not —
+/// without an explicit `fontVariations` entry it renders every style at the
+/// font's heaviest master. So every style below carries BOTH `fontWeight`
+/// (for layout + non-variable fallback fonts) and a matching
+/// `FontVariation('wght', …)`.
 class AppTextStyle {
   /// Home App Bar's "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads/
   /// caches the font at call time rather than being a const constructor.
@@ -17,49 +23,55 @@ class AppTextStyle {
   // ── Bold (w700) ────────────────────────────────────────────────────────
 
   static const TextStyle bold24 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 24,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle bold20 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 20,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle bold18 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 18,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle bold16 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 16,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle bold14 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 14,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle bold12 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 12,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -67,17 +79,19 @@ class AppTextStyle {
   // ── Semibold (w600) ───────────────────────────────────────────────────
 
   static const TextStyle semibold16 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 16,
     fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle semibold14 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 14,
     fontWeight: FontWeight.w600,
+    fontVariations: [FontVariation('wght', 600)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -88,17 +102,19 @@ class AppTextStyle {
   /// `w500`) — use for other primary call-to-action buttons or dialog-style
   /// paragraphs that should read the same, e.g. [BottomActionButton].
   static const TextStyle medium16 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 16,
     fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle medium13 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 13,
     fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
     letterSpacing: 0,
     color: AppColors.textSecondary,
   );
@@ -106,29 +122,37 @@ class AppTextStyle {
   // ── Regular (w400) ────────────────────────────────────────────────────
 
   static const TextStyle regular16 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 16,
+    fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle regular14 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 14,
+    fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle regular13 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 13,
+    fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle regular12 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 12,
+    fontWeight: FontWeight.w400,
+    fontVariations: [FontVariation('wght', 400)],
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -139,9 +163,10 @@ class AppTextStyle {
   /// per-slot category label, Garment Details' field titles. Pair with
   /// `.toUpperCase()` on the text itself.
   static const TextStyle overline12 = TextStyle(
-    fontFamily: 'text/EN',
+    fontFamily: 'NotoSansTC',
     fontSize: 12,
     fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
     letterSpacing: 0.5,
     color: AppColors.textSecondary,
   );

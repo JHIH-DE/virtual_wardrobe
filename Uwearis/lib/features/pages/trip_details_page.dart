@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/garments_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
@@ -67,10 +68,16 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   final Trip trip;
   final TripPlan initialData;
 
+  /// True only on the navigation that lands here straight after creating the
+  /// trip — the Uwearis packing-advice card then opens expanded (the advice
+  /// is fresh and unread). Re-opening the same trip later keeps it collapsed.
+  final bool justCreated;
+
   const TripDetailsPage({
     super.key,
     required this.trip,
     required this.initialData,
+    this.justCreated = false,
   });
 
   /// Fetches everything [TripDetailsPage] needs up front, so the page can be
@@ -102,6 +109,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   // how far to scroll the day selector to bring a tapped card into view.
   static const double _dayCardWidth = 95;
   static const double _dayCardGap = 8;
+  // Snug around TripDayCard's tallest state (date row + temperature line);
+  // the cards stretch to this so temp / no-temp days stay the same height.
+  static const double _dayCardHeight = 78;
 
   int _selectedDayIndex = 0;
   final ScrollController _dayScrollController = ScrollController();
@@ -117,8 +127,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   bool _loadingPackingAdvice = false;
   String? _packingAdvice;
-  bool _packingAdviceExpanded = false;
+  // Opens expanded straight after trip creation (see [TripDetailsPage.justCreated]).
+  late bool _packingAdviceExpanded = widget.justCreated;
   int? _recommendedTotal;
+  // Set once [_loadPackingAdvice] finishes (success or not) — distinguishes
+  // "recommended count still loading" from "no count available" so the
+  // packing gate / Suitcase hint don't flicker or over-lenient.
+  bool _packingAnalysisLoaded = false;
   bool _generatingPlan = false;
   bool _generatingOutfit = false;
   bool _loadingEditor = false;
@@ -148,17 +163,45 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// before overwriting.
   bool get _hasTripPlan => _dayOutfits.any((d) => d.optionId != null);
 
-  /// Gate for the "Generate Trip Plan" CTA: the suitcase must hold at least
-  /// half the recommended item count. Generating a whole trip's outfits
-  /// from almost nothing just produces an unusable plan. While the
-  /// recommendation is still loading (or couldn't be fetched) this falls
-  /// back to "at least one item packed".
+  // Fallback packing floor when the analysis returned no recommended count.
+  static const int _packFloor = 4;
+
+  /// How many packed items "Generate Trip Plan" wants — half the recommended
+  /// total, or [_packFloor] when there's no recommendation.
+  int get _packTarget {
+    final recommended = _recommendedTotal;
+    if (recommended != null && recommended > 0) return (recommended / 2).ceil();
+    return _packFloor;
+  }
+
+  /// Count gate for the "Generate Trip Plan" CTA — the suitcase must hold at
+  /// least [_packTarget] items (generating a whole trip from almost nothing
+  /// just produces an unusable plan). Stays lenient ("at least one packed")
+  /// only while the recommendation is still loading, so a full suitcase
+  /// isn't briefly blocked; once the analysis is in it uses the real target.
   bool get _meetsPackingThreshold {
     final packed = _suitcaseIds.length;
-    final recommended = _recommendedTotal;
-    if (recommended == null || recommended <= 0) return packed > 0;
-    return packed * 2 >= recommended;
+    if (_recommendedTotal == null && !_packingAnalysisLoaded) return packed > 0;
+    return packed >= _packTarget;
   }
+
+  /// Whether the packed suitcase can actually build outfits (an upper *and*
+  /// a lower). `null` when the closet isn't loaded yet — the gate then rests
+  /// on the count alone, and [_generatePlanFlow]'s own check still catches a
+  /// non-viable suitcase at tap time.
+  bool? get _suitcaseIsViable {
+    final closet = ref.watch(garmentsProvider).value;
+    if (closet == null) return null;
+    return _hasViableSuitcase(
+      closet.where((g) => g.id != null && _suitcaseIds.contains(g.id)).toList(),
+    );
+  }
+
+  /// The real "Generate Trip Plan is ready" condition: enough items *and*
+  /// (when known) a viable mix. Drives both the CTA's enabled state and the
+  /// Suitcase card's priority highlight.
+  bool get _isPlanReady =>
+      _meetsPackingThreshold && (_suitcaseIsViable ?? true);
 
   /// True once a not-yet-rendered day's assignment leans on a garment no
   /// longer in the suitcase — generating that day's outfit would try on
@@ -259,7 +302,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       if (!mounted) return;
       debugLog('Failed to analyze trip plan: $e');
     } finally {
-      if (mounted) setState(() => _loadingPackingAdvice = false);
+      if (mounted) {
+        setState(() {
+          _loadingPackingAdvice = false;
+          _packingAnalysisLoaded = true;
+        });
+      }
     }
   }
 
@@ -829,8 +877,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     if (_primaryAction != TripGenerationAction.generateTripPlan) return null;
     return BottomActionButton(
       label: _l10n.generateTripPlan,
-      onPressed:
-          (_generatingPlan || _planActionInFlight || !_meetsPackingThreshold)
+      onPressed: (_generatingPlan || _planActionInFlight || !_isPlanReady)
           ? null
           : _generatePlan,
       isLoading: _generatingPlan,
@@ -1072,7 +1119,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     final int totalDays = _dayOutfits.length;
     return EdgeFadeScrim(
       child: SizedBox(
-        height: 102,
+        height: _dayCardHeight,
         child: ListView.separated(
           controller: _dayScrollController,
           scrollDirection: Axis.horizontal,
@@ -1292,8 +1339,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
               ? _l10n.recommendedSelectedCount(recommended, packedCount)
               : _l10n.packedItemsCount(packedCount));
 
+    // Accent-outline the card while packing the suitcase is the thing
+    // blocking "Generate Trip Plan" — drops away the moment the plan is
+    // actually ready. Only meaningful before a plan exists.
+    final needsPacking =
+        _primaryAction == TripGenerationAction.generateTripPlan &&
+        _packingAnalysisLoaded &&
+        !_isPlanReady &&
+        !_generatingPlan &&
+        !_planActionInFlight;
+
     return AppListCard(
       title: _l10n.suitcaseLabel,
+      highlighted: needsPacking,
       leading: const Icon(Icons.luggage_outlined, color: AppColors.icon),
       showArrow: true,
       onTap: _openSuitcase,
@@ -1314,44 +1372,37 @@ class _TripDestinationsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (int i = 0; i < trip.legs.length; i++) ...[
-            if (i > 0)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: AppDivider(spacing: 8, color: AppColors.dividerStrong),
-              ),
-            Row(
-              children: [
-                const Icon(Icons.location_on, color: AppColors.icon, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    trip.legs[i].location.name,
-                    style: AppTextStyle.bold16,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "${DateFormat('MMM d').format(trip.legs[i].dateRange.start)} - "
-                  "${DateFormat('MMM d').format(trip.legs[i].dateRange.end)}",
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < trip.legs.length; i++) ...[
+          if (i > 0)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: AppDivider(spacing: 8),
             ),
-          ],
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: AppColors.icon, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  trip.legs[i].location.name,
+                  style: AppTextStyle.bold16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "${DateFormat('MMM d').format(trip.legs[i].dateRange.start)} - "
+                "${DateFormat('MMM d').format(trip.legs[i].dateRange.end)}",
+                style: AppTextStyle.regular14.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }

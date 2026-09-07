@@ -36,16 +36,42 @@ dependencies:
   dropdown_button2: ^3.1.0
   flutter_riverpod: ^3.3.2
   cached_network_image: ^3.4.1
-  sentry_flutter: ^8.14.2
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Home-screen app icon. Regenerate after changing the source images:
+#   dart run flutter_launcher_icons
+# app_icon.png          — full-bleed 1:1 mark, no alpha (iOS + Android legacy).
+# app_icon_foreground.png — just the white glyph on transparent, pre-sized to
+#   ~62% so it sits inside Android's adaptive safe zone; adaptive_icon_background
+#   matches app_icon.png's purple so it reads as full-bleed.
+# NOTE: after regenerating, set android:inset back to 0% in
+#   android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml — the tool writes
+#   16%, which double-insets the already-sized foreground and shrinks the glyph.
+flutter_launcher_icons:
+  image_path: "assets/icons/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#B081ED"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
 
 flutter:
   uses-material-design: true
   generate: true
   assets:
     - assets/images/
+
+  # App-wide typeface. Noto Sans TC is a single variable font (wght axis
+  # 100–900) covering Latin + Traditional Chinese, so iOS and Android
+  # render identical weights instead of falling back to SF Pro / Roboto
+  # and PingFang / Noto per platform.
+  fonts:
+    - family: NotoSansTC
+      fonts:
+        - asset: assets/fonts/NotoSansTC.ttf

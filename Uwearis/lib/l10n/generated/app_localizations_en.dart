@@ -1043,6 +1043,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingSuitcaseEllipsis => 'Loading Suitcase…';
 
   @override
+  String get updatingSuitcaseEllipsis => 'Updating Suitcase…';
+
+  @override
   String get addGarment => 'Add Garment';
 
   @override

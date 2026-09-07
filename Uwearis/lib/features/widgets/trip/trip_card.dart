@@ -118,7 +118,14 @@ class TripCard extends StatelessWidget {
                       size: 18,
                     ),
                     const SizedBox(width: 8),
-                    Text(dateStr, style: AppTextStyle.regular16),
+                    Flexible(
+                      child: Text(
+                        dateStr,
+                        style: AppTextStyle.regular16,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
               ],

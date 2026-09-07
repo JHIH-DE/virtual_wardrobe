@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +42,12 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   ];
 
   bool _loading = true;
+  // The staged/visible list. Add-picker changes land here without hitting
+  // the server; per-card removals still commit immediately (they carry their
+  // own confirm). [_committedIds] tracks what the server actually holds.
   List<Garment> _packedGarments = [];
+  Set<int> _committedIds = {};
+  bool _committing = false;
   final Set<int> _pendingIds = {};
   final _deleteGroup = RemovableCardGroup();
 
@@ -49,6 +55,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     for (final g in _packedGarments)
       if (g.id != null) g.id!,
   };
+
+  /// There are staged add-picker changes not yet pushed to the server.
+  bool get _isDirty => !setEquals(_packedIds, _committedIds);
 
   int get _tripId => int.parse(widget.trip.id);
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -78,7 +87,15 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           .whereType<Map<String, dynamic>>()
           .map(Garment.fromTripItemJson)
           .toList();
-      if (mounted) setState(() => _packedGarments = garments);
+      if (mounted) {
+        setState(() {
+          _packedGarments = garments;
+          _committedIds = {
+            for (final g in garments)
+              if (g.id != null) g.id!,
+          };
+        });
+      }
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
       return;
@@ -110,10 +127,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     final toRemove = _packedIds.difference(result);
     if (toAdd.isEmpty && toRemove.isEmpty) return;
 
+    // Stage the change — the "Confirm" bottom button (or leaving the page)
+    // pushes it to the server. See [_commitChanges].
     final closetById = _indexGarmentsById(garments);
     setState(() {
-      _pendingIds.addAll(toAdd);
-      _pendingIds.addAll(toRemove);
       _packedGarments = [
         for (final g in _packedGarments)
           if (!toRemove.contains(g.id)) g,
@@ -121,7 +138,16 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           if (closetById[id] != null) closetById[id]!,
       ];
     });
+  }
 
+  /// Pushes the staged difference between [_packedIds] and [_committedIds] to
+  /// the server. Returns whether it succeeded (a failing commit keeps the
+  /// user on the page with the changes still staged).
+  Future<bool> _commitChanges() async {
+    if (_committing || !_isDirty) return true;
+    final toAdd = _packedIds.difference(_committedIds);
+    final toRemove = _committedIds.difference(_packedIds);
+    setState(() => _committing = true);
     try {
       for (final id in toAdd) {
         await TripService().addSuitcaseItem(_tripId, garmentId: id);
@@ -129,9 +155,11 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       for (final id in toRemove) {
         await TripService().removeSuitcaseItem(_tripId, garmentId: id);
       }
+      if (mounted) setState(() => _committedIds = {..._packedIds});
+      return true;
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
-      return;
+      return false;
     } catch (e) {
       debugLog('Failed to update suitcase: $e');
       if (mounted) {
@@ -139,19 +167,34 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           context,
         ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateSuitcase)));
       }
+      return false;
     } finally {
-      if (mounted) {
-        setState(() {
-          _pendingIds.removeAll(toAdd);
-          _pendingIds.removeAll(toRemove);
-        });
-      }
+      if (mounted) setState(() => _committing = false);
     }
+  }
+
+  /// Back-arrow / system-back handler: silently flush any staged add-picker
+  /// changes before leaving (there's no "wrong" suitcase to discard), then
+  /// pop. A failed commit keeps the user here with the changes still staged.
+  Future<void> _leaveWithCommit() async {
+    if (_committing) return;
+    if (_isDirty && !await _commitChanges()) return;
+    if (mounted) Navigator.pop(context);
   }
 
   Future<void> _removeGarment(Garment garment) async {
     final id = garment.id;
     if (id == null || _pendingIds.contains(id)) return;
+
+    // Still just staged (added via the picker, not committed) — drop it
+    // locally, nothing on the server to delete.
+    if (!_committedIds.contains(id)) {
+      setState(
+        () =>
+            _packedGarments = _packedGarments.where((g) => g.id != id).toList(),
+      );
+      return;
+    }
 
     final previousGarments = _packedGarments;
     setState(() {
@@ -161,6 +204,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
     try {
       await TripService().removeSuitcaseItem(_tripId, garmentId: id);
+      if (mounted) setState(() => _committedIds.remove(id));
     } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _packedGarments = previousGarments);
@@ -181,6 +225,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   AppToolBar _buildAppBar(List<Garment> closetGarments) {
     return AppToolBar(
       title: _l10n.suitcaseLabel,
+      onBack: _leaveWithCommit,
       actions: [
         InkWell(
           onTap: () => _handleAddGarment(closetGarments),
@@ -208,18 +253,28 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     // from the trip response), so it isn't gated on this loading/erroring.
     final closetGarments = ref.watch(garmentsProvider).value ?? [];
 
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: AppColors.pageBackground,
-          appBar: _buildAppBar(closetGarments),
-          body: _buildBody(closetGarments),
-        ),
-        if (_loading)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.loadingSuitcaseEllipsis),
+    return PopScope(
+      canPop: !_isDirty && !_committing,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _leaveWithCommit();
+      },
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: AppColors.pageBackground,
+            appBar: _buildAppBar(closetGarments),
+            body: _buildBody(closetGarments),
           ),
-      ],
+          if (_loading)
+            Positioned.fill(
+              child: LoadingOverlay(label: _l10n.loadingSuitcaseEllipsis),
+            ),
+          if (_committing)
+            Positioned.fill(
+              child: LoadingOverlay(label: _l10n.updatingSuitcaseEllipsis),
+            ),
+        ],
+      ),
     );
   }
 

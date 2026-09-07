@@ -5,16 +5,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/outfit_service.dart';
 import 'package:uwearis/data/outfit.dart';
 
 import '../helpers/fake_auth.dart';
 
-// Matches AppConfig.fullApiUrl's default (Env.baseUrl's defaultValue) —
-// tests run without --dart-define, so this is what the service actually
-// builds its request URIs against.
-const _base = 'http://10.0.2.2:8000/api/v1/outfit';
+const _base = '${AppConfig.baseUrl}${AppConfig.apiPath}/outfit';
 
 http.Response _jsonResponse(Object? body, {int status = 200}) {
   return http.Response(

@@ -41,7 +41,7 @@ class TripDayCard extends StatelessWidget {
   Widget _buildCard() {
     return Container(
       width: 95,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.pageBackground

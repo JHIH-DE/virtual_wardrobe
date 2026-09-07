@@ -2037,6 +2037,12 @@ abstract class AppLocalizations {
   /// **'Loading Suitcase…'**
   String get loadingSuitcaseEllipsis;
 
+  /// No description provided for @updatingSuitcaseEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating Suitcase…'**
+  String get updatingSuitcaseEllipsis;
+
   /// No description provided for @addGarment.
   ///
   /// In en, this message translates to:

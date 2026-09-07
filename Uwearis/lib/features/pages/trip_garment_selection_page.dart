@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
@@ -13,7 +11,6 @@ import '../../data/packing_analysis.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/garment_color_type_filter.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expandable_insight_body.dart';
@@ -64,9 +61,10 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
   final _filter = GarmentColorTypeFilter();
 
-  bool get _isModified => !setEquals(_selectedIds, widget.initiallySelectedIds);
-
-  bool get _showsBottomActionButton => _isModified;
+  /// This page is a pure picker now — it always hands the current selection
+  /// back to [TripSuitcasePage], which stages the diff and shows its own
+  /// "Confirm" button.
+  void _returnSelection() => Navigator.pop(context, _selectedIds);
 
   @override
   void initState() {
@@ -140,6 +138,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: l10n.selectGarmentsTitle,
+      onBack: _returnSelection,
       actions: [
         IconButton(
           tooltip: l10n.addFromOutfit,
@@ -155,17 +154,25 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  /// Suggested garments (per the AI packing advice) sort to the front of
-  /// their category's grid.
+  /// Orders a category's grid: already-selected first, then AI-suggested,
+  /// then everything else — each bucket keeps the closet's own order (stable,
+  /// so items don't shuffle when the filter or selection changes).
   List<Garment> _sortedItemsForCategory(PackingCategory? advice) {
     final items = _filter.apply(_byCategory);
-    if (advice == null) return items;
-    items.sort((a, b) {
-      final aSuggested = advice.suggestedGarmentIds.contains(a.id) ? 0 : 1;
-      final bSuggested = advice.suggestedGarmentIds.contains(b.id) ? 0 : 1;
-      return aSuggested.compareTo(bSuggested);
-    });
-    return items;
+    final suggested = advice?.suggestedGarmentIds ?? const <int>{};
+    final selectedBucket = <Garment>[];
+    final suggestedBucket = <Garment>[];
+    final restBucket = <Garment>[];
+    for (final g in items) {
+      if (_selectedIds.contains(g.id)) {
+        selectedBucket.add(g);
+      } else if (suggested.contains(g.id)) {
+        suggestedBucket.add(g);
+      } else {
+        restBucket.add(g);
+      }
+    }
+    return [...selectedBucket, ...suggestedBucket, ...restBucket];
   }
 
   @override
@@ -176,30 +183,33 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
         .where((g) => _selectedIds.contains(g.id))
         .length;
 
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      extendBody: true,
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildCategorySelector(),
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                if (_loadingAdvice || advice != null)
-                  SliverToBoxAdapter(
-                    child: _buildUwearisInsightCard(advice, selectedInCategory),
-                  ),
-                _buildGridSliver(items, advice),
-              ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _returnSelection();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.pageBackground,
+        appBar: _buildAppBar(),
+        body: Column(
+          children: [
+            _buildCategorySelector(),
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  if (_loadingAdvice || advice != null)
+                    SliverToBoxAdapter(
+                      child: _buildUwearisInsightCard(
+                        advice,
+                        selectedInCategory,
+                      ),
+                    ),
+                  _buildGridSliver(items, advice),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomActionButton(
-        label: AppLocalizations.of(context).confirm,
-        onPressed: () => Navigator.pop(context, _selectedIds),
-        enabled: _isModified,
+          ],
+        ),
       ),
     );
   }
@@ -228,12 +238,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       );
     }
     return SliverPadding(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 16,
-      ),
+      padding: const EdgeInsets.all(16),
       sliver: SliverGrid(
         gridDelegate: GarmentGrid.gridDelegate,
         delegate: SliverChildBuilderDelegate(

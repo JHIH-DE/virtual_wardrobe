@@ -86,7 +86,11 @@ class _MainShellState extends ConsumerState<MainShell> {
       case QuickAction.addOutfit:
         await _openAddOutfit();
       case QuickAction.newTrip:
-        await handleCreateTrip(context, ref);
+        await handleCreateTrip(
+          context,
+          ref,
+          onCreated: () => _select(AppTab.tripPlanner),
+        );
     }
   }
 

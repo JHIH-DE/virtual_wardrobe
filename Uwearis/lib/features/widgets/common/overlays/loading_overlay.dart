@@ -8,12 +8,13 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
 /// Full-screen blocking overlay for long-running AI/generation waits (a
-/// few seconds or more) — a blurred scrim with the branded "blooming
-/// flower" animation and a label. Brief network reads (list fetches, page
-/// loads) should use `AppSpinner` instead; using this everywhere made
-/// short reads feel slower than they actually are. The flower animation
-/// itself is private to this file on purpose, so it can't be reused
-/// standalone elsewhere and drift back into that same overuse.
+/// few seconds or more) — a blurred scrim with the accent spoke spinner
+/// and a label whose trailing "…" animates. Brief network reads (list
+/// fetches, page loads) should use `AppSpinner` instead; using this
+/// everywhere made short reads feel slower than they actually are. The
+/// spinner animation itself is private to this file on purpose, so it
+/// can't be reused standalone elsewhere and drift back into that same
+/// overuse.
 class LoadingOverlay extends StatefulWidget {
   final String label;
 
@@ -25,9 +26,6 @@ class LoadingOverlay extends StatefulWidget {
 
 class _LoadingOverlayState extends State<LoadingOverlay> {
   static const _dotInterval = Duration(milliseconds: 400);
-  // Wide enough for 3 dots at AppTextStyle.bold16 — reserved so the dots
-  // growing/shrinking never shifts the label text next to them.
-  static const _dotsWidth = 18.0;
 
   late final Timer _timer;
   int _dotCount = 0;
@@ -47,8 +45,8 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     super.dispose();
   }
 
-  /// Labels come from l10n already ending in "…" (or "..."), so this
-  /// strips that off — the trailing dots are re-added below, animated.
+  /// l10n labels already end in "…" (or a stray "..."); strip it so the
+  /// trailing dots below can be re-added, animated.
   String get _baseLabel {
     final text = widget.label.trimRight();
     if (text.endsWith('…')) return text.substring(0, text.length - 1);
@@ -59,29 +57,41 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
   @override
   Widget build(BuildContext context) {
     final textStyle = AppTextStyle.bold16.copyWith(
-      color: AppColors.textOnPrimary,
+      color: AppColors.accent,
       decoration: TextDecoration.none,
     );
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
       child: Container(
-        color: AppColors.overlayScrim,
+        // Blur only, no tint — but still an opaque hit target so taps
+        // can't reach the blocked screen underneath.
+        color: Colors.transparent,
         alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _PetalLoader(size: 90),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_baseLabel, style: textStyle),
-                const SizedBox(width: 1),
-                SizedBox(
-                  width: _dotsWidth,
-                  child: Text('.' * _dotCount, style: textStyle),
-                ),
-              ],
+            const _SpokeSpinner(size: 90),
+            const SizedBox(height: 4),
+            // Base label plus the animated trailing dots — the not-yet-shown
+            // dots stay in the string but painted transparent, so the visible
+            // text width never jitters as they cycle and nothing gets clipped
+            // in a narrow container.
+            Text.rich(
+              TextSpan(
+                style: textStyle,
+                children: [
+                  TextSpan(text: _baseLabel),
+                  TextSpan(text: '.' * _dotCount),
+                  TextSpan(
+                    text: '.' * (3 - _dotCount),
+                    style: const TextStyle(color: Color(0x00000000)),
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -90,22 +100,23 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
   }
 }
 
-/// Uwearis's signature "blooming flower" loading animation: petals grow
-/// outward from the center in sequence (staggered start, eased growth),
-/// hold at full length briefly, then all retract together — then repeats.
-/// Private to [LoadingOverlay], the only place it's meant to appear.
-class _PetalLoader extends StatefulWidget {
+/// Uwearis's loading animation: the classic ring of 12 rounded spokes in
+/// the accent colour, the bright one stepping clockwise around the ring
+/// while the rest trail off in opacity. Private to [LoadingOverlay], the
+/// only place it's meant to appear.
+class _SpokeSpinner extends StatefulWidget {
   final double size;
 
-  const _PetalLoader({required this.size});
+  const _SpokeSpinner({required this.size});
 
   @override
-  State<_PetalLoader> createState() => _PetalLoaderState();
+  State<_SpokeSpinner> createState() => _SpokeSpinnerState();
 }
 
-class _PetalLoaderState extends State<_PetalLoader>
+class _SpokeSpinnerState extends State<_SpokeSpinner>
     with SingleTickerProviderStateMixin {
-  static const _duration = Duration(milliseconds: 1800);
+  // One full revolution per cycle.
+  static const _duration = Duration(milliseconds: 1000);
 
   late final AnimationController _controller;
 
@@ -130,7 +141,7 @@ class _PetalLoaderState extends State<_PetalLoader>
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) => CustomPaint(
-            painter: _PetalLoaderPainter(progress: _controller.value),
+            painter: _SpokeSpinnerPainter(progress: _controller.value),
           ),
         ),
       ),
@@ -138,120 +149,50 @@ class _PetalLoaderState extends State<_PetalLoader>
   }
 }
 
-class _PetalLoaderPainter extends CustomPainter {
-  const _PetalLoaderPainter({required this.progress});
+class _SpokeSpinnerPainter extends CustomPainter {
+  const _SpokeSpinnerPainter({required this.progress});
 
+  /// 0..1, one full revolution per cycle.
   final double progress;
 
-  static const int petalCount = 8;
   static const _color = AppColors.accent;
+  static const _spokeCount = 12;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final unit = size.shortestSide / 160;
+    final unit = size.shortestSide;
 
-    final centerRadius = 16 * unit;
-    final petalWidth = 20 * unit;
-    final petalLength = 34 * unit;
-    final petalRadius = 20 * unit;
+    final innerRadius = unit * 0.2;
+    final outerRadius = unit * 0.3;
+    final strokeWidth = unit * 0.075;
 
-    final centerPaint = Paint()
-      ..color = _color
-      ..style = PaintingStyle.fill;
+    // The bright spoke steps (doesn't glide) clockwise, one slot per
+    // 1/12 of the cycle — the look the reference image has.
+    final active = (progress * _spokeCount).floor() % _spokeCount;
 
-    final petalPaint = Paint()
-      ..color = _color
-      ..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
 
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
+    for (var i = 0; i < _spokeCount; i++) {
+      // How many slots this spoke sits behind the bright one (0 = bright).
+      final behind = (active - i) % _spokeCount;
+      final opacity = 1.0 - 0.83 * (behind / (_spokeCount - 1));
 
-    // Center circle
-    canvas.drawCircle(Offset.zero, centerRadius, centerPaint);
+      final angle = (i / _spokeCount) * 2 * math.pi - math.pi / 2;
+      final dir = Offset(math.cos(angle), math.sin(angle));
 
-    // 8 outer petals
-    for (int index = 0; index < petalCount; index++) {
-      final angle = (math.pi * 2 / petalCount) * index;
-
-      final petalProgress = _calculatePetalProgress(index);
-      final easedProgress = Curves.easeOutCubic.transform(petalProgress);
-
-      // Grow each petal outward from the end nearest the center
-      final currentLength = petalLength * easedProgress;
-
-      if (currentLength <= 0.01) continue;
-
-      canvas.save();
-      canvas.rotate(angle);
-
-      // Tapered petal: narrow where it meets the center, widening toward
-      // the outer tip — a trapezoid body unioned with a circle at the tip
-      // so the wide end reads as a rounded cap rather than a hard corner.
-      final innerHalfWidth = petalWidth * 0.28;
-      final outerHalfWidth = petalWidth * 0.5;
-      final yInner = -petalRadius;
-      final tipCenterY = -(petalRadius + currentLength) + outerHalfWidth;
-
-      final body = Path()
-        ..moveTo(-innerHalfWidth, yInner)
-        ..lineTo(-outerHalfWidth, tipCenterY)
-        ..lineTo(outerHalfWidth, tipCenterY)
-        ..lineTo(innerHalfWidth, yInner)
-        ..close();
-      final tipCap = Path()
-        ..addOval(
-          Rect.fromCircle(
-            center: Offset(0, tipCenterY),
-            radius: outerHalfWidth,
-          ),
-        );
-
-      canvas.drawPath(
-        Path.combine(PathOperation.union, body, tipCap),
-        petalPaint,
+      canvas.drawLine(
+        center + dir * innerRadius,
+        center + dir * outerRadius,
+        paint..color = _color.withValues(alpha: opacity),
       );
-
-      canvas.restore();
     }
-
-    canvas.restore();
-  }
-
-  double _calculatePetalProgress(int index) {
-    // First 60%: petals grow in sequence
-    // Middle 15%: hold fully grown
-    // Last 25%: all retract together
-    const growEnd = 0.60;
-    const holdEnd = 0.75;
-
-    if (progress < growEnd) {
-      final stagger = index / petalCount;
-      final localStart = stagger * 0.42;
-      const growthDuration = 0.28;
-
-      final localProgress = ((progress - localStart) / growthDuration).clamp(
-        0.0,
-        1.0,
-      );
-
-      return localProgress;
-    }
-
-    if (progress < holdEnd) {
-      return 1;
-    }
-
-    final retractProgress = ((progress - holdEnd) / (1 - holdEnd)).clamp(
-      0.0,
-      1.0,
-    );
-
-    return 1 - Curves.easeInCubic.transform(retractProgress);
   }
 
   @override
-  bool shouldRepaint(covariant _PetalLoaderPainter oldDelegate) {
+  bool shouldRepaint(covariant _SpokeSpinnerPainter oldDelegate) {
     return oldDelegate.progress != progress;
   }
 }

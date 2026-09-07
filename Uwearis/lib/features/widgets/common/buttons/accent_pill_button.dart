@@ -48,7 +48,14 @@ class AccentPillButton extends StatelessWidget {
             children: [
               Icon(icon, size: 15, color: color),
               const SizedBox(width: 5),
-              Text(label, style: AppTextStyle.bold14.copyWith(color: color)),
+              Flexible(
+                child: Text(
+                  label,
+                  style: AppTextStyle.bold14.copyWith(color: color),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),
