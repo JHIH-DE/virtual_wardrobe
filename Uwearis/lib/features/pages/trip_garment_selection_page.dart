@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
@@ -141,6 +142,13 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
       onBack: _returnSelection,
       actions: [
         IconButton(
+          // Zero padding + a toolbar-slot square so the hit target matches
+          // the back button / "⋮" menu (see FilterButton).
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: AppDimens.toolbarHeight,
+            minHeight: AppDimens.toolbarHeight,
+          ),
           tooltip: l10n.addFromOutfit,
           icon: const Icon(Icons.style_outlined, color: AppColors.icon),
           onPressed: _pickFromOutfit,
@@ -154,9 +162,12 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     );
   }
 
-  /// Orders a category's grid: already-selected first, then AI-suggested,
-  /// then everything else — each bucket keeps the closet's own order (stable,
-  /// so items don't shuffle when the filter or selection changes).
+  /// Orders a category's grid: items selected *on entry* first, then
+  /// AI-suggested, then everything else — each bucket keeps the closet's own
+  /// order. Keyed off [TripGarmentSelectionPage.initiallySelectedIds] rather
+  /// than the live selection on purpose: toggling an item during this visit
+  /// must not make it jump buckets under the user's finger. The order only
+  /// re-settles next time the page is opened.
   List<Garment> _sortedItemsForCategory(PackingCategory? advice) {
     final items = _filter.apply(_byCategory);
     final suggested = advice?.suggestedGarmentIds ?? const <int>{};
@@ -164,7 +175,7 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
     final suggestedBucket = <Garment>[];
     final restBucket = <Garment>[];
     for (final g in items) {
-      if (_selectedIds.contains(g.id)) {
+      if (widget.initiallySelectedIds.contains(g.id)) {
         selectedBucket.add(g);
       } else if (suggested.contains(g.id)) {
         suggestedBucket.add(g);

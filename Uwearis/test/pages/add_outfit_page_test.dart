@@ -1,10 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/add_outfit_page.dart';
@@ -13,6 +16,20 @@ import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart'
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
+
+/// garmentsProvider seeded with a fixed closet — the page reads it directly
+/// now (no `preloadedGarments`), so every non-selectOnly test overrides it
+/// instead of hitting the network.
+class _FakeGarments extends GarmentsNotifier {
+  _FakeGarments(this._items);
+  final List<Garment> _items;
+
+  @override
+  Future<List<Garment>> build() async => _items;
+
+  @override
+  Future<void> refresh() async => state = AsyncData(_items);
+}
 
 Garment _garment({
   required int id,
@@ -37,12 +54,16 @@ void main() {
     setUpFakeAuth();
   });
 
-  // preloadedGarments short-circuits the initState network fetch, so the
-  // page renders without any HTTP mocking.
   final closet = [
     _garment(id: 1, category: GarmentCategory.top, name: 'Tee'),
     _garment(id: 2, category: GarmentCategory.bottom, name: 'Jeans'),
     _garment(id: 3, category: GarmentCategory.shoes, name: 'Sneakers'),
+  ];
+
+  /// Overrides garmentsProvider with [pool] (default [closet]) — pass to
+  /// `pumpApp`'s `overrides:` for the normal (non-selectOnly) create flow.
+  List<Override> closetOverride([List<Garment>? pool]) => [
+    garmentsProvider.overrideWith(() => _FakeGarments(pool ?? closet)),
   ];
 
   // A viewport tall enough that the whole ListView is laid out at once, so
@@ -58,7 +79,7 @@ void main() {
     tester,
   ) async {
     useTallSurface(tester);
-    await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+    await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
     await tester.pump();
 
     expect(find.text('Match a Look'), findsOneWidget);
@@ -78,9 +99,9 @@ void main() {
     await pumpApp(
       tester,
       AddOutfitPage(
-        preloadedGarments: closet,
         initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
       ),
+      overrides: closetOverride(),
     );
     await tester.pump();
     expect(find.text('Create Outfit'), findsOneWidget);
@@ -92,10 +113,8 @@ void main() {
     useTallSurface(tester);
     await pumpApp(
       tester,
-      AddOutfitPage(
-        preloadedGarments: closet,
-        initialGarments: [closet[0], closet[1], closet[2]],
-      ),
+      AddOutfitPage(initialGarments: [closet[0], closet[1], closet[2]]),
+      overrides: closetOverride(),
     );
     await tester.pump();
     expect(find.text('Create Outfit'), findsOneWidget);
@@ -132,9 +151,9 @@ void main() {
         await pumpApp(
           tester,
           AddOutfitPage(
-            preloadedGarments: closet,
             initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
           ),
+          overrides: closetOverride(),
         );
         await tester.pump();
 
@@ -157,7 +176,7 @@ void main() {
     'a manually added garment is locked by default; removing it clears the lock',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
       await tester.pump();
 
       await tester.tap(find.text('Add Garment'));
@@ -176,7 +195,7 @@ void main() {
 
   testWidgets('tapping the lock badge toggles it', (tester) async {
     useTallSurface(tester);
-    await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+    await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
     await tester.pump();
 
     await tester.tap(find.text('Add Garment'));
@@ -199,7 +218,7 @@ void main() {
     'the Complete with AI pill is enabled with zero garments picked',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
       await tester.pump();
 
       final pill = tester.widget<AccentPillButton>(
@@ -213,7 +232,7 @@ void main() {
     'the Finish Outfit dialog holds the occasion + temperature knobs',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
       await tester.pump();
       await tester.pump(const Duration(seconds: 6)); // weather lookup settles
       await tester.pumpAndSettle();
@@ -290,7 +309,7 @@ void main() {
       }
 
       await http.runWithClient(() async {
-        await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+        await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
         await tester.pump();
 
         await runFinishWithAi();
@@ -326,7 +345,7 @@ void main() {
     );
 
     await http.runWithClient(() async {
-      await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
       await tester.pump();
 
       await tester.tap(find.byType(AccentPillButton));
@@ -383,10 +402,10 @@ void main() {
       await pumpApp(
         tester,
         AddOutfitPage(
-          preloadedGarments: wardrobe,
           // Wearing the Jeans (fills Bottom) and the Ray-Bans (sunglasses).
           initialGarments: [wardrobe[1], wardrobe[3]],
         ),
+        overrides: closetOverride(wardrobe),
       );
       await tester.pump();
 
@@ -436,7 +455,7 @@ void main() {
     'create mode shows a collapsed Background section; tapping it opens the picker',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, AddOutfitPage(preloadedGarments: closet));
+      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
       await tester.pump();
       // Its own "BACKGROUND" header, not the selectOnly/edit flow's combined
       // "Accessories & Background" panel.
@@ -485,8 +504,8 @@ void main() {
         AddOutfitPage(
           existingOutfit: Outfit(id: 1, imageUrl: ''),
           initialGarments: closet,
-          preloadedGarments: closet,
         ),
+        overrides: closetOverride(),
       );
       await tester.pump();
 
@@ -525,10 +544,12 @@ void main() {
         AddOutfitPage(
           existingOutfit: Outfit(id: 1, imageUrl: ''),
           initialGarments: [onePieceCloset[2], onePieceCloset[3]],
-          preloadedGarments: onePieceCloset,
         ),
+        overrides: closetOverride(onePieceCloset),
       );
-      await tester.pump();
+      // Settle so garmentsProvider's future resolves — _hasCategory(bottom)
+      // must be true for the rule under test to gate.
+      await tester.pumpAndSettle();
 
       expect(find.text('Create Outfit'), findsNothing);
     },

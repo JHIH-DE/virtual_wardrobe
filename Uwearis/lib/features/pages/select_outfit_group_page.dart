@@ -112,6 +112,10 @@ class _SelectOutfitGroupPageState extends ConsumerState<SelectOutfitGroupPage> {
   Widget _buildNewGroupCard() {
     final l10n = AppLocalizations.of(context);
     return GestureDetector(
+      // opaque so the whole dashed card is tappable — CustomPaint only
+      // strokes a border, so without this just the centered icon+label
+      // register.
+      behavior: HitTestBehavior.opaque,
       onTap: () => _copyInto(null),
       child: SizedBox(
         height: AppDimens.outfitCardHeight,

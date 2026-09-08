@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -56,9 +57,14 @@ class _MainShellState extends ConsumerState<MainShell> {
     });
   }
 
-  /// Swiping left/right cycles to the next/previous tab in [AppTab.values]
-  /// order, wrapping around. Handled once here (rather than per-page) so
-  /// every tab gets the gesture for free.
+  /// An edge-originating left/right swipe cycles to the next/previous tab in
+  /// [AppTab.values] order, wrapping around. Handled once here (rather than
+  /// per-page) so every tab gets the gesture for free.
+  ///
+  /// The swipe must *start* near a screen edge (see [_EdgeSwipeGestureRecognizer])
+  /// so this never competes for the gesture arena with a horizontally
+  /// scrolling list / PageView / carousel in the middle of a tab (Home's
+  /// outfit carousel and "recently added" row, My Closet's category strip).
   void _handleSwipe(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     const threshold = 200.0;
@@ -104,14 +110,15 @@ class _MainShellState extends ConsumerState<MainShell> {
           LoadingOverlay(label: AppLocalizations.of(context).loadingGarments),
     );
     try {
-      final garments = await ref.read(garmentsProvider.future);
+      // Warm garmentsProvider before opening the page (it reads the provider
+      // directly now); also lets an expired session surface here.
+      await ref.read(garmentsProvider.future);
       if (!mounted) return;
       Navigator.pop(context); // close loading indicator
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => AddOutfitPage(
-            preloadedGarments: garments,
             onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
           ),
         ),
@@ -139,9 +146,19 @@ class _MainShellState extends ConsumerState<MainShell> {
       setLoading: _setGlobalLoading,
       child: Stack(
         children: [
-          GestureDetector(
+          RawGestureDetector(
             behavior: HitTestBehavior.translucent,
-            onHorizontalDragEnd: _handleSwipe,
+            gestures: {
+              _EdgeSwipeGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<
+                    _EdgeSwipeGestureRecognizer
+                  >(
+                    () => _EdgeSwipeGestureRecognizer(),
+                    (recognizer) => recognizer
+                      ..onEnd = _handleSwipe
+                      ..screenWidth = MediaQuery.sizeOf(context).width,
+                  ),
+            },
             child: IndexedStack(
               index: AppTab.values.indexOf(_current),
               children: const [
@@ -166,5 +183,28 @@ class _MainShellState extends ConsumerState<MainShell> {
         ],
       ),
     );
+  }
+}
+
+/// A [HorizontalDragGestureRecognizer] that only engages when the initial
+/// touch lands within [edgeWidth] logical pixels of the left or right
+/// screen edge. For any touch that starts further in, the recognizer never
+/// joins the gesture arena at all, so the shell's swipe-between-tabs
+/// gesture can't steal a drag from — or be starved by — a horizontally
+/// scrolling list / PageView / carousel in the middle of a tab.
+class _EdgeSwipeGestureRecognizer extends HorizontalDragGestureRecognizer {
+  /// Set from `build` every frame so it tracks rotation / window resizes.
+  double screenWidth = 0;
+
+  /// Kept just under the tab pages' 24px horizontal content inset, so the
+  /// edge strip sits over page background rather than over any card /
+  /// horizontal scroller, and clear of the OS's own screen-edge gestures.
+  final double edgeWidth = 20;
+
+  @override
+  bool isPointerAllowed(PointerEvent event) {
+    final x = event.position.dx;
+    final fromEdge = x <= edgeWidth || x >= screenWidth - edgeWidth;
+    return fromEdge && super.isPointerAllowed(event);
   }
 }

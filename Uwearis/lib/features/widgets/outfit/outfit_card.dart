@@ -33,6 +33,10 @@ class OutfitCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return GestureDetector(
+      // opaque so the whole card is tappable — the Container has a
+      // `decoration`, not a `color`, so the label strip's padding under the
+      // image isn't hit-testable otherwise.
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
         height: AppDimens.outfitCardHeight,

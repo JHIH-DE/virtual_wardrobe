@@ -26,8 +26,18 @@ class FavoriteCard extends StatelessWidget {
           top: 8,
           right: 8,
           child: CardCornerBadge(
+            // Sits on a plain card, not a photo — so it's near-opaque with a
+            // hairline edge instead of a drop shadow, and the empty-heart
+            // state is muted (a grid of unfavourited garments shouldn't read
+            // as a column of hard black hearts).
             icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-            iconColor: isFavorite ? AppColors.favorite : AppColors.icon,
+            backgroundColor: AppColors.surfaceTranslucent,
+            iconColor: isFavorite ? AppColors.favorite : AppColors.hintText,
+            border: Border.all(color: AppColors.borderSubtle),
+            boxShadow: const [],
+            size: 36,
+            iconSize: 20,
+            discAlignment: Alignment.topRight,
             onTap: onToggle,
           ),
         ),

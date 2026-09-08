@@ -178,4 +178,57 @@ void main() {
       expect(tokens.length, 1);
     });
   });
+
+  group('retryOnTimeout', () {
+    test('retries once after a TimeoutException and returns the retry', () async {
+      var attempts = 0;
+      Future<http.Response> request(String token) async {
+        attempts++;
+        if (attempts == 1) throw TimeoutException('cold start');
+        return http.Response('body', 200);
+      }
+
+      final res = await http.runWithClient(
+        () => _TestService().withAuth(request, retryOnTimeout: true),
+        () => MockClient((_) async => _refreshOk()),
+      );
+
+      expect(res.statusCode, 200);
+      expect(attempts, 2);
+    });
+
+    test('a second TimeoutException propagates', () async {
+      var attempts = 0;
+      Future<http.Response> request(String token) async {
+        attempts++;
+        throw TimeoutException('still cold');
+      }
+
+      await expectLater(
+        http.runWithClient(
+          () => _TestService().withAuth(request, retryOnTimeout: true),
+          () => MockClient((_) async => _refreshOk()),
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+      expect(attempts, 2);
+    });
+
+    test('without retryOnTimeout, a TimeoutException is not retried', () async {
+      var attempts = 0;
+      Future<http.Response> request(String token) async {
+        attempts++;
+        throw TimeoutException('slow');
+      }
+
+      await expectLater(
+        http.runWithClient(
+          () => _TestService().withAuth(request),
+          () => MockClient((_) async => _refreshOk()),
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+      expect(attempts, 1);
+    });
+  });
 }

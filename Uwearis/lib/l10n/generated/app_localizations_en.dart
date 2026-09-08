@@ -102,6 +102,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logout => 'Logout';
 
   @override
+  String get logoutConfirmTitle => 'Log out?';
+
+  @override
+  String get logoutConfirmBody =>
+      'You\'ll need to sign in again to use Uwearis.';
+
+  @override
   String get language => 'Language';
 
   @override
@@ -145,6 +152,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newVersion => 'New Version';
+
+  @override
+  String get addVersionButton => 'Version';
 
   @override
   String get addToMyOutfits => 'Add to My Outfits';
@@ -441,6 +451,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get filterAll => 'All';
+
+  @override
   String get editTripName => 'Edit Name';
 
   @override
@@ -473,6 +486,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get regenerate => 'Regenerate';
+
+  @override
+  String get regenerateOutfitConfirmTitle => 'Regenerate this image?';
+
+  @override
+  String get regenerateOutfitConfirmBody =>
+      'This replaces the current image with a new AI render of the same garments.';
 
   @override
   String get setAsCover => 'Set as Cover';
@@ -1148,13 +1168,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get edit => 'Edit';
 
   @override
-  String get editTagsTitle => 'Edit Tags';
-
-  @override
   String get analyzingClothingEllipsis => 'Analyzing Clothing…';
 
   @override
   String get analyzingEllipsis => 'Analyzing…';
+
+  @override
+  String get analysisFailedTitle => 'Couldn\'t analyze this photo';
+
+  @override
+  String get analysisFailedBody =>
+      'The AI analysis didn\'t come through. Check your connection and try again.';
 
   @override
   String get confirmed => 'Confirmed';

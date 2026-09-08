@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -26,6 +27,12 @@ mixin BaseService {
   /// Makes an authenticated request. On 401, silently refreshes tokens and
   /// retries the original request once.
   ///
+  /// [retryOnTimeout] retries the request one more time (after a short pause)
+  /// if it throws [TimeoutException] — pass it only for idempotent reads. It
+  /// covers the staging backend's Cloud Run cold start: the request that
+  /// times out has usually already woken the container, so the retry lands
+  /// on a warm one.
+  ///
   /// Throws [AuthExpiredException] when the session genuinely can't be
   /// recovered: no stored refresh token, or the refresh endpoint answers
   /// non-200 or without a fresh token pair. A transport-level failure on the
@@ -33,10 +40,11 @@ mixin BaseService {
   /// propagates unchanged rather than being masked as [AuthExpiredException],
   /// so callers can tell "logged out" apart from "network/server unavailable".
   Future<http.Response> withAuth(
-    Future<http.Response> Function(String token) request,
-  ) async {
+    Future<http.Response> Function(String token) request, {
+    bool retryOnTimeout = false,
+  }) async {
     final token = await getSafeToken();
-    final res = await request(token);
+    final res = await _send(request, token, retryOnTimeout);
     if (res.statusCode != 401) return res;
 
     final storedRefresh = await AuthStorage.getRefreshToken();
@@ -61,7 +69,23 @@ mixin BaseService {
 
     await AuthStorage.saveAccessToken(newAccessToken);
     await AuthStorage.saveRefreshToken(newRefreshToken);
-    return await request(newAccessToken);
+    return _send(request, newAccessToken, retryOnTimeout);
+  }
+
+  /// Runs [request], retrying once after a 1s pause on [TimeoutException]
+  /// when [retryOnTimeout] is set.
+  Future<http.Response> _send(
+    Future<http.Response> Function(String token) request,
+    String token,
+    bool retryOnTimeout,
+  ) async {
+    try {
+      return await request(token);
+    } on TimeoutException {
+      if (!retryOnTimeout) rethrow;
+      await Future<void>.delayed(const Duration(seconds: 1));
+      return request(token);
+    }
   }
 
   Map<String, dynamic> decodeMap(http.Response res, {required String op}) {

@@ -106,6 +106,7 @@ class GarmentService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
     final envelope = decodeMap(res, op: 'getGarments');
     final data = envelope['data'];
@@ -137,6 +138,7 @@ class GarmentService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
     final envelope = decodeMap(res, op: 'getGarment');
     final data = envelope['data'] as Map<String, dynamic>?;
@@ -219,8 +221,10 @@ class GarmentService with BaseService {
           contentType: MediaType.parse(mimeType),
         ),
       );
+      // Generous: this is an AI vision call and the first one after an idle
+      // period also eats the backend's cold start.
       final streamedRes = await request.send().timeout(
-        const Duration(seconds: 30),
+        const Duration(seconds: 60),
       );
       return http.Response.fromStream(streamedRes);
     });

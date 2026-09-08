@@ -201,6 +201,9 @@ class _AppDialogState extends State<AppDialog>
                 SizedBox(
                   width: 104,
                   child: GestureDetector(
+                    // opaque so the whole 104-wide button responds, not just
+                    // the centered label glyphs.
+                    behavior: HitTestBehavior.opaque,
                     onTapDown: (_) => setPressed(true),
                     onTapUp: (_) {
                       setPressed(false);

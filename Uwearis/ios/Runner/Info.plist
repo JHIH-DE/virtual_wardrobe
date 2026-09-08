@@ -49,6 +49,8 @@
 	<string>Uwearis</string>
 	<key>GIDClientID</key>
 	<string>223311252510-hp2vaahvon26n7slr2rhvto44oqts6p1.apps.googleusercontent.com</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>fbapi</string>

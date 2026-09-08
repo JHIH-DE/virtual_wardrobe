@@ -267,6 +267,18 @@ abstract class AppLocalizations {
   /// **'Logout'**
   String get logout;
 
+  /// No description provided for @logoutConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out?'**
+  String get logoutConfirmTitle;
+
+  /// No description provided for @logoutConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need to sign in again to use Uwearis.'**
+  String get logoutConfirmBody;
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:
@@ -356,6 +368,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New Version'**
   String get newVersion;
+
+  /// No description provided for @addVersionButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get addVersionButton;
 
   /// No description provided for @addToMyOutfits.
   ///
@@ -891,6 +909,12 @@ abstract class AppLocalizations {
   /// **'No {label} available'**
   String noOptionsAvailable(String label);
 
+  /// The 'show everything / no filter' toggle beside a chip group's title, e.g. Season (All)
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
   /// No description provided for @editTripName.
   ///
   /// In en, this message translates to:
@@ -956,6 +980,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Regenerate'**
   String get regenerate;
+
+  /// No description provided for @regenerateOutfitConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate this image?'**
+  String get regenerateOutfitConfirmTitle;
+
+  /// No description provided for @regenerateOutfitConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces the current image with a new AI render of the same garments.'**
+  String get regenerateOutfitConfirmBody;
 
   /// No description provided for @setAsCover.
   ///
@@ -2235,12 +2271,6 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get edit;
 
-  /// No description provided for @editTagsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Tags'**
-  String get editTagsTitle;
-
   /// No description provided for @analyzingClothingEllipsis.
   ///
   /// In en, this message translates to:
@@ -2252,6 +2282,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Analyzing…'**
   String get analyzingEllipsis;
+
+  /// No description provided for @analysisFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t analyze this photo'**
+  String get analysisFailedTitle;
+
+  /// No description provided for @analysisFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI analysis didn\'t come through. Check your connection and try again.'**
+  String get analysisFailedBody;
 
   /// No description provided for @confirmed.
   ///

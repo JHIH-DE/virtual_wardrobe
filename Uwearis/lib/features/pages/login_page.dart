@@ -102,7 +102,17 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception(_l10n.appleLoginMissingToken);
       }
 
-      final tokens = await AuthService().loginWithAppleIdToken(idToken);
+      // Apple only ever sends the name on the very first authorization for
+      // a given Apple ID — nothing to join if this is a repeat login.
+      final name = [
+        credential.givenName,
+        credential.familyName,
+      ].nonNulls.where((s) => s.isNotEmpty).join(' ');
+
+      final tokens = await AuthService().loginWithAppleIdToken(
+        idToken,
+        name: name.isNotEmpty ? name : null,
+      );
       await AuthStorage.saveAccessToken(tokens.accessToken);
       await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
@@ -128,7 +138,7 @@ class _LoginPageState extends State<LoginPage> {
 
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
-        final tokens = await AuthService().loginWithFacebookIdToken(
+        final tokens = await AuthService().loginWithFacebookAccessToken(
           accessToken.tokenString,
         );
         await AuthStorage.saveAccessToken(tokens.accessToken);

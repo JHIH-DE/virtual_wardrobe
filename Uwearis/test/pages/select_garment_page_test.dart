@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/select_garment_page.dart';
+import 'package:uwearis/features/widgets/garment/garment_card.dart';
 
 import '../helpers/widget_harness.dart';
 
@@ -76,6 +77,32 @@ void main() {
 
     expect(find.text('Jeans'), findsOneWidget);
     expect(find.text('Tee'), findsNothing);
+  });
+
+  testWidgets('the "selected" garment renders as selected (tab mode)', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    final tops = [
+      _garment(id: 1, category: GarmentCategory.top, name: 'Tee'),
+      _garment(id: 2, category: GarmentCategory.top, name: 'Shirt'),
+    ];
+    await pumpApp(
+      tester,
+      SelectGarmentPage(
+        title: 'Add Garment',
+        garments: tops,
+        categoryTabs: const [GarmentCategory.top],
+        selected: tops[1],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final cards = tester
+        .widgetList<GarmentCard>(find.byType(GarmentCard))
+        .toList();
+    expect(cards.firstWhere((c) => c.garment.id == 1).isSelected, isFalse);
+    expect(cards.firstWhere((c) => c.garment.id == 2).isSelected, isTrue);
   });
 
   testWidgets('tapping a garment pops with the SelectGarmentResult', (

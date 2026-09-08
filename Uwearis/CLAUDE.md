@@ -36,7 +36,7 @@ flutter test
 flutter test test/services/garment_service_test.dart   # single test file
 ```
 
-`dart_defines/dev.json` is gitignored — copy from `dart_defines/dev.json.template` and fill in `BASE_URL` and `GOOGLE_CLIENT_ID`. The app will not compile without `--dart-define-from-file`.
+`dart_defines/dev.json` is gitignored — copy from `dart_defines/dev.json.template` and fill in the Google OAuth client ids. The backend URL is **not** in the JSON: it lives as `Env.baseUrl`'s `defaultValue` (`lib/core/config/env.dart`), the single source of truth — override per-build with `--dart-define=BASE_URL=…` if needed. `flutter test` runs without `--dart-define-from-file`, so the service tests rely on that `defaultValue`.
 
 ---
 

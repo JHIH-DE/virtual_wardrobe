@@ -88,6 +88,9 @@ class _TapToPickField extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasValue = text.isNotEmpty;
     return GestureDetector(
+      // opaque so the whole 48px field is tappable, not just the label text
+      // and the trailing arrow (the gap between them otherwise isn't).
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: InputDecorator(
         decoration: _decoration().copyWith(contentPadding: EdgeInsets.zero),

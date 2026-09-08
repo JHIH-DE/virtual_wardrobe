@@ -46,6 +46,8 @@
   },
   "lifestyle": "Lifestyle",
   "logout": "Logout",
+  "logoutConfirmTitle": "Log out?",
+  "logoutConfirmBody": "You'll need to sign in again to use Uwearis.",
   "language": "Language",
   "selectLanguageTitle": "Select Language",
   "languageSystemDefault": "System Default",
@@ -63,6 +65,7 @@
   "renameOutfit": "Rename Outfit",
   "outfitNameLabel": "Name of this outfit",
   "newVersion": "New Version",
+  "addVersionButton": "Version",
   "addToMyOutfits": "Add to My Outfits",
   "selectOutfitGroupTitle": "Add to Outfit",
   "newOutfitGroup": "New Outfit",
@@ -201,6 +204,10 @@
       }
     }
   },
+  "filterAll": "All",
+  "@filterAll": {
+    "description": "The 'show everything / no filter' toggle beside a chip group's title, e.g. Season (All)"
+  },
 
   "editTripName": "Edit Name",
   "editDestinations": "Edit Destinations",
@@ -214,6 +221,8 @@
   "fillAllFieldsError": "Please fill all fields",
 
   "regenerate": "Regenerate",
+  "regenerateOutfitConfirmTitle": "Regenerate this image?",
+  "regenerateOutfitConfirmBody": "This replaces the current image with a new AI render of the same garments.",
   "setAsCover": "Set as Cover",
   "letUwearisPlanOutfits": "Let Uwearis Plan Your Trip",
   "letUwearisPlanOutfitsHint": "Uwearis will build an outfit for every day using what's in your suitcase.",
@@ -495,9 +504,10 @@
   "noItemsFound": "No items found.",
 
   "edit": "Edit",
-  "editTagsTitle": "Edit Tags",
   "analyzingClothingEllipsis": "Analyzing Clothing…",
   "analyzingEllipsis": "Analyzing…",
+  "analysisFailedTitle": "Couldn't analyze this photo",
+  "analysisFailedBody": "The AI analysis didn't come through. Check your connection and try again.",
   "confirmed": "Confirmed",
   "reset": "Reset",
   "pinchToZoomHint": "Pinch to zoom the image to make sure the picture have the whole details.",

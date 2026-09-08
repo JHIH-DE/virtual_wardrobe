@@ -23,10 +23,10 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/category_tag.dart';
-import '../widgets/common/fields/selectable_chip.dart';
 import '../widgets/common/floating_nav_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
@@ -34,7 +34,6 @@ import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
-import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
@@ -355,7 +354,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     if (_isOpeningTryOn) return;
     setState(() => _isOpeningTryOn = true);
     try {
-      final closetGarments = await ref.read(garmentsProvider.future);
+      // Warm garmentsProvider before opening the page (it reads the provider
+      // directly now).
+      await ref.read(garmentsProvider.future);
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
       if (!context.mounted) return;
@@ -365,7 +366,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           builder: (_) => AddOutfitPage(
             existingOutfit: _current,
             initialGarments: _garments ?? const [],
-            preloadedGarments: closetGarments,
           ),
         ),
       );
@@ -443,14 +443,20 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // `center`, not `start`: AccentIconButton is a 44px touch box with a
+        // smaller disc centred in it, so top-aligning it drops the disc
+        // below the single-line tag row. The tag row never wraps
+        // (_CollapsingTagsRow collapses to "+N"), so centring is safe.
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (!_isDailyOutfit) ...[
             AccentIconButton(
               icon: Icons.sell_outlined,
               onPressed: _openEditTagsSheet,
             ),
-            const SizedBox(width: 10),
+            // Small — AccentIconButton already carries ~6px of transparent
+            // padding around its disc on this side.
+            const SizedBox(width: 2),
           ],
           Expanded(
             child: tags.isEmpty
@@ -465,81 +471,40 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// Opens a bottom sheet to multi-select Season/Style tags, then saves via
   /// [OutfitService.updateOutfit] on confirm. Applies to whichever version
   /// was current when the sheet was opened — captured up front so a swipe
-  /// while the sheet is still open can't retarget the save.
+  /// while the sheet is still open can't retarget the save. Uses the same
+  /// [showChipGroupsSheet] chrome as the filter sheets; the only difference
+  /// is a plain multi-select (no "All") plus a Save button (this mutates,
+  /// it doesn't filter live).
   Future<void> _openEditTagsSheet() async {
     final target = _current;
     final index = _currentIndex;
     final selectedSeasons = target.seasons.map(_titleCase).toSet();
     final selectedStyles = target.style.map(_titleCase).toSet();
 
-    final result =
-        await showPickerSheet<({List<String> seasons, List<String> styles})>(
-          context,
-          builder: (sheetContext) => StatefulBuilder(
-            builder: (ctx, setSheetState) {
-              Widget chipGroup(List<String> options, Set<String> selected) {
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: options
-                      .map(
-                        (option) => SelectableChip(
-                          label: option,
-                          selected: selected.contains(option),
-                          selectedColor: AppColors.accentTint,
-                          selectedTextColor: AppColors.accent,
-                          onTap: () => setSheetState(() {
-                            if (!selected.remove(option)) {
-                              selected.add(option);
-                            }
-                          }),
-                        ),
-                      )
-                      .toList(),
-                );
-              }
+    FilterGroup tagGroup(String label, List<String> options, Set<String> sel) {
+      return FilterGroup(
+        label: label,
+        options: options,
+        selected: () => sel,
+        onToggle: (option) {
+          if (!sel.remove(option)) sel.add(option);
+        },
+      );
+    }
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  PickerSheetHeader(_l10n.editTagsTitle),
-                  const SizedBox(height: 4),
-                  Text(_l10n.seasonLabel, style: AppTextStyle.bold16),
-                  const SizedBox(height: 12),
-                  chipGroup(seasonOptions, selectedSeasons),
-                  const SizedBox(height: 24),
-                  Text(_l10n.styleLabel, style: AppTextStyle.bold16),
-                  const SizedBox(height: 12),
-                  chipGroup(styleOptions, selectedStyles),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(sheetContext, (
-                        seasons: selectedSeasons.toList(),
-                        styles: selectedStyles.toList(),
-                      )),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        _l10n.save,
-                        style: AppTextStyle.regular14.copyWith(
-                          color: AppColors.textOnPrimary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+    final result =
+        await showChipGroupsSheet<
+          ({List<String> seasons, List<String> styles})
+        >(
+          context,
+          groups: [
+            tagGroup(_l10n.seasonLabel, seasonOptions, selectedSeasons),
+            tagGroup(_l10n.styleLabel, styleOptions, selectedStyles),
+          ],
+          confirmLabel: _l10n.save,
+          confirmResult: () => (
+            seasons: selectedSeasons.toList(),
+            styles: selectedStyles.toList(),
           ),
         );
     if (result == null || !mounted) return;
@@ -661,9 +626,24 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   /// Re-runs the AI render for the currently shown version in place (see
   /// [OutfitService.regenerateOutfit]) — same garment combo/background, new
-  /// image, no new version created.
+  /// image, no new version created. Confirms first: it's a paid AI call and
+  /// its menu entry sits right next to "Delete this version".
   Future<void> _regenerateImage() async {
     if (_isRegenerating) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.regenerateOutfitConfirmTitle,
+        body: _l10n.regenerateOutfitConfirmBody,
+        primaryLabel: _l10n.regenerate,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (ok != true || !mounted) return;
+
     final target = _current;
     final index = _currentIndex;
     setState(() => _isRegenerating = true);
@@ -747,15 +727,20 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     bottom: 12,
                     right: 12,
                     child: CardCornerBadge(
+                      // Same treatment as the garment card's favourite badge
+                      // (see FavoriteCard).
                       icon: _current.isFavorite
                           ? Icons.favorite
                           : Icons.favorite_border,
                       backgroundColor: AppColors.surfaceTranslucent,
                       iconColor: _current.isFavorite
                           ? AppColors.favorite
-                          : AppColors.icon,
+                          : AppColors.hintText,
+                      border: Border.all(color: AppColors.borderSubtle),
+                      boxShadow: const [],
                       size: 36,
                       iconSize: 20,
+                      discAlignment: Alignment.bottomRight,
                       onTap: _toggleFavorite,
                     ),
                   ),
@@ -777,34 +762,34 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// The row under the carousel: with more than one version it's the dots +
-  /// "n / total" counter with a compact "+" on the left to add another
-  /// version; with a single version there are no dots, so the full
-  /// "+ New Version" pill takes the row, left-aligned. Both collapse to
-  /// nothing where adding a version isn't offered (see
-  /// [_openCreateAnotherVersion]: the Add Outfit flow, daily outfits,
-  /// edit-hidden entry points).
+  /// The row under the carousel: the "+ Version" pill, left-aligned, shown
+  /// straight away (its form never depends on the version count). Once the
+  /// group's sibling versions have loaded, the page dots + "n / total"
+  /// counter sit centred behind it. Collapses to nothing where adding a
+  /// version isn't offered (see [_openCreateAnotherVersion]: the Add Outfit
+  /// flow, daily outfits, edit-hidden entry points).
   Widget _buildVersionActionRow() {
     final canAddVersion =
         !widget.isNew &&
         !widget.showAddToMyOutfits &&
         widget.showEditOutfitWhenSaved;
 
-    // Wait until the real version count is known — otherwise this first
-    // renders the single-version pill and then snaps to the compact "+".
-    if (!_versionsResolved) return const SizedBox.shrink();
+    final pill = canAddVersion
+        ? Align(
+            alignment: Alignment.centerLeft,
+            child: AccentPillButton(
+              label: _l10n.addVersionButton,
+              icon: Icons.add,
+              enabled: !_isOpeningTryOn,
+              onPressed: _openCreateAnotherVersion,
+            ),
+          )
+        : null;
 
-    if (_versions.length < 2) {
-      if (!canAddVersion) return const SizedBox.shrink();
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: AccentPillButton(
-          label: _l10n.newVersion,
-          icon: Icons.add,
-          enabled: !_isOpeningTryOn,
-          onPressed: _openCreateAnotherVersion,
-        ),
-      );
+    // Only the dots need the real version count (and they show nothing for a
+    // single version anyway) — gate them, not the pill.
+    if (!_versionsResolved || _versions.length < 2) {
+      return pill ?? const SizedBox.shrink();
     }
 
     return Stack(
@@ -814,15 +799,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           count: _versions.length,
           currentIndex: _currentIndex,
         ),
-        if (canAddVersion)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: AccentIconButton(
-              icon: Icons.add,
-              enabled: !_isOpeningTryOn,
-              onPressed: _openCreateAnotherVersion,
-            ),
-          ),
+        ?pill,
       ],
     );
   }
@@ -867,12 +844,15 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       trigger: Container(
         width: 36,
         height: 36,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
+          // Same treatment as the favourite badge below (see FavoriteCard):
+          // near-opaque with a hairline edge, no drop shadow.
           color: AppColors.surfaceTranslucent,
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: AppColors.overlaySubtle, blurRadius: 4)],
+          border: Border.all(color: AppColors.borderSubtle),
         ),
-        child: const Icon(Icons.more_horiz, size: 20, color: AppColors.icon),
+        child: const Icon(Icons.more_horiz, size: 20, color: AppColors.hintText),
       ),
     );
   }

@@ -3,12 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// `NotoSansTC` is a variable font (single `wght`-axis file). Skia/Android
-/// derives the axis value from `fontWeight`, but iOS CoreText does not —
-/// without an explicit `fontVariations` entry it renders every style at the
-/// font's heaviest master. So every style below carries BOTH `fontWeight`
-/// (for layout + non-variable fallback fonts) and a matching
-/// `FontVariation('wght', …)`.
+/// Every style below carries two `NotoSansTC` fixes (mirrored in
+/// [AppTheme]'s `textTheme` for Material defaults):
+///  - `fontWeight` + a matching `FontVariation('wght', …)`: it's a variable
+///    font and iOS CoreText renders it at the heaviest master without the
+///    explicit axis value.
+///  - `leadingDistribution: even`: its CJK line box is tall and top-heavy,
+///    so Latin text sits above centre in a button/chip unless the extra
+///    leading is split evenly above and below.
 class AppTextStyle {
   /// Home App Bar's "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads/
   /// caches the font at call time rather than being a const constructor.
@@ -27,6 +29,7 @@ class AppTextStyle {
     fontSize: 24,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -36,6 +39,7 @@ class AppTextStyle {
     fontSize: 20,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -45,6 +49,7 @@ class AppTextStyle {
     fontSize: 18,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -54,6 +59,7 @@ class AppTextStyle {
     fontSize: 16,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -63,6 +69,7 @@ class AppTextStyle {
     fontSize: 14,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -72,6 +79,7 @@ class AppTextStyle {
     fontSize: 12,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -83,6 +91,7 @@ class AppTextStyle {
     fontSize: 16,
     fontWeight: FontWeight.w600,
     fontVariations: [FontVariation('wght', 600)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -92,6 +101,7 @@ class AppTextStyle {
     fontSize: 14,
     fontWeight: FontWeight.w600,
     fontVariations: [FontVariation('wght', 600)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -106,6 +116,7 @@ class AppTextStyle {
     fontSize: 16,
     fontWeight: FontWeight.w500,
     fontVariations: [FontVariation('wght', 500)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -115,6 +126,7 @@ class AppTextStyle {
     fontSize: 13,
     fontWeight: FontWeight.w500,
     fontVariations: [FontVariation('wght', 500)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textSecondary,
   );
@@ -126,6 +138,7 @@ class AppTextStyle {
     fontSize: 16,
     fontWeight: FontWeight.w400,
     fontVariations: [FontVariation('wght', 400)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -135,6 +148,7 @@ class AppTextStyle {
     fontSize: 14,
     fontWeight: FontWeight.w400,
     fontVariations: [FontVariation('wght', 400)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -144,6 +158,7 @@ class AppTextStyle {
     fontSize: 13,
     fontWeight: FontWeight.w400,
     fontVariations: [FontVariation('wght', 400)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -153,6 +168,7 @@ class AppTextStyle {
     fontSize: 12,
     fontWeight: FontWeight.w400,
     fontVariations: [FontVariation('wght', 400)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
   );
@@ -167,6 +183,7 @@ class AppTextStyle {
     fontSize: 12,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0.5,
     color: AppColors.textSecondary,
   );

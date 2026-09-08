@@ -15,7 +15,7 @@ class CountPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 23,
+      height: 22,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       alignment: Alignment.center,
       decoration: BoxDecoration(

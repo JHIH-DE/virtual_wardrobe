@@ -79,8 +79,8 @@ void main() {
     });
   });
 
-  group('loginWithAppleIdToken / loginWithFacebookIdToken', () {
-    test('Apple login hits the apple endpoint', () async {
+  group('loginWithAppleIdToken / loginWithFacebookAccessToken', () {
+    test('Apple login POSTs id_token, no name key when omitted', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
@@ -94,9 +94,10 @@ void main() {
         () => client,
       );
       expect(captured.url.toString(), '$_base/apple');
+      expect(jsonDecode(captured.body), {'id_token': 'apple-token'});
     });
 
-    test('Facebook login hits the facebook endpoint', () async {
+    test('Apple login includes name only on the first authorization', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
@@ -106,11 +107,40 @@ void main() {
       });
 
       await http.runWithClient(
-        () => AuthService().loginWithFacebookIdToken('fb-token'),
+        () => AuthService().loginWithAppleIdToken(
+          'apple-token',
+          name: 'Wei Chen',
+        ),
         () => client,
       );
-      expect(captured.url.toString(), '$_base/facebook');
+      expect(jsonDecode(captured.body), {
+        'id_token': 'apple-token',
+        'name': 'Wei Chen',
+      });
     });
+
+    // Facebook Login hands the client an access token, not an id token
+    // (unlike Google/Apple) — the request body key must be `access_token`
+    // to match what the backend actually validates against the Graph API.
+    test(
+      'Facebook login POSTs access_token to the facebook endpoint',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({'access_token': 'a', 'refresh_token': 'r'}),
+          );
+        });
+
+        await http.runWithClient(
+          () => AuthService().loginWithFacebookAccessToken('fb-token'),
+          () => client,
+        );
+        expect(captured.url.toString(), '$_base/facebook');
+        expect(jsonDecode(captured.body), {'access_token': 'fb-token'});
+      },
+    );
 
     // The three social logins share one token-pair validator — Apple and
     // Facebook must reject a missing token just like Google does.
@@ -128,7 +158,7 @@ void main() {
       );
       await expectLater(
         http.runWithClient(
-          () => AuthService().loginWithFacebookIdToken('t'),
+          () => AuthService().loginWithFacebookAccessToken('t'),
           () => client,
         ),
         throwsA(isA<Exception>()),
@@ -156,7 +186,10 @@ void main() {
       final client = MockClient((request) async {
         captured = request;
         return _jsonResponse(
-          _envelope({'access_token': 'new-access', 'refresh_token': 'new-refresh'}),
+          _envelope({
+            'access_token': 'new-access',
+            'refresh_token': 'new-refresh',
+          }),
         );
       });
 

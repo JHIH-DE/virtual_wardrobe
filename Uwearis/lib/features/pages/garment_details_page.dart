@@ -749,6 +749,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final navigable = !zero;
 
     return GestureDetector(
+      // opaque so the whole 48px row is tappable — the Container has a
+      // `decoration`, not a `color`, so it doesn't absorb hits itself.
+      behavior: HitTestBehavior.opaque,
       onTap: navigable ? _openUsedInOutfits : null,
       child: Container(
         height: 48,
@@ -898,6 +901,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   Widget _buildColorSwatch(GarmentColor c) {
     final isSelected = c == _selectedColor;
     return GestureDetector(
+      // opaque so the full 44px swatch is tappable — an unselected swatch's
+      // Container has a `decoration` and no child, so it absorbs nothing on
+      // its own.
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         setState(() => _selectedColor = c);
         _checkModified();
@@ -1132,6 +1139,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   Future<void> _saveGarment() async {
+    // Synchronous re-entrancy guard — the bottom button only hides ~200ms
+    // after _uploading flips (BottomActionButton's AnimatedSwitcher), so a
+    // double-tap could otherwise create two garment records / run two
+    // uploads. See CLAUDE.md "Guarding costly / mutating actions against
+    // double-invocation".
+    if (_uploading) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() {
       _uploading = true;

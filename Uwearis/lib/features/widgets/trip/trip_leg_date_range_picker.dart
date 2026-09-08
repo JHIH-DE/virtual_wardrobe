@@ -300,6 +300,10 @@ class _TripLegDateRangePickerDialogState
     return Padding(
       padding: const EdgeInsets.all(2),
       child: GestureDetector(
+        // opaque so the whole cell is tappable — an unselected day's
+        // Container has only a (null) `decoration`, so without this only the
+        // centered digit glyph registers a tap.
+        behavior: HitTestBehavior.opaque,
         onTap: disabled ? null : () => _onDayTap(day),
         child: Container(
           alignment: Alignment.center,

@@ -15,6 +15,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/images/app_spinner.dart';
+import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'account_page.dart';
@@ -114,6 +115,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: l10n.logoutConfirmTitle,
+        body: l10n.logoutConfirmBody,
+        primaryLabel: l10n.logout,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     final refreshToken = await AuthStorage.getRefreshToken() ?? '';
     try {
       await AuthService().logout(refreshToken);

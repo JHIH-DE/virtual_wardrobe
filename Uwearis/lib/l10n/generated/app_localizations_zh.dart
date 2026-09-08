@@ -97,6 +97,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get logout => '登出';
 
   @override
+  String get logoutConfirmTitle => '確定要登出嗎?';
+
+  @override
+  String get logoutConfirmBody => '登出後需要重新登入才能使用 Uwearis。';
+
+  @override
   String get language => '語言';
 
   @override
@@ -140,6 +146,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get newVersion => '新版本';
+
+  @override
+  String get addVersionButton => '版本';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -421,6 +430,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get filterAll => '全部';
+
+  @override
   String get editTripName => '編輯名稱';
 
   @override
@@ -452,6 +464,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get regenerate => '重新產生';
+
+  @override
+  String get regenerateOutfitConfirmTitle => '要重新產生這張圖片嗎?';
+
+  @override
+  String get regenerateOutfitConfirmBody => '系統會以相同的服裝重新用 AI 算圖,並取代目前的圖片。';
 
   @override
   String get setAsCover => '設為代表圖';
@@ -1116,13 +1134,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get edit => '編輯';
 
   @override
-  String get editTagsTitle => '編輯標籤';
-
-  @override
   String get analyzingClothingEllipsis => '分析衣物中…';
 
   @override
   String get analyzingEllipsis => '分析中…';
+
+  @override
+  String get analysisFailedTitle => '无法分析这张照片';
+
+  @override
+  String get analysisFailedBody => 'AI 分析没有完成，请检查网络连接后重试。';
 
   @override
   String get confirmed => '確認';
@@ -1281,6 +1302,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get logout => '登出';
 
   @override
+  String get logoutConfirmTitle => '確定要登出嗎?';
+
+  @override
+  String get logoutConfirmBody => '登出後需要重新登入才能使用 Uwearis。';
+
+  @override
   String get language => '語言';
 
   @override
@@ -1324,6 +1351,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get newVersion => '新版本';
+
+  @override
+  String get addVersionButton => '版本';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -1605,6 +1635,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String get filterAll => '全部';
+
+  @override
   String get editTripName => '編輯名稱';
 
   @override
@@ -1636,6 +1669,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get regenerate => '重新產生';
+
+  @override
+  String get regenerateOutfitConfirmTitle => '要重新產生這張圖片嗎?';
+
+  @override
+  String get regenerateOutfitConfirmBody => '系統會以相同的服裝重新用 AI 算圖,並取代目前的圖片。';
 
   @override
   String get setAsCover => '設為代表圖';
@@ -2300,13 +2339,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get edit => '編輯';
 
   @override
-  String get editTagsTitle => '編輯標籤';
-
-  @override
   String get analyzingClothingEllipsis => '分析衣物中…';
 
   @override
   String get analyzingEllipsis => '分析中…';
+
+  @override
+  String get analysisFailedTitle => '無法分析這張照片';
+
+  @override
+  String get analysisFailedBody => 'AI 分析沒有完成，請檢查網路連線後重試。';
 
   @override
   String get confirmed => '確認';

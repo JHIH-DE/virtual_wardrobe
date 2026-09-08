@@ -159,17 +159,16 @@ class _HomePageState extends ConsumerState<HomePage> {
               MaterialPageRoute(builder: (_) => const SettingsPage()),
             );
           },
-          borderRadius: BorderRadius.circular(22),
-          // Fixed 44x44 touch target — the glyph itself stays at
-          // iconMediumSize, only the tappable area grows to meet the
-          // minimum comfortable touch target.
-          child: SizedBox(
-            width: 44,
-            height: 44,
+          borderRadius: BorderRadius.circular(AppDimens.toolbarHeight / 2),
+          // Fills the toolbar slot (same touch target as the back button /
+          // "⋮" menu); the glyph itself stays at the toolbar action-icon
+          // size, only the tappable area grows.
+          child: SizedBox.square(
+            dimension: AppDimens.toolbarHeight,
             child: Center(
               child: Image.asset(
                 'assets/images/setting.png',
-                height: AppDimens.iconMediumSize,
+                height: AppDimens.toolbarActionIconSize,
               ),
             ),
           ),

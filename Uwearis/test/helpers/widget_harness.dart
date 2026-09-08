@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/l10n/generated/app_localizations.dart';
 
@@ -10,9 +11,14 @@ import 'package:uwearis/l10n/generated/app_localizations.dart';
 ///
 /// Pass a `Scaffold` as [child] when the widget under test needs one
 /// (an `appBar:` slot, a `RefreshIndicator`, `ScaffoldMessenger`, …).
-Future<void> pumpApp(WidgetTester tester, Widget child) {
+Future<void> pumpApp(
+  WidgetTester tester,
+  Widget child, {
+  List<Override> overrides = const [],
+}) {
   return tester.pumpWidget(
     ProviderScope(
+      overrides: overrides,
       child: MaterialApp(
         localizationsDelegates: const [
           AppLocalizations.delegate,

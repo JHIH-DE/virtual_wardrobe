@@ -54,22 +54,36 @@ class AuthService with BaseService {
     );
   }
 
+  /// [name] is the user's display name — only pass it on the *first* Apple
+  /// authorization: Apple hands it to the client exactly once, in
+  /// `AuthorizationCredentialAppleID.givenName`/`familyName`, and never
+  /// again on subsequent sign-ins with the same Apple ID. The backend only
+  /// has anywhere to put it on that same first request (it can't ask Apple
+  /// for it later), so omit this argument entirely on repeat logins rather
+  /// than send an empty string.
   Future<({String accessToken, String refreshToken})> loginWithAppleIdToken(
-    String idToken,
-  ) async {
+    String idToken, {
+    String? name,
+  }) async {
     debugLog('--- loginWithAppleIdToken ---');
-    final res = await _postJson('/apple', {'id_token': idToken});
+    final res = await _postJson('/apple', {
+      'id_token': idToken,
+      if (name != null && name.isNotEmpty) 'name': name,
+    });
     return _tokenPair(
       decodeMap(res, op: 'loginWithApple'),
       label: 'Apple login',
     );
   }
 
-  Future<({String accessToken, String refreshToken})> loginWithFacebookIdToken(
-    String idToken,
-  ) async {
-    debugLog('--- loginWithFacebook ---');
-    final res = await _postJson('/facebook', {'id_token': idToken});
+  /// Facebook Login hands the client an *access token*, not an id token
+  /// (unlike Google/Apple) — the backend verifies it against the Graph API
+  /// itself, so this is the one provider whose request body key is
+  /// `access_token`.
+  Future<({String accessToken, String refreshToken})>
+  loginWithFacebookAccessToken(String accessToken) async {
+    debugLog('--- loginWithFacebookAccessToken ---');
+    final res = await _postJson('/facebook', {'access_token': accessToken});
     return _tokenPair(
       decodeMap(res, op: 'loginWithFacebook'),
       label: 'Facebook login',

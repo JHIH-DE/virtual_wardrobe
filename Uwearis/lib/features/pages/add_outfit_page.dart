@@ -7,13 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/garments_provider.dart';
 import '../../core/providers/weather_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_recommendation_service.dart';
-import '../../core/services/garment_service.dart';
 import '../../core/services/match_look_service.dart';
 import '../../core/utils/debug_log.dart';
-import '../../core/utils/signed_url.dart';
 import '../../core/utils/try_on_mixin.dart';
 import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
@@ -115,8 +114,12 @@ class _OutfitSelection {
   }
 }
 
-class AddOutfitPage extends StatefulWidget {
+class AddOutfitPage extends ConsumerStatefulWidget {
   final List<Garment> initialGarments;
+
+  /// In [selectOnly] mode, the fixed garment pool the picker draws from (a
+  /// trip's suitcase). In the normal create flow it's unused — the pool is
+  /// the app-wide closet from [garmentsProvider].
   final List<Garment>? preloadedGarments;
   final VoidCallback? onBack;
 
@@ -149,15 +152,25 @@ class AddOutfitPage extends StatefulWidget {
   });
 
   @override
-  State<AddOutfitPage> createState() => _AddOutfitPageState();
+  ConsumerState<AddOutfitPage> createState() => _AddOutfitPageState();
 }
 
-class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
-  final List<Garment> _allGarments = [];
+class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   late _OutfitSelection _outfit;
   late _OutfitSelection _initialOutfit;
   late Set<int> _initialAccessoryIds;
-  bool _isLoadingGarments = false;
+
+  /// The garment pool the picker draws from. In selectOnly mode it's the
+  /// fixed subset the caller passed (a trip's suitcase); otherwise it's the
+  /// app-wide closet straight from [garmentsProvider] — same source every
+  /// other garment-picking screen uses, no local copy. `build` watches the
+  /// provider so this stays current; callers read it via `ref.read`.
+  List<Garment> get _garmentPool => widget.selectOnly
+      ? (widget.preloadedGarments ?? const [])
+      : (ref.read(garmentsProvider).value ?? const []);
+
+  bool get _garmentPoolLoading =>
+      !widget.selectOnly && ref.read(garmentsProvider).isLoading;
 
   // Match a Look session state — see clearMatchALookSession-equivalent
   // _clearMatchALookSession below for what "clearing" actually resets.
@@ -292,7 +305,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         if (g?.id != null) g!.id!,
     };
 
-    return _allGarments.where((g) {
+    return _garmentPool.where((g) {
       if (categoryFull(g.category)) return false;
       final isAccessory =
           g.category == GarmentCategory.accessory ||
@@ -329,16 +342,16 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       .toSet();
 
   bool _hasCategory(GarmentCategory category) =>
-      _allGarments.any((g) => g.category == category) ||
+      _garmentPool.any((g) => g.category == category) ||
       ((widget.selectOnly || widget.existingOutfit != null) &&
           _initialCategories.contains(category));
 
+  /// Called before opening the picker: nudge [garmentsProvider] to re-fetch
+  /// if its list is empty or its image URLs are stale (a no-op otherwise).
+  /// Skipped in selectOnly mode (that pool is a fixed subset).
   Future<void> _ensureFreshGarments() async {
-    final stale = _allGarments.any((g) {
-      final url = g.imageUrl;
-      return url != null && url.isNotEmpty && isSignedUrlExpired(url);
-    });
-    if (stale) await _loadGarments();
+    if (widget.selectOnly) return;
+    await ref.read(garmentsProvider.notifier).refreshIfNeeded();
   }
 
   /// Ids of whichever accessory slots are actually filled — [_accessories]
@@ -418,10 +431,11 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         ..addAll(_buildInitialAccessories(widget.initialGarments));
     }
     _initialAccessoryIds = _accessoryIds;
-    if (widget.preloadedGarments != null) {
-      _allGarments.addAll(widget.preloadedGarments!);
-    } else {
-      _loadGarments();
+    if (!widget.selectOnly) {
+      // Same as every other garment screen: lean on garmentsProvider and let
+      // it re-fetch only when its own list is empty or its image URLs are
+      // stale (a no-op if My Closet just refreshed).
+      ref.read(garmentsProvider.notifier).refreshIfNeeded();
     }
   }
 
@@ -668,26 +682,6 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     await _startMatchALookFlow();
   }
 
-  Future<void> _loadGarments() async {
-    setState(() => _isLoadingGarments = true);
-    try {
-      final list = await GarmentService().getGarments();
-      if (mounted) {
-        setState(
-          () => _allGarments
-            ..clear()
-            ..addAll(list),
-        );
-      }
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _isLoadingGarments = false);
-    }
-  }
-
   /// Every selected garment id — core slots (top/middle/outer/bottom/
   /// onePiece/shoes) and accessories together as one flat list. The backend
   /// has no separate accessory concept, just one `garment_ids` list, so
@@ -815,6 +809,9 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuild when the closet changes (loads, or a garment is added/edited
+    // elsewhere). _garmentPool / _garmentPoolLoading read it via ref.read.
+    if (!widget.selectOnly) ref.watch(garmentsProvider);
     return Stack(
       children: [
         Scaffold(
@@ -844,7 +841,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.creatingOutfitsEllipsis),
           ),
-        if (_isLoadingGarments)
+        if (_garmentPoolLoading)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.loadingClosetEllipsis),
           ),
@@ -919,7 +916,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                   !isOutfitLoading &&
                   !_isCompletingWithAi &&
                   !_completeWithAiInFlight &&
-                  !_isLoadingGarments,
+                  !_garmentPoolLoading,
               onPressed: _handleCompleteWithAiTap,
             ),
           ],
@@ -963,8 +960,8 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   Widget _buildAddGarmentRow() {
     // Every category/type is already covered — nothing left worth adding.
     final exhausted =
-        _allGarments.isNotEmpty && _addGarmentCandidates().isEmpty;
-    final enabled = !isOutfitLoading && !_isLoadingGarments && !exhausted;
+        _garmentPool.isNotEmpty && _addGarmentCandidates().isEmpty;
+    final enabled = !isOutfitLoading && !_garmentPoolLoading && !exhausted;
     final iconColor = enabled ? AppColors.icon : AppColors.hintText;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
@@ -1007,12 +1004,18 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
         : categoryLabel;
 
     return GestureDetector(
-      onTap: (isOutfitLoading || _isLoadingGarments)
+      // opaque so the whole row opens the picker — the Container has a
+      // `decoration`, not a `color`, and the contained thumbnail leaves a
+      // lot of transparent padding. The Lock/✕ badges are deeper and still
+      // win their own area.
+      behavior: HitTestBehavior.opaque,
+      onTap: (isOutfitLoading || _garmentPoolLoading)
           ? null
           : () => _pickGarmentForOutfit(
               initial: entry.category,
               replaceSlot: entry.slot,
               replaceAccessoryIndex: entry.accessoryIndex,
+              current: g,
             ),
       child: Container(
         constraints: const BoxConstraints(minHeight: _outfitRowMinHeight),
@@ -1076,6 +1079,11 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      // Discs stay exactly where they were (24px, 8px apart,
+                      // hard against the row's right edge); the hit target
+                      // only grows vertically — there's no horizontal room
+                      // between two tightly-packed badges, but the row is
+                      // >=64px tall.
                       CardCornerBadge(
                         icon: locked ? Icons.lock : Icons.lock_open,
                         backgroundColor: locked
@@ -1084,6 +1092,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                         iconColor: locked
                             ? AppColors.textOnPrimary
                             : AppColors.icon,
+                        hitTargetSize: const Size(24, AppDimens.minTouchTarget),
                         onTap: isOutfitLoading ? null : () => _toggleLock(g),
                       ),
                       if (!isOutfitLoading) ...[
@@ -1092,6 +1101,10 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                           icon: Icons.close,
                           backgroundColor: AppColors.placeholderSurface,
                           iconColor: AppColors.icon,
+                          hitTargetSize: const Size(
+                            24,
+                            AppDimens.minTouchTarget,
+                          ),
                           onTap: () => _removeOutfitEntry(entry),
                         ),
                       ],
@@ -1194,11 +1207,14 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// into the matching slot (or accessory list). [replaceSlot] /
   /// [replaceAccessoryIndex] pin the result to that exact slot when swapping
   /// an existing card, and keep that slot's category/type available in the
-  /// otherwise smart-filtered picker.
+  /// otherwise smart-filtered picker. [current] is the garment being
+  /// swapped — it shows up marked as selected so the user can see what's
+  /// already in that slot.
   Future<void> _pickGarmentForOutfit({
     GarmentCategory? initial,
     _Slot? replaceSlot,
     int? replaceAccessoryIndex,
+    Garment? current,
   }) async {
     await _ensureFreshGarments();
     if (!mounted) return;
@@ -1217,6 +1233,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
               : null,
           categoryTabs: tabs,
           garments: candidates,
+          selected: current,
         ),
       ),
     );
@@ -1315,7 +1332,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// something different instead of risking the same suggestion again.
   void _applyCompletedOutfit(List<int> garmentIds) {
     final byId = {
-      for (final g in _allGarments)
+      for (final g in _garmentPool)
         if (g.id != null) g.id!: g,
     };
     final recommended = garmentIds
@@ -1411,10 +1428,9 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// [GarmentRecommendationService.completeOutfit]. Never throws.
   Future<WeatherData?> _fetchWeatherBestEffort() async {
     try {
-      return await ProviderScope.containerOf(
-        context,
-        listen: false,
-      ).read(weatherProvider.future).timeout(const Duration(seconds: 5));
+      return await ref
+          .read(weatherProvider.future)
+          .timeout(const Duration(seconds: 5));
     } catch (_) {
       return null;
     }
@@ -1764,7 +1780,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  List<Garment> get _accessoryCandidates => _allGarments
+  List<Garment> get _accessoryCandidates => _garmentPool
       .where(
         (g) =>
             g.category == GarmentCategory.accessory ||
@@ -1852,6 +1868,9 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
     final accessory = _accessories[index];
     if (accessory == null) {
       return GestureDetector(
+        // opaque so the whole 72px tile responds — CustomPaint only strokes
+        // a dashed border, leaving just the centered "+" glyph tappable.
+        behavior: HitTestBehavior.opaque,
         onTap: isOutfitLoading ? null : () => _pickAccessoryAt(index),
         child: Padding(
           padding: const EdgeInsets.all(6),
@@ -1868,6 +1887,8 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
       );
     }
     return GestureDetector(
+      // opaque so the 6px margin around the thumbnail is tappable too.
+      behavior: HitTestBehavior.opaque,
       onTap: isOutfitLoading ? null : () => _pickAccessoryAt(index),
       child: Padding(
         padding: const EdgeInsets.all(6),
@@ -2104,7 +2125,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
   /// where Finish Outfit can't help — until at least 2 garments are picked.
   bool get _createFlowReady {
     if (isOutfitLoading ||
-        _isLoadingGarments ||
+        _garmentPoolLoading ||
         _tryOnRequested ||
         _isCompletingWithAi ||
         _completeWithAiInFlight) {
@@ -2202,7 +2223,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
           ),
         ),
         AppListCard(
-          onTap: (isOutfitLoading || _isLoadingGarments)
+          onTap: (isOutfitLoading || _garmentPoolLoading)
               ? null
               : () async {
                   await _ensureFreshGarments();
@@ -2213,7 +2234,7 @@ class _AddOutfitPageState extends State<AddOutfitPage> with TryOnMixin {
                       builder: (_) => SelectGarmentPage(
                         title: title,
                         category: category,
-                        garments: _allGarments,
+                        garments: _garmentPool,
                         selected: value,
                         showNoneOption: showNoneOption,
                         rankedGarmentIds: rankedGarmentIds,
@@ -2331,6 +2352,10 @@ class _MatchALookCard extends StatelessWidget {
   Widget _idle(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return GestureDetector(
+      // opaque so the whole card opens Match a Look — the gradient
+      // `_cardDecoration` doesn't absorb hits, leaving only the icon/text/
+      // arrow tappable.
+      behavior: HitTestBehavior.opaque,
       onTap: onStart,
       child: Container(
         padding: const EdgeInsets.all(16),

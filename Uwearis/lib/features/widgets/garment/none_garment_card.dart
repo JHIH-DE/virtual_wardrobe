@@ -22,6 +22,10 @@ class NoneGarmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // opaque so the whole card is tappable, not just the centered
+      // icon+label — the surrounding sibling GarmentCards are image-filled
+      // and fully tappable, so this must match.
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
         height: AppDimens.garmentCardHeight,

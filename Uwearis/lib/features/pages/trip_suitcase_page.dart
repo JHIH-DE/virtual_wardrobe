@@ -229,14 +229,14 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       actions: [
         InkWell(
           onTap: () => _handleAddGarment(closetGarments),
-          borderRadius: BorderRadius.circular(22),
-          child: SizedBox(
-            width: 44,
-            height: 44,
+          borderRadius: BorderRadius.circular(AppDimens.toolbarHeight / 2),
+          // Fills the toolbar slot (same touch target as the back button).
+          child: SizedBox.square(
+            dimension: AppDimens.toolbarHeight,
             child: Center(
               child: Image.asset(
                 'assets/images/plus.png',
-                height: AppDimens.iconSmallSize,
+                height: AppDimens.toolbarActionIconSize,
               ),
             ),
           ),

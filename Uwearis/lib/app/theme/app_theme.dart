@@ -33,21 +33,25 @@ class AppTheme {
       ),
     );
 
-    // NotoSansTC is a variable font; iOS needs an explicit `wght` FontVariation
-    // or it renders every Material default (SnackBars, dialogs, fields…) at the
-    // heaviest master. AppTextStyle carries its own; this covers the rest.
+    // Two NotoSansTC quirks fixed here for every Material default (SnackBars,
+    // dialogs, fields, buttons…) — AppTextStyle carries the same two itself:
+    //  1. It's a variable font; iOS renders every style at the heaviest
+    //     master without an explicit `wght` FontVariation.
+    //  2. Its CJK line metrics are tall and top-heavy, so Latin text sits
+    //     above centre in a button/chip; `even` leading splits the slack.
     return base.copyWith(
-      textTheme: _pinVariableWeight(base.textTheme),
-      primaryTextTheme: _pinVariableWeight(base.primaryTextTheme),
+      textTheme: _normalizeFontMetrics(base.textTheme),
+      primaryTextTheme: _normalizeFontMetrics(base.primaryTextTheme),
     );
   }
 
-  static TextTheme _pinVariableWeight(TextTheme t) {
+  static TextTheme _normalizeFontMetrics(TextTheme t) {
     TextStyle? pin(TextStyle? s) {
       if (s == null) return null;
       final numericWeight = (s.fontWeight ?? FontWeight.w400).value;
       return s.copyWith(
         fontVariations: [FontVariation('wght', numericWeight.toDouble())],
+        leadingDistribution: TextLeadingDistribution.even,
       );
     }
 

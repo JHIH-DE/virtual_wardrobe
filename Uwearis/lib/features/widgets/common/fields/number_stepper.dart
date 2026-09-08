@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
 /// How a [NumberStepper] frames itself.
 /// - [card]: the standalone bordered white field (default).
-/// - [row]: a bare list row (`vertical: 14` padding only), for a stepper
-///   sitting alongside other rows inside a shared card.
+/// - [row]: a bare list row, for a stepper sitting alongside other rows
+///   inside a shared card.
+///
+/// Both keep only slim outer padding — the minus/plus buttons carry their
+/// own [AppDimens.minTouchTarget]-tall transparent hit area, which sets the
+/// control's height.
 enum NumberStepperVariant { card, row }
 
 /// A label + minus/value/plus stepper control — bordered card by default,
@@ -64,14 +69,14 @@ class NumberStepper extends StatelessWidget {
 
     if (variant == NumberStepperVariant.row) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: row,
       );
     }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -86,16 +91,21 @@ class NumberStepper extends StatelessWidget {
     required VoidCallback? onPressed,
   }) {
     return GestureDetector(
+      // opaque so the transparent square around the 18px glyph — padding it
+      // out to a minTouchTarget hit area without enlarging the glyph — is
+      // tappable too.
+      behavior: HitTestBehavior.opaque,
       onTap: onPressed,
-      child: SizedBox(
-        width: 20,
-        height: 20,
-        child: Icon(
-          icon,
-          size: 18,
-          color: onPressed == null
-              ? AppColors.icon.withValues(alpha: 0.3)
-              : AppColors.icon,
+      child: SizedBox.square(
+        dimension: AppDimens.minTouchTarget,
+        child: Center(
+          child: Icon(
+            icon,
+            size: 18,
+            color: onPressed == null
+                ? AppColors.icon.withValues(alpha: 0.3)
+                : AppColors.icon,
+          ),
         ),
       ),
     );

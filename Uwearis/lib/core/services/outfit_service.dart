@@ -62,6 +62,7 @@ class OutfitService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
     final envelope = decodeMap(res, op: 'getAllOutfits');
     final data = envelope['data'];
@@ -213,6 +214,7 @@ class OutfitService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
     final envelope = decodeMap(res, op: 'getOutfit');
     final data = envelope['data'];
@@ -276,6 +278,7 @@ class OutfitService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
     final envelope = decodeMap(res, op: 'getGroupOutfits');
     final data = envelope['data'];

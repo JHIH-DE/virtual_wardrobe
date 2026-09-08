@@ -17,6 +17,10 @@ class GarmentListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // opaque so the whole card is tappable — the Container has a
+      // `decoration`, not a `color`, and the contained image + text leave
+      // dead padding/gaps otherwise.
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(

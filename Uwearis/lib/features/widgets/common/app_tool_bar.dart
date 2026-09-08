@@ -20,17 +20,6 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
   final bool centerTitle;
 
-  /// Height of the default back-arrow glyph (ignored if [leading] is set).
-  /// Defaults to [AppDimens.backArrowIconSize] — override per-page only for
-  /// a deliberately different size than every other toolbar.
-  final double? leadingIconSize;
-
-  /// Padding around the default back-arrow glyph (ignored if [leading] is
-  /// set). Defaults to `EdgeInsets.all(2)` — shrink this alongside a larger
-  /// [leadingIconSize] so the glyph doesn't get cramped inside the tap
-  /// target.
-  final EdgeInsetsGeometry? leadingIconPadding;
-
   const AppToolBar({
     super.key,
     required this.title,
@@ -43,8 +32,6 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.bottom,
     this.centerTitle = true,
-    this.leadingIconSize,
-    this.leadingIconPadding,
   });
 
   @override
@@ -90,6 +77,13 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         backgroundColor: AppColors.toolbarBackground,
         foregroundColor: AppColors.textPrimary,
         toolbarHeight: AppDimens.toolbarHeight,
+        // Action glyphs default to 24 (and inherit foregroundColor); size
+        // them up a touch and match the "⋮" menu's icon colour so the
+        // action slot doesn't read as small next to the back arrow.
+        actionsIconTheme: const IconThemeData(
+          size: AppDimens.toolbarActionIconSize,
+          color: AppColors.icon,
+        ),
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -102,12 +96,17 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
             leading ??
             (showBackButton
                 ? IconButton(
-                    icon: Container(
-                      padding: leadingIconPadding ?? const EdgeInsets.all(2),
-                      child: Image.asset(
-                        'assets/images/page_arrow_left.png',
-                        height: leadingIconSize ?? AppDimens.backArrowIconSize,
-                      ),
+                    // Zero padding + a bar-height box so the touch target
+                    // fills the full 48x48 slot with the 26px glyph centred
+                    // in it.
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: AppDimens.toolbarHeight,
+                      minHeight: AppDimens.toolbarHeight,
+                    ),
+                    icon: Image.asset(
+                      'assets/images/page_arrow_left.png',
+                      height: AppDimens.backArrowIconSize,
                     ),
                     onPressed: onBack ?? () => Navigator.pop(context),
                   )

@@ -464,11 +464,40 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// switched days (or edited this same day's garments again) can't
   /// clobber a different day's state.
   Future<void> _generateSelectedDayOutfit() async {
+    // Synchronous re-entrancy guard — first statement, before any `await`.
+    // The first-render triggers (the outfit card's "Generate" button, the
+    // bottom CTA) stay live for a frame after this fires, so without this a
+    // double-tap starts two paid AI renders. (The regenerate path adds a
+    // confirm dialog below before the flag is raised, but its only trigger is
+    // the card's single-shot "⋮" menu, which can't re-fire.) See CLAUDE.md
+    // "Guarding costly / mutating actions against double-invocation".
+    if (_generatingOutfit) return;
+
     final dayIndex = _selectedDayIndex;
     final before = _dayOutfits[dayIndex];
     final optionId = before.optionId;
     if (optionId == null) return;
     final isRegenerate = before.outfitId != null;
+
+    // Regenerating throws away the current render for a fresh *paid* AI one,
+    // and its only trigger is the outfit card's "⋮" menu — right next to
+    // "Change Garments", easy to hit by mistake. Confirm first, mirroring
+    // OutfitDetailsPage._regenerateImage. A first render ("Generate Outfit")
+    // has nothing to discard, so that path skips the prompt.
+    if (isRegenerate) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AppDialog(
+          title: _l10n.regenerateOutfitConfirmTitle,
+          body: _l10n.regenerateOutfitConfirmBody,
+          primaryLabel: _l10n.regenerate,
+          onPrimary: () => Navigator.pop(ctx, true),
+          secondaryLabel: _l10n.cancel,
+          onSecondary: () => Navigator.pop(ctx, false),
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
 
     setState(() => _generatingOutfit = true);
     try {
@@ -1011,13 +1040,29 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
               ),
             ),
             if (hasOption)
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _openDayOutfitEditor,
-                child: const Icon(
-                  Icons.edit_outlined,
-                  size: 20,
-                  color: AppColors.icon,
+              Tooltip(
+                message: _l10n.changeGarments,
+                child: Semantics(
+                  button: true,
+                  label: _l10n.changeGarments,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _openDayOutfitEditor,
+                    // 20px glyph, minTouchTarget hit area — kept flush to
+                    // the row's right edge (Align.centerRight) so it doesn't
+                    // shift; the extra band grows left/down.
+                    child: const SizedBox.square(
+                      dimension: AppDimens.minTouchTarget,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Icon(
+                          Icons.edit_outlined,
+                          size: 20,
+                          color: AppColors.icon,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -1376,11 +1421,7 @@ class _TripDestinationsHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (int i = 0; i < trip.legs.length; i++) ...[
-          if (i > 0)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: AppDivider(spacing: 8),
-            ),
+          if (i > 0) const SizedBox(height: 10),
           Row(
             children: [
               const Icon(Icons.location_on, color: AppColors.icon, size: 18),
@@ -1418,6 +1459,10 @@ class _GeneratePlanCta extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return GestureDetector(
+      // opaque so the whole CTA card is tappable, not just its icon/text —
+      // the Container has a `decoration`, not a `color`, so it doesn't
+      // absorb hits on its own.
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -1463,6 +1508,9 @@ class _TripGarmentThumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // opaque so the whole thumb is tappable even when the garment image
+      // falls back to a small centered placeholder icon.
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         width: 80,

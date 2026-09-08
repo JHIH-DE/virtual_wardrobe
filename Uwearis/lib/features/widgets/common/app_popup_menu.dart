@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 /// The app's one "⋮" overflow-menu look — same shape, elevation, sizing,
@@ -10,33 +11,59 @@ import '../../../app/theme/app_text_styles.dart';
 /// chooses to include, and a destructive action is told apart by color
 /// (see [AppPopupMenu.item]'s [isDestructive]) rather than a rule.
 ///
-/// Pass exactly one of [icon] (a plain icon-button trigger, for menus that
-/// sit on an opaque toolbar/card background) or [trigger] (a fully custom
-/// widget, for menus that sit on top of a photo and need their own
-/// contrasting backdrop — see [PopupMenuButton.child]).
+/// The trigger defaults to a plain "⋮" glyph in a [AppDimens.toolbarHeight]
+/// square, so in an AppToolBar its touch target matches the back button.
+/// Pass [trigger] for a fully custom widget instead — for menus that sit on
+/// top of a photo and need their own contrasting backdrop.
 class AppPopupMenu<T> extends StatelessWidget {
   final List<PopupMenuEntry<T>> items;
   final ValueChanged<T> onSelected;
-  final Widget? icon;
   final Widget? trigger;
 
   const AppPopupMenu({
     super.key,
     required this.items,
     required this.onSelected,
-    this.icon,
     this.trigger,
-  }) : assert(
-         icon == null || trigger == null,
-         'Pass either icon or trigger, not both',
-       );
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Always the `child` path, never `icon`: PopupMenuButton wraps `icon`
+    // in its own IconButton with no way to size the hit area, whereas
+    // `child` gets an explicit box and is still wrapped in PopupMenuButton's
+    // opaque InkWell + Tooltip.
+    final Widget target = trigger != null
+        // Photo-overlay menus: keep the caller's disc pinned to its corner
+        // (Align.topRight) and grow the hit band inward to minTouchTarget.
+        ? SizedBox(
+            width: AppDimens.minTouchTarget,
+            height: AppDimens.minTouchTarget,
+            child: Align(alignment: Alignment.topRight, child: trigger),
+          )
+        // Default "⋮" — a toolbar-slot square so the touch target matches
+        // AppToolBar's back button, with the glyph sized explicitly (not via
+        // the ambient IconTheme) so it stays consistent in card contexts too.
+        : const SizedBox.square(
+            dimension: AppDimens.toolbarHeight,
+            child: Center(
+              child: Icon(
+                Icons.more_vert,
+                size: AppDimens.toolbarActionIconSize,
+                color: AppColors.icon,
+              ),
+            ),
+          );
+
     return PopupMenuButton<T>(
       padding: EdgeInsets.zero,
-      icon: trigger == null
-          ? (icon ?? const Icon(Icons.more_vert, color: AppColors.icon))
+      // PopupMenuButton wraps `child` in an InkWell whose ink defaults to a
+      // rectangle; round it to a circle for the default "⋮" so its press
+      // ripple matches the IconButton-based actions (back arrow, filter).
+      // The photo-overlay `trigger` keeps the default (its disc paints its
+      // own shape).
+      borderRadius: trigger == null
+          ? BorderRadius.circular(AppDimens.toolbarHeight / 2)
           : null,
       color: AppColors.surface,
       elevation: 4,
@@ -50,8 +77,7 @@ class AppPopupMenu<T> extends StatelessWidget {
       menuPadding: const EdgeInsets.symmetric(vertical: 4),
       onSelected: onSelected,
       itemBuilder: (context) => items,
-      // PopupMenuButton only reads `child` when `icon` is null.
-      child: trigger,
+      child: Semantics(button: true, child: target),
     );
   }
 

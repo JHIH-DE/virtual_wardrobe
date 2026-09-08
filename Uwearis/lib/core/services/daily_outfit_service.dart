@@ -23,6 +23,7 @@ class DailyOutfitService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
     final envelope = decodeMap(res, op: 'getDailyOutfit');
     final data = envelope['data'];

@@ -10,7 +10,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/camera_capture_page.dart';
 import '../../pages/garment_details_page.dart';
 import '../../pages/image_editor_page.dart';
-import '../common/buttons/close_action_button.dart';
+import '../common/overlays/app_dialog.dart';
 import '../common/overlays/feedback_overlay.dart';
 
 class GarmentUploadHelper {
@@ -23,75 +23,51 @@ class GarmentUploadHelper {
       context: context,
       builder: (dialogCtx) {
         final l10n = AppLocalizations.of(dialogCtx);
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(32),
-          ),
-          child: Container(
-            width: 229,
-            height: 402,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  'assets/images/add.png',
-                  height: AppDimens.iconLargeSize,
+        return AppDialog(
+          title: l10n.addClothingPrompt,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDialogOption(
+                icon: Image.asset(
+                  'assets/images/camera.png',
+                  height: AppDimens.iconMediumSize,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.addClothingPrompt,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyle.bold20,
-                ),
-                const SizedBox(height: 16),
-                _buildDialogOption(
+                label: Text(l10n.camera, style: AppTextStyle.bold16),
+                onTap: () => _onPickImage(
+                  context,
                   dialogCtx,
-                  icon: Image.asset(
-                    'assets/images/camera.png',
-                    height: AppDimens.iconMediumSize,
-                  ),
-                  label: Text(l10n.camera, style: AppTextStyle.bold16),
-                  onTap: () => _onPickImage(
-                    context,
-                    dialogCtx,
-                    ImageSource.camera,
-                    onComplete,
-                    onAdded,
-                  ),
+                  ImageSource.camera,
+                  onComplete,
+                  onAdded,
                 ),
-                const SizedBox(height: 16),
-                _buildDialogOption(
+              ),
+              const SizedBox(height: 12),
+              _buildDialogOption(
+                icon: Image.asset(
+                  'assets/images/album.png',
+                  height: AppDimens.iconMediumSize,
+                ),
+                label: Text(l10n.photoAlbum, style: AppTextStyle.bold16),
+                onTap: () => _onPickImage(
+                  context,
                   dialogCtx,
-                  icon: Image.asset(
-                    'assets/images/album.png',
-                    height: AppDimens.iconMediumSize,
-                  ),
-                  label: Text(l10n.photoAlbum, style: AppTextStyle.bold16),
-                  onTap: () => _onPickImage(
-                    context,
-                    dialogCtx,
-                    ImageSource.gallery,
-                    onComplete,
-                    onAdded,
-                  ),
+                  ImageSource.gallery,
+                  onComplete,
+                  onAdded,
                 ),
-                const SizedBox(height: 24),
-                CloseActionButton(onPressed: () => Navigator.pop(dialogCtx)),
-              ],
-            ),
+              ),
+            ],
           ),
+          primaryLabel: l10n.close,
+          primaryIsTextButton: true,
+          onPrimary: () => Navigator.pop(dialogCtx),
         );
       },
     );
   }
 
-  static Widget _buildDialogOption(
-    BuildContext context, {
+  static Widget _buildDialogOption({
     required Widget icon,
     required Widget label,
     required VoidCallback onTap,

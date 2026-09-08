@@ -23,9 +23,12 @@ class CategorySelector extends StatelessWidget {
     return ColoredBox(
       color: AppColors.toolbarBackground,
       child: SizedBox(
-        height: 60,
+        // 64 − 2×8 padding = 48px tall rows, so each SelectableChip's tap
+        // target clears AppDimens.minTouchTarget even though the visible
+        // pill stays ~38px.
+        height: 64,
         child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           scrollDirection: Axis.horizontal,
           itemCount: categories.length,
           separatorBuilder: (_, _) => const SizedBox(width: 12),

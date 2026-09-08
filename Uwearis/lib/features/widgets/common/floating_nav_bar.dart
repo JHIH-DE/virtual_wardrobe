@@ -331,6 +331,10 @@ class _QuickActionButtonState extends State<_QuickActionButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // opaque so the whole 56px button (tap + press-bounce) responds, not
+      // just the centered "+" glyph — the Container has a `decoration`, not
+      // a `color`.
+      behavior: HitTestBehavior.opaque,
       onTapDown: (_) => setPressed(true),
       onTapUp: (_) => setPressed(false),
       onTapCancel: () => setPressed(false),

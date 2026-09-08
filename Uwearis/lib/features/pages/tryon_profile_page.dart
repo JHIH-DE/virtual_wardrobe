@@ -354,7 +354,14 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
       tappableAction = InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        child: tappableAction,
+        child: Padding(
+          // Pads the ~20px-tall "Add/Change photo" row out to a
+          // minTouchTarget hit area — the photo it opens feeds a paid AI
+          // render. The card's photo column is already 128px tall (see
+          // _buildPhotoLeading), so this slack fits without growing the card.
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: tappableAction,
+        ),
       );
     }
 
@@ -379,7 +386,9 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
                     height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 10),
+                // tappableAction carries its own vertical padding when
+                // interactive (see above), so no fixed gap here.
+                const SizedBox(height: 2),
                 tappableAction,
               ],
             ),
@@ -517,6 +526,9 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
   Widget _buildUnitOption(_UnitSystem value, String label) {
     final selected = _unitSystem == value;
     return GestureDetector(
+      // opaque so the padding around the label is tappable — an unselected
+      // option's AnimatedContainer is transparent and absorbs nothing.
+      behavior: HitTestBehavior.opaque,
       onTap: () => _setUnitSystem(value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),

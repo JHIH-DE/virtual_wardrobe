@@ -91,6 +91,7 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
             icon: Icons.close,
             backgroundColor: AppColors.primary,
             iconColor: AppColors.textOnPrimary,
+            discAlignment: Alignment.topRight,
             onTap: _open,
           ),
         ),
@@ -108,6 +109,10 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         GestureDetector(
+                          // opaque so the whole pill (its 24/14 padding
+                          // included) confirms the delete, not just the
+                          // "REMOVE" text.
+                          behavior: HitTestBehavior.opaque,
                           onTap: () {
                             _close();
                             widget.onDelete();

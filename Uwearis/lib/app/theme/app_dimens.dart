@@ -43,8 +43,10 @@ abstract class AppDimens {
   static const double garmentCardInfoHeight = 70;
 
   // Shorter than Material's default kToolbarHeight (56) for a more compact
-  // AppToolBar across every page that uses it.
-  static const double toolbarHeight = 40;
+  // AppToolBar, but 48 rather than [minTouchTarget]'s 44: an AppBar caps
+  // its leading and every `actions` child at this height, and the back
+  // button / "⋮" menu should each clear a full 48x48 touch target.
+  static const double toolbarHeight = 48;
 
   // Measured height of a tappable form field (PickerField, DateDropdownField,
   // TappableFieldDecorator) so mixed text-field/picker rows line up.
@@ -52,11 +54,25 @@ abstract class AppDimens {
 
   static const double iconSmallSize = 20;
   static const double iconMediumSize = 24;
-  static const double iconLargeSize = 64;
 
-  // AppToolBar's default back-arrow glyph — bigger than iconMediumSize for
-  // a more prominent tap target than a generic action icon.
-  static const double backArrowIconSize = 48;
+  // AppToolBar action-slot glyphs — the "⋮" overflow menu, the filter
+  // button, and the image-asset actions (settings gear, suitcase "+").
+  // Matched to [backArrowIconSize] so every icon on the bar (both sides)
+  // reads as one size. The action IconButtons take zero padding + a 44px
+  // box so their default 8px padding doesn't clamp the glyph or shrink the
+  // hit area.
+  static const double toolbarActionIconSize = 26;
+
+  // Minimum comfortable hit-target edge (logical px) for an interactive
+  // element. A small glyph / chip / badge keeps its smaller *visual* size
+  // but should expand its tappable area (transparent padding / a
+  // constraint) to at least this. 44 is the iOS HIG floor; 48 is the
+  // cross-platform target where layout allows.
+  static const double minTouchTarget = 44;
+
+  // AppToolBar's back-arrow glyph (a Material Icon). Matches
+  // [toolbarActionIconSize] so both sides of the bar render at one size.
+  static const double backArrowIconSize = 26;
 
   // Extra bottom padding for scrollable lists/grids on the main tabs, so the
   // last row can scroll clear of the floating nav bar overlay instead of

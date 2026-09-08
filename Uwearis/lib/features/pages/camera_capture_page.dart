@@ -2,6 +2,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/utils/debug_log.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -155,9 +156,14 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new,
+              // Same asset/size as AppToolBar's back button; tinted white
+              // here for the dark camera overlay (this immersive header is
+              // deliberately not an AppToolBar).
+              icon: Image.asset(
+                'assets/images/page_arrow_left.png',
+                height: AppDimens.backArrowIconSize,
                 color: AppColors.textOnPrimary,
+                colorBlendMode: BlendMode.srcIn,
               ),
               onPressed: () => Navigator.pop(context),
             ),
@@ -184,6 +190,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       right: 0,
       child: Center(
         child: GestureDetector(
+          // opaque so the whole 84px button responds — the ring/disc
+          // Containers use `decoration`, not `color`, so they absorb nothing
+          // on their own.
+          behavior: HitTestBehavior.opaque,
           onTap: _takePicture,
           child: Container(
             height: 84,

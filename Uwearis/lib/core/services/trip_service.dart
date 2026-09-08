@@ -123,6 +123,7 @@ class TripService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
 
     final envelope = decodeMap(res, op: 'getTrips');
@@ -158,6 +159,7 @@ class TripService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
 
     final data = _dataObject(res, op: 'getTrip');
@@ -180,6 +182,7 @@ class TripService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
 
     return TripPlan.fromPlanResponse(_dataObject(res, op: 'getTripPlan'));
@@ -281,6 +284,7 @@ class TripService with BaseService {
       (token) => http
           .get(uri, headers: authHeaders(token))
           .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
     );
 
     return PackingAnalysis.fromJson(_dataObject(res, op: 'getTripSuggestion'));
