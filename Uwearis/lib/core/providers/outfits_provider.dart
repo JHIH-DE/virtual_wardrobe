@@ -28,13 +28,9 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
 
   /// True if any cached outfit's signed image URL has expired (or is about
   /// to), meaning the cached list should be re-fetched before display.
-  bool get isStale {
-    final outfits = state.value;
-    if (outfits == null || outfits.isEmpty) return false;
-    return outfits.any(
-      (o) => o.imageUrl.isNotEmpty && isSignedUrlExpired(o.imageUrl),
-    );
-  }
+  bool get isStale =>
+      (state.value?.isNotEmpty ?? false) &&
+      anySignedUrlExpired(state.value!.map((o) => o.imageUrl));
 
   /// Refreshes the list only if it's empty or its image URLs are stale.
   Future<void> refreshIfNeeded() async {
@@ -66,9 +62,7 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
     final current = state.value ?? [];
     state = AsyncData(
       current
-          .map(
-            (o) => o.groupId == groupId ? o.copyWith(groupName: name) : o,
-          )
+          .map((o) => o.groupId == groupId ? o.copyWith(groupName: name) : o)
           .toList(),
     );
   }

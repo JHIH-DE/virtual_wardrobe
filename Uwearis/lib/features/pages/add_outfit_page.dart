@@ -2089,9 +2089,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.styleSelected
-                          : AppColors.surface,
+                      color: isSelected ? AppColors.accent : AppColors.surface,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(

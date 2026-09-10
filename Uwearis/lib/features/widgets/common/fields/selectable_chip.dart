@@ -66,9 +66,7 @@ class SelectableChip extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minHeight: AppDimens.minTouchTarget,
-        ),
+        constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
         // widthFactor keeps the row/Wrap seeing the pill's real width (so
         // chip spacing is unchanged); the Center only grows vertically to
         // fill the min-height band.

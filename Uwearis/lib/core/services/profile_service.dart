@@ -96,6 +96,28 @@ class ProfileService with BaseService {
   Future<String> faceRefComplete({required String objectName}) =>
       _refComplete(_faceRefUrl, objectName, op: 'faceRefComplete');
 
+  /// The whole init-upload → PUT-to-signed-URL → complete flow for one
+  /// reference photo, returning its new signed object URL. Callers just hand
+  /// over the local file path — see [account_page] / [tryon_profile_page].
+  Future<String> _uploadRef(
+    String baseUrl,
+    String localPath, {
+    required String opPrefix,
+  }) async {
+    final init = await _refInitUpload(baseUrl, op: '${opPrefix}InitUpload');
+    await putJpegToSignedUrl(init.uploadUrl, localPath);
+    return _refComplete(baseUrl, init.objectName, op: '${opPrefix}Complete');
+  }
+
+  Future<String> uploadAvatar(String localPath) =>
+      _uploadRef(_avatarUrl, localPath, opPrefix: 'avatar');
+
+  Future<String> uploadBodyRef(String localPath) =>
+      _uploadRef(_bodyRefUrl, localPath, opPrefix: 'bodyRef');
+
+  Future<String> uploadFaceRef(String localPath) =>
+      _uploadRef(_faceRefUrl, localPath, opPrefix: 'faceRef');
+
   // ---- image reads (a 404 means "not set yet", not an error) ----
 
   Future<String?> getMyAvatar() async {

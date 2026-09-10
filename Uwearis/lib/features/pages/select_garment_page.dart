@@ -86,9 +86,7 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
 
   List<Garment> get _byCategory {
     if (_tabMode) {
-      return widget.garments
-          .where((g) => g.category == _selectedTab)
-          .toList();
+      return widget.garments.where((g) => g.category == _selectedTab).toList();
     }
     return widget.category == null
         ? widget.garments
@@ -147,13 +145,12 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
           return NoneGarmentCard(
             isSelected: widget.selected == null,
             label: l10n.noneLabel,
-            onTap: () => Navigator.pop(context, const SelectGarmentResult(null)),
+            onTap: () =>
+                Navigator.pop(context, const SelectGarmentResult(null)),
           );
         }
         final g = items[showNone ? i - 1 : i];
-        final rank = g.id == null
-            ? -1
-            : widget.rankedGarmentIds.indexOf(g.id!);
+        final rank = g.id == null ? -1 : widget.rankedGarmentIds.indexOf(g.id!);
         return Stack(
           children: [
             GarmentCard(

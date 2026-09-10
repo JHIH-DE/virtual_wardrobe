@@ -47,7 +47,9 @@ class LocaleNotifier extends Notifier<Locale?> {
         locale: _apiCodeFor(locale ?? _systemLocale()),
       );
     } catch (e) {
-      debugLog('LocaleNotifier.setLocale: failed to sync locale to backend: $e');
+      debugLog(
+        'LocaleNotifier.setLocale: failed to sync locale to backend: $e',
+      );
     }
   }
 

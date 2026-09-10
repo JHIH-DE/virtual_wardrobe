@@ -272,7 +272,9 @@ class _LifestylePageState extends State<LifestylePage> {
         occasionTypeFromApiValue(_weeklyOccasions[index]) ?? OccasionType.work;
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
-    final dayName = DateFormat('EEEE').format(monday.add(Duration(days: index)));
+    final dayName = DateFormat(
+      'EEEE',
+    ).format(monday.add(Duration(days: index)));
     final selected = await showOccasionPickerSheet(
       context,
       current: current,

@@ -12,6 +12,7 @@ import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/add_outfit_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
+import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -89,7 +90,10 @@ void main() {
 
     // Create Outfit is always shown now — missing core slots get filled by
     // Finish Outfit before the render (see _startTryOn).
-    expect(find.text('Create Outfit'), findsOneWidget);
+    expect(
+      find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Create Outfit shows even when the checklist is incomplete', (
@@ -104,7 +108,10 @@ void main() {
       overrides: closetOverride(),
     );
     await tester.pump();
-    expect(find.text('Create Outfit'), findsOneWidget);
+    expect(
+      find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Create Outfit appears once Top, Bottom and Shoes are all set', (
@@ -117,7 +124,10 @@ void main() {
       overrides: closetOverride(),
     );
     await tester.pump();
-    expect(find.text('Create Outfit'), findsOneWidget);
+    expect(
+      find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -157,7 +167,9 @@ void main() {
         );
         await tester.pump();
 
-        await tester.tap(find.text('Create Outfit'));
+        await tester.tap(
+          find.widgetWithText(BottomActionButton, 'Create Outfit'),
+        );
         await tester.pump();
         await tester.pump(const Duration(seconds: 6)); // weather timeout
         await tester.pump();
@@ -309,14 +321,21 @@ void main() {
       }
 
       await http.runWithClient(() async {
-        await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+        await pumpApp(
+          tester,
+          const AddOutfitPage(),
+          overrides: closetOverride(),
+        );
         await tester.pump();
 
         await runFinishWithAi();
 
         // The recommended garments are now in place, unlocked, and the
         // Create Outfit gate is satisfied.
-        expect(find.text('Create Outfit'), findsOneWidget);
+        expect(
+          find.widgetWithText(BottomActionButton, 'Create Outfit'),
+          findsOneWidget,
+        );
         expect(find.byIcon(Icons.lock_open), findsNWidgets(3));
         expect(requests, hasLength(1));
         expect(
@@ -551,7 +570,10 @@ void main() {
       // must be true for the rule under test to gate.
       await tester.pumpAndSettle();
 
-      expect(find.text('Create Outfit'), findsNothing);
+      expect(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+        findsNothing,
+      );
     },
   );
 }

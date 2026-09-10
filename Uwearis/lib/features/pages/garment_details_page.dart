@@ -7,21 +7,21 @@ import 'package:image_picker/image_picker.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/garment_outfits_provider.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
-import '../../core/services/outfit_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
-import '../../data/outfit.dart';
 import '../../data/versatility.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/close_action_button.dart';
 import '../widgets/common/buttons/pill_button.dart';
@@ -35,6 +35,7 @@ import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
+import '../widgets/common/overlays/save_changes_dialog.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/compatibility_row.dart';
 import '../widgets/garment/garment_image.dart';
@@ -46,13 +47,11 @@ enum _GarmentMenuAction { rename, share, delete }
 class GarmentDetailsPage extends ConsumerStatefulWidget {
   final Garment? initialGarment;
   final Map<String, dynamic>? initialAnalysisData;
-  final Versatility? initialVersatility;
 
   const GarmentDetailsPage({
     super.key,
     this.initialGarment,
     this.initialAnalysisData,
-    this.initialVersatility,
   });
 
   @override
@@ -78,7 +77,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
+  // Closet-match result — starts null (the insight card shows a prompt +
+  // "Analyze with AI" button); set once the user runs scoreVersatility.
   Versatility? _versatility;
+  bool _isScoringVersatility = false;
   int? _outfitCount;
 
   /// The App Bar title's source of truth — mirrors
@@ -134,7 +136,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
     if (widget.initialAnalysisData != null) {
       _applyAnalysisData(widget.initialAnalysisData!);
-      _versatility = widget.initialVersatility;
     } else if (_id == null &&
         _imagePathOrUrl != null &&
         _imagePathOrUrl!.isNotEmpty) {
@@ -162,14 +163,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final gid = _garmentIdForOutfits;
     if (gid == null) return;
     try {
-      final outfits = await OutfitService().getOutfitsByGarments([gid]);
-      // `by-garments` also returns daily/trip-generated outfits, which
-      // GarmentOutfitsPage excludes — keep this count in sync with what
-      // that page actually shows.
-      final count = outfits
-          .where((o) => o.groupType == OutfitGroupType.general)
-          .length;
-      if (mounted) setState(() => _outfitCount = count);
+      // Same list GarmentOutfitsPage shows (general outfits only) — shared
+      // via garmentOutfitsProvider so opening that page doesn't re-fetch.
+      final outfits = await ref.read(garmentOutfitsProvider(gid).future);
+      if (mounted) setState(() => _outfitCount = outfits.length);
     } catch (e) {
       // Tile just stays in its loading state; not worth surfacing an error
       // for a secondary count that the user can still reach via the tap —
@@ -277,8 +274,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       setState(() {
         _editingGarment = updated;
         _name = updated.name;
-        _nameCtrl.text = updated.name;
+        // _initialName must be updated *before* _nameCtrl.text: assigning the
+        // controller's text fires the _checkModified listener synchronously,
+        // and if it still saw the old _initialName it would latch
+        // _isModified = true and the unsaved-changes prompt would then fire
+        // on leave even though the rename is already persisted.
         _initialName = updated.name;
+        _nameCtrl.text = updated.name;
       });
       ref.read(garmentsProvider.notifier).updateGarment(updated);
     } on AuthExpiredException {
@@ -325,32 +327,24 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   Future<bool> _onWillPop() async {
     if (!_isModified) return true;
 
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.unsavedChangesTitle,
-        body: _l10n.unsavedChangesBody,
-        primaryLabel: _l10n.save,
-        onPrimary: () => Navigator.pop(ctx, 'save'),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, 'cancel'),
-        tertiaryLabel: _l10n.dontSave,
-        onTertiary: () => Navigator.pop(ctx, 'discard'),
-      ),
+    final choice = await showSaveChangesDialog(
+      context,
+      title: _l10n.unsavedChangesTitle,
+      body: _l10n.unsavedChangesBody,
     );
-
-    if (result == 'save') {
+    if (choice == SaveChangesChoice.save) {
       await _saveGarment();
       return false;
     }
-    return result == 'discard';
+    return choice == SaveChangesChoice.discard;
   }
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      // Blank — the name shows as its own block below the app bar instead
-      // (see [_buildForm]), so it isn't in the toolbar at all.
-      title: '',
+      // Add mode: "Add Clothing" in the toolbar (the name field takes its
+      // old spot below). Edit mode: blank — the garment's name shows as its
+      // own block below the app bar instead (see [_buildForm]).
+      title: _isAddMode ? _title : '',
       onBack: () async {
         final shouldPop = await _onWillPop();
         if (shouldPop && mounted) Navigator.pop(context);
@@ -435,7 +429,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(_title, style: AppTextStyle.bold20),
+            // Add mode: the name input sits here (title moved to the toolbar).
+            // Edit mode: the garment's name as a heading.
+            child: _isAddMode
+                ? _buildNameField()
+                : Text(_title, style: AppTextStyle.bold20),
           ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
@@ -451,18 +449,18 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
           ),
-          if (_isAddMode) ...[
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _OutfitPotentialCard(
-                versatility: _versatility,
-                subCategory: _subCategory.text.trim(),
-                allGarments: ref.watch(garmentsProvider).value ?? const [],
-                onRowTap: _showCompatibleGarments,
-              ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _OutfitPotentialCard(
+              versatility: _versatility,
+              subCategory: _subCategory.text.trim(),
+              allGarments: ref.watch(garmentsProvider).value ?? const [],
+              onRowTap: _showCompatibleGarments,
+              onAnalyze: _scoreVersatility,
+              isAnalyzing: _isScoringVersatility,
             ),
-          ],
+          ),
           const SizedBox(height: AppDimens.sectionSpacing),
           _buildDetailsSection(),
         ],
@@ -541,11 +539,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         children: [
           if (!_isAddMode) _buildUsedInOutfitsTile(),
           const AppDivider(),
-          // Editing an existing garment renames via the App Bar's ⋮ ▸
-          // Rename dialog instead (see _showRenameDialog) — this inline
-          // field is only needed in Add Mode, before a rename option even
-          // exists (no garment id yet to rename).
-          if (_isAddMode) ...[_buildNameField(), const SizedBox(height: 20)],
+          // In Add Mode the name field lives up top where the title block
+          // otherwise sits (see _buildForm). Editing an existing garment has
+          // no inline name field at all — it renames via the App Bar's ⋮ ▸
+          // Rename dialog (see _showRenameDialog).
           _buildCategoryField(),
           const SizedBox(height: 20),
           _buildSubCategoryField(),
@@ -563,16 +560,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
+  // No FieldLabel — it sits where the page title used to be, so "NAME" above
+  // it would read as a stray label; the hint carries the affordance.
   Widget _buildNameField() {
-    return LabeledField(
-      label: _l10n.clothingNameLabel,
-      child: AppTextField(
-        controller: _nameCtrl,
-        hint: _l10n.nameTheClothingHint,
-        validator: (v) => (v == null || v.trim().isEmpty)
-            ? _l10n.pleaseEnterNameError
-            : null,
-      ),
+    return AppTextField(
+      controller: _nameCtrl,
+      hint: _l10n.nameTheClothingHint,
+      validator: (v) =>
+          (v == null || v.trim().isEmpty) ? _l10n.pleaseEnterNameError : null,
     );
   }
 
@@ -728,7 +723,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           result.metadata,
           processedImagePath: result.processedImagePath,
         );
-        _versatility = result.versatility;
         _isAnalyzing = false;
       });
     } on AuthExpiredException {
@@ -739,6 +733,49 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       if (!mounted) return;
       debugLog('AI Analysis failed: $e');
       setState(() => _isAnalyzing = false);
+    }
+  }
+
+  /// The GarmentMetadata payload for `scoreVersatility` — the AI analysis
+  /// result if there is one, with the fields the user may since have edited
+  /// in the form layered on top. Needs at least a correct `category`.
+  Map<String, dynamic> _metadataForScoring() {
+    return {
+      ...?_metaData,
+      'name': _nameCtrl.text.trim(),
+      'category': _category.apiValue,
+      'sub_category': _subCategory.text.trim(),
+      'color': _selectedColor?.label ?? _editingGarment?.color ?? '',
+      'fit': _selectedFit?.apiValue ?? _editingGarment?.fit ?? '',
+      'thickness':
+          _editingGarment?.thickness ?? (_metaData?['thickness'] as int?) ?? 0,
+      'formality':
+          _editingGarment?.formality ?? (_metaData?['formality'] as int?) ?? 0,
+    };
+  }
+
+  /// Runs the closet-match score on demand (the insight card's "Analyze with
+  /// AI" button). Synchronous re-entrancy guard — it's a paid AI call.
+  Future<void> _scoreVersatility() async {
+    if (_isScoringVersatility) return;
+    setState(() => _isScoringVersatility = true);
+    try {
+      final result = await GarmentService().scoreVersatility(
+        _metadataForScoring(),
+      );
+      if (!mounted) return;
+      setState(() => _versatility = result);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      debugLog('scoreVersatility failed: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.versatilityScoreFailed)));
+    } finally {
+      if (mounted) setState(() => _isScoringVersatility = false);
     }
   }
 
@@ -1098,7 +1135,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         _isImageChanged = true;
         if (result.analysisData != null) {
           _applyAnalysisData(result.analysisData!);
-          _versatility = result.versatility;
         }
       });
       _checkModified();
@@ -1192,7 +1228,20 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
     // When replacing the image in edit mode, delete the old record first
     if (!_isAddMode) await GarmentService().deleteGarment(_id!);
-    return GarmentService().completeUpload(temp, _metaData);
+    // Fold the one metadata field the form can edit (fit) back in, and pass
+    // the closet-match score through if the user ran it — the backend stores
+    // both, it doesn't recompute.
+    final metadata = _metaData == null
+        ? null
+        : <String, dynamic>{
+            ..._metaData!,
+            if (_selectedFit != null) 'fit': _selectedFit!.apiValue,
+          };
+    return GarmentService().completeUpload(
+      temp,
+      metadata,
+      versatilityScore: _versatility?.score,
+    );
   }
 
   /// Updates just the text fields of an existing garment (image unchanged).
@@ -1240,21 +1289,26 @@ List<Garment> _resolveCompatibleGarments(
   return limit == null ? matched : matched.take(limit).toList();
 }
 
-/// The "outfit potential" insight card shown in add-garment mode — a
-/// versatility score ring plus a per-category compatibility breakdown.
-/// Renders nothing until [versatility] carries a score. [onRowTap] gets the
-/// breakdown row for the category whose row was tapped.
+/// The closet-match insight card — always shown on Garment Details. Starts
+/// as a one-line prompt + "Analyze with AI" button; once the user runs the
+/// score it becomes a versatility ring plus a per-category compatibility
+/// breakdown. [onRowTap] gets the breakdown row whose row was tapped;
+/// [onAnalyze] triggers the score.
 class _OutfitPotentialCard extends StatelessWidget {
   final Versatility? versatility;
   final String subCategory;
   final List<Garment> allGarments;
   final void Function(VersatilityCategory row) onRowTap;
+  final VoidCallback onAnalyze;
+  final bool isAnalyzing;
 
   const _OutfitPotentialCard({
     required this.versatility,
     required this.subCategory,
     required this.allGarments,
     required this.onRowTap,
+    required this.onAnalyze,
+    required this.isAnalyzing,
   });
 
   String _scoreTierLabel(AppLocalizations l10n, int score) {
@@ -1269,77 +1323,135 @@ class _OutfitPotentialCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final score = versatility?.score;
-    final breakdown =
-        versatility?.breakdown
-            .where(
-              (row) =>
-                  row.compatibleCount > 0 &&
-                  row.category != GarmentCategory.accessory &&
-                  row.category != GarmentCategory.socks,
-            )
-            .toList() ??
-        const [];
 
-    if (score == null) return const SizedBox.shrink();
+    final Widget body;
+    if (isAnalyzing) {
+      body = Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.accent,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              l10n.analyzingEllipsis,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else if (score == null) {
+      body = _buildPrompt(context, l10n);
+    } else {
+      body = _buildScored(context, l10n, score);
+    }
+
+    return UwearisInsightCard(child: body);
+  }
+
+  Widget _buildPrompt(BuildContext context, AppLocalizations l10n) {
+    // versatility == null: never run. Non-null with a null score: the backend
+    // couldn't score it (empty closet handled with a real score, so this is
+    // unknown-category / AI failure) — surface its reason and let them retry.
+    final text =
+        versatility?.message ??
+        (versatility == null
+            ? l10n.insightCardPrompt
+            : l10n.versatilityUnavailable);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          text,
+          style: AppTextStyle.regular14.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Align(
+          child: AccentPillButton(
+            label: l10n.analyzeWithAi,
+            icon: Icons.auto_awesome_outlined,
+            onPressed: onAnalyze,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScored(BuildContext context, AppLocalizations l10n, int score) {
+    final breakdown = versatility!.breakdown
+        .where(
+          (row) =>
+              row.compatibleCount > 0 &&
+              row.category != GarmentCategory.accessory &&
+              row.category != GarmentCategory.socks,
+        )
+        .toList();
 
     final totalItems = breakdown.fold<int>(
       0,
       (sum, row) => sum + row.compatibleCount,
     );
 
-    return UwearisInsightCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  ScoreRing(score: score, size: 70),
-                  const SizedBox(height: 6),
-                  Text(
-                    _scoreTierLabel(l10n, score),
-                    style: AppTextStyle.bold12.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                ScoreRing(score: score, size: 70),
+                const SizedBox(height: 6),
+                Text(
+                  _scoreTierLabel(l10n, score),
+                  style: AppTextStyle.bold12.copyWith(
+                    color: AppColors.textSecondary,
                   ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    subCategory.isEmpty
-                        ? l10n.garmentPairsWellWithGeneric(totalItems)
-                        : l10n.garmentPairsWellWith(subCategory, totalItems),
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  subCategory.isEmpty
+                      ? l10n.garmentPairsWellWithGeneric(totalItems)
+                      : l10n.garmentPairsWellWith(subCategory, totalItems),
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
-            ],
-          ),
-          if (breakdown.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            for (var i = 0; i < breakdown.length; i++) ...[
-              if (i > 0) const SizedBox(height: 8),
-              CompatibilityRow(
-                label: breakdown[i].category.pluralLabel(context),
-                count: breakdown[i].compatibleCount,
-                previewGarments: _resolveCompatibleGarments(
-                  breakdown[i],
-                  allGarments,
-                  limit: 3,
-                ),
-                onTap: () => onRowTap(breakdown[i]),
+            ),
+          ],
+        ),
+        if (breakdown.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          for (var i = 0; i < breakdown.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            CompatibilityRow(
+              label: breakdown[i].category.pluralLabel(context),
+              count: breakdown[i].compatibleCount,
+              previewGarments: _resolveCompatibleGarments(
+                breakdown[i],
+                allGarments,
+                limit: 3,
               ),
-            ],
+              onTap: () => onRowTap(breakdown[i]),
+            ),
           ],
         ],
-      ),
+      ],
     );
   }
 }

@@ -2,14 +2,15 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../data/image_edit_result.dart';
-import '../../data/user_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
@@ -18,6 +19,7 @@ import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/section_title.dart';
+import 'camera_capture_page.dart';
 import 'image_editor_page.dart';
 
 /// Height/weight are always stored and saved as cm/kg (see
@@ -35,14 +37,14 @@ enum _UnitSystem {
       value == 'imperial' ? imperial : metric;
 }
 
-class TryonProfilePage extends StatefulWidget {
+class TryonProfilePage extends ConsumerStatefulWidget {
   const TryonProfilePage({super.key});
 
   @override
-  State<TryonProfilePage> createState() => _TryonProfilePageState();
+  ConsumerState<TryonProfilePage> createState() => _TryonProfilePageState();
 }
 
-class _TryonProfilePageState extends State<TryonProfilePage> {
+class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
   static const double _cmPerInch = 2.54;
   static const double _kgPerLb = 0.45359237;
 
@@ -147,15 +149,12 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
       _error = null;
     });
     try {
-      final results = await Future.wait([
-        ProfileService().getMyProfile(),
-        ProfileService().getBodyRef(),
-        ProfileService().getFaceReference(),
-      ]);
+      // Shared with Account / Settings via profileProvider.
+      final data = await ref.read(profileProvider.future);
       if (!mounted) return;
-      final profile = results[0] as UserProfile;
-      final fullBodyUrl = results[1] as String?;
-      final faceRefUrl = results[2] as String?;
+      final profile = data.profile;
+      final fullBodyUrl = data.bodyRefUrl;
+      final faceRefUrl = data.faceRefUrl;
       setState(() {
         final h = profile.height;
         final w = profile.weight;
@@ -188,12 +187,13 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
     try {
       final h = double.tryParse(_heightCtrl.text.trim());
       final w = double.tryParse(_weightCtrl.text.trim());
-      await ProfileService().updateMyProfile(
+      final updated = await ProfileService().updateMyProfile(
         height: h,
         weight: w,
         unitSystem: _unitSystem.apiValue,
       );
       if (!mounted) return;
+      ref.read(profileProvider.notifier).setProfile(updated);
       Navigator.pop(context);
     } on AuthExpiredException {
       if (!mounted) return;
@@ -214,6 +214,7 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
           initialPath: _fullBodyLocalPath ?? _fullBodyUrl,
           showAnalysis: false,
           aspectRatio: 3 / 4,
+          cameraFrameRatio: CameraFrameRatio.portrait,
         ),
       ),
     );
@@ -233,6 +234,7 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
           initialPath: _faceLocalPath ?? _faceRefUrl,
           showAnalysis: false,
           aspectRatio: 3 / 4,
+          cameraFrameRatio: CameraFrameRatio.portrait,
         ),
       ),
     );
@@ -247,16 +249,13 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
   Future<void> _uploadFullBody(String localPath) async {
     setState(() => _loading = true);
     try {
-      final init = await ProfileService().bodyRefInitUpload();
-      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final url = await ProfileService().bodyRefComplete(
-        objectName: init.objectName,
-      );
+      final url = await ProfileService().uploadBodyRef(localPath);
       if (mounted) {
         setState(() {
           _fullBodyUrl = url;
           _fullBodyLocalPath = null;
         });
+        ref.read(profileProvider.notifier).refresh();
       }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -268,16 +267,13 @@ class _TryonProfilePageState extends State<TryonProfilePage> {
   Future<void> _uploadFaceRef(String localPath) async {
     setState(() => _loading = true);
     try {
-      final init = await ProfileService().faceRefInitUpload();
-      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final url = await ProfileService().faceRefComplete(
-        objectName: init.objectName,
-      );
+      final url = await ProfileService().uploadFaceRef(localPath);
       if (mounted) {
         setState(() {
           _faceRefUrl = url;
           _faceLocalPath = null;
         });
+        ref.read(profileProvider.notifier).refresh();
       }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());

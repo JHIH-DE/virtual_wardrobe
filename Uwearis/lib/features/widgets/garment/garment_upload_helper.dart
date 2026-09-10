@@ -24,7 +24,7 @@ class GarmentUploadHelper {
       builder: (dialogCtx) {
         final l10n = AppLocalizations.of(dialogCtx);
         return AppDialog(
-          title: l10n.addClothingPrompt,
+          title: l10n.quickActionAddClothing,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -33,7 +33,7 @@ class GarmentUploadHelper {
                   'assets/images/camera.png',
                   height: AppDimens.iconMediumSize,
                 ),
-                label: Text(l10n.camera, style: AppTextStyle.bold16),
+                label: Text(l10n.takePhotoLabel, style: AppTextStyle.bold16),
                 onTap: () => _onPickImage(
                   context,
                   dialogCtx,
@@ -42,13 +42,16 @@ class GarmentUploadHelper {
                   onAdded,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               _buildDialogOption(
                 icon: Image.asset(
                   'assets/images/album.png',
                   height: AppDimens.iconMediumSize,
                 ),
-                label: Text(l10n.photoAlbum, style: AppTextStyle.bold16),
+                label: Text(
+                  l10n.chooseFromAlbumLabel,
+                  style: AppTextStyle.bold16,
+                ),
                 onTap: () => _onPickImage(
                   context,
                   dialogCtx,
@@ -59,7 +62,7 @@ class GarmentUploadHelper {
               ),
             ],
           ),
-          primaryLabel: l10n.close,
+          primaryLabel: l10n.cancel,
           primaryIsTextButton: true,
           onPrimary: () => Navigator.pop(dialogCtx),
         );
@@ -72,24 +75,56 @@ class GarmentUploadHelper {
     required Widget label,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        height: 60,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowResting,
-              offset: const Offset(0, 4),
-              blurRadius: 12,
+    // Shadow on a plain container; the fill + ink on a Material inside it,
+    // so InkWell's pressed highlight actually shows (an opaque Container on
+    // top of the ink would hide it).
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowSoft,
+            offset: const Offset(0, 8),
+            blurRadius: 20,
+          ),
+          BoxShadow(
+            color: AppColors.shadowResting,
+            offset: const Offset(0, 2),
+            blurRadius: 5,
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: Colors.transparent,
+          highlightColor: AppColors.pressedOverlay,
+          child: SizedBox(
+            height: 60,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  icon,
+                  const SizedBox(width: 14),
+                  // scaleDown so a longer label (or wider glyph metrics on
+                  // iOS's bundled font) shrinks to fit rather than
+                  // overflowing the row.
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: label,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-        child: Row(children: [label, const Spacer(), icon]),
       ),
     );
   }
@@ -145,7 +180,6 @@ class GarmentUploadHelper {
                 imageUrl: result.imagePath,
               ),
               initialAnalysisData: result.analysisData,
-              initialVersatility: result.versatility,
             ),
           ),
         );

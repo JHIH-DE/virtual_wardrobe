@@ -27,13 +27,14 @@ import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/category_tag.dart';
-import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/overlays/save_changes_dialog.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
@@ -238,7 +239,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                 _buildInfoCard(),
                 const SizedBox(height: 4),
                 _buildOutfitImage(),
-                const SizedBox(height: AppDimens.sectionSpacing),
                 if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
               ],
             ),
@@ -417,7 +417,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
       if (result == null || !mounted) return;
       final feedback = ref.read(outfitFeedbackProvider.notifier);
-      MainShellScope.of(context)?.selectTab(AppTab.outfits);
+      MainShellScope.of(context)?.selectTab(MainTab.outfits);
       Navigator.popUntil(context, (route) => route.isFirst);
       feedback.state = OutfitFeedbackKind.saved;
     } finally {
@@ -852,7 +852,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.borderSubtle),
         ),
-        child: const Icon(Icons.more_horiz, size: 20, color: AppColors.hintText),
+        child: const Icon(
+          Icons.more_horiz,
+          size: 20,
+          color: AppColors.hintText,
+        ),
       ),
     );
   }
@@ -976,28 +980,20 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       return;
     }
 
-    final choice = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.saveOutfitPromptTitle,
-        body: _l10n.saveOutfitPromptBody,
-        primaryLabel: _l10n.save,
-        onPrimary: () => Navigator.pop(ctx, 'save'),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, 'cancel'),
-        tertiaryLabel: _l10n.dontSave,
-        onTertiary: () => Navigator.pop(ctx, 'discard'),
-      ),
+    final choice = await showSaveChangesDialog(
+      context,
+      title: _l10n.saveOutfitPromptTitle,
+      body: _l10n.saveOutfitPromptBody,
     );
-    if (!mounted || choice == null || choice == 'cancel') return;
+    if (!mounted || choice == SaveChangesChoice.cancel) return;
 
-    if (choice == 'save') {
+    if (choice == SaveChangesChoice.save) {
       ref.read(outfitsProvider.notifier).refresh();
       Navigator.pop(context, true);
       return;
     }
 
-    // 'discard' — delete the whole group, then leave.
+    // discard — delete the whole group, then leave.
     setState(() => _isLeaving = true);
     try {
       await OutfitService().deleteGroup(widget.outfit.groupId);

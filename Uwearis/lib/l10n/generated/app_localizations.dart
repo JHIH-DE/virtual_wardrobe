@@ -729,6 +729,42 @@ abstract class AppLocalizations {
   /// **'Explore'**
   String get explore;
 
+  /// No description provided for @exploreComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get exploreComingSoon;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// No description provided for @exploreNavForYou.
+  ///
+  /// In en, this message translates to:
+  /// **'For you'**
+  String get exploreNavForYou;
+
+  /// No description provided for @exploreNavSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get exploreNavSearch;
+
+  /// No description provided for @exploreNavBag.
+  ///
+  /// In en, this message translates to:
+  /// **'Bag'**
+  String get exploreNavBag;
+
+  /// No description provided for @exploreNavSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get exploreNavSaved;
+
   /// No description provided for @finishOutfit.
   ///
   /// In en, this message translates to:
@@ -792,19 +828,19 @@ abstract class AppLocalizations {
   /// No description provided for @quickActionAddClothing.
   ///
   /// In en, this message translates to:
-  /// **'New Clothing'**
+  /// **'Add Clothing'**
   String get quickActionAddClothing;
 
   /// No description provided for @quickActionAddOutfit.
   ///
   /// In en, this message translates to:
-  /// **'New Outfit'**
+  /// **'Create Outfit'**
   String get quickActionAddOutfit;
 
   /// No description provided for @newTrip.
   ///
   /// In en, this message translates to:
-  /// **'New Trip'**
+  /// **'Plan a Trip'**
   String get newTrip;
 
   /// No description provided for @retry.
@@ -1185,23 +1221,29 @@ abstract class AppLocalizations {
   /// **'Add Location'**
   String get addLocation;
 
-  /// No description provided for @addClothingPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'How would you like to add a new clothing?'**
-  String get addClothingPrompt;
-
   /// No description provided for @camera.
   ///
   /// In en, this message translates to:
   /// **'Camera'**
   String get camera;
 
-  /// No description provided for @photoAlbum.
+  /// No description provided for @switchCamera.
   ///
   /// In en, this message translates to:
-  /// **'Photo Album'**
-  String get photoAlbum;
+  /// **'Switch camera'**
+  String get switchCamera;
+
+  /// No description provided for @takePhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a Photo'**
+  String get takePhotoLabel;
+
+  /// No description provided for @chooseFromAlbumLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Album'**
+  String get chooseFromAlbumLabel;
 
   /// No description provided for @back.
   ///
@@ -1334,6 +1376,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'White'**
   String get colorWhite;
+
+  /// No description provided for @colorCharcoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Charcoal'**
+  String get colorCharcoal;
 
   /// No description provided for @colorGrey.
   ///
@@ -1526,6 +1574,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hard to Style'**
   String get scoreTierHardToStyle;
+
+  /// No description provided for @insightCardPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'See how well this piece works with your closet.'**
+  String get insightCardPrompt;
+
+  /// No description provided for @analyzeWithAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze with AI'**
+  String get analyzeWithAi;
+
+  /// No description provided for @versatilityUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check this piece against your closet.'**
+  String get versatilityUnavailable;
+
+  /// No description provided for @versatilityScoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t analyze — please try again.'**
+  String get versatilityScoreFailed;
 
   /// No description provided for @clothingNameLabel.
   ///

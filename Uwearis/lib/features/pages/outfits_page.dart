@@ -8,7 +8,7 @@ import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/outfit_season_style_filter.dart';
-import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/outfit/outfit_grid.dart';
@@ -32,7 +32,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
       final report = mainTabReporter(
         context,
         loadingLabel: AppLocalizations.of(context).loadingOutfitsEllipsis,
-        tab: AppTab.outfits,
+        tab: MainTab.outfits,
       );
       report(ref.read(outfitsProvider));
       ref.listenManual(outfitsProvider, (_, next) => report(next));
@@ -84,7 +84,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
             16,
             16,
             16,
-            AppDimens.floatingNavBarClearance,
+            AppDimens.mainNavBarClearance,
           ),
           onOutfitTap: (outfit) => Navigator.push(
             context,

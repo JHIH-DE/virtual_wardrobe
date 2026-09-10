@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +9,7 @@ import '../features/pages/closet_page.dart';
 import '../features/pages/home_page.dart';
 import '../features/pages/outfits_page.dart';
 import '../features/pages/trips_page.dart';
-import '../features/widgets/common/floating_nav_bar.dart';
+import '../features/widgets/common/main_nav_bar.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -18,7 +17,7 @@ import '../l10n/generated/app_localizations.dart';
 /// Persistent shell hosting the app's 4 main tabs (Home, My Closet, Outfits,
 /// Trips) in an [IndexedStack]. Unlike pushing each tab as its own
 /// route, this keeps every tab's widget state (scroll position, in-progress
-/// filters, etc.) alive across switches, and the floating nav bar is built
+/// filters, etc.) alive across switches, and the main nav bar is built
 /// once here rather than per-page — so switching tabs is a plain `setState`
 /// with no route transition to animate, and the bar never flickers.
 ///
@@ -33,19 +32,19 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  AppTab _current = AppTab.home;
+  MainTab _current = MainTab.home;
   // Every tab stays mounted in the IndexedStack below, so each one's own
   // background fetch (garments, outfits, trips) reports its loading state
   // independently — keyed by tab here so a hidden tab's fetch never shows
   // the shell-level overlay over whichever tab the user is actually
   // looking at (see MainShellScope.setLoading).
-  final Map<AppTab, String?> _loadingLabelByTab = {};
+  final Map<MainTab, String?> _loadingLabelByTab = {};
 
-  void _select(AppTab tab) {
+  void _select(MainTab tab) {
     if (tab != _current) setState(() => _current = tab);
   }
 
-  void _setGlobalLoading(bool loading, {String? label, required AppTab tab}) {
+  void _setGlobalLoading(bool loading, {String? label, required MainTab tab}) {
     final next = loading ? (label ?? '') : null;
     if (_loadingLabelByTab[tab] == next) return;
     setState(() {
@@ -57,18 +56,19 @@ class _MainShellState extends ConsumerState<MainShell> {
     });
   }
 
-  /// An edge-originating left/right swipe cycles to the next/previous tab in
-  /// [AppTab.values] order, wrapping around. Handled once here (rather than
-  /// per-page) so every tab gets the gesture for free.
+  /// A left/right swipe *anywhere* on the page cycles to the next/previous
+  /// tab in [MainTab.values] order, wrapping around. Handled once here
+  /// (rather than per-page) so every tab gets the gesture for free.
   ///
-  /// The swipe must *start* near a screen edge (see [_EdgeSwipeGestureRecognizer])
-  /// so this never competes for the gesture arena with a horizontally
-  /// scrolling list / PageView / carousel in the middle of a tab (Home's
-  /// outfit carousel and "recently added" row, My Closet's category strip).
+  /// The [GestureDetector] is [HitTestBehavior.translucent] and sits above
+  /// the tab pages, so Flutter's gesture arena naturally resolves a drag
+  /// that starts on an in-page horizontal scroller (Home's outfit carousel /
+  /// "recently added" row, My Closet's category strip) to that deeper
+  /// scroller — it wins, and this only fires for drags that start elsewhere.
   void _handleSwipe(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     const threshold = 200.0;
-    final tabs = AppTab.values;
+    final tabs = MainTab.values;
     final i = tabs.indexOf(_current);
     if (velocity < -threshold) {
       _select(tabs[(i + 1) % tabs.length]);
@@ -86,7 +86,7 @@ class _MainShellState extends ConsumerState<MainShell> {
             ref.read(garmentsProvider.notifier).addGarment(g);
             // Land on My Closet regardless of which tab the quick action
             // was triggered from.
-            _select(AppTab.closet);
+            _select(MainTab.closet);
           },
         );
       case QuickAction.addOutfit:
@@ -95,7 +95,7 @@ class _MainShellState extends ConsumerState<MainShell> {
         await handleCreateTrip(
           context,
           ref,
-          onCreated: () => _select(AppTab.tripPlanner),
+          onCreated: () => _select(MainTab.tripPlanner),
         );
     }
   }
@@ -146,21 +146,11 @@ class _MainShellState extends ConsumerState<MainShell> {
       setLoading: _setGlobalLoading,
       child: Stack(
         children: [
-          RawGestureDetector(
+          GestureDetector(
             behavior: HitTestBehavior.translucent,
-            gestures: {
-              _EdgeSwipeGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                    _EdgeSwipeGestureRecognizer
-                  >(
-                    () => _EdgeSwipeGestureRecognizer(),
-                    (recognizer) => recognizer
-                      ..onEnd = _handleSwipe
-                      ..screenWidth = MediaQuery.sizeOf(context).width,
-                  ),
-            },
+            onHorizontalDragEnd: _handleSwipe,
             child: IndexedStack(
-              index: AppTab.values.indexOf(_current),
+              index: MainTab.values.indexOf(_current),
               children: const [
                 HomePage(),
                 ClosetPage(),
@@ -169,12 +159,12 @@ class _MainShellState extends ConsumerState<MainShell> {
               ],
             ),
           ),
-          FloatingNavBar(
+          MainNavBar(
             current: _current,
             onSelect: _select,
             onQuickAction: _handleQuickAction,
           ),
-          // Painted last so it sits above FloatingNavBar and truly covers
+          // Painted last so it sits above MainNavBar and truly covers
           // the whole screen — see MainShellScope.setLoading. Only the
           // *currently active* tab's loading state can trigger this, even
           // though every tab reports its own independently.
@@ -183,28 +173,5 @@ class _MainShellState extends ConsumerState<MainShell> {
         ],
       ),
     );
-  }
-}
-
-/// A [HorizontalDragGestureRecognizer] that only engages when the initial
-/// touch lands within [edgeWidth] logical pixels of the left or right
-/// screen edge. For any touch that starts further in, the recognizer never
-/// joins the gesture arena at all, so the shell's swipe-between-tabs
-/// gesture can't steal a drag from — or be starved by — a horizontally
-/// scrolling list / PageView / carousel in the middle of a tab.
-class _EdgeSwipeGestureRecognizer extends HorizontalDragGestureRecognizer {
-  /// Set from `build` every frame so it tracks rotation / window resizes.
-  double screenWidth = 0;
-
-  /// Kept just under the tab pages' 24px horizontal content inset, so the
-  /// edge strip sits over page background rather than over any card /
-  /// horizontal scroller, and clear of the OS's own screen-edge gestures.
-  final double edgeWidth = 20;
-
-  @override
-  bool isPointerAllowed(PointerEvent event) {
-    final x = event.position.dx;
-    final fromEdge = x <= edgeWidth || x >= screenWidth - edgeWidth;
-    return fromEdge && super.isPointerAllowed(event);
   }
 }

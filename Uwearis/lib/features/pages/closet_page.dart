@@ -12,7 +12,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/favorite_card.dart';
-import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
@@ -44,7 +44,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
       final report = mainTabReporter(
         context,
         loadingLabel: AppLocalizations.of(context).loadingClosetEllipsis,
-        tab: AppTab.closet,
+        tab: MainTab.closet,
       );
       report(ref.read(garmentsProvider));
       ref.listenManual(garmentsProvider, (_, next) => report(next));
@@ -227,7 +227,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
         16,
         0,
         16,
-        AppDimens.floatingNavBarClearance,
+        AppDimens.mainNavBarClearance,
       ),
       itemCount: garments.length,
       itemBuilder: (context, index) => _buildGarmentCard(garments[index]),

@@ -63,6 +63,7 @@ class NumberStepper extends StatelessWidget {
         _buildStepButton(
           icon: Icons.add_circle_outline,
           onPressed: onIncrement,
+          trailing: true,
         ),
       ],
     );
@@ -86,22 +87,31 @@ class NumberStepper extends StatelessWidget {
     );
   }
 
+  static const double _glyphSize = 18;
+  // Transparent pad on each side of the glyph that grows it to a
+  // minTouchTarget hit area.
+  static const double _hitPad = (AppDimens.minTouchTarget - _glyphSize) / 2;
+
   Widget _buildStepButton({
     required IconData icon,
     required VoidCallback? onPressed,
+    bool trailing = false,
   }) {
     return GestureDetector(
-      // opaque so the transparent square around the 18px glyph — padding it
-      // out to a minTouchTarget hit area without enlarging the glyph — is
-      // tappable too.
+      // opaque so the transparent pad around the 18px glyph is tappable too.
       behavior: HitTestBehavior.opaque,
       onTap: onPressed,
-      child: SizedBox.square(
-        dimension: AppDimens.minTouchTarget,
-        child: Center(
+      child: SizedBox(
+        // The trailing (+) button drops its right-side hit pad so the glyph
+        // sits flush with the row's right edge, matching a trailing chevron;
+        // the hit area stays full-height, just [_hitPad] narrower.
+        width: trailing ? _glyphSize + _hitPad : AppDimens.minTouchTarget,
+        height: AppDimens.minTouchTarget,
+        child: Align(
+          alignment: trailing ? Alignment.centerRight : Alignment.center,
           child: Icon(
             icon,
-            size: 18,
+            size: _glyphSize,
             color: onPressed == null
                 ? AppColors.icon.withValues(alpha: 0.3)
                 : AppColors.icon,

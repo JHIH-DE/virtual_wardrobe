@@ -31,6 +31,17 @@ class App extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
+      // App-wide "tap off a field to dismiss the keyboard". iOS number /
+      // decimal / no-return-key keyboards (Try-On Profile measurements,
+      // Finish Outfit temperature, garment brand, …) otherwise trap the
+      // keyboard open with no way to close it. translucent + the gesture
+      // arena means a tap that lands on a real button or another field
+      // still goes there — this only fires on otherwise-inert space.
+      builder: (context, child) => GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: FutureBuilder<Widget>(
         future: _bootstrap(),
         builder: (context, snapshot) {

@@ -75,8 +75,8 @@ abstract class AppDimens {
   static const double backArrowIconSize = 26;
 
   // Extra bottom padding for scrollable lists/grids on the main tabs, so the
-  // last row can scroll clear of the floating nav bar overlay instead of
+  // last row can scroll clear of the main nav bar overlay instead of
   // being hidden behind it.
-  static const double floatingNavBarClearance = 95;
+  static const double mainNavBarClearance = 95;
   static const double bottomActionBtnClearance = 85;
 }

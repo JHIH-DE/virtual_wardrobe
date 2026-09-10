@@ -5,12 +5,10 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/daily_outfit_provider.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/providers/weather_provider.dart';
-import '../../core/services/auth_handler.dart';
-import '../../core/services/daily_outfit_service.dart';
-import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../data/trip.dart';
@@ -18,13 +16,16 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
+import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
-import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
+import '../widgets/common/main_tab_async.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/trip/trip_card.dart';
+import 'explore_page.dart';
 import 'garment_details_page.dart';
 import 'outfit_details_page.dart';
 import 'settings_page.dart';
@@ -38,15 +39,18 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  bool _loadingOutfit = true;
-  // Every outfit option Uwearis generated for today — generation/rendering all
-  // happens server-side on its own schedule now, so this is a plain read;
-  // empty means no plan exists yet for today.
-  List<Outfit> _todayOutfits = const [];
-  // Which of [_todayOutfits] is shown as the main preview — swiping the
-  // carousel below updates this.
+  // Which of the daily outfit options is shown as the main preview —
+  // swiping the carousel below updates this.
   int _todayOutfitIndex = 0;
   final PageController _todayOutfitPageController = PageController();
+
+  // UI-only for now: which daily-outfit option the user has tapped as "worn
+  // today" on the photo overlay badge. Not persisted or sent to the backend
+  // yet — see _buildWornTodayBadge.
+  int? _wornOutfitIndex;
+
+  List<Outfit> get _todayOutfits =>
+      ref.watch(dailyOutfitProvider).value ?? const [];
 
   Outfit? get _todayOutfit => _todayOutfitIndex < _todayOutfits.length
       ? _todayOutfits[_todayOutfitIndex]
@@ -55,10 +59,18 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Deferred to after the first frame — MainShellScope.of below needs an
-    // ancestor lookup that isn't safe to run during initState itself.
+    // Deferred to after the first frame — mainTabReporter's MainShellScope
+    // lookup isn't safe to run during initState itself.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _loadDailyOutfit();
+      if (!mounted) return;
+      final report = mainTabReporter(
+        context,
+        loadingLabel: AppLocalizations.of(context).loading,
+        tab: MainTab.home,
+      );
+      report(ref.read(dailyOutfitProvider));
+      ref.listenManual(dailyOutfitProvider, (_, next) => report(next));
+      ref.read(dailyOutfitProvider.notifier).refreshIfNeeded();
     });
   }
 
@@ -68,46 +80,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.dispose();
   }
 
-  Future<void> _loadDailyOutfit() async {
-    setState(() => _loadingOutfit = true);
-    MainShellScope.of(context)?.setLoading(
-      true,
-      label: AppLocalizations.of(context).loading,
-      tab: AppTab.home,
-    );
-    try {
-      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final outfits = await DailyOutfitService().getDailyOutfit(today);
-      if (!mounted) return;
-      setState(() {
-        _todayOutfits = outfits ?? const [];
-        _todayOutfitIndex = 0;
-      });
-      if (_todayOutfitPageController.hasClients) {
-        _todayOutfitPageController.jumpToPage(0);
-      }
-    } on AuthExpiredException {
-      if (mounted) await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      debugLog('Failed to load daily outfit: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _loadingOutfit = false);
-        MainShellScope.of(context)?.setLoading(false, tab: AppTab.home);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // floatingNavBarClearance alone is tuned for the nav bar's own height,
+    // mainNavBarClearance alone is tuned for the nav bar's own height,
     // not any given device's safe-area inset — add that explicitly so the
-    // last card always clears the floating nav bar, gesture-bar devices
+    // last card always clears the main nav bar, gesture-bar devices
     // included, without touching the nav bar's own layout.
     final bottomClearance =
-        AppDimens.floatingNavBarClearance +
-        MediaQuery.of(context).padding.bottom;
+        AppDimens.mainNavBarClearance + MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),
@@ -178,20 +158,26 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  // Visual only for now — no destination page/feature wired up yet.
   Widget _buildExploreButton() {
     return Padding(
       // Matches the default back-arrow's effective left inset (IconButton's
       // own 8px Material padding + its 2px inner glyph padding).
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 16),
       // AppBar's leading slot hands its child a *tight* height constraint
-      // (locked to the full toolbar height) — Center converts that to a
+      // (locked to the full toolbar height) — Align converts that to a
       // loose constraint so the pill's own height applies instead of being
-      // stretched to fill the toolbar.
-      child: Center(
+      // stretched to fill the toolbar. centerLeft (not Center) anchors the
+      // pill's left edge to the 8px inset so it doesn't drift right in the
+      // 128px slot — matches Explore's "Home" pill.
+      child: Align(
+        alignment: Alignment.centerLeft,
         child: AccentPillButton(
           label: AppLocalizations.of(context).explore,
           icon: Icons.explore_outlined,
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ExplorePage()),
+          ),
         ),
       ),
     );
@@ -281,9 +267,10 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildOutfitImageCard() {
     final l10n = AppLocalizations.of(context);
+    final loadingOutfit = ref.watch(dailyOutfitProvider).isLoading;
     final outfit = _todayOutfit;
     final hasImage =
-        !_loadingOutfit && outfit != null && outfit.imageUrl.isNotEmpty;
+        !loadingOutfit && outfit != null && outfit.imageUrl.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -293,65 +280,74 @@ class _HomePageState extends ConsumerState<HomePage> {
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
           child: AspectRatio(
             aspectRatio: 1 / 1.15,
-            child: _loadingOutfit
-                // Shell-level overlay (see _loadDailyOutfit) covers the
-                // whole screen while loading, so this stays blank.
-                ? Container(color: AppColors.surface)
-                : !hasImage
-                ? Container(
-                    color: AppColors.surface,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.checkroom,
-                            size: 48,
-                            color: AppColors.icon,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.noOutfitImageYet,
-                            style: AppTextStyle.regular13.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : PageView.builder(
-                    controller: _todayOutfitPageController,
-                    onPageChanged: (index) =>
-                        setState(() => _todayOutfitIndex = index),
-                    itemCount: _todayOutfits.length,
-                    itemBuilder: (_, index) {
-                      final option = _todayOutfits[index];
-                      return GestureDetector(
-                        onTap: () => _openOutfitDetails(option),
-                        child: Container(
-                          color: AppColors.surface,
-                          child: RefreshableNetworkImage(
-                            imageUrl: option.imageUrl,
-                            cacheKey: outfitImageCacheKey(option.id),
-                            fit: BoxFit.cover,
-                            errorIconSize: 48,
-                            // Plain white background instead of a loading
-                            // spinner, with a quick cross-fade once the
-                            // image actually loads — matches
-                            // GarmentImage/OutfitImage's quieter treatment.
-                            placeholderBuilder: (_) =>
-                                Container(color: AppColors.surface),
-                            fadeInDuration: const Duration(milliseconds: 200),
-                            onRefreshUrl: () => fetchFreshOutfitImageUrl(
-                              option.groupId,
-                              option.id,
-                            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                loadingOutfit
+                    // The shell overlay (mainTabReporter) covers the whole
+                    // screen while loading, so this stays blank.
+                    ? Container(color: AppColors.surface)
+                    : !hasImage
+                    ? Container(
+                        color: AppColors.surface,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.checkroom,
+                                size: 48,
+                                color: AppColors.icon,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n.noOutfitImageYet,
+                                style: AppTextStyle.regular13.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      )
+                    : PageView.builder(
+                        controller: _todayOutfitPageController,
+                        onPageChanged: (index) =>
+                            setState(() => _todayOutfitIndex = index),
+                        itemCount: _todayOutfits.length,
+                        itemBuilder: (_, index) {
+                          final option = _todayOutfits[index];
+                          return GestureDetector(
+                            onTap: () => _openOutfitDetails(option),
+                            child: Container(
+                              color: AppColors.surface,
+                              child: RefreshableNetworkImage(
+                                imageUrl: option.imageUrl,
+                                cacheKey: outfitImageCacheKey(option.id),
+                                fit: BoxFit.cover,
+                                errorIconSize: 48,
+                                // Plain white background instead of a loading
+                                // spinner, with a quick cross-fade once the
+                                // image actually loads — matches
+                                // GarmentImage/OutfitImage's quieter treatment.
+                                placeholderBuilder: (_) =>
+                                    Container(color: AppColors.surface),
+                                fadeInDuration: const Duration(
+                                  milliseconds: 200,
+                                ),
+                                onRefreshUrl: () => fetchFreshOutfitImageUrl(
+                                  option.groupId,
+                                  option.id,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                if (hasImage)
+                  Positioned(top: 12, right: 12, child: _buildWornTodayBadge()),
+              ],
+            ),
           ),
         ),
         if (hasImage && _todayOutfits.length > 1) ...[
@@ -368,6 +364,32 @@ class _HomePageState extends ConsumerState<HomePage> {
           UwearisInsightCard(child: _buildReasoningLines(outfit.reasoning!)),
         ],
       ],
+    );
+  }
+
+  /// Overlay marker on today's outfit photo — tapped to log which option the
+  /// user actually wore today ("on my body today", hence the standing-figure
+  /// glyph). UI only for now: [_wornOutfitIndex] just holds the pressed
+  /// state, nothing is persisted or sent anywhere. Same disc size/placement
+  /// and translucent chrome as the outfit-details photo's favourite badge;
+  /// the on state fills the figure itself accent (like the favourite heart
+  /// going from outline to solid), leaving the disc unchanged.
+  Widget _buildWornTodayBadge() {
+    final marked = _wornOutfitIndex == _todayOutfitIndex;
+    return CardCornerBadge(
+      icon: Icons.accessibility_new,
+      backgroundColor: AppColors.surfaceTranslucent,
+      iconColor: marked ? AppColors.accent : AppColors.hintText,
+      border: Border.all(color: AppColors.borderSubtle),
+      boxShadow: const [],
+      size: 36,
+      // Larger than the favourite badge's 20 — the standing-figure glyph
+      // carries more internal whitespace, so it needs the extra to read at
+      // the same visual weight on the photo.
+      iconSize: 24,
+      discAlignment: Alignment.topRight,
+      onTap: () =>
+          setState(() => _wornOutfitIndex = marked ? null : _todayOutfitIndex),
     );
   }
 
@@ -449,7 +471,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return TripCard(
       key: ValueKey(trip.id),
       trip: trip,
-      onTap: () => openTripDetails(context, ref, trip, tab: AppTab.home),
+      onTap: () => openTripDetails(context, ref, trip, tab: MainTab.home),
       onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
       onDelete: () => handleDeleteTrip(context, ref, trip),
     );

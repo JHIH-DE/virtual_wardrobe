@@ -51,8 +51,7 @@ class CardCornerBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final target =
-        hitTargetSize ??
-        Size.square(math.max(size, AppDimens.minTouchTarget));
+        hitTargetSize ?? Size.square(math.max(size, AppDimens.minTouchTarget));
     return GestureDetector(
       // opaque so the transparent band around the disc is tappable too.
       behavior: HitTestBehavior.opaque,

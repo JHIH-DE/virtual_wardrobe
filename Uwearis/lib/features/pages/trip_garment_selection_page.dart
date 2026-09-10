@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/services/auth_handler.dart';
-import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
@@ -21,7 +22,7 @@ import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
 import 'trip_outfit_selection_page.dart';
 
-class TripGarmentSelectionPage extends StatefulWidget {
+class TripGarmentSelectionPage extends ConsumerStatefulWidget {
   final int tripId;
   final List<Garment> garments;
   final Set<int> initiallySelectedIds;
@@ -34,11 +35,12 @@ class TripGarmentSelectionPage extends StatefulWidget {
   });
 
   @override
-  State<TripGarmentSelectionPage> createState() =>
+  ConsumerState<TripGarmentSelectionPage> createState() =>
       _TripGarmentSelectionPageState();
 }
 
-class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
+class _TripGarmentSelectionPageState
+    extends ConsumerState<TripGarmentSelectionPage> {
   static const _categories = [
     GarmentCategory.top,
     GarmentCategory.bottom,
@@ -75,7 +77,10 @@ class _TripGarmentSelectionPageState extends State<TripGarmentSelectionPage> {
 
   Future<void> _loadAdvice() async {
     try {
-      final analysis = await TripService().getTripSuggestion(widget.tripId);
+      // Same analysis Trip Details already fetched (see tripSuggestionProvider).
+      final analysis = await ref.read(
+        tripSuggestionProvider(widget.tripId).future,
+      );
       _adviceByCategory
         ..clear()
         ..addEntries(analysis.categories.map((c) => MapEntry(c.category, c)));

@@ -57,6 +57,8 @@ extension GarmentColorLocalization on GarmentColor {
         return l10n.colorBlack;
       case GarmentColor.white:
         return l10n.colorWhite;
+      case GarmentColor.charcoal:
+        return l10n.colorCharcoal;
       case GarmentColor.grey:
         return l10n.colorGrey;
       case GarmentColor.beige:

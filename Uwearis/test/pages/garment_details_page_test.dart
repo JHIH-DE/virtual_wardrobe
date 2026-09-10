@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:uwearis/data/versatility.dart';
 import 'package:uwearis/features/pages/garment_details_page.dart';
 
 import '../helpers/fake_auth.dart';
@@ -37,7 +36,7 @@ void main() {
       await pumpApp(tester, const GarmentDetailsPage());
       await tester.pump();
 
-      expect(find.text('New Clothing'), findsWidgets);
+      expect(find.text('Add Clothing'), findsWidgets);
       expect(find.text('Select Color'), findsOneWidget);
       expect(find.text('Add to Closet'), findsNothing);
       expect(
@@ -60,31 +59,27 @@ void main() {
     });
   });
 
-  testWidgets('renders the outfit potential card when versatility is supplied', (
+  testWidgets('closet-match card starts as a prompt + Analyze button', (
     tester,
   ) async {
     await runWithEmptyCloset(() async {
       useTallSurface(tester);
       await pumpApp(
         tester,
-        GarmentDetailsPage(
-          initialAnalysisData: const {'name': 'Tee', 'category': 'Top'},
-          initialVersatility: Versatility.fromJson(const {
-            'score': 82,
-            'breakdown': [
-              {
-                'category': 'Bottom',
-                'compatible_count': 4,
-                'compatible_garment_ids': [1, 2],
-              },
-            ],
-          }),
+        const GarmentDetailsPage(
+          initialAnalysisData: {'name': 'Tee', 'category': 'Top'},
         ),
       );
       await tester.pump();
 
-      expect(find.text('Highly Versatile'), findsOneWidget);
-      expect(find.textContaining('well with 4 items'), findsOneWidget);
+      // No versatility until the user asks for it — a one-line prompt and
+      // the "Analyze with AI" pill, no score ring.
+      expect(
+        find.text('See how well this piece works with your closet.'),
+        findsOneWidget,
+      );
+      expect(find.text('Analyze with AI'), findsOneWidget);
+      expect(find.text('Highly Versatile'), findsNothing);
     });
   });
 }

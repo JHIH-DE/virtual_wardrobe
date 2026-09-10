@@ -64,11 +64,16 @@ class GarmentService with BaseService {
 
   Future<Garment> completeUpload(
     Garment garment,
-    Map<String, dynamic>? metaData,
-  ) async {
+    Map<String, dynamic>? metaData, {
+    int? versatilityScore,
+  }) async {
     debugLog('--- completeUpload ---');
     final uri = Uri.parse('$_baseUrl/complete');
 
+    // Per the garments API: category / sub_category / name / color are the
+    // top-level body fields; thickness / formality / fit / material / style /
+    // crop_length / description ride inside `metadata`. `versatility_score`
+    // is a "pass it back if you have it" value the backend never recomputes.
     final payload = <String, dynamic>{
       'name': garment.name,
       'category': garment.category.apiValue,
@@ -76,11 +81,9 @@ class GarmentService with BaseService {
       'object_name': garment.objectName,
       'brand': garment.brand,
       'color': garment.color,
-      'fit': garment.fit,
       'price': garment.price,
       'purchase_date': garment.purchaseDateApiValue,
-      'thickness': garment.thickness,
-      'formality': garment.formality,
+      'versatility_score': versatilityScore,
       'metadata': metaData,
     };
 
@@ -254,5 +257,34 @@ class GarmentService with BaseService {
       versatility: versatility,
       processedImagePath: processedImagePath,
     );
+  }
+
+  /// Scores how well a not-yet-created garment pairs with the user's current
+  /// closet (`POST /garments/versatility-score`). A separate AI call from
+  /// `analyzeGarment`, so it's triggered on demand. [metadata] is the
+  /// `data.metadata` shape `analyzeGarment` returns (or one assembled from an
+  /// existing garment's fields) — needs at least a correct `category`.
+  ///
+  /// Always resolves: the endpoint answers 200 even when it can't score
+  /// (empty closet, unknown category, AI failure) — see [Versatility.score] /
+  /// [Versatility.skippedReason].
+  Future<Versatility> scoreVersatility(Map<String, dynamic> metadata) async {
+    debugLog('--- scoreVersatility: category=${metadata['category']} ---');
+    final uri = Uri.parse('$_baseUrl/versatility-score');
+    final res = await withAuth(
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'metadata': metadata}),
+          )
+          .timeout(const Duration(seconds: 45)),
+    );
+    final envelope = decodeMap(res, op: 'scoreVersatility');
+    final data = envelope['data'] as Map<String, dynamic>?;
+    if (data == null) {
+      throw Exception('scoreVersatility: response missing data');
+    }
+    return Versatility.fromJson(data);
   }
 }

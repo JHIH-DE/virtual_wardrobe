@@ -350,6 +350,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get explore => 'Explore';
 
   @override
+  String get exploreComingSoon => 'Coming soon';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get exploreNavForYou => 'For you';
+
+  @override
+  String get exploreNavSearch => 'Search';
+
+  @override
+  String get exploreNavBag => 'Bag';
+
+  @override
+  String get exploreNavSaved => 'Saved';
+
+  @override
   String get finishOutfit => 'Finish Outfit';
 
   @override
@@ -381,13 +399,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickActions => 'Quick Actions';
 
   @override
-  String get quickActionAddClothing => 'New Clothing';
+  String get quickActionAddClothing => 'Add Clothing';
 
   @override
-  String get quickActionAddOutfit => 'New Outfit';
+  String get quickActionAddOutfit => 'Create Outfit';
 
   @override
-  String get newTrip => 'New Trip';
+  String get newTrip => 'Plan a Trip';
 
   @override
   String get retry => 'Retry';
@@ -597,13 +615,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addLocation => 'Add Location';
 
   @override
-  String get addClothingPrompt => 'How would you like to add a new clothing?';
-
-  @override
   String get camera => 'Camera';
 
   @override
-  String get photoAlbum => 'Photo Album';
+  String get switchCamera => 'Switch camera';
+
+  @override
+  String get takePhotoLabel => 'Take a Photo';
+
+  @override
+  String get chooseFromAlbumLabel => 'Choose from Album';
 
   @override
   String get back => 'Back';
@@ -672,6 +693,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get colorWhite => 'White';
+
+  @override
+  String get colorCharcoal => 'Charcoal';
 
   @override
   String get colorGrey => 'Grey';
@@ -776,6 +800,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scoreTierHardToStyle => 'Hard to Style';
+
+  @override
+  String get insightCardPrompt =>
+      'See how well this piece works with your closet.';
+
+  @override
+  String get analyzeWithAi => 'Analyze with AI';
+
+  @override
+  String get versatilityUnavailable =>
+      'Couldn\'t check this piece against your closet.';
+
+  @override
+  String get versatilityScoreFailed => 'Couldn\'t analyze — please try again.';
 
   @override
   String get clothingNameLabel => 'Name';

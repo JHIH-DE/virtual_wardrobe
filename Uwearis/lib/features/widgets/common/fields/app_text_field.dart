@@ -16,7 +16,11 @@ InputDecoration appInputDecoration({
   Widget? suffix,
   double borderRadius = 14,
   Color borderColor = AppColors.borderStrong,
-  Color focusedBorderColor = AppColors.primary,
+  // Just a deeper shade of the resting border (same warm-neutral family) —
+  // a near-black or accent focus ring both read as harsh here.
+  // picker_field.dart overrides this back to borderStrong (its fields open a
+  // sheet, not a keyboard, so they want no focus emphasis at all).
+  Color focusedBorderColor = AppColors.textSecondary,
   double focusedBorderWidth = 1.5,
 }) {
   return InputDecoration(

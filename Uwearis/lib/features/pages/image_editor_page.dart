@@ -37,12 +37,18 @@ class ImageEditorPage extends StatefulWidget {
   /// reference photos (avatar, AI Model's face/body) pass 3/4 instead.
   final double aspectRatio;
 
+  /// Which cutout shape the "Retake" camera opens with. Follows the same
+  /// split as [aspectRatio] — portrait reference-photo callers pass
+  /// [CameraFrameRatio.portrait], garment callers keep the square default.
+  final CameraFrameRatio cameraFrameRatio;
+
   const ImageEditorPage({
     super.key,
     this.initialPath,
     this.showAnalysis = true,
     this.title,
     this.aspectRatio = 1.0,
+    this.cameraFrameRatio = CameraFrameRatio.square,
   });
 
   @override
@@ -79,7 +85,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Future<void> _handleRetake() async {
     final newPath = await Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (_) => const CameraCapturePage()),
+      MaterialPageRoute(
+        builder: (_) =>
+            CameraCapturePage(initialRatio: widget.cameraFrameRatio),
+      ),
     );
     if (newPath != null) {
       setState(() {
@@ -246,7 +255,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       onPressed: (_hasImage && !_isAnalyzing && !_confirming)
           ? _handleConfirmed
           : null,
-      trailing: Image.asset(
+      leading: Image.asset(
         'assets/images/ai_process.png',
         height: AppDimens.iconSmallSize,
         color: AppColors.textOnPrimary,

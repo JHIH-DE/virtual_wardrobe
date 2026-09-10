@@ -10,7 +10,7 @@ import '../../core/utils/debug_log.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/floating_nav_bar.dart';
+import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
@@ -170,12 +170,12 @@ Future<void> handleDeleteTrip(
 
 /// Opens [TripDetailsPage] with a shell loading overlay covering the preload.
 /// Shared between [TripsPage]'s own cards and the Home page's trip card —
-/// [tab] just picks which `AppTab`'s overlay to drive.
+/// [tab] just picks which `MainTab`'s overlay to drive.
 Future<void> openTripDetails(
   BuildContext context,
   WidgetRef ref,
   Trip trip, {
-  required AppTab tab,
+  required MainTab tab,
 }) async {
   final l10n = AppLocalizations.of(context);
   MainShellScope.of(
@@ -231,7 +231,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
       final report = mainTabReporter(
         context,
         loadingLabel: AppLocalizations.of(context).loadingTripsEllipsis,
-        tab: AppTab.tripPlanner,
+        tab: MainTab.tripPlanner,
       );
       report(ref.read(tripsProvider));
       ref.listenManual(tripsProvider, (_, next) => report(next));
@@ -270,7 +270,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
                 16,
                 16,
                 16,
-                AppDimens.floatingNavBarClearance,
+                AppDimens.mainNavBarClearance,
               ),
               children: _buildGroupedTripItems(trips),
             ),
@@ -341,7 +341,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
         key: ValueKey(trip.id),
         trip: trip,
         onTap: () =>
-            openTripDetails(context, ref, trip, tab: AppTab.tripPlanner),
+            openTripDetails(context, ref, trip, tab: MainTab.tripPlanner),
         onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
         onDelete: () => handleDeleteTrip(context, ref, trip),
       ),

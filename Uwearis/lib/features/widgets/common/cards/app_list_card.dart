@@ -105,7 +105,7 @@ class AppListCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         border: highlighted
-            ? Border.all(color: AppColors.accent, width: 1.5)
+            ? Border.all(color: AppColors.accentOutline, width: 2)
             : null,
         boxShadow: [
           BoxShadow(

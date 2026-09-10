@@ -33,3 +33,9 @@ bool isSignedUrlExpired(
     return false;
   }
 }
+
+/// True if any of [urls] is a signed URL that's expired (or about to) —
+/// null / empty entries are skipped. The "does this cached list need a
+/// re-fetch before display" check every image-backed provider / page runs.
+bool anySignedUrlExpired(Iterable<String?> urls) =>
+    urls.any((u) => u != null && u.isNotEmpty && isSignedUrlExpired(u));

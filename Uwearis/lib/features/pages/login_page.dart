@@ -163,15 +163,24 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 60),
-              _buildHeaderImages(),
-              _buildLoginCard(),
-            ],
+      body: SafeArea(
+        top: false,
+        // Anchor the content to the bottom so the login card + copyright sit
+        // flush against the bottom edge (any slack goes above the logo);
+        // still scrolls when the content is taller than the screen.
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const SizedBox(height: 60),
+                  _buildHeaderImages(),
+                  _buildLoginCard(),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -192,41 +201,37 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildLoginCard() {
-    return Transform.translate(
-      offset: const Offset(
-        0,
-        -30,
-      ), // Controls how much of the image the overlay covers
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-        decoration: BoxDecoration(
-          color: AppColors.pageBackground,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowResting,
-              blurRadius: 20,
-              spreadRadius: 0,
-              offset: const Offset(0, -10), // Shadow shifted upward
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeading(),
-            const SizedBox(height: 20),
-            if (Platform.isIOS) ...[
-              _buildAppleButton(),
-              const SizedBox(height: 15),
-            ],
-            _buildGoogleButton(),
+    return Container(
+      width: double.infinity,
+      // Tight bottom inset — the card is bottom-anchored, so anything more
+      // just reads as dead space under the copyright line.
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      decoration: BoxDecoration(
+        color: AppColors.pageBackground,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowResting,
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, -10), // Shadow shifted upward
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildHeading(),
+          const SizedBox(height: 20),
+          if (Platform.isIOS) ...[
+            _buildAppleButton(),
             const SizedBox(height: 15),
-            _buildFacebookButton(),
-            const SizedBox(height: 24),
-            _buildCopyrightText(),
           ],
-        ),
+          _buildGoogleButton(),
+          const SizedBox(height: 15),
+          _buildFacebookButton(),
+          const SizedBox(height: 24),
+          _buildCopyrightText(),
+        ],
       ),
     );
   }

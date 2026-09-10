@@ -7,7 +7,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'pressed_state_mixin.dart';
 
-enum AppTab { home, closet, outfits, tripPlanner }
+enum MainTab { home, closet, outfits, tripPlanner }
 
 /// The three actions behind the nav bar's raised center button.
 enum QuickAction { addClothing, addOutfit, newTrip }
@@ -17,10 +17,10 @@ enum QuickAction { addClothing, addOutfit, newTrip }
 /// Planner tab so "back" lands there instead of wherever the creation flow
 /// was started from.
 class MainShellScope extends InheritedWidget {
-  final ValueChanged<AppTab> selectTab;
+  final ValueChanged<MainTab> selectTab;
 
   /// Shows/hides a full-screen [LoadingOverlay] at the shell level, above
-  /// [FloatingNavBar] — a tab page's own body sits *below* the nav bar in
+  /// [MainNavBar] — a tab page's own body sits *below* the nav bar in
   /// the shell's Stack, so a loading mask built inline into that body can
   /// never visually cover the nav bar. Routing it through here instead
   /// lets any tab page's loading state actually mask the whole screen.
@@ -30,7 +30,7 @@ class MainShellScope extends InheritedWidget {
   /// background fetch for a tab the user isn't even looking at (e.g. Trips
   /// prefetching while Home is showing) must never show this overlay; it's
   /// only displayed when [tab] is the currently active one.
-  final void Function(bool loading, {String? label, required AppTab tab})
+  final void Function(bool loading, {String? label, required MainTab tab})
   setLoading;
 
   const MainShellScope({
@@ -53,12 +53,12 @@ class MainShellScope extends InheritedWidget {
 /// always knows which page they're on. Purely presentational — [onSelect]
 /// and [onQuickAction] are called with the tapped tab/action and the host
 /// (e.g. a persistent IndexedStack shell) decides what to do with them.
-class FloatingNavBar extends StatelessWidget {
-  final AppTab current;
-  final ValueChanged<AppTab> onSelect;
+class MainNavBar extends StatelessWidget {
+  final MainTab current;
+  final ValueChanged<MainTab> onSelect;
   final ValueChanged<QuickAction> onQuickAction;
 
-  const FloatingNavBar({
+  const MainNavBar({
     super.key,
     required this.current,
     required this.onSelect,
@@ -126,26 +126,26 @@ class FloatingNavBar extends StatelessWidget {
                                     MainAxisAlignment.spaceEvenly,
                                 children: [
                                   _tab(
-                                    AppTab.home,
+                                    MainTab.home,
                                     activeIcon: Icons.home_rounded,
                                     inactiveIcon: Icons.home_outlined,
                                     label: l10n.navHome,
                                   ),
                                   _tab(
-                                    AppTab.closet,
+                                    MainTab.closet,
                                     activeIcon: Icons.checkroom_rounded,
                                     inactiveIcon: Icons.checkroom_outlined,
                                     label: l10n.navCloset,
                                   ),
                                   const SizedBox(width: _centerButtonSize),
                                   _tab(
-                                    AppTab.outfits,
+                                    MainTab.outfits,
                                     activeIcon: Icons.style_rounded,
                                     inactiveIcon: Icons.style_outlined,
                                     label: l10n.navOutfits,
                                   ),
                                   _tab(
-                                    AppTab.tripPlanner,
+                                    MainTab.tripPlanner,
                                     activeIcon: Icons.luggage_rounded,
                                     inactiveIcon: Icons.luggage_outlined,
                                     label: l10n.navTrips,
@@ -175,7 +175,7 @@ class FloatingNavBar extends StatelessWidget {
   }
 
   Widget _tab(
-    AppTab tab, {
+    MainTab tab, {
     required IconData activeIcon,
     required IconData inactiveIcon,
     required String label,
@@ -226,7 +226,9 @@ class FloatingNavBar extends StatelessWidget {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 125),
+            // Sits just above the raised "+" button — small gap, not floating
+            // well clear of the nav bar.
+            padding: const EdgeInsets.only(bottom: 100),
             child: Material(
               color: AppColors.scrimBackdrop,
               elevation: 8,
@@ -289,7 +291,7 @@ class FloatingNavBar extends StatelessWidget {
       onTap: () => Navigator.pop(context, value),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: showDivider
             ? const BoxDecoration(
                 border: Border(

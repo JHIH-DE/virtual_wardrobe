@@ -36,31 +36,33 @@ class AccentPillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = enabled ? AppColors.accent : AppColors.hintText;
-    final pill = InkWell(
-      onTap: enabled ? onPressed : null,
-      borderRadius: BorderRadius.circular(100),
-      child: Container(
-        height: 28,
+    // A TextButton, so the press feedback is the same Material state-layer
+    // overlay as AppDialog's "Cancel" / "Don't Save" — a soft tint on tap,
+    // not an InkWell ripple.
+    final pill = TextButton(
+      onPressed: enabled ? onPressed : null,
+      style: TextButton.styleFrom(
+        foregroundColor: color,
+        minimumSize: const Size(0, 28),
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: color),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 15, color: color),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                label,
-                style: AppTextStyle.bold14.copyWith(color: color),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        side: BorderSide(color: color),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              style: AppTextStyle.bold14.copyWith(color: color),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
 

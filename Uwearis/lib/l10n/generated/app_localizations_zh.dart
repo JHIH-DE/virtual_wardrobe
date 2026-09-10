@@ -336,6 +336,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get explore => '探索';
 
   @override
+  String get exploreComingSoon => '即將推出';
+
+  @override
+  String get notifications => '通知';
+
+  @override
+  String get exploreNavForYou => '為你推薦';
+
+  @override
+  String get exploreNavSearch => '搜尋';
+
+  @override
+  String get exploreNavBag => '購物袋';
+
+  @override
+  String get exploreNavSaved => '收藏';
+
+  @override
   String get finishOutfit => '完成穿搭';
 
   @override
@@ -369,10 +387,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quickActionAddClothing => '新增衣物';
 
   @override
-  String get quickActionAddOutfit => '新增穿搭';
+  String get quickActionAddOutfit => '建立穿搭';
 
   @override
-  String get newTrip => '新增行程';
+  String get newTrip => '規劃行程';
 
   @override
   String get retry => '重試';
@@ -571,13 +589,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addLocation => '新增地點';
 
   @override
-  String get addClothingPrompt => '你想如何新增衣物？';
-
-  @override
   String get camera => '拍照';
 
   @override
-  String get photoAlbum => '相簿';
+  String get switchCamera => '切換鏡頭';
+
+  @override
+  String get takePhotoLabel => '拍照';
+
+  @override
+  String get chooseFromAlbumLabel => '從相簿選擇';
 
   @override
   String get back => '返回';
@@ -646,6 +667,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get colorWhite => '白色';
+
+  @override
+  String get colorCharcoal => '深灰';
 
   @override
   String get colorGrey => '灰色';
@@ -748,6 +772,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scoreTierHardToStyle => '較難搭配';
+
+  @override
+  String get insightCardPrompt => '看看這件單品跟你衣櫃的搭配度。';
+
+  @override
+  String get analyzeWithAi => 'AI 分析';
+
+  @override
+  String get versatilityUnavailable => '無法分析這件單品跟衣櫃的搭配。';
+
+  @override
+  String get versatilityScoreFailed => '分析失敗，請再試一次。';
 
   @override
   String get clothingNameLabel => '名稱';
@@ -1541,6 +1577,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get explore => '探索';
 
   @override
+  String get exploreComingSoon => '即將推出';
+
+  @override
+  String get notifications => '通知';
+
+  @override
+  String get exploreNavForYou => '為你推薦';
+
+  @override
+  String get exploreNavSearch => '搜尋';
+
+  @override
+  String get exploreNavBag => '購物袋';
+
+  @override
+  String get exploreNavSaved => '收藏';
+
+  @override
   String get finishOutfit => '完成穿搭';
 
   @override
@@ -1574,10 +1628,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get quickActionAddClothing => '新增衣物';
 
   @override
-  String get quickActionAddOutfit => '新增穿搭';
+  String get quickActionAddOutfit => '建立穿搭';
 
   @override
-  String get newTrip => '新增行程';
+  String get newTrip => '規劃行程';
 
   @override
   String get retry => '重試';
@@ -1776,13 +1830,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addLocation => '新增地點';
 
   @override
-  String get addClothingPrompt => '你想如何新增衣物？';
-
-  @override
   String get camera => '拍照';
 
   @override
-  String get photoAlbum => '相簿';
+  String get switchCamera => '切換鏡頭';
+
+  @override
+  String get takePhotoLabel => '拍照';
+
+  @override
+  String get chooseFromAlbumLabel => '從相簿選擇';
 
   @override
   String get back => '返回';
@@ -1851,6 +1908,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get colorWhite => '白色';
+
+  @override
+  String get colorCharcoal => '深灰';
 
   @override
   String get colorGrey => '灰色';
@@ -1953,6 +2013,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get scoreTierHardToStyle => '較難搭配';
+
+  @override
+  String get insightCardPrompt => '看看這件單品跟你衣櫃的搭配度。';
+
+  @override
+  String get analyzeWithAi => 'AI 分析';
+
+  @override
+  String get versatilityUnavailable => '無法分析這件單品跟衣櫃的搭配。';
+
+  @override
+  String get versatilityScoreFailed => '分析失敗，請再試一次。';
 
   @override
   String get clothingNameLabel => '名稱';

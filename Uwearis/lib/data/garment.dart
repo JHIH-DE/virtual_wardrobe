@@ -37,6 +37,8 @@ extension GarmentCategoryX on GarmentCategory {
 enum GarmentColor {
   black,
   white,
+  // Before `grey` so a "Charcoal Grey" from the AI resolves here, not to grey.
+  charcoal,
   grey,
   beige,
   cream,
@@ -66,6 +68,8 @@ extension GarmentColorX on GarmentColor {
         return Colors.black;
       case GarmentColor.white:
         return Colors.white;
+      case GarmentColor.charcoal:
+        return const Color(0xFF3F3F3F);
       case GarmentColor.grey:
         return Colors.grey;
       case GarmentColor.beige:

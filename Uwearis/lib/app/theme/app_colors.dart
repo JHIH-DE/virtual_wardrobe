@@ -15,6 +15,10 @@ class AppColors {
   static const Color toolbarBackground = Color(0xFFEFECEB);
   static const Color interactiveArea = Color(0xFFF8F7F4);
 
+  // Pressed / "clicked" state fill for a tappable surface (e.g. the
+  // add-clothing dialog's Camera / Photo Album rows). #C6C0AB @ 36%.
+  static const Color pressedOverlay = Color(0x5CC6C0AB);
+
   // Text & icons
   static const Color textPrimary = Color(0xFF262420);
   static const Color textSecondary = Color(0xFF6E6A62);
@@ -40,6 +44,10 @@ class AppColors {
   // Pale accent tint — e.g. a filter chip's selected-state background,
   // where a solid `accent` fill would be too heavy
   static const Color accentTint = Color(0x1F9966CC); // accent @12%
+
+  // Softened `accent` for attention outlines (a highlighted AppListCard) —
+  // present but not shouty. Equivalent to `accent.withValues(alpha: 0.55)`.
+  static const Color accentOutline = Color(0x8C9966CC); // accent @55%
 
   // Social sign-in (fixed brand colors, do not retint)
   static const Color facebook = Color(0xFF1877F2);
@@ -67,9 +75,6 @@ class AppColors {
   // CategoryTag (season/style/collection chips)
   static const Color tagBackground = Color(0xFFEFEAE2);
   static const Color tagText = Color(0xFF6F655A);
-
-  // StylePreferencesPage — selected card's checkmark badge fill
-  static const Color styleSelected = accent;
 
   // Style Profile pie chart's categorical series — a fixed, validated
   // 5-hue order (adjacent-pairlist CVD ΔE >= 8, normal-vision ΔE >= 15;

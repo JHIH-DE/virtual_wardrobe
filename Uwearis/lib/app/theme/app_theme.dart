@@ -21,9 +21,11 @@ class AppTheme {
             secondary: AppColors.accent,
             surface: AppColors.surface,
           ),
+      // Matches AppTextField's focused-border colour so the caret + drag
+      // handle read as one with the active field, not a hard black mark.
       textSelectionTheme: const TextSelectionThemeData(
-        cursorColor: AppColors.primary,
-        selectionHandleColor: AppColors.primary,
+        cursorColor: AppColors.textSecondary,
+        selectionHandleColor: AppColors.textSecondary,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,

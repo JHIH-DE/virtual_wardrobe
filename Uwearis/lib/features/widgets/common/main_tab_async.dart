@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/auth_handler.dart';
-import 'floating_nav_bar.dart';
+import 'main_nav_bar.dart';
 import 'overlays/error_state_widget.dart';
 
 /// Shared main-tab (Home / My Closet / Outfits / Trips) async-list plumbing.
@@ -16,14 +16,14 @@ import 'overlays/error_state_widget.dart';
 /// `initState`'s post-frame callback:
 /// ```dart
 /// final report = mainTabReporter(context,
-///     loadingLabel: l10n.loadingXEllipsis, tab: AppTab.x);
+///     loadingLabel: l10n.loadingXEllipsis, tab: MainTab.x);
 /// report(ref.read(myProvider));
 /// ref.listenManual(myProvider, (_, next) => report(next));
 /// ```
 void Function(AsyncValue<Object?>) mainTabReporter(
   BuildContext context, {
   required String loadingLabel,
-  required AppTab tab,
+  required MainTab tab,
 }) {
   return (state) {
     if (state.hasError && state.error is AuthExpiredException) {

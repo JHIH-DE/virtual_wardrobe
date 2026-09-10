@@ -7,6 +7,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
+import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
@@ -254,10 +255,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   }
 
   bool get _hasStaleGarmentImages => _dayOutfits.any(
-    (day) => day.garments.any((g) {
-      final url = g.imageUrl;
-      return url != null && url.isNotEmpty && isSignedUrlExpired(url);
-    }),
+    (day) => anySignedUrlExpired(day.garments.map((g) => g.imageUrl)),
   );
 
   /// Day outfit garments are resolved against the closet (see
@@ -283,8 +281,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Future<void> _loadPackingAdvice() async {
     setState(() => _loadingPackingAdvice = true);
     try {
-      final analysis = await TripService().getTripSuggestion(
-        int.parse(_trip.id),
+      // Shared with the suitcase garment picker (see tripSuggestionProvider)
+      // so opening that doesn't re-request the same analysis.
+      final analysis = await ref.read(
+        tripSuggestionProvider(int.parse(_trip.id)).future,
       );
       if (mounted) {
         setState(() {
@@ -807,6 +807,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     final legsChanged = !identical(updated.legs, previous.legs);
     setState(() => _trip = updated);
     ref.read(tripsProvider.notifier).updateTrip(updated);
+    // The packing analysis is derived from legs/dates/activities — drop the
+    // cached one so it's re-fetched (here and by the suitcase picker).
+    ref.invalidate(tripSuggestionProvider(int.parse(previous.id)));
     try {
       // `legs` and `days` are independent on the backend — changing the leg
       // date range doesn't implicitly resize the day records, so a leg edit
@@ -839,6 +842,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 ? 0
                 : _selectedDayIndex.clamp(0, _dayOutfits.length - 1);
           });
+          _loadPackingAdvice();
         }
       }
     } on AuthExpiredException {

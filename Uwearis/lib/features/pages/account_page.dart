@@ -1,11 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
@@ -24,14 +26,14 @@ import '../widgets/common/profile_avatar.dart';
 import 'image_editor_page.dart';
 import 'location_picker_page.dart';
 
-class AccountPage extends StatefulWidget {
+class AccountPage extends ConsumerStatefulWidget {
   const AccountPage({super.key});
 
   @override
-  State<AccountPage> createState() => _AccountPageState();
+  ConsumerState<AccountPage> createState() => _AccountPageState();
 }
 
-class _AccountPageState extends State<AccountPage> {
+class _AccountPageState extends ConsumerState<AccountPage> {
   final _nameCtrl = TextEditingController();
 
   bool _loading = false;
@@ -104,7 +106,9 @@ class _AccountPageState extends State<AccountPage> {
       _error = null;
     });
     try {
-      final profile = await ProfileService().getMyProfile();
+      // Shared with Settings / Try-on Profile via profileProvider — a
+      // no-op fetch if one of those already loaded it.
+      final profile = (await ref.read(profileProvider.future)).profile;
       if (!mounted) return;
       setState(() {
         _nameCtrl.text = profile.name;
@@ -149,16 +153,15 @@ class _AccountPageState extends State<AccountPage> {
   Future<void> _uploadAvatar(String localPath) async {
     setState(() => _avatarUploading = true);
     try {
-      final init = await ProfileService().avatarInitUpload();
-      await ProfileService().putJpegToSignedUrl(init.uploadUrl, localPath);
-      final url = await ProfileService().avatarComplete(
-        objectName: init.objectName,
-      );
+      final url = await ProfileService().uploadAvatar(localPath);
       if (mounted) {
         setState(() {
           _avatarUrl = url;
           _avatarLocalPath = null;
         });
+        // Re-pull so profileProvider (Settings' avatar, etc.) picks up the
+        // new signed URL.
+        ref.read(profileProvider.notifier).refresh();
       }
     } catch (e) {
       debugLog('AccountPage avatar upload error: $e');
@@ -182,7 +185,8 @@ class _AccountPageState extends State<AccountPage> {
         location: _homeLocation,
       );
       if (!mounted) return;
-      Navigator.pop(context, result);
+      ref.read(profileProvider.notifier).setProfile(result);
+      Navigator.pop(context);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);

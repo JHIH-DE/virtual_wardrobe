@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../pressed_state_mixin.dart';
 
 class AppDialog extends StatefulWidget {
   final String title;
@@ -50,7 +49,7 @@ class AppDialog extends StatefulWidget {
     this.onTertiary,
     this.width = 292,
     this.titleSpacing = 16,
-    this.contentToPrimarySpacing = 20,
+    this.contentToPrimarySpacing = 16,
     this.secondaryIsTextButton = true,
     this.primaryIsTextButton = false,
     this.borderSide = const BorderSide(
@@ -66,8 +65,7 @@ class AppDialog extends StatefulWidget {
   State<AppDialog> createState() => _AppDialogState();
 }
 
-class _AppDialogState extends State<AppDialog>
-    with PressedStateMixin<AppDialog> {
+class _AppDialogState extends State<AppDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -93,10 +91,6 @@ class _AppDialogState extends State<AppDialog>
                     style: AppTextStyle.medium16,
                   ),
               SizedBox(height: widget.contentToPrimarySpacing),
-              if (widget.primaryIsTextButton) ...[
-                const Divider(thickness: 1, color: AppColors.borderSubtle),
-                const SizedBox(height: 4),
-              ],
               widget.primaryIsTextButton
                   ? TextButton(
                       onPressed: widget.onPrimary,
@@ -200,35 +194,26 @@ class _AppDialogState extends State<AppDialog>
                 const Divider(thickness: 1, color: AppColors.borderSubtle),
                 SizedBox(
                   width: 104,
-                  child: GestureDetector(
-                    // opaque so the whole 104-wide button responds, not just
-                    // the centered label glyphs.
-                    behavior: HitTestBehavior.opaque,
-                    onTapDown: (_) => setPressed(true),
-                    onTapUp: (_) {
-                      setPressed(false);
-                      widget.onTertiary?.call();
-                    },
-                    onTapCancel: () => setPressed(false),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: pressed ? AppColors.accent : AppColors.surface,
-                        border: widget.borderSide != null
-                            ? Border.fromBorderSide(widget.borderSide!)
-                            : null,
+                  child: TextButton(
+                    onPressed: widget.onTertiary,
+                    style: TextButton.styleFrom(
+                      // Same press feedback as the "Cancel" text button
+                      // above — a Material state-layer overlay, not a colour
+                      // swap — just inside a bordered pill.
+                      foregroundColor: AppColors.textSecondary,
+                      minimumSize: const Size(0, 38),
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(19),
                       ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        widget.tertiaryLabel!,
-                        style: AppTextStyle.regular14.copyWith(
-                          color: pressed
-                              ? AppColors.textOnPrimary
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      side: widget.borderSide,
+                    ),
+                    child: Text(
+                      widget.tertiaryLabel!,
+                      style: AppTextStyle.regular14.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),

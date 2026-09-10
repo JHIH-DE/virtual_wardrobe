@@ -5,12 +5,12 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/locale_provider.dart';
+import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
-import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
-import '../../data/user_profile.dart';
+import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -40,50 +40,29 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  // Profile
-  String? _name;
-  String? _email;
-  // Read-only here — editing the avatar now happens on AccountPage; this
-  // just mirrors whatever's saved there.
-  String? _avatarUrl;
-  String? _fullBodyUrl;
-  String? _faceRefUrl;
-  bool _loading = true;
-
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.listenManual(profileProvider, (_, next) {
+        if (next.hasError && next.error is AuthExpiredException && mounted) {
+          AuthExpiredHandler.handle(context);
+        }
+      });
+    });
   }
 
-  Future<void> _loadProfile() async {
-    setState(() => _loading = true);
-    try {
-      final results = await Future.wait([
-        ProfileService().getMyProfile(),
-        ProfileService().getBodyRef(),
-        ProfileService().getFaceReference(),
-      ]);
-      if (!mounted) return;
-      final profile = results[0] as UserProfile;
-      final fullBodyUrl = results[1] as String?;
-      final faceRefUrl = results[2] as String?;
-      setState(() {
-        _name = profile.name;
-        _email = profile.email;
-        _avatarUrl = profile.avatarObjectUrl;
-        _fullBodyUrl = fullBodyUrl;
-        _faceRefUrl = faceRefUrl;
-      });
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      debugLog('SettingsPage load error: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
+  // Everything below reads garmentsProvider-style from the shared
+  // profileProvider — this screen is display-only for the profile.
+  ProfileData? get _data => ref.watch(profileProvider).value;
+  bool get _loading => ref.watch(profileProvider).isLoading && _data == null;
+
+  String? get _name => _data?.profile.name;
+  String? get _email => _data?.profile.email;
+  String? get _avatarUrl => _data?.profile.avatarObjectUrl;
+  String? get _fullBodyUrl => _data?.bodyRefUrl;
+  String? get _faceRefUrl => _data?.faceRefUrl;
 
   bool get _hasFaceReference =>
       _faceRefUrl != null && _faceRefUrl!.isNotEmpty && _faceRefUrl != 'string';
@@ -98,20 +77,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return count == 2 ? l10n.aiModelReady : l10n.aiModelReferencesAdded(count);
   }
 
-  Future<void> _openAccount() async {
-    await Navigator.push(
+  void _openAccount() {
+    // Account / Try-on Profile update profileProvider themselves on save, so
+    // this screen (watching it) reflects the change on return — no reload.
+    Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AccountPage()),
     );
-    _loadProfile();
   }
 
-  Future<void> _openTryOnProfile() async {
-    await Navigator.push(
+  void _openTryOnProfile() {
+    Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const TryonProfilePage()),
     );
-    _loadProfile();
   }
 
   Future<void> _logout() async {
