@@ -133,6 +133,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get share => '分享';
 
   @override
+  String get shareThisPiece => '分享這件單品';
+
+  @override
+  String get shareThisOutfit => '分享這套穿搭';
+
+  @override
+  String get shareImageUnavailable => '圖片載入失敗。';
+
+  @override
+  String get shareFailed => '分享失敗，請再試一次。';
+
+  @override
   String get delete => '刪除';
 
   @override
@@ -772,6 +784,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scoreTierHardToStyle => '較難搭配';
+
+  @override
+  String get closetMatchLabel => '衣櫃契合度';
+
+  @override
+  String get purchasedLabel => '購買日';
 
   @override
   String get insightCardPrompt => '看看這件單品跟你衣櫃的搭配度。';
@@ -1374,6 +1392,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get share => '分享';
 
   @override
+  String get shareThisPiece => '分享這件單品';
+
+  @override
+  String get shareThisOutfit => '分享這套穿搭';
+
+  @override
+  String get shareImageUnavailable => '圖片載入失敗。';
+
+  @override
+  String get shareFailed => '分享失敗，請再試一次。';
+
+  @override
   String get delete => '刪除';
 
   @override
@@ -2013,6 +2043,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get scoreTierHardToStyle => '較難搭配';
+
+  @override
+  String get closetMatchLabel => '衣櫃契合度';
+
+  @override
+  String get purchasedLabel => '購買日';
 
   @override
   String get insightCardPrompt => '看看這件單品跟你衣櫃的搭配度。';

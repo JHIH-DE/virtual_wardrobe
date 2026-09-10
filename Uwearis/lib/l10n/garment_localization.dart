@@ -3,6 +3,16 @@ import 'package:flutter/widgets.dart';
 import '../data/garment.dart';
 import 'generated/app_localizations.dart';
 
+/// The tier band a 0–100 versatility [score] falls into. Shared by the
+/// garment insight card and the share card.
+String versatilityScoreTier(AppLocalizations l10n, int score) {
+  if (score >= 90) return l10n.scoreTierExcellent;
+  if (score >= 75) return l10n.scoreTierHighlyVersatile;
+  if (score >= 55) return l10n.scoreTierGoodMatch;
+  if (score >= 35) return l10n.scoreTierLimitedMatch;
+  return l10n.scoreTierHardToStyle;
+}
+
 extension GarmentCategoryLocalization on GarmentCategory {
   String localizedLabel(BuildContext context) {
     final l10n = AppLocalizations.of(context);

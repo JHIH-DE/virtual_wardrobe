@@ -434,8 +434,13 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     if (!widget.selectOnly) {
       // Same as every other garment screen: lean on garmentsProvider and let
       // it re-fetch only when its own list is empty or its image URLs are
-      // stale (a no-op if My Closet just refreshed).
-      ref.read(garmentsProvider.notifier).refreshIfNeeded();
+      // stale (a no-op if My Closet just refreshed). Deferred to post-frame —
+      // `refreshIfNeeded` synchronously flips the provider to AsyncLoading,
+      // which Riverpod forbids during a build/initState (matches how
+      // closet_page / outfits_page / trip_suitcase_page schedule it).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(garmentsProvider.notifier).refreshIfNeeded();
+      });
     }
   }
 

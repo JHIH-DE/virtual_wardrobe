@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../utils/debug_log.dart';
 import 'auth_handler.dart';
 import 'auth_storage.dart';
 
@@ -50,13 +51,15 @@ mixin BaseService {
     final storedRefresh = await AuthStorage.getRefreshToken();
     if (storedRefresh == null) throw AuthExpiredException();
 
-    final refreshRes = await http
-        .post(
-          Uri.parse('${AppConfig.fullApiUrl}/auth/refresh'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'refresh_token': storedRefresh}),
-        )
-        .timeout(const Duration(seconds: 15));
+    final refreshRes = await sendTimed(
+      () => http
+          .post(
+            Uri.parse('${AppConfig.fullApiUrl}/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': storedRefresh}),
+          )
+          .timeout(const Duration(seconds: 15)),
+    );
     if (refreshRes.statusCode != 200) throw AuthExpiredException();
 
     final body = jsonDecode(refreshRes.body) as Map<String, dynamic>;
@@ -80,11 +83,39 @@ mixin BaseService {
     bool retryOnTimeout,
   ) async {
     try {
-      return await request(token);
+      return await sendTimed(() => request(token));
     } on TimeoutException {
       if (!retryOnTimeout) rethrow;
+      debugLog('<<< timed out — retrying once after 1s');
       await Future<void>.delayed(const Duration(seconds: 1));
-      return request(token);
+      return sendTimed(() => request(token));
+    }
+  }
+
+  /// Wraps a single HTTP send with a one-line timing log — method, path,
+  /// status and elapsed ms — so a slow response (typically the staging
+  /// backend's Cloud Run cold start: the first request after the container
+  /// scaled to zero) is obvious in the logs. No token, header, or query
+  /// string is logged, only the URL path. Debug builds only, like every
+  /// other [debugLog] line. [withAuth] uses it for authenticated calls;
+  /// unauthenticated callers (login, token refresh) wrap their own POST.
+  Future<http.Response> sendTimed(
+    Future<http.Response> Function() send,
+  ) async {
+    final sw = Stopwatch()..start();
+    try {
+      final res = await send();
+      sw.stop();
+      final req = res.request;
+      debugLog(
+        '<<< ${req?.method ?? 'HTTP'} ${req?.url.path ?? '?'} '
+        '-> ${res.statusCode} in ${sw.elapsedMilliseconds}ms',
+      );
+      return res;
+    } catch (e) {
+      sw.stop();
+      debugLog('<<< HTTP failed in ${sw.elapsedMilliseconds}ms: $e');
+      rethrow;
     }
   }
 

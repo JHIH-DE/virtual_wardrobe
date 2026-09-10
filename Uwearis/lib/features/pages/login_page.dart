@@ -56,6 +56,12 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithGoogle() async {
+    // Synchronous re-entrancy guard — before any await. Disabling the button
+    // on `_isLoading` isn't enough: `setState` only takes effect next frame,
+    // and there are two awaits (init, signOut) before the account picker, so
+    // a fast double-tap otherwise launches two concurrent sign-in flows that
+    // race on the token exchange and AuthStorage.
+    if (_isLoading) return;
     if (Platform.isIOS && Env.googleIosClientId.isEmpty) {
       _showSnack(_l10n.googleLoginNotConfiguredIOS);
       return;
@@ -88,6 +94,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithApple() async {
+    if (_isLoading) return; // synchronous re-entrancy guard — see _loginWithGoogle
     setState(() => _isLoading = true);
     try {
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -130,6 +137,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithFacebook() async {
+    if (_isLoading) return; // synchronous re-entrancy guard — see _loginWithGoogle
     setState(() => _isLoading = true);
     try {
       debugLog('--- _loginWithFacebook - Start ---');

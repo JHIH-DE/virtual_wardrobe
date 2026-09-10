@@ -339,6 +339,30 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get share;
 
+  /// No description provided for @shareThisPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this piece'**
+  String get shareThisPiece;
+
+  /// No description provided for @shareThisOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this outfit'**
+  String get shareThisOutfit;
+
+  /// No description provided for @shareImageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the image.'**
+  String get shareImageUnavailable;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share — please try again.'**
+  String get shareFailed;
+
   /// No description provided for @delete.
   ///
   /// In en, this message translates to:
@@ -1574,6 +1598,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hard to Style'**
   String get scoreTierHardToStyle;
+
+  /// No description provided for @closetMatchLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Closet Match'**
+  String get closetMatchLabel;
+
+  /// No description provided for @purchasedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchased'**
+  String get purchasedLabel;
 
   /// No description provided for @insightCardPrompt.
   ///

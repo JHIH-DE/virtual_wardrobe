@@ -13,13 +13,15 @@ class AuthService with BaseService {
   /// One unauthenticated JSON POST against `/auth`, time-bounded so a login
   /// or refresh can't hang the sign-in flow forever.
   Future<http.Response> _postJson(String path, Map<String, dynamic> body) {
-    return http
-        .post(
-          Uri.parse('$_baseUrl$path'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 15));
+    return sendTimed(
+      () => http
+          .post(
+            Uri.parse('$_baseUrl$path'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15)),
+    );
   }
 
   /// Pulls the issued `access_token`/`refresh_token` pair out of a decoded

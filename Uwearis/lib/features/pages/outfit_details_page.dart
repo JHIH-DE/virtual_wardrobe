@@ -39,12 +39,13 @@ import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
+import '../widgets/outfit/outfit_share_sheet.dart';
 import 'add_outfit_page.dart';
 import 'select_outfit_group_page.dart';
 
-enum _OutfitMenuAction { rename, share, delete }
+enum _OutfitMenuAction { rename, delete }
 
-enum _VersionMenuAction { setCover, regenerate, delete }
+enum _VersionMenuAction { setCover, regenerate, share, delete }
 
 class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
@@ -153,6 +154,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// none of the image overlay controls (favorite/version menu) or the
   /// season/style tag editor apply to it.
   bool get _isDailyOutfit => _current.groupType == OutfitGroupType.daily;
+
+  /// The group has a second version loaded. The photo menu's "Set as Cover"
+  /// and "Delete This Version" items only make sense then: with a single
+  /// version "set cover" is meaningless, and "delete" would just remove the
+  /// whole group — which the app-bar menu's own Delete already covers. Also
+  /// false in the not-yet-saved isNew state (siblings are never loaded there).
+  bool get _hasMultipleVersions => _versionsResolved && _versions.length >= 2;
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
@@ -274,15 +283,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                 label: _l10n.rename,
               ),
               AppPopupMenu.item(
-                value: _OutfitMenuAction.share,
-                icon: const Icon(
-                  Icons.share_outlined,
-                  size: 20,
-                  color: AppColors.icon,
-                ),
-                label: _l10n.share,
-              ),
-              AppPopupMenu.item(
                 value: _OutfitMenuAction.delete,
                 enabled: !_isDeleting,
                 icon: const Icon(
@@ -303,9 +303,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     switch (action) {
       case _OutfitMenuAction.rename:
         _showRenameDialog();
-        break;
-      case _OutfitMenuAction.share:
-        _shareOutfit();
         break;
       case _OutfitMenuAction.delete:
         _deleteOutfit();
@@ -537,10 +534,21 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
+  /// Opens the share sheet — a small card preview of the current version
+  /// (photo + style/season/pieces) that rasterizes to a PNG for the system
+  /// share sheet. Mirrors GarmentDetailsPage's share flow.
   void _shareOutfit() {
-    ScaffoldMessenger.of(
+    showOutfitShareSheet(
       context,
-    ).showSnackBar(SnackBar(content: Text(_l10n.shareComingSoon)));
+      imageUrl: _current.imageUrl,
+      name: _title,
+      style: _effectiveStyle.map(_titleCase).toList(),
+      seasons: _effectiveSeasons.map(_titleCase).toList(),
+      garmentImageUrls: [
+        for (final g in _garments ?? const <Garment>[])
+          if ((g.imageUrl ?? '').isNotEmpty) g.imageUrl!,
+      ],
+    );
   }
 
   /// Refreshes the signed image URL for the version at [index] — every
@@ -814,32 +822,47 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     return AppPopupMenu<_VersionMenuAction>(
       onSelected: _handleVersionMenuAction,
       items: [
-        AppPopupMenu.item(
-          value: _VersionMenuAction.setCover,
-          enabled: !_isSettingCover,
-          icon: const Icon(
-            Icons.push_pin_outlined,
-            size: 20,
-            color: AppColors.icon,
+        if (_hasMultipleVersions)
+          AppPopupMenu.item(
+            value: _VersionMenuAction.setCover,
+            enabled: !_isSettingCover,
+            icon: const Icon(
+              Icons.push_pin_outlined,
+              size: 20,
+              color: AppColors.icon,
+            ),
+            label: _l10n.setAsCover,
           ),
-          label: _l10n.setAsCover,
-        ),
         AppPopupMenu.item(
           value: _VersionMenuAction.regenerate,
           icon: const Icon(Icons.refresh, size: 20, color: AppColors.icon),
           label: _l10n.regenerate,
         ),
         AppPopupMenu.item(
-          value: _VersionMenuAction.delete,
-          enabled: !_isDeleting,
+          value: _VersionMenuAction.share,
           icon: const Icon(
-            Icons.delete_outline,
+            Icons.share_outlined,
             size: 20,
             color: AppColors.icon,
           ),
-          label: _l10n.deleteThisVersion,
-          isDestructive: true,
+          label: _l10n.share,
         ),
+        // "Delete This Version" only when there's more than one version —
+        // otherwise it's a whole-group delete (the app-bar menu's Delete
+        // covers that) and it's redundant next to the "Save" flow's own
+        // discard-on-leave.
+        if (_hasMultipleVersions)
+          AppPopupMenu.item(
+            value: _VersionMenuAction.delete,
+            enabled: !_isDeleting,
+            icon: const Icon(
+              Icons.delete_outline,
+              size: 20,
+              color: AppColors.icon,
+            ),
+            label: _l10n.deleteThisVersion,
+            isDestructive: true,
+          ),
       ],
       trigger: Container(
         width: 36,
@@ -868,6 +891,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         break;
       case _VersionMenuAction.regenerate:
         _regenerateImage();
+        break;
+      case _VersionMenuAction.share:
+        _shareOutfit();
         break;
       case _VersionMenuAction.delete:
         _deleteThisOutfit();

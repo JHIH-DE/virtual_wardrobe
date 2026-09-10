@@ -139,6 +139,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get share => 'Share';
 
   @override
+  String get shareThisPiece => 'Share this piece';
+
+  @override
+  String get shareThisOutfit => 'Share this outfit';
+
+  @override
+  String get shareImageUnavailable => 'Couldn\'t load the image.';
+
+  @override
+  String get shareFailed => 'Couldn\'t share — please try again.';
+
+  @override
   String get delete => 'Delete';
 
   @override
@@ -800,6 +812,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scoreTierHardToStyle => 'Hard to Style';
+
+  @override
+  String get closetMatchLabel => 'Closet Match';
+
+  @override
+  String get purchasedLabel => 'Purchased';
 
   @override
   String get insightCardPrompt =>

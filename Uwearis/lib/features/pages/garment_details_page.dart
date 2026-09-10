@@ -32,6 +32,7 @@ import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
@@ -39,6 +40,7 @@ import '../widgets/common/overlays/save_changes_dialog.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/compatibility_row.dart';
 import '../widgets/garment/garment_image.dart';
+import '../widgets/garment/garment_share_sheet.dart';
 import 'garment_outfits_page.dart';
 import 'image_editor_page.dart';
 
@@ -240,12 +242,32 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  // Mirrors OutfitDetailsPage._shareOutfit — sharing isn't implemented on
-  // either page yet, just the placeholder entry point.
+  /// Opens the share sheet — a small card preview of this garment that
+  /// rasterizes to a PNG for the system share sheet. Only reachable in edit
+  /// mode (the ⋮ menu is hidden while adding). Reflects the form's current
+  /// name/category so a just-made edit shows even before it's saved. The
+  /// closet-match score rides along only if Uwearis actually analysed this
+  /// garment this session (the "Analyze with AI" card).
   void _shareGarment() {
-    ScaffoldMessenger.of(
+    final base = _editingGarment;
+    if (base == null) return;
+    final brand = _brandCtrl.text.trim();
+    final price = double.tryParse(_priceCtrl.text.trim());
+    showGarmentShareSheet(
       context,
-    ).showSnackBar(SnackBar(content: Text(_l10n.shareComingSoon)));
+      garment: base.copyWith(
+        name: _nameCtrl.text.trim(),
+        category: _category,
+        subCategory: _subCategory.text.trim(),
+        brand: brand.isEmpty ? null : brand,
+        clearBrand: brand.isEmpty,
+        price: price,
+        clearPrice: price == null,
+        purchaseDate: _purchaseDate,
+        clearPurchaseDate: _purchaseDate == null,
+      ),
+      versatilityScore: _versatility?.score,
+    );
   }
 
   /// Instant rename, independent of the full-form Save button — mirrors
@@ -1188,13 +1210,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     });
 
     try {
+      final wasAdd = _isAddMode;
       // Upload when adding or when the image changed; otherwise just update text fields
       final result = (_isAddMode || _isImageChanged)
           ? await _uploadNewGarment()
           : await _updateGarmentFields();
 
       if (!mounted) return;
-      Navigator.of(context).pop(result);
+      _adoptSaved(result, wasAdd: wasAdd);
     } on AuthExpiredException {
       await AuthExpiredHandler.handle(context);
       return;
@@ -1206,6 +1229,56 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         });
       }
     }
+  }
+
+  /// Save keeps the user on this page: the persisted garment is folded into
+  /// local state (Add Mode flips to Edit Mode), the closet provider is
+  /// updated here rather than via a pop result, and a confirmation shows.
+  void _adoptSaved(Garment g, {required bool wasAdd}) {
+    setState(() {
+      _editingGarment = g;
+      _id = g.id;
+      _name = g.name;
+      _imagePathOrUrl = g.imageUrl;
+      _isImageChanged = false;
+      _uploading = false;
+      _errorMessage = null;
+      if (wasAdd) _outfitCount = 0;
+
+      // Re-snapshot the change-detection baseline *before* touching the
+      // controllers — assigning their text fires _checkModified, which must
+      // see the new baseline so the form reads "not modified".
+      _category = g.category;
+      _purchaseDate = g.purchaseDate;
+      _selectedColor = _tryParseGarmentColor(g.color);
+      _selectedFit = GarmentFitX.fromApiValue(g.fit);
+      _initialName = g.name;
+      _initialCategory = g.category;
+      _initialSub = g.subCategory;
+      _initialBrand = g.brand ?? '';
+      _initialPrice = g.price?.toString() ?? '';
+      _initialColor = _selectedColor;
+      _initialFit = _selectedFit;
+      _initialDate = g.purchaseDate;
+      _isModified = false;
+
+      _nameCtrl.text = g.name;
+      _subCategory.text = g.subCategory;
+      _brandCtrl.text = g.brand ?? '';
+      _priceCtrl.text = g.price?.toString() ?? '';
+    });
+
+    final notifier = ref.read(garmentsProvider.notifier);
+    if (wasAdd) {
+      notifier.addGarment(g);
+    } else {
+      notifier.updateGarment(g);
+    }
+
+    showFeedbackOverlay(
+      context,
+      message: wasAdd ? _l10n.clothingAdded : _l10n.changesSaved,
+    );
   }
 
   /// Uploads the (new or edited) image, then creates the garment record.
@@ -1311,14 +1384,6 @@ class _OutfitPotentialCard extends StatelessWidget {
     required this.isAnalyzing,
   });
 
-  String _scoreTierLabel(AppLocalizations l10n, int score) {
-    if (score >= 90) return l10n.scoreTierExcellent;
-    if (score >= 75) return l10n.scoreTierHighlyVersatile;
-    if (score >= 55) return l10n.scoreTierGoodMatch;
-    if (score >= 35) return l10n.scoreTierLimitedMatch;
-    return l10n.scoreTierHardToStyle;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -1412,7 +1477,7 @@ class _OutfitPotentialCard extends StatelessWidget {
                 ScoreRing(score: score, size: 70),
                 const SizedBox(height: 6),
                 Text(
-                  _scoreTierLabel(l10n, score),
+                  versatilityScoreTier(l10n, score),
                   style: AppTextStyle.bold12.copyWith(
                     color: AppColors.textSecondary,
                   ),
