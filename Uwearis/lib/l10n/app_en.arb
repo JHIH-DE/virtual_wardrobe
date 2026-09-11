@@ -249,7 +249,7 @@
   "noOutfitPlannedYetTitle": "No outfit planned yet",
   "noOutfitPlannedYetHint": "Generate your trip plan to assign clothes for this day.",
   "insufficientSuitcaseTitle": "Not Enough in Your Suitcase",
-  "insufficientSuitcaseBody": "Uwearis needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.",
+  "insufficientSuitcaseBody": "Uwearis needs a top and a bottom (or a one-piece), plus a pair of shoes, to plan outfits. Add a few more pieces to your suitcase first.",
   "goToSuitcase": "Go to Suitcase",
   "missingFromSuitcaseCount": "{count} items aren't packed yet.",
   "@missingFromSuitcaseCount": {
@@ -416,7 +416,8 @@
 
   "seasonLabel": "Season",
   "styleLabel": "Style",
-  "noOutfitsYet": "No outfits yet.",
+  "noOutfitsYet": "No outfits yet",
+  "outfitsEmptyHint": "Combine pieces from your closet into a complete look.",
   "itemNotUsedInOutfitsYet": "This item has not been used in any outfits yet.",
   "failedToUpdateFavorite": "Failed to update favorite",
 
@@ -428,6 +429,7 @@
   "loadingTripsEllipsis": "Loading Trips…",
   "loadingOutfitsEllipsis": "Loading Outfits…",
   "noTripsPlannedYet": "No trips planned yet",
+  "tripsEmptyHint": "Plan a trip and let Uwearis help you pack and pick outfits.",
   "statusOngoing": "Ongoing",
   "statusUpcoming": "Upcoming",
   "statusPast": "Past",
@@ -445,7 +447,7 @@
   },
   "noItemsPlanned": "No items planned",
   "thinkingEllipsis": "Thinking…",
-  "outfitAdviceLabel": "Outfit advice",
+  "packingAdviceLabel": "Packing Advice",
   "suitcaseLabel": "Suitcase",
   "packClothingHint": "Pack clothing for this trip",
 
@@ -461,6 +463,8 @@
   "@noGarmentsInCategory": {
     "placeholders": { "category": { "type": "String" } }
   },
+  "noGarmentsInCloset": "No garments in Closet",
+  "closetEmptyCategoryHint": "Add pieces from this category to build out your closet.",
   "suggestedByAi": "Suggested by AI",
   "loadingPackingSuggestions": "Loading packing suggestions…",
   "recommendedSelectedCount": "Recommended {recommended} · Selected {selected}",
@@ -485,7 +489,9 @@
   "addGarment": "Add Garment",
   "browseYourClosetHint": "Browse your closet",
   "addAction": "Add",
-  "noGarmentsPackedYet": "No garments packed yet",
+  "startPackingTripTitle": "Start packing your trip",
+  "startPackingTripHint": "Choose clothes from your closet to build your trip outfits.",
+  "addGarmentsButton": "Add Garments",
 
   "occasionWork": "Work",
   "occasionCasual": "Casual",

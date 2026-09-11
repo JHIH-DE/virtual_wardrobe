@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
+import '../../core/providers/garments_provider.dart';
 import '../../core/providers/outfits_provider.dart';
+import '../../core/services/auth_handler.dart';
+import '../../core/utils/debug_log.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -12,6 +15,7 @@ import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/outfit/outfit_grid.dart';
+import 'add_outfit_page.dart';
 import 'outfit_details_page.dart';
 
 class OutfitsPage extends ConsumerStatefulWidget {
@@ -54,6 +58,38 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     });
   }
 
+  /// Triggered by the empty-state "Create Outfit" CTA — mirrors
+  /// [main_shell.dart]'s own `QuickAction.addOutfit` (warm garmentsProvider,
+  /// then push [AddOutfitPage]), routed through [MainShellScope]'s
+  /// per-tab loading overlay since this page is itself a main tab (see
+  /// CLAUDE.md's main-tab loading convention) rather than a page-local one.
+  Future<void> _openAddOutfit() async {
+    final l10n = AppLocalizations.of(context);
+    MainShellScope.of(
+      context,
+    )?.setLoading(true, label: l10n.loadingGarments, tab: MainTab.outfits);
+    try {
+      await ref.read(garmentsProvider.future);
+      if (!mounted) return;
+      MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddOutfitPage()),
+      );
+    } on AuthExpiredException {
+      if (!mounted) return;
+      MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
+      debugLog('Failed to load garments: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadGarments)));
+    }
+  }
+
   AppToolBar _buildAppBar(List<Outfit> all) {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
@@ -79,7 +115,12 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
         data: (all) => OutfitGrid(
           outfits: _filter.apply(all),
           onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
-          emptyMessage: AppLocalizations.of(context).noOutfitsYet,
+          emptyIcon: Icons.style_outlined,
+          emptyTitle: AppLocalizations.of(context).noOutfitsYet,
+          emptyMessage: AppLocalizations.of(context).outfitsEmptyHint,
+          emptyActionLabel: AppLocalizations.of(context).createOutfit,
+          onEmptyAction: _openAddOutfit,
+          emptyBottomInset: AppDimens.mainNavBarClearance,
           padding: const EdgeInsets.fromLTRB(
             16,
             16,

@@ -6,8 +6,9 @@ import 'expand_arrow_icon.dart';
 
 /// Tap-to-expand body for a [UwearisInsightCard]: a [title] row with an
 /// [ExpandArrowIcon], and a detail paragraph that cross-fades in/out. Used
-/// by Trip Details' packing advice and Trip garment selection's per-category
-/// advice.
+/// by Trip Suitcase's packing advice and Trip garment selection's
+/// per-category advice. Sizes to content — no fixed height — so it stays
+/// compact for the short (1-3 sentence) AI copy both call sites show.
 class ExpandableInsightBody extends StatelessWidget {
   /// The always-visible header — a `Text` or `SectionTitle`.
   final Widget title;

@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
+import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
+import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
@@ -14,6 +16,8 @@ import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/removable_card.dart';
+import '../widgets/common/cards/uwearis_insight_card.dart';
+import '../widgets/common/expandable_insight_body.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
@@ -24,7 +28,18 @@ import 'trip_garment_selection_page.dart';
 class TripSuitcasePage extends ConsumerStatefulWidget {
   final Trip trip;
 
-  const TripSuitcasePage({super.key, required this.trip});
+  /// True only on the navigation that lands here straight after creating the
+  /// trip (this page is now the first stop, with Trip Details pushed
+  /// underneath it) — the Uwearis outfit-advice card then opens expanded,
+  /// since the advice is fresh and unread. Reopening the suitcase later
+  /// keeps it collapsed.
+  final bool justCreated;
+
+  const TripSuitcasePage({
+    super.key,
+    required this.trip,
+    this.justCreated = false,
+  });
 
   @override
   ConsumerState<TripSuitcasePage> createState() => _TripSuitcasePageState();
@@ -47,6 +62,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   // own confirm). [_committedIds] tracks what the server actually holds.
   List<Garment> _packedGarments = [];
   Set<int> _committedIds = {};
+  // Opens expanded straight after trip creation (see
+  // [TripSuitcasePage.justCreated]).
+  late bool _adviceExpanded = widget.justCreated;
   bool _committing = false;
   final Set<int> _pendingIds = {};
   final _deleteGroup = RemovableCardGroup();
@@ -278,25 +296,102 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
+  /// Uwearis's outfit-advice card for this trip — moved here from Trip
+  /// Details, since packing the suitcase is exactly what the advice informs.
+  /// Watches [tripSuggestionProvider] directly (shared/cached with Trip
+  /// Details' own use of it for the packing-count gate) rather than the
+  /// text being passed down as a page param.
+  Widget _buildOutfitAdviceCard() {
+    final advice = ref.watch(tripSuggestionProvider(_tripId));
+    return advice.when(
+      data: (analysis) {
+        final text = analysis.overallAdvice;
+        if (text == null || text.isEmpty) return const SizedBox.shrink();
+        return UwearisInsightCard(
+          margin: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
+          child: ExpandableInsightBody(
+            title: SectionTitle(
+              _l10n.packingAdviceLabel,
+              style: AppTextStyle.regular16,
+            ),
+            detail: text,
+            expanded: _adviceExpanded,
+            onToggle: () => setState(() => _adviceExpanded = !_adviceExpanded),
+          ),
+        );
+      },
+      loading: () => UwearisInsightCard(
+        margin: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
+        child: Row(
+          children: [
+            const SizedBox(
+              height: 14,
+              width: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _l10n.thinkingEllipsis,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      // The packed-items list below is the page's real content; a failed
+      // advice fetch just means no card, not a page-level error state.
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+
   Widget _buildBody(List<Garment> closetGarments) {
     return RefreshIndicator(
       onRefresh: _loadPackedItems,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_packedGarments.isEmpty)
-            EmptyStatePlaceholder(
-              message: _l10n.noGarmentsPackedYet,
-              icon: Icons.luggage_outlined,
-              padding: EdgeInsets.only(top: 80),
-            )
-          else
-            for (final category in _categoryOrder)
-              ..._buildCategorySection(
-                category,
-                _packedGarments.where((g) => g.category == category).toList(),
-              ),
-        ],
+      child: _packedGarments.isEmpty
+          ? _buildEmptyPackingState(closetGarments)
+          : CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  sliver: SliverToBoxAdapter(child: _buildOutfitAdviceCard()),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      for (final category in _categoryOrder)
+                        ..._buildCategorySection(
+                          category,
+                          _packedGarments
+                              .where((g) => g.category == category)
+                              .toList(),
+                        ),
+                    ]),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  /// Empty-suitcase state — the shared icon+title+hint+action treatment
+  /// (see [EmptyStatePlaceholder]), same mechanism Closet/Outfits/Trips'
+  /// empty tabs use ([fillAvailableSpace]). [pinnedTop] carries the
+  /// collapsible packing-advice card: its own layer keeps expanding/
+  /// collapsing it from ever shifting the centered content below.
+  Widget _buildEmptyPackingState(List<Garment> closetGarments) {
+    return EmptyStatePlaceholder(
+      icon: Icons.luggage_outlined,
+      title: _l10n.startPackingTripTitle,
+      message: _l10n.startPackingTripHint,
+      actionLabel: _l10n.addGarmentsButton,
+      onAction: () => _handleAddGarment(closetGarments),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      fillAvailableSpace: true,
+      pinnedTop: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: _buildOutfitAdviceCard(),
       ),
     );
   }

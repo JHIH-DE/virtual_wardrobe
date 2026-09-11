@@ -13,6 +13,7 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
+import '../../core/utils/route_observer.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/trip.dart';
@@ -24,9 +25,7 @@ import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
-import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/edge_fade_scrim.dart';
-import '../widgets/common/expandable_insight_body.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
@@ -69,16 +68,10 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   final Trip trip;
   final TripPlan initialData;
 
-  /// True only on the navigation that lands here straight after creating the
-  /// trip — the Uwearis packing-advice card then opens expanded (the advice
-  /// is fresh and unread). Re-opening the same trip later keeps it collapsed.
-  final bool justCreated;
-
   const TripDetailsPage({
     super.key,
     required this.trip,
     required this.initialData,
-    this.justCreated = false,
   });
 
   /// Fetches everything [TripDetailsPage] needs up front, so the page can be
@@ -105,7 +98,8 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<TripDetailsPage> createState() => _TripDetailsPageState();
 }
 
-class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
+class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
+    with RouteAware {
   // TripDayCard's own width plus the gap between cards — used to compute
   // how far to scroll the day selector to bring a tapped card into view.
   static const double _dayCardWidth = 95;
@@ -126,15 +120,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   late List<TripDayOutfit> _dayOutfits = widget.initialData.days;
   late Set<int> _suitcaseIds = widget.initialData.suitcaseIds;
 
-  bool _loadingPackingAdvice = false;
-  String? _packingAdvice;
-  // Opens expanded straight after trip creation (see [TripDetailsPage.justCreated]).
-  late bool _packingAdviceExpanded = widget.justCreated;
+  // Display-only — feeds the "Recommended N · Selected M" summary on the
+  // Suitcase card (see [_buildSuitcaseSection]). Packing guidance, never a
+  // Generate Trip Plan gate: see [_isPlanReady].
   int? _recommendedTotal;
-  // Set once [_loadPackingAdvice] finishes (success or not) — distinguishes
-  // "recommended count still loading" from "no count available" so the
-  // packing gate / Suitcase hint don't flicker or over-lenient.
-  bool _packingAnalysisLoaded = false;
   bool _generatingPlan = false;
   bool _generatingOutfit = false;
   bool _loadingEditor = false;
@@ -164,32 +153,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// before overwriting.
   bool get _hasTripPlan => _dayOutfits.any((d) => d.optionId != null);
 
-  // Fallback packing floor when the analysis returned no recommended count.
-  static const int _packFloor = 4;
-
-  /// How many packed items "Generate Trip Plan" wants — half the recommended
-  /// total, or [_packFloor] when there's no recommendation.
-  int get _packTarget {
-    final recommended = _recommendedTotal;
-    if (recommended != null && recommended > 0) return (recommended / 2).ceil();
-    return _packFloor;
-  }
-
-  /// Count gate for the "Generate Trip Plan" CTA — the suitcase must hold at
-  /// least [_packTarget] items (generating a whole trip from almost nothing
-  /// just produces an unusable plan). Stays lenient ("at least one packed")
-  /// only while the recommendation is still loading, so a full suitcase
-  /// isn't briefly blocked; once the analysis is in it uses the real target.
-  bool get _meetsPackingThreshold {
-    final packed = _suitcaseIds.length;
-    if (_recommendedTotal == null && !_packingAnalysisLoaded) return packed > 0;
-    return packed >= _packTarget;
-  }
-
-  /// Whether the packed suitcase can actually build outfits (an upper *and*
-  /// a lower). `null` when the closet isn't loaded yet — the gate then rests
-  /// on the count alone, and [_generatePlanFlow]'s own check still catches a
-  /// non-viable suitcase at tap time.
+  /// Whether the packed suitcase can actually build outfits — mirrors the
+  /// backend's own minimum for `/generate` (see [_hasViableSuitcase]). `null`
+  /// means "not yet verified": the closet hasn't loaded, so there's no
+  /// answer yet, not a lenient default one. The fetch starts the instant
+  /// this getter is first watched (`ref.watch` triggers `garmentsProvider`'s
+  /// `build()`), so the window is normally brief.
   bool? get _suitcaseIsViable {
     final closet = ref.watch(garmentsProvider).value;
     if (closet == null) return null;
@@ -198,11 +167,20 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// The real "Generate Trip Plan is ready" condition: enough items *and*
-  /// (when known) a viable mix. Drives both the CTA's enabled state and the
-  /// Suitcase card's priority highlight.
-  bool get _isPlanReady =>
-      _meetsPackingThreshold && (_suitcaseIsViable ?? true);
+  /// The real "Generate Trip Plan is ready" condition. AI packing guidance
+  /// (`recommended_quantity`, surfaced on the Suitcase card as "Recommended
+  /// N · Selected M") is never part of this — it's an optimization hint, not
+  /// a completion requirement, so a suitcase under the recommended count
+  /// must still be able to (re)generate as long as it can build a complete
+  /// outfit. See [_hasViableSuitcase].
+  ///
+  /// Fail-closed on `null`: [_suitcaseIsViable] is null only while the
+  /// closet is still loading — "not yet verified" is not "ready". Treating
+  /// it as ready would briefly show the bottom CTA as enabled only for it to
+  /// immediately bounce into [_generatePlanFlow]'s own insufficient-suitcase
+  /// dialog if the real answer turns out to be "no". The CTA appears the
+  /// moment the closet resolves either way.
+  bool get _isPlanReady => _suitcaseIsViable == true;
 
   /// True once a not-yet-rendered day's assignment leans on a garment no
   /// longer in the suitcase — generating that day's outfit would try on
@@ -238,7 +216,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _loadPackingAdvice();
+    _loadPackingAnalysis();
     // preload() fetched fresh garment image URLs, but if this page instance
     // stays open long enough for them to expire (e.g. backgrounded, or the
     // trip was preloaded a while before the user actually opened it), there
@@ -249,10 +227,38 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribes (re-subscribing is a harmless no-op) so [didPopNext] fires
+    // whenever a page pushed on top of this one is popped back to it — see
+    // its doc comment for why this page can't rely on knowing how that push
+    // happened.
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) routeObserver.subscribe(this, route);
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _dayScrollController.dispose();
     super.dispose();
   }
+
+  /// Fires when a page pushed on top of this one is popped and this page is
+  /// visible again — including [TripSuitcasePage], which may have changed
+  /// the suitcase. This is the single place [_suitcaseIds] gets refreshed on
+  /// return, deliberately not tied to *how* the Suitcase page was reached:
+  /// [_openSuitcase] pushes it directly, but right after trip creation
+  /// (`TripsPage.handleCreateTrip`) it's pushed on top of this page from
+  /// outside — before this hook existed, popping back from that first
+  /// just-created visit left [_suitcaseIds] at its stale (empty, pre-pack)
+  /// preload snapshot, so Generate Trip Plan never appeared even after
+  /// packing a perfectly viable suitcase. A refetch after any other pushed
+  /// page (e.g. the day outfit editor) is a harmless extra GET, not a
+  /// correctness issue — it isn't worth threading a "did this specific push
+  /// touch the suitcase" flag through every call site to avoid it.
+  @override
+  void didPopNext() => _fetchSuitcaseGarments();
 
   bool get _hasStaleGarmentImages => _dayOutfits.any(
     (day) => anySignedUrlExpired(day.garments.map((g) => g.imageUrl)),
@@ -278,17 +284,21 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  Future<void> _loadPackingAdvice() async {
-    setState(() => _loadingPackingAdvice = true);
+  /// Loads the trip's packing analysis for [_recommendedTotal] — the
+  /// packing-gate / "Generate Trip Plan" threshold. The advice text itself
+  /// (`analysis.overallAdvice`) now renders on [TripSuitcasePage], which
+  /// watches the same cached [tripSuggestionProvider] directly rather than
+  /// this page passing the text through.
+  Future<void> _loadPackingAnalysis() async {
     try {
-      // Shared with the suitcase garment picker (see tripSuggestionProvider)
-      // so opening that doesn't re-request the same analysis.
+      // Shared with the suitcase page/garment picker (see
+      // tripSuggestionProvider) so opening either doesn't re-request the
+      // same analysis.
       final analysis = await ref.read(
         tripSuggestionProvider(int.parse(_trip.id)).future,
       );
       if (mounted) {
         setState(() {
-          _packingAdvice = analysis.overallAdvice;
           _recommendedTotal = analysis.categories.isEmpty
               ? null
               : analysis.recommendedTotal;
@@ -301,13 +311,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     } catch (e) {
       if (!mounted) return;
       debugLog('Failed to analyze trip plan: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loadingPackingAdvice = false;
-          _packingAnalysisLoaded = true;
-        });
-      }
     }
   }
 
@@ -344,27 +347,28 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// A suitcase needs at least one upper-body piece (top or one-piece) and
-  /// one lower-body piece (bottom or one-piece) for Uwearis to have any chance
-  /// of assembling a complete outfit.
+  /// Mirrors the backend's own minimum-suitcase rule for `/generate`
+  /// (`DayPlanGenerator.generate_days_payload` in the backend repo — a top
+  /// *and* a bottom, or a one-piece, plus shoes) so the CTA doesn't go live
+  /// for a suitcase the backend would immediately reject with
+  /// `SUITCASE_INCOMPLETE`. This is UX guidance only, kept deliberately in
+  /// sync with that rule — the backend call remains the authoritative check.
   bool _hasViableSuitcase(List<Garment> suitcase) {
     final categories = suitcase.map((g) => g.category).toSet();
-    final hasUpper =
-        categories.contains(GarmentCategory.top) ||
-        categories.contains(GarmentCategory.onePiece);
-    final hasLower =
-        categories.contains(GarmentCategory.bottom) ||
-        categories.contains(GarmentCategory.onePiece);
-    return hasUpper && hasLower;
+    final hasTopAndBottom =
+        categories.contains(GarmentCategory.top) &&
+        categories.contains(GarmentCategory.bottom);
+    final hasOnePiece = categories.contains(GarmentCategory.onePiece);
+    final hasShoes = categories.contains(GarmentCategory.shoes);
+    return (hasTopAndBottom || hasOnePiece) && hasShoes;
   }
 
+  // The refetch on return is [didPopNext], not here — see its doc comment.
   Future<void> _openSuitcase() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: _trip)),
     );
-    if (!mounted) return;
-    await _fetchSuitcaseGarments();
   }
 
   /// Asks Uwearis to build an outfit for every day of the trip from whatever's
@@ -388,7 +392,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     final fetched = await _fetchSuitcaseGarments();
     if (fetched == null || !mounted) return;
 
-    if (!_meetsPackingThreshold || !_hasViableSuitcase(fetched)) {
+    if (!_hasViableSuitcase(fetched)) {
       final goToSuitcase = await showDialog<bool>(
         context: context,
         builder: (ctx) => AppDialog(
@@ -842,7 +846,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 ? 0
                 : _selectedDayIndex.clamp(0, _dayOutfits.length - 1);
           });
-          _loadPackingAdvice();
+          _loadPackingAnalysis();
         }
       }
     } on AuthExpiredException {
@@ -935,8 +939,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           bottomNavigationBar: bottomBar,
           // A single scrollable list (rather than a fixed header Column with
           // only the bottom section scrolling) so dragging from anywhere on
-          // screen — including the trip header/insight/suitcase/day-selector
-          // area — scrolls the whole page, not just the section below them.
+          // screen — including the trip header/suitcase/day-selector area —
+          // scrolls the whole page, not just the section below them.
           body: ListView(
             padding: EdgeInsets.only(
               bottom: bottomBar != null
@@ -953,8 +957,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 ),
               ),
               _paddedSection(_TripDestinationsHeader(trip: _trip)),
-              const SizedBox(height: AppDimens.sectionSpacing),
-              _paddedSection(_buildUwearisInsightCard()),
               const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildSuitcaseSection()),
               const SizedBox(height: AppDimens.sectionSpacing),
@@ -1341,44 +1343,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  Widget _buildUwearisInsightCard() {
-    if (!_loadingPackingAdvice &&
-        (_packingAdvice == null || _packingAdvice!.isEmpty)) {
-      return const SizedBox.shrink();
-    }
-    return UwearisInsightCard(
-      child: _loadingPackingAdvice
-          ? Row(
-              children: [
-                const SizedBox(
-                  height: 14,
-                  width: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _l10n.thinkingEllipsis,
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            )
-          : ExpandableInsightBody(
-              title: SectionTitle(
-                _l10n.outfitAdviceLabel,
-                style: AppTextStyle.regular16,
-              ),
-              detail: _packingAdvice!,
-              detailLineHeight: 1.5,
-              expanded: _packingAdviceExpanded,
-              onToggle: () => setState(
-                () => _packingAdviceExpanded = !_packingAdviceExpanded,
-              ),
-            ),
-    );
-  }
-
   Widget _buildSuitcaseSection() {
     final packedCount = _suitcaseIds.length;
     final recommended = _recommendedTotal;
@@ -1388,19 +1352,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
               ? _l10n.recommendedSelectedCount(recommended, packedCount)
               : _l10n.packedItemsCount(packedCount));
 
-    // Accent-outline the card while packing the suitcase is the thing
-    // blocking "Generate Trip Plan" — drops away the moment the plan is
-    // actually ready. Only meaningful before a plan exists.
-    final needsPacking =
-        _primaryAction == TripGenerationAction.generateTripPlan &&
-        _packingAnalysisLoaded &&
-        !_isPlanReady &&
-        !_generatingPlan &&
-        !_planActionInFlight;
-
     return AppListCard(
       title: _l10n.suitcaseLabel,
-      highlighted: needsPacking,
       leading: const Icon(Icons.luggage_outlined, color: AppColors.icon),
       showArrow: true,
       onTap: _openSuitcase,

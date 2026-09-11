@@ -551,7 +551,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get insufficientSuitcaseBody =>
-      'Uwearis 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
+      'Uwearis 需要一件上衣＋下身（或連身衣），以及一雙鞋子才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
 
   @override
   String get goToSuitcase => '前往行李箱';
@@ -957,7 +957,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleLabel => '風格';
 
   @override
-  String get noOutfitsYet => '尚無穿搭。';
+  String get noOutfitsYet => '尚無穿搭';
+
+  @override
+  String get outfitsEmptyHint => '從衣櫃搭配單品，組成一套完整穿搭。';
 
   @override
   String get itemNotUsedInOutfitsYet => '這件單品尚未用於任何穿搭。';
@@ -988,6 +991,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noTripsPlannedYet => '尚無規劃中的行程';
+
+  @override
+  String get tripsEmptyHint => '規劃一趟旅程，讓 Uwearis 幫你打包行李、安排每日穿搭。';
 
   @override
   String get statusOngoing => '進行中';
@@ -1031,7 +1037,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get thinkingEllipsis => '思考中…';
 
   @override
-  String get outfitAdviceLabel => '穿搭建議';
+  String get packingAdviceLabel => '打包建議';
 
   @override
   String get suitcaseLabel => '行李箱';
@@ -1060,6 +1066,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String noGarmentsInCategory(String category) {
     return '$category中沒有衣物';
   }
+
+  @override
+  String get noGarmentsInCloset => '衣櫃中沒有衣物';
+
+  @override
+  String get closetEmptyCategoryHint => '從這個分類新增衣物，充實你的衣櫃。';
 
   @override
   String get suggestedByAi => 'AI 建議';
@@ -1099,7 +1111,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addAction => '新增';
 
   @override
-  String get noGarmentsPackedYet => '尚未打包任何衣物';
+  String get startPackingTripTitle => '開始打包你的行程';
+
+  @override
+  String get startPackingTripHint => '從衣櫃挑選衣物，打造你的行程穿搭。';
+
+  @override
+  String get addGarmentsButton => '新增衣物';
 
   @override
   String get occasionWork => '工作';
@@ -1810,7 +1828,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get insufficientSuitcaseBody =>
-      'Uwearis 至少需要一件上衣（或連身衣）和一件下身才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
+      'Uwearis 需要一件上衣＋下身（或連身衣），以及一雙鞋子才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
 
   @override
   String get goToSuitcase => '前往行李箱';
@@ -2216,7 +2234,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleLabel => '風格';
 
   @override
-  String get noOutfitsYet => '尚無穿搭。';
+  String get noOutfitsYet => '尚無穿搭';
+
+  @override
+  String get outfitsEmptyHint => '從衣櫃搭配單品，組成一套完整穿搭。';
 
   @override
   String get itemNotUsedInOutfitsYet => '這件單品尚未用於任何穿搭。';
@@ -2247,6 +2268,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get noTripsPlannedYet => '尚無規劃中的行程';
+
+  @override
+  String get tripsEmptyHint => '規劃一趟旅程，讓 Uwearis 幫你打包行李、安排每日穿搭。';
 
   @override
   String get statusOngoing => '進行中';
@@ -2290,7 +2314,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get thinkingEllipsis => '思考中…';
 
   @override
-  String get outfitAdviceLabel => '穿搭建議';
+  String get packingAdviceLabel => '打包建議';
 
   @override
   String get suitcaseLabel => '行李箱';
@@ -2319,6 +2343,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String noGarmentsInCategory(String category) {
     return '$category中沒有衣物';
   }
+
+  @override
+  String get noGarmentsInCloset => '衣櫃中沒有衣物';
+
+  @override
+  String get closetEmptyCategoryHint => '從這個分類新增衣物，充實你的衣櫃。';
 
   @override
   String get suggestedByAi => 'AI 建議';
@@ -2358,7 +2388,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addAction => '新增';
 
   @override
-  String get noGarmentsPackedYet => '尚未打包任何衣物';
+  String get startPackingTripTitle => '開始打包你的行程';
+
+  @override
+  String get startPackingTripHint => '從衣櫃挑選衣物，打造你的行程穿搭。';
+
+  @override
+  String get addGarmentsButton => '新增衣物';
 
   @override
   String get occasionWork => '工作';

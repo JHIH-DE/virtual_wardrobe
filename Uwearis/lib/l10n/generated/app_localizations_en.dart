@@ -577,7 +577,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get insufficientSuitcaseBody =>
-      'Uwearis needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.';
+      'Uwearis needs a top and a bottom (or a one-piece), plus a pair of shoes, to plan outfits. Add a few more pieces to your suitcase first.';
 
   @override
   String get goToSuitcase => 'Go to Suitcase';
@@ -988,7 +988,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleLabel => 'Style';
 
   @override
-  String get noOutfitsYet => 'No outfits yet.';
+  String get noOutfitsYet => 'No outfits yet';
+
+  @override
+  String get outfitsEmptyHint =>
+      'Combine pieces from your closet into a complete look.';
 
   @override
   String get itemNotUsedInOutfitsYet =>
@@ -1020,6 +1024,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noTripsPlannedYet => 'No trips planned yet';
+
+  @override
+  String get tripsEmptyHint =>
+      'Plan a trip and let Uwearis help you pack and pick outfits.';
 
   @override
   String get statusOngoing => 'Ongoing';
@@ -1063,7 +1071,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thinkingEllipsis => 'Thinking…';
 
   @override
-  String get outfitAdviceLabel => 'Outfit advice';
+  String get packingAdviceLabel => 'Packing Advice';
 
   @override
   String get suitcaseLabel => 'Suitcase';
@@ -1092,6 +1100,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String noGarmentsInCategory(String category) {
     return 'No garments in $category';
   }
+
+  @override
+  String get noGarmentsInCloset => 'No garments in Closet';
+
+  @override
+  String get closetEmptyCategoryHint =>
+      'Add pieces from this category to build out your closet.';
 
   @override
   String get suggestedByAi => 'Suggested by AI';
@@ -1131,7 +1146,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addAction => 'Add';
 
   @override
-  String get noGarmentsPackedYet => 'No garments packed yet';
+  String get startPackingTripTitle => 'Start packing your trip';
+
+  @override
+  String get startPackingTripHint =>
+      'Choose clothes from your closet to build your trip outfits.';
+
+  @override
+  String get addGarmentsButton => 'Add Garments';
 
   @override
   String get occasionWork => 'Work';

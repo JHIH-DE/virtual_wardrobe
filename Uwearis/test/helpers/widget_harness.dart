@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/core/utils/route_observer.dart';
 import 'package:uwearis/l10n/generated/app_localizations.dart';
 
 /// Pumps [child] as the app's `home`, wrapped in a ProviderScope and a
@@ -27,6 +28,10 @@ Future<void> pumpApp(
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
+        // Mirrors app.dart's MaterialApp — needed for any RouteAware page
+        // under test (e.g. TripDetailsPage's didPopNext) to actually
+        // receive push/pop notifications.
+        navigatorObservers: [routeObserver],
         home: child,
       ),
     ),

@@ -1152,7 +1152,7 @@ abstract class AppLocalizations {
   /// No description provided for @insufficientSuitcaseBody.
   ///
   /// In en, this message translates to:
-  /// **'Uwearis needs at least one top (or one-piece) and one bottom to plan outfits. Add a few more pieces to your suitcase first.'**
+  /// **'Uwearis needs a top and a bottom (or a one-piece), plus a pair of shoes, to plan outfits. Add a few more pieces to your suitcase first.'**
   String get insufficientSuitcaseBody;
 
   /// No description provided for @goToSuitcase.
@@ -1944,8 +1944,14 @@ abstract class AppLocalizations {
   /// No description provided for @noOutfitsYet.
   ///
   /// In en, this message translates to:
-  /// **'No outfits yet.'**
+  /// **'No outfits yet'**
   String get noOutfitsYet;
+
+  /// No description provided for @outfitsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine pieces from your closet into a complete look.'**
+  String get outfitsEmptyHint;
 
   /// No description provided for @itemNotUsedInOutfitsYet.
   ///
@@ -2006,6 +2012,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No trips planned yet'**
   String get noTripsPlannedYet;
+
+  /// No description provided for @tripsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan a trip and let Uwearis help you pack and pick outfits.'**
+  String get tripsEmptyHint;
 
   /// No description provided for @statusOngoing.
   ///
@@ -2085,11 +2097,11 @@ abstract class AppLocalizations {
   /// **'Thinking…'**
   String get thinkingEllipsis;
 
-  /// No description provided for @outfitAdviceLabel.
+  /// No description provided for @packingAdviceLabel.
   ///
   /// In en, this message translates to:
-  /// **'Outfit advice'**
-  String get outfitAdviceLabel;
+  /// **'Packing Advice'**
+  String get packingAdviceLabel;
 
   /// No description provided for @suitcaseLabel.
   ///
@@ -2138,6 +2150,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No garments in {category}'**
   String noGarmentsInCategory(String category);
+
+  /// No description provided for @noGarmentsInCloset.
+  ///
+  /// In en, this message translates to:
+  /// **'No garments in Closet'**
+  String get noGarmentsInCloset;
+
+  /// No description provided for @closetEmptyCategoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add pieces from this category to build out your closet.'**
+  String get closetEmptyCategoryHint;
 
   /// No description provided for @suggestedByAi.
   ///
@@ -2205,11 +2229,23 @@ abstract class AppLocalizations {
   /// **'Add'**
   String get addAction;
 
-  /// No description provided for @noGarmentsPackedYet.
+  /// No description provided for @startPackingTripTitle.
   ///
   /// In en, this message translates to:
-  /// **'No garments packed yet'**
-  String get noGarmentsPackedYet;
+  /// **'Start packing your trip'**
+  String get startPackingTripTitle;
+
+  /// No description provided for @startPackingTripHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose clothes from your closet to build your trip outfits.'**
+  String get startPackingTripHint;
+
+  /// No description provided for @addGarmentsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Garments'**
+  String get addGarmentsButton;
 
   /// No description provided for @occasionWork.
   ///

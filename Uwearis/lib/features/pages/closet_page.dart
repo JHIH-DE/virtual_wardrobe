@@ -19,6 +19,7 @@ import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
+import '../widgets/garment/garment_upload_helper.dart';
 import 'garment_details_page.dart';
 
 class ClosetPage extends ConsumerStatefulWidget {
@@ -172,16 +173,29 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     _scheduleCategoryFix(effectiveCategory);
     return Column(
       children: [
-        CategorySelector(
-          categories: available,
-          selectedCategory: effectiveCategory,
-          onSelected: (category) => setState(() {
-            _selectedCategory = category;
-            _selectedColors = {'All'};
-            _selectedProductTypes = {'All'};
-          }),
+        // Nothing to switch between when the closet is completely empty —
+        // skip it so the empty state below centers across the *whole* body
+        // instead of a shorter area this 64px-tall bar pushes down by half
+        // its height. Still shown whenever at least one category has
+        // garments, even if the *currently selected* one doesn't — that's
+        // exactly when switching categories matters.
+        if (available.isNotEmpty)
+          CategorySelector(
+            categories: available,
+            selectedCategory: effectiveCategory,
+            onSelected: (category) => setState(() {
+              _selectedCategory = category;
+              _selectedColors = {'All'};
+              _selectedProductTypes = {'All'};
+            }),
+          ),
+        Expanded(
+          child: _buildGarmentGridSection(
+            all,
+            effectiveCategory,
+            closetIsEmpty: available.isEmpty,
+          ),
         ),
-        Expanded(child: _buildGarmentGridSection(all, effectiveCategory)),
       ],
     );
   }
@@ -198,27 +212,46 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
 
   Widget _buildGarmentGridSection(
     List<Garment> all,
-    GarmentCategory effectiveCategory,
-  ) {
+    GarmentCategory effectiveCategory, {
+    required bool closetIsEmpty,
+  }) {
     return RefreshIndicator(
       onRefresh: () => ref.read(garmentsProvider.notifier).refresh(),
       color: AppColors.primary,
-      child: _buildGrid(_filtered(all, effectiveCategory), effectiveCategory),
+      child: _buildGrid(
+        _filtered(all, effectiveCategory),
+        effectiveCategory,
+        closetIsEmpty: closetIsEmpty,
+      ),
     );
   }
 
-  Widget _buildGrid(List<Garment> garments, GarmentCategory category) {
+  Widget _buildGrid(
+    List<Garment> garments,
+    GarmentCategory category, {
+    required bool closetIsEmpty,
+  }) {
     if (garments.isEmpty) {
-      return ListView(
-        children: [
-          EmptyStatePlaceholder(
-            message: AppLocalizations.of(
-              context,
-            ).noGarmentsInCategory(category.localizedLabel(context)),
-            icon: Icons.inventory_2_outlined,
-            padding: const EdgeInsets.only(top: 100),
-          ),
-        ],
+      final l10n = AppLocalizations.of(context);
+      return EmptyStatePlaceholder(
+        icon: Icons.inventory_2_outlined,
+        // The whole closet has nothing in it (no category to even name) vs.
+        // just this category/filter combo coming up empty while others
+        // have stock — same condition [_buildBody] uses to hide
+        // CategorySelector.
+        title: closetIsEmpty
+            ? l10n.noGarmentsInCloset
+            : l10n.noGarmentsInCategory(category.localizedLabel(context)),
+        message: l10n.closetEmptyCategoryHint,
+        actionLabel: l10n.addGarment,
+        onAction: _addGarment,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        // Dead-centered in the grid's whole Expanded area (not just its own
+        // natural size) — same treatment as Trip Suitcase's own empty state.
+        fillAvailableSpace: true,
+        // Closet is a main tab — MainNavBar floats over the bottom of its
+        // Scaffold.body rather than shrinking it (see bottomInset's doc).
+        bottomInset: AppDimens.mainNavBarClearance,
       );
     }
 
@@ -231,6 +264,17 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
       ),
       itemCount: garments.length,
       itemBuilder: (context, index) => _buildGarmentCard(garments[index]),
+    );
+  }
+
+  /// Triggered by the empty-category state's "Add Garment" CTA — same
+  /// dialog the main shell's own quick action opens (see
+  /// [main_shell.dart]'s `QuickAction.addClothing`), just without the
+  /// tab-switch step since we're already on Closet.
+  void _addGarment() {
+    GarmentUploadHelper.showAddClothingDialog(
+      context,
+      onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
     );
   }
 

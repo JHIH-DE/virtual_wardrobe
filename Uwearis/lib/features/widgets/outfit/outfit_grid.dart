@@ -16,6 +16,22 @@ class OutfitGrid extends StatelessWidget {
   final String emptyMessage;
   final EdgeInsets padding;
 
+  // The full icon+title+action empty-state treatment (see
+  // [EmptyStatePlaceholder]) — all optional and additive. Left unset (as
+  // every caller but the Outfits tab does), the empty state renders exactly
+  // as it always has: a plain centered [emptyMessage].
+  final IconData? emptyIcon;
+  final String? emptyTitle;
+  final String? emptyActionLabel;
+  final IconData emptyActionIcon;
+  final VoidCallback? onEmptyAction;
+
+  // Only the Outfits tab (a main tab, whose MainNavBar floats over its
+  // Scaffold.body — see EmptyStatePlaceholder.bottomInset's doc) passes
+  // this; the picker/"used in..." callers leave it at 0 (their own pushed
+  // Scaffold has no such overlay to clear).
+  final double emptyBottomInset;
+
   const OutfitGrid({
     super.key,
     required this.outfits,
@@ -23,6 +39,12 @@ class OutfitGrid extends StatelessWidget {
     required this.onOutfitTap,
     required this.emptyMessage,
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 16),
+    this.emptyIcon,
+    this.emptyTitle,
+    this.emptyActionLabel,
+    this.emptyActionIcon = Icons.add,
+    this.onEmptyAction,
+    this.emptyBottomInset = 0,
   });
 
   @override
@@ -31,11 +53,15 @@ class OutfitGrid extends StatelessWidget {
       onRefresh: onRefresh,
       color: AppColors.primary,
       child: outfits.isEmpty
-          ? Center(
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: EmptyStatePlaceholder(message: emptyMessage),
-              ),
+          ? EmptyStatePlaceholder(
+              message: emptyMessage,
+              icon: emptyIcon,
+              title: emptyTitle,
+              actionLabel: emptyActionLabel,
+              actionIcon: emptyActionIcon,
+              onAction: onEmptyAction,
+              fillAvailableSpace: true,
+              bottomInset: emptyBottomInset,
             )
           : GridView.builder(
               physics: const AlwaysScrollableScrollPhysics(),

@@ -18,6 +18,7 @@ import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/trip/trip_card.dart';
 import '../widgets/trip/trip_create_dialog.dart';
 import 'trip_details_page.dart';
+import 'trip_suitcase_page.dart';
 
 class TripsPage extends ConsumerStatefulWidget {
   const TripsPage({super.key});
@@ -77,13 +78,19 @@ Future<void> handleCreateTrip(
     // Switch the shell to the Trips tab first, so popping back off Trip
     // Details lands there regardless of where creation was started from.
     onCreated?.call();
+    // Trip Details goes on the stack first (unseen — no await between the
+    // two pushes, so only one transition actually animates) so that leaving
+    // the Suitcase page pushed on top of it via its app-bar back button
+    // lands on Trip Details, not wherever trip creation was started from.
     navigator.push(
       MaterialPageRoute(
-        builder: (_) => TripDetailsPage(
-          trip: newTrip,
-          initialData: initialData,
-          justCreated: true,
-        ),
+        builder: (_) =>
+            TripDetailsPage(trip: newTrip, initialData: initialData),
+      ),
+    );
+    navigator.push(
+      MaterialPageRoute(
+        builder: (_) => TripSuitcasePage(trip: newTrip, justCreated: true),
       ),
     );
   } on AuthExpiredException {
@@ -323,14 +330,21 @@ class _TripsPageState extends ConsumerState<TripsPage> {
   }
 
   Widget _buildEmptyState() {
-    return ListView(
-      children: [
-        EmptyStatePlaceholder(
-          message: AppLocalizations.of(context).noTripsPlannedYet,
-          icon: Icons.beach_access,
-          height: MediaQuery.of(context).size.height * 0.6,
-        ),
-      ],
+    final l10n = AppLocalizations.of(context);
+    return EmptyStatePlaceholder(
+      icon: Icons.beach_access,
+      title: l10n.noTripsPlannedYet,
+      message: l10n.tripsEmptyHint,
+      actionLabel: l10n.newTrip,
+      onAction: () => handleCreateTrip(context, ref),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // Dead-centered in the whole body area (not just its own natural
+      // size) — same treatment as Trip Suitcase's own empty state; not the
+      // old "60% of screen height" guess.
+      fillAvailableSpace: true,
+      // Trips is a main tab — MainNavBar floats over the bottom of its
+      // Scaffold.body rather than shrinking it (see bottomInset's doc).
+      bottomInset: AppDimens.mainNavBarClearance,
     );
   }
 
