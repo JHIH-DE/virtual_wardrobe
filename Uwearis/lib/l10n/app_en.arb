@@ -228,7 +228,6 @@
   "viewPlan": "View Plan",
   "tripNameLabel": "Trip Name",
   "create": "Create",
-  "fillAllFieldsError": "Please fill all fields",
 
   "regenerate": "Regenerate",
   "regenerateOutfitConfirmTitle": "Regenerate this image?",

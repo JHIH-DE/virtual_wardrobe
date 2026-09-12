@@ -512,9 +512,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get create => 'Create';
 
   @override
-  String get fillAllFieldsError => 'Please fill all fields';
-
-  @override
   String get regenerate => 'Regenerate';
 
   @override

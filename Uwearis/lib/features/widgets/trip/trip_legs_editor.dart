@@ -7,6 +7,7 @@ import '../../../data/location_result.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/location_picker_page.dart';
+import '../common/buttons/accent_pill_button.dart';
 import 'trip_leg_date_range_picker.dart';
 
 /// Lets the user build up the list of legs (location + date range) for a
@@ -77,12 +78,9 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     // Fixed to the full available width regardless of content — otherwise
-    // this Column shrink-wraps to its widest child. With no legs yet, that's
-    // just the narrow "Add Location" button, so the whole widget collapses
-    // to button-width and whatever alignment the *host* dialog's outer
-    // Column uses (commonly the Column default, center) visibly centers it;
-    // once a leg row exists, that row's Expanded content forces full width,
-    // "moving" the button back to the true left edge. Same fix regardless
+    // this Column shrink-wraps to its widest child, and the leg rows (each
+    // full-width via their own Expanded content) would end up narrower than
+    // the Center below actually needs to center within. Same fix regardless
     // of which dialog embeds this (see trip_create_dialog.dart, trip_card.dart).
     return SizedBox(
       width: double.infinity,
@@ -95,16 +93,14 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
             _buildLegRow(i),
           ],
           const SizedBox(height: 12),
-          TextButton.icon(
-            onPressed: _addLeg,
-            icon: const Icon(Icons.add, size: 18, color: AppColors.accent),
-            label: Text(l10n.addLocation),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.accent,
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(0, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              textStyle: AppTextStyle.bold16,
+          // Centered — deliberately not aligned with the leg rows above, so
+          // it reads as the list's own trailing action rather than another
+          // row in it.
+          Center(
+            child: AccentPillButton(
+              label: l10n.addLocation,
+              icon: Icons.add,
+              onPressed: _addLeg,
             ),
           ),
         ],

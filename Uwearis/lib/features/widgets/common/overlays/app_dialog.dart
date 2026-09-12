@@ -8,7 +8,11 @@ class AppDialog extends StatefulWidget {
   final String? body;
   final Widget? content;
   final String primaryLabel;
-  final VoidCallback onPrimary;
+
+  /// Null renders the primary button in a disabled/greyed state (still
+  /// visible, just unpressable) — for a form dialog whose primary action
+  /// only makes sense once required fields are filled in.
+  final VoidCallback? onPrimary;
 
   /// Optional leading icon on the (non-text-button) primary button.
   final IconData? primaryIcon;
@@ -106,49 +110,7 @@ class _AppDialogState extends State<AppDialog> {
                         ),
                       ),
                     )
-                  : ElevatedButton(
-                      onPressed: widget.onPrimary,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        // Matches BottomActionButton's height.
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        elevation: 0,
-                        side: widget.borderSide,
-                      ),
-                      child: widget.primaryIcon == null
-                          ? Text(
-                              widget.primaryLabel,
-                              style: AppTextStyle.regular16.copyWith(
-                                color: AppColors.textOnPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  widget.primaryIcon,
-                                  size: 18,
-                                  color: AppColors.textOnPrimary,
-                                ),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    widget.primaryLabel,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyle.regular16.copyWith(
-                                      color: AppColors.textOnPrimary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
+                  : _buildPrimaryButton(),
               if (widget.secondaryLabel != null) ...[
                 SizedBox(height: widget.secondaryIsTextButton ? 12 : 16),
                 widget.secondaryIsTextButton
@@ -223,6 +185,53 @@ class _AppDialogState extends State<AppDialog> {
           ),
         ),
       ),
+    );
+  }
+
+  /// The filled accent primary button — greys out via [onPrimary] being
+  /// null (see its doc) rather than being hidden, since a form dialog wants
+  /// every button visible at all times, just not always pressable.
+  Widget _buildPrimaryButton() {
+    final textColor = widget.onPrimary == null
+        ? AppColors.hintText
+        : AppColors.textOnPrimary;
+    return ElevatedButton(
+      onPressed: widget.onPrimary,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.accent,
+        disabledBackgroundColor: AppColors.borderSubtle,
+        // Matches BottomActionButton's height.
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        side: widget.borderSide,
+      ),
+      child: widget.primaryIcon == null
+          ? Text(
+              widget.primaryLabel,
+              style: AppTextStyle.regular16.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w500,
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.primaryIcon, size: 18, color: textColor),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    widget.primaryLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyle.regular16.copyWith(
+                      color: textColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

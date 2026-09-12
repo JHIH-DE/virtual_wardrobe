@@ -490,9 +490,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get create => '建立';
 
   @override
-  String get fillAllFieldsError => '請填寫所有欄位';
-
-  @override
   String get regenerate => '重新產生';
 
   @override
@@ -1765,9 +1762,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get create => '建立';
-
-  @override
-  String get fillAllFieldsError => '請填寫所有欄位';
 
   @override
   String get regenerate => '重新產生';

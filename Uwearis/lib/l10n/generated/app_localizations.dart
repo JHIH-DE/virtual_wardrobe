@@ -1029,12 +1029,6 @@ abstract class AppLocalizations {
   /// **'Create'**
   String get create;
 
-  /// No description provided for @fillAllFieldsError.
-  ///
-  /// In en, this message translates to:
-  /// **'Please fill all fields'**
-  String get fillAllFieldsError;
-
   /// No description provided for @regenerate.
   ///
   /// In en, this message translates to:
