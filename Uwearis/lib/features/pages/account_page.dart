@@ -139,13 +139,13 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         builder: (_) => ImageEditorPage(
           initialPath: _avatarLocalPath ?? _avatarUrl,
           showAnalysis: false,
+          // This reopens the already-saved avatar — confirming with zero
+          // changes would just re-upload an identical copy.
+          requireChangeToConfirm: true,
         ),
       ),
     );
     if (result == null || !mounted) return;
-    // Confirmed without picking a new photo — imagePath is still the
-    // original signed URL, not a local file. Nothing to upload.
-    if (result.imagePath.startsWith('http')) return;
     setState(() => _avatarLocalPath = result.imagePath);
     await _uploadAvatar(result.imagePath);
   }

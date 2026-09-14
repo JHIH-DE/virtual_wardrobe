@@ -9,7 +9,6 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
-import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/add_outfit_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
@@ -18,9 +17,8 @@ import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
 
-/// garmentsProvider seeded with a fixed closet — the page reads it directly
-/// now (no `preloadedGarments`), so every non-selectOnly test overrides it
-/// instead of hitting the network.
+/// garmentsProvider seeded with a fixed closet — the page reads it directly,
+/// so every test overrides it instead of hitting the network.
 class _FakeGarments extends GarmentsNotifier {
   _FakeGarments(this._items);
   final List<Garment> _items;
@@ -62,7 +60,7 @@ void main() {
   ];
 
   /// Overrides garmentsProvider with [pool] (default [closet]) — pass to
-  /// `pumpApp`'s `overrides:` for the normal (non-selectOnly) create flow.
+  /// `pumpApp`'s `overrides:`.
   List<Override> closetOverride([List<Garment>? pool]) => [
     garmentsProvider.overrideWith(() => _FakeGarments(pool ?? closet)),
   ];
@@ -447,38 +445,12 @@ void main() {
     },
   );
 
-  testWidgets('selectOnly mode drops Match a Look and uses the edit copy', (
-    tester,
-  ) async {
-    useTallSurface(tester);
-    await pumpApp(
-      tester,
-      AddOutfitPage(
-        preloadedGarments: closet,
-        initialGarments: [closet.first],
-        selectOnly: true,
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('Match a Look'), findsNothing);
-    expect(
-      find.text("Choose which suitcase items make up this day's outfit."),
-      findsOneWidget,
-    );
-    // Confirm stays hidden until the selection actually changes.
-    expect(find.text('Confirm'), findsNothing);
-  });
-
   testWidgets(
-    'create mode shows a collapsed Background section; tapping it opens the picker',
+    'shows a collapsed Background section; tapping it opens the picker',
     (tester) async {
       useTallSurface(tester);
       await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
       await tester.pump();
-      // Its own "BACKGROUND" header, not the selectOnly/edit flow's combined
-      // "Accessories & Background" panel.
-      expect(find.text('Accessories & Background'), findsNothing);
       expect(find.text('BACKGROUND'), findsOneWidget);
       expect(find.text('(OPTIONAL)'), findsNothing);
 
@@ -494,86 +466,6 @@ void main() {
       await tester.tap(find.text('BACKGROUND'));
       await tester.pumpAndSettle();
       expect(crossFade().crossFadeState, CrossFadeState.showSecond);
-    },
-  );
-
-  testWidgets('selectOnly customization block drops the Background section', (
-    tester,
-  ) async {
-    useTallSurface(tester);
-    await pumpApp(
-      tester,
-      AddOutfitPage(
-        preloadedGarments: closet,
-        initialGarments: [closet.first],
-        selectOnly: true,
-      ),
-    );
-    await tester.pump();
-    expect(find.text('BACKGROUND'), findsNothing);
-  });
-
-  testWidgets(
-    'existingOutfit ("Create Another Version") uses the same layout as the '
-    'plain New Outfit create flow',
-    (tester) async {
-      useTallSurface(tester);
-      await pumpApp(
-        tester,
-        AddOutfitPage(
-          existingOutfit: Outfit(id: 1, imageUrl: ''),
-          initialGarments: closet,
-        ),
-        overrides: closetOverride(),
-      );
-      await tester.pump();
-
-      // Markers of the create flow's vertical-list body — none of these
-      // exist in the older per-category slot layout ([_buildSlotFlowBody]).
-      expect(find.text('YOUR OUTFIT'), findsOneWidget);
-      expect(find.byType(AccentPillButton), findsOneWidget);
-      expect(find.text('Add Garment'), findsOneWidget);
-      expect(find.text('BACKGROUND'), findsOneWidget);
-      // The slot flow's per-category rows (FieldLabel renders uppercased)
-      // are gone.
-      expect(find.text('MID LAYER'), findsNothing);
-    },
-  );
-
-  testWidgets(
-    'existingOutfit keeps its own Create Outfit readiness rule even though '
-    'it now shares the create flow layout',
-    (tester) async {
-      useTallSurface(tester);
-      // A one-piece counts for both Top and Bottom under the plain create
-      // flow's readiness check (_coreComplete/_createFlowReady), but
-      // existingOutfit deliberately keeps its own older rule (_hasCoreSlots,
-      // which checks _outfit.bottom directly) — see the comments on
-      // _showsBottomActionButton/_buildBottomBar. Top and Bottom both being
-      // real closet categories (even though neither is actually picked)
-      // triggers the difference between the two rules.
-      final onePieceCloset = [
-        _garment(id: 10, category: GarmentCategory.top, name: 'Shirt'),
-        _garment(id: 11, category: GarmentCategory.bottom, name: 'Jeans'),
-        _garment(id: 12, category: GarmentCategory.onePiece, name: 'Dress'),
-        _garment(id: 13, category: GarmentCategory.shoes, name: 'Heels'),
-      ];
-      await pumpApp(
-        tester,
-        AddOutfitPage(
-          existingOutfit: Outfit(id: 1, imageUrl: ''),
-          initialGarments: [onePieceCloset[2], onePieceCloset[3]],
-        ),
-        overrides: closetOverride(onePieceCloset),
-      );
-      // Settle so garmentsProvider's future resolves — _hasCategory(bottom)
-      // must be true for the rule under test to gate.
-      await tester.pumpAndSettle();
-
-      expect(
-        find.widgetWithText(BottomActionButton, 'Create Outfit'),
-        findsNothing,
-      );
     },
   );
 }

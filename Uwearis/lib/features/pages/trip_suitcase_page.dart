@@ -15,9 +15,11 @@ import '../../data/trip.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/removable_card.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expandable_insight_body.dart';
+import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
@@ -35,10 +37,19 @@ class TripSuitcasePage extends ConsumerStatefulWidget {
   /// keeps it collapsed.
   final bool justCreated;
 
+  /// Whether this trip already has a generated plan — flips the bottom
+  /// button's label between "Plan Trip Outfits" (first time) and "Update
+  /// Trip Outfits" (a plan already exists, this would replace it). Passed
+  /// in from [TripDetailsPage], which already knows this; defaults to false
+  /// since the other entry point (straight after trip creation) never has
+  /// one yet.
+  final bool initialHasTripPlan;
+
   const TripSuitcasePage({
     super.key,
     required this.trip,
     this.justCreated = false,
+    this.initialHasTripPlan = false,
   });
 
   @override
@@ -62,12 +73,27 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   // own confirm). [_committedIds] tracks what the server actually holds.
   List<Garment> _packedGarments = [];
   Set<int> _committedIds = {};
+  // Snapshot of [_committedIds] taken once, right after the initial load —
+  // unlike [_committedIds] (which moves as changes land), this never
+  // changes again, so [_garmentsChangedSinceOpen] has a fixed baseline to
+  // compare "what's packed right now" against.
+  Set<int> _initialPackedIds = {};
   // Opens expanded straight after trip creation (see
   // [TripSuitcasePage.justCreated]).
   late bool _adviceExpanded = widget.justCreated;
   bool _committing = false;
   final Set<int> _pendingIds = {};
   final _deleteGroup = RemovableCardGroup();
+
+  // Whole-trip plan generation — moved here from Trip Details, since packing
+  // the suitcase is the step right before it and the two used to require
+  // bouncing between pages.
+  late bool _hasTripPlan = widget.initialHasTripPlan;
+  bool _generatingPlan = false;
+  // Guards the whole action (including the commit-staged-changes step and
+  // the regenerate confirm dialog), not just the AI call itself — see
+  // CLAUDE.md "Guarding costly / mutating actions against double-invocation".
+  bool _planActionInFlight = false;
 
   Set<int> get _packedIds => {
     for (final g in _packedGarments)
@@ -77,8 +103,49 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   /// There are staged add-picker changes not yet pushed to the server.
   bool get _isDirty => !setEquals(_packedIds, _committedIds);
 
+  /// The packed suitcase differs from what it was when this page was
+  /// opened — via the "+" picker ([TripGarmentSelectionPage]), a direct
+  /// per-card removal, or both. Gates "Update Trip Outfits": once a plan
+  /// already exists, regenerating it is only useful once something has
+  /// actually changed since — see [_showsBottomActionButton].
+  bool get _garmentsChangedSinceOpen =>
+      !setEquals(_packedIds, _initialPackedIds);
+
   int get _tripId => int.parse(widget.trip.id);
   AppLocalizations get _l10n => AppLocalizations.of(context);
+
+  /// Mirrors the backend's own minimum-suitcase rule for `/generate`
+  /// (`DayPlanGenerator.generate_days_payload` in the backend repo — a top
+  /// *and* a bottom, or a one-piece, plus shoes), so the bottom button
+  /// doesn't go live for a suitcase the backend would immediately reject
+  /// with `SUITCASE_INCOMPLETE`. UX guidance only, kept in sync with that
+  /// rule — the backend call remains the authoritative check.
+  bool _hasViableSuitcase(List<Garment> suitcase) {
+    final categories = suitcase.map((g) => g.category).toSet();
+    final hasTopAndBottom =
+        categories.contains(GarmentCategory.top) &&
+        categories.contains(GarmentCategory.bottom);
+    final hasOnePiece = categories.contains(GarmentCategory.onePiece);
+    final hasShoes = categories.contains(GarmentCategory.shoes);
+    return (hasTopAndBottom || hasOnePiece) && hasShoes;
+  }
+
+  /// Checked against [_packedGarments] (the staged/visible list), not just
+  /// [_committedIds] — a just-added, not-yet-committed piece should already
+  /// count, since [_generatePlan] commits any staged changes before it asks
+  /// the backend to plan.
+  bool get _isSuitcaseViable => _hasViableSuitcase(_packedGarments);
+
+  /// A first plan ("Plan Trip Outfits") always makes sense once the
+  /// suitcase is viable — but once a plan already exists, regenerating it
+  /// ("Update Trip Outfits") is only worth surfacing once something has
+  /// actually changed since this page opened.
+  bool get _showsBottomActionButton =>
+      !_generatingPlan &&
+      !_planActionInFlight &&
+      !_committing &&
+      _isSuitcaseViable &&
+      (!_hasTripPlan || _garmentsChangedSinceOpen);
 
   @override
   void initState() {
@@ -112,6 +179,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             for (final g in garments)
               if (g.id != null) g.id!,
           };
+          _initialPackedIds = {..._committedIds};
         });
       }
     } on AuthExpiredException {
@@ -200,6 +268,59 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     if (mounted) Navigator.pop(context);
   }
 
+  /// Asks Uwearis to build an outfit for every day of the trip from whatever's
+  /// currently packed. Confirms first if a plan already exists, since this
+  /// replaces every day's outfit — including any the user adjusted by hand.
+  /// On success, pops back to Trip Details so the result is right there —
+  /// its own `didPopNext` refreshes the day plan regardless of how this page
+  /// was reached, so nothing needs to be threaded back through the pop.
+  Future<void> _generatePlan() async {
+    if (_planActionInFlight) return;
+    setState(() => _planActionInFlight = true);
+    try {
+      // Generation reads the suitcase from the server, so any staged
+      // add-picker changes must land first.
+      if (_isDirty && !await _commitChanges()) return;
+      if (!mounted) return;
+
+      if (_hasTripPlan) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AppDialog(
+            title: _l10n.regeneratePlanTitle,
+            body: _l10n.regeneratePlanBody,
+            primaryLabel: _l10n.regenerate,
+            onPrimary: () => Navigator.pop(ctx, true),
+            secondaryLabel: _l10n.cancel,
+            onSecondary: () => Navigator.pop(ctx, false),
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+      }
+
+      setState(() => _generatingPlan = true);
+      try {
+        await TripService().generateTripPlan(_tripId, alternativesPerDay: 0);
+        if (!mounted) return;
+        _hasTripPlan = true;
+        Navigator.pop(context);
+      } on AuthExpiredException {
+        if (mounted) await AuthExpiredHandler.handle(context);
+      } catch (e) {
+        debugLog('Failed to generate trip plan: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_l10n.failedToGeneratePlan)));
+        }
+      } finally {
+        if (mounted) setState(() => _generatingPlan = false);
+      }
+    } finally {
+      if (mounted) setState(() => _planActionInFlight = false);
+    }
+  }
+
   Future<void> _removeGarment(Garment garment) async {
     final id = garment.id;
     if (id == null || _pendingIds.contains(id)) return;
@@ -264,6 +385,20 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
+  /// The whole-trip "Plan"/"Update Trip Outfits" action — see [_generatePlan].
+  /// Always built (never null): every trip wants this eventually, it's just
+  /// hidden ([_showsBottomActionButton], via BottomActionButton's own
+  /// unavailable-state handling) while the suitcase can't build a complete
+  /// outfit yet or another suitcase action is in flight.
+  Widget _buildBottomBar() {
+    return BottomActionButton(
+      label: _hasTripPlan ? _l10n.updateTripOutfits : _l10n.planTripOutfits,
+      onPressed: _showsBottomActionButton ? _generatePlan : null,
+      isLoading: _generatingPlan,
+      leading: const Icon(Icons.auto_awesome_outlined),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Only needed for the "Add" picker's full closet — the packed list
@@ -280,7 +415,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         children: [
           Scaffold(
             backgroundColor: AppColors.pageBackground,
+            extendBody: true,
             appBar: _buildAppBar(closetGarments),
+            bottomNavigationBar: _buildBottomBar(),
             body: _buildBody(closetGarments),
           ),
           if (_loading)
@@ -290,6 +427,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           if (_committing)
             Positioned.fill(
               child: LoadingOverlay(label: _l10n.updatingSuitcaseEllipsis),
+            ),
+          if (_generatingPlan)
+            Positioned.fill(
+              child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
             ),
         ],
       ),
@@ -357,7 +498,19 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
                   sliver: SliverToBoxAdapter(child: _buildOutfitAdviceCard()),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  // Bottom clearance lives here, inside the scrollable
+                  // content, rather than as a sibling below it — so the
+                  // list keeps extending under the floating button
+                  // (extendBody: true) instead of leaving a flat blank
+                  // strip painted in the page background.
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    _showsBottomActionButton
+                        ? AppDimens.bottomActionBtnClearance
+                        : 16,
+                  ),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       for (final category in _categoryOrder)

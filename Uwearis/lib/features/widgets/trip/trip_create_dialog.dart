@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/fields/app_text_field.dart';
+import '../common/fields/labeled_field.dart';
 import '../common/overlays/app_dialog.dart';
 import 'trip_legs_editor.dart';
 
@@ -52,13 +53,20 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
         title: l10n.newTrip,
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppTextField(
-              controller: _tripNameController,
+            LabeledField(
               label: l10n.tripNameLabel,
+              child: AppTextField(
+                controller: _tripNameController,
+                hint: l10n.tripNameHint,
+              ),
             ),
-            const SizedBox(height: 16),
-            TripLegsEditor(legsNotifier: _legsNotifier),
+            const SizedBox(height: 20),
+            LabeledField(
+              label: l10n.destinationAndDatesLabel,
+              child: TripLegsEditor(legsNotifier: _legsNotifier),
+            ),
           ],
         ),
         primaryLabel: l10n.create,

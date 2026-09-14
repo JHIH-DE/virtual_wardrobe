@@ -16,6 +16,12 @@ Map<String, dynamic> _g(int id, {String imageUrl = ''}) => {
   'image_url': imageUrl,
 };
 
+/// The paginated `GET /garments` envelope shape (`data: {items, total, page,
+/// size}`) — a single page covers every test list here since none exceeds
+/// `GarmentService.getGarments`'s per-page fetch size.
+Map<String, dynamic> _garmentsPage(List<Map<String, dynamic>> items) =>
+    envelope({'items': items, 'total': items.length, 'page': 1, 'size': 100});
+
 /// Runs [body] with garmentsProvider seeded from [items]; [onRequest], if
 /// given, replaces the default handler (which always returns [items]) so a
 /// test can count / vary responses.
@@ -25,7 +31,7 @@ Future<void> withGarments(
   Future<http.Response> Function(http.Request request)? onRequest,
 }) {
   final client = MockClient(
-    onRequest ?? (_) async => jsonResponse(envelope(items)),
+    onRequest ?? (_) async => jsonResponse(_garmentsPage(items)),
   );
   return http.runWithClient(() async {
     final container = ProviderContainer();
@@ -114,7 +120,7 @@ void main() {
         },
         onRequest: (_) async {
           requests++;
-          return jsonResponse(envelope(const []));
+          return jsonResponse(_garmentsPage(const []));
         },
       );
     });
@@ -130,7 +136,7 @@ void main() {
         },
         onRequest: (_) async {
           requests++;
-          return jsonResponse(envelope([_g(1)]));
+          return jsonResponse(_garmentsPage([_g(1)]));
         },
       );
     });

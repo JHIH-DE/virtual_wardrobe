@@ -149,6 +149,21 @@ const Set<GarmentCategory> garmentFitCategories = {
   GarmentCategory.onePiece,
 };
 
+/// Normalizes an accessory's AI-assigned `subCategory` into the slot it
+/// occupies for exclusivity purposes — "Hat" and "Cap" are both headwear,
+/// so picking one in one slot should rule out the other in every other slot
+/// even though the raw strings differ. `subCategory` has no fixed enum
+/// (it's freeform per garment), so this only merges pairs known to collide;
+/// extend the set here if more turn up. Shared by every outfit-composing
+/// picker that excludes already-worn accessory types (AddOutfitPage's own
+/// "Add garment" candidates, OutfitEditPage's accessory slots).
+String accessorySlotKey(String subCategory) {
+  final normalized = subCategory.toLowerCase();
+  const headwear = {'hat', 'cap'};
+  if (headwear.contains(normalized)) return 'headwear';
+  return normalized;
+}
+
 class Garment {
   final int? id;
   final int? garmentId;

@@ -68,8 +68,10 @@
 
   "renameOutfit": "Rename Outfit",
   "outfitNameLabel": "Name of this outfit",
-  "newVersion": "New Version",
-  "addVersionButton": "Version",
+  "addVersionButton": "New Version",
+  "addVersionTitle": "Add Version",
+  "versionLimitReachedTitle": "Version limit reached",
+  "versionLimitReachedBody": "You can keep up to 5 versions for each outfit. Delete a version to create a new one.",
   "addToMyOutfits": "Add to My Outfits",
   "selectOutfitGroupTitle": "Add to Outfit",
   "newOutfitGroup": "New Outfit",
@@ -227,6 +229,8 @@
   "deleteTripConfirmation": "Are you sure you want to delete this trip?",
   "viewPlan": "View Plan",
   "tripNameLabel": "Trip Name",
+  "tripNameHint": "e.g. Japan Spring Trip",
+  "destinationAndDatesLabel": "Destination & Dates",
   "create": "Create",
 
   "regenerate": "Regenerate",
@@ -235,8 +239,8 @@
   "setAsCover": "Set as Cover",
   "letUwearisPlanOutfits": "Let Uwearis Plan Your Trip",
   "letUwearisPlanOutfitsHint": "Uwearis will build an outfit for every day using what's in your suitcase.",
-  "generateTripPlan": "Generate Trip Plan",
-  "regenerateTripPlan": "Regenerate Trip Plan",
+  "planTripOutfits": "Plan Trip Outfits",
+  "updateTripOutfits": "Update Trip Outfits",
   "regeneratePlanTitle": "Regenerate outfit plan?",
   "regeneratePlanBody": "This will replace every day's current outfit, including any you've adjusted by hand.",
   "failedToGeneratePlan": "Failed to generate outfit plan",
@@ -247,9 +251,6 @@
   "changeGarments": "Change Garments",
   "noOutfitPlannedYetTitle": "No outfit planned yet",
   "noOutfitPlannedYetHint": "Generate your trip plan to assign clothes for this day.",
-  "insufficientSuitcaseTitle": "Not Enough in Your Suitcase",
-  "insufficientSuitcaseBody": "Uwearis needs a top and a bottom (or a one-piece), plus a pair of shoes, to plan outfits. Add a few more pieces to your suitcase first.",
-  "goToSuitcase": "Go to Suitcase",
   "missingFromSuitcaseCount": "{count} items aren't packed yet.",
   "@missingFromSuitcaseCount": {
     "placeholders": { "count": { "type": "int" } }
@@ -267,7 +268,7 @@
   "booked": "Booked",
   "selected": "Selected",
   "confirm": "Confirm",
-  "addLocation": "Add Location",
+  "addLocation": "Add Destination",
 
   "camera": "Camera",
   "switchCamera": "Switch camera",
@@ -451,6 +452,8 @@
   "packClothingHint": "Pack clothing for this trip",
 
   "selectGarmentsTitle": "Select Garments",
+  "editOutfitTitle": "Edit Outfit",
+  "editGarmentTitle": "Edit Garment",
   "addFromOutfit": "Add from an Outfit",
   "selectAnOutfitTitle": "Select an Outfit",
   "addedItemsFromOutfitCount": "Added {count} items from this outfit.",
@@ -531,7 +534,6 @@
   "analyzingEllipsis": "Analyzing…",
   "analysisFailedTitle": "Couldn't analyze this photo",
   "analysisFailedBody": "The AI analysis didn't come through. Check your connection and try again.",
-  "confirmed": "Confirmed",
   "reset": "Reset",
   "pinchToZoomHint": "Pinch to zoom the image to make sure the picture have the whole details.",
   "retake": "Retake",

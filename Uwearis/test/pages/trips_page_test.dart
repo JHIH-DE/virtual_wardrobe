@@ -41,8 +41,8 @@ void main() {
       await tester.tap(find.text('Plan a Trip'));
       await tester.pumpAndSettle();
 
-      // TripCreateDialog's own field.
-      expect(find.text('Trip Name'), findsOneWidget);
+      // TripCreateDialog's own field — FieldLabel renders it upper-cased.
+      expect(find.text('TRIP NAME'), findsOneWidget);
     },
   );
 }

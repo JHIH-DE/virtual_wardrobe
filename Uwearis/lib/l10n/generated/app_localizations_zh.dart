@@ -157,10 +157,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get newVersion => '新版本';
+  String get addVersionButton => '新版本';
 
   @override
-  String get addVersionButton => '版本';
+  String get addVersionTitle => '新增版本';
+
+  @override
+  String get versionLimitReachedTitle => '已達版本上限';
+
+  @override
+  String get versionLimitReachedBody => '每套穿搭最多可保留 5 個版本，請先刪除一個版本再新增。';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -487,6 +493,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tripNameLabel => '行程名稱';
 
   @override
+  String get tripNameHint => '例如：日本春季之旅';
+
+  @override
+  String get destinationAndDatesLabel => '目的地與日期';
+
+  @override
   String get create => '建立';
 
   @override
@@ -508,10 +520,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get letUwearisPlanOutfitsHint => 'Uwearis 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
 
   @override
-  String get generateTripPlan => '產生行程穿搭';
+  String get planTripOutfits => '規劃行程穿搭';
 
   @override
-  String get regenerateTripPlan => '重新產生行程穿搭';
+  String get updateTripOutfits => '更新行程穿搭';
 
   @override
   String get regeneratePlanTitle => '重新規劃穿搭？';
@@ -542,16 +554,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noOutfitPlannedYetHint => '產生行程穿搭計畫，為這一天安排服裝。';
-
-  @override
-  String get insufficientSuitcaseTitle => '行李箱衣物不足';
-
-  @override
-  String get insufficientSuitcaseBody =>
-      'Uwearis 需要一件上衣＋下身（或連身衣），以及一雙鞋子才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
-
-  @override
-  String get goToSuitcase => '前往行李箱';
 
   @override
   String missingFromSuitcaseCount(int count) {
@@ -595,7 +597,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirm => '確認';
 
   @override
-  String get addLocation => '新增地點';
+  String get addLocation => '新增目的地';
 
   @override
   String get camera => '拍照';
@@ -1046,6 +1048,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectGarmentsTitle => '選擇衣物';
 
   @override
+  String get editOutfitTitle => '編輯穿搭';
+
+  @override
+  String get editGarmentTitle => '編輯衣物';
+
+  @override
   String get addFromOutfit => '從穿搭新增';
 
   @override
@@ -1213,9 +1221,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get analysisFailedBody => 'AI 分析没有完成，请检查网络连接后重试。';
-
-  @override
-  String get confirmed => '確認';
 
   @override
   String get reset => '重設';
@@ -1431,10 +1436,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get newVersion => '新版本';
+  String get addVersionButton => '新版本';
 
   @override
-  String get addVersionButton => '版本';
+  String get addVersionTitle => '新增版本';
+
+  @override
+  String get versionLimitReachedTitle => '已達版本上限';
+
+  @override
+  String get versionLimitReachedBody => '每套穿搭最多可保留 5 個版本，請先刪除一個版本再新增。';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -1761,6 +1772,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get tripNameLabel => '行程名稱';
 
   @override
+  String get tripNameHint => '例如：日本春季之旅';
+
+  @override
+  String get destinationAndDatesLabel => '目的地與日期';
+
+  @override
   String get create => '建立';
 
   @override
@@ -1782,10 +1799,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get letUwearisPlanOutfitsHint => 'Uwearis 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
 
   @override
-  String get generateTripPlan => '產生行程穿搭';
+  String get planTripOutfits => '規劃行程穿搭';
 
   @override
-  String get regenerateTripPlan => '重新產生行程穿搭';
+  String get updateTripOutfits => '更新行程穿搭';
 
   @override
   String get regeneratePlanTitle => '重新規劃穿搭？';
@@ -1816,16 +1833,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get noOutfitPlannedYetHint => '產生行程穿搭計畫，為這一天安排服裝。';
-
-  @override
-  String get insufficientSuitcaseTitle => '行李箱衣物不足';
-
-  @override
-  String get insufficientSuitcaseBody =>
-      'Uwearis 需要一件上衣＋下身（或連身衣），以及一雙鞋子才能規劃穿搭，請先在行李箱裡多加幾件衣物。';
-
-  @override
-  String get goToSuitcase => '前往行李箱';
 
   @override
   String missingFromSuitcaseCount(int count) {
@@ -1869,7 +1876,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get confirm => '確認';
 
   @override
-  String get addLocation => '新增地點';
+  String get addLocation => '新增目的地';
 
   @override
   String get camera => '拍照';
@@ -2320,6 +2327,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get selectGarmentsTitle => '選擇衣物';
 
   @override
+  String get editOutfitTitle => '編輯穿搭';
+
+  @override
+  String get editGarmentTitle => '編輯衣物';
+
+  @override
   String get addFromOutfit => '從穿搭新增';
 
   @override
@@ -2487,9 +2500,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get analysisFailedBody => 'AI 分析沒有完成，請檢查網路連線後重試。';
-
-  @override
-  String get confirmed => '確認';
 
   @override
   String get reset => '重設';

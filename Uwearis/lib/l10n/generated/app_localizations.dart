@@ -387,17 +387,29 @@ abstract class AppLocalizations {
   /// **'Name of this outfit'**
   String get outfitNameLabel;
 
-  /// No description provided for @newVersion.
-  ///
-  /// In en, this message translates to:
-  /// **'New Version'**
-  String get newVersion;
-
   /// No description provided for @addVersionButton.
   ///
   /// In en, this message translates to:
-  /// **'Version'**
+  /// **'New Version'**
   String get addVersionButton;
+
+  /// No description provided for @addVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Version'**
+  String get addVersionTitle;
+
+  /// No description provided for @versionLimitReachedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Version limit reached'**
+  String get versionLimitReachedTitle;
+
+  /// No description provided for @versionLimitReachedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can keep up to 5 versions for each outfit. Delete a version to create a new one.'**
+  String get versionLimitReachedBody;
 
   /// No description provided for @addToMyOutfits.
   ///
@@ -1023,6 +1035,18 @@ abstract class AppLocalizations {
   /// **'Trip Name'**
   String get tripNameLabel;
 
+  /// No description provided for @tripNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Japan Spring Trip'**
+  String get tripNameHint;
+
+  /// No description provided for @destinationAndDatesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination & Dates'**
+  String get destinationAndDatesLabel;
+
   /// No description provided for @create.
   ///
   /// In en, this message translates to:
@@ -1065,17 +1089,17 @@ abstract class AppLocalizations {
   /// **'Uwearis will build an outfit for every day using what\'s in your suitcase.'**
   String get letUwearisPlanOutfitsHint;
 
-  /// No description provided for @generateTripPlan.
+  /// No description provided for @planTripOutfits.
   ///
   /// In en, this message translates to:
-  /// **'Generate Trip Plan'**
-  String get generateTripPlan;
+  /// **'Plan Trip Outfits'**
+  String get planTripOutfits;
 
-  /// No description provided for @regenerateTripPlan.
+  /// No description provided for @updateTripOutfits.
   ///
   /// In en, this message translates to:
-  /// **'Regenerate Trip Plan'**
-  String get regenerateTripPlan;
+  /// **'Update Trip Outfits'**
+  String get updateTripOutfits;
 
   /// No description provided for @regeneratePlanTitle.
   ///
@@ -1136,24 +1160,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generate your trip plan to assign clothes for this day.'**
   String get noOutfitPlannedYetHint;
-
-  /// No description provided for @insufficientSuitcaseTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Not Enough in Your Suitcase'**
-  String get insufficientSuitcaseTitle;
-
-  /// No description provided for @insufficientSuitcaseBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Uwearis needs a top and a bottom (or a one-piece), plus a pair of shoes, to plan outfits. Add a few more pieces to your suitcase first.'**
-  String get insufficientSuitcaseBody;
-
-  /// No description provided for @goToSuitcase.
-  ///
-  /// In en, this message translates to:
-  /// **'Go to Suitcase'**
-  String get goToSuitcase;
 
   /// No description provided for @missingFromSuitcaseCount.
   ///
@@ -1236,7 +1242,7 @@ abstract class AppLocalizations {
   /// No description provided for @addLocation.
   ///
   /// In en, this message translates to:
-  /// **'Add Location'**
+  /// **'Add Destination'**
   String get addLocation;
 
   /// No description provided for @camera.
@@ -2115,6 +2121,18 @@ abstract class AppLocalizations {
   /// **'Select Garments'**
   String get selectGarmentsTitle;
 
+  /// No description provided for @editOutfitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Outfit'**
+  String get editOutfitTitle;
+
+  /// No description provided for @editGarmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Garment'**
+  String get editGarmentTitle;
+
   /// No description provided for @addFromOutfit.
   ///
   /// In en, this message translates to:
@@ -2432,12 +2450,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The AI analysis didn\'t come through. Check your connection and try again.'**
   String get analysisFailedBody;
-
-  /// No description provided for @confirmed.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirmed'**
-  String get confirmed;
 
   /// No description provided for @reset.
   ///

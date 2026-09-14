@@ -13,6 +13,7 @@ import '../helpers/widget_harness.dart';
 Outfit _outfit({
   List<String> style = const [],
   String? name,
+  List<int> garmentIds = const [],
 }) {
   return Outfit(
     id: 1,
@@ -20,6 +21,7 @@ Outfit _outfit({
     name: name,
     imageUrl: 'https://img.example/1.png',
     style: style,
+    garmentIds: garmentIds,
   );
 }
 
@@ -71,7 +73,9 @@ void main() {
     }, stubClient);
   });
 
-  testWidgets('the page title falls back to the first tag word', (tester) async {
+  testWidgets('the page title falls back to the first tag word', (
+    tester,
+  ) async {
     await http.runWithClient(() async {
       useTallSurface(tester);
       await pumpApp(
@@ -84,4 +88,96 @@ void main() {
       expect(find.text('Weekend Look'), findsOneWidget);
     }, stubClient);
   });
+
+  // Regression: _loadGarments used to await every garment id in one
+  // Future.wait, so a single 404 (e.g. a deleted garment) rejected the
+  // whole batch and silently blanked out every *other* garment on the
+  // outfit too. Each id now resolves independently.
+  testWidgets('one garment failing to load does not blank out the rest', (
+    tester,
+  ) async {
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/garments/1')) {
+        return jsonResponse(envelope({}), status: 404);
+      }
+      if (request.url.path.endsWith('/garments/2')) {
+        return jsonResponse(
+          envelope({
+            'id': 2,
+            'name': 'Denim Jacket',
+            'category': 'Outer',
+            'sub_category': '',
+            'upload_url': '',
+            'object_name': '',
+            'image_url': '',
+          }),
+        );
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(outfit: _outfit(garmentIds: [1, 2])),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Denim Jacket'), findsOneWidget);
+    }, () => client);
+  });
+
+  // Regression: tapping "+ New Version" once the group already has 5
+  // versions used to just open OutfitEditPage like any other tap — the cap
+  // is enforced client-side, so nothing stopped a 6th render.
+  testWidgets(
+    '"+ New Version" past the 5-version cap explains the limit instead of '
+    'opening the picker',
+    (tester) async {
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/3')) {
+          return jsonResponse(
+            envelope({
+              'outfits': [
+                for (var id = 1; id <= 5; id++)
+                  {
+                    'id': id,
+                    'group_id': 3,
+                    'image_url': 'https://img.example/$id.png',
+                  },
+              ],
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, OutfitDetailsPage(outfit: _outfit()));
+        await tester.pump();
+        await tester.pump();
+
+        await tester.tap(find.text('New Version'));
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('Version limit reached'), findsOneWidget);
+        expect(
+          find.text(
+            'You can keep up to 5 versions for each outfit. Delete a '
+            'version to create a new one.',
+          ),
+          findsOneWidget,
+        );
+        // Dismiss, then confirm the picker never opened underneath.
+        await tester.tap(find.text('OK'));
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Add Version'), findsNothing);
+      }, () => client);
+    },
+  );
 }

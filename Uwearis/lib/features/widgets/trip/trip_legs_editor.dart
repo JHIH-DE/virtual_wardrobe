@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/location_result.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/location_picker_page.dart';
 import '../common/buttons/accent_pill_button.dart';
+import '../common/cards/card_corner_badge.dart';
 import 'trip_leg_date_range_picker.dart';
 
 /// Lets the user build up the list of legs (location + date range) for a
@@ -142,15 +144,15 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(
-              Icons.close,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            onPressed: _legs.length > 1 ? () => _removeLeg(index) : null,
+          // Same remove-badge design as Add Outfit's garment row (see
+          // add_outfit_page.dart's _buildOutfitGarmentRow) — a filled disc
+          // via the shared CardCornerBadge, not a plain IconButton.
+          CardCornerBadge(
+            icon: Icons.close,
+            backgroundColor: AppColors.placeholderSurface,
+            iconColor: AppColors.icon,
+            hitTargetSize: const Size(24, AppDimens.minTouchTarget),
+            onTap: _legs.length > 1 ? () => _removeLeg(index) : null,
           ),
         ],
       ),

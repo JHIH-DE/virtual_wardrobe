@@ -215,13 +215,13 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
           showAnalysis: false,
           aspectRatio: 3 / 4,
           cameraFrameRatio: CameraFrameRatio.portrait,
+          // This reopens the already-saved photo — confirming with zero
+          // changes would just re-upload an identical copy.
+          requireChangeToConfirm: true,
         ),
       ),
     );
     if (result == null || !mounted) return;
-    // Confirmed without picking a new photo — imagePath is still the
-    // original signed URL, not a local file. Nothing to upload.
-    if (result.imagePath.startsWith('http')) return;
     setState(() => _fullBodyLocalPath = result.imagePath);
     await _uploadFullBody(result.imagePath);
   }
@@ -235,13 +235,13 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
           showAnalysis: false,
           aspectRatio: 3 / 4,
           cameraFrameRatio: CameraFrameRatio.portrait,
+          // This reopens the already-saved photo — confirming with zero
+          // changes would just re-upload an identical copy.
+          requireChangeToConfirm: true,
         ),
       ),
     );
     if (result == null || !mounted) return;
-    // Confirmed without picking a new photo — imagePath is still the
-    // original signed URL, not a local file. Nothing to upload.
-    if (result.imagePath.startsWith('http')) return;
     setState(() => _faceLocalPath = result.imagePath);
     await _uploadFaceRef(result.imagePath);
   }

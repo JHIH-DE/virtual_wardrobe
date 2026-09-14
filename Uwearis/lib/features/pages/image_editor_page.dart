@@ -24,13 +24,17 @@ class ImageEditorPage extends StatefulWidget {
   final String? initialPath;
   final bool showAnalysis;
 
-  /// App Bar title override. Garment callers pass the parent page's own
-  /// title (`GarmentDetailsPage._title` — "New Clothing" while adding, or
-  /// the garment's name while editing an existing one) so this page reads
-  /// as a continuation of that flow rather than a generic "Edit". Callers
-  /// outside the garment flow (avatar photo, AI model photo) omit this and
-  /// keep the generic fallback.
-  final String? title;
+  /// When [showAnalysis] is false, analysis is normally skipped entirely —
+  /// but Retake/Album (below) let the user swap in a genuinely different
+  /// photo mid-edit regardless of [showAnalysis], and a swapped-in photo
+  /// hasn't had its background removed yet (that only happens as a side
+  /// effect of [GarmentService.analyzeGarment]'s response). Set this to
+  /// still run analysis when the source was actually replaced, even though
+  /// [showAnalysis] itself is false — garment callers only
+  /// ([GarmentDetailsPage._editCurrentImage]); leave false for a body/face/
+  /// avatar reference photo, which must never hit the garment analysis
+  /// endpoint.
+  final bool analyzeIfSourceReplaced;
 
   /// width/height of the crop preview and the final exported image.
   /// Garment photos default to 1:1 (square product shots); portrait
@@ -42,13 +46,25 @@ class ImageEditorPage extends StatefulWidget {
   /// [CameraFrameRatio.portrait], garment callers keep the square default.
   final CameraFrameRatio cameraFrameRatio;
 
+  /// Confirm stays unavailable until the user has actually changed
+  /// something (swapped the source photo via Retake/Album, or adjusted the
+  /// pinch-zoom/pan framing) — set this for callers that reopen an
+  /// *already-saved* photo to tweak it (garment "Edit image", avatar/body/
+  /// face reference photos), where confirming with zero changes would just
+  /// re-upload an identical copy for no reason. Leave false (default) for a
+  /// freshly-picked photo with no "unmodified" baseline to compare against
+  /// (the New Clothing / Match a Look flows) — there, confirming as-is with
+  /// the default framing is the normal, expected action.
+  final bool requireChangeToConfirm;
+
   const ImageEditorPage({
     super.key,
     this.initialPath,
     this.showAnalysis = true,
-    this.title,
+    this.analyzeIfSourceReplaced = false,
     this.aspectRatio = 1.0,
     this.cameraFrameRatio = CameraFrameRatio.square,
+    this.requireChangeToConfirm = false,
   });
 
   @override
@@ -67,6 +83,14 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   // analyzeGarment() calls or two Navigator.pop()s. See CLAUDE.md "Guarding
   // costly / mutating actions against double-invocation".
   bool _confirming = false;
+  // True once Retake/Album has swapped in a different photo than
+  // widget.initialPath — see widget.analyzeIfSourceReplaced.
+  bool _sourceReplaced = false;
+  // True once the pinch-zoom/pan framing differs from identity — the other
+  // half of widget.requireChangeToConfirm's "did anything actually change"
+  // check (see _hasChanges). Tracked via a listener since InteractiveViewer
+  // updates _transformationController directly, outside any handler here.
+  bool _transformChanged = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -74,11 +98,31 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   void initState() {
     super.initState();
     _currentPath = widget.initialPath;
+    _transformationController.addListener(_onTransformChanged);
   }
+
+  @override
+  void dispose() {
+    _transformationController.removeListener(_onTransformChanged);
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  void _onTransformChanged() {
+    final changed = _transformationController.value != Matrix4.identity();
+    if (changed != _transformChanged) {
+      setState(() => _transformChanged = changed);
+    }
+  }
+
+  /// Whether [widget.requireChangeToConfirm] should currently block confirm
+  /// — the source photo was swapped, or the crop framing was adjusted.
+  bool get _hasChanges => _sourceReplaced || _transformChanged;
 
   void _resetImage() {
     setState(() {
       _transformationController.value = Matrix4.identity();
+      _transformChanged = false;
     });
   }
 
@@ -93,6 +137,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     if (newPath != null) {
       setState(() {
         _currentPath = newPath;
+        _sourceReplaced = true;
         _resetImage();
       });
     }
@@ -104,6 +149,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     if (xFile != null) {
       setState(() {
         _currentPath = xFile.path;
+        _sourceReplaced = true;
         _resetImage();
       });
     }
@@ -138,7 +184,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       final processPath = await _captureFramedImage();
       if (!mounted) return;
 
-      if (widget.showAnalysis) {
+      final runAnalysis =
+          widget.showAnalysis ||
+          (_sourceReplaced && widget.analyzeIfSourceReplaced);
+      if (runAnalysis) {
         await _analyzeAndFinish(processPath);
       } else {
         Navigator.of(context).pop(ImageEditResult(imagePath: processPath));
@@ -162,7 +211,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         done = ImageEditResult(
           imagePath: result.processedImagePath ?? processPath,
           analysisData: result.metadata,
-          versatility: result.versatility,
         );
       } on AuthExpiredException {
         if (!mounted) return;
@@ -202,7 +250,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: widget.title ?? _l10n.edit,
+      title: '',
       onBack: () {
         if (!_isAnalyzing) Navigator.pop(context);
       },
@@ -247,14 +295,18 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   bool get _hasImage => _currentPath != null && _currentPath!.isNotEmpty;
 
-  bool get _showsBottomActionButton => _hasImage && !_isAnalyzing;
+  bool get _canConfirm =>
+      _hasImage &&
+      !_isAnalyzing &&
+      !_confirming &&
+      (!widget.requireChangeToConfirm || _hasChanges);
+
+  bool get _showsBottomActionButton => _canConfirm;
 
   Widget _buildConfirmButton() {
     return BottomActionButton(
-      label: _isAnalyzing ? _l10n.analyzingEllipsis : _l10n.confirmed,
-      onPressed: (_hasImage && !_isAnalyzing && !_confirming)
-          ? _handleConfirmed
-          : null,
+      label: _isAnalyzing ? _l10n.analyzingEllipsis : _l10n.confirm,
+      onPressed: _canConfirm ? _handleConfirmed : null,
       leading: Image.asset(
         'assets/images/ai_process.png',
         height: AppDimens.iconSmallSize,

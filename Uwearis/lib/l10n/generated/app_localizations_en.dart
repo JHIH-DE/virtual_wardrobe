@@ -163,10 +163,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outfitNameLabel => 'Name of this outfit';
 
   @override
-  String get newVersion => 'New Version';
+  String get addVersionButton => 'New Version';
 
   @override
-  String get addVersionButton => 'Version';
+  String get addVersionTitle => 'Add Version';
+
+  @override
+  String get versionLimitReachedTitle => 'Version limit reached';
+
+  @override
+  String get versionLimitReachedBody =>
+      'You can keep up to 5 versions for each outfit. Delete a version to create a new one.';
 
   @override
   String get addToMyOutfits => 'Add to My Outfits';
@@ -509,6 +516,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripNameLabel => 'Trip Name';
 
   @override
+  String get tripNameHint => 'e.g. Japan Spring Trip';
+
+  @override
+  String get destinationAndDatesLabel => 'Destination & Dates';
+
+  @override
   String get create => 'Create';
 
   @override
@@ -532,10 +545,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Uwearis will build an outfit for every day using what\'s in your suitcase.';
 
   @override
-  String get generateTripPlan => 'Generate Trip Plan';
+  String get planTripOutfits => 'Plan Trip Outfits';
 
   @override
-  String get regenerateTripPlan => 'Regenerate Trip Plan';
+  String get updateTripOutfits => 'Update Trip Outfits';
 
   @override
   String get regeneratePlanTitle => 'Regenerate outfit plan?';
@@ -568,16 +581,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noOutfitPlannedYetHint =>
       'Generate your trip plan to assign clothes for this day.';
-
-  @override
-  String get insufficientSuitcaseTitle => 'Not Enough in Your Suitcase';
-
-  @override
-  String get insufficientSuitcaseBody =>
-      'Uwearis needs a top and a bottom (or a one-piece), plus a pair of shoes, to plan outfits. Add a few more pieces to your suitcase first.';
-
-  @override
-  String get goToSuitcase => 'Go to Suitcase';
 
   @override
   String missingFromSuitcaseCount(int count) {
@@ -621,7 +624,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get addLocation => 'Add Location';
+  String get addLocation => 'Add Destination';
 
   @override
   String get camera => 'Camera';
@@ -1080,6 +1083,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectGarmentsTitle => 'Select Garments';
 
   @override
+  String get editOutfitTitle => 'Edit Outfit';
+
+  @override
+  String get editGarmentTitle => 'Edit Garment';
+
+  @override
   String get addFromOutfit => 'Add from an Outfit';
 
   @override
@@ -1254,9 +1263,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get analysisFailedBody =>
       'The AI analysis didn\'t come through. Check your connection and try again.';
-
-  @override
-  String get confirmed => 'Confirmed';
 
   @override
   String get reset => 'Reset';

@@ -145,6 +145,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _runAIAnalysis(_imagePathOrUrl!);
       });
+    } else if (_editingGarment?.metadata != null) {
+      // Editing an existing garment with no fresh analysis this session —
+      // seed from its own saved metadata so a photo-only edit (the image
+      // preview's "Edit image", which doesn't re-run analysis) still has
+      // something to send. `completeUpload`/`/garments/complete` requires
+      // `metadata` — omitting it 500s server-side (it unconditionally reads
+      // `metadata.thickness`).
+      _metaData = _editingGarment!.metadata;
     }
 
     _nameCtrl.addListener(_checkModified);
@@ -1172,7 +1180,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final result = await Navigator.push<ImageEditResult>(
       context,
       MaterialPageRoute(
-        builder: (_) => ImageEditorPage(initialPath: xfile.path, title: _title),
+        builder: (_) => ImageEditorPage(initialPath: xfile.path),
       ),
     );
     _handleImageEditResult(result);
@@ -1189,7 +1197,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         builder: (_) => ImageEditorPage(
           initialPath: _imagePathOrUrl,
           showAnalysis: false,
-          title: _title,
+          // A plain recrop of the same photo doesn't need re-analysis, but
+          // Retake/Album inside the editor can swap in a genuinely different
+          // photo — that one hasn't been background-removed yet, so it does.
+          analyzeIfSourceReplaced: true,
+          // This reopens the already-saved photo — confirming with zero
+          // changes would just re-upload an identical copy.
+          requireChangeToConfirm: true,
         ),
       ),
     );
@@ -1303,13 +1317,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     if (!_isAddMode) await GarmentService().deleteGarment(_id!);
     // Fold the one metadata field the form can edit (fit) back in, and pass
     // the closet-match score through if the user ran it — the backend stores
-    // both, it doesn't recompute.
-    final metadata = _metaData == null
-        ? null
-        : <String, dynamic>{
-            ..._metaData!,
-            if (_selectedFit != null) 'fit': _selectedFit!.apiValue,
-          };
+    // both, it doesn't recompute. Never send a bare `null` here: `/complete`
+    // requires `metadata` and 500s reading `metadata.thickness` on a null
+    // value — `_metaData` is normally seeded (fresh analysis, or an existing
+    // garment's own saved metadata; see initState), but this is the last
+    // line of defense in case both are somehow unavailable.
+    final metadata = <String, dynamic>{
+      ...?_metaData,
+      if (_selectedFit != null) 'fit': _selectedFit!.apiValue,
+    };
     return GarmentService().completeUpload(
       temp,
       metadata,

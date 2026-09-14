@@ -28,8 +28,8 @@ void main() {
   );
 
   testWidgets(
-    '"Add Location" renders as an AccentPillButton and opens the location '
-    'picker',
+    '"Add Destination" renders as an AccentPillButton and opens the '
+    'location picker',
     (tester) async {
       await pumpApp(tester, const TripCreateDialog());
       await tester.pump();

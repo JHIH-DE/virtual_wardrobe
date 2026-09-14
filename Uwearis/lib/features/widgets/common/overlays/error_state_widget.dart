@@ -30,7 +30,10 @@ class ErrorStateWidget extends StatelessWidget {
           const Icon(Icons.error_outline, size: 48, color: AppColors.icon),
           const SizedBox(height: 12),
           Text(
-            error.toString(),
+            // Never the raw exception text (a type-cast message, a stack
+            // frame, a raw HTTP body) — that's an implementation detail, not
+            // something a user can act on or that they should see.
+            AppLocalizations.of(context).failedToLoad,
             style: AppTextStyle.regular16.copyWith(
               color: AppColors.textSecondary,
             ),

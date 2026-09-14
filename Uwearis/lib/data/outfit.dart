@@ -132,8 +132,28 @@ class Outfit {
       return 0;
     }
 
+    // `garment_ids` entries are normally bare ids, but some backend
+    // endpoints (e.g. trip suitcase items — see parseSuitcaseItemIds in
+    // trip_plan.dart) instead embed a `{garment_id: ...}` (or `{id: ...}`)
+    // object per entry. Accept both shapes and silently drop anything that
+    // parses to neither, rather than defaulting to a fake id 0 — a 0
+    // doesn't exist as a real garment, so resolving it against the closet
+    // 404s and (since the caller resolves every id with one Future.wait)
+    // silently blanks out every garment on the outfit, not just the bad one.
+    int? parseGarmentId(dynamic v) {
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v);
+      if (v is Map) {
+        final id = v['garment_id'] ?? v['id'];
+        if (id is num) return id.toInt();
+        if (id is String) return int.tryParse(id);
+      }
+      return null;
+    }
+
     List<int> parseIds(dynamic v) {
-      if (v is List) return v.map((e) => parseId(e)).toList();
+      if (v is List) return v.map(parseGarmentId).whereType<int>().toList();
       return [];
     }
 

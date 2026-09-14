@@ -84,6 +84,44 @@ void main() {
       expect(outfit.garmentIds, [12, 55, 88]);
     });
 
+    // Regression: some backend responses embed each garment as an object
+    // (`{garment_id: ...}` or `{id: ...}`) instead of a bare id — mirrors
+    // trip suitcase items' own dual shape (see parseSuitcaseItemIds in
+    // trip_plan.dart). Before this, an embedded object silently parsed to a
+    // fake id 0, and OutfitDetailsPage._loadGarments resolving that single
+    // bad id 404s and (via one Future.wait covering every garment) blanks
+    // out the *entire* garment list for the outfit, not just the bad entry.
+    test('accepts garment_ids entries embedded as {garment_id: ...} objects', () {
+      final outfit = Outfit.fromJson({
+        'outfit_id': 1,
+        'garment_ids': [
+          {'garment_id': 12, 'name': 'Denim Jacket'},
+          {'garment_id': 55, 'name': 'Cargo Pants'},
+        ],
+      });
+      expect(outfit.garmentIds, [12, 55]);
+    });
+
+    test('accepts garment_ids entries embedded as {id: ...} objects', () {
+      final outfit = Outfit.fromJson({
+        'outfit_id': 1,
+        'garment_ids': [
+          {'id': 12},
+          {'id': '55'},
+        ],
+      });
+      expect(outfit.garmentIds, [12, 55]);
+    });
+
+    test('drops a garment_ids entry that has no usable id, instead of a '
+        'fake 0', () {
+      final outfit = Outfit.fromJson({
+        'outfit_id': 1,
+        'garment_ids': [12, {'name': 'no id here'}, 55],
+      });
+      expect(outfit.garmentIds, [12, 55]);
+    });
+
     test('accepts season/style as a single string, not just a list', () {
       final outfit = Outfit.fromJson({
         'outfit_id': 1,

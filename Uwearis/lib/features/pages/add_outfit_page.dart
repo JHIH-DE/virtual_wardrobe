@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,7 +47,7 @@ import 'select_garment_page.dart' show SelectGarmentPage;
 /// The page's own identity for each garment slot — distinct from
 /// [GarmentCategory] because Top and Mid Layer share [GarmentCategory.top]
 /// but are two different slots. Used to key Match a Look's per-slot state
-/// ([_AddOutfitPageState._aiPopulatedSlots], [_AddOutfitPageState._noCloseMatchSlots]).
+/// ([_AddOutfitPageState._aiPopulatedSlots]).
 enum _Slot { top, middle, outer, bottom, onePiece, shoes }
 
 /// Where the Match a Look flow currently stands. There's no persisted
@@ -116,39 +115,12 @@ class _OutfitSelection {
 
 class AddOutfitPage extends ConsumerStatefulWidget {
   final List<Garment> initialGarments;
-
-  /// In [selectOnly] mode, the fixed garment pool the picker draws from (a
-  /// trip's suitcase). In the normal create flow it's unused — the pool is
-  /// the app-wide closet from [garmentsProvider].
-  final List<Garment>? preloadedGarments;
   final VoidCallback? onBack;
-
-  /// When true, the bottom bar becomes a "Confirm" button that pops the
-  /// selected garment ids back to the caller instead of starting a try-on —
-  /// used when this page is reused as a picker (e.g. editing a trip day's
-  /// outfit) rather than for its own create-an-outfit flow.
-  final bool selectOnly;
-
-  /// In [selectOnly] mode, garment ids NOT in this set get a warning badge
-  /// on their slot (e.g. an outfit item that's since been removed from the
-  /// trip's suitcase). Ignored outside [selectOnly] mode.
-  final Set<int>? validGarmentIds;
-
-  /// When set, this page creates a *new* outfit inside this outfit's group
-  /// instead of starting a fresh group (Outfit Details' "Create Another
-  /// Version") — core garment slot edits and accessory picks work exactly
-  /// like the normal create flow, the only difference is which group the
-  /// result lands in. Pops the newly created [Outfit] on success.
-  final Outfit? existingOutfit;
 
   const AddOutfitPage({
     super.key,
     this.initialGarments = const [],
-    this.preloadedGarments,
     this.onBack,
-    this.selectOnly = false,
-    this.validGarmentIds,
-    this.existingOutfit,
   });
 
   @override
@@ -157,45 +129,31 @@ class AddOutfitPage extends ConsumerStatefulWidget {
 
 class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   late _OutfitSelection _outfit;
-  late _OutfitSelection _initialOutfit;
-  late Set<int> _initialAccessoryIds;
 
-  /// The garment pool the picker draws from. In selectOnly mode it's the
-  /// fixed subset the caller passed (a trip's suitcase); otherwise it's the
-  /// app-wide closet straight from [garmentsProvider] — same source every
-  /// other garment-picking screen uses, no local copy. `build` watches the
-  /// provider so this stays current; callers read it via `ref.read`.
-  List<Garment> get _garmentPool => widget.selectOnly
-      ? (widget.preloadedGarments ?? const [])
-      : (ref.read(garmentsProvider).value ?? const []);
+  /// The garment pool the picker draws from — the app-wide closet straight
+  /// from [garmentsProvider], same source every other garment-picking
+  /// screen uses, no local copy. `build` watches the provider so this stays
+  /// current; callers read it via `ref.read`.
+  List<Garment> get _garmentPool =>
+      ref.read(garmentsProvider).value ?? const [];
 
-  bool get _garmentPoolLoading =>
-      !widget.selectOnly && ref.read(garmentsProvider).isLoading;
+  bool get _garmentPoolLoading => ref.read(garmentsProvider).isLoading;
 
   // Match a Look session state — see clearMatchALookSession-equivalent
   // _clearMatchALookSession below for what "clearing" actually resets.
   _MatchALookStatus _matchALookStatus = _MatchALookStatus.idle;
   String? _referenceImagePath;
-  Map<MatchALookRole, RoleMatch> _roleMatches = {};
   // Slots currently filled by Match a Look's #1 pick rather than a manual
   // choice — this is this page's selectionSource tracking: a slot in this
   // set is "referenceMatch", everything else (including slots the user
   // manually cleared or replaced) is implicitly "manual".
   final Set<_Slot> _aiPopulatedSlots = {};
-  // Slots where the reference photo showed this role but nothing in the
-  // closet was a close enough match — rendered as "No close match" instead
-  // of "Not selected" while still empty.
-  final Set<_Slot> _noCloseMatchSlots = {};
 
   static const int _maxAccessories = 4;
-  static const double _accessoryTileSize = 72;
 
-  // Whether the collapsible section below "Your Outfit" is open — the
-  // create flow's "BACKGROUND" header ([_buildBackgroundSectionHeader]) and
-  // the selectOnly/edit flow's "Accessories & Background" panel
-  // ([_buildCustomizationBlock]) share this single flag since a page
-  // instance only ever renders one of those two bodies.
-  bool _customizationExpanded = false;
+  // Whether the collapsible "BACKGROUND" section below "Your Outfit" is
+  // open — see [_buildBackgroundSectionHeader].
+  bool _backgroundExpanded = false;
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
   BackgroundOption _background = BackgroundOption.all.first;
@@ -231,18 +189,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   bool _completeWithAiInFlight = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
-
-  /// Whether this page renders the vertical "Your Outfit" list layout — the
-  /// default "New Outfit" flow (reached from the Home quick action) and
-  /// [AddOutfitPage.existingOutfit] ("Create Another Version") both use it;
-  /// only [AddOutfitPage.selectOnly] (trip day editor) keeps the older
-  /// per-category slot layout ([_buildSlotFlowBody]), since that mode has no
-  /// generate step and a different bottom action ("Confirm", not "Create
-  /// Outfit"). This is purely a layout switch — submission gating for
-  /// existingOutfit vs. a fresh outfit is decided separately by
-  /// `widget.existingOutfit == null` where it actually matters
-  /// ([_showsBottomActionButton], [_buildBottomBar]), not by this flag.
-  bool get _isCreateFlow => !widget.selectOnly;
 
   /// Stable display order for the "Add garment" picker's category tabs.
   static const List<GarmentCategory> _addCategoryOrder = [
@@ -289,7 +235,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       if (i == keepAccessoryIndex) continue;
       final a = _accessories[i];
       if (a != null && a.subCategory.isNotEmpty) {
-        wornAccessoryKeys.add(_accessorySlotKey(a.subCategory));
+        wornAccessoryKeys.add(accessorySlotKey(a.subCategory));
       }
     }
 
@@ -313,7 +259,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       if (isAccessory) {
         if (g.id != null && _accessoryIds.contains(g.id)) return false;
         if (g.subCategory.isNotEmpty &&
-            wornAccessoryKeys.contains(_accessorySlotKey(g.subCategory))) {
+            wornAccessoryKeys.contains(accessorySlotKey(g.subCategory))) {
           return false;
         }
       } else if (g.id != null &&
@@ -332,25 +278,12 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     return tabs.isEmpty ? const [GarmentCategory.top] : tabs;
   }
 
-  // In selectOnly mode, a category whose only occurrence is in the
-  // pre-existing selection (e.g. its category has since vanished from the
-  // pool entirely) still gets a slot — otherwise a stale pick would
-  // disappear silently instead of showing its warning badge. Categories
-  // with nothing in the pool AND nothing currently assigned stay hidden.
-  late final Set<GarmentCategory> _initialCategories = widget.initialGarments
-      .map((g) => g.category)
-      .toSet();
-
   bool _hasCategory(GarmentCategory category) =>
-      _garmentPool.any((g) => g.category == category) ||
-      ((widget.selectOnly || widget.existingOutfit != null) &&
-          _initialCategories.contains(category));
+      _garmentPool.any((g) => g.category == category);
 
   /// Called before opening the picker: nudge [garmentsProvider] to re-fetch
   /// if its list is empty or its image URLs are stale (a no-op otherwise).
-  /// Skipped in selectOnly mode (that pool is a fixed subset).
   Future<void> _ensureFreshGarments() async {
-    if (widget.selectOnly) return;
     await ref.read(garmentsProvider.notifier).refreshIfNeeded();
   }
 
@@ -361,24 +294,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       .map((g) => g.id)
       .whereType<int>()
       .toSet();
-
-  bool get _hasSelection =>
-      _outfit.top != null ||
-      _outfit.middle != null ||
-      _outfit.outer != null ||
-      _outfit.bottom != null ||
-      _outfit.onePiece != null ||
-      _outfit.shoes != null ||
-      _accessoryIds.isNotEmpty;
-
-  // Minimum garments to generate an outfit render — Create Outfit stays
-  // hidden until all three are picked. A category the closet has none of
-  // (its slot row isn't even shown, see _hasCategory) doesn't block this —
-  // otherwise a closet with no bottoms could never create an outfit.
-  bool get _hasCoreSlots =>
-      (!_hasCategory(GarmentCategory.top) || _outfit.top != null) &&
-      (!_hasCategory(GarmentCategory.bottom) || _outfit.bottom != null) &&
-      (!_hasCategory(GarmentCategory.shoes) || _outfit.shoes != null);
 
   /// The Top/Bottom/Shoes core categories a complete try-on needs — only
   /// the ones the closet actually has, in that order. Drives whether
@@ -407,41 +322,26 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   bool get _coreComplete =>
       _coreChecklist.isNotEmpty && _coreChecklist.every(_coreSlotMet);
 
-  bool get _isModified {
-    bool sameSlot(Garment? a, Garment? b) => a?.id == b?.id;
-    return !(sameSlot(_outfit.top, _initialOutfit.top) &&
-        sameSlot(_outfit.middle, _initialOutfit.middle) &&
-        sameSlot(_outfit.outer, _initialOutfit.outer) &&
-        sameSlot(_outfit.bottom, _initialOutfit.bottom) &&
-        sameSlot(_outfit.onePiece, _initialOutfit.onePiece) &&
-        sameSlot(_outfit.shoes, _initialOutfit.shoes) &&
-        setEquals(_accessoryIds, _initialAccessoryIds));
-  }
-
   @override
   void initState() {
     super.initState();
     _outfit = widget.initialGarments.isNotEmpty
         ? _buildInitialOutfit(widget.initialGarments)
         : const _OutfitSelection();
-    _initialOutfit = _outfit;
     if (widget.initialGarments.isNotEmpty) {
       _accessories
         ..clear()
         ..addAll(_buildInitialAccessories(widget.initialGarments));
     }
-    _initialAccessoryIds = _accessoryIds;
-    if (!widget.selectOnly) {
-      // Same as every other garment screen: lean on garmentsProvider and let
-      // it re-fetch only when its own list is empty or its image URLs are
-      // stale (a no-op if My Closet just refreshed). Deferred to post-frame —
-      // `refreshIfNeeded` synchronously flips the provider to AsyncLoading,
-      // which Riverpod forbids during a build/initState (matches how
-      // closet_page / outfits_page / trip_suitcase_page schedule it).
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) ref.read(garmentsProvider.notifier).refreshIfNeeded();
-      });
-    }
+    // Same as every other garment screen: lean on garmentsProvider and let
+    // it re-fetch only when its own list is empty or its image URLs are
+    // stale (a no-op if My Closet just refreshed). Deferred to post-frame —
+    // `refreshIfNeeded` synchronously flips the provider to AsyncLoading,
+    // which Riverpod forbids during a build/initState (matches how
+    // closet_page / outfits_page / trip_suitcase_page schedule it).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(garmentsProvider.notifier).refreshIfNeeded();
+    });
   }
 
   @override
@@ -544,25 +444,16 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 
   /// A manual pick (or clear) always wins over Match a Look — the slot
-  /// drops out of both tracking sets regardless of what's now in it.
+  /// drops out of the tracking set regardless of what's now in it.
   void _markSlotManual(_Slot slot) {
     _aiPopulatedSlots.remove(slot);
-    _noCloseMatchSlots.remove(slot);
-  }
-
-  List<int> _rankedIdsFor(_Slot slot) {
-    for (final entry in _roleMatches.entries) {
-      if (_slotFor(entry.key) == slot) return entry.value.rankedGarmentIds;
-    }
-    return const [];
   }
 
   Future<void> _startMatchALookFlow() async {
     final result = await Navigator.push<ImageEditResult>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            ImageEditorPage(showAnalysis: false, title: _l10n.matchALookTitle),
+        builder: (_) => const ImageEditorPage(showAnalysis: false),
       ),
     );
     if (result == null || !mounted) return;
@@ -622,7 +513,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   void _applyMatchResult(String imagePath, MatchALookResult result) {
     var next = _outfit;
     final newAiSlots = <_Slot>{};
-    final newNoCloseMatchSlots = <_Slot>{};
 
     for (final match in result.roles) {
       final slot = _slotFor(match.role);
@@ -636,21 +526,15 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           next = _applyToSlot(next, slot, garment);
           newAiSlots.add(slot);
         }
-      } else if (match.matchStatus == MatchStatus.noCloseMatch) {
-        newNoCloseMatchSlots.add(slot);
       }
     }
 
     setState(() {
       _outfit = next;
       _referenceImagePath = imagePath;
-      _roleMatches = {for (final m in result.roles) m.role: m};
       _aiPopulatedSlots
         ..clear()
         ..addAll(newAiSlots);
-      _noCloseMatchSlots
-        ..clear()
-        ..addAll(newNoCloseMatchSlots);
       _matchALookStatus = _MatchALookStatus.matched;
     });
   }
@@ -669,8 +553,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     setState(() {
       _outfit = next;
       _aiPopulatedSlots.clear();
-      _noCloseMatchSlots.clear();
-      _roleMatches = {};
       _referenceImagePath = null;
       _matchALookStatus = _MatchALookStatus.idle;
     });
@@ -690,9 +572,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   /// Every selected garment id — core slots (top/middle/outer/bottom/
   /// onePiece/shoes) and accessories together as one flat list. The backend
   /// has no separate accessory concept, just one `garment_ids` list, so
-  /// there's no reason to keep them apart client-side either — this is the
-  /// single source callers (Create Outfit's generate call, selectOnly
-  /// mode's Confirm button) both read from.
+  /// there's no reason to keep them apart client-side either — this is what
+  /// Create Outfit's generate call reads from.
   List<int> _selectedGarmentIds() {
     final coreIds = [
       _outfit.top,
@@ -721,10 +602,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       // If any core slot (Top / Bottom / Shoes) is still empty, run Finish
       // Outfit first to fill the gaps, then render. A closet with none of
       // those three categories skips this (Finish Outfit can't help there).
-      if (_isCreateFlow &&
-          widget.existingOutfit == null &&
-          _coreChecklist.isNotEmpty &&
-          !_coreComplete) {
+      if (_coreChecklist.isNotEmpty && !_coreComplete) {
         await _completeWithAi();
         if (!mounted) return;
         // Finish Outfit couldn't complete the core slots — it already
@@ -741,20 +619,12 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
       await performTryOn(
         ids,
-        // existingOutfit mode: land the new outfit in that outfit's group
-        // instead of starting a fresh one (Outfit Details' "Create Another
-        // Version").
-        groupId: widget.existingOutfit?.groupId,
         backgroundId: _backgroundCustomized ? _background.backgroundId : null,
       );
       if (!mounted) return;
 
       if (tryOnResultUrl != null) {
-        if (widget.existingOutfit != null) {
-          Navigator.pop(context, tryOnOutfit);
-        } else {
-          await _showTryOnResult(ids);
-        }
+        await _showTryOnResult(ids);
       } else if (tryOnErrorMessage != null) {
         ScaffoldMessenger.of(
           context,
@@ -791,7 +661,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         ..add(null);
       _background = BackgroundOption.all.first;
       _backgroundCustomized = false;
-      _customizationExpanded = false;
+      _backgroundExpanded = false;
     });
     if (saved == true) {
       showFeedbackOverlay(context, message: _l10n.outfitSaved);
@@ -799,24 +669,14 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 
   AppToolBar _buildAppBar() {
-    final existingOutfit = widget.existingOutfit;
-    return AppToolBar(
-      title: widget.selectOnly
-          ? _l10n.selectGarmentsTitle
-          : existingOutfit != null
-          ? (existingOutfit.name?.isNotEmpty == true
-                ? existingOutfit.name!
-                : _l10n.newVersion)
-          : _l10n.quickActionAddOutfit,
-      onBack: widget.onBack,
-    );
+    return AppToolBar(title: _l10n.quickActionAddOutfit, onBack: widget.onBack);
   }
 
   @override
   Widget build(BuildContext context) {
     // Rebuild when the closet changes (loads, or a garment is added/edited
     // elsewhere). _garmentPool / _garmentPoolLoading read it via ref.read.
-    if (!widget.selectOnly) ref.watch(garmentsProvider);
+    ref.watch(garmentsProvider);
     return Stack(
       children: [
         Scaffold(
@@ -825,20 +685,18 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           appBar: _buildAppBar(),
           body: ListView(
             physics: const ClampingScrollPhysics(),
-            // Create flow goes edge-to-edge so its horizontal card rows can
-            // scroll flush to the screen edges; its non-scrolling children
-            // re-apply the inset via [_hInset].
-            padding: EdgeInsets.fromLTRB(
-              _isCreateFlow ? 0 : 20,
+            // Edge-to-edge so the horizontal card rows can scroll flush to
+            // the screen edges; non-scrolling children re-apply the inset
+            // via [_hInset]. Create Outfit is always present (it just
+            // toggles enabled — see _buildBottomBar), so this clearance is
+            // unconditional.
+            padding: const EdgeInsets.fromLTRB(
+              0,
               24,
-              _isCreateFlow ? 0 : 20,
-              _showsBottomActionButton
-                  ? AppDimens.bottomActionBtnClearance
-                  : 24,
+              0,
+              AppDimens.bottomActionBtnClearance,
             ),
-            children: _isCreateFlow
-                ? _buildCreateFlowBody()
-                : _buildSlotFlowBody(),
+            children: _buildCreateFlowBody(),
           ),
           bottomNavigationBar: _buildBottomBar(),
         ),
@@ -858,21 +716,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           Positioned.fill(child: LoadingOverlay(label: _l10n.thinkingEllipsis)),
       ],
     );
-  }
-
-  /// The per-category slot layout — [AddOutfitPage.selectOnly] (trip day
-  /// editor) only now; every other mode uses [_buildCreateFlowBody].
-  List<Widget> _buildSlotFlowBody() {
-    return [
-      _buildInstructions(),
-      const SizedBox(height: AppDimens.sectionSpacing),
-      ..._buildTopSlots(),
-      ..._buildOuterSlot(),
-      ..._buildBottomSlot(),
-      ..._buildOnePieceSlot(),
-      ..._buildShoesSlot(),
-      _buildCustomizationBlock(),
-    ];
   }
 
   /// The default "New Outfit" layout: Match a Look, the collapsible
@@ -895,7 +738,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       AnimatedCrossFade(
         key: const ValueKey('backgroundSection'),
         duration: const Duration(milliseconds: 150),
-        crossFadeState: _customizationExpanded
+        crossFadeState: _backgroundExpanded
             ? CrossFadeState.showFirst
             : CrossFadeState.showSecond,
         firstChild: Column(
@@ -1552,380 +1395,12 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  // Only ever shown in selectOnly mode — see _buildSlotFlowBody.
-  Widget _buildInstructions() {
-    return Text(
-      _l10n.editDayOutfitInstruction,
-      textAlign: TextAlign.left,
-      style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
-    );
-  }
-
-  List<Widget> _buildTopSlots() {
-    if (!_hasCategory(GarmentCategory.top)) return const [];
-    return [
-      _slotRow(
-        title: GarmentCategory.top.localizedLabel(context),
-        iconAsset: 'assets/images/top.png',
-        value: _outfit.top,
-        category: GarmentCategory.top,
-        noCloseMatch: _noCloseMatchSlots.contains(_Slot.top),
-        rankedGarmentIds: _rankedIdsFor(_Slot.top),
-        onPicked: (g) => setState(() {
-          _outfit = _outfit.copyWith(top: g);
-          _markSlotManual(_Slot.top);
-        }),
-        onClear: _outfit.top == null
-            ? null
-            : () => setState(() {
-                _outfit = _outfit.copyWith(clearTop: true);
-                _markSlotManual(_Slot.top);
-              }),
-      ),
-      const SizedBox(height: 24),
-      _slotRow(
-        title: _l10n.midLayer,
-        optional: true,
-        showNoneOption: true,
-        iconAsset: 'assets/images/outer.png',
-        value: _outfit.middle,
-        category: GarmentCategory.top,
-        noCloseMatch: _noCloseMatchSlots.contains(_Slot.middle),
-        rankedGarmentIds: _rankedIdsFor(_Slot.middle),
-        onPicked: (g) => setState(() {
-          _outfit = _outfit.copyWith(middle: g);
-          _markSlotManual(_Slot.middle);
-        }),
-        onClear: _outfit.middle == null
-            ? null
-            : () => setState(() {
-                _outfit = _outfit.copyWith(clearMiddle: true);
-                _markSlotManual(_Slot.middle);
-              }),
-      ),
-      const SizedBox(height: 24),
-    ];
-  }
-
-  List<Widget> _buildOuterSlot() {
-    if (!_hasCategory(GarmentCategory.outer)) return const [];
-    return [
-      _slotRow(
-        title: _l10n.outerwear,
-        optional: true,
-        showNoneOption: true,
-        iconAsset: 'assets/images/outer.png',
-        value: _outfit.outer,
-        category: GarmentCategory.outer,
-        noCloseMatch: _noCloseMatchSlots.contains(_Slot.outer),
-        rankedGarmentIds: _rankedIdsFor(_Slot.outer),
-        onPicked: (g) => setState(() {
-          _outfit = _outfit.copyWith(outer: g);
-          _markSlotManual(_Slot.outer);
-        }),
-        onClear: _outfit.outer == null
-            ? null
-            : () => setState(() {
-                _outfit = _outfit.copyWith(clearOuter: true);
-                _markSlotManual(_Slot.outer);
-              }),
-      ),
-      const SizedBox(height: 24),
-    ];
-  }
-
-  List<Widget> _buildBottomSlot() {
-    if (!_hasCategory(GarmentCategory.bottom)) return const [];
-    return [
-      _slotRow(
-        title: GarmentCategory.bottom.localizedLabel(context),
-        iconAsset: 'assets/images/buttom.png',
-        value: _outfit.bottom,
-        category: GarmentCategory.bottom,
-        noCloseMatch: _noCloseMatchSlots.contains(_Slot.bottom),
-        rankedGarmentIds: _rankedIdsFor(_Slot.bottom),
-        onPicked: (g) => setState(() {
-          _outfit = _outfit.copyWith(bottom: g);
-          _markSlotManual(_Slot.bottom);
-        }),
-        onClear: _outfit.bottom == null
-            ? null
-            : () => setState(() {
-                _outfit = _outfit.copyWith(clearBottom: true);
-                _markSlotManual(_Slot.bottom);
-              }),
-      ),
-      const SizedBox(height: 24),
-    ];
-  }
-
-  List<Widget> _buildOnePieceSlot() {
-    if (!_hasCategory(GarmentCategory.onePiece)) return const [];
-    return [
-      _slotRow(
-        title: GarmentCategory.onePiece.localizedLabel(context),
-        optional: true,
-        iconData: Icons.checkroom,
-        value: _outfit.onePiece,
-        category: GarmentCategory.onePiece,
-        noCloseMatch: _noCloseMatchSlots.contains(_Slot.onePiece),
-        rankedGarmentIds: _rankedIdsFor(_Slot.onePiece),
-        onPicked: (g) => setState(() {
-          _outfit = _outfit.copyWith(onePiece: g);
-          _markSlotManual(_Slot.onePiece);
-        }),
-        onClear: _outfit.onePiece == null
-            ? null
-            : () => setState(() {
-                _outfit = _outfit.copyWith(clearOnePiece: true);
-                _markSlotManual(_Slot.onePiece);
-              }),
-      ),
-      const SizedBox(height: 24),
-    ];
-  }
-
-  List<Widget> _buildShoesSlot() {
-    if (!_hasCategory(GarmentCategory.shoes)) return const [];
-    return [
-      _slotRow(
-        title: GarmentCategory.shoes.localizedLabel(context),
-        iconAsset: 'assets/images/shoes.png',
-        value: _outfit.shoes,
-        category: GarmentCategory.shoes,
-        noCloseMatch: _noCloseMatchSlots.contains(_Slot.shoes),
-        rankedGarmentIds: _rankedIdsFor(_Slot.shoes),
-        onPicked: (g) => setState(() {
-          _outfit = _outfit.copyWith(shoes: g);
-          _markSlotManual(_Slot.shoes);
-        }),
-        onClear: _outfit.shoes == null
-            ? null
-            : () => setState(() {
-                _outfit = _outfit.copyWith(clearShoes: true);
-                _markSlotManual(_Slot.shoes);
-              }),
-      ),
-      const SizedBox(height: 24),
-    ];
-  }
-
-  /// Collapsible panel (collapsed by default) holding the Accessories
-  /// picker — selectOnly mode only now (see [_buildSlotFlowBody]); that mode
-  /// just picks garment ids for a caller and has no generate step to apply
-  /// a background to, so unlike the create flow's own collapsible Background
-  /// section ([_buildBackgroundSectionHeader]), this one never shows
-  /// Background at all.
-  Widget _buildCustomizationBlock() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowResting,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => setState(
-              () => _customizationExpanded = !_customizationExpanded,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/accessories.png',
-                    width: 32,
-                    height: 32,
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Text(
-                      _l10n.accessoriesLabel,
-                      style: AppTextStyle.regular16,
-                    ),
-                  ),
-                  ExpandArrowIcon(expanded: _customizationExpanded),
-                ],
-              ),
-            ),
-          ),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 150),
-            crossFadeState: _customizationExpanded
-                ? CrossFadeState.showFirst
-                : CrossFadeState.showSecond,
-            firstChild: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const AppDivider(
-                    topSpacing: 0,
-                    bottomSpacing: AppDimens.sectionSpacing,
-                  ),
-                  FieldLabel(_l10n.accessoriesLabel.toUpperCase()),
-                  const SizedBox(height: AppDimens.cardHeaderGap),
-                  _buildAccessoriesRow(),
-                ],
-              ),
-            ),
-            secondChild: const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Garment> get _accessoryCandidates => _garmentPool
-      .where(
-        (g) =>
-            g.category == GarmentCategory.accessory ||
-            g.category == GarmentCategory.socks,
-      )
-      .toList();
-
-  /// Normalizes an accessory's AI-assigned `subCategory` into the slot it
-  /// occupies for exclusivity purposes — "Hat" and "Cap" are both
-  /// headwear, so picking one in one slot should rule out the other in
-  /// every other slot even though the raw strings differ. `subCategory`
-  /// has no fixed enum (it's freeform per garment), so this only merges
-  /// pairs known to collide; extend the set here if more turn up.
-  String _accessorySlotKey(String subCategory) {
-    final normalized = subCategory.toLowerCase();
-    const headwear = {'hat', 'cap'};
-    if (headwear.contains(normalized)) return 'headwear';
-    return normalized;
-  }
-
-  /// Candidates for [index]'s slot, minus whatever *type* of accessory is
-  /// already picked in the *other* slots (grouped by [_accessorySlotKey]).
-  List<Garment> _accessoryCandidatesFor(int index) {
-    final pickedTypesElsewhere = <String>{};
-    final pickedIdsElsewhere = <int>{};
-    for (var i = 0; i < _accessories.length; i++) {
-      if (i == index) continue;
-      final picked = _accessories[i];
-      if (picked == null) continue;
-      if (picked.subCategory.isNotEmpty) {
-        pickedTypesElsewhere.add(_accessorySlotKey(picked.subCategory));
-      } else if (picked.id != null) {
-        pickedIdsElsewhere.add(picked.id!);
-      }
-    }
-    return _accessoryCandidates.where((g) {
-      if (g.subCategory.isNotEmpty &&
-          pickedTypesElsewhere.contains(_accessorySlotKey(g.subCategory))) {
-        return false;
-      }
-      return g.id == null || !pickedIdsElsewhere.contains(g.id);
-    }).toList();
-  }
-
-  Future<void> _pickAccessoryAt(int index) async {
-    await _ensureFreshGarments();
-    if (!mounted) return;
-    final result = await Navigator.push<SelectGarmentResult>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SelectGarmentPage(
-          title: _l10n.selectItemTitle('Accessory'),
-          category: null,
-          garments: _accessoryCandidatesFor(index),
-          selected: _accessories[index],
-          showNoneOption: true,
-        ),
-      ),
-    );
-    if (result == null || !mounted) return;
-    setState(() {
-      _accessories[index] = result.garment;
-      _accessories.removeWhere((g) => g == null);
-      if (_accessories.length < _maxAccessories) _accessories.add(null);
-    });
-  }
-
-  Widget _buildAccessoriesRow() {
-    return SizedBox(
-      height: _accessoryTileSize,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _accessories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) => SizedBox(
-          width: _accessoryTileSize,
-          height: _accessoryTileSize,
-          child: _buildAccessoryTile(i),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAccessoryTile(int index) {
-    final accessory = _accessories[index];
-    if (accessory == null) {
-      return GestureDetector(
-        // opaque so the whole 72px tile responds — CustomPaint only strokes
-        // a dashed border, leaving just the centered "+" glyph tappable.
-        behavior: HitTestBehavior.opaque,
-        onTap: isOutfitLoading ? null : () => _pickAccessoryAt(index),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: CustomPaint(
-            painter: const DashedBorderPainter(
-              color: AppColors.borderStrong,
-              radius: 10,
-            ),
-            child: const Center(
-              child: Icon(Icons.add, size: 18, color: AppColors.icon),
-            ),
-          ),
-        ),
-      );
-    }
-    return GestureDetector(
-      // opaque so the 6px margin around the thumbnail is tappable too.
-      behavior: HitTestBehavior.opaque,
-      onTap: isOutfitLoading ? null : () => _pickAccessoryAt(index),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.borderSubtle),
-          ),
-          child: SizedBox.expand(
-            child: GarmentImage(
-              url: accessory.imageUrl,
-              garmentId: accessory.id,
-              fit: BoxFit.cover,
-              borderRadius: 10,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Tappable "BACKGROUND" header for the create flow — collapsed by
-  /// default, reusing [_customizationExpanded] (the same flag the
-  /// [selectOnly]/edit flow's [_buildCustomizationBlock] uses; the two
-  /// bodies are mutually exclusive per page instance, so sharing it doesn't
-  /// conflict).
+  /// Tappable "BACKGROUND" header — collapsed by default.
   Widget _buildBackgroundSectionHeader() => _collapsibleSectionHeader(
     label: _l10n.backgroundLabel.toUpperCase(),
-    expanded: _customizationExpanded,
-    onToggle: () =>
-        setState(() => _customizationExpanded = !_customizationExpanded),
-    trailing: _customizationExpanded
+    expanded: _backgroundExpanded,
+    onToggle: () => setState(() => _backgroundExpanded = !_backgroundExpanded),
+    trailing: _backgroundExpanded
         ? null
         : _sectionSummaryText(_background.label),
   );
@@ -1980,11 +1455,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         child: ListView.separated(
           controller: _backgroundScrollController,
           scrollDirection: Axis.horizontal,
-          // In the create flow the row is full-bleed; keep the first/last card
-          // at the page inset. The customization block already pads it.
-          padding: _isCreateFlow
-              ? const EdgeInsets.symmetric(horizontal: _createFlowInset)
-              : EdgeInsets.zero,
+          // The row is full-bleed; keep the first/last card at the page
+          // inset.
+          padding: const EdgeInsets.symmetric(horizontal: _createFlowInset),
           itemCount: BackgroundOption.all.length,
           separatorBuilder: (_, _) =>
               const SizedBox(width: _backgroundCardSpacing),
@@ -2005,9 +1478,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   void _centerBackgroundCard(int index) {
     if (!_backgroundScrollController.hasClients) return;
     final position = _backgroundScrollController.position;
-    final leadingPad = _isCreateFlow ? _createFlowInset : 0.0;
     final itemStart =
-        leadingPad + index * (_backgroundCardWidth + _backgroundCardSpacing);
+        _createFlowInset +
+        index * (_backgroundCardWidth + _backgroundCardSpacing);
     final target =
         itemStart - (position.viewportDimension - _backgroundCardWidth) / 2;
     _backgroundScrollController.animateTo(
@@ -2138,26 +1611,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     return true;
   }
 
-  bool get _showsBottomActionButton {
-    if (widget.selectOnly) return _hasSelection && _isModified;
-    // Create Outfit is always present in the create flow (it just toggles
-    // enabled — see _buildBottomBar), so its clearance stays reserved.
-    // "Create Another Version" keeps its own readiness rule.
-    if (widget.existingOutfit == null) return true;
-    return !isOutfitLoading &&
-        !_tryOnRequested &&
-        _hasCoreSlots &&
-        (widget.existingOutfit != null || _isModified);
-  }
-
   Widget _buildBottomBar() {
-    if (widget.selectOnly) {
-      return BottomActionButton(
-        label: _l10n.confirm,
-        onPressed: () => Navigator.pop(context, _selectedGarmentIds().toSet()),
-        enabled: _hasSelection && _isModified,
-      );
-    }
     return BottomActionButton(
       label: _l10n.createOutfit,
       leading: Image.asset(
@@ -2166,147 +1620,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         height: 18,
       ),
       onPressed: _startTryOn,
-      // existingOutfit mode has no "nothing changed" case to guard against —
-      // it's a fresh AI render either way, so it's worth allowing even with
-      // the exact same garments (a same-garments variant is a legitimate
-      // reason to hit "Create Another Version"). Keyed on existingOutfit,
-      // not _isCreateFlow — see _showsBottomActionButton.
-      enabled: widget.existingOutfit == null
-          ? _createFlowReady
-          : (!isOutfitLoading &&
-                !_tryOnRequested &&
-                _hasCoreSlots &&
-                (widget.existingOutfit != null || _isModified)),
-    );
-  }
-
-  Widget _slotRow({
-    required String title,
-    bool optional = false,
-    bool showNoneOption = false,
-    String? iconAsset,
-    IconData? iconData,
-    required Garment? value,
-    required GarmentCategory category,
-    required void Function(Garment g) onPicked,
-    VoidCallback? onClear,
-    // Match a Look extras — both no-ops for slots it doesn't touch.
-    bool noCloseMatch = false,
-    List<int> rankedGarmentIds = const [],
-  }) {
-    assert(iconAsset != null || iconData != null);
-    final detail = value == null
-        ? null
-        : (value.color?.isNotEmpty == true ? value.color! : value.subCategory);
-    final isInvalid =
-        widget.selectOnly &&
-        widget.validGarmentIds != null &&
-        value != null &&
-        value.id != null &&
-        !widget.validGarmentIds!.contains(value.id);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Row(
-            children: [
-              FieldLabel(title.toUpperCase()),
-              if (optional) ...[
-                const SizedBox(width: 4),
-                Text(
-                  '(${_l10n.optionalLabel.toUpperCase()})',
-                  style: AppTextStyle.regular12.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        AppListCard(
-          onTap: (isOutfitLoading || _garmentPoolLoading)
-              ? null
-              : () async {
-                  await _ensureFreshGarments();
-                  if (!mounted) return;
-                  final result = await Navigator.push<SelectGarmentResult>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SelectGarmentPage(
-                        title: title,
-                        category: category,
-                        garments: _garmentPool,
-                        selected: value,
-                        showNoneOption: showNoneOption,
-                        rankedGarmentIds: rankedGarmentIds,
-                      ),
-                    ),
-                  );
-                  if (result == null) return;
-                  if (result.garment != null) {
-                    onPicked(result.garment!);
-                  } else {
-                    onClear?.call();
-                  }
-                },
-          showArrow: true,
-          // Matches the Customize header's height — only for the empty
-          // placeholder state; a selected garment's image + detail line
-          // still wants the taller default. 32 is as big as the leading
-          // icon can get without the card growing past that same 56 (32 +
-          // the 24 of vertical padding baked into AppListCard).
-          minHeight: value == null ? 56 : 82,
-          leadingSize: value == null ? 32 : 56,
-          leadingAsset: (value == null && iconData == null) ? iconAsset : null,
-          leading: value != null
-              ? Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    GarmentImage(
-                      url: value.imageUrl,
-                      garmentId: value.id,
-                      width: 56,
-                      height: 56,
-                      memCacheWidth: 112,
-                      memCacheHeight: 112,
-                      borderRadius: 8,
-                      fit: BoxFit.cover,
-                    ),
-                    if (isInvalid)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Icon(
-                          Icons.error,
-                          size: 16,
-                          color: AppColors.error,
-                          shadows: [
-                            Shadow(color: AppColors.surface, blurRadius: 3),
-                          ],
-                        ),
-                      ),
-                  ],
-                )
-              : (iconData != null
-                    ? Icon(iconData, size: 32, color: AppColors.icon)
-                    : null),
-          summary: detail?.isNotEmpty == true ? detail : null,
-          child: Text(
-            value != null
-                ? value.name
-                : (noCloseMatch ? _l10n.noCloseMatch : _l10n.notSelected),
-            style: value == null
-                ? AppTextStyle.regular16.copyWith(
-                    color: AppColors.textSecondary,
-                  )
-                : AppTextStyle.bold16,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+      enabled: _createFlowReady,
     );
   }
 }

@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
-import '../../core/providers/garments_provider.dart';
 import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
@@ -23,7 +22,6 @@ import '../../l10n/trip_activity_localization.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/edge_fade_scrim.dart';
 import '../widgets/common/overlays/app_dialog.dart';
@@ -36,27 +34,23 @@ import '../widgets/garment/garment_image.dart';
 import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/trip/trip_day_card.dart';
 import '../widgets/trip/trip_legs_editor.dart';
-import 'add_outfit_page.dart';
+import 'outfit_edit_page.dart';
 import 'trip_suitcase_page.dart';
 
 /// Actions in [TripDetailsPage]'s app bar "⋮" menu — moved here from
 /// [TripCard] (the Trips-tab list item) so a trip's own metadata edits live
 /// on its detail page instead of duplicated across every card that links
 /// to it.
-enum _TripMenuAction {
-  editName,
-  editLegs,
-  editActivities,
-  regeneratePlan,
-  delete,
-}
+enum _TripMenuAction { editName, editLegs, editActivities, delete }
 
 /// The page's "what's the next step" hint — see
 /// [_TripDetailsPageState._primaryAction]. Never more than one of these is
 /// active at once, by construction: [generateOutfit]/[regenerateOutfit] are
 /// per-day and only ever apply once a non-stale trip plan already exists.
-/// [generateTripPlan] drives the bottom CTA; the per-day actions drive the
-/// outfit card's own "Generate Outfit" button instead.
+/// [generateTripPlan] means "no plan yet (or a stale one)" — that action now
+/// lives on [TripSuitcasePage], reached via the wardrobe section's "let
+/// Uwearis plan" CTA; the per-day actions still drive the outfit card's own
+/// "Generate Outfit" button here.
 enum TripGenerationAction {
   generateTripPlan,
   generateOutfit,
@@ -122,17 +116,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   // Display-only — feeds the "Recommended N · Selected M" summary on the
   // Suitcase card (see [_buildSuitcaseSection]). Packing guidance, never a
-  // Generate Trip Plan gate: see [_isPlanReady].
+  // plan-generation gate — that lives on TripSuitcasePage now.
   int? _recommendedTotal;
-  bool _generatingPlan = false;
   bool _generatingOutfit = false;
   bool _loadingEditor = false;
-  // Re-entrancy guard covering the *whole* generate-plan action, including
-  // its pre-flight suitcase fetch + confirm dialogs — those run before
-  // [_generatingPlan] (the overlay flag) is set, so without this a
-  // double-tap during that window starts two whole-trip AI generations. See
-  // CLAUDE.md "Guarding costly / mutating actions against double-invocation".
-  bool _planActionInFlight = false;
+  // Re-entrancy guard for the *whole* generate/regenerate-day-outfit flow,
+  // including the regenerate confirm dialog — see [_generateSelectedDayOutfit].
+  bool _dayOutfitActionInFlight = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -149,38 +139,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       _todayGarments.any((g) => g.id != null && !_suitcaseIds.contains(g.id));
 
   /// A plan has been generated if any day carries an option at all — mirrors
-  /// the check [_generatePlan] already used to decide whether to confirm
-  /// before overwriting.
+  /// the check [TripSuitcasePage] uses (via [_openSuitcase]'s
+  /// `initialHasTripPlan`) to decide whether its own generate button should
+  /// confirm before overwriting.
   bool get _hasTripPlan => _dayOutfits.any((d) => d.optionId != null);
-
-  /// Whether the packed suitcase can actually build outfits — mirrors the
-  /// backend's own minimum for `/generate` (see [_hasViableSuitcase]). `null`
-  /// means "not yet verified": the closet hasn't loaded, so there's no
-  /// answer yet, not a lenient default one. The fetch starts the instant
-  /// this getter is first watched (`ref.watch` triggers `garmentsProvider`'s
-  /// `build()`), so the window is normally brief.
-  bool? get _suitcaseIsViable {
-    final closet = ref.watch(garmentsProvider).value;
-    if (closet == null) return null;
-    return _hasViableSuitcase(
-      closet.where((g) => g.id != null && _suitcaseIds.contains(g.id)).toList(),
-    );
-  }
-
-  /// The real "Generate Trip Plan is ready" condition. AI packing guidance
-  /// (`recommended_quantity`, surfaced on the Suitcase card as "Recommended
-  /// N · Selected M") is never part of this — it's an optimization hint, not
-  /// a completion requirement, so a suitcase under the recommended count
-  /// must still be able to (re)generate as long as it can build a complete
-  /// outfit. See [_hasViableSuitcase].
-  ///
-  /// Fail-closed on `null`: [_suitcaseIsViable] is null only while the
-  /// closet is still loading — "not yet verified" is not "ready". Treating
-  /// it as ready would briefly show the bottom CTA as enabled only for it to
-  /// immediately bounce into [_generatePlanFlow]'s own insufficient-suitcase
-  /// dialog if the real answer turns out to be "no". The CTA appears the
-  /// moment the closet resolves either way.
-  bool get _isPlanReady => _suitcaseIsViable == true;
 
   /// True once a not-yet-rendered day's assignment leans on a garment no
   /// longer in the suitcase — generating that day's outfit would try on
@@ -246,19 +208,23 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   /// Fires when a page pushed on top of this one is popped and this page is
   /// visible again — including [TripSuitcasePage], which may have changed
-  /// the suitcase. This is the single place [_suitcaseIds] gets refreshed on
-  /// return, deliberately not tied to *how* the Suitcase page was reached:
-  /// [_openSuitcase] pushes it directly, but right after trip creation
-  /// (`TripsPage.handleCreateTrip`) it's pushed on top of this page from
-  /// outside — before this hook existed, popping back from that first
-  /// just-created visit left [_suitcaseIds] at its stale (empty, pre-pack)
-  /// preload snapshot, so Generate Trip Plan never appeared even after
-  /// packing a perfectly viable suitcase. A refetch after any other pushed
-  /// page (e.g. the day outfit editor) is a harmless extra GET, not a
-  /// correctness issue — it isn't worth threading a "did this specific push
-  /// touch the suitcase" flag through every call site to avoid it.
+  /// the suitcase and/or (re)generated the trip's plan (that action lives
+  /// there now — see [_refreshTripPlan]). This is the single place
+  /// [_suitcaseIds]/[_dayOutfits] get refreshed on return, deliberately not
+  /// tied to *how* the Suitcase page was reached: [_openSuitcase] pushes it
+  /// directly, but right after trip creation (`TripsPage.handleCreateTrip`)
+  /// it's pushed on top of this page from outside — before this hook
+  /// existed, popping back from that first just-created visit left
+  /// [_suitcaseIds] at its stale (empty, pre-pack) preload snapshot. A
+  /// refetch after any other pushed page (e.g. the day outfit editor) is a
+  /// harmless extra GET, not a correctness issue — it isn't worth threading
+  /// a "did this specific push touch the suitcase/plan" flag through every
+  /// call site to avoid it.
   @override
-  void didPopNext() => _fetchSuitcaseGarments();
+  void didPopNext() {
+    _fetchSuitcaseGarments();
+    _refreshTripPlan();
+  }
 
   bool get _hasStaleGarmentImages => _dayOutfits.any(
     (day) => anySignedUrlExpired(day.garments.map((g) => g.imageUrl)),
@@ -347,209 +313,146 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
-  /// Mirrors the backend's own minimum-suitcase rule for `/generate`
-  /// (`DayPlanGenerator.generate_days_payload` in the backend repo — a top
-  /// *and* a bottom, or a one-piece, plus shoes) so the CTA doesn't go live
-  /// for a suitcase the backend would immediately reject with
-  /// `SUITCASE_INCOMPLETE`. This is UX guidance only, kept deliberately in
-  /// sync with that rule — the backend call remains the authoritative check.
-  bool _hasViableSuitcase(List<Garment> suitcase) {
-    final categories = suitcase.map((g) => g.category).toSet();
-    final hasTopAndBottom =
-        categories.contains(GarmentCategory.top) &&
-        categories.contains(GarmentCategory.bottom);
-    final hasOnePiece = categories.contains(GarmentCategory.onePiece);
-    final hasShoes = categories.contains(GarmentCategory.shoes);
-    return (hasTopAndBottom || hasOnePiece) && hasShoes;
+  /// Re-fetches this trip's plan so a generation/update triggered from
+  /// [TripSuitcasePage] (which owns that action now) shows up here the
+  /// moment the user comes back — called unconditionally from [didPopNext],
+  /// same "harmless extra GET" tradeoff as [_fetchSuitcaseGarments]. Doesn't
+  /// use the [preload] static helper: that swallows errors into an empty
+  /// [TripPlan] (fine for the initial load before this page even exists),
+  /// which would wipe out a perfectly good [_dayOutfits] here on a
+  /// transient failure — a plain try/catch that changes nothing on error
+  /// matches [_ensureFreshDayGarments] instead.
+  Future<void> _refreshTripPlan() async {
+    try {
+      final plan = await TripService().getTripPlan(int.parse(_trip.id));
+      if (!mounted) return;
+      setState(() {
+        _dayOutfits = plan.days;
+        _selectedDayIndex = _dayOutfits.isEmpty
+            ? 0
+            : _selectedDayIndex.clamp(0, _dayOutfits.length - 1);
+      });
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      debugLog('Failed to refresh trip plan: $e');
+    }
   }
 
   // The refetch on return is [didPopNext], not here — see its doc comment.
   Future<void> _openSuitcase() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: _trip)),
+      MaterialPageRoute(
+        builder: (_) =>
+            TripSuitcasePage(trip: _trip, initialHasTripPlan: _hasTripPlan),
+      ),
     );
-  }
-
-  /// Asks Uwearis to build an outfit for every day of the trip from whatever's
-  /// currently packed in the suitcase. Confirms first if a plan already
-  /// exists, since this replaces every day's outfit — including any the
-  /// user adjusted by hand.
-  Future<void> _generatePlan() async {
-    // Guard the entire flow (pre-flight suitcase fetch + confirm dialogs
-    // included) against a double-tap — [_generatingPlan] only goes up once
-    // generation actually starts, well after those awaits.
-    if (_planActionInFlight) return;
-    setState(() => _planActionInFlight = true);
-    try {
-      await _generatePlanFlow();
-    } finally {
-      if (mounted) setState(() => _planActionInFlight = false);
-    }
-  }
-
-  Future<void> _generatePlanFlow() async {
-    final fetched = await _fetchSuitcaseGarments();
-    if (fetched == null || !mounted) return;
-
-    if (!_hasViableSuitcase(fetched)) {
-      final goToSuitcase = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AppDialog(
-          title: _l10n.insufficientSuitcaseTitle,
-          body: _l10n.insufficientSuitcaseBody,
-          primaryLabel: _l10n.goToSuitcase,
-          onPrimary: () => Navigator.pop(ctx, true),
-          secondaryLabel: _l10n.cancel,
-          onSecondary: () => Navigator.pop(ctx, false),
-        ),
-      );
-      if (goToSuitcase == true && mounted) await _openSuitcase();
-      return;
-    }
-
-    if (_hasTripPlan) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AppDialog(
-          title: _l10n.regeneratePlanTitle,
-          body: _l10n.regeneratePlanBody,
-          primaryLabel: _l10n.regenerate,
-          onPrimary: () => Navigator.pop(ctx, true),
-          secondaryLabel: _l10n.cancel,
-          onSecondary: () => Navigator.pop(ctx, false),
-        ),
-      );
-      if (confirmed != true) return;
-    }
-    if (!mounted) return;
-
-    setState(() => _generatingPlan = true);
-    try {
-      // Parsed straight from this response, not re-fetched via getTrip —
-      // GET only ever reports already-tried-on outfits, so a plain
-      // refresh right after generating would just show every day as empty.
-      // No UI browses alternatives (TripDayOutfit.fromPlanDay only ever
-      // uses the primary option) — ask for none explicitly, since the
-      // backend now defaults to generating up to 2 unused ones per day.
-      final plan = await TripService().generateTripPlan(
-        int.parse(_trip.id),
-        alternativesPerDay: 0,
-      );
-      if (!mounted) return;
-      setState(() => _dayOutfits = plan.days);
-    } on AuthExpiredException {
-      if (mounted) await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      debugLog('Failed to generate trip plan: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToGeneratePlan)));
-      }
-    } finally {
-      if (mounted) setState(() => _generatingPlan = false);
-    }
   }
 
   /// Synchronously renders the *currently selected* day's option into a
   /// try-on image — this is [TripGenerationAction.generateOutfit]/
-  /// [TripGenerationAction.regenerateOutfit]'s handler, reachable from
-  /// either the bottom CTA or the outfit card's "⋮" menu once it already
-  /// has an image. Branches on whether this option already has an
-  /// `outfit_id` — the backend now splits first render
-  /// ([TripService.generateOptionOutfit], 409s if already rendered) from
-  /// re-rendering an existing one ([TripService.regenerateOptionOutfit],
-  /// 400s if never rendered) into two endpoints, so calling the wrong one
-  /// for the option's current state fails outright. Captures the day index
-  /// up front and re-checks it still points at the same option before
-  /// applying the result, so a slow request landing after the user has
-  /// switched days (or edited this same day's garments again) can't
-  /// clobber a different day's state.
+  /// [TripGenerationAction.regenerateOutfit]'s handler, reachable from the
+  /// bottom CTA, the outfit card's "Generate"/"Regenerate Outfit" empty-state
+  /// button, or the corner regenerate badge on the image itself once one
+  /// already exists (see [_buildOutfitSection]'s `onRegenerate`). Branches
+  /// on whether this option already has an `outfit_id` —
+  /// the backend now splits first render ([TripService.generateOptionOutfit],
+  /// 409s if already rendered) from re-rendering an existing one
+  /// ([TripService.regenerateOptionOutfit], 400s if never rendered) into two
+  /// endpoints, so calling the wrong one for the option's current state
+  /// fails outright. Captures the day index up front and re-checks it still
+  /// points at the same option before applying the result, so a slow
+  /// request landing after the user has switched days (or edited this same
+  /// day's garments again) can't clobber a different day's state.
   Future<void> _generateSelectedDayOutfit() async {
-    // Synchronous re-entrancy guard — first statement, before any `await`.
-    // The first-render triggers (the outfit card's "Generate" button, the
-    // bottom CTA) stay live for a frame after this fires, so without this a
-    // double-tap starts two paid AI renders. (The regenerate path adds a
-    // confirm dialog below before the flag is raised, but its only trigger is
-    // the card's single-shot "⋮" menu, which can't re-fire.) See CLAUDE.md
-    // "Guarding costly / mutating actions against double-invocation".
-    if (_generatingOutfit) return;
-
-    final dayIndex = _selectedDayIndex;
-    final before = _dayOutfits[dayIndex];
-    final optionId = before.optionId;
-    if (optionId == null) return;
-    final isRegenerate = before.outfitId != null;
-
-    // Regenerating throws away the current render for a fresh *paid* AI one,
-    // and its only trigger is the outfit card's "⋮" menu — right next to
-    // "Change Garments", easy to hit by mistake. Confirm first, mirroring
-    // OutfitDetailsPage._regenerateImage. A first render ("Generate Outfit")
-    // has nothing to discard, so that path skips the prompt.
-    if (isRegenerate) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AppDialog(
-          title: _l10n.regenerateOutfitConfirmTitle,
-          body: _l10n.regenerateOutfitConfirmBody,
-          primaryLabel: _l10n.regenerate,
-          onPrimary: () => Navigator.pop(ctx, true),
-          secondaryLabel: _l10n.cancel,
-          onSecondary: () => Navigator.pop(ctx, false),
-        ),
-      );
-      if (ok != true || !mounted) return;
-    }
-
-    setState(() => _generatingOutfit = true);
+    // Guards the whole flow (the regenerate confirm dialog included), not
+    // just the AI call — the regenerate path used to be reachable only
+    // through a single-shot "⋮" menu item, which couldn't itself re-fire
+    // during that dialog's await; now it's a plain always-visible icon
+    // button, so this flag has to cover that window too. Distinct from
+    // [_generatingOutfit] (the visual loading overlay), which should only
+    // show once the AI call itself starts, not over the confirm dialog. See
+    // CLAUDE.md "Guarding costly / mutating actions against
+    // double-invocation".
+    if (_dayOutfitActionInFlight) return;
+    setState(() => _dayOutfitActionInFlight = true);
     try {
-      final result = isRegenerate
-          ? await TripService().regenerateOptionOutfit(
-              int.parse(_trip.id),
-              optionId: optionId,
-            )
-          : await TripService().generateOptionOutfit(
-              int.parse(_trip.id),
-              optionId: optionId,
-            );
-      if (!mounted) return;
-      final current = dayIndex < _dayOutfits.length
-          ? _dayOutfits[dayIndex]
-          : null;
-      if (current == null || current.optionId != optionId) return;
-      setState(() {
-        _dayOutfits[dayIndex] = TripDayOutfit(
-          date: current.date,
-          optionId: optionId,
-          garments: current.garments,
-          outfitId: result.outfitId,
-          resultImageUrl: result.resultImageUrl,
-          temperatureMaxC: current.temperatureMaxC,
-          temperatureMinC: current.temperatureMinC,
-          everHadOutfit: true,
+      final dayIndex = _selectedDayIndex;
+      final before = _dayOutfits[dayIndex];
+      final optionId = before.optionId;
+      if (optionId == null) return;
+      final isRegenerate = before.outfitId != null;
+
+      // Regenerating throws away the current render for a fresh *paid* AI
+      // one. Confirm first, mirroring OutfitDetailsPage._regenerateImage. A
+      // first render ("Generate Outfit") has nothing to discard, so that
+      // path skips the prompt.
+      if (isRegenerate) {
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AppDialog(
+            title: _l10n.regenerateOutfitConfirmTitle,
+            body: _l10n.regenerateOutfitConfirmBody,
+            primaryLabel: _l10n.regenerate,
+            onPrimary: () => Navigator.pop(ctx, true),
+            secondaryLabel: _l10n.cancel,
+            onSecondary: () => Navigator.pop(ctx, false),
+          ),
         );
-      });
-    } on AuthExpiredException {
-      if (mounted) await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      debugLog('Failed to generate day outfit: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToGenerateOutfit)));
+        if (ok != true || !mounted) return;
+      }
+
+      setState(() => _generatingOutfit = true);
+      try {
+        final result = isRegenerate
+            ? await TripService().regenerateOptionOutfit(
+                int.parse(_trip.id),
+                optionId: optionId,
+              )
+            : await TripService().generateOptionOutfit(
+                int.parse(_trip.id),
+                optionId: optionId,
+              );
+        if (!mounted) return;
+        final current = dayIndex < _dayOutfits.length
+            ? _dayOutfits[dayIndex]
+            : null;
+        if (current == null || current.optionId != optionId) return;
+        setState(() {
+          _dayOutfits[dayIndex] = TripDayOutfit(
+            date: current.date,
+            optionId: optionId,
+            garments: current.garments,
+            outfitId: result.outfitId,
+            resultImageUrl: result.resultImageUrl,
+            temperatureMaxC: current.temperatureMaxC,
+            temperatureMinC: current.temperatureMinC,
+            everHadOutfit: true,
+          );
+        });
+      } on AuthExpiredException {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      } catch (e) {
+        debugLog('Failed to generate day outfit: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_l10n.failedToGenerateOutfit)));
+        }
+      } finally {
+        if (mounted) setState(() => _generatingOutfit = false);
       }
     } finally {
-      if (mounted) setState(() => _generatingOutfit = false);
+      if (mounted) setState(() => _dayOutfitActionInFlight = false);
     }
   }
 
   /// Lets the user manually swap which suitcase garments make up the
-  /// selected day's outfit, reusing [AddOutfitPage]'s per-category slot
-  /// picker. Only reachable once Uwearis has generated a plan (there has to be
-  /// an existing option to PATCH).
+  /// selected day's outfit, via [OutfitEditPage]'s per-category
+  /// slot picker. Only reachable once Uwearis has generated a plan (there has
+  /// to be an existing option to PATCH).
   Future<void> _openDayOutfitEditor() async {
     final optionId = _currentDayOutfit?.optionId;
     if (optionId == null) return;
@@ -565,11 +468,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     final result = await Navigator.push<Set<int>>(
       context,
       MaterialPageRoute(
-        builder: (_) => AddOutfitPage(
+        builder: (_) => OutfitEditPage(
           initialGarments: _todayGarments,
           preloadedGarments: suitcaseGarments,
-          selectOnly: true,
           validGarmentIds: validIds,
+          title: _l10n.editOutfitTitle,
         ),
       ),
     );
@@ -675,20 +578,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               ),
               label: _l10n.editTripActivities,
             ),
-            // Regenerating the whole plan stays available once one exists,
-            // but demoted to a secondary action — the bottom CTA is
-            // reserved for whichever single next step applies (see
-            // [_primaryAction]).
-            if (_hasTripPlan)
-              AppPopupMenu.item(
-                value: _TripMenuAction.regeneratePlan,
-                icon: const Icon(
-                  Icons.auto_awesome_outlined,
-                  size: 20,
-                  color: AppColors.icon,
-                ),
-                label: _l10n.regenerateTripPlan,
-              ),
             AppPopupMenu.item(
               value: _TripMenuAction.delete,
               icon: const Icon(
@@ -713,8 +602,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         _editTripLegs();
       case _TripMenuAction.editActivities:
         _editTripActivities();
-      case _TripMenuAction.regeneratePlan:
-        if (!_generatingPlan && !_planActionInFlight) _generatePlan();
       case _TripMenuAction.delete:
         _confirmDeleteTrip();
     }
@@ -906,47 +793,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
-  /// This page's bottom CTA only ever offers "Generate Trip Plan" — per-day
-  /// outfit generation lives on the outfit card itself now (a "Generate
-  /// Outfit" button in place of its empty state — see [_buildOutfitSection]),
-  /// so the bottom bar disappears entirely once a non-stale plan exists.
-  Widget? _buildBottomBar() {
-    if (_primaryAction != TripGenerationAction.generateTripPlan) return null;
-    return BottomActionButton(
-      label: _l10n.generateTripPlan,
-      onPressed: (_generatingPlan || _planActionInFlight || !_isPlanReady)
-          ? null
-          : _generatePlan,
-      isLoading: _generatingPlan,
-      leading: const Icon(Icons.auto_awesome_outlined),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Only reserve the floating button's full clearance when one is
-    // actually showing (_buildBottomBar can return null) — otherwise the
-    // last card (garment thumbnails included) has nothing to scroll clear
-    // of and ends up covered/cut off by it, same fix outfit_details_page
-    // already applies for its own bottom bar.
-    final bottomBar = _buildBottomBar();
     return Stack(
       children: [
         Scaffold(
           backgroundColor: AppColors.pageBackground,
-          extendBody: true,
           appBar: _buildAppBar(),
-          bottomNavigationBar: bottomBar,
           // A single scrollable list (rather than a fixed header Column with
           // only the bottom section scrolling) so dragging from anywhere on
           // screen — including the trip header/suitcase/day-selector area —
           // scrolls the whole page, not just the section below them.
           body: ListView(
-            padding: EdgeInsets.only(
-              bottom: bottomBar != null
-                  ? AppDimens.bottomActionBtnClearance
-                  : 32,
-            ),
+            padding: const EdgeInsets.only(bottom: 32),
             children: [
               const SizedBox(height: 20),
               _paddedSection(Text(_trip.name, style: AppTextStyle.bold20)),
@@ -964,10 +823,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             ],
           ),
         ),
-        if (_generatingPlan)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
-          ),
         if (_generatingOutfit)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.generatingOutfitEllipsis),
@@ -1045,31 +900,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 style: AppTextStyle.regular16,
               ),
             ),
+            // Regenerating lives on the image itself now (see
+            // _buildOutfitSection's onRegenerate) — this header only still
+            // carries Change Garments.
             if (hasOption)
-              Tooltip(
-                message: _l10n.changeGarments,
-                child: Semantics(
-                  button: true,
-                  label: _l10n.changeGarments,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _openDayOutfitEditor,
-                    // 20px glyph, minTouchTarget hit area — kept flush to
-                    // the row's right edge (Align.centerRight) so it doesn't
-                    // shift; the extra band grows left/down.
-                    child: const SizedBox.square(
-                      dimension: AppDimens.minTouchTarget,
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Icon(
-                          Icons.edit_outlined,
-                          size: 20,
-                          color: AppColors.icon,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              _buildHeaderIconButton(
+                icon: Icons.edit_outlined,
+                tooltip: _l10n.changeGarments,
+                onTap: _openDayOutfitEditor,
               ),
           ],
         ),
@@ -1101,12 +939,38 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
+  /// A small square icon action flush to the right edge of
+  /// [_buildOutfitDateHeader]'s title row — currently just Change Garments
+  /// (regenerating moved onto the image itself, see [_buildOutfitSection]).
+  Widget _buildHeaderIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: SizedBox.square(
+            dimension: AppDimens.minTouchTarget,
+            child: Center(child: Icon(icon, size: 20, color: AppColors.icon)),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// The selected day's outfit image. When the day has an option but no
   /// rendered image yet, its empty state becomes a "Generate Outfit" /
   /// "Regenerate Outfit" button (driven by [_primaryAction]) — the page's
   /// bottom CTA is reserved for "Generate Trip Plan" only. Once an image
-  /// exists, the card's own "⋮" menu covers regenerating or changing
-  /// garments.
+  /// exists, a corner badge on the image itself (styled like
+  /// OutfitDetailsPage's own on-image icons — see [TodayOutfitIdea]) covers
+  /// regenerating; Change Garments stays in [_buildOutfitDateHeader] above.
   Widget _buildOutfitSection() {
     final outfit = _currentDayOutfit;
     final outfitId = outfit?.outfitId;
@@ -1121,9 +985,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       jobStatus: _l10n.generatingOutfitEllipsis,
       cacheKey: outfitId == null ? null : 'trip-outfit-$outfitId',
       onRefreshUrl: outfitId == null ? null : _refreshOutfitImageUrl,
-      onRegenerate: outfitId == null ? null : _generateSelectedDayOutfit,
-      onChangeGarments: outfitId == null ? null : _openDayOutfitEditor,
-      onGenerate: showGenerateButton ? _generateSelectedDayOutfit : null,
+      onRegenerate: (outfitId == null || _dayOutfitActionInFlight)
+          ? null
+          : _generateSelectedDayOutfit,
+      onGenerate: (showGenerateButton && !_dayOutfitActionInFlight)
+          ? _generateSelectedDayOutfit
+          : null,
       generateLabel: action == TripGenerationAction.regenerateOutfit
           ? _l10n.regenerateOutfit
           : _l10n.generateOutfit,
@@ -1265,11 +1132,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                       ),
                     ),
                   )
-                : _GeneratePlanCta(
-                    onTap: (_generatingPlan || _planActionInFlight)
-                        ? null
-                        : _generatePlan,
-                  ),
+                : _GeneratePlanCta(onTap: _openSuitcase),
           )
         else ...[
           EdgeFadeScrim(
@@ -1406,9 +1269,10 @@ class _TripDestinationsHeader extends StatelessWidget {
 }
 
 /// The "let Uwearis plan your outfits" call-to-action card shown while a trip
-/// still has no plan. [onTap] is null while a generation is already running.
+/// still has no plan — opens [TripSuitcasePage], which owns plan generation
+/// now (see [_TripDetailsPageState._openSuitcase]).
 class _GeneratePlanCta extends StatelessWidget {
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const _GeneratePlanCta({required this.onTap});
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../data/outfit.dart';
 import '../services/auth_handler.dart';
 import '../services/outfit_service.dart';
 import 'debug_log.dart';
@@ -15,16 +14,10 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   String? tryOnResultUrl;
   int tryOnGroupId = 0;
   int tryOnOutfitId = 0;
-  // The full outfit from the last successful performTryOn — richer than the
-  // individual tryOn*/fields above (carries name/style/season/isFavorite
-  // too), for callers that need to hand the whole thing off (e.g. Outfit
-  // Details' "Create Another Version" result).
-  Outfit? tryOnOutfit;
 
   /// Creates a new outfit from [garmentIds] and renders it in one call.
   /// Pass [groupId] to add this as another version alongside an existing
-  /// outfit (Outfit Details' "Create Another Version") instead of starting
-  /// a fresh group.
+  /// outfit instead of starting a fresh group.
   Future<int?> performTryOn(
     List<int> garmentIds, {
     int? groupId,
@@ -53,7 +46,6 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         tryOnGroupId = outfit.groupId;
         tryOnOutfitId = outfit.id;
         tryOnResultUrl = outfit.imageUrl;
-        tryOnOutfit = outfit;
       });
       return outfit.id;
     } on AuthExpiredException {
@@ -77,7 +69,6 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       tryOnResultUrl = null;
       tryOnGroupId = 0;
       tryOnOutfitId = 0;
-      tryOnOutfit = null;
     });
   }
 

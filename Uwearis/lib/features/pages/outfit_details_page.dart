@@ -11,6 +11,7 @@ import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
 import '../../core/services/outfit_service.dart';
+import '../../core/utils/debug_log.dart';
 import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
@@ -40,7 +41,7 @@ import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/outfit/outfit_share_sheet.dart';
-import 'add_outfit_page.dart';
+import 'outfit_edit_page.dart';
 import 'select_outfit_group_page.dart';
 
 enum _OutfitMenuAction { rename, delete }
@@ -94,9 +95,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isResolvingSavedStatus = false;
   List<Garment>? _garments;
   bool _isLoadingGarments = false;
-  // True while "Create Another Version" is resolving the closet / has Add
-  // Outfit pushed on top — also the re-entrancy guard for its handler.
+  // True while "Create Another Version" is resolving the closet / has
+  // OutfitEditPage pushed on top — also the re-entrancy guard for its
+  // handler.
   bool _isOpeningTryOn = false;
+  // True while _openCreateAnotherVersion's post-pick AI render is in flight.
+  bool _isCreatingVersion = false;
   // [isNew] only — set once the user taps "Save": the page stays put and
   // just shows the "Outfit Saved" confirmation, and leaving afterward no
   // longer prompts.
@@ -113,6 +117,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   // [_loadGroupOutfits] resolves (an existing outfit may already have
   // siblings from earlier "Create Another Version" calls).
   late final List<Outfit> _versions = [widget.outfit];
+
+  // Max versions per group this page will create — see
+  // _openCreateAnotherVersion.
+  static const int _maxVersions = 5;
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
@@ -256,6 +264,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         ),
         if (_isOpeningTryOn)
           Positioned.fill(child: LoadingOverlay(label: _l10n.loadingGarments)),
+        if (_isCreatingVersion)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.generatingEllipsis),
+          ),
         if (_isLeaving)
           Positioned.fill(child: LoadingOverlay(label: _l10n.loading)),
       ],
@@ -342,44 +354,40 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       !_isResolvingSavedStatus &&
       ((widget.isNew && !_saved) || widget.showAddToMyOutfits);
 
-  /// Opens Add Outfit in "Create Another Version" mode — its bottom button
-  /// calls `generateOutfit` into this outfit's *same* group instead of a
-  /// fresh one (see [AddOutfitPage.existingOutfit]), so the result is a
-  /// brand new [Outfit] alongside this one, appended to [_versions] and
-  /// swiped into view.
+  /// Opens [OutfitEditPage] so the user can pick this version's garments,
+  /// then renders the pick into this outfit's *same* group instead of a
+  /// fresh one (see [OutfitService.generateOutfit]'s `groupId`), so the
+  /// result is a brand new [Outfit] alongside this one, appended to
+  /// [_versions] and swiped into view. Stops at [_maxVersions]: the "+ New
+  /// Version" pill stays put rather than disappearing (see
+  /// [_buildVersionActionRow]) — tapping it past the cap explains the limit
+  /// instead of silently doing nothing.
   Future<void> _openCreateAnotherVersion() async {
     if (_isOpeningTryOn) return;
+    if (_versions.length >= _maxVersions) {
+      await _showVersionLimitDialog();
+      return;
+    }
     setState(() => _isOpeningTryOn = true);
     try {
-      // Warm garmentsProvider before opening the page (it reads the provider
-      // directly now).
-      await ref.read(garmentsProvider.future);
+      // Warm garmentsProvider before opening the page (it reads the pool
+      // directly rather than fetching its own).
+      final closet = await ref.read(garmentsProvider.future);
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
       if (!context.mounted) return;
-      final result = await Navigator.push<Outfit>(
+      final result = await Navigator.push<Set<int>>(
         context,
         MaterialPageRoute(
-          builder: (_) => AddOutfitPage(
-            existingOutfit: _current,
+          builder: (_) => OutfitEditPage(
             initialGarments: _garments ?? const [],
+            preloadedGarments: closet,
+            title: _l10n.addVersionTitle,
           ),
         ),
       );
-      if (result == null || !mounted) return;
-      setState(() {
-        _versions.add(result);
-        _currentIndex = _versions.length - 1;
-      });
-      _loadGarments();
-      if (_pageController.hasClients) {
-        await _pageController.animateToPage(
-          _currentIndex,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-      await ref.read(outfitsProvider.notifier).refresh();
+      if (result == null || result.isEmpty || !mounted) return;
+      await _createVersionFromGarmentIds(result.toList());
     } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
@@ -393,6 +401,63 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         ).showSnackBar(SnackBar(content: Text(_l10n.failedToLoadGarments)));
       }
     }
+  }
+
+  /// Renders [garmentIds] into this outfit's group (see
+  /// [_openCreateAnotherVersion], its sole caller) and appends the
+  /// resulting [Outfit] to [_versions]. Re-entrancy is already covered by
+  /// the caller's [_isOpeningTryOn] guard; [_isCreatingVersion] here is
+  /// purely the visual "generating" flag.
+  Future<void> _createVersionFromGarmentIds(List<int> garmentIds) async {
+    setState(() => _isCreatingVersion = true);
+    try {
+      final outfit = await OutfitService().generateOutfit(
+        garmentIds: garmentIds,
+        groupId: _current.groupId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _versions.add(outfit);
+        _currentIndex = _versions.length - 1;
+      });
+      _loadGarments();
+      if (_pageController.hasClients) {
+        await _pageController.animateToPage(
+          _currentIndex,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+      await ref.read(outfitsProvider.notifier).refresh();
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.failedToLoadGarments)));
+    } finally {
+      if (mounted) setState(() => _isCreatingVersion = false);
+    }
+  }
+
+  /// Explains the [_maxVersions] cap — shown instead of opening
+  /// [OutfitEditPage] once the group is full (see
+  /// [_openCreateAnotherVersion]). Purely informational: a single dismiss
+  /// button, no destructive action offered here (the user deletes a version
+  /// via the photo's own overflow menu, not from this dialog).
+  Future<void> _showVersionLimitDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.versionLimitReachedTitle,
+        body: _l10n.versionLimitReachedBody,
+        primaryLabel: _l10n.ok,
+        onPrimary: () => Navigator.pop(ctx),
+        primaryIsTextButton: true,
+      ),
+    );
   }
 
   /// Opens [SelectOutfitGroupPage] so the user can pick which `type:
@@ -770,7 +835,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// The row under the carousel: the "+ Version" pill, left-aligned, shown
+  /// The row under the carousel: the "+ New Version" pill, left-aligned, shown
   /// straight away (its form never depends on the version count). Once the
   /// group's sibling versions have loaded, the page dots + "n / total"
   /// counter sit centred behind it. Collapses to nothing where adding a
@@ -788,7 +853,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             child: AccentPillButton(
               label: _l10n.addVersionButton,
               icon: Icons.add,
-              enabled: !_isOpeningTryOn,
+              enabled: !_isOpeningTryOn && !_isCreatingVersion,
               onPressed: _openCreateAnotherVersion,
             ),
           )
@@ -963,8 +1028,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       final cachedById = _indexGarmentsById(cached);
       final idsToLoad = _current.garmentIds.toSet();
 
+      // Each id resolves independently — one garment that 404s (e.g. it's
+      // since been deleted) shouldn't blank out every *other* garment on
+      // this outfit just because they were all awaited together.
       final results = await Future.wait(
-        idsToLoad.map((id) {
+        idsToLoad.map((id) async {
           final cachedGarment = cachedById[id];
           final imageUrl = cachedGarment?.imageUrl;
           final isFresh =
@@ -972,13 +1040,22 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
               (imageUrl == null ||
                   imageUrl.isEmpty ||
                   !isSignedUrlExpired(imageUrl));
-          return isFresh
-              ? Future.value(cachedGarment)
-              : GarmentService().getGarment(id);
+          if (isFresh) return cachedGarment;
+          try {
+            return await GarmentService().getGarment(id);
+          } catch (e) {
+            debugLog(
+              'Failed to load garment $id for outfit ${_current.id}: $e',
+            );
+            return null;
+          }
         }),
       );
-      if (mounted) setState(() => _garments = results);
-    } catch (_) {
+      if (mounted) {
+        setState(() => _garments = results.whereType<Garment>().toList());
+      }
+    } catch (e) {
+      debugLog('Failed to load garments for outfit ${_current.id}: $e');
     } finally {
       if (mounted) setState(() => _isLoadingGarments = false);
     }

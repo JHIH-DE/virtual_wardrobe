@@ -49,6 +49,7 @@ void main() {
       {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
     ],
     List<Map<String, dynamic>> closetGarments = const [],
+    void Function()? onGenerate,
   }) {
     return MockClient((request) async {
       if (request.method == 'GET' &&
@@ -62,7 +63,22 @@ void main() {
         );
       }
       if (request.method == 'GET' && request.url.path.endsWith('/garments')) {
-        return jsonResponse(envelope(closetGarments));
+        return jsonResponse(
+          envelope({
+            'items': closetGarments,
+            'total': closetGarments.length,
+            'page': 1,
+            'size': 100,
+          }),
+        );
+      }
+      if (request.method == 'POST' && request.url.path.endsWith('/generate')) {
+        onGenerate?.call();
+        return jsonResponse(envelope({'days': [], 'suitcase_items': suitcaseItems}));
+      }
+      if (request.method == 'DELETE' &&
+          request.url.path.contains('/suitcase-items/')) {
+        return jsonResponse(envelope(null));
       }
       return jsonResponse(envelope({}), status: 404);
     });
@@ -174,4 +190,174 @@ void main() {
       ));
     },
   );
+
+  // Plan-generation moved here from Trip Details — see trip_details_page.dart
+  // and its own test's "the wardrobe section offers a CTA" case.
+  group('plan generation', () {
+    final viableSuitcase = [
+      {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+      {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
+      {'garment_id': 3, 'name': 'Sneakers', 'category': 'shoes'},
+    ];
+    // Same minimum viable set plus one extra item that isn't load-bearing —
+    // removing it leaves top+bottom+shoes intact (still viable) while still
+    // changing the packed set relative to what it was on open.
+    final viableSuitcaseWithExtra = [
+      ...viableSuitcase,
+      {'garment_id': 4, 'name': 'Cap', 'category': 'accessory'},
+    ];
+
+    /// Removes the last packed card (Accessory sorts last in
+    /// [_TripSuitcasePageState._categoryOrder], so with
+    /// [viableSuitcaseWithExtra] this is always "Cap") via its corner "×"
+    /// badge + the REMOVE confirm — puts the suitcase in a "changed since
+    /// open" state without disturbing the minimum viable top+bottom+shoes.
+    Future<void> removeLastPackedCard(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.close).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('REMOVE'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'shows "Plan Trip Outfits" once the suitcase can build a complete '
+      'outfit, with no plan yet',
+      (tester) async {
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+          await tester.pump();
+          await tester.pump();
+
+          expect(find.text('Plan Trip Outfits'), findsOneWidget);
+        }, () => suitcaseClient(suitcaseItems: viableSuitcase));
+      },
+    );
+
+    testWidgets(
+      'hides the plan button while the suitcase cannot build a complete '
+      'outfit',
+      (tester) async {
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          // Default suitcaseItems: top + bottom, no shoes -> not viable.
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+          await tester.pump();
+          await tester.pump();
+
+          expect(
+            find.byKey(const ValueKey('bottomActionButton-hidden')),
+            findsOneWidget,
+          );
+          expect(find.text('Plan Trip Outfits'), findsNothing);
+        }, () => suitcaseClient());
+      },
+    );
+
+    testWidgets(
+      'a plan already existing is not enough on its own — the button stays '
+      'hidden until the suitcase actually changes since opening',
+      (tester) async {
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          expect(
+            find.byKey(const ValueKey('bottomActionButton-hidden')),
+            findsOneWidget,
+          );
+          expect(find.text('Update Trip Outfits'), findsNothing);
+        }, () => suitcaseClient(suitcaseItems: viableSuitcase));
+      },
+    );
+
+    testWidgets(
+      'shows "Update Trip Outfits" once the packed set changes since '
+      'opening (e.g. removing a packed item)',
+      (tester) async {
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
+          );
+          await tester.pump();
+          await tester.pump();
+          expect(find.text('Update Trip Outfits'), findsNothing);
+
+          await removeLastPackedCard(tester);
+
+          expect(find.text('Update Trip Outfits'), findsOneWidget);
+        }, () => suitcaseClient(suitcaseItems: viableSuitcaseWithExtra));
+      },
+    );
+
+    testWidgets(
+      'tapping "Plan Trip Outfits" generates the plan and pops back',
+      (tester) async {
+        var generateCalls = 0;
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            Scaffold(body: const Text('Behind the Suitcase page')),
+          );
+          final navigator = tester.state<NavigatorState>(
+            find.byType(Navigator),
+          );
+          navigator.push(
+            MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: _trip())),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Plan Trip Outfits'));
+          await tester.pumpAndSettle();
+
+          expect(generateCalls, 1);
+          expect(find.byType(TripSuitcasePage), findsNothing);
+          expect(find.text('Behind the Suitcase page'), findsOneWidget);
+        }, () => suitcaseClient(
+          suitcaseItems: viableSuitcase,
+          onGenerate: () => generateCalls++,
+        ));
+      },
+    );
+
+    testWidgets(
+      'tapping "Update Trip Outfits" confirms before overwriting an '
+      'existing plan',
+      (tester) async {
+        var generateCalls = 0;
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
+          );
+          await tester.pump();
+          await tester.pump();
+          await removeLastPackedCard(tester); // put it in a "changed" state
+
+          await tester.tap(find.text('Update Trip Outfits'));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Regenerate outfit plan?'), findsOneWidget);
+          // Cancel -> no generate call, still on the Suitcase page.
+          await tester.tap(find.text('Cancel'));
+          await tester.pumpAndSettle();
+
+          expect(generateCalls, 0);
+          expect(find.byType(TripSuitcasePage), findsOneWidget);
+        }, () => suitcaseClient(
+          suitcaseItems: viableSuitcaseWithExtra,
+          onGenerate: () => generateCalls++,
+        ));
+      },
+    );
+  });
 }

@@ -106,6 +106,34 @@ void main() {
       expect(refreshHits, 0);
     });
 
+    test(
+      'two concurrent 401s share a single refresh call — a losing racer '
+      'must not clear tokens the winner just saved',
+      () async {
+        var refreshHits = 0;
+        Future<http.Response> makeCall() {
+          var calls = 0;
+          Future<http.Response> request(String token) async {
+            calls++;
+            return http.Response('', calls == 1 ? 401 : 200);
+          }
+
+          return _TestService().withAuth(request);
+        }
+
+        final results = await http.runWithClient(
+          () => Future.wait([makeCall(), makeCall()]),
+          () => MockClient((_) async {
+            refreshHits++;
+            return _refreshOk();
+          }),
+        );
+
+        expect(results.map((r) => r.statusCode), [200, 200]);
+        expect(refreshHits, 1);
+      },
+    );
+
     test('a non-200 from the refresh endpoint throws AuthExpiredException '
         'and does not retry', () async {
       final tokens = <String>[];

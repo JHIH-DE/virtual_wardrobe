@@ -116,18 +116,28 @@ void main() {
   });
 
   group('getGarments', () {
-    test('GETs the base list and populates the cache for getGarment to reuse', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(
-          _envelope([_garmentJson(201), _garmentJson(202)]),
-        ),
-      );
+    Map<String, dynamic> pageEnvelope(
+      List<Map<String, dynamic>> items, {
+      required int total,
+      required int page,
+      int size = 100,
+    }) => _envelope({'items': items, 'total': total, 'page': page, 'size': size});
+
+    test('GETs page 1 and populates the cache for getGarment to reuse', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          pageEnvelope([_garmentJson(201), _garmentJson(202)], total: 2, page: 1),
+        );
+      });
 
       final garments = await http.runWithClient(
         () => GarmentService().getGarments(),
         () => client,
       );
       expect(garments, hasLength(2));
+      expect(captured.url.toString(), '$_base?page=1&size=100');
 
       // getGarment(201) should now be served from the cache this populated
       // — a client that always throws proves no network call happens.
@@ -139,6 +149,62 @@ void main() {
         () => throwingClient,
       );
       expect(cached.name, 'Garment 201');
+    });
+
+    test('an empty closet returns an empty list', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(pageEnvelope(const [], total: 0, page: 1)),
+      );
+
+      final garments = await http.runWithClient(
+        () => GarmentService().getGarments(),
+        () => client,
+      );
+
+      expect(garments, isEmpty);
+    });
+
+    test('a missing items list throws instead of crashing on a bad cast', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({'total': 0, 'page': 1, 'size': 100})),
+      );
+
+      await expectLater(
+        http.runWithClient(() => GarmentService().getGarments(), () => client),
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('getGarments'),
+          ),
+        ),
+      );
+    });
+
+    test('walks every page until it has all items', () async {
+      // getGarments() always requests size=100, so the loop only keeps
+      // going past page 1 when a page actually comes back full — here 2
+      // full pages of 100 plus a final partial page of 50 (total 250).
+      final requestedPages = <int>[];
+      final client = MockClient((request) async {
+        final page = int.parse(request.url.queryParameters['page']!);
+        requestedPages.add(page);
+        final count = page < 3 ? 100 : 50;
+        final start = (page - 1) * 100;
+        final items = List.generate(
+          count,
+          (i) => _garmentJson(900000 + start + i),
+        );
+        return _jsonResponse(pageEnvelope(items, total: 250, page: page));
+      });
+
+      final garments = await http.runWithClient(
+        () => GarmentService().getGarments(),
+        () => client,
+      );
+
+      expect(garments, hasLength(250));
+      expect(requestedPages, [1, 2, 3]);
     });
   });
 
@@ -613,7 +679,7 @@ void main() {
   });
 
   group('analyzeGarment', () {
-    test('sends a multipart request and parses metadata/versatility', () async {
+    test('sends a multipart request and parses metadata', () async {
       final tempFile = await _writeTempJpeg();
       addTearDown(() => tempFile.delete());
 
@@ -623,12 +689,6 @@ void main() {
         return _jsonResponse(
           _envelope({
             'metadata': {'color': 'navy'},
-            'versatility': {
-              'score': 80,
-              'breakdown': [
-                {'category': 'Bottom', 'compatible_count': 3},
-              ],
-            },
           }),
         );
       });
@@ -641,9 +701,6 @@ void main() {
       expect(captured.method, 'POST');
       expect(captured.url.toString(), '$_base/analyze-instant');
       expect(result.metadata, {'color': 'navy'});
-      expect(result.versatility?.score, 80);
-      expect(result.versatility?.breakdown.single.category, GarmentCategory.bottom);
-      expect(result.versatility?.breakdown.single.compatibleCount, 3);
       expect(result.processedImagePath, isNull);
     });
   });

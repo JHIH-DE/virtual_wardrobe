@@ -157,10 +157,7 @@ class GarmentUploadHelper {
       final result = await Navigator.push<ImageEditResult>(
         context,
         MaterialPageRoute(
-          builder: (_) => ImageEditorPage(
-            initialPath: imagePath,
-            title: AppLocalizations.of(context).quickActionAddClothing,
-          ),
+          builder: (_) => ImageEditorPage(initialPath: imagePath),
         ),
       );
 

@@ -16,14 +16,9 @@ import 'base_service.dart';
 
 class AnalyzeGarmentResult {
   final Map<String, dynamic> metadata;
-  final Versatility? versatility;
   final String? processedImagePath;
 
-  const AnalyzeGarmentResult({
-    required this.metadata,
-    this.versatility,
-    this.processedImagePath,
-  });
+  const AnalyzeGarmentResult({required this.metadata, this.processedImagePath});
 }
 
 class GarmentService with BaseService {
@@ -102,25 +97,43 @@ class GarmentService with BaseService {
     return Garment.fromJson(data);
   }
 
+  /// Fetches the caller's whole closet. The backend paginates this endpoint
+  /// (`data: {items, total, page, size}` instead of a bare array), so this
+  /// walks every page at the largest allowed `size` and returns one flat
+  /// list — every existing caller (`garmentsProvider`, `trip_details_page`)
+  /// expects "the whole closet" as a `List<Garment>`, not a page at a time.
   Future<List<Garment>> getGarments() async {
     debugLog('--- getGarments ---');
-    final uri = Uri.parse(_baseUrl);
-    final res = await withAuth(
-      (token) => http
-          .get(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
-      retryOnTimeout: true,
-    );
-    final envelope = decodeMap(res, op: 'getGarments');
-    final data = envelope['data'];
-    if (data is! List) {
-      throw Exception('getGarments: response missing list data');
+    const pageSize = 100; // backend's documented max `size`
+    final garments = <Garment>[];
+    var page = 1;
+
+    while (true) {
+      final uri = Uri.parse(
+        _baseUrl,
+      ).replace(queryParameters: {'page': '$page', 'size': '$pageSize'});
+      final res = await withAuth(
+        (token) => http
+            .get(uri, headers: authHeaders(token))
+            .timeout(const Duration(seconds: 15)),
+        retryOnTimeout: true,
+      );
+      final envelope = decodeMap(res, op: 'getGarments');
+      final data = envelope['data'] as Map<String, dynamic>?;
+      final items = data?['items'];
+      if (items is! List) {
+        throw Exception('getGarments: response missing items list');
+      }
+
+      garments.addAll(
+        items.whereType<Map<String, dynamic>>().map(Garment.fromJson),
+      );
+
+      final total = (data?['total'] as num?)?.toInt() ?? garments.length;
+      if (items.length < pageSize || garments.length >= total) break;
+      page++;
     }
 
-    final garments = data
-        .whereType<Map<String, dynamic>>()
-        .map((j) => Garment.fromJson(j))
-        .toList();
     for (final g in garments) {
       if (g.id != null) _cache[g.id!] = g;
     }
@@ -235,10 +248,6 @@ class GarmentService with BaseService {
     final envelope = decodeMap(res, op: 'analyzeInstantGarment');
     final data = (envelope['data'] as Map<String, dynamic>?) ?? {};
     final metadata = (data['metadata'] as Map<String, dynamic>?) ?? {};
-    final versatilityJson = data['versatility'] as Map<String, dynamic>?;
-    final versatility = versatilityJson == null
-        ? null
-        : Versatility.fromJson(versatilityJson);
 
     String? processedImagePath;
     final base64Str = data['processed_image_base64'] as String?;
@@ -254,7 +263,6 @@ class GarmentService with BaseService {
 
     return AnalyzeGarmentResult(
       metadata: metadata,
-      versatility: versatility,
       processedImagePath: processedImagePath,
     );
   }

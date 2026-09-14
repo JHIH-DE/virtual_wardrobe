@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/garment_details_page.dart';
 
 import '../helpers/fake_auth.dart';
@@ -82,4 +85,67 @@ void main() {
       expect(find.text('Highly Versatile'), findsNothing);
     });
   });
+
+  // Regression test for a 500 on Save: editing an existing garment and only
+  // replacing its photo (no re-run of AI analysis) used to leave `_metaData`
+  // null, so `completeUpload` sent `metadata: null` and the backend crashed
+  // reading `metadata.thickness` on it. initState now seeds `_metaData` from
+  // the garment's own already-saved metadata — this proves that seeding by
+  // checking what "Analyze with AI" (which reads the same `_metaData`) sends.
+  testWidgets(
+    'editing an existing garment seeds Analyze-with-AI from its saved '
+    'metadata',
+    (tester) async {
+      late http.Request scoreRequest;
+      final client = MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/versatility-score')) {
+          scoreRequest = request;
+          return jsonResponse(
+            envelope({
+              'score': 80,
+              'combination_count': 10,
+              'skipped_reason': null,
+              'breakdown': [],
+              'message': null,
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        final garment = Garment(
+          id: 501,
+          name: 'Black Leather Moc Toe Work Boots',
+          category: GarmentCategory.shoes,
+          subCategory: 'Boots',
+          uploadUrl: '',
+          objectName: '',
+          imageUrl: '',
+          metadata: const {
+            'thickness': 4,
+            'formality': 2,
+            'material': 'Leather',
+            'style': ['Workwear'],
+            'fit': '',
+            'crop_length': '',
+            'description': 'Moc toe leather work boots',
+          },
+        );
+        await pumpApp(tester, GarmentDetailsPage(initialGarment: garment));
+        await tester.pump();
+        await tester.pump();
+
+        await tester.tap(find.text('Analyze with AI'));
+        await tester.pump();
+
+        final body = jsonDecode(scoreRequest.body) as Map<String, dynamic>;
+        final metadata = body['metadata'] as Map<String, dynamic>;
+        expect(metadata['material'], 'Leather');
+        expect(metadata['description'], 'Moc toe leather work boots');
+      }, () => client);
+    },
+  );
 }

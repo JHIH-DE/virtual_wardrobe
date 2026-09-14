@@ -40,6 +40,7 @@ mixin BaseService {
   /// refresh call itself — including a `TimeoutException` from its 15s cap —
   /// propagates unchanged rather than being masked as [AuthExpiredException],
   /// so callers can tell "logged out" apart from "network/server unavailable".
+  /// The refresh itself is single-flight — see [_refreshTokens].
   Future<http.Response> withAuth(
     Future<http.Response> Function(String token) request, {
     bool retryOnTimeout = false,
@@ -48,6 +49,30 @@ mixin BaseService {
     final res = await _send(request, token, retryOnTimeout);
     if (res.statusCode != 401) return res;
 
+    final refreshed = await _refreshTokens();
+    return _send(request, refreshed.accessToken, retryOnTimeout);
+  }
+
+  /// One in-flight `/auth/refresh` call shared by every concurrent 401 —
+  /// e.g. every request a screen fires in parallel at app launch, all still
+  /// carrying the same now-expired access token. Without this, each would
+  /// independently POST the same stored refresh token; if the backend
+  /// rotates (single-use) refresh tokens, only the first of those parallel
+  /// posts succeeds and every other one is rejected, each throwing
+  /// [AuthExpiredException] and clearing storage (see [AuthExpiredHandler])
+  /// — wiping out the fresh tokens the winner just saved and showing
+  /// "Session Expired" even though the session was actually still good.
+  /// Every caller that arrives while a refresh is already in flight instead
+  /// awaits that same attempt and retries with its result.
+  static Future<({String accessToken, String refreshToken})>? _refreshInFlight;
+
+  Future<({String accessToken, String refreshToken})> _refreshTokens() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
+
+  Future<({String accessToken, String refreshToken})> _doRefresh() async {
     final storedRefresh = await AuthStorage.getRefreshToken();
     if (storedRefresh == null) throw AuthExpiredException();
 
@@ -72,7 +97,7 @@ mixin BaseService {
 
     await AuthStorage.saveAccessToken(newAccessToken);
     await AuthStorage.saveRefreshToken(newRefreshToken);
-    return _send(request, newAccessToken, retryOnTimeout);
+    return (accessToken: newAccessToken, refreshToken: newRefreshToken);
   }
 
   /// Runs [request], retrying once after a 1s pause on [TimeoutException]

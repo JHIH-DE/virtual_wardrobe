@@ -25,6 +25,8 @@ class RemovableCardGroup {
 
 /// Wraps [child] with a corner delete badge; tapping it shows a full-card
 /// black overlay with DELETE / cancel actions before invoking [onDelete].
+/// The badge's chrome (translucent disc, hairline border, no shadow) matches
+/// [FavoriteCard]'s — both sit on the same plain [GarmentCard] surface.
 class RemovableCard extends StatefulWidget {
   final Widget child;
   final VoidCallback onDelete;
@@ -89,8 +91,12 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
           right: 8,
           child: CardCornerBadge(
             icon: Icons.close,
-            backgroundColor: AppColors.primary,
-            iconColor: AppColors.textOnPrimary,
+            backgroundColor: AppColors.surfaceTranslucent,
+            iconColor: AppColors.icon,
+            border: Border.all(color: AppColors.borderSubtle),
+            boxShadow: const [],
+            size: 36,
+            iconSize: 20,
             discAlignment: Alignment.topRight,
             onTap: _open,
           ),
