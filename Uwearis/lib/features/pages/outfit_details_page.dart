@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -95,6 +96,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isResolvingSavedStatus = false;
   List<Garment>? _garments;
   bool _isLoadingGarments = false;
+  // The garment ids [_garments] was last loaded for — lets [_loadGarments]
+  // skip a redundant re-fetch (and the loading-flicker it'd cause) when
+  // it's asked to load the same set it already has.
+  Set<int>? _loadedGarmentIds;
   // True while "Create Another Version" is resolving the closet / has
   // OutfitEditPage pushed on top — also the re-entrancy guard for its
   // handler.
@@ -120,7 +125,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   // Max versions per group this page will create — see
   // _openCreateAnotherVersion.
-  static const int _maxVersions = 5;
+  static const int _maxVersions = 10;
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
@@ -276,9 +281,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      // Blank — the name shows as its own block below the app bar instead
-      // (see build's ListView), so it isn't in the toolbar at all.
-      title: '',
+      title: _l10n.outfitDetailsTitle,
       onBack: widget.isNew ? _leaveNewOutfit : null,
       actions: [
         if (!widget.isNew)
@@ -371,8 +374,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     setState(() => _isOpeningTryOn = true);
     try {
       // Warm garmentsProvider before opening the page (it reads the pool
-      // directly rather than fetching its own).
-      final closet = await ref.read(garmentsProvider.future);
+      // directly rather than fetching its own). .active: a deleted garment
+      // can't be picked for a new version, even if it's still shown on the
+      // version being copied from.
+      final closet = (await ref.read(garmentsProvider.future)).active;
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
       if (!context.mounted) return;
@@ -505,10 +510,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        // `center`, not `start`: AccentIconButton is a 44px touch box with a
-        // smaller disc centred in it, so top-aligning it drops the disc
-        // below the single-line tag row. The tag row never wraps
-        // (_CollapsingTagsRow collapses to "+N"), so centring is safe.
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (!_isDailyOutfit) ...[
@@ -835,34 +836,43 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// The row under the carousel: the "+ New Version" pill, left-aligned, shown
-  /// straight away (its form never depends on the version count). Once the
-  /// group's sibling versions have loaded, the page dots + "n / total"
-  /// counter sit centred behind it. Collapses to nothing where adding a
-  /// version isn't offered (see [_openCreateAnotherVersion]: the Add Outfit
-  /// flow, daily outfits, edit-hidden entry points).
+  /// The row under the carousel: the "+ New Version" pill, left-aligned,
+  /// shown straight away. Once the group's sibling versions have loaded and
+  /// there's more than one, the page dots + "n / total" counter sit centred
+  /// behind it — with the pill swapping for a bare-"+" [AccentIconButton] so
+  /// it doesn't compete with the dots for space now that they're doing the
+  /// "how many versions" job. Collapses to nothing where adding a version
+  /// isn't offered (see [_openCreateAnotherVersion]: the Add Outfit flow,
+  /// daily outfits, edit-hidden entry points).
   Widget _buildVersionActionRow() {
     final canAddVersion =
         !widget.isNew &&
         !widget.showAddToMyOutfits &&
         widget.showEditOutfitWhenSaved;
 
-    final pill = canAddVersion
+    final showsDots = _versionsResolved && _versions.length >= 2;
+    final enabled = !_isOpeningTryOn && !_isCreatingVersion;
+
+    final button = canAddVersion
         ? Align(
             alignment: Alignment.centerLeft,
-            child: AccentPillButton(
-              label: _l10n.addVersionButton,
-              icon: Icons.add,
-              enabled: !_isOpeningTryOn && !_isCreatingVersion,
-              onPressed: _openCreateAnotherVersion,
-            ),
+            child: showsDots
+                ? AccentIconButton(
+                    icon: Icons.add,
+                    enabled: enabled,
+                    onPressed: _openCreateAnotherVersion,
+                  )
+                : AccentPillButton(
+                    label: _l10n.addVersionButton,
+                    icon: Icons.add,
+                    enabled: enabled,
+                    onPressed: _openCreateAnotherVersion,
+                  ),
           )
         : null;
 
-    // Only the dots need the real version count (and they show nothing for a
-    // single version anyway) — gate them, not the pill.
-    if (!_versionsResolved || _versions.length < 2) {
-      return pill ?? const SizedBox.shrink();
+    if (!showsDots) {
+      return button ?? const SizedBox.shrink();
     }
 
     return Stack(
@@ -872,7 +882,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           count: _versions.length,
           currentIndex: _currentIndex,
         ),
-        ?pill,
+        ?button,
       ],
     );
   }
@@ -987,11 +997,23 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   Widget _buildGarmentCard(Garment g) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-      child: GarmentListCard(
-        garment: g,
-        onTap: () => GarmentDetailDialog.show(context, g),
-      ),
+      child: GarmentListCard(garment: g, onTap: () => _openGarmentDetail(g)),
     );
+  }
+
+  /// Opens [GarmentDetailDialog] for [g] — if it comes back with a restored
+  /// [Garment] (the user tapped "Add Back to Closet" on a soft-deleted
+  /// one), swap it into both [_garments] and [garmentsProvider] so the
+  /// warning badge disappears immediately without a full re-fetch.
+  Future<void> _openGarmentDetail(Garment g) async {
+    final restored = await GarmentDetailDialog.show(context, g);
+    if (restored == null || !mounted) return;
+    ref.read(garmentsProvider.notifier).updateGarment(restored);
+    setState(() {
+      _garments = _garments
+          ?.map((existing) => existing.id == restored.id ? restored : existing)
+          .toList();
+    });
   }
 
   Future<void> _fetchOutfitDetails() async {
@@ -1017,16 +1039,27 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     };
   }
 
+  /// Loads [_current]'s garments. Called from several places that don't
+  /// coordinate with each other (`initState`, [_loadGroupOutfits] once it
+  /// resolves, version swipe/create/delete) — most of them end up wanting
+  /// the same version's garments the page already has, so this skips the
+  /// re-fetch (and the loading-flicker flipping [_isLoadingGarments] back
+  /// on would cause) whenever the requested id set matches what's already
+  /// loaded.
   Future<void> _loadGarments() async {
+    final idsToLoad = _current.garmentIds.toSet();
+    if (_garments != null && setEquals(_loadedGarmentIds, idsToLoad)) return;
+
     setState(() => _isLoadingGarments = true);
     try {
       // Reuse whatever My Closet has already loaded into garmentsProvider
       // instead of always hitting the network per garment — but skip stale
       // cache entries whose signed image URL has expired, so photos don't
-      // render as broken images.
+      // render as broken images. Deliberately the raw (unfiltered) list, not
+      // .active: this outfit's own garment_ids can reference a garment
+      // that's since been soft-deleted, and it should still resolve here.
       final cached = ref.read(garmentsProvider).value ?? const [];
       final cachedById = _indexGarmentsById(cached);
-      final idsToLoad = _current.garmentIds.toSet();
 
       // Each id resolves independently — one garment that 404s (e.g. it's
       // since been deleted) shouldn't blank out every *other* garment on
@@ -1042,7 +1075,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                   !isSignedUrlExpired(imageUrl));
           if (isFresh) return cachedGarment;
           try {
-            return await GarmentService().getGarment(id);
+            // includeDeleted: this outfit's own garment_ids can reference a
+            // garment that's since been soft-deleted from the closet — it
+            // should still resolve and show here.
+            return await GarmentService().getGarment(id, includeDeleted: true);
           } catch (e) {
             debugLog(
               'Failed to load garment $id for outfit ${_current.id}: $e',
@@ -1052,7 +1088,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         }),
       );
       if (mounted) {
-        setState(() => _garments = results.whereType<Garment>().toList());
+        setState(() {
+          _garments = results.whereType<Garment>().toList();
+          _loadedGarmentIds = idsToLoad;
+        });
       }
     } catch (e) {
       debugLog('Failed to load garments for outfit ${_current.id}: $e');

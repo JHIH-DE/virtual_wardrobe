@@ -361,9 +361,6 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
       );
     }
 
-    // Title+subtitle share the row with the thumbnail (rather than sitting
-    // in a full-width strip above it) so the photo can occupy the same
-    // vertical band as the title instead of only starting below it.
     final row = IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,

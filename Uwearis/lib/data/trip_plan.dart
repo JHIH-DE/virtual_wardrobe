@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 import 'garment.dart';
 
 /// One trip day's primary outfit — either an *already tried-on* result
@@ -25,6 +27,13 @@ class TripDayOutfit {
   /// before) apart from "Regenerate Outfit" (this slot had an image once).
   final bool everHadOutfit;
 
+  /// Whether the user has manually swapped this option's garments (via
+  /// [TripService.updateOptionItems]) at some point — permanent on the
+  /// backend once set, never reset by a render. Gates [needsReplan]: a
+  /// manual edit is preserved by an explicit Replan unless [garments] now
+  /// references something no longer packed.
+  final bool isManuallyEdited;
+
   const TripDayOutfit({
     this.date,
     this.optionId,
@@ -34,7 +43,33 @@ class TripDayOutfit {
     this.temperatureMaxC,
     this.temperatureMinC,
     this.everHadOutfit = false,
+    this.isManuallyEdited = false,
   });
+
+  /// Whether "Replan Trip Outfits" should regenerate this day, given the
+  /// suitcase's current contents ([suitcaseIds]) — the one Replan policy
+  /// shared by both entry points (TripSuitcasePage's bottom button and
+  /// TripDetailsPage's Daily Outfit Plan refresh icon — see [daysToReplan]).
+  /// In priority order:
+  ///
+  /// 1. Any of [garments] is no longer in [suitcaseIds] → regenerate. This
+  ///    overrides both rules below, even for a manually-edited or
+  ///    already-rendered day — an outfit referencing a garment that's been
+  ///    taken out of the suitcase can't be trusted to stay as-is.
+  /// 2. [isManuallyEdited] → keep (the user chose these garments on
+  ///    purpose).
+  /// 3. [outfitId] already set (a Try-On image exists) → keep.
+  /// 4. Otherwise — AI-generated, never rendered, never touched by hand —
+  ///    regenerate; there's nothing to lose by refreshing it.
+  bool needsReplan(Set<int> suitcaseIds) {
+    final hasOrphanedGarment = garments.any(
+      (g) => g.id != null && !suitcaseIds.contains(g.id),
+    );
+    if (hasOrphanedGarment) return true;
+    if (isManuallyEdited) return false;
+    if (outfitId != null) return false;
+    return true;
+  }
 
   /// A day carrying just a date + temperature — no plan / outfit yet.
   static TripDayOutfit _empty(Map<String, dynamic> day) => TripDayOutfit(
@@ -74,6 +109,7 @@ class TripDayOutfit {
       temperatureMaxC: (day['temperature_max_c'] as num?)?.toDouble(),
       temperatureMinC: (day['temperature_min_c'] as num?)?.toDouble(),
       everHadOutfit: outfitId != null,
+      isManuallyEdited: (primary['is_manually_edited'] as bool?) ?? false,
     );
   }
 
@@ -108,6 +144,7 @@ class TripDayOutfit {
       temperatureMaxC: (day['temperature_max_c'] as num?)?.toDouble(),
       temperatureMinC: (day['temperature_min_c'] as num?)?.toDouble(),
       everHadOutfit: outfitId != null,
+      isManuallyEdited: (primary['is_manually_edited'] as bool?) ?? false,
     );
   }
 }
@@ -169,6 +206,59 @@ class TripOptionRender {
       resultImageUrl: json['result_image_url'] as String?,
     );
   }
+}
+
+/// One [TripOutfitOption] (a specific day's plan slot) still referencing a
+/// garment that was just removed from the suitcase — from
+/// `DELETE /suitcase-items/{garment_id}`'s `affected_options`. Purely
+/// informational: the removal itself already succeeded regardless of this
+/// list, and nothing about the day's outfit, its render, or the option
+/// itself is changed automatically — no Fix/Replan action is offered yet.
+class TripAffectedOption {
+  final int dayId;
+  final DateTime? date;
+  final int optionId;
+  final bool isManuallyEdited;
+  final bool hasRenderedOutfit;
+
+  const TripAffectedOption({
+    required this.dayId,
+    this.date,
+    required this.optionId,
+    required this.isManuallyEdited,
+    required this.hasRenderedOutfit,
+  });
+
+  factory TripAffectedOption.fromJson(Map<String, dynamic> json) {
+    return TripAffectedOption(
+      dayId: (json['day_id'] as num?)?.toInt() ?? 0,
+      date: DateTime.tryParse((json['date'] as String?) ?? ''),
+      optionId: (json['option_id'] as num?)?.toInt() ?? 0,
+      isManuallyEdited: (json['is_manually_edited'] as bool?) ?? false,
+      hasRenderedOutfit: (json['has_rendered_outfit'] as bool?) ?? false,
+    );
+  }
+}
+
+/// Builds the `days` filter for `TripService.generateTripPlan` from whichever
+/// of [days] actually need it ([TripDayOutfit.needsReplan] against
+/// [suitcaseIds]) — the one place both Replan entry points (TripSuitcasePage
+/// and TripDetailsPage) turn "what needs replanning" into the request body,
+/// so they can't drift into different rules. Returns `null` when nothing
+/// needs it — the caller's cue to skip calling `generate` entirely rather
+/// than sending a `days` list with nothing in it.
+List<Map<String, dynamic>>? daysToReplan(
+  List<TripDayOutfit> days,
+  Set<int> suitcaseIds,
+) {
+  final dates = [
+    for (final day in days)
+      if (day.date != null && day.needsReplan(suitcaseIds)) day.date!,
+  ];
+  if (dates.isEmpty) return null;
+  return [
+    for (final date in dates) {'date': DateFormat('yyyy-MM-dd').format(date)},
+  ];
 }
 
 /// `suitcase_items` comes back either as `{garment_id: int, ...}` objects or

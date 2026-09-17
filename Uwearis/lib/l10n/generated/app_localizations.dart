@@ -408,7 +408,7 @@ abstract class AppLocalizations {
   /// No description provided for @versionLimitReachedBody.
   ///
   /// In en, this message translates to:
-  /// **'You can keep up to 5 versions for each outfit. Delete a version to create a new one.'**
+  /// **'You can keep up to 10 versions for each outfit. Delete a version to create a new one.'**
   String get versionLimitReachedBody;
 
   /// No description provided for @addToMyOutfits.
@@ -572,6 +572,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{style} Outfit'**
   String outfitTitle(String style);
+
+  /// No description provided for @outfitDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit'**
+  String get outfitDetailsTitle;
+
+  /// No description provided for @tripDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip'**
+  String get tripDetailsTitle;
 
   /// Section header showing how many garments are in an outfit
   ///
@@ -1095,23 +1107,35 @@ abstract class AppLocalizations {
   /// **'Plan Trip Outfits'**
   String get planTripOutfits;
 
-  /// No description provided for @updateTripOutfits.
+  /// No description provided for @replanTripOutfits.
   ///
   /// In en, this message translates to:
-  /// **'Update Trip Outfits'**
-  String get updateTripOutfits;
+  /// **'Replan Trip Outfits'**
+  String get replanTripOutfits;
 
-  /// No description provided for @regeneratePlanTitle.
+  /// No description provided for @replanTripOutfitsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Regenerate outfit plan?'**
-  String get regeneratePlanTitle;
+  /// **'Replan trip outfits?'**
+  String get replanTripOutfitsTitle;
 
-  /// No description provided for @regeneratePlanBody.
+  /// No description provided for @replanTripOutfitsBody.
   ///
   /// In en, this message translates to:
-  /// **'This will replace every day\'s current outfit, including any you\'ve adjusted by hand.'**
-  String get regeneratePlanBody;
+  /// **'Outfits you\'ve adjusted by hand or that already have a photo will be kept. Outfits using an item that\'s no longer in your suitcase will be replanned.'**
+  String get replanTripOutfitsBody;
+
+  /// No description provided for @replan.
+  ///
+  /// In en, this message translates to:
+  /// **'Replan'**
+  String get replan;
+
+  /// No description provided for @noOutfitsNeedReplan.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to replan — every outfit still fits your suitcase.'**
+  String get noOutfitsNeedReplan;
 
   /// No description provided for @failedToGeneratePlan.
   ///
@@ -1167,6 +1191,12 @@ abstract class AppLocalizations {
   /// **'{count} items aren\'t packed yet.'**
   String missingFromSuitcaseCount(int count);
 
+  /// No description provided for @suitcaseItemStillUsedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Suitcase. This item is still used in {count} of this trip\'s planned outfits.'**
+  String suitcaseItemStillUsedCount(int count);
+
   /// No description provided for @addToSuitcase.
   ///
   /// In en, this message translates to:
@@ -1202,6 +1232,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Generate Outfit'**
   String get generateOutfit;
+
+  /// No description provided for @dayOutfitMissingCoreItemsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This outfit is missing a Top, Bottom, or Shoes item — complete it to generate an outfit.'**
+  String get dayOutfitMissingCoreItemsMessage;
 
   /// No description provided for @selectDates.
   ///
@@ -1965,6 +2001,24 @@ abstract class AppLocalizations {
   /// **'Failed to update favorite'**
   String get failedToUpdateFavorite;
 
+  /// No description provided for @garmentRemovedFromClosetNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This item has been removed from your closet.'**
+  String get garmentRemovedFromClosetNotice;
+
+  /// No description provided for @addBackToCloset.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Back to Closet'**
+  String get addBackToCloset;
+
+  /// No description provided for @failedToRestoreGarment.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to restore this item'**
+  String get failedToRestoreGarment;
+
   /// No description provided for @creatingTripEllipsis.
   ///
   /// In en, this message translates to:
@@ -2304,7 +2358,7 @@ abstract class AppLocalizations {
   /// No description provided for @comfortAdjustment.
   ///
   /// In en, this message translates to:
-  /// **'Comfort Adjustment'**
+  /// **'Perceived Temperature Offset'**
   String get comfortAdjustment;
 
   /// No description provided for @weeklySchedule.
@@ -2316,7 +2370,7 @@ abstract class AppLocalizations {
   /// No description provided for @perceivedTempOffset.
   ///
   /// In en, this message translates to:
-  /// **'Perceived temperature offset'**
+  /// **'Offset'**
   String get perceivedTempOffset;
 
   /// No description provided for @lifestyleDescription.

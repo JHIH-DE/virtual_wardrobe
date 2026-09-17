@@ -11,7 +11,10 @@ void main() {
 
     test('falls back to top for null or an unrecognized value', () {
       expect(GarmentCategoryX.fromApiValue(null), GarmentCategory.top);
-      expect(GarmentCategoryX.fromApiValue('not-a-category'), GarmentCategory.top);
+      expect(
+        GarmentCategoryX.fromApiValue('not-a-category'),
+        GarmentCategory.top,
+      );
     });
   });
 
@@ -48,6 +51,7 @@ void main() {
         'image_url': 'https://example.com/7.jpg',
         'metadata': {'note': 'dry clean only'},
         'is_favorite': true,
+        'is_deleted': true,
       });
 
       expect(garment.id, 7);
@@ -67,6 +71,7 @@ void main() {
       expect(garment.imageUrl, 'https://example.com/7.jpg');
       expect(garment.metadata, {'note': 'dry clean only'});
       expect(garment.isFavorite, isTrue);
+      expect(garment.isDeleted, isTrue);
     });
 
     test('defaults missing optional fields', () {
@@ -89,19 +94,23 @@ void main() {
       expect(garment.imageUrl, '');
       expect(garment.metadata, isNull);
       expect(garment.isFavorite, isFalse);
+      expect(garment.isDeleted, isFalse);
     });
 
-    test('parses price/thickness/formality given as strings, same as numbers', () {
-      final garment = Garment.fromJson({
-        'price': '49.5',
-        'thickness': '1',
-        'formality': '4',
-      });
+    test(
+      'parses price/thickness/formality given as strings, same as numbers',
+      () {
+        final garment = Garment.fromJson({
+          'price': '49.5',
+          'thickness': '1',
+          'formality': '4',
+        });
 
-      expect(garment.price, 49.5);
-      expect(garment.thickness, 1);
-      expect(garment.formality, 4);
-    });
+        expect(garment.price, 49.5);
+        expect(garment.thickness, 1);
+        expect(garment.formality, 4);
+      },
+    );
 
     test('rounds a non-integer thickness/formality to the nearest int', () {
       final garment = Garment.fromJson({'thickness': 2.6, 'formality': '3.2'});
@@ -154,10 +163,13 @@ void main() {
       );
     });
 
-    test('treats an unparseable purchase_date as null rather than throwing', () {
-      final garment = Garment.fromJson({'purchase_date': 'not-a-date'});
-      expect(garment.purchaseDate, isNull);
-    });
+    test(
+      'treats an unparseable purchase_date as null rather than throwing',
+      () {
+        final garment = Garment.fromJson({'purchase_date': 'not-a-date'});
+        expect(garment.purchaseDate, isNull);
+      },
+    );
   });
 
   group('Garment.fromTripItemJson', () {
@@ -244,31 +256,72 @@ void main() {
       expect(updated.brand, 'Uniqlo');
     });
 
-    test('clear flags null out their field even though the plain param is omitted', () {
-      final original = build();
-      final cleared = original.copyWith(
-        clearBrand: true,
-        clearColor: true,
-        clearFit: true,
-        clearPrice: true,
-        clearPurchaseDate: true,
-        clearMetadata: true,
-      );
+    test(
+      'clear flags null out their field even though the plain param is omitted',
+      () {
+        final original = build();
+        final cleared = original.copyWith(
+          clearBrand: true,
+          clearColor: true,
+          clearFit: true,
+          clearPrice: true,
+          clearPurchaseDate: true,
+          clearMetadata: true,
+        );
 
-      expect(cleared.brand, isNull);
-      expect(cleared.color, isNull);
-      expect(cleared.fit, isNull);
-      expect(cleared.price, isNull);
-      expect(cleared.purchaseDate, isNull);
-      expect(cleared.metadata, isNull);
-      // Untouched fields survive.
-      expect(cleared.name, original.name);
-    });
+        expect(cleared.brand, isNull);
+        expect(cleared.color, isNull);
+        expect(cleared.fit, isNull);
+        expect(cleared.price, isNull);
+        expect(cleared.purchaseDate, isNull);
+        expect(cleared.metadata, isNull);
+        // Untouched fields survive.
+        expect(cleared.name, original.name);
+      },
+    );
 
     test('clearId/clearGarmentId null out independently of each other', () {
       final cleared = build().copyWith(clearId: true);
       expect(cleared.id, isNull);
       expect(cleared.garmentId, 1);
+    });
+
+    test('isDeleted overrides, defaulting to the current value otherwise', () {
+      final original = build();
+      expect(original.isDeleted, isFalse);
+
+      final restored = original.copyWith(isDeleted: true).copyWith(name: 'x');
+      expect(
+        restored.isDeleted,
+        isTrue,
+        reason: 'unrelated copyWith preserves it',
+      );
+
+      final flippedBack = restored.copyWith(isDeleted: false);
+      expect(flippedBack.isDeleted, isFalse);
+    });
+  });
+
+  group('ActiveGarmentsX.active', () {
+    Garment garment(int id, {bool isDeleted = false}) => Garment.fromJson({
+      'id': id,
+      'name': 'Item $id',
+      'is_deleted': isDeleted,
+    });
+
+    test('excludes soft-deleted garments, keeps the rest in order', () {
+      final list = [garment(1), garment(2, isDeleted: true), garment(3)];
+      expect(list.active.map((g) => g.id), [1, 3]);
+    });
+
+    test('is empty when every garment is deleted', () {
+      final list = [garment(1, isDeleted: true), garment(2, isDeleted: true)];
+      expect(list.active, isEmpty);
+    });
+
+    test('is unchanged when nothing is deleted', () {
+      final list = [garment(1), garment(2)];
+      expect(list.active, list);
     });
   });
 
@@ -305,17 +358,20 @@ void main() {
     // datetime string with a non-zero time component. A picked date can carry
     // a time (or a future default might), so toJson must always emit
     // `yyyy-MM-dd`, matching GarmentService.completeUpload's own serialization.
-    test('serializes purchase_date as date-only even when the DateTime has a time', () {
-      final garment = Garment(
-        name: 'Timed',
-        category: GarmentCategory.top,
-        subCategory: '',
-        uploadUrl: '',
-        objectName: '',
-        purchaseDate: DateTime(2025, 3, 14, 9, 30, 45),
-      );
-      expect(garment.purchaseDateApiValue, '2025-03-14');
-      expect(garment.toJson()['purchase_date'], '2025-03-14');
-    });
+    test(
+      'serializes purchase_date as date-only even when the DateTime has a time',
+      () {
+        final garment = Garment(
+          name: 'Timed',
+          category: GarmentCategory.top,
+          subCategory: '',
+          uploadUrl: '',
+          objectName: '',
+          purchaseDate: DateTime(2025, 3, 14, 9, 30, 45),
+        );
+        expect(garment.purchaseDateApiValue, '2025-03-14');
+        expect(garment.toJson()['purchase_date'], '2025-03-14');
+      },
+    );
   });
 }

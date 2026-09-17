@@ -166,7 +166,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get versionLimitReachedTitle => '已達版本上限';
 
   @override
-  String get versionLimitReachedBody => '每套穿搭最多可保留 5 個版本，請先刪除一個版本再新增。';
+  String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -254,6 +254,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String outfitTitle(String style) {
     return '$style穿搭';
   }
+
+  @override
+  String get outfitDetailsTitle => '穿搭';
+
+  @override
+  String get tripDetailsTitle => '行程';
 
   @override
   String garmentsCount(int count) {
@@ -523,13 +529,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get planTripOutfits => '規劃行程穿搭';
 
   @override
-  String get updateTripOutfits => '更新行程穿搭';
+  String get replanTripOutfits => '重新規劃行程穿搭';
 
   @override
-  String get regeneratePlanTitle => '重新規劃穿搭？';
+  String get replanTripOutfitsTitle => '要重新規劃行程穿搭嗎？';
 
   @override
-  String get regeneratePlanBody => '這會取代每一天目前的穿搭，包含你手動調整過的部分。';
+  String get replanTripOutfitsBody => '手動調整過或已經有照片的穿搭會保留；使用了已移出行李箱衣物的穿搭則會重新規劃。';
+
+  @override
+  String get replan => '重新規劃';
+
+  @override
+  String get noOutfitsNeedReplan => '沒有需要重新規劃的穿搭——目前的行李箱內容都還適用。';
 
   @override
   String get failedToGeneratePlan => '規劃穿搭失敗';
@@ -561,6 +573,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String suitcaseItemStillUsedCount(int count) {
+    return '已從行李箱移除。這件衣物仍被本次行程中 $count 套穿搭方案使用。';
+  }
+
+  @override
   String get addToSuitcase => '加入行李箱';
 
   @override
@@ -577,6 +594,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get generateOutfit => '產生穿搭';
+
+  @override
+  String get dayOutfitMissingCoreItemsMessage => '這套穿搭還缺少上衣、下身或鞋子，請先補齊才能產生。';
 
   @override
   String get selectDates => '選擇日期';
@@ -968,6 +988,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToUpdateFavorite => '更新收藏失敗';
 
   @override
+  String get garmentRemovedFromClosetNotice => '這件衣物已從衣櫥中移除。';
+
+  @override
+  String get addBackToCloset => '加回衣櫥';
+
+  @override
+  String get failedToRestoreGarment => '還原這件衣物失敗';
+
+  @override
   String get creatingTripEllipsis => '建立行程中…';
 
   @override
@@ -1146,13 +1175,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSaved => '設定已儲存';
 
   @override
-  String get comfortAdjustment => '舒適度調整';
+  String get comfortAdjustment => '體感溫度調整';
 
   @override
   String get weeklySchedule => '每週排程';
 
   @override
-  String get perceivedTempOffset => '體感溫度調整';
+  String get perceivedTempOffset => '偏移量';
 
   @override
   String get lifestyleDescription => '告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。';
@@ -1445,7 +1474,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get versionLimitReachedTitle => '已達版本上限';
 
   @override
-  String get versionLimitReachedBody => '每套穿搭最多可保留 5 個版本，請先刪除一個版本再新增。';
+  String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
   String get addToMyOutfits => '加入我的穿搭';
@@ -1533,6 +1562,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String outfitTitle(String style) {
     return '$style穿搭';
   }
+
+  @override
+  String get outfitDetailsTitle => '穿搭';
+
+  @override
+  String get tripDetailsTitle => '行程';
 
   @override
   String garmentsCount(int count) {
@@ -1802,13 +1837,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get planTripOutfits => '規劃行程穿搭';
 
   @override
-  String get updateTripOutfits => '更新行程穿搭';
+  String get replanTripOutfits => '重新規劃行程穿搭';
 
   @override
-  String get regeneratePlanTitle => '重新規劃穿搭？';
+  String get replanTripOutfitsTitle => '要重新規劃行程穿搭嗎？';
 
   @override
-  String get regeneratePlanBody => '這會取代每一天目前的穿搭，包含你手動調整過的部分。';
+  String get replanTripOutfitsBody => '手動調整過或已經有照片的穿搭會保留；使用了已移出行李箱衣物的穿搭則會重新規劃。';
+
+  @override
+  String get replan => '重新規劃';
+
+  @override
+  String get noOutfitsNeedReplan => '沒有需要重新規劃的穿搭——目前的行李箱內容都還適用。';
 
   @override
   String get failedToGeneratePlan => '規劃穿搭失敗';
@@ -1840,6 +1881,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String suitcaseItemStillUsedCount(int count) {
+    return '已從行李箱移除。這件衣物仍被本次行程中 $count 套穿搭方案使用。';
+  }
+
+  @override
   String get addToSuitcase => '加入行李箱';
 
   @override
@@ -1856,6 +1902,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get generateOutfit => '產生穿搭';
+
+  @override
+  String get dayOutfitMissingCoreItemsMessage => '這套穿搭還缺少上衣、下身或鞋子，請先補齊才能產生。';
 
   @override
   String get selectDates => '選擇日期';
@@ -2247,6 +2296,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get failedToUpdateFavorite => '更新收藏失敗';
 
   @override
+  String get garmentRemovedFromClosetNotice => '這件衣物已從衣櫥中移除。';
+
+  @override
+  String get addBackToCloset => '加回衣櫥';
+
+  @override
+  String get failedToRestoreGarment => '還原這件衣物失敗';
+
+  @override
   String get creatingTripEllipsis => '建立行程中…';
 
   @override
@@ -2425,13 +2483,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get settingsSaved => '設定已儲存';
 
   @override
-  String get comfortAdjustment => '舒適度調整';
+  String get comfortAdjustment => '體感溫度調整';
 
   @override
   String get weeklySchedule => '每週排程';
 
   @override
-  String get perceivedTempOffset => '體感溫度調整';
+  String get perceivedTempOffset => '偏移量';
 
   @override
   String get lifestyleDescription => '告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。';

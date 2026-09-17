@@ -22,6 +22,7 @@ import '../../l10n/trip_activity_localization.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/edge_fade_scrim.dart';
 import '../widgets/common/overlays/app_dialog.dart';
@@ -31,6 +32,7 @@ import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
+import '../widgets/trip/replan_confirm_dialog.dart';
 import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/trip/trip_day_card.dart';
 import '../widgets/trip/trip_legs_editor.dart';
@@ -42,21 +44,6 @@ import 'trip_suitcase_page.dart';
 /// on its detail page instead of duplicated across every card that links
 /// to it.
 enum _TripMenuAction { editName, editLegs, editActivities, delete }
-
-/// The page's "what's the next step" hint — see
-/// [_TripDetailsPageState._primaryAction]. Never more than one of these is
-/// active at once, by construction: [generateOutfit]/[regenerateOutfit] are
-/// per-day and only ever apply once a non-stale trip plan already exists.
-/// [generateTripPlan] means "no plan yet (or a stale one)" — that action now
-/// lives on [TripSuitcasePage], reached via the wardrobe section's "let
-/// Uwearis plan" CTA; the per-day actions still drive the outfit card's own
-/// "Generate Outfit" button here.
-enum TripGenerationAction {
-  generateTripPlan,
-  generateOutfit,
-  regenerateOutfit,
-  none,
-}
 
 class TripDetailsPage extends ConsumerStatefulWidget {
   final Trip trip;
@@ -123,6 +110,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   // Re-entrancy guard for the *whole* generate/regenerate-day-outfit flow,
   // including the regenerate confirm dialog — see [_generateSelectedDayOutfit].
   bool _dayOutfitActionInFlight = false;
+  // Same shape as [_dayOutfitActionInFlight], for the whole-trip Replan
+  // triggered from the Daily Outfit Plan refresh icon — see [_replanPlan].
+  bool _replanActionInFlight = false;
+  bool _replanningPlan = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -144,35 +135,26 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// confirm before overwriting.
   bool get _hasTripPlan => _dayOutfits.any((d) => d.optionId != null);
 
-  /// True once a not-yet-rendered day's assignment leans on a garment no
-  /// longer in the suitcase — generating that day's outfit would try on
-  /// something that isn't packed anymore. Deliberately narrower than "any
-  /// missing item anywhere": a day that's *already* been rendered keeps its
-  /// image regardless (that garment really was packed when it was made —
-  /// see [_hasMissingSuitcaseItems]/[_fixMissingSuitcaseItems] for that
-  /// day-local, non-destructive warning), so unpacking something after the
-  /// fact doesn't nuke the whole trip plan.
-  bool get _isTripPlanStale => _dayOutfits.any(
-    (d) =>
-        d.optionId != null &&
-        d.outfitId == null &&
-        d.garments.any((g) => g.id != null && !_suitcaseIds.contains(g.id)),
-  );
+  /// Whether the *selected* day specifically has an option assigned — unlike
+  /// [_hasTripPlan] (any day at all), this gates [_buildOutfitSection] and
+  /// [_buildWardrobeSection]'s "let Uwearis plan" CTA for the day currently
+  /// on screen (e.g. a leg added after the plan was first generated still
+  /// has no option of its own even though other days do).
+  bool get _selectedDayHasOption => _currentDayOutfit?.optionId != null;
 
-  /// The one primary CTA this page should show right now — see
-  /// [TripGenerationAction]. Order matters: a missing/stale plan always
-  /// wins over anything day-specific, since day-level actions only make
-  /// sense once the plan under them is trustworthy.
-  TripGenerationAction get _primaryAction {
-    if (!_hasTripPlan || _isTripPlanStale) {
-      return TripGenerationAction.generateTripPlan;
-    }
-    final day = _currentDayOutfit;
-    if (day?.optionId == null) return TripGenerationAction.none;
-    if (day!.outfitId != null) return TripGenerationAction.none;
-    return day.everHadOutfit
-        ? TripGenerationAction.regenerateOutfit
-        : TripGenerationAction.generateOutfit;
+  /// Whether today's assigned garments cover Top, Bottom, and Shoes — a
+  /// one-piece counts for both Top and Bottom, mirroring AddOutfitPage's own
+  /// core-completeness rule. Gates the "Generate Outfit" button's *enabled*
+  /// state ([_buildOutfitSection]): the button itself always shows once a
+  /// day has an option and no render yet, but generating from an incomplete
+  /// core selection isn't offered.
+  bool get _hasCoreOutfit {
+    bool hasCategory(GarmentCategory c) =>
+        _todayGarments.any((g) => g.category == c);
+    final hasOnePiece = hasCategory(GarmentCategory.onePiece);
+    return (hasOnePiece || hasCategory(GarmentCategory.top)) &&
+        (hasOnePiece || hasCategory(GarmentCategory.bottom)) &&
+        hasCategory(GarmentCategory.shoes);
   }
 
   @override
@@ -206,6 +188,17 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     super.dispose();
   }
 
+  /// Set right before pushing the day outfit editor ([_openDayOutfitEditor])
+  /// and consumed by [didPopNext] the instant that page pops back — skips
+  /// *that one* [_refreshTripPlan] call. [_openDayOutfitEditor] immediately
+  /// follows the pop with its own authoritative update
+  /// ([TripService.updateOptionItems]); [didPopNext]'s `GET /plan` used to
+  /// race that PATCH and, whenever the GET won, overwrite the just-applied
+  /// edit with the pre-edit plan — the edit then only "stuck" after leaving
+  /// and re-entering the page. [_fetchSuitcaseGarments] isn't affected: it
+  /// only touches [_suitcaseIds], which this flow doesn't change.
+  bool _skipPlanRefreshOnNextPop = false;
+
   /// Fires when a page pushed on top of this one is popped and this page is
   /// visible again — including [TripSuitcasePage], which may have changed
   /// the suitcase and/or (re)generated the trip's plan (that action lives
@@ -215,15 +208,17 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// directly, but right after trip creation (`TripsPage.handleCreateTrip`)
   /// it's pushed on top of this page from outside — before this hook
   /// existed, popping back from that first just-created visit left
-  /// [_suitcaseIds] at its stale (empty, pre-pack) preload snapshot. A
-  /// refetch after any other pushed page (e.g. the day outfit editor) is a
-  /// harmless extra GET, not a correctness issue — it isn't worth threading
-  /// a "did this specific push touch the suitcase/plan" flag through every
-  /// call site to avoid it.
+  /// [_suitcaseIds] at its stale (empty, pre-pack) preload snapshot. See
+  /// [_skipPlanRefreshOnNextPop] for the one case where this refetch is
+  /// skipped instead.
   @override
   void didPopNext() {
     _fetchSuitcaseGarments();
-    _refreshTripPlan();
+    if (_skipPlanRefreshOnNextPop) {
+      _skipPlanRefreshOnNextPop = false;
+    } else {
+      _refreshTripPlan();
+    }
   }
 
   bool get _hasStaleGarmentImages => _dayOutfits.any(
@@ -315,9 +310,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   /// Re-fetches this trip's plan so a generation/update triggered from
   /// [TripSuitcasePage] (which owns that action now) shows up here the
-  /// moment the user comes back — called unconditionally from [didPopNext],
-  /// same "harmless extra GET" tradeoff as [_fetchSuitcaseGarments]. Doesn't
-  /// use the [preload] static helper: that swallows errors into an empty
+  /// moment the user comes back — called from [didPopNext] (see
+  /// [_skipPlanRefreshOnNextPop] for the one case that skips it). Doesn't use
+  /// the [preload] static helper: that swallows errors into an empty
   /// [TripPlan] (fine for the initial load before this page even exists),
   /// which would wipe out a perfectly good [_dayOutfits] here on a
   /// transient failure — a plain try/catch that changes nothing on error
@@ -339,6 +334,61 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
+  /// This page's own Replan entry point — the Daily Outfit Plan title's
+  /// refresh icon (see [_buildDayPlanCard]). Unlike TripSuitcasePage's
+  /// bottom button (which only shows once the suitcase has changed since it
+  /// was opened), this doesn't require the suitcase to have changed at all:
+  /// it's for "I didn't touch the suitcase, I just don't like what Uwearis
+  /// picked." Shares the same confirm dialog ([showReplanConfirmDialog]) and
+  /// the same day-selection policy ([daysToReplan] /
+  /// [TripDayOutfit.needsReplan]) as TripSuitcasePage, straight off this
+  /// page's own already-loaded [_dayOutfits]/[_suitcaseIds] — no extra
+  /// `getTripPlan` round trip needed, unlike Suitcase (which doesn't hold
+  /// day-level data at all). On success this refreshes in place
+  /// ([_refreshTripPlan]) rather than popping anywhere.
+  Future<void> _replanPlan() async {
+    if (_replanActionInFlight || _dayOutfitActionInFlight) return;
+    setState(() => _replanActionInFlight = true);
+    try {
+      final confirmed = await showReplanConfirmDialog(context);
+      if (!confirmed || !mounted) return;
+
+      final days = daysToReplan(_dayOutfits, _suitcaseIds);
+      if (days == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_l10n.noOutfitsNeedReplan)));
+        }
+        return;
+      }
+
+      setState(() => _replanningPlan = true);
+      try {
+        await TripService().generateTripPlan(
+          int.parse(_trip.id),
+          days: days,
+          alternativesPerDay: 0,
+        );
+        if (!mounted) return;
+        await _refreshTripPlan();
+      } on AuthExpiredException {
+        if (mounted) await AuthExpiredHandler.handle(context);
+      } catch (e) {
+        debugLog('Failed to replan trip: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_l10n.failedToGeneratePlan)));
+        }
+      } finally {
+        if (mounted) setState(() => _replanningPlan = false);
+      }
+    } finally {
+      if (mounted) setState(() => _replanActionInFlight = false);
+    }
+  }
+
   // The refetch on return is [didPopNext], not here — see its doc comment.
   Future<void> _openSuitcase() async {
     await Navigator.push(
@@ -351,12 +401,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   /// Synchronously renders the *currently selected* day's option into a
-  /// try-on image — this is [TripGenerationAction.generateOutfit]/
-  /// [TripGenerationAction.regenerateOutfit]'s handler, reachable from the
-  /// bottom CTA, the outfit card's "Generate"/"Regenerate Outfit" empty-state
-  /// button, or the corner regenerate badge on the image itself once one
-  /// already exists (see [_buildOutfitSection]'s `onRegenerate`). Branches
-  /// on whether this option already has an `outfit_id` —
+  /// try-on image — reachable from the outfit card's "Generate"/"Regenerate
+  /// Outfit" empty-state button (see [_buildOutfitSection]'s `onGenerate`)
+  /// or the corner regenerate badge on the image itself once one already
+  /// exists (`onRegenerate`). Branches on whether this option already has an
+  /// `outfit_id` —
   /// the backend now splits first render ([TripService.generateOptionOutfit],
   /// 409s if already rendered) from re-rendering an existing one
   /// ([TripService.regenerateOptionOutfit], 400s if never rendered) into two
@@ -465,6 +514,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
     final validIds = Set.of(_suitcaseIds);
 
+    // See _skipPlanRefreshOnNextPop's doc comment.
+    _skipPlanRefreshOnNextPop = true;
     final result = await Navigator.push<Set<int>>(
       context,
       MaterialPageRoute(
@@ -544,9 +595,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      // Blank — the name shows as its own block below the app bar instead
-      // (see build's ListView), so it isn't in the toolbar at all.
-      title: '',
+      title: _l10n.tripDetailsTitle,
       actions: [
         AppPopupMenu<_TripMenuAction>(
           onSelected: _handleTripMenuAction,
@@ -619,22 +668,49 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _editTripLegs() async {
-    final legsNotifier = ValueNotifier<List<TripLeg>>(List.of(_trip.legs));
+    final initialLegs = List<TripLeg>.unmodifiable(_trip.legs);
+    final legsNotifier = ValueNotifier<List<TripLeg>>(List.of(initialLegs));
     final result = await showDialog<List<TripLeg>>(
       context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.editDestinations,
-        content: TripLegsEditor(legsNotifier: legsNotifier),
-        primaryLabel: _l10n.save,
-        onPrimary: () => Navigator.pop(ctx, legsNotifier.value),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx),
+      builder: (ctx) => ValueListenableBuilder<List<TripLeg>>(
+        valueListenable: legsNotifier,
+        builder: (context, legs, _) {
+          final hasChange = legs.isNotEmpty && !_legsEqual(initialLegs, legs);
+          return AppDialog(
+            title: _l10n.editDestinations,
+            content: TripLegsEditor(legsNotifier: legsNotifier),
+            primaryLabel: _l10n.save,
+            onPrimary: hasChange ? () => Navigator.pop(ctx, legs) : null,
+            secondaryLabel: _l10n.cancel,
+            onSecondary: () => Navigator.pop(ctx),
+          );
+        },
       ),
     );
     legsNotifier.dispose();
 
     if (result == null || result.isEmpty) return;
     await _updateTrip(_trip.copyWith(legs: result));
+  }
+
+  /// Field-by-field comparison — [TripLeg]/[LocationResult] don't override
+  /// `==`, and identity comparison would miss a "removed then re-added the
+  /// same destination" round trip that nets out to no real change.
+  bool _legsEqual(List<TripLeg> a, List<TripLeg> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      final la = a[i].location;
+      final lb = b[i].location;
+      if (la.name != lb.name ||
+          la.latitude != lb.latitude ||
+          la.longitude != lb.longitude ||
+          la.timezone != lb.timezone ||
+          a[i].dateRange.start != b[i].dateRange.start ||
+          a[i].dateRange.end != b[i].dateRange.end) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> _editTripActivities() async {
@@ -831,6 +907,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.loadingSuitcaseEllipsis),
           ),
+        if (_replanningPlan)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
+          ),
       ],
     );
   }
@@ -855,17 +935,47 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SectionTitle(_l10n.dailyOutfitPlan),
+            child: SizedBox(
+              width: double.infinity,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.centerLeft,
+                children: [
+                  SectionTitle(_l10n.dailyOutfitPlan),
+                  // Only once there's an actual plan to replan — "I didn't
+                  // touch the suitcase, I just want a different result" (see
+                  // [_replanPlan]'s doc for how this differs from Suitcase's
+                  // own "Replan Trip Outfits" button).
+                  if (_hasTripPlan)
+                    Positioned(
+                      right: 0,
+                      child: _buildHeaderIconButton(
+                        icon: Icons.autorenew,
+                        tooltip: _l10n.replanTripOutfits,
+                        onTap:
+                            (_replanActionInFlight || _dayOutfitActionInFlight)
+                            ? null
+                            : _replanPlan,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: AppDimens.cardHeaderGap),
           _buildTripDaySelector(),
           const SizedBox(height: AppDimens.cardHeaderGap),
           _paddedSection(_buildOutfitDateHeader()),
           const SizedBox(height: AppDimens.cardHeaderGap),
-          // The outfit image / "Generate Outfit" card only appears once a
-          // trip plan exists — before that the wardrobe section's own
-          // "let Uwearis plan" CTA (and the bottom bar) carry the next step.
-          if (_hasTripPlan) ...[
+          // The outfit image / "Generate Outfit" card only appears once the
+          // *selected* day itself has something to show — an option, or
+          // garments already assigned to it. Before that (a trip plan exists
+          // for other days, but not this one — e.g. a newly added leg),
+          // showing this card's own "no outfit planned yet" text on top of
+          // the wardrobe section's "let Uwearis plan" CTA right below it
+          // would just repeat the same message twice; the CTA alone carries
+          // the next step.
+          if (_selectedDayHasOption || _todayGarments.isNotEmpty) ...[
             _paddedSection(_buildOutfitSection()),
             const SizedBox(height: AppDimens.cardHeaderGap),
           ],
@@ -942,6 +1052,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// A small square icon action flush to the right edge of
   /// [_buildOutfitDateHeader]'s title row — currently just Change Garments
   /// (regenerating moved onto the image itself, see [_buildOutfitSection]).
+  /// Right-aligned (not centered) within its touch target so the icon's own
+  /// edge lines up with the Suitcase card's arrow above, rather than sitting
+  /// visibly further in due to the touch target's padding.
   Widget _buildHeaderIconButton({
     required IconData icon,
     required String tooltip,
@@ -957,7 +1070,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           onTap: onTap,
           child: SizedBox.square(
             dimension: AppDimens.minTouchTarget,
-            child: Center(child: Icon(icon, size: 20, color: AppColors.icon)),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Icon(icon, size: 20, color: AppColors.icon),
+            ),
           ),
         ),
       ),
@@ -965,19 +1081,18 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   /// The selected day's outfit image. When the day has an option but no
-  /// rendered image yet, its empty state becomes a "Generate Outfit" /
-  /// "Regenerate Outfit" button (driven by [_primaryAction]) — the page's
-  /// bottom CTA is reserved for "Generate Trip Plan" only. Once an image
-  /// exists, a corner badge on the image itself (styled like
-  /// OutfitDetailsPage's own on-image icons — see [TodayOutfitIdea]) covers
-  /// regenerating; Change Garments stays in [_buildOutfitDateHeader] above.
+  /// rendered image yet, its empty state is always a "Generate Outfit" /
+  /// "Regenerate Outfit" button — disabled (with an explanation above it)
+  /// while [_hasCoreOutfit] is false, since rendering an incomplete core
+  /// selection isn't offered. Once an image exists, a corner badge on the
+  /// image itself (styled like OutfitDetailsPage's own on-image icons — see
+  /// [TodayOutfitIdea]) covers regenerating; Change Garments stays in
+  /// [_buildOutfitDateHeader] above.
   Widget _buildOutfitSection() {
     final outfit = _currentDayOutfit;
     final outfitId = outfit?.outfitId;
-    final action = _primaryAction;
-    final showGenerateButton =
-        action == TripGenerationAction.generateOutfit ||
-        action == TripGenerationAction.regenerateOutfit;
+    final needsRender = outfit?.optionId != null && outfitId == null;
+    final hasCoreOutfit = _hasCoreOutfit;
     return TodayOutfitIdea(
       imageUrl: outfit?.resultImageUrl,
       hasAssignment: outfit?.optionId != null,
@@ -988,10 +1103,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       onRegenerate: (outfitId == null || _dayOutfitActionInFlight)
           ? null
           : _generateSelectedDayOutfit,
-      onGenerate: (showGenerateButton && !_dayOutfitActionInFlight)
+      onGenerate: (needsRender && !_dayOutfitActionInFlight)
           ? _generateSelectedDayOutfit
           : null,
-      generateLabel: action == TripGenerationAction.regenerateOutfit
+      generateEnabled: hasCoreOutfit,
+      generateDisabledMessage: hasCoreOutfit
+          ? null
+          : _l10n.dayOutfitMissingCoreItemsMessage,
+      generateLabel: (outfit?.everHadOutfit ?? false)
           ? _l10n.regenerateOutfit
           : _l10n.generateOutfit,
     );
@@ -1113,14 +1232,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   String _cityOnly(String locationName) => locationName.split(',').first.trim();
 
   Widget _buildWardrobeSection() {
-    final hasOption = _currentDayOutfit?.optionId != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_todayGarments.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: hasOption
+            child: _selectedDayHasOption
                 ? EmptyStatePlaceholder(
                     message: _l10n.noItemsPlanned,
                     height: 100,
@@ -1154,7 +1272,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             ),
           ),
           if (_hasMissingSuitcaseItems) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildMissingItemsWarning(),
@@ -1177,28 +1295,23 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderSubtle),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            _l10n.missingFromSuitcaseCount(missingCount),
-            style: AppTextStyle.regular13.copyWith(
-              color: AppColors.textSecondary,
+          Expanded(
+            child: Text(
+              _l10n.missingFromSuitcaseCount(missingCount),
+              style: AppTextStyle.regular13.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: _fixMissingSuitcaseItems,
-              child: Text(
-                _l10n.addToSuitcase,
-                style: AppTextStyle.semibold14.copyWith(
-                  color: AppColors.accent,
-                ),
-              ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _fixMissingSuitcaseItems,
+            child: Text(
+              _l10n.addToSuitcase,
+              style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
             ),
           ),
         ],
@@ -1269,8 +1382,8 @@ class _TripDestinationsHeader extends StatelessWidget {
 }
 
 /// The "let Uwearis plan your outfits" call-to-action card shown while a trip
-/// still has no plan — opens [TripSuitcasePage], which owns plan generation
-/// now (see [_TripDetailsPageState._openSuitcase]).
+/// still has no plan — the [AccentPillButton] opens [TripSuitcasePage], which
+/// owns plan generation now (see [_TripDetailsPageState._openSuitcase]).
 class _GeneratePlanCta extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -1279,35 +1392,32 @@ class _GeneratePlanCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return GestureDetector(
-      // opaque so the whole CTA card is tappable, not just its icon/text —
-      // the Container has a `decoration`, not a `color`, so it doesn't
-      // absorb hits on its own.
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-          border: Border.all(color: AppColors.borderSubtle),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.auto_awesome, color: AppColors.accent, size: 28),
-            const SizedBox(height: 8),
-            SectionTitle(l10n.letUwearisPlanOutfits),
-            const SizedBox(height: 4),
-            Text(
-              l10n.letUwearisPlanOutfitsHint,
-              textAlign: TextAlign.center,
-              style: AppTextStyle.regular13.copyWith(
-                color: AppColors.textSecondary,
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Column(
+        children: [
+          SectionTitle(l10n.letUwearisPlanOutfits),
+          const SizedBox(height: 4),
+          Text(
+            l10n.letUwearisPlanOutfitsHint,
+            textAlign: TextAlign.center,
+            style: AppTextStyle.regular13.copyWith(
+              color: AppColors.textSecondary,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          AccentPillButton(
+            label: l10n.planTripOutfits,
+            icon: Icons.auto_awesome,
+            onPressed: onTap,
+          ),
+        ],
       ),
     );
   }

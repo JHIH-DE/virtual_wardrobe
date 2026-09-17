@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -74,11 +76,13 @@ void main() {
       }
       if (request.method == 'POST' && request.url.path.endsWith('/generate')) {
         onGenerate?.call();
-        return jsonResponse(envelope({'days': [], 'suitcase_items': suitcaseItems}));
+        return jsonResponse(
+          envelope({'days': [], 'suitcase_items': suitcaseItems}),
+        );
       }
       if (request.method == 'DELETE' &&
           request.url.path.contains('/suitcase-items/')) {
-        return jsonResponse(envelope(null));
+        return jsonResponse(envelope({'affected_options': []}));
       }
       return jsonResponse(envelope({}), status: 404);
     });
@@ -135,59 +139,59 @@ void main() {
     }, () => suitcaseClient(overallAdvice: 'Layer up for the evenings.'));
   });
 
-  testWidgets(
-    'an empty suitcase shows the "start packing" state, and its Add '
-    'Garments button opens the garment picker',
-    (tester) async {
-      await http.runWithClient(() async {
-        useTallSurface(tester);
-        await pumpApp(tester, TripSuitcasePage(trip: _trip()));
-        await tester.pump();
-        await tester.pump();
+  testWidgets('an empty suitcase shows the "start packing" state, and its Add '
+      'Garments button opens the garment picker', (tester) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+      await tester.pump();
+      await tester.pump();
 
-        expect(find.text('Start packing your trip'), findsOneWidget);
-        expect(
-          find.text(
-            'Choose clothes from your closet to build your trip outfits.',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Add Garments'), findsOneWidget);
+      expect(find.text('Start packing your trip'), findsOneWidget);
+      expect(
+        find.text(
+          'Choose clothes from your closet to build your trip outfits.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Add Garments'), findsOneWidget);
 
-        await tester.tap(find.byType(AccentPillButton));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byType(AccentPillButton));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Select Garments'), findsOneWidget);
-      }, () => suitcaseClient(suitcaseItems: const []));
-    },
-  );
+      expect(find.text('Select Garments'), findsOneWidget);
+    }, () => suitcaseClient(suitcaseItems: const []));
+  });
 
   testWidgets(
     'the empty-suitcase content stays put on screen whether the advice '
     'card above it is collapsed or expanded',
     (tester) async {
-      await http.runWithClient(() async {
-        useTallSurface(tester);
-        await pumpApp(tester, TripSuitcasePage(trip: _trip()));
-        await tester.pump();
-        await tester.pump();
+      await http.runWithClient(
+        () async {
+          useTallSurface(tester);
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+          await tester.pump();
+          await tester.pump();
 
-        final collapsedCenter = tester.getCenter(
-          find.text('Start packing your trip'),
-        );
+          final collapsedCenter = tester.getCenter(
+            find.text('Start packing your trip'),
+          );
 
-        await tester.tap(find.byType(ExpandableInsightBody));
-        await tester.pumpAndSettle();
+          await tester.tap(find.byType(ExpandableInsightBody));
+          await tester.pumpAndSettle();
 
-        final expandedCenter = tester.getCenter(
-          find.text('Start packing your trip'),
-        );
+          final expandedCenter = tester.getCenter(
+            find.text('Start packing your trip'),
+          );
 
-        expect(expandedCenter, collapsedCenter);
-      }, () => suitcaseClient(
-        suitcaseItems: const [],
-        overallAdvice: 'Layer up for the evenings.',
-      ));
+          expect(expandedCenter, collapsedCenter);
+        },
+        () => suitcaseClient(
+          suitcaseItems: const [],
+          overallAdvice: 'Layer up for the evenings.',
+        ),
+      );
     },
   );
 
@@ -271,69 +275,70 @@ void main() {
             find.byKey(const ValueKey('bottomActionButton-hidden')),
             findsOneWidget,
           );
-          expect(find.text('Update Trip Outfits'), findsNothing);
+          expect(find.text('Replan Trip Outfits'), findsNothing);
         }, () => suitcaseClient(suitcaseItems: viableSuitcase));
       },
     );
 
-    testWidgets(
-      'shows "Update Trip Outfits" once the packed set changes since '
-      'opening (e.g. removing a packed item)',
-      (tester) async {
-        await http.runWithClient(() async {
-          useTallSurface(tester);
-          await pumpApp(
-            tester,
-            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
-          );
-          await tester.pump();
-          await tester.pump();
-          expect(find.text('Update Trip Outfits'), findsNothing);
+    testWidgets('shows "Replan Trip Outfits" once the packed set changes '
+        'since opening (e.g. removing a packed item)', (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Replan Trip Outfits'), findsNothing);
 
-          await removeLastPackedCard(tester);
+        await removeLastPackedCard(tester);
 
-          expect(find.text('Update Trip Outfits'), findsOneWidget);
-        }, () => suitcaseClient(suitcaseItems: viableSuitcaseWithExtra));
-      },
-    );
+        expect(find.text('Replan Trip Outfits'), findsOneWidget);
+      }, () => suitcaseClient(suitcaseItems: viableSuitcaseWithExtra));
+    });
 
     testWidgets(
       'tapping "Plan Trip Outfits" generates the plan and pops back',
       (tester) async {
         var generateCalls = 0;
-        await http.runWithClient(() async {
-          useTallSurface(tester);
-          await pumpApp(
-            tester,
-            Scaffold(body: const Text('Behind the Suitcase page')),
-          );
-          final navigator = tester.state<NavigatorState>(
-            find.byType(Navigator),
-          );
-          navigator.push(
-            MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: _trip())),
-          );
-          await tester.pumpAndSettle();
+        await http.runWithClient(
+          () async {
+            useTallSurface(tester);
+            await pumpApp(
+              tester,
+              Scaffold(body: const Text('Behind the Suitcase page')),
+            );
+            final navigator = tester.state<NavigatorState>(
+              find.byType(Navigator),
+            );
+            navigator.push(
+              MaterialPageRoute(
+                builder: (_) => TripSuitcasePage(trip: _trip()),
+              ),
+            );
+            await tester.pumpAndSettle();
 
-          await tester.tap(find.text('Plan Trip Outfits'));
-          await tester.pumpAndSettle();
+            await tester.tap(find.text('Plan Trip Outfits'));
+            await tester.pumpAndSettle();
 
-          expect(generateCalls, 1);
-          expect(find.byType(TripSuitcasePage), findsNothing);
-          expect(find.text('Behind the Suitcase page'), findsOneWidget);
-        }, () => suitcaseClient(
-          suitcaseItems: viableSuitcase,
-          onGenerate: () => generateCalls++,
-        ));
+            expect(generateCalls, 1);
+            expect(find.byType(TripSuitcasePage), findsNothing);
+            expect(find.text('Behind the Suitcase page'), findsOneWidget);
+          },
+          () => suitcaseClient(
+            suitcaseItems: viableSuitcase,
+            onGenerate: () => generateCalls++,
+          ),
+        );
       },
     );
 
-    testWidgets(
-      'tapping "Update Trip Outfits" confirms before overwriting an '
-      'existing plan',
-      (tester) async {
-        var generateCalls = 0;
-        await http.runWithClient(() async {
+    testWidgets('tapping "Replan Trip Outfits" confirms before touching an '
+        'existing plan', (tester) async {
+      var generateCalls = 0;
+      await http.runWithClient(
+        () async {
           useTallSurface(tester);
           await pumpApp(
             tester,
@@ -343,20 +348,378 @@ void main() {
           await tester.pump();
           await removeLastPackedCard(tester); // put it in a "changed" state
 
-          await tester.tap(find.text('Update Trip Outfits'));
+          await tester.tap(find.text('Replan Trip Outfits'));
           await tester.pumpAndSettle();
 
-          expect(find.text('Regenerate outfit plan?'), findsOneWidget);
-          // Cancel -> no generate call, still on the Suitcase page.
+          expect(find.text('Replan trip outfits?'), findsOneWidget);
+          // Cancel -> no getTripPlan/generate call, still on the Suitcase page.
           await tester.tap(find.text('Cancel'));
           await tester.pumpAndSettle();
 
           expect(generateCalls, 0);
           expect(find.byType(TripSuitcasePage), findsOneWidget);
-        }, () => suitcaseClient(
+        },
+        () => suitcaseClient(
           suitcaseItems: viableSuitcaseWithExtra,
           onGenerate: () => generateCalls++,
-        ));
+        ),
+      );
+    });
+  });
+
+  // Replan reads the full day-by-day plan (GET /plan) after a confirmed
+  // replan + committed suitcase, and only sends the backend the dates that
+  // actually need regenerating (TripDayOutfit.needsReplan) — everything
+  // else (manually edited, or already rendered and still fully packed)
+  // stays out of the `days` filter untouched.
+  group('replanning an existing trip plan', () {
+    final baseSuitcase = [
+      {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+      {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
+      {'garment_id': 3, 'name': 'Sneakers', 'category': 'shoes'},
+      {'garment_id': 4, 'name': 'Cap', 'category': 'accessory'},
+    ];
+
+    Map<String, dynamic> optionDay({
+      required String date,
+      required int optionId,
+      required int garmentId,
+      required bool isManuallyEdited,
+      int? outfitId,
+    }) => {
+      'date': date,
+      'options': [
+        {
+          'id': optionId,
+          'order_index': 0,
+          'outfit_id': outfitId,
+          'is_manually_edited': isManuallyEdited,
+          'items': [
+            {
+              'garment_id': garmentId,
+              'name': 'Item $garmentId',
+              'category': 'top',
+            },
+          ],
+        },
+      ],
+    };
+
+    testWidgets(
+      'only regenerates days whose garment is no longer packed or that '
+      "were never touched — a manually-edited day and an already-rendered "
+      'day are both left out of the `days` filter',
+      (tester) async {
+        http.Request? capturedGenerate;
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/packing-analysis')) {
+            return jsonResponse(
+              envelope({'overall_advice': null, 'categories': []}),
+            );
+          }
+          if (request.method == 'GET' &&
+              request.url.path.endsWith('/trip_plans/7')) {
+            // Cap (garment 4) is still packed on open — removed below via
+            // the "×" badge, which both puts the suitcase in a "changed"
+            // state and orphans day 2026-11-03's garment.
+            return jsonResponse(envelope({'suitcase_items': baseSuitcase}));
+          }
+          if (request.method == 'GET' && request.url.path.endsWith('/plan')) {
+            return jsonResponse(
+              envelope({
+                'days': [
+                  // Manually edited, garment (1) still packed -> keep.
+                  optionDay(
+                    date: '2026-11-01',
+                    optionId: 201,
+                    garmentId: 1,
+                    isManuallyEdited: true,
+                  ),
+                  // Already rendered, garment (2) still packed -> keep.
+                  optionDay(
+                    date: '2026-11-02',
+                    optionId: 202,
+                    garmentId: 2,
+                    isManuallyEdited: false,
+                    outfitId: 99,
+                  ),
+                  // Manually edited AND rendered, but garment (4) was just
+                  // removed from the suitcase -> missing-garment rule wins,
+                  // regenerate anyway.
+                  optionDay(
+                    date: '2026-11-03',
+                    optionId: 203,
+                    garmentId: 4,
+                    isManuallyEdited: true,
+                    outfitId: 55,
+                  ),
+                  // AI-produced, never touched, never rendered, garment (3)
+                  // still packed -> nothing to lose, regenerate.
+                  optionDay(
+                    date: '2026-11-04',
+                    optionId: 204,
+                    garmentId: 3,
+                    isManuallyEdited: false,
+                  ),
+                ],
+                'suitcase_items': baseSuitcase.sublist(0, 3),
+              }),
+            );
+          }
+          if (request.method == 'POST' &&
+              request.url.path.endsWith('/generate')) {
+            capturedGenerate = request;
+            return jsonResponse(
+              envelope({'days': [], 'suitcase_items': baseSuitcase}),
+            );
+          }
+          if (request.method == 'DELETE' &&
+              request.url.path.contains('/suitcase-items/')) {
+            return jsonResponse(envelope({'affected_options': []}));
+          }
+          return jsonResponse(envelope({}), status: 404);
+        });
+
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          // Removing Cap puts the suitcase in a "changed since open" state
+          // and is exactly what orphans day 2026-11-03's garment.
+          await tester.tap(find.byIcon(Icons.close).last);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('REMOVE'));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Replan Trip Outfits'));
+          await tester.pumpAndSettle();
+          expect(find.text('Replan trip outfits?'), findsOneWidget);
+          await tester.tap(find.text('Replan'));
+          await tester.pumpAndSettle();
+
+          expect(capturedGenerate, isNotNull);
+          final body =
+              jsonDecode(capturedGenerate!.body) as Map<String, dynamic>;
+          expect(body['days'], [
+            {'date': '2026-11-03'},
+            {'date': '2026-11-04'},
+          ]);
+        }, () => client);
+      },
+    );
+
+    testWidgets(
+      'nothing needs replanning: generate is never called, and a plain '
+      'message says so',
+      (tester) async {
+        var generateCalls = 0;
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/packing-analysis')) {
+            return jsonResponse(
+              envelope({'overall_advice': null, 'categories': []}),
+            );
+          }
+          if (request.method == 'GET' &&
+              request.url.path.endsWith('/trip_plans/7')) {
+            // Cap (garment 4) is still packed on open — removed below to
+            // put the suitcase in a "changed" state, but neither day
+            // references it, so nothing actually gets orphaned by that.
+            return jsonResponse(envelope({'suitcase_items': baseSuitcase}));
+          }
+          if (request.method == 'GET' && request.url.path.endsWith('/plan')) {
+            return jsonResponse(
+              envelope({
+                'days': [
+                  // Already rendered, garment still packed -> keep.
+                  optionDay(
+                    date: '2026-11-01',
+                    optionId: 201,
+                    garmentId: 1,
+                    isManuallyEdited: false,
+                    outfitId: 99,
+                  ),
+                  // Manually edited, garment still packed -> keep.
+                  optionDay(
+                    date: '2026-11-02',
+                    optionId: 202,
+                    garmentId: 2,
+                    isManuallyEdited: true,
+                  ),
+                ],
+                'suitcase_items': baseSuitcase.sublist(0, 3),
+              }),
+            );
+          }
+          if (request.method == 'POST' &&
+              request.url.path.endsWith('/generate')) {
+            generateCalls++;
+            return jsonResponse(
+              envelope({'days': [], 'suitcase_items': baseSuitcase}),
+            );
+          }
+          if (request.method == 'DELETE' &&
+              request.url.path.contains('/suitcase-items/')) {
+            return jsonResponse(envelope({'affected_options': []}));
+          }
+          return jsonResponse(envelope({}), status: 404);
+        });
+
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          await tester.tap(find.byIcon(Icons.close).last);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('REMOVE'));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Replan Trip Outfits'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Replan'));
+          await tester.pumpAndSettle();
+
+          expect(generateCalls, 0);
+          expect(
+            find.text(
+              "Nothing to replan — every outfit still fits your suitcase.",
+            ),
+            findsOneWidget,
+          );
+          expect(find.byType(TripSuitcasePage), findsOneWidget);
+        }, () => client);
+      },
+    );
+  });
+
+  // `DELETE /suitcase-items/{garment_id}` now returns `affected_options` —
+  // days/options still referencing the removed garment at the moment of
+  // removal. Purely informational: removal itself always succeeds and
+  // nothing about the day's outfit/render/option is touched automatically
+  // (no Fix/Replan offered), so the only observable difference is whether a
+  // SnackBar mentions it.
+  group('removing a suitcase item affecting existing day outfits', () {
+    testWidgets(
+      'affected_options empty: removal behaves exactly as before, no extra '
+      'notice',
+      (tester) async {
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/trip_plans/7')) {
+            return jsonResponse(
+              envelope({
+                'suitcase_items': [
+                  {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+                  {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
+                ],
+              }),
+            );
+          }
+          if (request.url.path.endsWith('/packing-analysis')) {
+            return jsonResponse(
+              envelope({'overall_advice': null, 'categories': []}),
+            );
+          }
+          if (request.method == 'DELETE' &&
+              request.url.path.endsWith('/suitcase-items/2')) {
+            return jsonResponse(envelope({'affected_options': []}));
+          }
+          return jsonResponse(envelope({}), status: 404);
+        });
+
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+          await tester.pump();
+          await tester.pump();
+
+          expect(find.text('Jeans'), findsOneWidget);
+          await tester.tap(find.byIcon(Icons.close).last);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('REMOVE'));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Jeans'), findsNothing);
+          expect(find.byType(SnackBar), findsNothing);
+        }, () => client);
+      },
+    );
+
+    testWidgets(
+      'affected_options non-empty: garment is still removed, and a plain '
+      'SnackBar explains it is still used elsewhere in the trip',
+      (tester) async {
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/trip_plans/7')) {
+            return jsonResponse(
+              envelope({
+                'suitcase_items': [
+                  {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+                  {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
+                ],
+              }),
+            );
+          }
+          if (request.url.path.endsWith('/packing-analysis')) {
+            return jsonResponse(
+              envelope({'overall_advice': null, 'categories': []}),
+            );
+          }
+          if (request.method == 'DELETE' &&
+              request.url.path.endsWith('/suitcase-items/2')) {
+            return jsonResponse(
+              envelope({
+                'affected_options': [
+                  {
+                    'day_id': 311,
+                    'date': '2026-10-01',
+                    'option_id': 162,
+                    'is_manually_edited': true,
+                    'has_rendered_outfit': true,
+                  },
+                  {
+                    'day_id': 312,
+                    'date': '2026-10-02',
+                    'option_id': 163,
+                    'is_manually_edited': false,
+                    'has_rendered_outfit': false,
+                  },
+                ],
+              }),
+            );
+          }
+          return jsonResponse(envelope({}), status: 404);
+        });
+
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+          await tester.pump();
+          await tester.pump();
+
+          await tester.tap(find.byIcon(Icons.close).last);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('REMOVE'));
+          await tester.pumpAndSettle();
+
+          // Garment removal itself is unaffected — no Fix/Replan, no undo.
+          expect(find.text('Jeans'), findsNothing);
+          expect(
+            find.text(
+              'Removed from Suitcase. This item is still used in 2 of '
+              "this trip's planned outfits.",
+            ),
+            findsOneWidget,
+          );
+        }, () => client);
       },
     );
   });

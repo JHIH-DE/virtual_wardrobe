@@ -48,6 +48,7 @@ void main() {
                 'order_index': 0,
                 'outfit_id': 42,
                 'result_image_url': 'https://img/5.png',
+                'is_manually_edited': true,
                 'items': [
                   {'garment_id': 98, 'name': 'A', 'category': 'Bottom'},
                 ],
@@ -64,9 +65,24 @@ void main() {
       expect(day.optionId, 5);
       expect(day.outfitId, 42);
       expect(day.everHadOutfit, isTrue);
+      expect(day.isManuallyEdited, isTrue);
       expect(day.resultImageUrl, 'https://img/5.png');
       expect(day.temperatureMaxC, 20);
       expect(day.garments.single.category, GarmentCategory.bottom);
+    });
+
+    test('is_manually_edited defaults to false when absent', () {
+      final plan = TripPlan.fromPlanResponse({
+        'days': [
+          {
+            'date': '2026-10-01',
+            'options': [
+              {'id': 5, 'order_index': 0, 'items': []},
+            ],
+          },
+        ],
+      });
+      expect(plan.days.single.isManuallyEdited, isFalse);
     });
 
     test('a day with no options is empty but keeps its date/temperature', () {
@@ -108,37 +124,44 @@ void main() {
       ),
     ];
 
-    test('resolves garment_ids against the closet, prefers option_type primary',
-        () {
-      final plan = TripPlan.fromRenderedResponse({
-        'suitcase_items': [
-          {'garment_id': 1},
-        ],
-        'days': [
-          {
-            'date': '2026-10-01',
-            'outfits': [
-              {'option_type': 'alternative', 'garment_ids': [2]},
-              {
-                'option_type': 'primary',
-                'trip_option_id': 3,
-                'outfit_id': 88,
-                'result_image_url': 'https://img/88.png',
-                'garment_ids': [1, 999],
-              },
-            ],
-          },
-        ],
-      }, closet);
+    test(
+      'resolves garment_ids against the closet, prefers option_type primary',
+      () {
+        final plan = TripPlan.fromRenderedResponse({
+          'suitcase_items': [
+            {'garment_id': 1},
+          ],
+          'days': [
+            {
+              'date': '2026-10-01',
+              'outfits': [
+                {
+                  'option_type': 'alternative',
+                  'garment_ids': [2],
+                },
+                {
+                  'option_type': 'primary',
+                  'trip_option_id': 3,
+                  'outfit_id': 88,
+                  'result_image_url': 'https://img/88.png',
+                  'is_manually_edited': true,
+                  'garment_ids': [1, 999],
+                },
+              ],
+            },
+          ],
+        }, closet);
 
-      final day = plan.days.single;
-      expect(day.optionId, 3);
-      expect(day.outfitId, 88);
-      expect(day.everHadOutfit, isTrue);
-      // 999 isn't in the closet, so it drops out.
-      expect(day.garments.map((g) => g.id), [1]);
-      expect(plan.suitcaseIds, {1});
-    });
+        final day = plan.days.single;
+        expect(day.optionId, 3);
+        expect(day.outfitId, 88);
+        expect(day.everHadOutfit, isTrue);
+        expect(day.isManuallyEdited, isTrue);
+        // 999 isn't in the closet, so it drops out.
+        expect(day.garments.map((g) => g.id), [1]);
+        expect(plan.suitcaseIds, {1});
+      },
+    );
 
     test('a day with no outfits is empty', () {
       final plan = TripPlan.fromRenderedResponse({
@@ -148,6 +171,68 @@ void main() {
       }, closet);
       expect(plan.days.single.optionId, isNull);
       expect(plan.days.single.everHadOutfit, isFalse);
+    });
+  });
+
+  // "Replan Trip Outfits"'s per-day decision — see TripDayOutfit.needsReplan
+  // and TripSuitcasePage._generatePlan.
+  group('TripDayOutfit.needsReplan', () {
+    Garment garment(int id) => Garment(
+      id: id,
+      garmentId: id,
+      name: 'Item $id',
+      category: GarmentCategory.top,
+      subCategory: '',
+      uploadUrl: '',
+      objectName: '',
+    );
+
+    test('manually edited, garment still packed -> keep', () {
+      final day = TripDayOutfit(garments: [garment(1)], isManuallyEdited: true);
+      expect(day.needsReplan({1, 2}), isFalse);
+    });
+
+    test('already rendered, not manually edited, garment still packed -> '
+        'keep', () {
+      final day = TripDayOutfit(garments: [garment(1)], outfitId: 42);
+      expect(day.needsReplan({1, 2}), isFalse);
+    });
+
+    test('AI-generated, never touched, never rendered -> regenerate', () {
+      final day = TripDayOutfit(garments: [garment(1)]);
+      expect(day.needsReplan({1, 2}), isTrue);
+    });
+
+    test('a garment no longer in the suitcase forces regenerate even when '
+        'manually edited and already rendered', () {
+      final day = TripDayOutfit(
+        garments: [garment(1)],
+        isManuallyEdited: true,
+        outfitId: 42,
+      );
+      // 1 is no longer in the suitcase.
+      expect(day.needsReplan({2, 3}), isTrue);
+    });
+
+    test('no option at all (empty day) -> regenerate, nothing to lose', () {
+      const day = TripDayOutfit();
+      expect(day.needsReplan({1, 2}), isTrue);
+    });
+
+    test('a garment with a null id never counts as orphaned', () {
+      final day = TripDayOutfit(
+        garments: [
+          const Garment(
+            name: 'No id',
+            category: GarmentCategory.top,
+            subCategory: '',
+            uploadUrl: '',
+            objectName: '',
+          ),
+        ],
+        isManuallyEdited: true,
+      );
+      expect(day.needsReplan({}), isFalse);
     });
   });
 }

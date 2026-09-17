@@ -36,7 +36,12 @@ class LabeledDivider extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
               ],
-              SectionTitle(label, style: AppTextStyle.bold16),
+              SectionTitle(
+                label,
+                style: AppTextStyle.semibold16.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),

@@ -71,7 +71,7 @@
   "addVersionButton": "New Version",
   "addVersionTitle": "Add Version",
   "versionLimitReachedTitle": "Version limit reached",
-  "versionLimitReachedBody": "You can keep up to 5 versions for each outfit. Delete a version to create a new one.",
+  "versionLimitReachedBody": "You can keep up to 10 versions for each outfit. Delete a version to create a new one.",
   "addToMyOutfits": "Add to My Outfits",
   "selectOutfitGroupTitle": "Add to Outfit",
   "newOutfitGroup": "New Outfit",
@@ -121,6 +121,9 @@
       }
     }
   },
+
+  "outfitDetailsTitle": "Outfit",
+  "tripDetailsTitle": "Trip",
 
   "garmentsCount": "Garments ({count})",
   "@garmentsCount": {
@@ -240,9 +243,11 @@
   "letUwearisPlanOutfits": "Let Uwearis Plan Your Trip",
   "letUwearisPlanOutfitsHint": "Uwearis will build an outfit for every day using what's in your suitcase.",
   "planTripOutfits": "Plan Trip Outfits",
-  "updateTripOutfits": "Update Trip Outfits",
-  "regeneratePlanTitle": "Regenerate outfit plan?",
-  "regeneratePlanBody": "This will replace every day's current outfit, including any you've adjusted by hand.",
+  "replanTripOutfits": "Replan Trip Outfits",
+  "replanTripOutfitsTitle": "Replan trip outfits?",
+  "replanTripOutfitsBody": "Outfits you've adjusted by hand or that already have a photo will be kept. Outfits using an item that's no longer in your suitcase will be replanned.",
+  "replan": "Replan",
+  "noOutfitsNeedReplan": "Nothing to replan — every outfit still fits your suitcase.",
   "failedToGeneratePlan": "Failed to generate outfit plan",
   "generatingPlanEllipsis": "Planning your outfits…",
   "failedToUpdateDayOutfit": "Failed to update outfit",
@@ -255,12 +260,17 @@
   "@missingFromSuitcaseCount": {
     "placeholders": { "count": { "type": "int" } }
   },
+  "suitcaseItemStillUsedCount": "Removed from Suitcase. This item is still used in {count} of this trip's planned outfits.",
+  "@suitcaseItemStillUsedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "addToSuitcase": "Add to Suitcase",
   "loading": "Loading…",
   "tryAgain": "Try Again",
   "generatingOutfitEllipsis": "Generating your outfit…",
   "noOutfitImageYet": "No outfit image yet",
   "generateOutfit": "Generate Outfit",
+  "dayOutfitMissingCoreItemsMessage": "This outfit is missing a Top, Bottom, or Shoes item — complete it to generate an outfit.",
 
   "selectDates": "Select Dates",
   "startDatePlaceholder": "Start Date",
@@ -420,6 +430,9 @@
   "outfitsEmptyHint": "Combine pieces from your closet into a complete look.",
   "itemNotUsedInOutfitsYet": "This item has not been used in any outfits yet.",
   "failedToUpdateFavorite": "Failed to update favorite",
+  "garmentRemovedFromClosetNotice": "This item has been removed from your closet.",
+  "addBackToCloset": "Add Back to Closet",
+  "failedToRestoreGarment": "Failed to restore this item",
 
   "creatingTripEllipsis": "Creating Trip…",
   "deletingTripEllipsis": "Deleting Trip…",
@@ -502,9 +515,9 @@
   "occasionTravel": "Travel",
   "occasionParty": "Party",
   "settingsSaved": "Settings saved",
-  "comfortAdjustment": "Comfort Adjustment",
+  "comfortAdjustment": "Perceived Temperature Offset",
   "weeklySchedule": "Weekly Schedule",
-  "perceivedTempOffset": "Perceived temperature offset",
+  "perceivedTempOffset": "Offset",
   "lifestyleDescription": "Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.",
   "weeklyScheduleIntro": "Set what a typical week looks like for you.",
   "comfortAdjustmentIntro": "Fine-tune how warm or cool you usually feel.",

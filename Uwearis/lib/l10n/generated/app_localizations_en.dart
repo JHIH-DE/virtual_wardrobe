@@ -173,7 +173,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get versionLimitReachedBody =>
-      'You can keep up to 5 versions for each outfit. Delete a version to create a new one.';
+      'You can keep up to 10 versions for each outfit. Delete a version to create a new one.';
 
   @override
   String get addToMyOutfits => 'Add to My Outfits';
@@ -264,6 +264,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String outfitTitle(String style) {
     return '$style Outfit';
   }
+
+  @override
+  String get outfitDetailsTitle => 'Outfit';
+
+  @override
+  String get tripDetailsTitle => 'Trip';
 
   @override
   String garmentsCount(int count) {
@@ -548,14 +554,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planTripOutfits => 'Plan Trip Outfits';
 
   @override
-  String get updateTripOutfits => 'Update Trip Outfits';
+  String get replanTripOutfits => 'Replan Trip Outfits';
 
   @override
-  String get regeneratePlanTitle => 'Regenerate outfit plan?';
+  String get replanTripOutfitsTitle => 'Replan trip outfits?';
 
   @override
-  String get regeneratePlanBody =>
-      'This will replace every day\'s current outfit, including any you\'ve adjusted by hand.';
+  String get replanTripOutfitsBody =>
+      'Outfits you\'ve adjusted by hand or that already have a photo will be kept. Outfits using an item that\'s no longer in your suitcase will be replanned.';
+
+  @override
+  String get replan => 'Replan';
+
+  @override
+  String get noOutfitsNeedReplan =>
+      'Nothing to replan — every outfit still fits your suitcase.';
 
   @override
   String get failedToGeneratePlan => 'Failed to generate outfit plan';
@@ -588,6 +601,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String suitcaseItemStillUsedCount(int count) {
+    return 'Removed from Suitcase. This item is still used in $count of this trip\'s planned outfits.';
+  }
+
+  @override
   String get addToSuitcase => 'Add to Suitcase';
 
   @override
@@ -604,6 +622,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generateOutfit => 'Generate Outfit';
+
+  @override
+  String get dayOutfitMissingCoreItemsMessage =>
+      'This outfit is missing a Top, Bottom, or Shoes item — complete it to generate an outfit.';
 
   @override
   String get selectDates => 'Select Dates';
@@ -1002,6 +1024,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToUpdateFavorite => 'Failed to update favorite';
 
   @override
+  String get garmentRemovedFromClosetNotice =>
+      'This item has been removed from your closet.';
+
+  @override
+  String get addBackToCloset => 'Add Back to Closet';
+
+  @override
+  String get failedToRestoreGarment => 'Failed to restore this item';
+
+  @override
   String get creatingTripEllipsis => 'Creating Trip…';
 
   @override
@@ -1183,13 +1215,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSaved => 'Settings saved';
 
   @override
-  String get comfortAdjustment => 'Comfort Adjustment';
+  String get comfortAdjustment => 'Perceived Temperature Offset';
 
   @override
   String get weeklySchedule => 'Weekly Schedule';
 
   @override
-  String get perceivedTempOffset => 'Perceived temperature offset';
+  String get perceivedTempOffset => 'Offset';
 
   @override
   String get lifestyleDescription =>

@@ -139,66 +139,72 @@ void main() {
       });
     });
 
-    test('picks the cover outfit as the representative, not the lowest id', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(
-          _envelope({
-            'items': [
-              {
-                'group_id': 40,
-                'name': 'Weekend Look',
-                'cover_outfit_id': 66,
-                'outfits': [
-                  _outfitJson(outfitId: 65, groupId: 40),
-                  _outfitJson(outfitId: 66, groupId: 40),
-                ],
-              },
-            ],
-          }),
-        ),
-      );
+    test(
+      'picks the cover outfit as the representative, not the lowest id',
+      () async {
+        final client = MockClient(
+          (request) async => _jsonResponse(
+            _envelope({
+              'items': [
+                {
+                  'group_id': 40,
+                  'name': 'Weekend Look',
+                  'cover_outfit_id': 66,
+                  'outfits': [
+                    _outfitJson(outfitId: 65, groupId: 40),
+                    _outfitJson(outfitId: 66, groupId: 40),
+                  ],
+                },
+              ],
+            }),
+          ),
+        );
 
-      final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
-        () => client,
-      );
+        final outfits = await http.runWithClient(
+          () => OutfitService().getAllOutfits(),
+          () => client,
+        );
 
-      expect(outfits, hasLength(1));
-      final rep = outfits.single;
-      expect(rep.id, 66, reason: 'should show the cover, not the lowest id');
-      expect(rep.versionCount, 2);
-      expect(rep.coverOutfitId, 66);
-      expect(rep.groupName, 'Weekend Look');
-    });
+        expect(outfits, hasLength(1));
+        final rep = outfits.single;
+        expect(rep.id, 66, reason: 'should show the cover, not the lowest id');
+        expect(rep.versionCount, 2);
+        expect(rep.coverOutfitId, 66);
+        expect(rep.groupName, 'Weekend Look');
+      },
+    );
 
-    test('falls back to the lowest outfit_id when cover_outfit_id is null', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(
-          _envelope({
-            'items': [
-              {
-                'group_id': 40,
-                'name': null,
-                'cover_outfit_id': null,
-                'outfits': [
-                  _outfitJson(outfitId: 70, groupId: 40),
-                  _outfitJson(outfitId: 65, groupId: 40),
-                ],
-              },
-            ],
-          }),
-        ),
-      );
+    test(
+      'falls back to the lowest outfit_id when cover_outfit_id is null',
+      () async {
+        final client = MockClient(
+          (request) async => _jsonResponse(
+            _envelope({
+              'items': [
+                {
+                  'group_id': 40,
+                  'name': null,
+                  'cover_outfit_id': null,
+                  'outfits': [
+                    _outfitJson(outfitId: 70, groupId: 40),
+                    _outfitJson(outfitId: 65, groupId: 40),
+                  ],
+                },
+              ],
+            }),
+          ),
+        );
 
-      final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
-        () => client,
-      );
+        final outfits = await http.runWithClient(
+          () => OutfitService().getAllOutfits(),
+          () => client,
+        );
 
-      expect(outfits.single.id, 65);
-      expect(outfits.single.coverOutfitId, isNull);
-      expect(outfits.single.groupName, isNull);
-    });
+        expect(outfits.single.id, 65);
+        expect(outfits.single.coverOutfitId, isNull);
+        expect(outfits.single.groupName, isNull);
+      },
+    );
 
     test('skips a group whose outfits list is empty', () async {
       final client = MockClient(
@@ -220,79 +226,359 @@ void main() {
   });
 
   group('getGroupOutfits', () {
-    test('attaches the group cover_outfit_id and name to every outfit', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(
+    test(
+      'attaches the group cover_outfit_id and name to every outfit',
+      () async {
+        final client = MockClient(
+          (request) async => _jsonResponse(
+            _envelope({
+              'group_id': 12,
+              'type': 'general',
+              'name': 'My Weekend Fit',
+              'cover_outfit_id': 101,
+              'outfits': [
+                _outfitJson(outfitId: 101, groupId: 12),
+                _outfitJson(outfitId: 102, groupId: 12),
+              ],
+            }),
+          ),
+        );
+
+        final outfits = await http.runWithClient(
+          () => OutfitService().getGroupOutfits(12),
+          () => client,
+        );
+
+        expect(outfits, hasLength(2));
+        for (final o in outfits) {
+          expect(o.coverOutfitId, 101);
+          expect(o.groupName, 'My Weekend Fit');
+        }
+      },
+    );
+
+    // OutfitService is a singleton with a per-group cache (mirrors
+    // GarmentService) — every test below uses its own group id so cache
+    // entries from earlier tests can't leak into these assertions.
+    test('a second call is served from the cache, not the network', () async {
+      var requests = 0;
+      final client = MockClient((request) async {
+        requests++;
+        return _jsonResponse(
           _envelope({
-            'group_id': 12,
-            'type': 'general',
-            'name': 'My Weekend Fit',
-            'cover_outfit_id': 101,
-            'outfits': [
-              _outfitJson(outfitId: 101, groupId: 12),
-              _outfitJson(outfitId: 102, groupId: 12),
-            ],
+            'group_id': 501,
+            'name': null,
+            'cover_outfit_id': null,
+            'outfits': [_outfitJson(outfitId: 1, groupId: 501)],
           }),
-        ),
-      );
+        );
+      });
 
-      final outfits = await http.runWithClient(
-        () => OutfitService().getGroupOutfits(12),
-        () => client,
-      );
+      await http.runWithClient(() async {
+        final first = await OutfitService().getGroupOutfits(501);
+        final second = await OutfitService().getGroupOutfits(501);
+        expect(second, same(first));
+      }, () => client);
 
-      expect(outfits, hasLength(2));
-      for (final o in outfits) {
-        expect(o.coverOutfitId, 101);
-        expect(o.groupName, 'My Weekend Fit');
-      }
+      expect(requests, 1);
+    });
+
+    test(
+      "re-fetches once a cached outfit's image URL is a stale signed URL",
+      () async {
+        var requests = 0;
+        final client = MockClient((request) async {
+          requests++;
+          final imageUrl = requests == 1
+              // Expired: signed over 20 years ago, 60s validity.
+              ? 'https://img.example/1.jpg'
+                    '?X-Goog-Date=20200101T000000Z&X-Goog-Expires=60'
+              : 'https://img.example/1-fresh.jpg';
+          return _jsonResponse(
+            _envelope({
+              'group_id': 502,
+              'name': null,
+              'cover_outfit_id': null,
+              'outfits': [
+                {
+                  ..._outfitJson(outfitId: 1, groupId: 502),
+                  'result_image_url': imageUrl,
+                },
+              ],
+            }),
+          );
+        });
+
+        await http.runWithClient(() async {
+          await OutfitService().getGroupOutfits(502);
+          final second = await OutfitService().getGroupOutfits(502);
+          expect(second.single.imageUrl, 'https://img.example/1-fresh.jpg');
+        }, () => client);
+
+        expect(requests, 2);
+      },
+    );
+  });
+
+  group('mutations invalidate the cached getGroupOutfits result', () {
+    test('generateOutfit (adding a version to an existing group)', () async {
+      var groupOutfitsRequests = 0;
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/generate')) {
+          return _jsonResponse(
+            _envelope(_outfitJson(outfitId: 2, groupId: 601)),
+          );
+        }
+        groupOutfitsRequests++;
+        return _jsonResponse(
+          _envelope({
+            'group_id': 601,
+            'name': null,
+            'cover_outfit_id': null,
+            'outfits': [_outfitJson(outfitId: 1, groupId: 601)],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await OutfitService().getGroupOutfits(601);
+        await OutfitService().generateOutfit(garmentIds: [1], groupId: 601);
+        await OutfitService().getGroupOutfits(601);
+      }, () => client);
+
+      expect(groupOutfitsRequests, 2);
+    });
+
+    test('regenerateOutfit', () async {
+      var groupOutfitsRequests = 0;
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/regenerate')) {
+          return _jsonResponse(
+            _envelope(_outfitJson(outfitId: 1, groupId: 602)),
+          );
+        }
+        groupOutfitsRequests++;
+        return _jsonResponse(
+          _envelope({
+            'group_id': 602,
+            'name': null,
+            'cover_outfit_id': null,
+            'outfits': [_outfitJson(outfitId: 1, groupId: 602)],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await OutfitService().getGroupOutfits(602);
+        await OutfitService().regenerateOutfit(602, 1);
+        await OutfitService().getGroupOutfits(602);
+      }, () => client);
+
+      expect(groupOutfitsRequests, 2);
+    });
+
+    test('copyOutfit (into the target group)', () async {
+      var groupOutfitsRequests = 0;
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/copy')) {
+          return _jsonResponse(
+            _envelope(_outfitJson(outfitId: 9, groupId: 603)),
+          );
+        }
+        groupOutfitsRequests++;
+        return _jsonResponse(
+          _envelope({
+            'group_id': 603,
+            'name': null,
+            'cover_outfit_id': null,
+            'outfits': [_outfitJson(outfitId: 1, groupId: 603)],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await OutfitService().getGroupOutfits(603);
+        await OutfitService().copyOutfit(groupId: 603, sourceOutfitId: 999);
+        await OutfitService().getGroupOutfits(603);
+      }, () => client);
+
+      expect(groupOutfitsRequests, 2);
+    });
+
+    test('updateOutfit', () async {
+      var groupOutfitsRequests = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'PATCH') {
+          return _jsonResponse(
+            _envelope(_outfitJson(outfitId: 1, groupId: 604)),
+          );
+        }
+        groupOutfitsRequests++;
+        return _jsonResponse(
+          _envelope({
+            'group_id': 604,
+            'name': null,
+            'cover_outfit_id': null,
+            'outfits': [_outfitJson(outfitId: 1, groupId: 604)],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await OutfitService().getGroupOutfits(604);
+        await OutfitService().updateOutfit(604, 1, isFavorite: true);
+        await OutfitService().getGroupOutfits(604);
+      }, () => client);
+
+      expect(groupOutfitsRequests, 2);
+    });
+
+    test('deleteOutfit', () async {
+      var groupOutfitsRequests = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'DELETE') {
+          return _jsonResponse(_envelope(null));
+        }
+        groupOutfitsRequests++;
+        return _jsonResponse(
+          _envelope({
+            'group_id': 605,
+            'name': null,
+            'cover_outfit_id': null,
+            'outfits': [_outfitJson(outfitId: 1, groupId: 605)],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await OutfitService().getGroupOutfits(605);
+        await OutfitService().deleteOutfit(605, 1);
+        await OutfitService().getGroupOutfits(605);
+      }, () => client);
+
+      expect(groupOutfitsRequests, 2);
+    });
+
+    test(
+      'updateGroup (name/cover_outfit_id are overlaid onto every outfit)',
+      () async {
+        var groupOutfitsRequests = 0;
+        final client = MockClient((request) async {
+          if (request.method == 'PATCH') {
+            return _jsonResponse(_envelope({}));
+          }
+          groupOutfitsRequests++;
+          return _jsonResponse(
+            _envelope({
+              'group_id': 606,
+              'name': null,
+              'cover_outfit_id': null,
+              'outfits': [_outfitJson(outfitId: 1, groupId: 606)],
+            }),
+          );
+        });
+
+        await http.runWithClient(() async {
+          await OutfitService().getGroupOutfits(606);
+          await OutfitService().updateGroup(606, name: 'Renamed');
+          await OutfitService().getGroupOutfits(606);
+        }, () => client);
+
+        expect(groupOutfitsRequests, 2);
+      },
+    );
+
+    test('deleteGroup', () async {
+      var groupOutfitsRequests = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'DELETE') {
+          return _jsonResponse(_envelope(null));
+        }
+        groupOutfitsRequests++;
+        return _jsonResponse(
+          _envelope({
+            'group_id': 607,
+            'name': null,
+            'cover_outfit_id': null,
+            'outfits': [_outfitJson(outfitId: 1, groupId: 607)],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await OutfitService().getGroupOutfits(607);
+        await OutfitService().deleteGroup(607);
+        // The group is gone server-side in reality; this test only cares
+        // that the cache entry was evicted, so re-hitting the (still-mocked)
+        // endpoint is enough proof.
+        await OutfitService().getGroupOutfits(607);
+      }, () => client);
+
+      expect(groupOutfitsRequests, 2);
     });
   });
 
   group('generateOutfit', () {
-    test('creates a group first when groupId is omitted, then generates into it', () async {
-      final requests = <http.Request>[];
-      final client = MockClient((request) async {
-        requests.add(request);
-        if (request.url.path.endsWith('/generate')) {
-          return _jsonResponse(_envelope(_outfitJson(outfitId: 5, groupId: 9)));
-        }
-        return _jsonResponse(
-          _envelope({'group_id': 9, 'type': 'general', 'name': null, 'cover_outfit_id': null}),
+    test(
+      'creates a group first when groupId is omitted, then generates into it',
+      () async {
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          if (request.url.path.endsWith('/generate')) {
+            return _jsonResponse(
+              _envelope(_outfitJson(outfitId: 5, groupId: 9)),
+            );
+          }
+          return _jsonResponse(
+            _envelope({
+              'group_id': 9,
+              'type': 'general',
+              'name': null,
+              'cover_outfit_id': null,
+            }),
+          );
+        });
+
+        final outfit = await http.runWithClient(
+          () => OutfitService().generateOutfit(garmentIds: [1, 2, 3]),
+          () => client,
         );
-      });
 
-      final outfit = await http.runWithClient(
-        () => OutfitService().generateOutfit(garmentIds: [1, 2, 3]),
-        () => client,
-      );
+        expect(outfit.id, 5);
+        expect(requests, hasLength(2), reason: 'createGroup then generate');
+        expect(requests[0].url.toString(), _base);
+        expect(requests[1].url.toString(), '$_base/9/generate');
+        final payload = jsonDecode(requests[1].body) as Map<String, dynamic>;
+        expect(payload['garment_ids'], [1, 2, 3]);
+        expect(payload['is_favorite'], false);
+        expect(payload.containsKey('background_id'), isFalse);
+      },
+    );
 
-      expect(outfit.id, 5);
-      expect(requests, hasLength(2), reason: 'createGroup then generate');
-      expect(requests[0].url.toString(), _base);
-      expect(requests[1].url.toString(), '$_base/9/generate');
-      final payload = jsonDecode(requests[1].body) as Map<String, dynamic>;
-      expect(payload['garment_ids'], [1, 2, 3]);
-      expect(payload['is_favorite'], false);
-      expect(payload.containsKey('background_id'), isFalse);
-    });
+    test(
+      'reuses an existing groupId and omits background_id when null',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(_envelope(_outfitJson()));
+        });
 
-    test('reuses an existing groupId and omits background_id when null', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope(_outfitJson()));
-      });
+        await http.runWithClient(
+          () => OutfitService().generateOutfit(
+            garmentIds: [1],
+            groupId: 7,
+            backgroundId: 3,
+          ),
+          () => client,
+        );
 
-      await http.runWithClient(
-        () => OutfitService().generateOutfit(garmentIds: [1], groupId: 7, backgroundId: 3),
-        () => client,
-      );
-
-      expect(captured.url.toString(), '$_base/7/generate');
-      final payload = jsonDecode(captured.body) as Map<String, dynamic>;
-      expect(payload['background_id'], 3);
-    });
+        expect(captured.url.toString(), '$_base/7/generate');
+        final payload = jsonDecode(captured.body) as Map<String, dynamic>;
+        expect(payload['background_id'], 3);
+      },
+    );
 
     // The render POST carries a .timeout(); a stalled request must surface a
     // TimeoutException instead of hanging the caller forever. (A MockClient
@@ -312,22 +598,25 @@ void main() {
   });
 
   group('regenerateOutfit', () {
-    test('POSTs to the regenerate endpoint, omitting background_id when null', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope(_outfitJson(outfitId: 5, groupId: 9)));
-      });
+    test(
+      'POSTs to the regenerate endpoint, omitting background_id when null',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(_envelope(_outfitJson(outfitId: 5, groupId: 9)));
+        });
 
-      final outfit = await http.runWithClient(
-        () => OutfitService().regenerateOutfit(9, 5),
-        () => client,
-      );
+        final outfit = await http.runWithClient(
+          () => OutfitService().regenerateOutfit(9, 5),
+          () => client,
+        );
 
-      expect(outfit.id, 5);
-      expect(captured.url.toString(), '$_base/9/5/regenerate');
-      expect(jsonDecode(captured.body), {});
-    });
+        expect(outfit.id, 5);
+        expect(captured.url.toString(), '$_base/9/5/regenerate');
+        expect(jsonDecode(captured.body), {});
+      },
+    );
   });
 
   group('copyOutfit', () {
@@ -425,22 +714,25 @@ void main() {
       expect(jsonDecode(captured.body), {'cover_outfit_id': 101});
     });
 
-    test('clearCoverOutfitId explicitly sends a null cover_outfit_id', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({}));
-      });
+    test(
+      'clearCoverOutfitId explicitly sends a null cover_outfit_id',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(_envelope({}));
+        });
 
-      await http.runWithClient(
-        () => OutfitService().updateGroup(12, clearCoverOutfitId: true),
-        () => client,
-      );
+        await http.runWithClient(
+          () => OutfitService().updateGroup(12, clearCoverOutfitId: true),
+          () => client,
+        );
 
-      final payload = jsonDecode(captured.body) as Map<String, dynamic>;
-      expect(payload.containsKey('cover_outfit_id'), isTrue);
-      expect(payload['cover_outfit_id'], isNull);
-    });
+        final payload = jsonDecode(captured.body) as Map<String, dynamic>;
+        expect(payload.containsKey('cover_outfit_id'), isTrue);
+        expect(payload['cover_outfit_id'], isNull);
+      },
+    );
 
     test('sends an empty body when nothing is passed', () async {
       late http.Request captured;
@@ -522,10 +814,7 @@ void main() {
   group('error handling', () {
     test('a non-2xx response throws, surfacing the status code', () async {
       final client = MockClient(
-        (request) async => _jsonResponse(
-          _envelope(null),
-          status: 404,
-        ),
+        (request) async => _jsonResponse(_envelope(null), status: 404),
       );
 
       await expectLater(
@@ -558,10 +847,7 @@ void main() {
       });
 
       await expectLater(
-        http.runWithClient(
-          () => OutfitService().getOutfit(1, 1),
-          () => client,
-        ),
+        http.runWithClient(() => OutfitService().getOutfit(1, 1), () => client),
         throwsA(isA<AuthExpiredException>()),
       );
       expect(

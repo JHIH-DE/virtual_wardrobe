@@ -12,6 +12,7 @@ import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/trip.dart';
+import '../../data/trip_plan.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -19,12 +20,12 @@ import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/removable_card.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expandable_insight_body.dart';
-import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
+import '../widgets/trip/replan_confirm_dialog.dart';
 import 'trip_garment_selection_page.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
@@ -38,11 +39,11 @@ class TripSuitcasePage extends ConsumerStatefulWidget {
   final bool justCreated;
 
   /// Whether this trip already has a generated plan — flips the bottom
-  /// button's label between "Plan Trip Outfits" (first time) and "Update
-  /// Trip Outfits" (a plan already exists, this would replace it). Passed
-  /// in from [TripDetailsPage], which already knows this; defaults to false
-  /// since the other entry point (straight after trip creation) never has
-  /// one yet.
+  /// button's label between "Plan Trip Outfits" (first time) and "Replan
+  /// Trip Outfits" (a plan already exists — see [_generatePlan]'s doc for
+  /// what that does differently). Passed in from [TripDetailsPage], which
+  /// already knows this; defaults to false since the other entry point
+  /// (straight after trip creation) never has one yet.
   final bool initialHasTripPlan;
 
   const TripSuitcasePage({
@@ -105,8 +106,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   /// The packed suitcase differs from what it was when this page was
   /// opened — via the "+" picker ([TripGarmentSelectionPage]), a direct
-  /// per-card removal, or both. Gates "Update Trip Outfits": once a plan
-  /// already exists, regenerating it is only useful once something has
+  /// per-card removal, or both. Gates "Replan Trip Outfits": once a plan
+  /// already exists, replanning it is only useful once something has
   /// actually changed since — see [_showsBottomActionButton].
   bool get _garmentsChangedSinceOpen =>
       !setEquals(_packedIds, _initialPackedIds);
@@ -137,8 +138,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   bool get _isSuitcaseViable => _hasViableSuitcase(_packedGarments);
 
   /// A first plan ("Plan Trip Outfits") always makes sense once the
-  /// suitcase is viable — but once a plan already exists, regenerating it
-  /// ("Update Trip Outfits") is only worth surfacing once something has
+  /// suitcase is viable — but once a plan already exists, replanning it
+  /// ("Replan Trip Outfits") is only worth surfacing once something has
   /// actually changed since this page opened.
   bool get _showsBottomActionButton =>
       !_generatingPlan &&
@@ -195,7 +196,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   Future<void> _handleAddGarment(List<Garment> allGarments) async {
     await ref.read(garmentsProvider.notifier).refreshIfNeeded();
     if (!mounted) return;
-    final garments = ref.read(garmentsProvider).value ?? allGarments;
+    final garments = (ref.read(garmentsProvider).value ?? allGarments).active;
 
     final result = await Navigator.push<Set<int>>(
       context,
@@ -268,9 +269,26 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     if (mounted) Navigator.pop(context);
   }
 
-  /// Asks Uwearis to build an outfit for every day of the trip from whatever's
-  /// currently packed. Confirms first if a plan already exists, since this
-  /// replaces every day's outfit — including any the user adjusted by hand.
+  /// First time ("Plan Trip Outfits"): builds an outfit for every day from
+  /// whatever's currently packed — no existing plan to protect, so this
+  /// just generates everything.
+  ///
+  /// Once a plan already exists ("Replan Trip Outfits" — this page's entry
+  /// point for "I changed the suitcase, replan around it"; TripDetailsPage's
+  /// Daily Outfit Plan refresh icon is the other, for "I didn't touch the
+  /// suitcase but want a different result"), confirms first via the shared
+  /// [showReplanConfirmDialog], then commits any staged suitcase changes,
+  /// then reads the full day-by-day plan ([TripService.getTripPlan]) to
+  /// decide which days actually need regenerating via the shared
+  /// [daysToReplan] (both entry points build the request the same way —
+  /// see its own doc for the underlying [TripDayOutfit.needsReplan] policy).
+  /// A day the user manually adjusted or already rendered is left untouched
+  /// unless it now references a garment no longer packed. If nothing needs
+  /// it, `generate` isn't called at all.
+  ///
+  /// The confirm dialog runs *before* [_commitChanges] (not after) so a
+  /// Cancel here never leaves staged suitcase edits pushed to the server —
+  /// only a confirmed replan is allowed to have any side effect at all.
   /// On success, pops back to Trip Details so the result is right there —
   /// its own `didPopNext` refreshes the day plan regardless of how this page
   /// was reached, so nothing needs to be threaded back through the pop.
@@ -278,29 +296,37 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     if (_planActionInFlight) return;
     setState(() => _planActionInFlight = true);
     try {
+      if (_hasTripPlan) {
+        final confirmed = await showReplanConfirmDialog(context);
+        if (!confirmed || !mounted) return;
+      }
+
       // Generation reads the suitcase from the server, so any staged
-      // add-picker changes must land first.
+      // add-picker changes must land first — after the confirm above, so a
+      // cancelled replan never pushes a suitcase edit as a side effect.
       if (_isDirty && !await _commitChanges()) return;
       if (!mounted) return;
 
-      if (_hasTripPlan) {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AppDialog(
-            title: _l10n.regeneratePlanTitle,
-            body: _l10n.regeneratePlanBody,
-            primaryLabel: _l10n.regenerate,
-            onPrimary: () => Navigator.pop(ctx, true),
-            secondaryLabel: _l10n.cancel,
-            onSecondary: () => Navigator.pop(ctx, false),
-          ),
-        );
-        if (confirmed != true || !mounted) return;
-      }
-
       setState(() => _generatingPlan = true);
       try {
-        await TripService().generateTripPlan(_tripId, alternativesPerDay: 0);
+        List<Map<String, dynamic>>? days;
+        if (_hasTripPlan) {
+          final plan = await TripService().getTripPlan(_tripId);
+          days = daysToReplan(plan.days, _committedIds);
+          if (days == null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(_l10n.noOutfitsNeedReplan)),
+              );
+            }
+            return;
+          }
+        }
+        await TripService().generateTripPlan(
+          _tripId,
+          days: days,
+          alternativesPerDay: 0,
+        );
         if (!mounted) return;
         _hasTripPlan = true;
         Navigator.pop(context);
@@ -342,8 +368,20 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     });
 
     try {
-      await TripService().removeSuitcaseItem(_tripId, garmentId: id);
+      final affected = await TripService().removeSuitcaseItem(
+        _tripId,
+        garmentId: id,
+      );
       if (mounted) setState(() => _committedIds.remove(id));
+      // Purely informational — see TripAffectedOption's doc. No Fix/Replan
+      // offered yet; the removal above has already succeeded either way.
+      if (affected.isNotEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_l10n.suitcaseItemStillUsedCount(affected.length)),
+          ),
+        );
+      }
     } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _packedGarments = previousGarments);
@@ -385,14 +423,14 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
-  /// The whole-trip "Plan"/"Update Trip Outfits" action — see [_generatePlan].
+  /// The whole-trip "Plan"/"Replan Trip Outfits" action — see [_generatePlan].
   /// Always built (never null): every trip wants this eventually, it's just
   /// hidden ([_showsBottomActionButton], via BottomActionButton's own
   /// unavailable-state handling) while the suitcase can't build a complete
   /// outfit yet or another suitcase action is in flight.
   Widget _buildBottomBar() {
     return BottomActionButton(
-      label: _hasTripPlan ? _l10n.updateTripOutfits : _l10n.planTripOutfits,
+      label: _hasTripPlan ? _l10n.replanTripOutfits : _l10n.planTripOutfits,
       onPressed: _showsBottomActionButton ? _generatePlan : null,
       isLoading: _generatingPlan,
       leading: const Icon(Icons.auto_awesome_outlined),
@@ -404,7 +442,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     // Only needed for the "Add" picker's full closet — the packed list
     // itself now renders straight from _packedGarments (embedded fields
     // from the trip response), so it isn't gated on this loading/erroring.
-    final closetGarments = ref.watch(garmentsProvider).value ?? [];
+    // .active: a soft-deleted garment can't be packed into a new trip item.
+    final closetGarments = (ref.watch(garmentsProvider).value ?? []).active;
 
     return PopScope(
       canPop: !_isDirty && !_committing,

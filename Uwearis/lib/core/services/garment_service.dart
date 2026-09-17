@@ -97,11 +97,19 @@ class GarmentService with BaseService {
     return Garment.fromJson(data);
   }
 
-  /// Fetches the caller's whole closet. The backend paginates this endpoint
-  /// (`data: {items, total, page, size}` instead of a bare array), so this
-  /// walks every page at the largest allowed `size` and returns one flat
-  /// list — every existing caller (`garmentsProvider`, `trip_details_page`)
-  /// expects "the whole closet" as a `List<Garment>`, not a page at a time.
+  /// Fetches the caller's whole closet — including soft-deleted garments
+  /// (`include_deleted=true`), so a saved outfit that references one can
+  /// still resolve it from this same cache-warming list instead of every
+  /// such lookup needing its own network round trip (see
+  /// `OutfitDetailsPage._loadGarments`). Every "browse/pick a garment"
+  /// screen must filter the result through [ActiveGarmentsX.active] itself
+  /// — this method deliberately does not, since the one place that *wants*
+  /// deleted entries needs the raw list. The backend paginates this
+  /// endpoint (`data: {items, total, page, size}` instead of a bare array),
+  /// so this walks every page at the largest allowed `size` and returns one
+  /// flat list — every existing caller (`garmentsProvider`,
+  /// `trip_details_page`) expects "the whole closet" as a `List<Garment>`,
+  /// not a page at a time.
   Future<List<Garment>> getGarments() async {
     debugLog('--- getGarments ---');
     const pageSize = 100; // backend's documented max `size`
@@ -109,9 +117,13 @@ class GarmentService with BaseService {
     var page = 1;
 
     while (true) {
-      final uri = Uri.parse(
-        _baseUrl,
-      ).replace(queryParameters: {'page': '$page', 'size': '$pageSize'});
+      final uri = Uri.parse(_baseUrl).replace(
+        queryParameters: {
+          'page': '$page',
+          'size': '$pageSize',
+          'include_deleted': 'true',
+        },
+      );
       final res = await withAuth(
         (token) => http
             .get(uri, headers: authHeaders(token))
@@ -140,7 +152,17 @@ class GarmentService with BaseService {
     return garments;
   }
 
-  Future<Garment> getGarment(int garmentId) async {
+  /// [includeDeleted] must be true to resolve a garment id that's been
+  /// soft-deleted — otherwise this 404s exactly like a nonexistent one. A
+  /// cache hit short-circuits before this matters (whatever's cached,
+  /// deleted or not, already reflects reality), so pass it whenever the
+  /// caller can't guarantee the id is still active — e.g. an outfit's own
+  /// `garment_ids`, which can reference one after it's since been removed
+  /// from the closet.
+  Future<Garment> getGarment(
+    int garmentId, {
+    bool includeDeleted = false,
+  }) async {
     final cached = _cache[garmentId];
     if (cached != null) {
       final url = cached.imageUrl;
@@ -149,7 +171,9 @@ class GarmentService with BaseService {
     }
 
     debugLog('--- getGarment: $garmentId  ---');
-    final uri = Uri.parse('$_baseUrl/$garmentId');
+    final uri = Uri.parse('$_baseUrl/$garmentId').replace(
+      queryParameters: includeDeleted ? {'include_deleted': 'true'} : null,
+    );
     final res = await withAuth(
       (token) => http
           .get(uri, headers: authHeaders(token))
@@ -221,6 +245,31 @@ class GarmentService with BaseService {
     if (cached != null) {
       _cache[garmentId] = cached.copyWith(isFavorite: isFavorite);
     }
+  }
+
+  /// Un-deletes a soft-deleted garment (`PATCH {is_deleted: false}`) — the
+  /// only way to reverse [deleteGarment]'s soft-delete path. Returns the
+  /// refreshed [Garment] so a caller showing it (e.g. a "restore" action on
+  /// an outfit's deleted-garment card) can swap straight to the live card.
+  Future<Garment> restoreGarment(int garmentId) async {
+    debugLog('--- restoreGarment: $garmentId ---');
+    final uri = Uri.parse('$_baseUrl/$garmentId');
+    final res = await withAuth(
+      (token) => http
+          .patch(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'is_deleted': false}),
+          )
+          .timeout(const Duration(seconds: 15)),
+    );
+    final envelope = decodeMap(res, op: 'restoreGarment');
+    final data = envelope['data'] as Map<String, dynamic>?;
+    if (data == null) throw Exception('restoreGarment: response missing data');
+
+    final restored = Garment.fromJson(data);
+    _cache[garmentId] = restored;
+    return restored;
   }
 
   Future<AnalyzeGarmentResult> analyzeGarment(String localPath) async {

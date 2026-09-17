@@ -485,7 +485,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             child: _OutfitPotentialCard(
               versatility: _versatility,
               subCategory: _subCategory.text.trim(),
-              allGarments: ref.watch(garmentsProvider).value ?? const [],
+              // .active: don't recommend pairing with a deleted garment.
+              allGarments:
+                  (ref.watch(garmentsProvider).value ?? const []).active,
               onRowTap: _showCompatibleGarments,
               onAnalyze: _scoreVersatility,
               isAnalyzing: _isScoringVersatility,
@@ -507,7 +509,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   void _showCompatibleGarments(VersatilityCategory row) {
     final category = row.category;
-    final all = ref.read(garmentsProvider).value ?? const [];
+    final all = (ref.read(garmentsProvider).value ?? const []).active;
     final garments = _resolveCompatibleGarments(row, all, limit: 9);
 
     showDialog<void>(

@@ -64,55 +64,64 @@ void main() {
   setUp(setUpFakeAuth);
 
   group('initUpload / completeUpload', () {
-    test('initUpload POSTs the content_type and returns upload details', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(
-          _envelope({'upload_url': 'https://up.example.com', 'object_name': 'g/1.jpg'}),
+    test(
+      'initUpload POSTs the content_type and returns upload details',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({
+              'upload_url': 'https://up.example.com',
+              'object_name': 'g/1.jpg',
+            }),
+          );
+        });
+
+        final result = await http.runWithClient(
+          () => GarmentService().initUpload(),
+          () => client,
         );
-      });
 
-      final result = await http.runWithClient(
-        () => GarmentService().initUpload(),
-        () => client,
-      );
+        expect(captured.url.toString(), '$_base/init-upload');
+        expect(jsonDecode(captured.body), {'content_type': 'image/jpeg'});
+        expect(result.uploadUrl, 'https://up.example.com');
+      },
+    );
 
-      expect(captured.url.toString(), '$_base/init-upload');
-      expect(jsonDecode(captured.body), {'content_type': 'image/jpeg'});
-      expect(result.uploadUrl, 'https://up.example.com');
-    });
+    test(
+      'completeUpload sends the garment fields and date-only purchase_date',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(_envelope(_garmentJson(101)));
+        });
 
-    test('completeUpload sends the garment fields and date-only purchase_date', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope(_garmentJson(101)));
-      });
+        final garment = Garment(
+          name: 'Navy Blazer',
+          category: GarmentCategory.outer,
+          subCategory: 'Blazer',
+          uploadUrl: '',
+          objectName: 'g/101.jpg',
+          purchaseDate: DateTime(2025, 3, 14, 9, 30),
+        );
 
-      final garment = Garment(
-        name: 'Navy Blazer',
-        category: GarmentCategory.outer,
-        subCategory: 'Blazer',
-        uploadUrl: '',
-        objectName: 'g/101.jpg',
-        purchaseDate: DateTime(2025, 3, 14, 9, 30),
-      );
+        final result = await http.runWithClient(
+          () => GarmentService().completeUpload(garment, {'note': 'x'}),
+          () => client,
+        );
 
-      final result = await http.runWithClient(
-        () => GarmentService().completeUpload(garment, {'note': 'x'}),
-        () => client,
-      );
-
-      expect(result.id, 101);
-      expect(captured.url.toString(), '$_base/complete');
-      final payload = jsonDecode(captured.body) as Map<String, dynamic>;
-      expect(payload['name'], 'Navy Blazer');
-      expect(payload['category'], 'Outer');
-      expect(payload['object_name'], 'g/101.jpg');
-      expect(payload['purchase_date'], '2025-03-14');
-      expect(payload['metadata'], {'note': 'x'});
-    });
+        expect(result.id, 101);
+        expect(captured.url.toString(), '$_base/complete');
+        final payload = jsonDecode(captured.body) as Map<String, dynamic>;
+        expect(payload['name'], 'Navy Blazer');
+        expect(payload['category'], 'Outer');
+        expect(payload['object_name'], 'g/101.jpg');
+        expect(payload['purchase_date'], '2025-03-14');
+        expect(payload['metadata'], {'note': 'x'});
+      },
+    );
   });
 
   group('getGarments', () {
@@ -121,39 +130,51 @@ void main() {
       required int total,
       required int page,
       int size = 100,
-    }) => _envelope({'items': items, 'total': total, 'page': page, 'size': size});
+    }) =>
+        _envelope({'items': items, 'total': total, 'page': page, 'size': size});
 
-    test('GETs page 1 and populates the cache for getGarment to reuse', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(
-          pageEnvelope([_garmentJson(201), _garmentJson(202)], total: 2, page: 1),
+    test(
+      'GETs page 1 and populates the cache for getGarment to reuse',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            pageEnvelope(
+              [_garmentJson(201), _garmentJson(202)],
+              total: 2,
+              page: 1,
+            ),
+          );
+        });
+
+        final garments = await http.runWithClient(
+          () => GarmentService().getGarments(),
+          () => client,
         );
-      });
+        expect(garments, hasLength(2));
+        expect(
+          captured.url.toString(),
+          '$_base?page=1&size=100&include_deleted=true',
+        );
 
-      final garments = await http.runWithClient(
-        () => GarmentService().getGarments(),
-        () => client,
-      );
-      expect(garments, hasLength(2));
-      expect(captured.url.toString(), '$_base?page=1&size=100');
-
-      // getGarment(201) should now be served from the cache this populated
-      // — a client that always throws proves no network call happens.
-      final throwingClient = MockClient((request) async {
-        throw StateError('should not hit the network for a cached garment');
-      });
-      final cached = await http.runWithClient(
-        () => GarmentService().getGarment(201),
-        () => throwingClient,
-      );
-      expect(cached.name, 'Garment 201');
-    });
+        // getGarment(201) should now be served from the cache this populated
+        // — a client that always throws proves no network call happens.
+        final throwingClient = MockClient((request) async {
+          throw StateError('should not hit the network for a cached garment');
+        });
+        final cached = await http.runWithClient(
+          () => GarmentService().getGarment(201),
+          () => throwingClient,
+        );
+        expect(cached.name, 'Garment 201');
+      },
+    );
 
     test('an empty closet returns an empty list', () async {
       final client = MockClient(
-        (request) async => _jsonResponse(pageEnvelope(const [], total: 0, page: 1)),
+        (request) async =>
+            _jsonResponse(pageEnvelope(const [], total: 0, page: 1)),
       );
 
       final garments = await http.runWithClient(
@@ -164,22 +185,29 @@ void main() {
       expect(garments, isEmpty);
     });
 
-    test('a missing items list throws instead of crashing on a bad cast', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(_envelope({'total': 0, 'page': 1, 'size': 100})),
-      );
+    test(
+      'a missing items list throws instead of crashing on a bad cast',
+      () async {
+        final client = MockClient(
+          (request) async =>
+              _jsonResponse(_envelope({'total': 0, 'page': 1, 'size': 100})),
+        );
 
-      await expectLater(
-        http.runWithClient(() => GarmentService().getGarments(), () => client),
-        throwsA(
-          isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('getGarments'),
+        await expectLater(
+          http.runWithClient(
+            () => GarmentService().getGarments(),
+            () => client,
           ),
-        ),
-      );
-    });
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('getGarments'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('walks every page until it has all items', () async {
       // getGarments() always requests size=100, so the loop only keeps
@@ -225,43 +253,129 @@ void main() {
       expect(requestCount, 1);
     });
 
-    test('re-fetches when the cached image URL is a stale signed URL', () async {
-      var requestCount = 0;
-      final client = MockClient((request) async {
-        requestCount++;
-        // First response: expired signed URL, so the cache entry it
-        // creates should immediately be treated as stale next time.
-        // Second response: fresh.
-        return _jsonResponse(
-          _envelope(
-            _garmentJson(
-              302,
-              imageUrl: requestCount == 1 ? _expiredSignedUrl : _freshSignedUrl(),
+    test(
+      're-fetches when the cached image URL is a stale signed URL',
+      () async {
+        var requestCount = 0;
+        final client = MockClient((request) async {
+          requestCount++;
+          // First response: expired signed URL, so the cache entry it
+          // creates should immediately be treated as stale next time.
+          // Second response: fresh.
+          return _jsonResponse(
+            _envelope(
+              _garmentJson(
+                302,
+                imageUrl: requestCount == 1
+                    ? _expiredSignedUrl
+                    : _freshSignedUrl(),
+              ),
             ),
-          ),
+          );
+        });
+
+        await http.runWithClient(
+          () => GarmentService().getGarment(302),
+          () => client,
         );
+        expect(requestCount, 1);
+
+        // Cached entry has an expired signed URL -> must hit the network again.
+        await http.runWithClient(
+          () => GarmentService().getGarment(302),
+          () => client,
+        );
+        expect(requestCount, 2);
+
+        // Now cached with a fresh URL -> should be served from cache.
+        final throwingClient = MockClient((request) async {
+          throw StateError(
+            'should not hit the network for a fresh cache entry',
+          );
+        });
+        await http.runWithClient(
+          () => GarmentService().getGarment(302),
+          () => throwingClient,
+        );
+      },
+    );
+
+    test('includeDeleted adds include_deleted=true to the request', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(_envelope(_garmentJson(303)));
       });
 
       await http.runWithClient(
-        () => GarmentService().getGarment(302),
+        () => GarmentService().getGarment(303, includeDeleted: true),
         () => client,
       );
-      expect(requestCount, 1);
 
-      // Cached entry has an expired signed URL -> must hit the network again.
-      await http.runWithClient(
-        () => GarmentService().getGarment(302),
-        () => client,
-      );
-      expect(requestCount, 2);
+      expect(captured.url.toString(), '$_base/303?include_deleted=true');
+    });
 
-      // Now cached with a fresh URL -> should be served from cache.
-      final throwingClient = MockClient((request) async {
-        throw StateError('should not hit the network for a fresh cache entry');
+    test('omits include_deleted entirely by default', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(_envelope(_garmentJson(304)));
       });
+
       await http.runWithClient(
-        () => GarmentService().getGarment(302),
-        () => throwingClient,
+        () => GarmentService().getGarment(304),
+        () => client,
+      );
+
+      expect(captured.url.toString(), '$_base/304');
+    });
+  });
+
+  group('restoreGarment', () {
+    test(
+      'PATCHes {is_deleted: false} and caches the restored garment',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({..._garmentJson(401), 'is_deleted': false}),
+          );
+        });
+
+        final restored = await http.runWithClient(
+          () => GarmentService().restoreGarment(401),
+          () => client,
+        );
+
+        expect(captured.method, 'PATCH');
+        expect(captured.url.toString(), '$_base/401');
+        expect(jsonDecode(captured.body), {'is_deleted': false});
+        expect(restored.isDeleted, isFalse);
+
+        // Cached now — a throwing client proves the next getGarment(401)
+        // reads it back without hitting the network.
+        final cached = await http.runWithClient(
+          () => GarmentService().getGarment(401),
+          () => MockClient((request) async {
+            throw StateError('should not hit the network for a cached garment');
+          }),
+        );
+        expect(cached.isDeleted, isFalse);
+      },
+    );
+
+    test('a non-2xx response throws and leaves the cache untouched', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope(null), status: 404),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => GarmentService().restoreGarment(402),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
       );
     });
   });
@@ -270,9 +384,7 @@ void main() {
     test('treats 200/204/404 all as success', () async {
       for (final status in [200, 204, 404]) {
         final id = 400 + status;
-        final client = MockClient(
-          (request) async => http.Response('', status),
-        );
+        final client = MockClient((request) async => http.Response('', status));
         await http.runWithClient(
           () => GarmentService().deleteGarment(id),
           () => client,
@@ -310,10 +422,12 @@ void main() {
       var deleteAttempts = 0;
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/auth/refresh')) {
-          return _jsonResponse(_envelope({
-            'access_token': 'new-access',
-            'refresh_token': 'new-refresh',
-          }));
+          return _jsonResponse(
+            _envelope({
+              'access_token': 'new-access',
+              'refresh_token': 'new-refresh',
+            }),
+          );
         }
         deleteAttempts++;
         return http.Response('', deleteAttempts == 1 ? 401 : 200);
@@ -331,25 +445,30 @@ void main() {
     // 401s, deleteGarment must surface AuthExpiredException so the page's
     // `on AuthExpiredException` path (session-expired dialog + redirect) runs,
     // not the generic "delete failed" fallback.
-    test('throws AuthExpiredException when the retry after refresh still 401s', () async {
-      final client = MockClient((request) async {
-        if (request.url.path.endsWith('/auth/refresh')) {
-          return _jsonResponse(_envelope({
-            'access_token': 'new-access',
-            'refresh_token': 'new-refresh',
-          }));
-        }
-        return http.Response('', 401);
-      });
+    test(
+      'throws AuthExpiredException when the retry after refresh still 401s',
+      () async {
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/auth/refresh')) {
+            return _jsonResponse(
+              _envelope({
+                'access_token': 'new-access',
+                'refresh_token': 'new-refresh',
+              }),
+            );
+          }
+          return http.Response('', 401);
+        });
 
-      await expectLater(
-        http.runWithClient(
-          () => GarmentService().deleteGarment(602),
-          () => client,
-        ),
-        throwsA(isA<AuthExpiredException>()),
-      );
-    });
+        await expectLater(
+          http.runWithClient(
+            () => GarmentService().deleteGarment(602),
+            () => client,
+          ),
+          throwsA(isA<AuthExpiredException>()),
+        );
+      },
+    );
 
     // Behavior 6: a successful delete evicts the garment from the cache so a
     // later getGarment goes back to the network.
@@ -433,27 +552,30 @@ void main() {
   });
 
   group('updateGarment', () {
-    test('throws immediately when the garment has no id, without a network call', () async {
-      final client = MockClient((request) async {
-        throw StateError('should not attempt a request without an id');
-      });
+    test(
+      'throws immediately when the garment has no id, without a network call',
+      () async {
+        final client = MockClient((request) async {
+          throw StateError('should not attempt a request without an id');
+        });
 
-      final garment = Garment(
-        name: 'No Id',
-        category: GarmentCategory.top,
-        subCategory: '',
-        uploadUrl: '',
-        objectName: '',
-      );
+        final garment = Garment(
+          name: 'No Id',
+          category: GarmentCategory.top,
+          subCategory: '',
+          uploadUrl: '',
+          objectName: '',
+        );
 
-      await expectLater(
-        http.runWithClient(
-          () => GarmentService().updateGarment(garment),
-          () => client,
-        ),
-        throwsA(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          http.runWithClient(
+            () => GarmentService().updateGarment(garment),
+            () => client,
+          ),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
 
     test('PATCHes /{id} with the garment payload', () async {
       late http.Request captured;
@@ -583,99 +705,110 @@ void main() {
     });
 
     // Behavior 3: a non-2xx response throws and must not touch the cache.
-    test('a failed setFavorite throws and leaves the cache unchanged', () async {
-      await http.runWithClient(
-        () => GarmentService().getGarment(707),
-        () => MockClient(
-          (request) async => _jsonResponse(_envelope(_garmentJson(707))),
-        ),
-      );
+    test(
+      'a failed setFavorite throws and leaves the cache unchanged',
+      () async {
+        await http.runWithClient(
+          () => GarmentService().getGarment(707),
+          () => MockClient(
+            (request) async => _jsonResponse(_envelope(_garmentJson(707))),
+          ),
+        );
 
-      await expectLater(
-        http.runWithClient(
-          () => GarmentService().setFavorite(707, isFavorite: true),
-          () => MockClient((request) async => http.Response('', 500)),
-        ),
-        throwsA(isA<Exception>()),
-      );
+        await expectLater(
+          http.runWithClient(
+            () => GarmentService().setFavorite(707, isFavorite: true),
+            () => MockClient((request) async => http.Response('', 500)),
+          ),
+          throwsA(isA<Exception>()),
+        );
 
-      final cached = await http.runWithClient(
-        () => GarmentService().getGarment(707),
-        () => MockClient((request) async {
-          throw StateError('should not hit the network for a cached garment');
-        }),
-      );
-      expect(cached.isFavorite, isFalse);
-    });
+        final cached = await http.runWithClient(
+          () => GarmentService().getGarment(707),
+          () => MockClient((request) async {
+            throw StateError('should not hit the network for a cached garment');
+          }),
+        );
+        expect(cached.isFavorite, isFalse);
+      },
+    );
 
     // Behavior 4: an unrecoverable 401 (refresh + retry both fail) must
     // surface AuthExpiredException and must not touch the cache.
-    test('setFavorite surfaces AuthExpiredException on an unrecoverable 401, cache unchanged', () async {
-      await http.runWithClient(
-        () => GarmentService().getGarment(708),
-        () => MockClient(
-          (request) async => _jsonResponse(_envelope(_garmentJson(708))),
-        ),
-      );
+    test(
+      'setFavorite surfaces AuthExpiredException on an unrecoverable 401, cache unchanged',
+      () async {
+        await http.runWithClient(
+          () => GarmentService().getGarment(708),
+          () => MockClient(
+            (request) async => _jsonResponse(_envelope(_garmentJson(708))),
+          ),
+        );
 
-      final client = MockClient((request) async {
-        if (request.url.path.endsWith('/auth/refresh')) {
-          return _jsonResponse(_envelope({
-            'access_token': 'new-access',
-            'refresh_token': 'new-refresh',
-          }));
-        }
-        return http.Response('', 401);
-      });
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/auth/refresh')) {
+            return _jsonResponse(
+              _envelope({
+                'access_token': 'new-access',
+                'refresh_token': 'new-refresh',
+              }),
+            );
+          }
+          return http.Response('', 401);
+        });
 
-      await expectLater(
-        http.runWithClient(
-          () => GarmentService().setFavorite(708, isFavorite: true),
-          () => client,
-        ),
-        throwsA(isA<AuthExpiredException>()),
-      );
+        await expectLater(
+          http.runWithClient(
+            () => GarmentService().setFavorite(708, isFavorite: true),
+            () => client,
+          ),
+          throwsA(isA<AuthExpiredException>()),
+        );
 
-      final cached = await http.runWithClient(
-        () => GarmentService().getGarment(708),
-        () => MockClient((request) async {
-          throw StateError('should not hit the network for a cached garment');
-        }),
-      );
-      expect(cached.isFavorite, isFalse);
-    });
+        final cached = await http.runWithClient(
+          () => GarmentService().getGarment(708),
+          () => MockClient((request) async {
+            throw StateError('should not hit the network for a cached garment');
+          }),
+        );
+        expect(cached.isFavorite, isFalse);
+      },
+    );
 
     // Behavior 5a (deterministic): whatever the source of the abort, a
     // TimeoutException out of the request must propagate and leave the
     // cache untouched. A MockClient that throws TimeoutException reproduces
     // exactly what `.timeout(...)` does when it fires (the request future
     // completes with a TimeoutException) with no real wall-clock wait.
-    test('a timed-out setFavorite rethrows TimeoutException and leaves the cache unchanged', () async {
-      await http.runWithClient(
-        () => GarmentService().getGarment(709),
-        () => MockClient(
-          (request) async => _jsonResponse(_envelope(_garmentJson(709))),
-        ),
-      );
+    test(
+      'a timed-out setFavorite rethrows TimeoutException and leaves the cache unchanged',
+      () async {
+        await http.runWithClient(
+          () => GarmentService().getGarment(709),
+          () => MockClient(
+            (request) async => _jsonResponse(_envelope(_garmentJson(709))),
+          ),
+        );
 
-      await expectLater(
-        http.runWithClient(
-          () => GarmentService().setFavorite(709, isFavorite: true),
+        await expectLater(
+          http.runWithClient(
+            () => GarmentService().setFavorite(709, isFavorite: true),
+            () => MockClient((request) async {
+              throw TimeoutException('simulated slow request');
+            }),
+          ),
+          throwsA(isA<TimeoutException>()),
+        );
+
+        final cached = await http.runWithClient(
+          () => GarmentService().getGarment(709),
           () => MockClient((request) async {
-            throw TimeoutException('simulated slow request');
+            throw StateError('should not hit the network for a cached garment');
           }),
-        ),
-        throwsA(isA<TimeoutException>()),
-      );
-
-      final cached = await http.runWithClient(
-        () => GarmentService().getGarment(709),
-        () => MockClient((request) async {
-          throw StateError('should not hit the network for a cached garment');
-        }),
-      );
-      expect(cached.isFavorite, isFalse);
-    });
+        );
+        expect(cached.isFavorite, isFalse);
+      },
+    );
   });
 
   group('analyzeGarment', () {
@@ -742,7 +875,11 @@ void main() {
           () => client,
         ),
         throwsA(
-          isA<Exception>().having((e) => e.toString(), 'message', contains('403')),
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('403'),
+          ),
         ),
       );
     });

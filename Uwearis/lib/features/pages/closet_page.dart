@@ -155,7 +155,10 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
 
   @override
   Widget build(BuildContext context) {
-    final garmentsAsync = ref.watch(garmentsProvider);
+    // .active: getGarments() now fetches soft-deleted garments too (so an
+    // outfit that references one can still show it), so My Closet's own
+    // grid/filters/counts must exclude them itself.
+    final garmentsAsync = ref.watch(garmentsProvider).whenData((g) => g.active);
 
     return Scaffold(
       backgroundColor: AppColors.pageBackground,

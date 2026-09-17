@@ -89,7 +89,7 @@ See [Error handling (UI)](#error-handling-ui) below for the full request-to-reco
 
 ## Service layer rules
 
-- **Singleton policy**: plain class by default. Only use `factory` + `_internal()` when the service holds real shared mutable state (an in-memory cache, a live connection) — not for DI convenience, not "for consistency." `GarmentService` is the only service that qualifies.
+- **Singleton policy**: plain class by default. Only use `factory` + `_internal()` when the service holds real shared mutable state (an in-memory cache, a live connection) — not for DI convenience, not "for consistency." `GarmentService` and `OutfitService` are the only services that qualify — the latter's `_groupCache` caches `getGroupOutfits(groupId)` per group, invalidated by every one of its own mutation methods (`generate`/`regenerate`/`copy`/`update`/`delete`, on either an outfit or its group).
 - **HTTP errors**: never hand-build an error message string outside `BaseService.decodeMap`. If a status code needs special handling (e.g. treat 404 as success for an idempotent delete), check `res.statusCode` *before* calling `decodeMap`, don't catch and reformat its exception. Idempotent `DELETE`s go through `BaseService.deleteIdempotent` (404/2xx = success, everything else routed through `decodeMap` or a passed-in `errorDecode` so the message is still built in one place) rather than each service re-rolling the branch — `GarmentService.deleteGarment` and `MatchLookService.removeReference` both use it.
 - **JSON numeric parsing**: always `(json['x'] as num?)?.toDouble()` / `.toInt()` — never a raw `as int?`/`as double?` cast on a field that comes from an external API. APIs can serialize the same field as an int or a float depending on the value; a raw cast crashes the first time it doesn't match.
 - **Signed URLs**: use `lib/core/utils/signed_url.dart`'s expiry helper rather than re-deriving "is this URL stale" inline at each call site.
@@ -106,6 +106,10 @@ See [Error handling (UI)](#error-handling-ui) below for the full request-to-reco
 - Add `copyWith` with `clearX` bool flags for nullable fields **only when the app actually mutates that model's fields in place** (matches `Garment`, `Outfit`). A model that's only ever read, never locally patched, doesn't need one — don't add `copyWith` speculatively.
 
 ## UI / page rules
+
+### Comments on layout/spacing/alignment changes
+
+When a change only adjusts layout, spacing, alignment, or which layout widget is used (e.g. swapping a `Row` for a `Stack`, adding a `Positioned`, tweaking padding/alignment to fix spacing), don't add a comment narrating the technique or why it was chosen. The widget tree itself already shows what was done; explaining "a Row would grow taller than X, so use a Stack instead" or similar is noise, not a non-obvious WHY. Keep comments in this area only for a genuinely non-obvious *constraint* that isn't visible from the code — e.g. a fixed number that must match another screen (see "Section headers and field labels" below) — never for describing the layout mechanism itself.
 
 ### Widget reuse and extraction
 
@@ -218,6 +222,7 @@ After creating, consolidating, or changing a shared Widget:
 - **Pushed pages**: `Stack` with `Positioned.fill(child: LoadingOverlay(...))`, conditionally shown.
 - **Brief in-place fetches**: `AppSpinner`.
 - **Empty lists**: `EmptyStatePlaceholder` — never hand-roll an empty-state `Text`.
+- **A full "start doing the thing" empty state** (icon + bold title + subtitle + an `AccentPillButton` call-to-action, centered across the whole tab body): still `EmptyStatePlaceholder`, with `fillAvailableSpace: true` (Closet/Outfits/Trips/Trip Suitcase's own empty states all use this — don't hand-roll a `Center`/`SingleChildScrollView` wrapper at the call site, the widget does it internally). Pass `bottomInset: AppDimens.mainNavBarClearance` only on a main tab — its `MainNavBar` is a floating overlay `MainShell` paints on top, not a `Scaffold.bottomNavigationBar`, so the tab's own body isn't actually shortened for it, and without `bottomInset` the centered content reads as sitting below true-center. A pushed page (no floating nav bar) leaves it at the default `0`. Pass `pinnedTop` when a sibling above the centered content can change height on its own (e.g. Trip Suitcase's collapsible packing-advice card) — it sits in its own layer so that resizing never shifts the centered content, which a plain scrolling layout can't guarantee.
 - **Provider `.when()` error branches**: `ErrorStateWidget`.
 
 ### Guarding costly / mutating actions against double-invocation {#double-invocation-guard}
@@ -316,6 +321,19 @@ Never place `BottomActionButton` inline inside the scrollable body as a sibling 
 
 - A card/section title is `SectionTitle` (bold16, normal case). A field label above a form input is `FieldLabel` (small-caps). Never hand-build `Text(title, style: AppTextStyle.bold18)` as a substitute for `SectionTitle`.
 - If two pages need the same card chrome (border, padding, shadow), reuse or extract one shared Widget in `lib/features/widgets/common/cards/`; do not create two private `_buildCardShell` copies. Follow the full decision rules in [Widget reuse and extraction](#widget-reuse-and-extraction).
+- A field's own caption is `LabeledField` (`lib/features/widgets/common/fields/labeled_field.dart`) — label + a fixed 8px gap + the field, matching Garment Details/Account/AI Model's forms. When a dialog or form stacks more than one `LabeledField`, the gap *between* them is `20` (see Garment Details' Category → Product Type → ...; Plan a Trip's Trip Name → Destination & Dates matches this). Don't re-derive or re-justify either number with a fresh comment — this bullet is that record.
+
+### Corner badges (`CardCornerBadge`)
+
+`CardCornerBadge` (`lib/features/widgets/common/cards/card_corner_badge.dart`) has two established, deliberately different treatments. Match whichever one applies and don't add a new comment re-justifying the color/size/border choice at the call site — this section is that explanation.
+
+- **Photo-overlay family** — a badge floating on a photo/full-bleed image: `FavoriteCard`, `RemovableCard`, Outfit Details' favourite heart + "⋮" menu trigger, Trip Details' regenerate icon (via `TodayOutfitIdea`), Home's "worn today" icon. Shape: `backgroundColor: AppColors.surfaceTranslucent`, `border: Border.all(color: AppColors.borderSubtle)`, `boxShadow: const []`, `size: 36`, `iconSize: 20` (Home's "worn today" badge uses `24` — the standing-figure glyph carries more internal whitespace and needs it to read at the same visual weight; that's the one deliberate exception). Color: the **neutral/resting state is always `AppColors.hintText`** — an active/toggled-on state gets its own color (favourited heart → `AppColors.favorite`, marked "worn today" → `AppColors.accent`) — the resting state is never `AppColors.icon` (reads too dark/heavy against this family) and never a raw color.
+- **List-row action-badge family** — a badge on a plain card row, not a photo: Add Outfit's lock/remove, Outfit Edit's remove, Trip Legs Editor's remove. Shape: `backgroundColor: AppColors.placeholderSurface`, no `border`, default shadow, `hitTargetSize: Size(24, AppDimens.minTouchTarget)`. Color: `AppColors.icon` — this family is a deliberately distinct treatment for a different surface, not "the photo-overlay family done slightly wrong," so its darker icon color is correct here and must never be changed to match the photo-overlay family above.
+- A badge that's inherently a warning/alert rather than a toggle (e.g. `garment_list_card.dart`'s soft-deleted-garment badge, `AppColors.error`) is its own case outside both families above.
+
+### Dialog primary button disabled state
+
+`AppDialog`'s `onPrimary` (`lib/features/widgets/common/overlays/app_dialog.dart`) is nullable — pass `null` for a form dialog whose action only makes sense once required fields are filled in (e.g. `TripCreateDialog`'s Create button, gated on a name + at least one destination) **or** once the field(s) actually differ from their starting value (e.g. `showTextInputDialog`'s Save button, gated on the trimmed text being non-empty and different from `initialValue` — a rename dialog with nothing to rename is the same "nothing to submit" case as a required field left blank). It renders as `disabledBackgroundColor: AppColors.borderSubtle` / text `AppColors.hintText`, staying visible but unpressable — unlike `BottomActionButton`, which hides entirely when unavailable (see [Guarding costly / mutating actions against double-invocation](#double-invocation-guard)); a form dialog wants its buttons visible at all times, `BottomActionButton`'s async-action triggers don't. Don't reintroduce the pre-flight `showSnackBar`-on-submit validation this replaced — the disabled button already prevents the invalid submit. To make the gate reactive to a `TextEditingController`, wrap the `AppDialog` in a `ValueListenableBuilder<TextEditingValue>` listening to the same controller (see `showTextInputDialog`) rather than a `StatefulWidget` — the controller already is the state.
 
 ### Localization
 
@@ -333,7 +351,7 @@ These are the **target for new and substantively-touched code**. `lib/features/`
 
 ## Logging
 
-- Every public service method that performs an HTTP call opens with `debugLog('--- methodName: relevant params ---');`, placed *after* any early-return cache check or parameter resolution needed to make the logged values meaningful — e.g. `GarmentService.getGarment` logs only once it's past its cache-hit fast path, and `OutfitService.generateOutfit` resolves `groupId` before logging so the line carries a real value, not `null`. `base_service.dart`'s internal helpers (`decodeMap`, `withAuth`) do not log directly — logging responsibility stays with the calling method so nothing double-logs. Methods that don't perform an HTTP call (pure getters, trivial wrappers) aren't required to log.
+- Every public service method that performs an HTTP call opens with `debugLog('--- methodName: relevant params ---');`, placed *after* any early-return cache check or parameter resolution needed to make the logged values meaningful — e.g. `GarmentService.getGarment` and `OutfitService.getGroupOutfits` both log only once past their cache-hit fast path, and `OutfitService.generateOutfit` resolves `groupId` before logging so the line carries a real value, not `null`. `base_service.dart`'s internal helpers (`decodeMap`, `withAuth`) do not log directly — logging responsibility stays with the calling method so nothing double-logs. Methods that don't perform an HTTP call (pure getters, trivial wrappers) aren't required to log.
 - **Never log**: access tokens, `Authorization` header values, signed URLs, photo/image bytes or data URIs, email addresses, or any other personally-identifying data. A log line naming *which* garment/outfit/trip id was involved is fine; logging the credential or the payload that proves who the user is, is not. Also don't log a local filesystem path to a user-picked image — it isn't a credential, but it exposes device directory layout for negligible debugging value (`MatchLookService.uploadReference` still does this — [Migration debt register](#migration-debt-register-flutter) item 10; new code must not copy it).
 
 ## Canonical example files (Flutter)

@@ -133,9 +133,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   /// The garment pool the picker draws from — the app-wide closet straight
   /// from [garmentsProvider], same source every other garment-picking
   /// screen uses, no local copy. `build` watches the provider so this stays
-  /// current; callers read it via `ref.read`.
+  /// current; callers read it via `ref.read`. `.active`: a soft-deleted
+  /// garment can't be picked for a new outfit.
   List<Garment> get _garmentPool =>
-      ref.read(garmentsProvider).value ?? const [];
+      (ref.read(garmentsProvider).value ?? const []).active;
 
   bool get _garmentPoolLoading => ref.read(garmentsProvider).isLoading;
 

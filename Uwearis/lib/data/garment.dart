@@ -186,6 +186,13 @@ class Garment {
   final Map<String, dynamic>? metadata;
   final bool isFavorite;
 
+  /// Soft-deleted from the user's closet (backend keeps the row + image
+  /// because an outfit/daily-outfit/trip item still references it) — see
+  /// [ActiveGarmentsX.active]. Never true for a garment `complete`d or
+  /// `PATCH`ed through the normal edit flow; only the backend's own delete
+  /// logic and `PATCH {is_deleted: false}` (restore) change it.
+  final bool isDeleted;
+
   const Garment({
     required this.name,
     required this.category,
@@ -195,6 +202,7 @@ class Garment {
     this.thickness = 0,
     this.formality = 0,
     this.isFavorite = false,
+    this.isDeleted = false,
     this.id,
     this.garmentId,
     this.brand,
@@ -224,6 +232,7 @@ class Garment {
     String? imageUrl,
     Map<String, dynamic>? metadata,
     bool? isFavorite,
+    bool? isDeleted,
     bool clearId = false,
     bool clearGarmentId = false,
     bool clearBrand = false,
@@ -253,6 +262,7 @@ class Garment {
           : (purchaseDate ?? this.purchaseDate),
       metadata: clearMetadata ? null : (metadata ?? this.metadata),
       isFavorite: isFavorite ?? this.isFavorite,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -307,6 +317,7 @@ class Garment {
       imageUrl: (json['image_url'] as String?) ?? '',
       metadata: json['metadata'] as Map<String, dynamic>?,
       isFavorite: (json['is_favorite'] as bool?) ?? false,
+      isDeleted: (json['is_deleted'] as bool?) ?? false,
     );
   }
 
@@ -372,4 +383,21 @@ class Garment {
 class SelectGarmentResult {
   final Garment? garment;
   const SelectGarmentResult(this.garment);
+}
+
+/// `GarmentService.getGarments()` now fetches with `include_deleted=true`
+/// (so an outfit that references a since-deleted garment can still resolve
+/// it — see `OutfitDetailsPage._loadGarments`), which means every other
+/// "browse/pick a garment" screen reading from `garmentsProvider` gets
+/// soft-deleted entries mixed in unless it filters them out itself. Use
+/// `.active` wherever a list of garments is being *offered for selection*
+/// or *browsed as the closet* (My Closet's grid, Add Outfit's candidate
+/// pool, Home's "Recently Added", the trip suitcase "Add" picker, the
+/// versatility "compatible garments" lookups, …) — a deleted garment can't
+/// be used in a new outfit and shouldn't clutter those views. Don't apply
+/// it to a lookup keyed by an *already-known* garment id from an existing
+/// outfit's `garment_ids` — that's the one place a deleted garment must
+/// still resolve.
+extension ActiveGarmentsX on List<Garment> {
+  List<Garment> get active => where((g) => !g.isDeleted).toList();
 }

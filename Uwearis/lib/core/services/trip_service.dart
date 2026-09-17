@@ -234,7 +234,15 @@ class TripService with BaseService {
     decodeMap(res, op: 'addSuitcaseItem');
   }
 
-  Future<void> removeSuitcaseItem(int tripId, {required int garmentId}) async {
+  /// Removal always succeeds regardless of the returned list — it's the
+  /// `TripOutfitOption`s (if any) that still reference [garmentId] at the
+  /// moment of removal, purely so the caller can tell the user "this is
+  /// still used elsewhere in the trip"; nothing about those days/options is
+  /// changed by this call itself (see [TripAffectedOption]'s own doc).
+  Future<List<TripAffectedOption>> removeSuitcaseItem(
+    int tripId, {
+    required int garmentId,
+  }) async {
     debugLog('--- removeSuitcaseItem tripId=$tripId garmentId=$garmentId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/suitcase-items/$garmentId');
 
@@ -244,7 +252,12 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    decodeMap(res, op: 'removeSuitcaseItem');
+    final data = _dataObject(res, op: 'removeSuitcaseItem');
+    final affected = (data['affected_options'] as List?) ?? const [];
+    return affected
+        .whereType<Map<String, dynamic>>()
+        .map(TripAffectedOption.fromJson)
+        .toList();
   }
 
   Future<void> deleteTrip(int tripId) async {

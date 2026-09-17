@@ -356,7 +356,7 @@ void main() {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
-        return _jsonResponse(_envelope(null));
+        return _jsonResponse(_envelope({'affected_options': []}));
       });
 
       await http.runWithClient(
@@ -366,6 +366,62 @@ void main() {
 
       expect(captured.method, 'DELETE');
       expect(captured.url.toString(), '$_base/9/suitcase-items/55');
+    });
+
+    test(
+      'removeSuitcaseItem parses affected_options, empty when absent',
+      () async {
+        final client = MockClient(
+          (request) async => _jsonResponse(_envelope({})),
+        );
+
+        final result = await http.runWithClient(
+          () => TripService().removeSuitcaseItem(9, garmentId: 55),
+          () => client,
+        );
+
+        expect(result, isEmpty);
+      },
+    );
+
+    test('removeSuitcaseItem parses each affected option field', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(
+          _envelope({
+            'affected_options': [
+              {
+                'day_id': 311,
+                'date': '2026-10-01',
+                'option_id': 162,
+                'is_manually_edited': true,
+                'has_rendered_outfit': true,
+              },
+              {
+                'day_id': 312,
+                'date': '2026-10-02',
+                'option_id': 163,
+                'is_manually_edited': false,
+                'has_rendered_outfit': false,
+              },
+            ],
+          }),
+        ),
+      );
+
+      final result = await http.runWithClient(
+        () => TripService().removeSuitcaseItem(9, garmentId: 55),
+        () => client,
+      );
+
+      expect(result, hasLength(2));
+      expect(result[0].dayId, 311);
+      expect(result[0].date, DateTime(2026, 10, 1));
+      expect(result[0].optionId, 162);
+      expect(result[0].isManuallyEdited, isTrue);
+      expect(result[0].hasRenderedOutfit, isTrue);
+      expect(result[1].dayId, 312);
+      expect(result[1].isManuallyEdited, isFalse);
+      expect(result[1].hasRenderedOutfit, isFalse);
     });
   });
 
@@ -448,10 +504,7 @@ void main() {
       final client = MockClient((request) async {
         captured = request;
         return _jsonResponse(
-          _envelope({
-            'outfit_id': 3,
-            'result_image_url': 'https://img/3.png',
-          }),
+          _envelope({'outfit_id': 3, 'result_image_url': 'https://img/3.png'}),
         );
       });
 
@@ -501,37 +554,40 @@ void main() {
       expect(jsonDecode(captured.body), {'background_id': 7});
     });
 
-    test('updateOptionItems PATCHes garment_ids and returns the new garments', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(
-          _envelope({
-            'option_id': 42,
-            'items': [
-              {'garment_id': 1, 'name': 'Tee', 'category': 'Top'},
-              {'garment_id': 2, 'name': 'Jeans', 'category': 'Bottom'},
-            ],
-          }),
+    test(
+      'updateOptionItems PATCHes garment_ids and returns the new garments',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({
+              'option_id': 42,
+              'items': [
+                {'garment_id': 1, 'name': 'Tee', 'category': 'Top'},
+                {'garment_id': 2, 'name': 'Jeans', 'category': 'Bottom'},
+              ],
+            }),
+          );
+        });
+
+        final garments = await http.runWithClient(
+          () => TripService().updateOptionItems(
+            9,
+            optionId: 42,
+            garmentIds: [1, 2],
+          ),
+          () => client,
         );
-      });
 
-      final garments = await http.runWithClient(
-        () => TripService().updateOptionItems(
-          9,
-          optionId: 42,
-          garmentIds: [1, 2],
-        ),
-        () => client,
-      );
-
-      expect(captured.method, 'PATCH');
-      expect(captured.url.toString(), '$_base/9/options/42/items');
-      expect(jsonDecode(captured.body), {
-        'garment_ids': [1, 2],
-      });
-      expect(garments.map((g) => g.id), [1, 2]);
-      expect(garments.first.category, GarmentCategory.top);
-    });
+        expect(captured.method, 'PATCH');
+        expect(captured.url.toString(), '$_base/9/options/42/items');
+        expect(jsonDecode(captured.body), {
+          'garment_ids': [1, 2],
+        });
+        expect(garments.map((g) => g.id), [1, 2]);
+        expect(garments.first.category, GarmentCategory.top);
+      },
+    );
   });
 }

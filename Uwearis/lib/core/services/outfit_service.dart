@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../data/outfit.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
+import '../utils/signed_url.dart';
 import 'base_service.dart';
 
 /// Client for the OutfitGroup + Outfit API (`/api/v1/outfit`). Every outfit
@@ -15,8 +16,21 @@ import 'base_service.dart';
 /// today — a general-flow outfit gets its own dedicated group, so
 /// [getAllOutfits] and [getOutfitsByGarments] flatten the group nesting away
 /// and the rest of the app keeps treating outfits as a flat list.
+///
+/// A singleton (like [GarmentService]) purely for [_groupCache]: every
+/// mutation method below (`generate`/`regenerate`/`copy`/`update`/`delete`,
+/// on either an outfit or its group) invalidates the mutated group's entry,
+/// so [getGroupOutfits] only actually re-hits the backend when that group's
+/// data could genuinely have changed since the last fetch — e.g. reopening
+/// the same [OutfitDetailsPage] outfit repeatedly no longer re-fetches its
+/// whole version list every single time.
 class OutfitService with BaseService {
+  static final OutfitService _instance = OutfitService._internal();
   static final String _baseUrl = '${AppConfig.fullApiUrl}/outfit';
+  factory OutfitService() => _instance;
+  OutfitService._internal();
+
+  final Map<int, List<Outfit>> _groupCache = {};
 
   Future<int> createGroup({String type = 'general'}) async {
     debugLog('--- createGroup: type=$type ---');
@@ -145,6 +159,7 @@ class OutfitService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('generateOutfit: response missing outfit data object');
     }
+    _groupCache.remove(groupId);
     return Outfit.fromJson(data);
   }
 
@@ -175,6 +190,7 @@ class OutfitService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('regenerateOutfit: response missing outfit data object');
     }
+    _groupCache.remove(groupId);
     return Outfit.fromJson(data);
   }
 
@@ -204,6 +220,9 @@ class OutfitService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('copyOutfit: response missing outfit data object');
     }
+    // Only the target group gained an outfit — sourceOutfitId's own group is
+    // untouched (this is a copy, not a move), so it doesn't need invalidating.
+    _groupCache.remove(groupId);
     return Outfit.fromJson(data);
   }
 
@@ -252,6 +271,7 @@ class OutfitService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('updateOutfit: response missing outfit data object');
     }
+    _groupCache.remove(groupId);
     return Outfit.fromJson(data);
   }
 
@@ -266,12 +286,24 @@ class OutfitService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'deleteOutfit');
+    _groupCache.remove(groupId);
   }
 
   /// Every outfit inside [groupId] — used to check whether an outfit has
   /// siblings before deciding whether deleting it should take the
   /// now-empty group with it.
+  ///
+  /// Served from [_groupCache] when a cached entry exists and none of its
+  /// image URLs have gone stale — every mutation method in this class
+  /// invalidates a group's entry the moment it could have changed, so a
+  /// cache hit here means genuinely nothing has changed since the last
+  /// fetch, not just "nothing this app instance knows about."
   Future<List<Outfit>> getGroupOutfits(int groupId) async {
+    final cached = _groupCache[groupId];
+    if (cached != null && !anySignedUrlExpired(cached.map((o) => o.imageUrl))) {
+      return cached;
+    }
+
     debugLog('--- getGroupOutfits: groupId=$groupId ---');
     final uri = Uri.parse('$_baseUrl/$groupId');
     final res = await withAuth(
@@ -292,7 +324,7 @@ class OutfitService with BaseService {
     final groupName = data is Map<String, dynamic>
         ? data['name'] as String?
         : null;
-    return outfits
+    final result = outfits
         .whereType<Map<String, dynamic>>()
         .map(Outfit.fromJson)
         .map(
@@ -304,6 +336,8 @@ class OutfitService with BaseService {
           ),
         )
         .toList();
+    _groupCache[groupId] = result;
+    return result;
   }
 
   /// Partial update to [groupId] itself — [name] and/or [coverOutfitId].
@@ -334,6 +368,9 @@ class OutfitService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'updateGroup');
+    // name/coverOutfitId are overlaid onto every Outfit in a cached list
+    // (see getGroupOutfits), so any change here invalidates the whole entry.
+    _groupCache.remove(groupId);
   }
 
   /// Deletes the whole group, cascading to every outfit (and their GCS
@@ -347,6 +384,7 @@ class OutfitService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'deleteGroup');
+    _groupCache.remove(groupId);
   }
 
   /// Flat list (not group-nested) of every outfit that contains all of

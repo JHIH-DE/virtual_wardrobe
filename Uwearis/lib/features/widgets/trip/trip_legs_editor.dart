@@ -94,10 +94,10 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
             if (i != 0) const SizedBox(height: 12),
             _buildLegRow(i),
           ],
-          const SizedBox(height: 12),
-          // Centered — deliberately not aligned with the leg rows above, so
-          // it reads as the list's own trailing action rather than another
-          // row in it.
+          // Only when a leg row precedes it — with none yet, this button is
+          // the section's only content and should sit at LabeledField's
+          // plain 8px gap instead of an extra 12px on top of it.
+          if (_legs.isNotEmpty) const SizedBox(height: 12),
           Center(
             child: AccentPillButton(
               label: l10n.addLocation,
@@ -144,9 +144,7 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
               ],
             ),
           ),
-          // Same remove-badge design as Add Outfit's garment row (see
-          // add_outfit_page.dart's _buildOutfitGarmentRow) — a filled disc
-          // via the shared CardCornerBadge, not a plain IconButton.
+          // List-row action-badge family — see CLAUDE.md's "Corner badges".
           CardCornerBadge(
             icon: Icons.close,
             backgroundColor: AppColors.placeholderSurface,

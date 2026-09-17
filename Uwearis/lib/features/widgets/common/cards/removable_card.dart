@@ -92,7 +92,9 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
           child: CardCornerBadge(
             icon: Icons.close,
             backgroundColor: AppColors.surfaceTranslucent,
-            iconColor: AppColors.icon,
+            // Photo-overlay badge family, neutral state — see CLAUDE.md's
+            // "Corner badges" section.
+            iconColor: AppColors.hintText,
             border: Border.all(color: AppColors.borderSubtle),
             boxShadow: const [],
             size: 36,

@@ -163,12 +163,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       // Matches the default back-arrow's effective left inset (IconButton's
       // own 8px Material padding + its 2px inner glyph padding).
       padding: const EdgeInsets.only(left: 16),
-      // AppBar's leading slot hands its child a *tight* height constraint
-      // (locked to the full toolbar height) — Align converts that to a
-      // loose constraint so the pill's own height applies instead of being
-      // stretched to fill the toolbar. centerLeft (not Center) anchors the
-      // pill's left edge to the 8px inset so it doesn't drift right in the
-      // 128px slot — matches Explore's "Home" pill.
+      // centerLeft anchors flush to the 16px inset — matches Explore's
+      // "Home" pill.
       child: Align(
         alignment: Alignment.centerLeft,
         child: AccentPillButton(
@@ -383,9 +379,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       border: Border.all(color: AppColors.borderSubtle),
       boxShadow: const [],
       size: 36,
-      // Larger than the favourite badge's 20 — the standing-figure glyph
-      // carries more internal whitespace, so it needs the extra to read at
-      // the same visual weight on the photo.
+      // 24, not the family's usual 20 — see CLAUDE.md's "Corner badges".
       iconSize: 24,
       discAlignment: Alignment.topRight,
       onTap: () =>
@@ -481,7 +475,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// id is assumed auto-incrementing, so sorting by it descending is the
   /// best available "most recently added first" ordering.
   Widget _buildRecentlyAddedSection() {
-    final garments = ref.watch(garmentsProvider).value ?? const [];
+    // .active: a soft-deleted garment shouldn't show as "recently added".
+    final garments = (ref.watch(garmentsProvider).value ?? const []).active;
     if (garments.isEmpty) return const SizedBox.shrink();
 
     final recent = [...garments]

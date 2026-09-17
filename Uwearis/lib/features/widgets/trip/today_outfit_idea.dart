@@ -43,6 +43,17 @@ class TodayOutfitIdea extends StatelessWidget {
   /// "Regenerate Outfit"). Ignored when [onGenerate] is null.
   final String? generateLabel;
 
+  /// Whether the [onGenerate] button is enabled — the button itself always
+  /// shows once [onGenerate] is non-null; this only greys it out (and shows
+  /// [generateDisabledMessage] above it) rather than hiding it. Ignored when
+  /// [onGenerate] is null.
+  final bool generateEnabled;
+
+  /// Shown above the [onGenerate] button, centered, while [generateEnabled]
+  /// is false — explains why generating isn't offered right now (e.g. an
+  /// incomplete core outfit). Null shows no explanation.
+  final String? generateDisabledMessage;
+
   /// Called at most once if [imageUrl] fails to load (e.g. an expired
   /// signed URL) — return a fresh URL to retry with. See
   /// [RefreshableNetworkImage.onRefreshUrl].
@@ -65,6 +76,8 @@ class TodayOutfitIdea extends StatelessWidget {
     this.onRegenerate,
     this.onGenerate,
     this.generateLabel,
+    this.generateEnabled = true,
+    this.generateDisabledMessage,
     this.onRefreshUrl,
     this.cacheKey,
   });
@@ -143,8 +156,10 @@ class TodayOutfitIdea extends StatelessWidget {
   /// No outfit image yet — an error, or one of two informational states
   /// depending on [hasAssignment]. When the day has an option but no image,
   /// [onGenerate] (if given) turns that state into a "Generate Outfit"
-  /// button; while a render is running [TripDetailsPage]'s own full-screen
-  /// overlay covers this card.
+  /// button — [generateEnabled] false greys it out and shows
+  /// [generateDisabledMessage] above it, rather than hiding the button.
+  /// While a render is running, [TripDetailsPage]'s own full-screen overlay
+  /// covers this card.
   Widget _buildEmptyState(AppLocalizations l10n) {
     return SizedBox(
       height: 140,
@@ -183,10 +198,29 @@ class TodayOutfitIdea extends StatelessWidget {
         style: AppTextStyle.medium16.copyWith(color: AppColors.textSecondary),
       );
     }
-    return AccentPillButton(
-      label: generateLabel ?? l10n.generateOutfit,
-      icon: Icons.auto_awesome,
-      onPressed: onGenerate,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!generateEnabled && generateDisabledMessage != null) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              generateDisabledMessage!,
+              textAlign: TextAlign.center,
+              style: AppTextStyle.regular13.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        AccentPillButton(
+          label: generateLabel ?? l10n.generateOutfit,
+          icon: Icons.auto_awesome,
+          enabled: generateEnabled,
+          onPressed: onGenerate,
+        ),
+      ],
     );
   }
 

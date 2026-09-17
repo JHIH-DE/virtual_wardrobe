@@ -16,6 +16,31 @@ class GarmentListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _buildCard(context),
+        // Soft-deleted: the garment still shows here (this outfit's own
+        // garment_ids still references it), but it's gone from the closet
+        // — GarmentDetailDialog is where the user restores it. A bare glyph
+        // (no disc/border) — deliberately outside both CardCornerBadge
+        // families, see CLAUDE.md's "Corner badges" section. IgnorePointer:
+        // a Stack's hit test otherwise stops at this icon's own rectangular
+        // bounds (it has no gesture handling of its own to claim the tap),
+        // leaving a small dead zone over what should still be the card's
+        // one tap target underneath.
+        if (garment.isDeleted)
+          const Positioned(
+            top: 6,
+            right: 6,
+            child: IgnorePointer(
+              child: Icon(Icons.error, size: 26, color: AppColors.error),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     return GestureDetector(
       // opaque so the whole card is tappable — the Container has a
       // `decoration`, not a `color`, and the contained image + text leave
