@@ -51,7 +51,7 @@ class AppDialog extends StatefulWidget {
     this.onSecondary,
     this.tertiaryLabel,
     this.onTertiary,
-    this.width = 292,
+    this.width = 320,
     this.titleSpacing = 16,
     this.contentToPrimarySpacing = 16,
     this.secondaryIsTextButton = true,

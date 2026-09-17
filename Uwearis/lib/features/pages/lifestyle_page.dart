@@ -15,6 +15,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/number_stepper.dart';
+import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/occasion_picker_sheet.dart';
 import '../widgets/common/section_title.dart';
 
@@ -95,9 +96,7 @@ class _LifestylePageState extends State<LifestylePage> {
         _initialWeeklyOccasions = List.of(_weeklyOccasions);
         _initialTemperatureOffset = _temperatureOffset;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.settingsSaved)));
+      showFeedbackOverlay(context, message: _l10n.changesSaved);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -252,7 +251,7 @@ class _LifestylePageState extends State<LifestylePage> {
           NumberStepper(
             label: _l10n.perceivedTempOffset,
             valueLabel:
-                '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°',
+                '${_temperatureOffset > 0 ? "+" : ""}$_temperatureOffset°C',
             onDecrement: () {
               if (_temperatureOffset > -5) {
                 setState(() => _temperatureOffset--);

@@ -484,9 +484,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterTripName => '輸入行程名稱';
 
   @override
-  String get editTripActivities => '編輯活動';
-
-  @override
   String get deleteTrip => '刪除行程';
 
   @override
@@ -1170,9 +1167,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get occasionParty => '派對';
-
-  @override
-  String get settingsSaved => '設定已儲存';
 
   @override
   String get comfortAdjustment => '體感溫度調整';
@@ -1792,9 +1786,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get enterTripName => '輸入行程名稱';
 
   @override
-  String get editTripActivities => '編輯活動';
-
-  @override
   String get deleteTrip => '刪除行程';
 
   @override
@@ -2478,9 +2469,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get occasionParty => '派對';
-
-  @override
-  String get settingsSaved => '設定已儲存';
 
   @override
   String get comfortAdjustment => '體感溫度調整';

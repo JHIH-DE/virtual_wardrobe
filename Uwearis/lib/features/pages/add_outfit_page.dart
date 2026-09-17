@@ -1325,9 +1325,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                   Text(
                     _l10n.finishOutfitPromptBody,
                     textAlign: TextAlign.center,
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: AppTextStyle.medium16,
                   ),
                   const SizedBox(height: 8),
                   _buildOccasionPickerRow(

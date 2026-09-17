@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +17,6 @@ import '../../data/garment.dart';
 import '../../data/trip.dart';
 import '../../data/trip_plan.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../l10n/trip_activity_localization.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -43,7 +41,7 @@ import 'trip_suitcase_page.dart';
 /// [TripCard] (the Trips-tab list item) so a trip's own metadata edits live
 /// on its detail page instead of duplicated across every card that links
 /// to it.
-enum _TripMenuAction { editName, editLegs, editActivities, delete }
+enum _TripMenuAction { editName, editLegs, delete }
 
 class TripDetailsPage extends ConsumerStatefulWidget {
   final Trip trip;
@@ -619,15 +617,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               label: _l10n.editDestinations,
             ),
             AppPopupMenu.item(
-              value: _TripMenuAction.editActivities,
-              icon: const Icon(
-                Icons.flight_takeoff,
-                size: 20,
-                color: AppColors.icon,
-              ),
-              label: _l10n.editTripActivities,
-            ),
-            AppPopupMenu.item(
               value: _TripMenuAction.delete,
               icon: const Icon(
                 Icons.delete_outline,
@@ -649,8 +638,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         _editTripName();
       case _TripMenuAction.editLegs:
         _editTripLegs();
-      case _TripMenuAction.editActivities:
-        _editTripActivities();
       case _TripMenuAction.delete:
         _confirmDeleteTrip();
     }
@@ -713,57 +700,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     return true;
   }
 
-  Future<void> _editTripActivities() async {
-    final selected = _trip.activities
-        .map(tripActivityFromApiValue)
-        .whereType<TripActivity>()
-        .toSet();
-
-    final result = await showDialog<Set<TripActivity>>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AppDialog(
-          title: _l10n.editTripActivities,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final activity in TripActivity.values)
-                CheckboxListTile(
-                  dense: true,
-                  visualDensity: VisualDensity.compact,
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  activeColor: AppColors.accent,
-                  value: selected.contains(activity),
-                  title: Text(
-                    activity.localizedLabel(context),
-                    style: AppTextStyle.regular16,
-                  ),
-                  onChanged: (checked) => setDialogState(() {
-                    if (checked == true) {
-                      selected.add(activity);
-                    } else {
-                      selected.remove(activity);
-                    }
-                  }),
-                ),
-            ],
-          ),
-          primaryLabel: _l10n.save,
-          onPrimary: () => Navigator.pop(ctx, selected),
-          secondaryLabel: _l10n.cancel,
-          onSecondary: () => Navigator.pop(ctx),
-        ),
-      ),
-    );
-
-    if (result == null) return;
-    await _updateTrip(
-      _trip.copyWith(activities: result.map((a) => a.apiValue).toList()),
-    );
-  }
-
-  /// Persists a trip metadata edit (name/legs/activities) and reflects it
+  /// Persists a trip metadata edit (name/legs) and reflects it
   /// both locally and in [tripsProvider] — mirrors the optimistic-then-
   /// rollback pattern `TripsPage`'s equivalent used to follow before this
   /// menu moved here. A legs edit also reshuffles which dates the trip
@@ -793,10 +730,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         int.parse(previous.id),
         name: updated.name != previous.name ? updated.name : null,
         legs: updated.legs,
-        activities:
-            setEquals(updated.activities.toSet(), previous.activities.toSet())
-            ? null
-            : updated.activities,
         days: days,
       );
       if (legsChanged && mounted) {

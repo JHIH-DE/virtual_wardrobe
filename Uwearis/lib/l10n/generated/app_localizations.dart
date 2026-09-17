@@ -1017,12 +1017,6 @@ abstract class AppLocalizations {
   /// **'Enter trip name'**
   String get enterTripName;
 
-  /// No description provided for @editTripActivities.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Activities'**
-  String get editTripActivities;
-
   /// No description provided for @deleteTrip.
   ///
   /// In en, this message translates to:
@@ -2348,12 +2342,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Party'**
   String get occasionParty;
-
-  /// No description provided for @settingsSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Settings saved'**
-  String get settingsSaved;
 
   /// No description provided for @comfortAdjustment.
   ///

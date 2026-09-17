@@ -506,9 +506,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterTripName => 'Enter trip name';
 
   @override
-  String get editTripActivities => 'Edit Activities';
-
-  @override
   String get deleteTrip => 'Delete Trip';
 
   @override
@@ -1210,9 +1207,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get occasionParty => 'Party';
-
-  @override
-  String get settingsSaved => 'Settings saved';
 
   @override
   String get comfortAdjustment => 'Perceived Temperature Offset';

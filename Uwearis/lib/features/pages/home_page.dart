@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -32,13 +34,20 @@ import 'settings_page.dart';
 import 'trips_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, @visibleForTesting DateTime Function()? now})
+    : _now = now ?? DateTime.now;
+
+  /// Testing seam only — lets a test simulate a day boundary being crossed
+  /// (see [_HomePageState.didChangeAppLifecycleState]) without waiting on
+  /// the real system clock. Always [DateTime.now] outside tests.
+  final DateTime Function() _now;
 
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageState extends ConsumerState<HomePage>
+    with WidgetsBindingObserver {
   // Which of the daily outfit options is shown as the main preview —
   // swiping the carousel below updates this.
   int _todayOutfitIndex = 0;
@@ -48,6 +57,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   // today" on the photo overlay badge. Not persisted or sent to the backend
   // yet — see _buildWornTodayBadge.
   int? _wornOutfitIndex;
+
+  // Home stays mounted for the app's whole lifetime (it's one of MainShell's
+  // IndexedStack tabs, so initState only ever runs once) — this is what lets
+  // didChangeAppLifecycleState/_dateCheckTimer below notice a day boundary
+  // crossed while the app was backgrounded, or just left open, instead of
+  // only picking it up on the next cold start.
+  late DateTime _lastSeenDate;
+  Timer? _dateCheckTimer;
 
   List<Outfit> get _todayOutfits =>
       ref.watch(dailyOutfitProvider).value ?? const [];
@@ -59,6 +76,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
+    _lastSeenDate = _dateOnly(widget._now());
+    WidgetsBinding.instance.addObserver(this);
+    _dateCheckTimer = Timer.periodic(
+      _dateCheckInterval,
+      (_) => _refreshIfDateChanged(),
+    );
     // Deferred to after the first frame — mainTabReporter's MainShellScope
     // lookup isn't safe to run during initState itself.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -74,8 +97,59 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
+  /// Resuming from background alone isn't enough — an app left open and
+  /// foregrounded straight through midnight (screen never off, never
+  /// backgrounded) emits no [AppLifecycleState] transition at all, so
+  /// nothing would ever notice the day changed. [_dateCheckTimer] is the
+  /// other half.
+  ///
+  /// Deliberately a plain poll, not a one-shot Timer scheduled for the
+  /// precise wall-clock delay until the next midnight: Dart's Timer counts
+  /// down against elapsed real (monotonic) time, not the wall clock — a
+  /// one-shot Timer's delay is computed once and then goes stale the
+  /// moment the device's date/time is changed by hand (or a timezone/NTP
+  /// change), so it fires at the wrong moment or not at all. Re-reading
+  /// [widget._now] fresh every tick sidesteps that: whatever the wall
+  /// clock now says, the next tick (at most [_dateCheckInterval] away)
+  /// picks it up regardless of how it got there.
+  static const _dateCheckInterval = Duration(minutes: 1);
+
+  /// The header's date string and the daily outfit are both computed off
+  /// "today" — resuming from background, or [_dateCheckTimer]'s periodic
+  /// poll, are the two moments that boundary can have moved without any
+  /// rebuild otherwise happening, so recheck it here rather than only on
+  /// the next cold start. A backgrounded app's Dart isolate can be
+  /// suspended, so the poll isn't guaranteed to keep firing on schedule —
+  /// the resume check below is what actually catches that case; the
+  /// poll's own job is the "app stayed foregrounded" case the resume check
+  /// can't see.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) return;
+    _refreshIfDateChanged();
+  }
+
+  void _refreshIfDateChanged() {
+    if (!mounted) return;
+    final today = _dateOnly(widget._now());
+    if (today == _lastSeenDate) return;
+    _lastSeenDate = today;
+    // New day, new outfit list — yesterday's carousel position/"worn today"
+    // mark don't carry over.
+    setState(() {
+      _todayOutfitIndex = 0;
+      _wornOutfitIndex = null;
+    });
+    if (_todayOutfitPageController.hasClients) {
+      _todayOutfitPageController.jumpToPage(0);
+    }
+    ref.read(dailyOutfitProvider.notifier).refresh();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dateCheckTimer?.cancel();
     _todayOutfitPageController.dispose();
     super.dispose();
   }
@@ -181,7 +255,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildHeader() {
     final weatherAsync = ref.watch(weatherProvider);
-    final dateStr = DateFormat('EEEE, MMM d').format(DateTime.now());
+    final dateStr = DateFormat('EEEE, MMM d').format(widget._now());
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -438,7 +512,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// just the single soonest trip, since Home only has room for a preview.
   Widget _buildUpcomingTripSection() {
     final trips = ref.watch(tripsProvider).value ?? const <Trip>[];
-    final today = _dateOnly(DateTime.now());
+    final today = _dateOnly(widget._now());
     final upcoming =
         trips.where((t) => _dateOnly(t.dateRange.start).isAfter(today)).toList()
           ..sort((a, b) => a.dateRange.start.compareTo(b.dateRange.start));
