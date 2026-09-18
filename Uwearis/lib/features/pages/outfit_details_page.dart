@@ -31,6 +31,7 @@ import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/category_tag.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
+import '../widgets/common/images/fullscreen_image_viewer.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
@@ -781,13 +782,21 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     final baseKey = outfitImageCacheKey(outfit.id);
                     final cacheKey =
                         '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
-                    return RefreshableNetworkImage(
-                      key: ValueKey(cacheKey),
-                      imageUrl: outfit.imageUrl,
-                      cacheKey: cacheKey,
-                      fit: BoxFit.cover,
-                      errorLabel: _l10n.failedToLoadImage,
-                      onRefreshUrl: () => _refreshImageUrlFor(index),
+                    return GestureDetector(
+                      onTap: () => showFullscreenImage(
+                        context,
+                        imageUrl: outfit.imageUrl,
+                        cacheKey: cacheKey,
+                        onRefreshUrl: () => _refreshImageUrlFor(index),
+                      ),
+                      child: RefreshableNetworkImage(
+                        key: ValueKey(cacheKey),
+                        imageUrl: outfit.imageUrl,
+                        cacheKey: cacheKey,
+                        fit: BoxFit.cover,
+                        errorLabel: _l10n.failedToLoadImage,
+                        onRefreshUrl: () => _refreshImageUrlFor(index),
+                      ),
                     );
                   },
                 ),

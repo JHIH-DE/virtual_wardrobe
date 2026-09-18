@@ -7,6 +7,7 @@ import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_icon_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
+import 'package:uwearis/features/widgets/common/images/refreshable_network_image.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -263,6 +264,39 @@ void main() {
         expect(find.text('Wool Scarf'), findsOneWidget);
         expect(garmentRequests, 1);
       }, () => client);
+    },
+  );
+
+  testWidgets(
+    'tapping the outfit photo opens it full-screen; tapping again closes it',
+    (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, OutfitDetailsPage(outfit: _outfit()));
+        await tester.pump();
+        await tester.pump();
+
+        bool isBlackScaffold(Widget w) =>
+            w is Scaffold && w.backgroundColor == Colors.black;
+        expect(find.byWidgetPredicate(isBlackScaffold), findsNothing);
+
+        await tester.tap(find.byType(RefreshableNetworkImage).first);
+        // Not pumpAndSettle — CachedNetworkImage's placeholder spinner
+        // animates indefinitely while the (blocked-in-tests) network fetch
+        // never resolves.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(find.byWidgetPredicate(isBlackScaffold), findsOneWidget);
+
+        await tester.tapAt(const Offset(50, 50));
+        await tester.pump();
+        // A little past the 200ms transition — the route's post-animation
+        // teardown lands a frame after the animation itself completes.
+        await tester.pump(const Duration(milliseconds: 250));
+
+        expect(find.byWidgetPredicate(isBlackScaffold), findsNothing);
+      }, stubClient);
     },
   );
 

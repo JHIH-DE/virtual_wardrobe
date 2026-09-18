@@ -656,14 +656,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
     if (!mounted) return;
     resetTryOnState();
-    setState(() {
-      _accessories
-        ..clear()
-        ..add(null);
-      _background = BackgroundOption.all.first;
-      _backgroundCustomized = false;
-      _backgroundExpanded = false;
-    });
     if (saved == true) {
       showFeedbackOverlay(context, message: _l10n.outfitSaved);
     }

@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/add_outfit_page.dart';
+import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 
@@ -466,6 +467,102 @@ void main() {
       await tester.tap(find.text('BACKGROUND'));
       await tester.pumpAndSettle();
       expect(crossFade().crossFadeState, CrossFadeState.showSecond);
+    },
+  );
+
+  testWidgets(
+    'an accessory survives the round trip through Create Outfit and back',
+    (tester) async {
+      useTallSurface(tester);
+      final wardrobe = [
+        ...closet,
+        _garment(
+          id: 4,
+          category: GarmentCategory.accessory,
+          name: 'Ray-Bans',
+          subCategory: 'Sunglasses',
+        ),
+      ];
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/outfit')) {
+          return jsonResponse(envelope({'group_id': 42}));
+        }
+        if (request.method == 'POST' && path.endsWith('/generate')) {
+          return jsonResponse(
+            envelope({
+              'outfit_id': 99,
+              'group_id': 42,
+              'result_image_url': 'https://img.example/outfit.png',
+              'garment_ids': [1, 2, 3, 4],
+            }),
+          );
+        }
+        if (request.method == 'GET' && path.endsWith('/outfit/42')) {
+          return jsonResponse(
+            envelope({
+              'outfits': [
+                {
+                  'outfit_id': 99,
+                  'group_id': 42,
+                  'result_image_url': 'https://img.example/outfit.png',
+                  'garment_ids': [1, 2, 3, 4],
+                },
+              ],
+              'cover_outfit_id': 99,
+              'name': null,
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          AddOutfitPage(initialGarments: wardrobe), // Top+Bottom+Shoes+Ray-Bans
+          overrides: closetOverride(wardrobe),
+        );
+        await tester.pump();
+        expect(find.text('Ray-Bans'), findsOneWidget);
+
+        await tester.tap(
+          find.widgetWithText(BottomActionButton, 'Create Outfit'),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pump(const Duration(seconds: 1));
+
+        // Now on OutfitDetailsPage — back out and choose Save, same as the
+        // reported repro (create → save → return to Add Outfit). Plain
+        // pumps, not pumpAndSettle: the page's own loading spinner (while
+        // it resolves garments/saved-status) animates forever.
+        expect(find.byType(OutfitDetailsPage), findsOneWidget);
+        await tester.tap(find.byType(IconButton).first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(
+          find.descendant(
+            of: find.byType(Dialog),
+            matching: find.widgetWithText(ElevatedButton, 'Save'),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        // Unrelated to this test: the post-save "Outfit saved" toast
+        // (showFeedbackOverlay) overflows its fixed-width box under the
+        // test font's wider metrics — not something this fix touches.
+        tester.takeException();
+
+        // Back on Add Outfit — the accessory picked before "Create Outfit"
+        // must still be there, exactly like the core Top/Bottom/Shoes slots.
+        expect(find.byType(AddOutfitPage), findsOneWidget);
+        expect(find.text('Ray-Bans'), findsOneWidget);
+
+        // Drain showFeedbackOverlay's auto-dismiss timer so it doesn't trip
+        // the "pending timer after dispose" check at test teardown.
+        await tester.pump(const Duration(seconds: 3));
+      }, () => client);
     },
   );
 }
