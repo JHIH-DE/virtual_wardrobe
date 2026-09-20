@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
+import '../core/services/shared_media_handler.dart';
 import '../core/utils/debug_log.dart';
 import '../features/pages/add_outfit_page.dart';
 import '../features/pages/closet_page.dart';
@@ -39,6 +40,18 @@ class _MainShellState extends ConsumerState<MainShell> {
   // the shell-level overlay over whichever tab the user is actually
   // looking at (see MainShellScope.setLoading).
   final Map<MainTab, String?> _loadingLabelByTab = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Deferred to after the first frame — same reason every other
+    // context-needing initState hook in this app is (e.g. HomePage's
+    // mainTabReporter): MainShellScope/AppLocalizations lookups aren't
+    // safe to run during initState itself.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) SharedMediaHandler.listen(context, ref);
+    });
+  }
 
   void _select(MainTab tab) {
     if (tab != _current) setState(() => _current = tab);
@@ -90,52 +103,13 @@ class _MainShellState extends ConsumerState<MainShell> {
           },
         );
       case QuickAction.addOutfit:
-        await _openAddOutfit();
+        await openAddOutfit(context, ref);
       case QuickAction.newTrip:
         await handleCreateTrip(
           context,
           ref,
           onCreated: () => _select(MainTab.tripPlanner),
         );
-    }
-  }
-
-  Future<void> _openAddOutfit() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.transparent,
-      useSafeArea: false,
-      builder: (_) =>
-          LoadingOverlay(label: AppLocalizations.of(context).loadingGarments),
-    );
-    try {
-      // Warm garmentsProvider before opening the page (it reads the provider
-      // directly now); also lets an expired session surface here.
-      await ref.read(garmentsProvider.future);
-      if (!mounted) return;
-      Navigator.pop(context); // close loading indicator
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AddOutfitPage(
-            onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
-          ),
-        ),
-      );
-    } on AuthExpiredException {
-      if (!mounted) return;
-      Navigator.pop(context); // close loading indicator
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // close loading indicator
-      debugLog('Failed to load garments: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).failedToLoadGarments),
-        ),
-      );
     }
   }
 
@@ -171,6 +145,56 @@ class _MainShellState extends ConsumerState<MainShell> {
           if (_loadingLabelByTab[_current] != null)
             LoadingOverlay(label: _loadingLabelByTab[_current]!),
         ],
+      ),
+    );
+  }
+}
+
+/// Warms [garmentsProvider] behind a modal [LoadingOverlay] (see CLAUDE.md's
+/// "Loading/empty/error state" on why a cross-tab helper like this uses a
+/// modal instead of `MainShellScope.setLoading`), then pushes
+/// [AddOutfitPage]. Shared between [MainShell]'s own "+ Add Outfit" quick
+/// action and `SharedMediaHandler` (which also passes
+/// [initialMatchALookImagePath] for a photo shared in from another app).
+Future<void> openAddOutfit(
+  BuildContext context,
+  WidgetRef ref, {
+  String? initialMatchALookImagePath,
+}) async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.transparent,
+    useSafeArea: false,
+    builder: (_) =>
+        LoadingOverlay(label: AppLocalizations.of(context).loadingGarments),
+  );
+  try {
+    // Warm garmentsProvider before opening the page (it reads the provider
+    // directly now); also lets an expired session surface here.
+    await ref.read(garmentsProvider.future);
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddOutfitPage(
+          onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
+          initialMatchALookImagePath: initialMatchALookImagePath,
+        ),
+      ),
+    );
+  } on AuthExpiredException {
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    await AuthExpiredHandler.handle(context);
+  } catch (e) {
+    if (!context.mounted) return;
+    Navigator.pop(context); // close loading indicator
+    debugLog('Failed to load garments: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).failedToLoadGarments),
       ),
     );
   }

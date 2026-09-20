@@ -36,6 +36,11 @@ target 'Runner' do
   end
 end
 
+# ShareExtension (the "share a garment photo into Uwearis" flow) is
+# deliberately NOT a target here — it doesn't link receive_sharing_intent
+# (via CocoaPods or SPM) or anything else from Pods at all; see
+# ios/ShareExtension/RSIShareViewController.swift's header comment for why.
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)

@@ -2,7 +2,7 @@ name: uwearis
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ^3.9.2
@@ -37,6 +37,17 @@ dependencies:
   flutter_riverpod: ^3.3.2
   cached_network_image: ^3.4.1
   share_plus: ^10.1.4
+  # 1.9.0 (SPM-only on iOS) is what Runner links — it's the version with the
+  # non-deprecated (plain UIViewController, not SLComposeServiceViewController)
+  # RSIShareViewController that actually registers correctly as a share
+  # extension on a real iOS 26 device. ios/ShareExtension/ vendors that
+  # class (and its two small dependencies) directly instead of linking the
+  # package into the extension target — see
+  # ios/ShareExtension/RSIShareViewController.swift's header comment for the
+  # full story (a hybrid CocoaPods+SPM project like this one can't link the
+  # package into an app-extension target at all, by either mechanism tried).
+  receive_sharing_intent: ^1.9.0
+  image: ^4.10.1
 
 
 dev_dependencies:

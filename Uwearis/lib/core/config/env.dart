@@ -6,8 +6,8 @@ class Env {
   /// `--dart-define=BASE_URL=https://…` or a per-env `*.json`.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'https://vw-backend-staging-662955046370.asia-east1.run.app',
-    //defaultValue: 'http://10.0.2.2:8000',
+    //defaultValue: 'https://vw-backend-staging-662955046370.asia-east1.run.app',
+    defaultValue: 'http://10.0.2.2:8000',
   );
 
   static const String googleClientId = String.fromEnvironment(

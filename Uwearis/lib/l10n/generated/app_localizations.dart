@@ -576,14 +576,20 @@ abstract class AppLocalizations {
   /// No description provided for @outfitDetailsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Outfit'**
+  /// **'Outfit Details'**
   String get outfitDetailsTitle;
 
   /// No description provided for @tripDetailsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Trip'**
+  /// **'Trip Details'**
   String get tripDetailsTitle;
+
+  /// No description provided for @clothingDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clothing Details'**
+  String get clothingDetailsTitle;
 
   /// Section header showing how many garments are in an outfit
   ///
@@ -879,6 +885,12 @@ abstract class AppLocalizations {
   /// **'Add Clothing'**
   String get quickActionAddClothing;
 
+  /// No description provided for @photoSourceDialogSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How would you like to add a photo?'**
+  String get photoSourceDialogSubtitle;
+
   /// No description provided for @quickActionAddOutfit.
   ///
   /// In en, this message translates to:
@@ -890,6 +902,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plan a Trip'**
   String get newTrip;
+
+  /// No description provided for @useSharedPhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this Photo'**
+  String get useSharedPhotoTitle;
+
+  /// No description provided for @useSharedPhotoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to do with this photo?'**
+  String get useSharedPhotoSubtitle;
 
   /// No description provided for @retry.
   ///
@@ -1290,13 +1314,13 @@ abstract class AppLocalizations {
   /// No description provided for @takePhotoLabel.
   ///
   /// In en, this message translates to:
-  /// **'Take a Photo'**
+  /// **'Camera'**
   String get takePhotoLabel;
 
   /// No description provided for @chooseFromAlbumLabel.
   ///
   /// In en, this message translates to:
-  /// **'Choose from Album'**
+  /// **'Album'**
   String get chooseFromAlbumLabel;
 
   /// No description provided for @back.
@@ -1826,12 +1850,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select Date'**
   String get selectDate;
-
-  /// No description provided for @editImage.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit image'**
-  String get editImage;
 
   /// No description provided for @changesSaved.
   ///

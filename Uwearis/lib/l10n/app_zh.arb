@@ -95,8 +95,9 @@
   "createdOnDate": "建立於 {date}",
   "outfitTitle": "{style}穿搭",
 
-  "outfitDetailsTitle": "穿搭",
-  "tripDetailsTitle": "行程",
+  "outfitDetailsTitle": "穿搭詳情",
+  "tripDetailsTitle": "行程詳情",
+  "clothingDetailsTitle": "衣物詳情",
 
   "garmentsCount": "服飾（{count}）",
 
@@ -150,8 +151,11 @@
   "navTrips": "行程",
   "quickActions": "快速操作",
   "quickActionAddClothing": "新增衣物",
+  "photoSourceDialogSubtitle": "你想怎麼新增照片？",
   "quickActionAddOutfit": "建立穿搭",
   "newTrip": "規劃行程",
+  "useSharedPhotoTitle": "使用這張照片",
+  "useSharedPhotoSubtitle": "你想怎麼使用這張照片？",
 
   "retry": "重試",
   "aiTag": "AI",
@@ -229,8 +233,8 @@
 
   "camera": "拍照",
   "switchCamera": "切換鏡頭",
-  "takePhotoLabel": "拍照",
-  "chooseFromAlbumLabel": "從相簿選擇",
+  "takePhotoLabel": "相機",
+  "chooseFromAlbumLabel": "相簿",
   "back": "返回",
 
   "outfitFallbackTitle": "穿搭 #{id}",
@@ -324,7 +328,6 @@
   "brand": "品牌",
   "price": "價格",
   "selectDate": "選擇日期",
-  "editImage": "編輯圖片",
   "changesSaved": "變更已儲存",
   "itemDeleted": "已刪除衣物",
   "outfitSaved": "穿搭已儲存",

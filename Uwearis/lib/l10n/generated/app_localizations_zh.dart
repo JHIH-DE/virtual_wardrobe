@@ -256,10 +256,13 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get outfitDetailsTitle => '穿搭';
+  String get outfitDetailsTitle => '穿搭詳情';
 
   @override
-  String get tripDetailsTitle => '行程';
+  String get tripDetailsTitle => '行程詳情';
+
+  @override
+  String get clothingDetailsTitle => '衣物詳情';
 
   @override
   String garmentsCount(int count) {
@@ -411,10 +414,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quickActionAddClothing => '新增衣物';
 
   @override
+  String get photoSourceDialogSubtitle => '你想怎麼新增照片？';
+
+  @override
   String get quickActionAddOutfit => '建立穿搭';
 
   @override
   String get newTrip => '規劃行程';
+
+  @override
+  String get useSharedPhotoTitle => '使用這張照片';
+
+  @override
+  String get useSharedPhotoSubtitle => '你想怎麼使用這張照片？';
 
   @override
   String get retry => '重試';
@@ -623,10 +635,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get switchCamera => '切換鏡頭';
 
   @override
-  String get takePhotoLabel => '拍照';
+  String get takePhotoLabel => '相機';
 
   @override
-  String get chooseFromAlbumLabel => '從相簿選擇';
+  String get chooseFromAlbumLabel => '相簿';
 
   @override
   String get back => '返回';
@@ -899,9 +911,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get selectDate => '選擇日期';
-
-  @override
-  String get editImage => '編輯圖片';
 
   @override
   String get changesSaved => '變更已儲存';
@@ -1558,10 +1567,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get outfitDetailsTitle => '穿搭';
+  String get outfitDetailsTitle => '穿搭詳情';
 
   @override
-  String get tripDetailsTitle => '行程';
+  String get tripDetailsTitle => '行程詳情';
+
+  @override
+  String get clothingDetailsTitle => '衣物詳情';
 
   @override
   String garmentsCount(int count) {
@@ -1713,10 +1725,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get quickActionAddClothing => '新增衣物';
 
   @override
+  String get photoSourceDialogSubtitle => '你想怎麼新增照片？';
+
+  @override
   String get quickActionAddOutfit => '建立穿搭';
 
   @override
   String get newTrip => '規劃行程';
+
+  @override
+  String get useSharedPhotoTitle => '使用這張照片';
+
+  @override
+  String get useSharedPhotoSubtitle => '你想怎麼使用這張照片？';
 
   @override
   String get retry => '重試';
@@ -1925,10 +1946,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get switchCamera => '切換鏡頭';
 
   @override
-  String get takePhotoLabel => '拍照';
+  String get takePhotoLabel => '相機';
 
   @override
-  String get chooseFromAlbumLabel => '從相簿選擇';
+  String get chooseFromAlbumLabel => '相簿';
 
   @override
   String get back => '返回';
@@ -2201,9 +2222,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get selectDate => '選擇日期';
-
-  @override
-  String get editImage => '編輯圖片';
 
   @override
   String get changesSaved => '變更已儲存';

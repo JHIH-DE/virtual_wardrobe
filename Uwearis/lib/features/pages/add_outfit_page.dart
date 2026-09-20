@@ -14,7 +14,6 @@ import '../../core/services/match_look_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/try_on_mixin.dart';
 import '../../data/garment.dart';
-import '../../data/image_edit_result.dart';
 import '../../data/match_a_look.dart';
 import '../../data/occasion_type.dart';
 import '../../data/outfit.dart';
@@ -38,9 +37,9 @@ import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/occasion_picker_sheet.dart';
+import '../widgets/common/overlays/photo_source_dialog.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
-import 'image_editor_page.dart';
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
@@ -117,10 +116,18 @@ class AddOutfitPage extends ConsumerStatefulWidget {
   final List<Garment> initialGarments;
   final VoidCallback? onBack;
 
+  /// Set by `SharedMediaHandler` when this page was opened from a photo
+  /// shared in from another app — runs the Match a Look flow with that
+  /// photo automatically on open, the same continuation
+  /// [_AddOutfitPageState._startMatchALookFlow] otherwise only reaches once
+  /// the user taps the Match a Look card and picks a photo themselves.
+  final String? initialMatchALookImagePath;
+
   const AddOutfitPage({
     super.key,
     this.initialGarments = const [],
     this.onBack,
+    this.initialMatchALookImagePath,
   });
 
   @override
@@ -342,6 +349,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     // closet_page / outfits_page / trip_suitcase_page schedule it).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(garmentsProvider.notifier).refreshIfNeeded();
+      final sharedPath = widget.initialMatchALookImagePath;
+      if (sharedPath != null && mounted) {
+        _startMatchALookFlow(initialImagePath: sharedPath);
+      }
     });
   }
 
@@ -450,15 +461,14 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     _aiPopulatedSlots.remove(slot);
   }
 
-  Future<void> _startMatchALookFlow() async {
-    final result = await Navigator.push<ImageEditResult>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ImageEditorPage(showAnalysis: false),
-      ),
-    );
-    if (result == null || !mounted) return;
-    await _runMatchALook(result.imagePath);
+  /// [initialImagePath] uses a photo already in hand (from
+  /// `SharedMediaHandler`) instead of opening the camera/album picker.
+  Future<void> _startMatchALookFlow({String? initialImagePath}) async {
+    final imagePath =
+        initialImagePath ??
+        await showPhotoSourceDialog(context, title: _l10n.matchALookTitle);
+    if (imagePath == null || !mounted) return;
+    await _runMatchALook(imagePath);
   }
 
   Future<void> _runMatchALook(String imagePath) async {

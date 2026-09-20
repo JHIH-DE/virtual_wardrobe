@@ -266,10 +266,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get outfitDetailsTitle => 'Outfit';
+  String get outfitDetailsTitle => 'Outfit Details';
 
   @override
-  String get tripDetailsTitle => 'Trip';
+  String get tripDetailsTitle => 'Trip Details';
+
+  @override
+  String get clothingDetailsTitle => 'Clothing Details';
 
   @override
   String garmentsCount(int count) {
@@ -427,10 +430,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickActionAddClothing => 'Add Clothing';
 
   @override
+  String get photoSourceDialogSubtitle => 'How would you like to add a photo?';
+
+  @override
   String get quickActionAddOutfit => 'Create Outfit';
 
   @override
   String get newTrip => 'Plan a Trip';
+
+  @override
+  String get useSharedPhotoTitle => 'Use this Photo';
+
+  @override
+  String get useSharedPhotoSubtitle =>
+      'What would you like to do with this photo?';
 
   @override
   String get retry => 'Retry';
@@ -652,10 +665,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get switchCamera => 'Switch camera';
 
   @override
-  String get takePhotoLabel => 'Take a Photo';
+  String get takePhotoLabel => 'Camera';
 
   @override
-  String get chooseFromAlbumLabel => 'Choose from Album';
+  String get chooseFromAlbumLabel => 'Album';
 
   @override
   String get back => 'Back';
@@ -932,9 +945,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectDate => 'Select Date';
-
-  @override
-  String get editImage => 'Edit image';
 
   @override
   String get changesSaved => 'Changes Saved';

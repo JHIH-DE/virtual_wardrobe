@@ -122,8 +122,9 @@
     }
   },
 
-  "outfitDetailsTitle": "Outfit",
-  "tripDetailsTitle": "Trip",
+  "outfitDetailsTitle": "Outfit Details",
+  "tripDetailsTitle": "Trip Details",
+  "clothingDetailsTitle": "Clothing Details",
 
   "garmentsCount": "Garments ({count})",
   "@garmentsCount": {
@@ -185,8 +186,11 @@
   "navTrips": "Trips",
   "quickActions": "Quick Actions",
   "quickActionAddClothing": "Add Clothing",
+  "photoSourceDialogSubtitle": "How would you like to add a photo?",
   "quickActionAddOutfit": "Create Outfit",
   "newTrip": "Plan a Trip",
+  "useSharedPhotoTitle": "Use this Photo",
+  "useSharedPhotoSubtitle": "What would you like to do with this photo?",
 
   "retry": "Retry",
   "aiTag": "AI",
@@ -281,8 +285,8 @@
 
   "camera": "Camera",
   "switchCamera": "Switch camera",
-  "takePhotoLabel": "Take a Photo",
-  "chooseFromAlbumLabel": "Choose from Album",
+  "takePhotoLabel": "Camera",
+  "chooseFromAlbumLabel": "Album",
   "back": "Back",
 
   "outfitFallbackTitle": "Outfit #{id}",
@@ -398,7 +402,6 @@
   "brand": "Brand",
   "price": "Price",
   "selectDate": "Select Date",
-  "editImage": "Edit image",
   "changesSaved": "Changes Saved",
   "itemDeleted": "Clothing Deleted",
   "outfitSaved": "Outfit Saved",

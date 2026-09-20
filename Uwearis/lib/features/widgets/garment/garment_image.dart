@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/services/garment_service.dart';
+import '../../../core/utils/image_cache_bust.dart';
+import '../../../data/garment.dart';
 import '../common/images/refreshable_network_image.dart';
 
 class GarmentImage extends StatelessWidget {
@@ -48,11 +50,20 @@ class GarmentImage extends StatelessWidget {
       );
     } else if (u.startsWith('http')) {
       final id = garmentId;
+      // Same scheme as OutfitImage's cacheKey: a re-signed URL for the same
+      // garment shouldn't read as a disk-cache miss, so key by the stable
+      // id instead — plus ImageCacheBust's version suffix, bumped whenever
+      // Edit image replaces this exact garment's photo in place (same
+      // stable id, genuinely different bytes), which a stable-key cache
+      // would otherwise never see as a change and keep serving stale.
+      final baseKey = id != null ? garmentImageCacheKey(id) : null;
+      final cacheKey = baseKey == null
+          ? null
+          : '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
       image = RefreshableNetworkImage(
+        key: cacheKey == null ? null : ValueKey(cacheKey),
         imageUrl: u,
-        // Same reasoning as OutfitImage's cacheKey: a re-signed URL for
-        // the same garment shouldn't read as a disk-cache miss.
-        cacheKey: id != null ? 'garment-$id' : null,
+        cacheKey: cacheKey,
         width: width,
         height: height,
         memCacheWidth: memCacheWidth,

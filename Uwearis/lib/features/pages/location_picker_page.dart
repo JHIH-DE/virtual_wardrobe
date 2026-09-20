@@ -8,6 +8,7 @@ import '../../core/utils/debug_log.dart';
 import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/images/app_spinner.dart';
 
 class LocationPickerPage extends StatefulWidget {
   const LocationPickerPage({super.key});
@@ -67,7 +68,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       body: Column(
         children: [
           _buildSearchField(),
-          if (_isLoading) const LinearProgressIndicator(),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: AppSpinner()),
+            ),
           Expanded(child: _buildResultsList()),
         ],
       ),

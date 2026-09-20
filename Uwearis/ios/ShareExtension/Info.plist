@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppGroupId</key>
+	<string>$(CUSTOM_GROUP_ID)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>ShareExtension</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>ShareExtension</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<key>CFBundleShortVersionString</key>
+	<!-- Not $(FLUTTER_BUILD_NAME) — this target has no baseConfigurationReference
+	     at all (it doesn't link CocoaPods or Flutter/Generated.xcconfig — see
+	     RSIShareViewController.swift's header comment for why), so that var
+	     resolves to empty here (Apple then rejects the .appex for a blank
+	     CFBundleVersion). MARKETING_VERSION/CURRENT_PROJECT_VERSION are set
+	     directly as literals on this target instead — see project.pbxproj. -->
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>PHSupportedMediaTypes</key>
+			<array>
+				<string>Image</string>
+			</array>
+			<key>NSExtensionActivationRule</key>
+			<!-- Confirmed via an on-device diagnostic dump of
+			     registeredTypeIdentifiers (see git history): Photos.app
+			     shares a photo as a plain `public.url` item, not
+			     image data — hence WebURL here, not (only) the Image key
+			     tried earlier. RSIShareViewController's existing
+			     SharedMediaType.url handling (toUTTypeIdentifier ==
+			     UTType.url.identifier == "public.url") already covers this
+			     case; it was only ever the activation rule filtering it out
+			     before the extension got a chance to run. Image support is
+			     kept too, in case some other source app shares actual image
+			     bytes instead of a URL. -->
+			<dict>
+				<key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<integer>100</integer>
+			</dict>
+		</dict>
+		<key>NSExtensionMainStoryboard</key>
+		<string>MainInterface</string>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+	</dict>
+</dict>
+</plist>

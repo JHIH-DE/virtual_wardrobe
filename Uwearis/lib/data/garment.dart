@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+/// Stable per-garment cache-key identity for [ImageCacheBust]/image widgets
+/// — pass the same key everywhere a given garment's photo is cached or
+/// bumped so replacing it (Edit image) busts the cache everywhere else.
+/// Mirrors `outfitImageCacheKey` (`lib/data/outfit.dart`).
+String garmentImageCacheKey(int garmentId) => 'garment-job-$garmentId';
+
 enum GarmentCategory { top, bottom, outer, onePiece, socks, shoes, accessory }
 
 extension GarmentCategoryX on GarmentCategory {

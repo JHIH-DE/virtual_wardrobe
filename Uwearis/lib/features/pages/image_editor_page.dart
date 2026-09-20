@@ -1,8 +1,10 @@
 import 'dart:io';
-import 'dart:ui' as ui;
+import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
 import '../../app/theme/app_colors.dart';
@@ -16,6 +18,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/pill_button.dart';
+import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import 'camera_capture_page.dart';
@@ -92,6 +95,17 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   // updates _transformationController directly, outside any handler here.
   bool _transformChanged = false;
 
+  // True once _currentPath's bytes are decoded enough to actually paint the
+  // preview — gates Confirm (see _canConfirm) purely so the user can't tap
+  // it while still staring at the loading spinner over a photo they
+  // haven't actually seen framed yet. _captureFramedImage itself now
+  // re-decodes the source fresh and doesn't depend on this — see its own
+  // doc for why (it used to, via a screenshot of this preview, which is
+  // also what this flag's staleness protection below was originally
+  // guarding). Reset to false whenever _currentPath changes (initState,
+  // Retake, Album).
+  bool _imageReady = false;
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
@@ -99,6 +113,28 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     super.initState();
     _currentPath = widget.initialPath;
     _transformationController.addListener(_onTransformChanged);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _precacheCurrentImage(),
+    );
+  }
+
+  Future<void> _precacheCurrentImage() async {
+    final path = _currentPath;
+    if (path == null || path.isEmpty) return;
+    final provider = path.startsWith('http')
+        ? NetworkImage(path) as ImageProvider
+        : FileImage(File(path));
+    try {
+      await precacheImage(provider, context);
+    } catch (e) {
+      // A genuinely broken file still shows via _buildImageContent's own
+      // error state — this is only about decode-ahead timing, not
+      // validating the file, so a failure here isn't itself an error case.
+      debugLog('Failed to precache image: $e');
+    }
+    // path == _currentPath: a Retake/Album swap mid-precache must not let
+    // this stale completion mark the *new* current path ready.
+    if (mounted && path == _currentPath) setState(() => _imageReady = true);
   }
 
   @override
@@ -138,8 +174,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       setState(() {
         _currentPath = newPath;
         _sourceReplaced = true;
+        _imageReady = false;
         _resetImage();
       });
+      _precacheCurrentImage();
     }
   }
 
@@ -150,30 +188,93 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       setState(() {
         _currentPath = xFile.path;
         _sourceReplaced = true;
+        _imageReady = false;
         _resetImage();
       });
+      _precacheCurrentImage();
     }
   }
 
-  /// Rasterizes exactly what's currently visible in the crop preview —
-  /// i.e. respects whatever pinch-zoom/pan framing the user applied via
-  /// [_transformationController] — rather than re-reading and blindly
-  /// center-cropping the source file. Its shape follows [widget.aspectRatio]
-  /// since it just captures whatever the preview boundary is laid out as.
-  /// This also means it works the same way whether [_currentPath] is a
-  /// local file or a remote (http) URL: either way, the output is always a
-  /// fresh local file.
+  /// Crops exactly what's currently visible in the crop preview — i.e.
+  /// respects whatever pinch-zoom/pan framing the user applied via
+  /// [_transformationController] — directly out of the *original* source
+  /// bytes, not a screenshot of the on-screen preview.
+  ///
+  /// An earlier version used `RenderRepaintBoundary.toImage()` to rasterize
+  /// the live preview widget instead. That's simpler, but reads back
+  /// whatever the GPU has actually composited for the *on-screen* preview
+  /// box — for a source photo much higher-resolution than that box (a
+  /// shared/downloaded product shot easily 1000px+ taller than the
+  /// preview), minifying it down for display is lossy in a way that shows
+  /// up as visible moiré/artifacting on fine repeating patterns (e.g.
+  /// plaid) in the *saved* photo, not just the live preview — and doesn't
+  /// go away by waiting longer or asking for a higher-quality on-screen
+  /// filter (tried both; see git history). Reading the original bytes and
+  /// cropping+resampling them directly, once, off-screen, sidesteps both:
+  /// there's no render-timing race to lose to, and the resample only ever
+  /// has to happen once at whatever quality we ask for, not every frame.
   Future<String> _captureFramedImage() async {
-    final boundary =
-        _previewBoundaryKey.currentContext!.findRenderObject()
-            as RenderRepaintBoundary;
-    final pixelRatio = MediaQuery.of(context).devicePixelRatio * 2;
-    final image = await boundary.toImage(pixelRatio: pixelRatio);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    final path = _currentPath!;
+    final Uint8List sourceBytes = path.startsWith('http')
+        ? (await http.get(Uri.parse(path)).timeout(const Duration(seconds: 30)))
+              .bodyBytes
+        : await File(path).readAsBytes();
+
+    // Decoded, cropped, and resized entirely off the GPU, via package:image
+    // (plain CPU pixel buffers) rather than dart:ui's Canvas/
+    // PictureRecorder/Image.toImage(). An earlier version used the latter,
+    // which — despite not touching the live preview widget at all — still
+    // ultimately rasterizes through the engine's real GPU pipeline
+    // (Impeller) on a real device, the same class of "read back before the
+    // raster thread actually finished" race this whole rewrite was meant
+    // to close; a plain `flutter test` run can't catch that gap since its
+    // software Skia backend never races. package:image never touches a
+    // GPU at all, so there's no such window to lose to.
+    final decoded = img.decodeImage(sourceBytes);
+    if (decoded == null) {
+      throw StateError('Could not decode image at $path');
+    }
+    // _handleConfirmed already re-checks mounted with whatever this
+    // returns before touching it — an empty path here is never read.
+    if (!mounted) return '';
+
+    // The preview box's own on-screen size — needed to reverse the same
+    // BoxFit.contain fit + InteractiveViewer pan/zoom the box itself uses,
+    // so the crop matches what the user actually framed.
+    final boxSize =
+        (_previewBoundaryKey.currentContext!.findRenderObject() as RenderBox)
+            .size;
+    final imageSize = Size(decoded.width.toDouble(), decoded.height.toDouble());
+
+    final cropRect = computeCropRect(
+      boxSize: boxSize,
+      imageSize: imageSize,
+      transform: _transformationController.value,
+    );
+    final outputSize = computeOutputSize(cropRect.size);
+
+    final cropped = img.copyCrop(
+      decoded,
+      x: cropRect.left.round(),
+      y: cropRect.top.round(),
+      width: cropRect.width.round(),
+      height: cropRect.height.round(),
+    );
+    // Only actually resizes when outputSize is smaller (computeOutputSize
+    // never upscales) — copyResize with the crop's own size would be a
+    // needless full re-sample of an already-correctly-sized image.
+    final resized = outputSize.width.round() == cropped.width
+        ? cropped
+        : img.copyResize(
+            cropped,
+            width: outputSize.width.round(),
+            height: outputSize.height.round(),
+            interpolation: img.Interpolation.cubic,
+          );
 
     final outPath =
         '${Directory.systemTemp.path}/crop_${DateTime.now().millisecondsSinceEpoch}.png';
-    await File(outPath).writeAsBytes(byteData!.buffer.asUint8List());
+    await File(outPath).writeAsBytes(img.encodePng(resized));
     return outPath;
   }
 
@@ -297,6 +398,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   bool get _canConfirm =>
       _hasImage &&
+      _imageReady &&
       !_isAnalyzing &&
       !_confirming &&
       (!widget.requireChangeToConfirm || _hasChanges);
@@ -344,6 +446,17 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             ),
           ),
         ),
+        if (_hasImage && !_imageReady)
+          Positioned.fill(
+            // Opaque, not just an overlaid spinner — masks the image
+            // underneath until precache confirms it's fully decoded, so the
+            // user (and _captureFramedImage, once Confirm unlocks) never
+            // sees/captures a still-loading frame.
+            child: ColoredBox(
+              color: AppColors.surface,
+              child: const Center(child: AppSpinner(size: 28)),
+            ),
+          ),
         if (_hasImage && !_isAnalyzing) _buildResetButton(),
       ],
     );
@@ -444,4 +557,55 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       ],
     );
   }
+}
+
+/// The source-image pixel rect [_ImageEditorPageState._captureFramedImage]
+/// crops — a pure function (no BuildContext/State) so this geometry is
+/// unit-testable on its own, since getting it wrong is easy and silent
+/// (the app would just save the wrong region, not crash). Reverses, in
+/// order: [transform] ([InteractiveViewer]'s own — it maps its child, which
+/// fills [boxSize], to the viewport, also [boxSize]), then the
+/// [BoxFit.contain] fit of [imageSize] within that same [boxSize] the
+/// preview's `Image` widget applies. Clamped to the image's own bounds.
+@visibleForTesting
+Rect computeCropRect({
+  required Size boxSize,
+  required Size imageSize,
+  required Matrix4 transform,
+}) {
+  final baseScale = math.min(
+    boxSize.width / imageSize.width,
+    boxSize.height / imageSize.height,
+  );
+  final fittedOffset = Offset(
+    (boxSize.width - imageSize.width * baseScale) / 2,
+    (boxSize.height - imageSize.height * baseScale) / 2,
+  );
+
+  final inverseTransform = Matrix4.inverted(transform);
+  Offset toImagePoint(Offset viewportPoint) {
+    final childPoint = MatrixUtils.transformPoint(
+      inverseTransform,
+      viewportPoint,
+    );
+    return (childPoint - fittedOffset) / baseScale;
+  }
+
+  return Rect.fromPoints(
+    toImagePoint(Offset.zero),
+    toImagePoint(Offset(boxSize.width, boxSize.height)),
+  ).intersect(Rect.fromLTWH(0, 0, imageSize.width, imageSize.height));
+}
+
+/// Scales [cropSize] down (never up) so neither side exceeds
+/// [maxDimension] — a barely-zoomed crop of a large shared photo can still
+/// be close to its full source resolution, and nothing downstream
+/// (display, AI analysis) needs more than this.
+@visibleForTesting
+Size computeOutputSize(Size cropSize, {double maxDimension = 1600}) {
+  final scale = math.min(
+    1.0,
+    maxDimension / math.max(cropSize.width, cropSize.height),
+  );
+  return cropSize * scale;
 }

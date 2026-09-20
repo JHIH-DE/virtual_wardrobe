@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +11,7 @@ import '../../core/providers/garments_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
 import '../../core/utils/debug_log.dart';
+import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
@@ -24,13 +24,13 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/close_action_button.dart';
-import '../widgets/common/buttons/pill_button.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/cards/score_ring.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
+import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
@@ -41,8 +41,8 @@ import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/compatibility_row.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/garment/garment_share_sheet.dart';
+import '../widgets/garment/garment_upload_helper.dart';
 import 'garment_outfits_page.dart';
-import 'image_editor_page.dart';
 
 enum _GarmentMenuAction { rename, share, delete }
 
@@ -186,7 +186,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   /// Re-fetches the garment if its signed image URL has expired, so the
-  /// preview (and any edit flow launched from it) doesn't show a stale link.
+  /// preview doesn't show a stale link.
   Future<void> _ensureFreshImage() async {
     final url = _imagePathOrUrl;
     if (_id == null || url == null || !url.startsWith('http')) return;
@@ -372,9 +372,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   AppToolBar _buildAppBar() {
     return AppToolBar(
       // Add mode: "Add Clothing" in the toolbar (the name field takes its
-      // old spot below). Edit mode: blank — the garment's name shows as its
-      // own block below the app bar instead (see [_buildForm]).
-      title: _isAddMode ? _title : '',
+      // old spot below). Edit mode: "Clothing Details", matching Trip/Outfit
+      // Details' fixed AppBar title — the garment's own name still shows as
+      // its own block below the app bar (see [_buildForm]).
+      title: _isAddMode ? _title : _l10n.clothingDetailsTitle,
       onBack: () async {
         final shouldPop = await _onWillPop();
         if (shouldPop && mounted) Navigator.pop(context);
@@ -433,7 +434,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         backgroundColor: AppColors.pageBackground,
         extendBody: true,
         appBar: _buildAppBar(),
-        body: _buildForm(),
+        body: Stack(
+          children: [
+            _buildForm(),
+            if (_uploading) const Positioned.fill(child: Center(child: AppSpinner())),
+          ],
+        ),
         // Save button pinned to the bottom
         bottomNavigationBar: BottomActionButton(
           label: _isAddMode ? _l10n.addToCloset : _l10n.save,
@@ -469,7 +475,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: AppDivider(topSpacing: 12, bottomSpacing: 16),
           ),
-          if (_uploading) _buildUploadProgress(),
           if (_errorMessage != null)
             InlineErrorText(
               message: _errorMessage!,
@@ -497,13 +502,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           _buildDetailsSection(),
         ],
       ),
-    );
-  }
-
-  Widget _buildUploadProgress() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: LinearProgressIndicator(),
     );
   }
 
@@ -1124,29 +1122,20 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             child: AspectRatio(
               aspectRatio: 1.1,
-              child: img.startsWith('http')
-                  ? Image.network(
-                      img,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) => const Center(
-                        child: Icon(Icons.broken_image, color: AppColors.icon),
-                      ),
-                    )
-                  : Image.file(File(img), fit: BoxFit.contain),
+              // Canonical GarmentImage instead of a hand-rolled
+              // Image.network/Image.file — its RefreshableNetworkImage
+              // downloads to a complete file before decoding, unlike a bare
+              // Image.network streaming bytes straight into the decoder as
+              // they arrive, which on an imperfect connection can decode a
+              // truncated/torn frame instead of erroring cleanly (this is
+              // what was actually producing the "torn" garment photos —
+              // see git history, not a backend or crop-math bug after all).
+              child: GarmentImage(
+                url: img,
+                garmentId: _id,
+                fit: BoxFit.contain,
+              ),
             ),
-          ),
-        ),
-        // Edit Image button
-        Positioned(
-          bottom: 12,
-          right: 12,
-          child: PillButton.floating(
-            label: _l10n.editImage,
-            icon: Image.asset(
-              'assets/images/edit.png',
-              height: AppDimens.iconSmallSize,
-            ),
-            onPressed: _editCurrentImage,
           ),
         ),
         if (_isAnalyzing)
@@ -1179,36 +1168,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     if (xfile == null) return;
 
     if (!mounted) return;
-    final result = await Navigator.push<ImageEditResult>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ImageEditorPage(initialPath: xfile.path),
-      ),
-    );
-    _handleImageEditResult(result);
-  }
-
-  Future<void> _editCurrentImage() async {
-    if (_imagePathOrUrl == null) return;
-
-    await _ensureFreshImage();
-    if (!mounted) return;
-    final result = await Navigator.push<ImageEditResult>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ImageEditorPage(
-          initialPath: _imagePathOrUrl,
-          showAnalysis: false,
-          // A plain recrop of the same photo doesn't need re-analysis, but
-          // Retake/Album inside the editor can swap in a genuinely different
-          // photo — that one hasn't been background-removed yet, so it does.
-          analyzeIfSourceReplaced: true,
-          // This reopens the already-saved photo — confirming with zero
-          // changes would just re-upload an identical copy.
-          requireChangeToConfirm: true,
-        ),
-      ),
-    );
+    final result = await GarmentUploadHelper.analyzePhoto(context, xfile.path);
     _handleImageEditResult(result);
   }
 
@@ -1233,8 +1193,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           : await _updateGarmentFields();
 
       if (!mounted) return;
-      _adoptSaved(result, wasAdd: wasAdd);
+      await _adoptSaved(result, wasAdd: wasAdd);
     } on AuthExpiredException {
+      if (!mounted) return;
       await AuthExpiredHandler.handle(context);
       return;
     } catch (e) {
@@ -1250,12 +1211,52 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// Save keeps the user on this page: the persisted garment is folded into
   /// local state (Add Mode flips to Edit Mode), the closet provider is
   /// updated here rather than via a pop result, and a confirmation shows.
-  void _adoptSaved(Garment g, {required bool wasAdd}) {
+  Future<void> _adoptSaved(Garment g, {required bool wasAdd}) async {
+    // A new/edited photo lands at the *same* garmentImageCacheKey (stable,
+    // keyed by id) as whatever was cached before — GarmentImage's disk
+    // cache would otherwise keep serving the old bytes indefinitely since
+    // nothing about the cache key itself changed. Read _isImageChanged
+    // before the setState below resets it.
+    final imageChanged = _isImageChanged && g.id != null;
+    if (imageChanged) {
+      ImageCacheBust.bump(garmentImageCacheKey(g.id!));
+    }
+    // Precache the freshly-uploaded photo under the exact cache key
+    // GarmentImage will request — other surfaces showing this garment (the
+    // Closet grid card, compatibility rows, ...) read the network URL from
+    // the provider update below the moment it lands, so this is what keeps
+    // *their* first paint from flashing a placeholder. This page's own
+    // preview deliberately never makes that switch at all — see
+    // _imagePathOrUrl below.
+    final url = g.imageUrl;
+    if (imageChanged && url != null && url.isNotEmpty) {
+      final baseKey = garmentImageCacheKey(g.id!);
+      final cacheKey = '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
+      try {
+        await precacheImage(
+          CachedNetworkImageProvider(url, cacheKey: cacheKey),
+          context,
+        );
+      } catch (e) {
+        // Not fatal — GarmentImage falls back to its own placeholder/error
+        // state same as any other failed load.
+        debugLog('_adoptSaved: failed to precache garment photo: $e');
+      }
+      if (!mounted) return;
+    }
     setState(() {
       _editingGarment = g;
       _id = g.id;
       _name = g.name;
-      _imagePathOrUrl = g.imageUrl;
+      // Deliberately NOT _imagePathOrUrl = g.imageUrl — this page keeps
+      // showing the local file (already decoded, already on screen) for
+      // the rest of its own lifetime rather than switching to the network
+      // copy of the same photo, which would otherwise flash a placeholder
+      // as GarmentImage remounts onto a different widget branch. Other
+      // screens pick up the real network URL from the provider update
+      // below the moment they next build; only a fresh instance of *this*
+      // page (a new visit from Closet) ever reads the network URL, via
+      // _editingGarment in initState.
       _isImageChanged = false;
       _uploading = false;
       _errorMessage = null;
