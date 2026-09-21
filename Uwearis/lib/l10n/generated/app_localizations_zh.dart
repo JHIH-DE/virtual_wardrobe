@@ -18,6 +18,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get account => '帳號';
 
   @override
+  String get profilePhotoTitle => '個人頭像';
+
+  @override
   String get aiModel => '試穿檔案';
 
   @override
@@ -1327,6 +1330,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get account => '帳號';
+
+  @override
+  String get profilePhotoTitle => '個人頭像';
 
   @override
   String get aiModel => '試穿檔案';

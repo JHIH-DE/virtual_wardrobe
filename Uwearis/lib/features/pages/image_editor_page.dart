@@ -24,6 +24,11 @@ import '../widgets/common/overlays/loading_overlay.dart';
 import 'camera_capture_page.dart';
 
 class ImageEditorPage extends StatefulWidget {
+  /// App bar title — describes which photo is being edited (e.g. "Body
+  /// Reference", "Profile Photo"), since this page is shared across several
+  /// unrelated photo flows and has no other on-screen label for that.
+  final String title;
+
   final String? initialPath;
   final bool showAnalysis;
 
@@ -60,14 +65,27 @@ class ImageEditorPage extends StatefulWidget {
   /// the default framing is the normal, expected action.
   final bool requireChangeToConfirm;
 
+  /// Called at most once, only when [initialPath] is a URL and fails to
+  /// precache/load — mirrors [RefreshableNetworkImage]'s "self-heal a
+  /// stale signed URL" contract. Return a fresh URL to retry with, or
+  /// null/empty to give up. Reopening an *already-saved* http(s) reference
+  /// photo (avatar, AI Model's body/face) should always pass this — the
+  /// page that shows it thumbnail-sized already self-heals the same way via
+  /// [RefreshableNetworkImage], but that refreshed URL lives in that
+  /// widget's own state and never reaches whatever's held here, so this
+  /// page needs its own retry to open the same, possibly since-expired URL.
+  final Future<String?> Function()? onRefreshUrl;
+
   const ImageEditorPage({
     super.key,
+    required this.title,
     this.initialPath,
     this.showAnalysis = true,
     this.analyzeIfSourceReplaced = false,
     this.aspectRatio = 1.0,
     this.cameraFrameRatio = CameraFrameRatio.square,
     this.requireChangeToConfirm = false,
+    this.onRefreshUrl,
   });
 
   @override
@@ -95,6 +113,12 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   // updates _transformationController directly, outside any handler here.
   bool _transformChanged = false;
 
+  // True only while the user's fingers are actually on the InteractiveViewer
+  // (pinch/pan in progress) — gates the rule-of-thirds grid (see
+  // _buildImagePreview) so it only appears as a framing aid during zoom
+  // mode, not sitting on the photo the rest of the time.
+  bool _interacting = false;
+
   // True once _currentPath's bytes are decoded enough to actually paint the
   // preview — gates Confirm (see _canConfirm) purely so the user can't tap
   // it while still staring at the loading spinner over a photo they
@@ -121,7 +145,16 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Future<void> _precacheCurrentImage() async {
     final path = _currentPath;
     if (path == null || path.isEmpty) return;
-    final provider = path.startsWith('http')
+    await _tryPrecache(path, allowRefresh: true);
+  }
+
+  /// [allowRefresh] caps the self-heal below to one attempt per call to
+  /// [_precacheCurrentImage] — the retry itself passes false, so a
+  /// [widget.onRefreshUrl] that keeps handing back a still-broken URL can't
+  /// loop forever.
+  Future<void> _tryPrecache(String path, {required bool allowRefresh}) async {
+    final isHttp = path.startsWith('http');
+    final provider = isHttp
         ? NetworkImage(path) as ImageProvider
         : FileImage(File(path));
     try {
@@ -131,6 +164,31 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       // error state — this is only about decode-ahead timing, not
       // validating the file, so a failure here isn't itself an error case.
       debugLog('Failed to precache image: $e');
+      // Likely a stale signed URL: whatever screen linked here already
+      // self-heals the same URL via RefreshableNetworkImage, but that
+      // refresh lives in that widget's own state and never reaches
+      // widget.initialPath — see onRefreshUrl's own doc.
+      if (isHttp &&
+          allowRefresh &&
+          widget.onRefreshUrl != null &&
+          mounted &&
+          path == _currentPath) {
+        String? fresh;
+        try {
+          fresh = await widget.onRefreshUrl!();
+        } catch (e2) {
+          debugLog('Failed to refresh image URL: $e2');
+        }
+        if (mounted &&
+            fresh != null &&
+            fresh.isNotEmpty &&
+            fresh != path &&
+            path == _currentPath) {
+          setState(() => _currentPath = fresh);
+          await _tryPrecache(fresh, allowRefresh: false);
+          return;
+        }
+      }
     }
     // path == _currentPath: a Retake/Album swap mid-precache must not let
     // this stale completion mark the *new* current path ready.
@@ -351,7 +409,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: '',
+      title: widget.title,
       onBack: () {
         if (!_isAnalyzing) Navigator.pop(context);
       },
@@ -446,15 +504,43 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             ),
           ),
         ),
+        if (_hasImage && _imageReady && _interacting)
+          Positioned.fill(
+            // Rule-of-thirds framing guide, fixed to the preview box rather
+            // than the pinch-zoomed image underneath — outside the
+            // RepaintBoundary above, so it never ends up baked into the
+            // captured/cropped photo. Only shown while actively
+            // pinching/panning (see _interacting), like a camera's zoom grid.
+            // The dark scrim behind the grid lines is what's being framed —
+            // dimming it makes the white lines read clearly against any
+            // photo, bright or dark.
+            child: IgnorePointer(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+                child: const Stack(
+                  // Both layers need to fill the framed box exactly — a
+                  // plain Stack would shrink-wrap the sizeless CustomPaint.
+                  fit: StackFit.expand,
+                  children: [
+                    ColoredBox(color: AppColors.scrimMedium),
+                    CustomPaint(painter: _RuleOfThirdsGridPainter()),
+                  ],
+                ),
+              ),
+            ),
+          ),
         if (_hasImage && !_imageReady)
           Positioned.fill(
             // Opaque, not just an overlaid spinner — masks the image
             // underneath until precache confirms it's fully decoded, so the
             // user (and _captureFramedImage, once Confirm unlocks) never
             // sees/captures a still-loading frame.
-            child: ColoredBox(
-              color: AppColors.surface,
-              child: const Center(child: AppSpinner(size: 28)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+              child: ColoredBox(
+                color: AppColors.surface,
+                child: const Center(child: AppSpinner(size: 28)),
+              ),
             ),
           ),
         if (_hasImage && !_isAnalyzing) _buildResetButton(),
@@ -481,6 +567,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       transformationController: _transformationController,
       minScale: 0.5,
       maxScale: 4.0,
+      onInteractionStart: (_) => setState(() => _interacting = true),
+      onInteractionEnd: (_) => setState(() => _interacting = false),
       child: image,
     );
   }
@@ -557,6 +645,37 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       ],
     );
   }
+}
+
+/// Static rule-of-thirds crop-guide grid drawn over the preview box —
+/// evenly-spaced vertical and horizontal lines, purely a framing aid
+/// (never baked into the captured photo — see its call site). Always 3
+/// columns; the row count is derived from the box's own aspect ratio so
+/// every cell stays square (3×3 for a square preview, 3×4 for a 3:4
+/// portrait one) instead of stretching into rectangles.
+class _RuleOfThirdsGridPainter extends CustomPainter {
+  const _RuleOfThirdsGridPainter();
+
+  static const _columns = 3;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.surfaceTranslucent
+      ..strokeWidth = 2;
+    final rows = (_columns * size.height / size.width).round();
+    for (var i = 1; i < _columns; i++) {
+      final x = size.width * i / _columns;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (var i = 1; i < rows; i++) {
+      final y = size.height * i / rows;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RuleOfThirdsGridPainter oldDelegate) => false;
 }
 
 /// The source-image pixel rect [_ImageEditorPageState._captureFramedImage]

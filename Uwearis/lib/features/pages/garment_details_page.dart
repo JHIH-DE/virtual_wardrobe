@@ -422,7 +422,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      // Only intercept when there's actually something to lose — same
+      // condition _onWillPop already checks. A hardcoded false disables the
+      // iOS edge-swipe-back gesture outright (matches OutfitDetailsPage's
+      // `canPop: !widget.isNew || _saved`, not TripDetailsPage's lack of a
+      // PopScope at all — this page always has unsaved-changes to guard).
+      canPop: !_isModified,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();

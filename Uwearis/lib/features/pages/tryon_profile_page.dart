@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,13 +8,16 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
+import '../../core/utils/image_cache_bust.dart';
 import '../../data/image_edit_result.dart';
+import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
+import '../widgets/common/images/app_image.dart';
 import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/section_title.dart';
 import 'camera_capture_page.dart';
@@ -211,6 +212,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
       context,
       MaterialPageRoute(
         builder: (_) => ImageEditorPage(
+          title: _l10n.bodyReferenceLabel,
           initialPath: _fullBodyLocalPath ?? _fullBodyUrl,
           showAnalysis: false,
           aspectRatio: 3 / 4,
@@ -218,6 +220,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
           // This reopens the already-saved photo — confirming with zero
           // changes would just re-upload an identical copy.
           requireChangeToConfirm: true,
+          onRefreshUrl: () => ProfileService().getBodyRef(),
         ),
       ),
     );
@@ -231,6 +234,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
       context,
       MaterialPageRoute(
         builder: (_) => ImageEditorPage(
+          title: _l10n.faceReferenceLabel,
           initialPath: _faceLocalPath ?? _faceRefUrl,
           showAnalysis: false,
           aspectRatio: 3 / 4,
@@ -238,6 +242,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
           // This reopens the already-saved photo — confirming with zero
           // changes would just re-upload an identical copy.
           requireChangeToConfirm: true,
+          onRefreshUrl: () => ProfileService().getFaceReference(),
         ),
       ),
     );
@@ -251,6 +256,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
     try {
       final url = await ProfileService().uploadBodyRef(localPath);
       if (mounted) {
+        ImageCacheBust.bump(bodyRefImageCacheKey);
         setState(() {
           _fullBodyUrl = url;
           _fullBodyLocalPath = null;
@@ -269,6 +275,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
     try {
       final url = await ProfileService().uploadFaceRef(localPath);
       if (mounted) {
+        ImageCacheBust.bump(faceRefImageCacheKey);
         setState(() {
           _faceRefUrl = url;
           _faceLocalPath = null;
@@ -401,12 +408,12 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
     );
   }
 
-  Widget _buildPhotoAction(ImageProvider? provider) {
+  Widget _buildPhotoAction(String? url) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          provider != null ? _l10n.changePhotoAction : _l10n.addPhotoAction,
+          url != null ? _l10n.changePhotoAction : _l10n.addPhotoAction,
           style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
         ),
         Image.asset(
@@ -420,63 +427,82 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
     );
   }
 
-  Widget _buildPhotoLeading(ImageProvider? provider, IconData placeholder) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 96,
-        height: 128,
-        child: provider != null
-            ? Image(image: provider, fit: BoxFit.cover)
-            : Container(
+  Widget _buildPhotoLeading(
+    String? url, {
+    required IconData placeholder,
+    required String cacheKey,
+    required Future<String?> Function() onRefreshUrl,
+  }) {
+    return SizedBox(
+      width: 96,
+      height: 128,
+      child: url != null
+          ? AppImage(
+              url: url,
+              cacheKey: cacheKey,
+              onRefreshUrl: onRefreshUrl,
+              fit: BoxFit.cover,
+              borderRadius: 12,
+            )
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
                 color: AppColors.placeholderSurface,
                 child: Icon(
                   placeholder,
-                  color: AppColors.placeholderIcon,
+                  color: AppColors.borderStrong,
                   size: 28,
                 ),
               ),
-      ),
+            ),
     );
   }
 
   Widget _buildFaceReferenceCard() {
-    ImageProvider? provider;
-    if (_faceLocalPath != null) {
-      provider = FileImage(File(_faceLocalPath!));
-    } else if (_faceRefUrl != null &&
-        _faceRefUrl!.isNotEmpty &&
-        _faceRefUrl != 'string') {
-      provider = NetworkImage(_faceRefUrl!);
-    }
-
+    final url = _faceLocalPath ?? _resolvedUrl(_faceRefUrl);
     return _buildReferenceCard(
       title: _l10n.faceReferenceLabel,
       onTap: _loading ? null : _changeFacePhoto,
-      leading: _buildPhotoLeading(provider, Icons.face_outlined),
+      leading: _buildPhotoLeading(
+        url,
+        placeholder: Icons.face_outlined,
+        cacheKey: _versionedCacheKey(faceRefImageCacheKey),
+        onRefreshUrl: () => ProfileService().getFaceReference(),
+      ),
       subtitle: _l10n.faceAppearanceSubtitle,
-      action: _buildPhotoAction(provider),
+      action: _buildPhotoAction(url),
     );
   }
 
   Widget _buildBodyReferenceCard() {
-    ImageProvider? provider;
-    if (_fullBodyLocalPath != null) {
-      provider = FileImage(File(_fullBodyLocalPath!));
-    } else if (_fullBodyUrl != null &&
-        _fullBodyUrl!.isNotEmpty &&
-        _fullBodyUrl != 'string') {
-      provider = NetworkImage(_fullBodyUrl!);
-    }
-
+    final url = _fullBodyLocalPath ?? _resolvedUrl(_fullBodyUrl);
     return _buildReferenceCard(
       title: _l10n.bodyReferenceLabel,
       onTap: _loading ? null : _changeFullBodyPhoto,
-      leading: _buildPhotoLeading(provider, Icons.accessibility_new_outlined),
+      leading: _buildPhotoLeading(
+        url,
+        placeholder: Icons.accessibility_new_outlined,
+        cacheKey: _versionedCacheKey(bodyRefImageCacheKey),
+        onRefreshUrl: () => ProfileService().getBodyRef(),
+      ),
       subtitle: _l10n.bodyProportionsSubtitle,
-      action: _buildPhotoAction(provider),
+      action: _buildPhotoAction(url),
     );
   }
+
+  /// [baseKey] plus [ImageCacheBust]'s version suffix — see
+  /// [ImageCacheBust]'s own doc and `garmentImageCacheKey`'s call sites for
+  /// why (a re-signed URL for the same underlying photo shouldn't read as a
+  /// disk-cache miss, but a genuinely replaced photo — bumped in
+  /// [_uploadFaceRef]/[_uploadFullBody] below — must).
+  String _versionedCacheKey(String baseKey) =>
+      '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
+
+  /// The backend's OpenAPI schema example ("string") occasionally leaks
+  /// through as a literal placeholder value instead of a real URL/null —
+  /// treat it the same as "no photo set".
+  String? _resolvedUrl(String? url) =>
+      (url == null || url.isEmpty || url == 'string') ? null : url;
 
   Widget _buildBodyMeasurementsCard() {
     return AppCardShell(

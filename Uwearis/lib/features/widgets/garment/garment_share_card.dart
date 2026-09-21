@@ -41,13 +41,22 @@ class GarmentShareCard extends StatelessWidget {
     return ShareCardScaffold(
       width: width,
       height: height,
-      borderRadius: 0,
       // Product shots are framed on white — keep them whole (`contain`) with
       // a little breathing room rather than cropping to fill.
       image: Container(
         color: AppColors.surface,
         padding: const EdgeInsets.all(18),
-        child: Image(image: image, fit: BoxFit.contain),
+        child: Image(
+          image: image,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 36,
+              color: AppColors.icon,
+            ),
+          ),
+        ),
       ),
       info: [
         Text(

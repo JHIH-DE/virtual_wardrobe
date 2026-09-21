@@ -1,3 +1,8 @@
+/// Stable cache-key identity for [ImageCacheBust]/[AppImage] — see
+/// `faceRefImageCacheKey`/`bodyRefImageCacheKey` (profile_data.dart) for the
+/// same pattern. One signed-in user has at most one avatar, so no id.
+const String avatarImageCacheKey = 'avatar';
+
 /// The signed-in user's profile (`GET /users/me`, `PATCH /users/me` —
 /// `ProfileService.getMyProfile` / `updateMyProfile`). Only the fields the
 /// app actually reads back are modelled here; write-only fields

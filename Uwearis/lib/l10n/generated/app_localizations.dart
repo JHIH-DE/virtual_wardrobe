@@ -117,6 +117,12 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get account;
 
+  /// No description provided for @profilePhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Photo'**
+  String get profilePhotoTitle;
+
   /// No description provided for @aiModel.
   ///
   /// In en, this message translates to:
@@ -888,7 +894,7 @@ abstract class AppLocalizations {
   /// No description provided for @photoSourceDialogSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'How would you like to add a photo?'**
+  /// **'How would you like to add it?'**
   String get photoSourceDialogSubtitle;
 
   /// No description provided for @quickActionAddOutfit.

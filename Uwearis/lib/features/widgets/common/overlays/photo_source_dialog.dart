@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../pages/camera_capture_page.dart';
@@ -37,11 +36,7 @@ Future<String?> showPhotoSourceDialog(
                 Expanded(
                   child: DialogOptionCard(
                     variant: DialogOptionCardVariant.square,
-                    icon: Image.asset(
-                      'assets/images/camera.png',
-                      height: 32,
-                      color: AppColors.accent,
-                    ),
+                    icon: Image.asset('assets/images/camera.png', height: 32),
                     label: Text(l10n.takePhotoLabel, style: AppTextStyle.bold16),
                     onTap: () => Navigator.pop(dialogCtx, ImageSource.camera),
                   ),
@@ -50,11 +45,7 @@ Future<String?> showPhotoSourceDialog(
                 Expanded(
                   child: DialogOptionCard(
                     variant: DialogOptionCardVariant.square,
-                    icon: Image.asset(
-                      'assets/images/album.png',
-                      height: 32,
-                      color: AppColors.accent,
-                    ),
+                    icon: Image.asset('assets/images/album.png', height: 32),
                     label: Text(
                       l10n.chooseFromAlbumLabel,
                       style: AppTextStyle.bold16,

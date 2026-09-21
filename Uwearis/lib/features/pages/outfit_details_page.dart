@@ -46,9 +46,9 @@ import '../widgets/outfit/outfit_share_sheet.dart';
 import 'outfit_edit_page.dart';
 import 'select_outfit_group_page.dart';
 
-enum _OutfitMenuAction { rename, delete }
+enum _OutfitMenuAction { rename, share, delete }
 
-enum _VersionMenuAction { setCover, regenerate, share, delete }
+enum _VersionMenuAction { setCover, regenerate, delete }
 
 class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
@@ -281,35 +281,53 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   AppToolBar _buildAppBar() {
+    final items = [
+      if (!widget.isNew)
+        AppPopupMenu.item(
+          value: _OutfitMenuAction.rename,
+          icon: const Icon(
+            Icons.edit_outlined,
+            size: 20,
+            color: AppColors.icon,
+          ),
+          label: _l10n.rename,
+        ),
+      // Same availability Share had as a photo-overlay action: not mid
+      // regenerate (the image is changing), not a Daily outfit (its whole
+      // version menu is hidden the same way). Unlike Rename/Delete, Share
+      // makes sense on a brand-new unsaved outfit too, so it isn't gated on
+      // widget.isNew.
+      if (!_isRegenerating && !_isDailyOutfit)
+        AppPopupMenu.item(
+          value: _OutfitMenuAction.share,
+          icon: const Icon(
+            Icons.share_outlined,
+            size: 20,
+            color: AppColors.icon,
+          ),
+          label: _l10n.share,
+        ),
+      if (!widget.isNew)
+        AppPopupMenu.item(
+          value: _OutfitMenuAction.delete,
+          enabled: !_isDeleting,
+          icon: const Icon(
+            Icons.delete_outline,
+            size: 20,
+            color: AppColors.icon,
+          ),
+          label: _l10n.deleteOutfitTitle,
+          isDestructive: true,
+        ),
+    ];
     return AppToolBar(
       title: _l10n.outfitDetailsTitle,
       onBack: widget.isNew ? _leaveNewOutfit : null,
       actions: [
-        if (!widget.isNew)
+        if (items.isNotEmpty)
           AppPopupMenu<_OutfitMenuAction>(
             onSelected: _handleMenuAction,
-            items: [
-              AppPopupMenu.item(
-                value: _OutfitMenuAction.rename,
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  size: 20,
-                  color: AppColors.icon,
-                ),
-                label: _l10n.rename,
-              ),
-              AppPopupMenu.item(
-                value: _OutfitMenuAction.delete,
-                enabled: !_isDeleting,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  size: 20,
-                  color: AppColors.icon,
-                ),
-                label: _l10n.deleteOutfitTitle,
-                isDestructive: true,
-              ),
-            ],
+            items: items,
           ),
       ],
     );
@@ -319,6 +337,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     switch (action) {
       case _OutfitMenuAction.rename:
         _showRenameDialog();
+        break;
+      case _OutfitMenuAction.share:
+        _shareOutfit();
         break;
       case _OutfitMenuAction.delete:
         _deleteOutfit();
@@ -804,7 +825,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                   Positioned(
                     top: 12,
                     right: 12,
-                    child: _buildVersionMenuButton(),
+                    // The "..." menu only earns its keep once it actually
+                    // holds more than one action (Set Cover / Delete This
+                    // Version only show with multiple versions — see
+                    // _buildVersionMenuButton) — with just Regenerate left,
+                    // show that directly instead of a menu with one entry.
+                    child: _hasMultipleVersions
+                        ? _buildVersionMenuButton()
+                        : _buildRegenerateBadge(),
                   ),
                   Positioned(
                     bottom: 12,
@@ -896,6 +924,21 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
+  /// Single-version stand-in for [_buildVersionMenuButton] — same disc, but
+  /// Regenerate directly rather than behind a menu with only one entry.
+  Widget _buildRegenerateBadge() {
+    return CardCornerBadge(
+      icon: Icons.refresh,
+      backgroundColor: AppColors.surfaceTranslucent,
+      iconColor: AppColors.hintText,
+      border: Border.all(color: AppColors.borderSubtle),
+      boxShadow: const [],
+      size: 36,
+      iconSize: 20,
+      onTap: _regenerateImage,
+    );
+  }
+
   /// Dots marking which version's photo is shown, plus a "current / total"
   /// counter trailing them — hidden entirely when there's only one version.
   /// The photo's own "..." corner menu — Regenerate and Delete this
@@ -921,15 +964,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           value: _VersionMenuAction.regenerate,
           icon: const Icon(Icons.refresh, size: 20, color: AppColors.icon),
           label: _l10n.regenerate,
-        ),
-        AppPopupMenu.item(
-          value: _VersionMenuAction.share,
-          icon: const Icon(
-            Icons.share_outlined,
-            size: 20,
-            color: AppColors.icon,
-          ),
-          label: _l10n.share,
         ),
         // "Delete This Version" only when there's more than one version —
         // otherwise it's a whole-group delete (the app-bar menu's Delete
@@ -975,9 +1009,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         break;
       case _VersionMenuAction.regenerate:
         _regenerateImage();
-        break;
-      case _VersionMenuAction.share:
-        _shareOutfit();
         break;
       case _VersionMenuAction.delete:
         _deleteThisOutfit();

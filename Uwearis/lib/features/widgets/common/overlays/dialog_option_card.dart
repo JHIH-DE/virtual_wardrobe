@@ -121,8 +121,11 @@ class _SquareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.accentTint,
-      borderRadius: BorderRadius.circular(20),
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.borderSubtle),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -145,8 +148,8 @@ class _SquareCard extends StatelessWidget {
                     Container(
                       width: circleSize,
                       height: circleSize,
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.18),
+                      decoration: const BoxDecoration(
+                        color: AppColors.placeholderSurface,
                         shape: BoxShape.circle,
                       ),
                       child: Center(child: icon),

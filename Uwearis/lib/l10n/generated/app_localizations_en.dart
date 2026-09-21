@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account => 'Account';
 
   @override
+  String get profilePhotoTitle => 'Profile Photo';
+
+  @override
   String get aiModel => 'Try-On Profile';
 
   @override
@@ -430,7 +433,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickActionAddClothing => 'Add Clothing';
 
   @override
-  String get photoSourceDialogSubtitle => 'How would you like to add a photo?';
+  String get photoSourceDialogSubtitle => 'How would you like to add it?';
 
   @override
   String get quickActionAddOutfit => 'Create Outfit';

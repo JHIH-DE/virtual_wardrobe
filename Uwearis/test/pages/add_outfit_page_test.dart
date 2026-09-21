@@ -447,6 +447,73 @@ void main() {
   );
 
   testWidgets(
+    'Add garment picker hides a base-layer alternative for the worn top '
+    '(Polo shirt while wearing a T-shirt) the same way it hides an '
+    'already-worn accessory type, but a genuine mid-layer piece still shows '
+    'and stacks',
+    (tester) async {
+      useTallSurface(tester);
+      final wardrobe = [
+        _garment(id: 1, category: GarmentCategory.top, name: 'Tee', subCategory: 'T-shirt'),
+        _garment(id: 2, category: GarmentCategory.top, name: 'Polo', subCategory: 'Polo shirt'),
+        _garment(id: 3, category: GarmentCategory.top, name: 'Cardi', subCategory: 'Cardigan'),
+      ];
+      await pumpApp(
+        tester,
+        AddOutfitPage(initialGarments: [wardrobe[0]]),
+        overrides: closetOverride(wardrobe),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      expect(find.text('Polo'), findsNothing);
+      expect(find.text('Cardi'), findsOneWidget);
+
+      await tester.tap(find.text('Cardi'));
+      await tester.pumpAndSettle();
+
+      // A cardigan is a real mid layer — it stacks alongside the base top
+      // rather than replacing it.
+      expect(find.text('Tee'), findsOneWidget);
+      expect(find.text('Cardi'), findsOneWidget);
+      expect(find.text('Top · T-shirt'), findsOneWidget);
+      expect(find.text('Top · Cardigan'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'swapping the worn top directly still offers its base-layer alternative, '
+    'and picking it replaces the top rather than adding a mid layer',
+    (tester) async {
+      useTallSurface(tester);
+      final wardrobe = [
+        _garment(id: 1, category: GarmentCategory.top, name: 'Tee', subCategory: 'T-shirt'),
+        _garment(id: 2, category: GarmentCategory.top, name: 'Polo', subCategory: 'Polo shirt'),
+      ];
+      await pumpApp(
+        tester,
+        AddOutfitPage(initialGarments: [wardrobe[0]]),
+        overrides: closetOverride(wardrobe),
+      );
+      await tester.pump();
+
+      // Tapping the Top row itself (swap flow) re-admits its own
+      // alternative, unlike the generic "Add garment" picker above.
+      await tester.tap(find.text('Tee'));
+      await tester.pumpAndSettle();
+      expect(find.text('Polo'), findsOneWidget);
+
+      await tester.tap(find.text('Polo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tee'), findsNothing);
+      expect(find.text('Polo'), findsOneWidget);
+      expect(find.text('Top · Polo shirt'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'shows a collapsed Background section; tapping it opens the picker',
     (tester) async {
       useTallSurface(tester);

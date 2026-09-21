@@ -3,9 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'images/app_image.dart';
 
 class ProfileAvatar extends StatelessWidget {
-  final ImageProvider? image;
+  final String? url;
+
+  /// See [AppImage.cacheKey] / [AppImage.onRefreshUrl] — pass a stable,
+  /// [ImageCacheBust]-versioned key (e.g. `avatarImageCacheKey`) and a
+  /// re-fetch callback so a re-signed URL doesn't miss the disk cache and a
+  /// freshly-replaced avatar doesn't keep showing the old one.
+  final String? cacheKey;
+  final Future<String?> Function()? onRefreshUrl;
+
   final VoidCallback? onTap;
   final double size;
   final bool showEditLabel;
@@ -13,7 +22,9 @@ class ProfileAvatar extends StatelessWidget {
 
   const ProfileAvatar({
     super.key,
-    this.image,
+    this.url,
+    this.cacheKey,
+    this.onRefreshUrl,
     this.onTap,
     this.size = 120,
     this.showEditLabel = true,
@@ -22,6 +33,7 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = url != null && url!.isNotEmpty;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -32,8 +44,13 @@ class ProfileAvatar extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              image != null
-                  ? Image(image: image!, fit: BoxFit.cover)
+              hasImage
+                  ? AppImage(
+                      url: url,
+                      cacheKey: cacheKey,
+                      onRefreshUrl: onRefreshUrl,
+                      fit: BoxFit.cover,
+                    )
                   : ColoredBox(
                       color: AppColors.placeholderSurface,
                       child: Icon(

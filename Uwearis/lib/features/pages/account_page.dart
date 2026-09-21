@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -11,8 +9,10 @@ import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
+import '../../core/utils/image_cache_bust.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/location_result.dart';
+import '../../data/user_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
@@ -137,11 +137,13 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ImageEditorPage(
+          title: _l10n.profilePhotoTitle,
           initialPath: _avatarLocalPath ?? _avatarUrl,
           showAnalysis: false,
           // This reopens the already-saved avatar — confirming with zero
           // changes would just re-upload an identical copy.
           requireChangeToConfirm: true,
+          onRefreshUrl: () => ProfileService().getMyAvatar(),
         ),
       ),
     );
@@ -155,6 +157,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     try {
       final url = await ProfileService().uploadAvatar(localPath);
       if (mounted) {
+        ImageCacheBust.bump(avatarImageCacheKey);
         setState(() {
           _avatarUrl = url;
           _avatarLocalPath = null;
@@ -244,15 +247,16 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   bool get _showsBottomActionButton => _isModified && !_loading;
 
+  /// The backend's OpenAPI schema example ("string") occasionally leaks
+  /// through as a literal placeholder value instead of a real URL/null —
+  /// treat it the same as "no avatar set".
+  String? _resolvedAvatarUrl(String? url) =>
+      (url == null || url.isEmpty || url == 'string') ? null : url;
+
   Widget _buildAvatarSection() {
-    ImageProvider? avatarProvider;
-    if (_avatarLocalPath != null) {
-      avatarProvider = FileImage(File(_avatarLocalPath!));
-    } else if (_avatarUrl != null &&
-        _avatarUrl!.isNotEmpty &&
-        _avatarUrl != 'string') {
-      avatarProvider = NetworkImage(_avatarUrl!);
-    }
+    final url = _avatarLocalPath ?? _resolvedAvatarUrl(_avatarUrl);
+    final baseKey = avatarImageCacheKey;
+    final cacheKey = '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32),
@@ -265,7 +269,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       ),
       child: Center(
         child: ProfileAvatar(
-          image: avatarProvider,
+          url: url,
+          cacheKey: cacheKey,
+          onRefreshUrl: () => ProfileService().getMyAvatar(),
           size: 120,
           onTap: _avatarUploading ? null : _changeAvatar,
         ),

@@ -4,6 +4,7 @@
 
   "settings": "設定",
   "account": "帳號",
+  "profilePhotoTitle": "個人頭像",
   "aiModel": "試穿檔案",
   "aiModelDescription": "新增參考照片，幫助 Uwearis 打造更精準的試穿效果。",
   "faceReferenceLabel": "臉部參考",

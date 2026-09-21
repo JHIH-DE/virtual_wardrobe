@@ -9,8 +9,11 @@ import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
+import '../../core/services/profile_service.dart';
 import '../../core/utils/debug_log.dart';
+import '../../core/utils/image_cache_bust.dart';
 import '../../data/profile_data.dart';
+import '../../data/user_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -174,18 +177,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildProfileCard(AppLocalizations l10n) {
-    ImageProvider? avatarProvider;
-    if (_avatarUrl != null &&
-        _avatarUrl!.isNotEmpty &&
-        _avatarUrl != 'string') {
-      avatarProvider = NetworkImage(_avatarUrl!);
-    }
+    final url = (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string')
+        ? _avatarUrl
+        : null;
+    final cacheKey =
+        '$avatarImageCacheKey-v${ImageCacheBust.versionOf(avatarImageCacheKey)}';
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: Column(
         children: [
           // Read-only — see AccountPage for the editable version.
-          ProfileAvatar(image: avatarProvider, size: 120, showEditLabel: false),
+          ProfileAvatar(
+            url: url,
+            cacheKey: cacheKey,
+            onRefreshUrl: () => ProfileService().getMyAvatar(),
+            size: 120,
+            showEditLabel: false,
+          ),
           const SizedBox(height: 16),
           Text(
             (_name != null && _name!.isNotEmpty) ? _name! : '---',

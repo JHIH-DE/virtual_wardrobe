@@ -29,9 +29,7 @@ class AppColors {
   // Borders & dividers
   static const Color borderStrong = Color(0xFFB7AFA0);
   static const Color borderSubtle = Color(0xFFE7E3DA);
-  static const Color dividerStrong = Color(0xFF322F2A);
   static const Color dividerSubtle = Color(0xFFF1F1F1);
-  static const Color placeholderIcon = Color(0xFFB6AFA2);
 
   // Brand — near-black for actions/selection
   static const Color primary = Color(0xFF1A1A1A);
@@ -49,13 +47,11 @@ class AppColors {
   // present but not shouty. Equivalent to `accent.withValues(alpha: 0.55)`.
   static const Color accentOutline = Color(0x8C9966CC); // accent @55%
 
-  // Social sign-in (fixed brand colors, do not retint)
+  // Social sign-in (fixed brand color, do not retint)
   static const Color facebook = Color(0xFF1877F2);
-  static const Color google = Color(0xFF4285F4);
 
   // State
   static const Color error = Color(0xFFE4483F);
-  static const Color success = Color(0xFF1FAE79);
 
   // Filled-heart color when an outfit/garment is marked favorite
   static const Color favorite = Color(0xFFE53935);
@@ -64,10 +60,6 @@ class AppColors {
   static const Color statusOngoing = Color(0xFF4CAF50);
   static const Color statusUpcoming = Color(0xFF4F7FFF);
   static const Color statusPast = Color(0xFF9E9E9E);
-
-  // AppCard drop shadow (two-tone hard shadow)
-  static const Color cardShadowTop = Color(0xFFE9E5DC);
-  static const Color cardShadowBottom = Color(0xFFD6CFC0);
 
   // UwearisInsightCard — the AI-output call-out's gradient background tint
   static const Color uwearisCardTint = Color(0xFFF3EFE6);
@@ -95,11 +87,6 @@ class AppColors {
   // single identity.
   static const Color chartOther = borderStrong;
 
-  // Overlays — composed as base color + alpha so the opacity is explicit
-  static const Color selectionTint = Color(
-    0x5C1A1A1A,
-  ); // selected-card highlight, primary @36%
-
   // Shared shadow/backdrop tiers (replaces ad hoc Colors.black.withOpacity(...) literals)
   static const Color shadowResting = Color(
     0x0F000000,
@@ -116,9 +103,6 @@ class AppColors {
   static const Color dividerOnDark = Color(
     0x26FFFFFF,
   ); // divider on dark surfaces (e.g. nav bar's quick-action menu), white @15%
-  static const Color shadowFaint = Color(
-    0x0D000000,
-  ); // faint resting shadow/border, black @5%
   static const Color shadowSoft = Color(
     0x26000000,
   ); // soft drop shadow (e.g. a card corner badge), black @15%

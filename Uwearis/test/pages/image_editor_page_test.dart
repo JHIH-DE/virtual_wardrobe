@@ -134,7 +134,11 @@ void main() {
     await tester.runAsync(() async {
       await pumpApp(
         tester,
-        ImageEditorPage(initialPath: imageFile.path, showAnalysis: false),
+        ImageEditorPage(
+          title: 'Photo',
+          initialPath: imageFile.path,
+          showAnalysis: false,
+        ),
       );
       await tester.pump();
 

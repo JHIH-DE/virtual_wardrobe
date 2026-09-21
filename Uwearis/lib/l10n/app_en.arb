@@ -7,6 +7,7 @@
 
   "settings": "Settings",
   "account": "Account",
+  "profilePhotoTitle": "Profile Photo",
   "aiModel": "Try-On Profile",
   "aiModelDescription": "Add reference photos to help Uwearis create more accurate try-ons.",
   "faceReferenceLabel": "Face Reference",
@@ -186,7 +187,7 @@
   "navTrips": "Trips",
   "quickActions": "Quick Actions",
   "quickActionAddClothing": "Add Clothing",
-  "photoSourceDialogSubtitle": "How would you like to add a photo?",
+  "photoSourceDialogSubtitle": "How would you like to add it?",
   "quickActionAddOutfit": "Create Outfit",
   "newTrip": "Plan a Trip",
   "useSharedPhotoTitle": "Use this Photo",

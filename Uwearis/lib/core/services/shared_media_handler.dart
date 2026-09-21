@@ -92,7 +92,7 @@ class SharedMediaHandler {
                     variant: DialogOptionCardVariant.square,
                     icon: const Icon(
                       Icons.dry_cleaning_outlined,
-                      color: AppColors.accent,
+                      color: AppColors.icon,
                       size: AppDimens.iconMediumSize,
                     ),
                     label: Text(
@@ -123,7 +123,7 @@ class SharedMediaHandler {
                     variant: DialogOptionCardVariant.square,
                     icon: const Icon(
                       Icons.auto_awesome,
-                      color: AppColors.accent,
+                      color: AppColors.icon,
                       size: AppDimens.iconMediumSize,
                     ),
                     label: Text(

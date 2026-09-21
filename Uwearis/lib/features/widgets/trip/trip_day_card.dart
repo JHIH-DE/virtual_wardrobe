@@ -49,7 +49,7 @@ class TripDayCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         border: isSelected
             ? Border.all(color: AppColors.borderStrong, width: 1.5)
-            : Border.all(color: AppColors.shadowFaint, width: 1),
+            : Border.all(color: AppColors.shadowResting, width: 1),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadowResting,

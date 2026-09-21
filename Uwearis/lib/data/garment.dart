@@ -170,6 +170,21 @@ String accessorySlotKey(String subCategory) {
   return normalized;
 }
 
+/// Normalizes a top's AI-assigned `subCategory` into its base-layer slot for
+/// exclusivity purposes — "T-shirt" and "Polo shirt" are both a base top, so
+/// picking one should replace the other rather than stack as a second,
+/// simultaneous [GarmentCategory.top] pick (unlike a genuine Mid Layer piece
+/// — a sweater/cardigan worn *over* a base top). Same shape as
+/// [accessorySlotKey]: only merges pairs known to collide; extend the set
+/// here if more turn up. Used by AddOutfitPage's "Add garment" auto-slotting
+/// ([AddOutfitPage] `_placeGarment`) to decide top vs. mid-layer placement.
+String baseTopSlotKey(String subCategory) {
+  final normalized = subCategory.toLowerCase();
+  const baseTop = {'t-shirt', 'polo shirt'};
+  if (baseTop.contains(normalized)) return 'base-top';
+  return normalized;
+}
+
 class Garment {
   final int? id;
   final int? garmentId;

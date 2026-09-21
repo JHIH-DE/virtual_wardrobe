@@ -50,7 +50,20 @@ class OutfitShareCard extends StatelessWidget {
       height: height,
       // A try-on render is a lifestyle photo — bleed it to the edges,
       // BoxFit.cover so its own aspect never matters.
-      image: Image(image: image, fit: BoxFit.cover),
+      image: Image(
+        image: image,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: AppColors.surface,
+          child: const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 36,
+              color: AppColors.icon,
+            ),
+          ),
+        ),
+      ),
       info: [
         Text(
           name,
@@ -109,7 +122,17 @@ class _Thumb extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(3),
-        child: Image(image: image, fit: BoxFit.contain),
+        child: Image(
+          image: image,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => const Center(
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 16,
+              color: AppColors.icon,
+            ),
+          ),
+        ),
       ),
     );
   }

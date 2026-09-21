@@ -211,12 +211,16 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   /// Garments the "Add garment" picker should offer, given what the outfit
   /// already has: a category with no free slot drops out entirely (you can't
-  /// wear a second pair of trousers), and an accessory type already worn
-  /// drops out (no second pair of sunglasses). Core garments already in the
-  /// outfit don't reappear either. [keepCategory] / [keepAccessoryIndex]
-  /// re-admit whatever the user is currently swapping.
+  /// wear a second pair of trousers), an accessory type already worn drops
+  /// out (no second pair of sunglasses), and a base-layer top already worn
+  /// drops out its alternatives the same way (wearing a T-shirt hides Polo
+  /// shirt too — see [baseTopSlotKey]; a genuine mid-layer piece like a
+  /// cardigan is a different key and still offered). Core garments already
+  /// in the outfit don't reappear either. [keepCategory] / [keepSlot] /
+  /// [keepAccessoryIndex] re-admit whatever the user is currently swapping.
   List<Garment> _addGarmentCandidates({
     GarmentCategory? keepCategory,
+    _Slot? keepSlot,
     int? keepAccessoryIndex,
   }) {
     bool categoryFull(GarmentCategory c) {
@@ -247,6 +251,14 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       }
     }
 
+    final wornTopKeys = <String>{
+      for (final entry in [(_outfit.top, _Slot.top), (_outfit.middle, _Slot.middle)])
+        if (entry.$1 != null &&
+            entry.$2 != keepSlot &&
+            entry.$1!.subCategory.isNotEmpty)
+          baseTopSlotKey(entry.$1!.subCategory),
+    };
+
     final coreIds = <int>{
       for (final g in [
         _outfit.top,
@@ -270,6 +282,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
             wornAccessoryKeys.contains(accessorySlotKey(g.subCategory))) {
           return false;
         }
+      } else if (g.category == GarmentCategory.top &&
+          g.subCategory.isNotEmpty &&
+          wornTopKeys.contains(baseTopSlotKey(g.subCategory))) {
+        return false;
       } else if (g.id != null &&
           coreIds.contains(g.id) &&
           g.category != keepCategory) {
@@ -1071,6 +1087,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     if (!mounted) return;
     final candidates = _addGarmentCandidates(
       keepCategory: replaceSlot != null ? _categoryForSlot(replaceSlot) : null,
+      keepSlot: replaceSlot,
       keepAccessoryIndex: replaceAccessoryIndex,
     );
     final tabs = _addGarmentTabs(candidates);
@@ -1130,14 +1147,23 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   /// Auto-places [g] into whichever slot its category maps to — an empty
   /// top before middle, single-slot categories overwrite outright, and
   /// accessory categories append respecting `_maxAccessories` and
-  /// no-duplicate-id. Shared by the manual "Add garment" flow
-  /// ([_assignGarment], `lock: true`) and applying a Complete-with-AI
-  /// result ([_applyCompletedOutfit], `lock: false`) — call inside
-  /// `setState`.
+  /// no-duplicate-id. A second top that's just another base-layer
+  /// alternative to the one already worn (see [baseTopSlotKey] — e.g. a
+  /// Polo shirt picked while a T-shirt is already the top) replaces it
+  /// instead of stacking into mid layer; only a genuinely different piece
+  /// (a sweater/cardigan) is a real mid layer. Shared by the manual "Add
+  /// garment" flow ([_assignGarment], `lock: true`) and applying a
+  /// Complete-with-AI result ([_applyCompletedOutfit], `lock: false`) —
+  /// call inside `setState`.
   void _placeGarment(Garment g, {required bool lock}) {
     switch (g.category) {
       case GarmentCategory.top:
-        final slot = _outfit.top == null
+        final existingTop = _outfit.top;
+        final sameBaseLayer =
+            existingTop != null &&
+            baseTopSlotKey(existingTop.subCategory) ==
+                baseTopSlotKey(g.subCategory);
+        final slot = (_outfit.top == null || sameBaseLayer)
             ? _Slot.top
             : (_outfit.middle == null ? _Slot.middle : _Slot.top);
         _outfit = _applyToSlot(_outfit, slot, g);
