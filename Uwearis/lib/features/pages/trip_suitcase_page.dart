@@ -490,9 +490,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         return UwearisInsightCard(
           margin: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
           child: ExpandableInsightBody(
-            title: SectionTitle(
+            title: Text(
               _l10n.packingAdviceLabel,
-              style: AppTextStyle.regular16,
+              style: AppTextStyle.insightCardTitle,
             ),
             detail: text,
             expanded: _adviceExpanded,
@@ -510,12 +510,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: 8),
-            Text(
-              _l10n.thinkingEllipsis,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+            Text(_l10n.thinkingEllipsis, style: AppTextStyle.insightCardBody),
           ],
         ),
       ),

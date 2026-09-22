@@ -13,19 +13,19 @@ import '../../core/services/garment_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/signed_url.dart';
+import '../../data/closet_analysis.dart';
 import '../../data/garment.dart';
 import '../../data/image_edit_result.dart';
-import '../../data/versatility.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/buttons/accent_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/buttons/close_action_button.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
-import '../widgets/common/cards/score_ring.dart';
+import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
@@ -38,7 +38,7 @@ import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/overlays/save_changes_dialog.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
-import '../widgets/garment/compatibility_row.dart';
+import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/garment/garment_share_sheet.dart';
 import '../widgets/garment/garment_upload_helper.dart';
@@ -79,10 +79,22 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
-  // Closet-match result — starts null (the insight card shows a prompt +
-  // "Analyze with AI" button); set once the user runs scoreVersatility.
-  Versatility? _versatility;
-  bool _isScoringVersatility = false;
+  // Closet-analysis result — null shows the insight card's prompt +
+  // "Analyze with AI" button; set once the user runs _runClosetAnalysis, or
+  // restored in initState from GarmentService's persisted cache if this
+  // garment has ever been analyzed (see _loadCachedClosetAnalysis). Only
+  // reachable once the garment has an [_id] — an in-progress Add Clothing
+  // draft isn't in the closet yet for the backend to analyze.
+  ClosetAnalysis? _closetAnalysis;
+  // Drives the insight card's *initial* loading state — the first-ever
+  // "Analyze with AI" run, and (reused, since it looks identical) the brief
+  // async cache read in initState. [_isRefreshingAnalysis] is the separate
+  // in-flight flag for re-analyzing once a result already exists, since
+  // that must keep showing the old result rather than this full-body
+  // loading state — see _refreshClosetAnalysis.
+  bool _isAnalyzingCloset = false;
+  bool _isRefreshingAnalysis = false;
+  String? _closetAnalysisError;
   int? _outfitCount;
 
   /// The App Bar title's source of truth — mirrors
@@ -114,6 +126,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _id = _editingGarment?.id;
     _imagePathOrUrl = _editingGarment?.imageUrl;
     _name = _editingGarment?.name;
+    // A persisted cache read is async (SharedPreferences), so it can't
+    // resolve within initState itself — reuse the insight card's normal
+    // "Analyzing…" loading state for that brief window instead of flashing
+    // the "Analyze with AI" prompt right before it's (usually) immediately
+    // replaced by a cached result. See _loadCachedClosetAnalysis.
+    if (_id != null) _isAnalyzingCloset = true;
 
     // Snapshot initial values for later change detection
     _initialName = _editingGarment?.name ?? '';
@@ -162,6 +180,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
     if (_id != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _ensureFreshImage());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _loadCachedClosetAnalysis(),
+      );
       _loadOutfitCount();
     }
   }
@@ -253,9 +274,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// Opens the share sheet — a small card preview of this garment that
   /// rasterizes to a PNG for the system share sheet. Only reachable in edit
   /// mode (the ⋮ menu is hidden while adding). Reflects the form's current
-  /// name/category so a just-made edit shows even before it's saved. The
-  /// closet-match score rides along only if Uwearis actually analysed this
-  /// garment this session (the "Analyze with AI" card).
+  /// name/category so a just-made edit shows even before it's saved.
   void _shareGarment() {
     final base = _editingGarment;
     if (base == null) return;
@@ -274,7 +293,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         purchaseDate: _purchaseDate,
         clearPurchaseDate: _purchaseDate == null,
       ),
-      versatilityScore: _versatility?.score,
     );
   }
 
@@ -489,78 +507,24 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _OutfitPotentialCard(
-              versatility: _versatility,
-              subCategory: _subCategory.text.trim(),
-              // .active: don't recommend pairing with a deleted garment.
-              allGarments:
-                  (ref.watch(garmentsProvider).value ?? const []).active,
-              onRowTap: _showCompatibleGarments,
-              onAnalyze: _scoreVersatility,
-              isAnalyzing: _isScoringVersatility,
+          if (!_isAddMode) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _UwearisAiAnalysisCard(
+                analysis: _closetAnalysis,
+                isAnalyzing: _isAnalyzingCloset,
+                isRefreshing: _isRefreshingAnalysis,
+                errorMessage: _closetAnalysisError,
+                onAnalyze: _runClosetAnalysis,
+                onRefresh: _refreshClosetAnalysis,
+                onGarmentTap: _openAiGarmentDetail,
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: AppDimens.sectionSpacing),
           _buildDetailsSection(),
         ],
-      ),
-    );
-  }
-
-  void _showCompatibleGarments(VersatilityCategory row) {
-    final category = row.category;
-    final all = (ref.read(garmentsProvider).value ?? const []).active;
-    final garments = _resolveCompatibleGarments(row, all, limit: 9);
-
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                category.pluralLabel(ctx),
-                textAlign: TextAlign.center,
-                style: AppTextStyle.bold20,
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final g in garments)
-                    Container(
-                      width: 84,
-                      height: 84,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        border: Border.all(color: AppColors.borderStrong),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: GarmentImage(
-                        url: g.imageUrl,
-                        garmentId: g.id,
-                        memCacheWidth: 168,
-                        memCacheHeight: 168,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              CloseActionButton(onPressed: () => Navigator.pop(ctx)),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -771,47 +735,123 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// The GarmentMetadata payload for `scoreVersatility` — the AI analysis
-  /// result if there is one, with the fields the user may since have edited
-  /// in the form layered on top. Needs at least a correct `category`.
-  Map<String, dynamic> _metadataForScoring() {
-    return {
-      ...?_metaData,
-      'name': _nameCtrl.text.trim(),
-      'category': _category.apiValue,
-      'sub_category': _subCategory.text.trim(),
-      'color': _selectedColor?.label ?? _editingGarment?.color ?? '',
-      'fit': _selectedFit?.apiValue ?? _editingGarment?.fit ?? '',
-      'thickness':
-          _editingGarment?.thickness ?? (_metaData?['thickness'] as int?) ?? 0,
-      'formality':
-          _editingGarment?.formality ?? (_metaData?['formality'] as int?) ?? 0,
-    };
+  /// Runs the AI closet analysis (versatility level + outfit ideas + similar
+  /// garments) for this already-saved garment — the insight card's "Analyze
+  /// with AI" / "Analyze Again" button. Synchronous re-entrancy guard — it's
+  /// a paid AI call. Only reachable once [_id] is set (see [_closetAnalysis]
+  /// doc comment).
+  Future<void> _runClosetAnalysis() async {
+    final id = _id;
+    if (id == null || _isAnalyzingCloset) return;
+    setState(() {
+      _isAnalyzingCloset = true;
+      _closetAnalysisError = null;
+    });
+    try {
+      final result = await GarmentService().closetAnalysis(id);
+      if (!mounted) return;
+      setState(() => _closetAnalysis = result);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } on ClosetAnalysisException catch (e) {
+      if (!mounted) return;
+      debugLog('closetAnalysis failed: ${e.errorCode}');
+      setState(() {
+        _closetAnalysisError = e.errorCode == 'GARMENT_NOT_FOUND'
+            ? _l10n.closetAnalysisGarmentNotFound
+            : _l10n.closetAnalysisFailed;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      debugLog('closetAnalysis failed: $e');
+      setState(() => _closetAnalysisError = _l10n.closetAnalysisFailed);
+    } finally {
+      if (mounted) setState(() => _isAnalyzingCloset = false);
+    }
   }
 
-  /// Runs the closet-match score on demand (the insight card's "Analyze with
-  /// AI" button). Synchronous re-entrancy guard — it's a paid AI call.
-  Future<void> _scoreVersatility() async {
-    if (_isScoringVersatility) return;
-    setState(() => _isScoringVersatility = true);
+  /// Restores a previously-persisted closet-analysis result on page open —
+  /// see [GarmentService.cachedClosetAnalysis]'s own doc comment for the
+  /// caching policy (no TTL; the user decides when to re-run it). A cache
+  /// miss just falls through to the normal "Analyze with AI" prompt.
+  Future<void> _loadCachedClosetAnalysis() async {
+    final id = _id;
+    if (id == null) return;
+    final cached = await GarmentService().cachedClosetAnalysis(id);
+    if (!mounted) return;
+    setState(() {
+      if (cached != null) _closetAnalysis = cached;
+      _isAnalyzingCloset = false;
+    });
+  }
+
+  /// Re-runs the closet analysis for a garment that already has a result —
+  /// the insight card's header refresh action. Unlike [_runClosetAnalysis],
+  /// this keeps showing the *existing* [_closetAnalysis] for the whole
+  /// request: a failure leaves it (and its persisted cache entry) exactly
+  /// as it was, with just a brief SnackBar instead of replacing the card
+  /// with the full error state — refreshing re-generates, it never deletes.
+  /// Synchronous re-entrancy guard, same reasoning as [_runClosetAnalysis].
+  Future<void> _refreshClosetAnalysis() async {
+    final id = _id;
+    if (id == null || _isRefreshingAnalysis || _closetAnalysis == null) {
+      return;
+    }
+    setState(() => _isRefreshingAnalysis = true);
     try {
-      final result = await GarmentService().scoreVersatility(
-        _metadataForScoring(),
-      );
+      final result = await GarmentService().closetAnalysis(id);
       if (!mounted) return;
-      setState(() => _versatility = result);
+      setState(() => _closetAnalysis = result);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      debugLog('scoreVersatility failed: $e');
+      debugLog('closetAnalysis refresh failed: $e');
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.versatilityScoreFailed)));
+      ).showSnackBar(SnackBar(content: Text(_l10n.closetAnalysisFailed)));
     } finally {
-      if (mounted) setState(() => _isScoringVersatility = false);
+      if (mounted) setState(() => _isRefreshingAnalysis = false);
     }
+  }
+
+  /// Opens [GarmentDetailDialog] for an outfit idea's garment — same dialog
+  /// Outfit Details' own garment list uses (see `_openGarmentDetail` there).
+  /// Resolves [garmentId] against the already-loaded closet first (cheap,
+  /// and already includes soft-deleted entries — see `GarmentService.
+  /// getGarments`'s own doc comment); falls back to a direct fetch only if
+  /// it isn't there yet.
+  Future<void> _openAiGarmentDetail(int garmentId) async {
+    Garment? garment;
+    for (final g in ref.read(garmentsProvider).value ?? const []) {
+      if (g.id == garmentId) {
+        garment = g;
+        break;
+      }
+    }
+    if (garment == null) {
+      try {
+        garment = await GarmentService().getGarment(
+          garmentId,
+          includeDeleted: true,
+        );
+      } on AuthExpiredException {
+        if (!mounted) return;
+        await AuthExpiredHandler.handle(context);
+        return;
+      } catch (e) {
+        if (!mounted) return;
+        debugLog('_openAiGarmentDetail: failed to load garment $garmentId: $e');
+        return;
+      }
+    }
+    if (!mounted) return;
+
+    final restored = await GarmentDetailDialog.show(context, garment);
+    if (restored == null || !mounted) return;
+    ref.read(garmentsProvider.notifier).updateGarment(restored);
   }
 
   Widget _buildUsedInOutfitsTile() {
@@ -1323,22 +1363,17 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
     // When replacing the image in edit mode, delete the old record first
     if (!_isAddMode) await GarmentService().deleteGarment(_id!);
-    // Fold the one metadata field the form can edit (fit) back in, and pass
-    // the closet-match score through if the user ran it — the backend stores
-    // both, it doesn't recompute. Never send a bare `null` here: `/complete`
-    // requires `metadata` and 500s reading `metadata.thickness` on a null
-    // value — `_metaData` is normally seeded (fresh analysis, or an existing
-    // garment's own saved metadata; see initState), but this is the last
-    // line of defense in case both are somehow unavailable.
+    // Fold the one metadata field the form can edit (fit) back in. Never
+    // send a bare `null` here: `/complete` requires `metadata` and 500s
+    // reading `metadata.thickness` on a null value — `_metaData` is
+    // normally seeded (fresh analysis, or an existing garment's own saved
+    // metadata; see initState), but this is the last line of defense in
+    // case both are somehow unavailable.
     final metadata = <String, dynamic>{
       ...?_metaData,
       if (_selectedFit != null) 'fit': _selectedFit!.apiValue,
     };
-    return GarmentService().completeUpload(
-      temp,
-      metadata,
-      versatilityScore: _versatility?.score,
-    );
+    return GarmentService().completeUpload(temp, metadata);
   }
 
   /// Updates just the text fields of an existing garment (image unchanged).
@@ -1370,99 +1405,105 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 }
 
-/// Resolves a versatility breakdown row's `compatibleGarmentIds` against the
-/// user's already-loaded closet, for both a row's preview thumbnails and the
-/// full "see all" dialog grid.
-List<Garment> _resolveCompatibleGarments(
-  VersatilityCategory row,
-  List<Garment> all, {
-  int? limit,
-}) {
-  final matched = <Garment>[
-    for (final id in row.compatibleGarmentIds)
-      for (final g in all)
-        if (g.id == id) g,
-  ];
-  return limit == null ? matched : matched.take(limit).toList();
-}
-
-/// The closet-match insight card — always shown on Garment Details. Starts
-/// as a one-line prompt + "Analyze with AI" button; once the user runs the
-/// score it becomes a versatility ring plus a per-category compatibility
-/// breakdown. [onRowTap] gets the breakdown row whose row was tapped;
-/// [onAnalyze] triggers the score.
-class _OutfitPotentialCard extends StatelessWidget {
-  final Versatility? versatility;
-  final String subCategory;
-  final List<Garment> allGarments;
-  final void Function(VersatilityCategory row) onRowTap;
-  final VoidCallback onAnalyze;
+/// The "Uwearis AI" closet-analysis card — shown on Garment Details once the
+/// garment is saved (edit mode only; see [_closetAnalysis]'s doc comment).
+/// Starts as a one-line prompt + "Analyze with AI" button; once the user
+/// runs it (or a persisted result is restored on open), shows a 1–10
+/// versatility level, up to 3 outfit ideas, and up to 3 similar-in-closet
+/// garments (see garments-api.md §8), plus a header refresh action to
+/// re-run it. [onAnalyze] triggers the first run and a retry after
+/// [errorMessage]; [onRefresh] re-runs it once [analysis] already exists,
+/// keeping the old result on screen (and [isRefreshing] true) for the
+/// duration. [onGarmentTap] opens the same [GarmentDetailDialog] Outfit
+/// Details' own garment list uses, for a garment tapped inside an outfit
+/// idea or the Similar in Your Closet row.
+class _UwearisAiAnalysisCard extends StatelessWidget {
+  final ClosetAnalysis? analysis;
   final bool isAnalyzing;
+  final bool isRefreshing;
+  final String? errorMessage;
+  final VoidCallback onAnalyze;
+  final VoidCallback onRefresh;
+  final void Function(int garmentId) onGarmentTap;
 
-  const _OutfitPotentialCard({
-    required this.versatility,
-    required this.subCategory,
-    required this.allGarments,
-    required this.onRowTap,
-    required this.onAnalyze,
+  const _UwearisAiAnalysisCard({
+    required this.analysis,
     required this.isAnalyzing,
+    required this.isRefreshing,
+    required this.errorMessage,
+    required this.onAnalyze,
+    required this.onRefresh,
+    required this.onGarmentTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final score = versatility?.score;
 
     final Widget body;
     if (isAnalyzing) {
-      body = Row(
-        children: [
-          const SizedBox(
-            width: 16,
-            height: 16,
+      body = _buildLoading(l10n);
+    } else if (errorMessage != null) {
+      body = _buildError(l10n, errorMessage!);
+    } else if (analysis == null) {
+      body = _buildPrompt(l10n);
+    } else {
+      body = _buildResult(context, l10n, analysis!);
+    }
+
+    return UwearisInsightCard(
+      trailing: analysis == null ? null : _buildRefreshAction(),
+      child: body,
+    );
+  }
+
+  Widget _buildRefreshAction() {
+    if (isRefreshing) {
+      return const SizedBox(
+        width: 32,
+        height: 32,
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               color: AppColors.accent,
             ),
           ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              l10n.analyzingEllipsis,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
+        ),
       );
-    } else if (score == null) {
-      body = _buildPrompt(context, l10n);
-    } else {
-      body = _buildScored(context, l10n, score);
     }
-
-    return UwearisInsightCard(child: body);
+    return AccentIconButton(icon: Icons.refresh, onPressed: onRefresh);
   }
 
-  Widget _buildPrompt(BuildContext context, AppLocalizations l10n) {
-    // versatility == null: never run. Non-null with a null score: the backend
-    // couldn't score it (empty closet handled with a real score, so this is
-    // unknown-category / AI failure) — surface its reason and let them retry.
-    final text =
-        versatility?.message ??
-        (versatility == null
-            ? l10n.insightCardPrompt
-            : l10n.versatilityUnavailable);
+  Widget _buildLoading(AppLocalizations l10n) {
+    return Row(
+      children: [
+        const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.accent,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            l10n.analyzingEllipsis,
+            style: AppTextStyle.insightCardBody,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrompt(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          text,
-          style: AppTextStyle.regular14.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+        Text(l10n.versatilityDescription, style: AppTextStyle.insightCardBody),
         const SizedBox(height: 8),
         Align(
           child: AccentPillButton(
@@ -1475,72 +1516,182 @@ class _OutfitPotentialCard extends StatelessWidget {
     );
   }
 
-  Widget _buildScored(BuildContext context, AppLocalizations l10n, int score) {
-    final breakdown = versatility!.breakdown
-        .where(
-          (row) =>
-              row.compatibleCount > 0 &&
-              row.category != GarmentCategory.accessory &&
-              row.category != GarmentCategory.socks,
-        )
-        .toList();
-
-    final totalItems = breakdown.fold<int>(
-      0,
-      (sum, row) => sum + row.compatibleCount,
-    );
-
+  Widget _buildError(AppLocalizations l10n, String message) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              children: [
-                ScoreRing(score: score, size: 70),
-                const SizedBox(height: 6),
-                Text(
-                  versatilityScoreTier(l10n, score),
-                  style: AppTextStyle.bold12.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  subCategory.isEmpty
-                      ? l10n.garmentPairsWellWithGeneric(totalItems)
-                      : l10n.garmentPairsWellWith(subCategory, totalItems),
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        Text(
+          message,
+          style: AppTextStyle.regular14.copyWith(color: AppColors.error),
         ),
-        if (breakdown.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          for (var i = 0; i < breakdown.length; i++) ...[
-            if (i > 0) const SizedBox(height: 8),
-            CompatibilityRow(
-              label: breakdown[i].category.pluralLabel(context),
-              count: breakdown[i].compatibleCount,
-              previewGarments: _resolveCompatibleGarments(
-                breakdown[i],
-                allGarments,
-                limit: 3,
-              ),
-              onTap: () => onRowTap(breakdown[i]),
-            ),
+        const SizedBox(height: 8),
+        Align(
+          child: AccentPillButton(
+            label: l10n.analyzeAgain,
+            icon: Icons.refresh,
+            onPressed: onAnalyze,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResult(
+    BuildContext context,
+    AppLocalizations l10n,
+    ClosetAnalysis analysis,
+  ) {
+    final ideas = analysis.outfitIdeas;
+    final similar = analysis.similarGarments;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildVersatilitySection(context, l10n, analysis.versatility),
+        // outfit_ideas / similar_garments come back empty rather than
+        // padded with placeholders when the closet can't support them (see
+        // garments-api.md §8) — each section is simply omitted rather than
+        // showing empty space or a placeholder grid.
+        if (ideas.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          FieldLabel(l10n.outfitIdeasHeading.toUpperCase()),
+          const SizedBox(height: 10),
+          for (var i = 0; i < ideas.length; i++) ...[
+            if (i > 0) const AppDivider(),
+            _buildGarmentThumbRow(ideas[i].garments, onGarmentTap: onGarmentTap),
           ],
         ],
+        if (similar.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          FieldLabel(l10n.similarInClosetHeading.toUpperCase()),
+          const SizedBox(height: 10),
+          _buildGarmentThumbRow(similar, onGarmentTap: onGarmentTap),
+        ],
       ],
+    );
+  }
+
+  Widget _buildVersatilitySection(
+    BuildContext context,
+    AppLocalizations l10n,
+    ClosetAnalysisVersatility versatility,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.versatilityDescription, style: AppTextStyle.insightCardBody),
+        const SizedBox(height: 10),
+        Text(
+          l10n.versatilityLevelValue(versatility.level),
+          style: AppTextStyle.bold18,
+        ),
+        const SizedBox(height: 8),
+        _VersatilityLevelBar(level: versatility.level),
+        const SizedBox(height: 10),
+        Text(
+          versatility.label.localizedLabel(context),
+          style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGarmentThumbRow(
+    List<ClosetAnalysisGarment> garments, {
+    void Function(int garmentId)? onGarmentTap,
+  }) {
+    return SizedBox(
+      height: _AiGarmentThumb.size,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: garments.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final g = garments[i];
+          return _AiGarmentThumb(
+            garment: g,
+            onTap: onGarmentTap == null ? null : () => onGarmentTap(g.garmentId),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Simple 10-segment fill bar for [ClosetAnalysisVersatility.level] (1–10) —
+/// the "quickly readable at a glance" treatment the card wants without a
+/// score-dashboard-sized ring or chart.
+class _VersatilityLevelBar extends StatelessWidget {
+  final int level;
+
+  const _VersatilityLevelBar({required this.level});
+
+  static const int _segments = 10;
+
+  @override
+  Widget build(BuildContext context) {
+    final filled = level.clamp(0, _segments);
+    return Row(
+      children: [
+        for (var i = 0; i < _segments; i++) ...[
+          if (i > 0) const SizedBox(width: 4),
+          Expanded(
+            child: Container(
+              height: 6,
+              decoration: BoxDecoration(
+                color: i < filled ? AppColors.accent : AppColors.borderSubtle,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Compact garment thumbnail for the AI analysis card's outfit-idea and
+/// similar-garments rows — same bordered-square shape as the "compatible
+/// garments" thumbnails this card used to show (see git history), just
+/// smaller. [ClosetAnalysisGarment.isTarget] gets a subtly accent-colored
+/// border instead of a separate badge/label, so the analyzed garment reads
+/// as "this one" within an outfit idea without adding visual complexity.
+/// [onTap] opens the same [GarmentDetailDialog] Outfit Details' own garment
+/// list uses; leave it null for a non-interactive thumbnail.
+class _AiGarmentThumb extends StatelessWidget {
+  final ClosetAnalysisGarment garment;
+  final VoidCallback? onTap;
+
+  const _AiGarmentThumb({required this.garment, this.onTap});
+
+  static const double size = 64;
+
+  @override
+  Widget build(BuildContext context) {
+    final thumb = Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: garment.isTarget ? AppColors.accent : AppColors.borderSubtle,
+          width: garment.isTarget ? 1.5 : 1,
+        ),
+      ),
+      child: GarmentImage(
+        url: garment.imageUrl,
+        garmentId: garment.garmentId,
+        memCacheWidth: 128,
+        memCacheHeight: 128,
+        fit: BoxFit.cover,
+      ),
+    );
+    if (onTap == null) return thumb;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: thumb,
     );
   }
 }

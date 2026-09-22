@@ -318,6 +318,33 @@ void main() {
         expect(requests, 2);
       },
     );
+
+    test(
+      'clearGroupCache drops every cached group, forcing a re-fetch — the '
+      'session-boundary cleanup this depends on (see clearSignedInSession)',
+      () async {
+        var requests = 0;
+        final client = MockClient((request) async {
+          requests++;
+          return _jsonResponse(
+            _envelope({
+              'group_id': 503,
+              'name': null,
+              'cover_outfit_id': null,
+              'outfits': [_outfitJson(outfitId: 1, groupId: 503)],
+            }),
+          );
+        });
+
+        await http.runWithClient(() async {
+          await OutfitService().getGroupOutfits(503);
+          OutfitService().clearGroupCache();
+          await OutfitService().getGroupOutfits(503);
+        }, () => client);
+
+        expect(requests, 2);
+      },
+    );
   });
 
   group('mutations invalidate the cached getGroupOutfits result', () {

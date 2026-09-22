@@ -408,4 +408,13 @@ class OutfitService with BaseService {
     }
     return data.whereType<Map<String, dynamic>>().map(Outfit.fromJson).toList();
   }
+
+  /// Drops every cached group's outfit list — call this at a session
+  /// boundary (logout / session expiry), alongside clearing every other
+  /// per-user cache, so the next signed-in user on this device doesn't see
+  /// a group id that happens to also exist in their own closet resolve to
+  /// the previous user's outfits. Not called anywhere in normal use — every
+  /// mutation method above already invalidates just the one group it
+  /// changed.
+  void clearGroupCache() => _groupCache.clear();
 }

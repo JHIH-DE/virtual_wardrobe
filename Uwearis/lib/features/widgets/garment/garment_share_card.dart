@@ -10,14 +10,13 @@ import '../common/cards/share_card_scaffold.dart';
 /// lifestyle render) and the meta is category / details / an optional
 /// closet-match line.
 ///
-/// [categoryLine] / [detailLine] / [matchLine] are already assembled by the
-/// sheet; empty / null → the line is dropped.
+/// [categoryLine] / [detailLine] are already assembled by the sheet; empty
+/// → the line is dropped.
 class GarmentShareCard extends StatelessWidget {
   final ImageProvider image;
   final String name;
   final String categoryLine;
   final String detailLine;
-  final String? matchLine;
 
   const GarmentShareCard({
     super.key,
@@ -25,7 +24,6 @@ class GarmentShareCard extends StatelessWidget {
     required this.name,
     required this.categoryLine,
     required this.detailLine,
-    this.matchLine,
   });
 
   static const double width = 320;
@@ -70,10 +68,6 @@ class GarmentShareCard extends StatelessWidget {
         if (categoryLine.isNotEmpty) ...[
           const SizedBox(height: 6),
           shareCardShrinkLine(categoryLine.toUpperCase(), _metaStyle),
-        ],
-        if (matchLine != null) ...[
-          const SizedBox(height: 4),
-          shareCardShrinkLine(matchLine!.toUpperCase(), _metaStyle),
         ],
         if (detailLine.isNotEmpty) ...[
           const SizedBox(height: 4),

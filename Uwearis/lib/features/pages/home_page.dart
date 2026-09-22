@@ -474,9 +474,9 @@ class _HomePageState extends ConsumerState<HomePage>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('•  ', style: AppTextStyle.regular14),
+                Text('•  ', style: AppTextStyle.insightCardBody),
                 Expanded(
-                  child: Text(line.trim(), style: AppTextStyle.regular14),
+                  child: Text(line.trim(), style: AppTextStyle.insightCardBody),
                 ),
               ],
             ),

@@ -824,49 +824,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentlyAdded => 'Recently Added';
 
   @override
-  String garmentPairsWellWith(String subCategory, int count) {
-    return 'This $subCategory pairs well with $count items in your closet.';
-  }
-
-  @override
-  String garmentPairsWellWithGeneric(int count) {
-    return 'Pairs well with $count items in your closet.';
-  }
-
-  @override
-  String get scoreTierExcellent => 'Excellent Match';
-
-  @override
-  String get scoreTierHighlyVersatile => 'Highly Versatile';
-
-  @override
-  String get scoreTierGoodMatch => 'Good Match';
-
-  @override
-  String get scoreTierLimitedMatch => 'Limited Match';
-
-  @override
-  String get scoreTierHardToStyle => 'Hard to Style';
-
-  @override
-  String get closetMatchLabel => 'Closet Match';
-
-  @override
   String get purchasedLabel => 'Purchased';
-
-  @override
-  String get insightCardPrompt =>
-      'See how well this piece works with your closet.';
 
   @override
   String get analyzeWithAi => 'Analyze with AI';
 
   @override
-  String get versatilityUnavailable =>
-      'Couldn\'t check this piece against your closet.';
+  String get analyzeAgain => 'Analyze Again';
 
   @override
-  String get versatilityScoreFailed => 'Couldn\'t analyze — please try again.';
+  String get closetAnalysisFailed => 'Couldn\'t analyze — please try again.';
+
+  @override
+  String get closetAnalysisGarmentNotFound =>
+      'This item could no longer be found in your closet.';
+
+  @override
+  String get versatilityDescription =>
+      'How well this piece works with your closet.';
+
+  @override
+  String versatilityLevelValue(int level) {
+    return 'LEVEL $level';
+  }
+
+  @override
+  String get versatilityBandVeryLimited => 'Very Limited';
+
+  @override
+  String get versatilityBandLimited => 'Limited';
+
+  @override
+  String get versatilityBandModerate => 'Moderate';
+
+  @override
+  String get versatilityBandVersatile => 'Versatile';
+
+  @override
+  String get versatilityBandHighlyVersatile => 'Highly Versatile';
+
+  @override
+  String get outfitIdeasHeading => 'Outfit Ideas';
+
+  @override
+  String get similarInClosetHeading => 'Similar in Your Closet';
 
   @override
   String get clothingNameLabel => 'Name';

@@ -5,9 +5,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/garment_service.dart';
+import 'package:uwearis/data/closet_analysis.dart';
 import 'package:uwearis/data/garment.dart';
 
 import '../helpers/fake_auth.dart';
@@ -60,8 +62,12 @@ String _freshSignedUrl() {
 void main() {
   // GarmentService is a singleton with an in-memory cache — every test
   // below uses its own garment id so cache entries from earlier tests in
-  // this file never leak into a later one's expectations.
-  setUp(setUpFakeAuth);
+  // this file never leak into a later one's expectations. The
+  // closet-analysis cache is SharedPreferences-backed, reset per test.
+  setUp(() {
+    setUpFakeAuth();
+    SharedPreferences.setMockInitialValues({});
+  });
 
   group('initUpload / completeUpload', () {
     test(
@@ -329,6 +335,27 @@ void main() {
 
       expect(captured.url.toString(), '$_base/304');
     });
+
+    test(
+      'clearGarmentCache drops every cached garment, forcing a re-fetch — '
+      'the session-boundary cleanup this depends on (see '
+      'clearSignedInSession)',
+      () async {
+        var requestCount = 0;
+        final client = MockClient((request) async {
+          requestCount++;
+          return _jsonResponse(_envelope(_garmentJson(305)));
+        });
+
+        await http.runWithClient(() async {
+          await GarmentService().getGarment(305);
+          GarmentService().clearGarmentCache();
+          await GarmentService().getGarment(305);
+        }, () => client);
+
+        expect(requestCount, 2);
+      },
+    );
   });
 
   group('restoreGarment', () {
@@ -882,6 +909,228 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('closet-analysis cache', () {
+    Map<String, dynamic> versatilityJson({int level = 8, String label = 'Versatile'}) =>
+        {'level': level, 'label': label};
+
+    test('closetAnalysis persists its result for cachedClosetAnalysis to read back', () async {
+      final client = MockClient(
+        (_) async => _jsonResponse(
+          _envelope({
+            'versatility': versatilityJson(),
+            'outfit_ideas': <Object?>[],
+            'similar_garments': <Object?>[],
+          }),
+        ),
+      );
+
+      await http.runWithClient(
+        () => GarmentService().closetAnalysis(9101),
+        () => client,
+      );
+
+      final cached = await GarmentService().cachedClosetAnalysis(9101);
+      expect(cached, isNotNull);
+      expect(cached!.versatility.level, 8);
+      expect(cached.versatility.label, VersatilityLabel.versatile);
+    });
+
+    test('cachedClosetAnalysis returns null when nothing was ever analyzed', () async {
+      final cached = await GarmentService().cachedClosetAnalysis(9102);
+      expect(cached, isNull);
+    });
+
+    test(
+      'cachedClosetAnalysis reads a result already on local storage — the '
+      '"survives an app restart" case, simulated by seeding storage '
+      'directly rather than going through closetAnalysis() first',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'closet_analysis_9103': jsonEncode({
+            'analysis': {
+              'versatility': versatilityJson(level: 6, label: 'Moderate'),
+              'outfit_ideas': <Object?>[],
+              'similar_garments': <Object?>[],
+            },
+            'analyzed_at': DateTime.now().toIso8601String(),
+          }),
+        });
+
+        final cached = await GarmentService().cachedClosetAnalysis(9103);
+        expect(cached, isNotNull);
+        expect(cached!.versatility.level, 6);
+        expect(cached.versatility.label, VersatilityLabel.moderate);
+      },
+    );
+
+    test(
+      'a cache entry recorded long ago is still returned — no TTL expiry',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'closet_analysis_9104': jsonEncode({
+            'analysis': {
+              'versatility': versatilityJson(),
+              'outfit_ideas': <Object?>[],
+              'similar_garments': <Object?>[],
+            },
+            // Long past the old 5-minute TTL this cache used to enforce.
+            'analyzed_at': DateTime.now()
+                .subtract(const Duration(days: 30))
+                .toIso8601String(),
+          }),
+        });
+
+        final cached = await GarmentService().cachedClosetAnalysis(9104);
+        expect(cached, isNotNull);
+        expect(cached!.versatility.level, 8);
+      },
+    );
+
+    test(
+      'a second closetAnalysis call replaces the cached result on success',
+      () async {
+        var call = 0;
+        final client = MockClient((_) async {
+          call++;
+          return _jsonResponse(
+            _envelope({
+              'versatility': versatilityJson(
+                level: call == 1 ? 5 : 9,
+                label: call == 1 ? 'Moderate' : 'Highly Versatile',
+              ),
+              'outfit_ideas': <Object?>[],
+              'similar_garments': <Object?>[],
+            }),
+          );
+        });
+
+        await http.runWithClient(() async {
+          await GarmentService().closetAnalysis(9105);
+          await GarmentService().closetAnalysis(9105);
+        }, () => client);
+
+        final cached = await GarmentService().cachedClosetAnalysis(9105);
+        expect(cached!.versatility.level, 9);
+        expect(cached.versatility.label, VersatilityLabel.highlyVersatile);
+      },
+    );
+
+    test(
+      'a failed closetAnalysis call leaves a previously-cached result '
+      'untouched',
+      () async {
+        var call = 0;
+        final client = MockClient((_) async {
+          call++;
+          if (call == 1) {
+            return _jsonResponse(
+              _envelope({
+                'versatility': versatilityJson(),
+                'outfit_ideas': <Object?>[],
+                'similar_garments': <Object?>[],
+              }),
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'success': false,
+              'message': 'boom',
+              'data': null,
+              'error_code': 'AI_GENERATION_FAILED',
+            }),
+            500,
+          );
+        });
+
+        await http.runWithClient(() async {
+          await GarmentService().closetAnalysis(9106);
+          await expectLater(
+            GarmentService().closetAnalysis(9106),
+            throwsA(isA<ClosetAnalysisException>()),
+          );
+        }, () => client);
+
+        final cached = await GarmentService().cachedClosetAnalysis(9106);
+        expect(cached, isNotNull);
+        expect(cached!.versatility.level, 8);
+      },
+    );
+
+    test('different garments cache independently, not overwriting each other', () async {
+      final client = MockClient((request) async {
+        final id = int.parse(
+          request.url.pathSegments[request.url.pathSegments.length - 2],
+        );
+        return _jsonResponse(
+          _envelope({
+            'versatility': versatilityJson(level: id == 9107 ? 3 : 7),
+            'outfit_ideas': <Object?>[],
+            'similar_garments': <Object?>[],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await GarmentService().closetAnalysis(9107);
+        await GarmentService().closetAnalysis(9108);
+      }, () => client);
+
+      final a = await GarmentService().cachedClosetAnalysis(9107);
+      final b = await GarmentService().cachedClosetAnalysis(9108);
+      expect(a!.versatility.level, 3);
+      expect(b!.versatility.level, 7);
+    });
+
+    test('deleteGarment removes only that garment\'s cached analysis', () async {
+      final client = MockClient((request) async {
+        if (request.method == 'DELETE') return http.Response('', 200);
+        final id = int.parse(
+          request.url.pathSegments[request.url.pathSegments.length - 2],
+        );
+        return _jsonResponse(
+          _envelope({
+            'versatility': versatilityJson(level: id == 9109 ? 2 : 4),
+            'outfit_ideas': <Object?>[],
+            'similar_garments': <Object?>[],
+          }),
+        );
+      });
+
+      await http.runWithClient(() async {
+        await GarmentService().closetAnalysis(9109);
+        await GarmentService().closetAnalysis(9110);
+        await GarmentService().deleteGarment(9109);
+      }, () => client);
+
+      expect(await GarmentService().cachedClosetAnalysis(9109), isNull);
+      final survivor = await GarmentService().cachedClosetAnalysis(9110);
+      expect(survivor, isNotNull);
+      expect(survivor!.versatility.level, 4);
+    });
+
+    test('clearClosetAnalysisCache wipes every persisted analysis', () async {
+      final client = MockClient(
+        (_) async => _jsonResponse(
+          _envelope({
+            'versatility': versatilityJson(),
+            'outfit_ideas': <Object?>[],
+            'similar_garments': <Object?>[],
+          }),
+        ),
+      );
+
+      await http.runWithClient(() async {
+        await GarmentService().closetAnalysis(9111);
+        await GarmentService().closetAnalysis(9112);
+      }, () => client);
+
+      await GarmentService().clearClosetAnalysisCache();
+
+      expect(await GarmentService().cachedClosetAnalysis(9111), isNull);
+      expect(await GarmentService().cachedClosetAnalysis(9112), isNull);
     });
   });
 }

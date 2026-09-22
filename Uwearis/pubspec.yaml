@@ -48,6 +48,7 @@ dependencies:
   # package into an app-extension target at all, by either mechanism tried).
   receive_sharing_intent: ^1.9.0
   image: ^4.10.1
+  meta: ^1.16.0
 
 
 dev_dependencies:

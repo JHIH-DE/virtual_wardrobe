@@ -116,7 +116,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(summary, style: AppTextStyle.regular14),
+          Text(summary, style: AppTextStyle.insightCardBody),
           const SizedBox(height: 10),
           outfitsAsync.when(
             data: (outfits) => Text(

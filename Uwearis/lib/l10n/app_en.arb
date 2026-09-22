@@ -352,30 +352,25 @@
   "addToCloset": "Add to Closet",
   "clothingAdded": "Clothing Added",
   "recentlyAdded": "Recently Added",
-  "garmentPairsWellWith": "This {subCategory} pairs well with {count} items in your closet.",
-  "@garmentPairsWellWith": {
-    "placeholders": {
-      "subCategory": { "type": "String" },
-      "count": { "type": "int" }
-    }
-  },
-  "garmentPairsWellWithGeneric": "Pairs well with {count} items in your closet.",
-  "@garmentPairsWellWithGeneric": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "scoreTierExcellent": "Excellent Match",
-  "scoreTierHighlyVersatile": "Highly Versatile",
-  "scoreTierGoodMatch": "Good Match",
-  "scoreTierLimitedMatch": "Limited Match",
-  "scoreTierHardToStyle": "Hard to Style",
-  "closetMatchLabel": "Closet Match",
   "purchasedLabel": "Purchased",
-  "insightCardPrompt": "See how well this piece works with your closet.",
   "analyzeWithAi": "Analyze with AI",
-  "versatilityUnavailable": "Couldn't check this piece against your closet.",
-  "versatilityScoreFailed": "Couldn't analyze — please try again.",
+  "analyzeAgain": "Analyze Again",
+  "closetAnalysisFailed": "Couldn't analyze — please try again.",
+  "closetAnalysisGarmentNotFound": "This item could no longer be found in your closet.",
+  "versatilityDescription": "How well this piece works with your closet.",
+  "versatilityLevelValue": "LEVEL {level}",
+  "@versatilityLevelValue": {
+    "placeholders": {
+      "level": { "type": "int" }
+    }
+  },
+  "versatilityBandVeryLimited": "Very Limited",
+  "versatilityBandLimited": "Limited",
+  "versatilityBandModerate": "Moderate",
+  "versatilityBandVersatile": "Versatile",
+  "versatilityBandHighlyVersatile": "Highly Versatile",
+  "outfitIdeasHeading": "Outfit Ideas",
+  "similarInClosetHeading": "Similar in Your Closet",
   "clothingNameLabel": "Name",
   "nameTheClothingHint": "Name the clothing",
   "pleaseEnterNameError": "Please enter name",

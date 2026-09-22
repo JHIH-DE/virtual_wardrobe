@@ -14,7 +14,12 @@ import '../helpers/widget_harness.dart';
 
 const _base = '${AppConfig.baseUrl}${AppConfig.apiPath}/garments';
 
-Garment _garment({required int id, bool isDeleted = false}) {
+Garment _garment({
+  required int id,
+  bool isDeleted = false,
+  String? brand,
+  double? price,
+}) {
   return Garment(
     id: id,
     name: 'Denim Jacket',
@@ -24,6 +29,8 @@ Garment _garment({required int id, bool isDeleted = false}) {
     objectName: '',
     imageUrl: '',
     isDeleted: isDeleted,
+    brand: brand,
+    price: price,
   );
 }
 
@@ -64,7 +71,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  testWidgets('an active garment has no restore button, just Close', (
+  testWidgets('an active garment shows no restore button or notice', (
     tester,
   ) async {
     useTallSurface(tester);
@@ -76,22 +83,106 @@ void main() {
         find.text('This item has been removed from your closet.'),
         findsNothing,
       );
-      expect(find.text('Close'), findsOneWidget);
     }, () => MockClient((_) async => jsonResponse(envelope(null))));
   });
 
-  testWidgets('Close pops with null', (tester) async {
+  testWidgets(
+    'brand and price rows are hidden entirely when the garment has neither',
+    (tester) async {
+      useTallSurface(tester);
+      await http.runWithClient(() async {
+        await _pumpOpener(tester, _garment(id: 5), (_) {});
+
+        expect(find.text('Brand'), findsNothing);
+        expect(find.text('Price'), findsNothing);
+        expect(find.text('--'), findsNothing);
+      }, () => MockClient((_) async => jsonResponse(envelope(null))));
+    },
+  );
+
+  testWidgets('only the price row shows when brand is missing', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    await http.runWithClient(() async {
+      await _pumpOpener(tester, _garment(id: 6, price: 1490), (_) {});
+
+      expect(find.text('Brand'), findsNothing);
+      expect(find.text('Price'), findsOneWidget);
+      expect(find.text(r'$1490'), findsOneWidget);
+    }, () => MockClient((_) async => jsonResponse(envelope(null))));
+  });
+
+  testWidgets('both rows show when brand and price are present', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    await http.runWithClient(() async {
+      await _pumpOpener(
+        tester,
+        _garment(id: 7, brand: 'Uniqlo', price: 990),
+        (_) {},
+      );
+
+      expect(find.text('Brand'), findsOneWidget);
+      expect(find.text('Uniqlo'), findsOneWidget);
+      expect(find.text('Price'), findsOneWidget);
+      expect(find.text(r'$990'), findsOneWidget);
+    }, () => MockClient((_) async => jsonResponse(envelope(null))));
+  });
+
+  testWidgets('tapping anywhere on the card pops with null', (tester) async {
     useTallSurface(tester);
     Garment? result;
     await http.runWithClient(() async {
       await _pumpOpener(tester, _garment(id: 1), (r) => result = r);
 
-      await tester.tap(find.text('Close'));
+      // No dedicated Close button — the card itself is the tap target.
+      // The garment name is always rendered, so it's a reliable spot to
+      // tap that isn't also a competing interactive widget.
+      await tester.tap(find.text('Denim Jacket'));
       await tester.pumpAndSettle();
     }, () => MockClient((_) async => jsonResponse(envelope(null))));
 
     expect(result, isNull);
   });
+
+  testWidgets(
+    'tapping "Add Back to Closet" restores instead of just closing the '
+    'card',
+    (tester) async {
+      useTallSurface(tester);
+      final client = MockClient(
+        (_) async => jsonResponse(
+          envelope({
+            'id': 8,
+            'name': 'Denim Jacket',
+            'category': 'Outer',
+            'sub_category': 'Denim jacket',
+            'upload_url': '',
+            'object_name': '',
+            'image_url': '',
+            'is_deleted': false,
+          }),
+        ),
+      );
+
+      Garment? result;
+      await http.runWithClient(() async {
+        await _pumpOpener(tester, _garment(id: 8, isDeleted: true), (r) {
+          result = r;
+        });
+
+        await tester.tap(find.text('Add Back to Closet'));
+        await tester.pumpAndSettle();
+      }, () => client);
+
+      // The gesture arena resolves to the button, not the card's own
+      // tap-to-close — the result is the restored garment, not null.
+      expect(result, isNotNull);
+      expect(result!.isDeleted, isFalse);
+    },
+  );
 
   testWidgets(
     'a soft-deleted garment shows the removal notice and a restore button',

@@ -117,8 +117,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     } catch (e) {
       debugLog('Logout API error (ignored): $e');
     }
-    await AuthStorage.clear();
     if (!mounted) return;
+    await clearSignedInSession();
+    if (!mounted) return;
+    // Provider invalidation happens on the next successful login instead —
+    // see invalidateSignedInProviders's own doc comment for why.
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (route) => false,

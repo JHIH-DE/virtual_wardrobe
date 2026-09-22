@@ -11,6 +11,7 @@ import '../../app/main_shell.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/config/env.dart';
+import '../../core/services/auth_handler.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
 import '../../core/utils/debug_log.dart';
@@ -45,6 +46,11 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _goHome() async {
     if (!mounted) return;
+    // Before building a fresh MainShell: make sure none of its tabs read a
+    // previous account's already-resolved provider state — see
+    // invalidateSignedInProviders's own doc comment for why this has to
+    // happen here rather than at logout time.
+    invalidateSignedInProviders(context);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const MainShell()),

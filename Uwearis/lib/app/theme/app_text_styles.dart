@@ -187,4 +187,20 @@ class AppTextStyle {
     letterSpacing: 0.5,
     color: AppColors.textSecondary,
   );
+
+  /// Body/description text inside a `UwearisInsightCard` — the AI-generated
+  /// copy itself, or a short status/loading line. Every call site (Style
+  /// Taste, Garment Details, Home, and `ExpandableInsightBody`'s own detail
+  /// paragraph — Trip Suitcase / Trip garment selection) should use this
+  /// rather than re-deriving its own `regular14`/`textSecondary` combo, so
+  /// plain body content reads identically everywhere the card appears.
+  static final TextStyle insightCardBody = regular14.copyWith(
+    color: AppColors.textSecondary,
+  );
+
+  /// Title row inside a `UwearisInsightCard` when paired with
+  /// `ExpandableInsightBody`'s `title` slot (Trip Suitcase / Trip garment
+  /// selection) — one step lighter than [bold18], which reads too heavy
+  /// directly under the card's own bold18 "Uwearis" header.
+  static const TextStyle insightCardTitle = regular16;
 }

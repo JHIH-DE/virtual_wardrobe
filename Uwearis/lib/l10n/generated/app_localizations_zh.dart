@@ -792,47 +792,48 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recentlyAdded => '最近新增';
 
   @override
-  String garmentPairsWellWith(String subCategory, int count) {
-    return '這件$subCategory適合搭配你衣櫃裡的 $count 件單品。';
-  }
-
-  @override
-  String garmentPairsWellWithGeneric(int count) {
-    return '適合搭配你衣櫃裡的 $count 件單品。';
-  }
-
-  @override
-  String get scoreTierExcellent => '完美百搭';
-
-  @override
-  String get scoreTierHighlyVersatile => '百搭度高';
-
-  @override
-  String get scoreTierGoodMatch => '適合搭配';
-
-  @override
-  String get scoreTierLimitedMatch => '搭配有限';
-
-  @override
-  String get scoreTierHardToStyle => '較難搭配';
-
-  @override
-  String get closetMatchLabel => '衣櫃契合度';
-
-  @override
   String get purchasedLabel => '購買日';
-
-  @override
-  String get insightCardPrompt => '看看這件單品跟你衣櫃的搭配度。';
 
   @override
   String get analyzeWithAi => 'AI 分析';
 
   @override
-  String get versatilityUnavailable => '無法分析這件單品跟衣櫃的搭配。';
+  String get analyzeAgain => '重新分析';
 
   @override
-  String get versatilityScoreFailed => '分析失敗，請再試一次。';
+  String get closetAnalysisFailed => '分析失敗，請再試一次。';
+
+  @override
+  String get closetAnalysisGarmentNotFound => '在你的衣櫃中找不到這件單品了。';
+
+  @override
+  String get versatilityDescription => '這件單品跟你衣櫃的搭配度。';
+
+  @override
+  String versatilityLevelValue(int level) {
+    return '等級 $level';
+  }
+
+  @override
+  String get versatilityBandVeryLimited => '非常有限';
+
+  @override
+  String get versatilityBandLimited => '有限';
+
+  @override
+  String get versatilityBandModerate => '普通';
+
+  @override
+  String get versatilityBandVersatile => '百搭';
+
+  @override
+  String get versatilityBandHighlyVersatile => '高度百搭';
+
+  @override
+  String get outfitIdeasHeading => '穿搭靈感';
+
+  @override
+  String get similarInClosetHeading => '衣櫃中的相似單品';
 
   @override
   String get clothingNameLabel => '名稱';
@@ -2106,47 +2107,48 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get recentlyAdded => '最近新增';
 
   @override
-  String garmentPairsWellWith(String subCategory, int count) {
-    return '這件$subCategory適合搭配你衣櫃裡的 $count 件單品。';
-  }
-
-  @override
-  String garmentPairsWellWithGeneric(int count) {
-    return '適合搭配你衣櫃裡的 $count 件單品。';
-  }
-
-  @override
-  String get scoreTierExcellent => '完美百搭';
-
-  @override
-  String get scoreTierHighlyVersatile => '百搭度高';
-
-  @override
-  String get scoreTierGoodMatch => '適合搭配';
-
-  @override
-  String get scoreTierLimitedMatch => '搭配有限';
-
-  @override
-  String get scoreTierHardToStyle => '較難搭配';
-
-  @override
-  String get closetMatchLabel => '衣櫃契合度';
-
-  @override
   String get purchasedLabel => '購買日';
-
-  @override
-  String get insightCardPrompt => '看看這件單品跟你衣櫃的搭配度。';
 
   @override
   String get analyzeWithAi => 'AI 分析';
 
   @override
-  String get versatilityUnavailable => '無法分析這件單品跟衣櫃的搭配。';
+  String get analyzeAgain => '重新分析';
 
   @override
-  String get versatilityScoreFailed => '分析失敗，請再試一次。';
+  String get closetAnalysisFailed => '分析失敗，請再試一次。';
+
+  @override
+  String get closetAnalysisGarmentNotFound => '在你的衣櫃中找不到這件單品了。';
+
+  @override
+  String get versatilityDescription => '這件單品跟你衣櫃的搭配度。';
+
+  @override
+  String versatilityLevelValue(int level) {
+    return '等級 $level';
+  }
+
+  @override
+  String get versatilityBandVeryLimited => '非常有限';
+
+  @override
+  String get versatilityBandLimited => '有限';
+
+  @override
+  String get versatilityBandModerate => '普通';
+
+  @override
+  String get versatilityBandVersatile => '百搭';
+
+  @override
+  String get versatilityBandHighlyVersatile => '高度百搭';
+
+  @override
+  String get outfitIdeasHeading => '穿搭靈感';
+
+  @override
+  String get similarInClosetHeading => '衣櫃中的相似單品';
 
   @override
   String get clothingNameLabel => '名稱';

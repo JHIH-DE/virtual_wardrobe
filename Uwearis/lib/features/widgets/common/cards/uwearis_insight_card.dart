@@ -15,7 +15,17 @@ class UwearisInsightCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? margin;
 
-  const UwearisInsightCard({super.key, required this.child, this.margin});
+  /// Optional header accessory, right-aligned after the "AI" tag — e.g.
+  /// Garment Details' Closet Analysis refresh action. Leave null for the
+  /// plain header every other caller uses.
+  final Widget? trailing;
+
+  const UwearisInsightCard({
+    super.key,
+    required this.child,
+    this.margin,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +89,7 @@ class UwearisInsightCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (trailing != null) ...[const Spacer(), trailing!],
             ],
           ),
           const SizedBox(height: AppDimens.cardHeaderGap),

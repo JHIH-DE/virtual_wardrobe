@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import 'expand_arrow_icon.dart';
 
@@ -57,8 +56,7 @@ class ExpandableInsightBody extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 detail,
-                style: AppTextStyle.regular14.copyWith(
-                  color: AppColors.textSecondary,
+                style: AppTextStyle.insightCardBody.copyWith(
                   height: detailLineHeight,
                 ),
               ),

@@ -1617,65 +1617,11 @@ abstract class AppLocalizations {
   /// **'Recently Added'**
   String get recentlyAdded;
 
-  /// No description provided for @garmentPairsWellWith.
-  ///
-  /// In en, this message translates to:
-  /// **'This {subCategory} pairs well with {count} items in your closet.'**
-  String garmentPairsWellWith(String subCategory, int count);
-
-  /// No description provided for @garmentPairsWellWithGeneric.
-  ///
-  /// In en, this message translates to:
-  /// **'Pairs well with {count} items in your closet.'**
-  String garmentPairsWellWithGeneric(int count);
-
-  /// No description provided for @scoreTierExcellent.
-  ///
-  /// In en, this message translates to:
-  /// **'Excellent Match'**
-  String get scoreTierExcellent;
-
-  /// No description provided for @scoreTierHighlyVersatile.
-  ///
-  /// In en, this message translates to:
-  /// **'Highly Versatile'**
-  String get scoreTierHighlyVersatile;
-
-  /// No description provided for @scoreTierGoodMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'Good Match'**
-  String get scoreTierGoodMatch;
-
-  /// No description provided for @scoreTierLimitedMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'Limited Match'**
-  String get scoreTierLimitedMatch;
-
-  /// No description provided for @scoreTierHardToStyle.
-  ///
-  /// In en, this message translates to:
-  /// **'Hard to Style'**
-  String get scoreTierHardToStyle;
-
-  /// No description provided for @closetMatchLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Closet Match'**
-  String get closetMatchLabel;
-
   /// No description provided for @purchasedLabel.
   ///
   /// In en, this message translates to:
   /// **'Purchased'**
   String get purchasedLabel;
-
-  /// No description provided for @insightCardPrompt.
-  ///
-  /// In en, this message translates to:
-  /// **'See how well this piece works with your closet.'**
-  String get insightCardPrompt;
 
   /// No description provided for @analyzeWithAi.
   ///
@@ -1683,17 +1629,77 @@ abstract class AppLocalizations {
   /// **'Analyze with AI'**
   String get analyzeWithAi;
 
-  /// No description provided for @versatilityUnavailable.
+  /// No description provided for @analyzeAgain.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t check this piece against your closet.'**
-  String get versatilityUnavailable;
+  /// **'Analyze Again'**
+  String get analyzeAgain;
 
-  /// No description provided for @versatilityScoreFailed.
+  /// No description provided for @closetAnalysisFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t analyze — please try again.'**
-  String get versatilityScoreFailed;
+  String get closetAnalysisFailed;
+
+  /// No description provided for @closetAnalysisGarmentNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This item could no longer be found in your closet.'**
+  String get closetAnalysisGarmentNotFound;
+
+  /// No description provided for @versatilityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'How well this piece works with your closet.'**
+  String get versatilityDescription;
+
+  /// No description provided for @versatilityLevelValue.
+  ///
+  /// In en, this message translates to:
+  /// **'LEVEL {level}'**
+  String versatilityLevelValue(int level);
+
+  /// No description provided for @versatilityBandVeryLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Very Limited'**
+  String get versatilityBandVeryLimited;
+
+  /// No description provided for @versatilityBandLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Limited'**
+  String get versatilityBandLimited;
+
+  /// No description provided for @versatilityBandModerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get versatilityBandModerate;
+
+  /// No description provided for @versatilityBandVersatile.
+  ///
+  /// In en, this message translates to:
+  /// **'Versatile'**
+  String get versatilityBandVersatile;
+
+  /// No description provided for @versatilityBandHighlyVersatile.
+  ///
+  /// In en, this message translates to:
+  /// **'Highly Versatile'**
+  String get versatilityBandHighlyVersatile;
+
+  /// No description provided for @outfitIdeasHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit Ideas'**
+  String get outfitIdeasHeading;
+
+  /// No description provided for @similarInClosetHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar in Your Closet'**
+  String get similarInClosetHeading;
 
   /// No description provided for @clothingNameLabel.
   ///

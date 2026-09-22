@@ -358,9 +358,7 @@ class _TripGarmentSelectionPageState
       child: _loadingAdvice
           ? Text(
               AppLocalizations.of(context).loadingPackingSuggestions,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTextStyle.insightCardBody,
             )
           : _buildAdviceContent(advice!, selectedInCategory),
     );
@@ -373,7 +371,7 @@ class _TripGarmentSelectionPageState
           advice.recommendedQuantity,
           selectedInCategory,
         ),
-        style: AppTextStyle.regular16,
+        style: AppTextStyle.insightCardTitle,
       ),
       detail: advice.reasoning,
       showToggle: advice.reasoning.isNotEmpty,
