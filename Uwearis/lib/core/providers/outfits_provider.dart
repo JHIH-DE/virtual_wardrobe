@@ -55,6 +55,13 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
     state = AsyncData(current.where((o) => o.id != id).toList());
   }
 
+  void updateOutfit(Outfit outfit) {
+    final current = state.value ?? [];
+    state = AsyncData(
+      current.map((o) => o.id == outfit.id ? outfit : o).toList(),
+    );
+  }
+
   /// [name] is a group-level property (see `Outfit.groupName`) — matches by
   /// [groupId] rather than a specific outfit id, since every version in the
   /// group shares the same name.

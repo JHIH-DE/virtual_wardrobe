@@ -40,4 +40,11 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(_fetch);
   }
+
+  void updateOutfit(Outfit outfit) {
+    final current = state.value ?? [];
+    state = AsyncData(
+      current.map((o) => o.id == outfit.id ? outfit : o).toList(),
+    );
+  }
 }

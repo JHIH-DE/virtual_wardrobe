@@ -13,10 +13,11 @@ import '../common/labeled_divider.dart';
 /// The Getting Started content [HomePage] shows in place of Today's
 /// Outfit/Upcoming Trip/Recently Added for a user who hasn't finished the
 /// minimum setup yet — see `home_page.dart`'s `_isGettingStarted` for the
-/// completion rule this reflects. A complete initial flow is Profile Photo +
-/// Full-Body Photo + Closet + creating the first outfit — this view walks
-/// through all four in that order, without acting like a multi-page
-/// onboarding wizard: only the current relevant step is shown. The date/
+/// completion rule this reflects. A complete initial flow is About You +
+/// Profile Photo + Full-Body Photo + Closet + creating the first outfit —
+/// this view walks through all five in that order, without acting like a
+/// multi-page onboarding wizard: only the current relevant step is shown.
+/// The date/
 /// weather header above it, and the main nav bar, stay exactly as they are
 /// in normal Home — [HomePage] renders this as one section of its existing
 /// scroll body, not a full-screen replacement, so it owns no scroll
@@ -28,6 +29,10 @@ import '../common/labeled_divider.dart';
 /// "Widget reuse and extraction" on keeping business logic out of
 /// presentational widgets).
 class HomeGettingStartedView extends StatelessWidget {
+  /// Whether Account's four required fields (name/gender/birthday/home
+  /// location) are all filled in — see `AccountPage`'s own
+  /// `_hasRequiredAboutYouFields`.
+  final bool hasAboutYou;
   final bool hasProfilePhoto;
   final bool hasFullBodyPhoto;
 
@@ -40,10 +45,12 @@ class HomeGettingStartedView extends StatelessWidget {
   final bool hasBottom;
   final bool hasShoes;
 
-  /// Opens the existing Try-On Profile flow (`TryonProfilePage`), which
-  /// already owns both reference-photo upload flows — this view never
-  /// re-implements photo picking/upload.
-  final VoidCallback onOpenTryOnProfile;
+  /// Opens `AccountPage` (in its onboarding mode) — the first sub-step of
+  /// this profile step. `AccountPage` itself continues on to the existing
+  /// Try-On Profile flow (`TryonProfilePage`, which owns both
+  /// reference-photo upload flows) once its own required fields are filled
+  /// in, so this view never re-implements either of those flows.
+  final VoidCallback onGetStarted;
 
   /// Opens the existing Add Clothing flow (`GarmentUploadHelper`).
   final VoidCallback onAddClothing;
@@ -54,17 +61,18 @@ class HomeGettingStartedView extends StatelessWidget {
 
   const HomeGettingStartedView({
     super.key,
+    required this.hasAboutYou,
     required this.hasProfilePhoto,
     required this.hasFullBodyPhoto,
     required this.hasTop,
     required this.hasBottom,
     required this.hasShoes,
-    required this.onOpenTryOnProfile,
+    required this.onGetStarted,
     required this.onAddClothing,
     required this.onCreateOutfit,
   });
 
-  bool get _profileReady => hasProfilePhoto && hasFullBodyPhoto;
+  bool get _profileReady => hasAboutYou && hasProfilePhoto && hasFullBodyPhoto;
   bool get _closetReady => hasTop && hasBottom && hasShoes;
 
   @override
@@ -107,6 +115,11 @@ class HomeGettingStartedView extends StatelessWidget {
           child: Column(
             children: [
               _ChecklistRow(
+                label: l10n.gettingStartedAboutYouLabel,
+                done: hasAboutYou,
+              ),
+              const SizedBox(height: 14),
+              _ChecklistRow(
                 label: l10n.gettingStartedProfilePhotoLabel,
                 done: hasProfilePhoto,
               ),
@@ -122,7 +135,7 @@ class HomeGettingStartedView extends StatelessWidget {
         AccentPillButton(
           label: l10n.gettingStartedGetStartedButton,
           icon: Icons.arrow_forward_rounded,
-          onPressed: onOpenTryOnProfile,
+          onPressed: onGetStarted,
         ),
       ],
     );

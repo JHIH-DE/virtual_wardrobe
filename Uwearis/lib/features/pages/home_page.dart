@@ -14,32 +14,37 @@ import '../../core/providers/profile_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/providers/weather_provider.dart';
 import '../../core/services/auth_handler.dart';
+import '../../core/services/daily_outfit_service.dart';
+import '../../core/services/outfit_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../data/profile_data.dart';
 import '../../data/trip.dart';
+import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
+import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
+import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_upload_helper.dart';
 import '../widgets/home/home_getting_started_view.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/trip/trip_card.dart';
+import 'account_page.dart';
 import 'add_outfit_page.dart';
 import 'explore_page.dart';
 import 'garment_details_page.dart';
 import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'trips_page.dart';
-import 'tryon_profile_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key, @visibleForTesting DateTime Function()? now})
@@ -61,10 +66,12 @@ class _HomePageState extends ConsumerState<HomePage>
   int _todayOutfitIndex = 0;
   final PageController _todayOutfitPageController = PageController();
 
-  // UI-only for now: which daily-outfit option the user has tapped as "worn
-  // today" on the photo overlay badge. Not persisted or sent to the backend
-  // yet — see _buildWornTodayBadge.
-  int? _wornOutfitIndex;
+  // Synchronous re-entrancy guard for _getFirstDailyOutfit — set as its
+  // first statement, before any await, per CLAUDE.md's "Guarding costly /
+  // mutating actions against double-invocation" (two sequential AI calls,
+  // up to ~90s each — the shell's LoadingOverlay alone doesn't close the
+  // one-frame double-tap gap that guard is about).
+  bool _generatingFirstDailyOutfit = false;
 
   // Home stays mounted for the app's whole lifetime (it's one of MainShell's
   // IndexedStack tabs, so initState only ever runs once) — this is what lets
@@ -81,20 +88,45 @@ class _HomePageState extends ConsumerState<HomePage>
       ? _todayOutfits[_todayOutfitIndex]
       : null;
 
+  /// The newest entry in "My Outfits" — shown in place of Today's Outfit
+  /// when the server hasn't generated a daily plan yet (see
+  /// [_buildOutfitImageCard]). [OutfitsNotifier.addOutfit] prepends new
+  /// outfits, so `.first` is already the most recently created one; no
+  /// id-based sort needed (unlike [_buildRecentlyAddedSection]'s garments,
+  /// which have no such ordering guarantee from their own provider).
+  Outfit? get _latestOwnOutfit {
+    final outfits = ref.watch(outfitsProvider).value ?? const [];
+    return outfits.isNotEmpty ? outfits.first : null;
+  }
+
   // Getting Started state — derived from real data (profileProvider's
-  // reference photos, garmentsProvider's closet, outfitsProvider's "My
-  // Outfits"), never a single isFirstLogin-style flag, so a returning user
-  // who already finished setup never sees it again and a mid-setup user
-  // always lands on the right step. A complete initial flow is Profile
-  // Photo + Full-Body Photo + a closet covering Top/Bottom/Shoes + the
-  // first created outfit — Home stays on Getting Started until all four are
-  // true. All three providers are also watched by other always-mounted
-  // IndexedStack tabs (Try-On Profile/Settings watch profileProvider;
-  // ClosetPage watches garmentsProvider; OutfitsPage/OutfitDetailsPage
-  // watch/refresh outfitsProvider) and are updated in place by their own
-  // upload/add/save flows, so this reflects the latest state on return from
-  // any of them without any extra refresh/didPopNext plumbing.
+  // account fields + reference photos, garmentsProvider's closet,
+  // outfitsProvider's "My Outfits"), never a single isFirstLogin-style
+  // flag, so a returning user who already finished setup never sees it
+  // again and a mid-setup user always lands on the right step. A complete
+  // initial flow is About You + Profile Photo + Full-Body Photo + a closet
+  // covering Top/Bottom/Shoes + the first created outfit — Home stays on
+  // Getting Started until all five are true. All three providers are also
+  // watched by other always-mounted IndexedStack tabs (Account/Try-On
+  // Profile/Settings watch profileProvider; ClosetPage watches
+  // garmentsProvider; OutfitsPage/OutfitDetailsPage watch/refresh
+  // outfitsProvider) and are updated in place by their own upload/add/save
+  // flows, so this reflects the latest state on return from any of them
+  // without any extra refresh/didPopNext plumbing.
   ProfileData? get _profileData => ref.watch(profileProvider).value;
+
+  /// Account's four required fields (name/gender/birthday/home location)
+  /// all filled in — see `AccountPage`'s own `_hasRequiredAboutYouFields`,
+  /// which this mirrors.
+  bool get _hasAboutYou {
+    final profile = _profileData?.profile;
+    if (profile == null) return false;
+    return profile.name.trim().isNotEmpty &&
+        (profile.gender?.isNotEmpty ?? false) &&
+        profile.birthDate != null &&
+        (profile.location?.isNotEmpty ?? false);
+  }
+
   bool get _hasProfilePhoto => _profileData?.hasFaceReference ?? false;
   bool get _hasFullBodyPhoto => _profileData?.hasBodyReference ?? false;
   List<Garment> get _closetGarments =>
@@ -106,6 +138,24 @@ class _HomePageState extends ConsumerState<HomePage>
   bool get _hasShoes =>
       _closetGarments.any((g) => g.category == GarmentCategory.shoes);
   bool get _hasRequiredCloset => _hasTop && _hasBottom && _hasShoes;
+
+  // Fixed thresholds for _buildDailyOutfitsUnlockCard — a flat product rule
+  // ("enough per-category variety to actually generate daily outfits"), not
+  // anything the backend returns (getDailyOutfit only says whether today's
+  // plan exists, never why one might be missing), so there's nothing to
+  // fetch here.
+  static const _dailyOutfitTopTarget = 6;
+  static const _dailyOutfitBottomTarget = 4;
+  static const _dailyOutfitShoesTarget = 3;
+
+  int _categoryCount(GarmentCategory category) =>
+      _closetGarments.where((g) => g.category == category).length;
+
+  bool get _dailyOutfitsUnlocked =>
+      _categoryCount(GarmentCategory.top) >= _dailyOutfitTopTarget &&
+      _categoryCount(GarmentCategory.bottom) >= _dailyOutfitBottomTarget &&
+      _categoryCount(GarmentCategory.shoes) >= _dailyOutfitShoesTarget;
+
   bool get _hasCreatedOutfit =>
       (ref.watch(outfitsProvider).value ?? const []).isNotEmpty;
   bool get _hasAnyTrip => (ref.watch(tripsProvider).value ?? const []).isNotEmpty;
@@ -135,7 +185,8 @@ class _HomePageState extends ConsumerState<HomePage>
     if (_isEstablishedUser) {
       return !_hasRequiredCloset || (!_hasCreatedOutfit && !_hasAnyTrip);
     }
-    return !_hasProfilePhoto ||
+    return !_hasAboutYou ||
+        !_hasProfilePhoto ||
         !_hasFullBodyPhoto ||
         !_hasRequiredCloset ||
         !_hasCreatedOutfit;
@@ -274,12 +325,9 @@ class _HomePageState extends ConsumerState<HomePage>
     final today = _dateOnly(widget._now());
     if (today == _lastSeenDate) return;
     _lastSeenDate = today;
-    // New day, new outfit list — yesterday's carousel position/"worn today"
-    // mark don't carry over.
-    setState(() {
-      _todayOutfitIndex = 0;
-      _wornOutfitIndex = null;
-    });
+    // New day, new outfit list — yesterday's carousel position doesn't
+    // carry over.
+    setState(() => _todayOutfitIndex = 0);
     if (_todayOutfitPageController.hasClients) {
       _todayOutfitPageController.jumpToPage(0);
     }
@@ -347,6 +395,7 @@ class _HomePageState extends ConsumerState<HomePage>
         children: [
           _buildHeader(),
           _buildOutfitImageCard(),
+          _buildDailyOutfitsUnlockCard(),
           _buildUpcomingTripSection(),
         ],
       ),
@@ -363,12 +412,13 @@ class _HomePageState extends ConsumerState<HomePage>
           _buildHeader(),
           const SizedBox(height: AppDimens.sectionSpacing),
           HomeGettingStartedView(
+            hasAboutYou: _hasAboutYou,
             hasProfilePhoto: _hasProfilePhoto,
             hasFullBodyPhoto: _hasFullBodyPhoto,
             hasTop: _hasTop,
             hasBottom: _hasBottom,
             hasShoes: _hasShoes,
-            onOpenTryOnProfile: _openTryOnProfile,
+            onGetStarted: _openAccountPageForOnboarding,
             onAddClothing: _addGarment,
             onCreateOutfit: _openAddOutfit,
           ),
@@ -377,10 +427,15 @@ class _HomePageState extends ConsumerState<HomePage>
     ),
   ];
 
-  void _openTryOnProfile() {
+  /// The profile step's first sub-step — `AccountPage` itself continues on
+  /// to `TryonProfilePage` once its own required fields are filled in (see
+  /// `AccountPage.completingOnboarding`).
+  void _openAccountPageForOnboarding() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TryonProfilePage()),
+      MaterialPageRoute(
+        builder: (_) => const AccountPage(completingOnboarding: true),
+      ),
     );
   }
 
@@ -420,6 +475,50 @@ class _HomePageState extends ConsumerState<HomePage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadGarments)));
+    }
+  }
+
+  /// Triggered by [_buildDailyOutfitsUnlockCard]'s "Get My First Outfit"
+  /// CTA, shown once [_dailyOutfitsUnlocked] but no daily outfit exists for
+  /// today yet. Two sequential AI calls — [DailyOutfitService.generate]
+  /// (text-only: picks today's garments, no image) then
+  /// [DailyOutfitService.generateOptionOutfit] on the resulting primary
+  /// option (the actual try-on render) — followed by a plain
+  /// [dailyOutfitProvider] refresh so [_todayOutfit] picks up the result
+  /// the normal way; no extra local state is threaded through, since
+  /// _buildOutfitImageCard already reacts to that provider on its own.
+  Future<void> _getFirstDailyOutfit() async {
+    if (_generatingFirstDailyOutfit) return;
+    setState(() => _generatingFirstDailyOutfit = true);
+    final l10n = AppLocalizations.of(context);
+    MainShellScope.of(context)?.setLoading(
+      true,
+      label: l10n.generatingOutfitEllipsis,
+      tab: MainTab.home,
+    );
+    try {
+      final plan = await DailyOutfitService().generate(date: widget._now());
+      final primary = plan.primaryOption;
+      if (primary == null) {
+        throw Exception('generate returned no primary option');
+      }
+      await DailyOutfitService().generateOptionOutfit(primary.id);
+      if (!mounted) return;
+      await ref.read(dailyOutfitProvider.notifier).refresh();
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      debugLog('HomePage._getFirstDailyOutfit: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.failedToGenerateOutfit)));
+    } finally {
+      if (mounted) {
+        MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
+        setState(() => _generatingFirstDailyOutfit = false);
+      }
     }
   }
 
@@ -566,21 +665,30 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Widget _buildOutfitImageCard() {
     final l10n = AppLocalizations.of(context);
-    final outfit = _todayOutfit;
+    final dailyOutfit = _todayOutfit;
     // _buildNormalHomeBody only renders once _isGettingStarted is false —
     // i.e. the user has already created at least one outfit (see
-    // _hasCreatedOutfit) — so no daily outfit *today* here just means the
-    // server hasn't generated today's plan yet, not "first outfit" any
-    // more; nothing to nudge, so the whole section (divider included)
-    // stays hidden rather than showing a "first look" CTA that no longer
-    // applies.
+    // _hasCreatedOutfit) — so no daily outfit *today* just means the server
+    // hasn't generated today's plan yet, not "first outfit" any more.
+    // Rather than leaving the section blank, fall back to the most
+    // recently created "My Outfit" (outfitsProvider prepends new entries,
+    // so `.first` is the newest — see OutfitsNotifier.addOutfit) so there's
+    // still something to look at; [_isFallbackOutfit] is what tells the
+    // rest of this method (and _openOutfitDetails) that [outfit] came from
+    // that fallback rather than the real daily plan.
+    final fallbackOutfit = dailyOutfit == null ? _latestOwnOutfit : null;
+    final outfit = dailyOutfit ?? fallbackOutfit;
     if (outfit == null) return const SizedBox.shrink();
+    final isFallbackOutfit = dailyOutfit == null;
+    final options = isFallbackOutfit ? [outfit] : _todayOutfits;
     final hasImage = outfit.imageUrl.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: AppDimens.sectionSpacing),
-        LabeledDivider(label: l10n.todaysOutfit),
+        LabeledDivider(
+          label: isFallbackOutfit ? l10n.latestOutfitTitle : l10n.todaysOutfit,
+        ),
         const SizedBox(height: AppDimens.cardHeaderGap),
         ClipRRect(
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -616,11 +724,14 @@ class _HomePageState extends ConsumerState<HomePage>
                         controller: _todayOutfitPageController,
                         onPageChanged: (index) =>
                             setState(() => _todayOutfitIndex = index),
-                        itemCount: _todayOutfits.length,
+                        itemCount: options.length,
                         itemBuilder: (_, index) {
-                          final option = _todayOutfits[index];
+                          final option = options[index];
                           return GestureDetector(
-                            onTap: () => _openOutfitDetails(option),
+                            onTap: () => _openOutfitDetails(
+                              option,
+                              isFallback: isFallbackOutfit,
+                            ),
                             child: Container(
                               color: AppColors.surface,
                               child: RefreshableNetworkImage(
@@ -647,15 +758,39 @@ class _HomePageState extends ConsumerState<HomePage>
                         },
                       ),
                 if (hasImage)
-                  Positioned(top: 12, right: 12, child: _buildWornTodayBadge()),
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    // Same treatment as OutfitDetailsPage's own favourite
+                    // badge (see FavoriteCard) — outfit is already exactly
+                    // "the currently displayed option" in both the daily
+                    // and fallback cases (see _todayOutfit/options above),
+                    // so no separate index lookup is needed here.
+                    child: CardCornerBadge(
+                      icon: outfit.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      backgroundColor: AppColors.surfaceTranslucent,
+                      iconColor: outfit.isFavorite
+                          ? AppColors.favorite
+                          : AppColors.hintText,
+                      border: Border.all(color: AppColors.borderSubtle),
+                      boxShadow: const [],
+                      size: 36,
+                      iconSize: 20,
+                      discAlignment: Alignment.bottomRight,
+                      onTap: () =>
+                          _toggleFavorite(outfit, isFallback: isFallbackOutfit),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
-        if (hasImage && _todayOutfits.length > 1) ...[
+        if (hasImage && options.length > 1) ...[
           const SizedBox(height: 10),
           CarouselDotsIndicator(
-            count: _todayOutfits.length,
+            count: options.length,
             currentIndex: _todayOutfitIndex,
           ),
         ],
@@ -669,29 +804,116 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  /// Overlay marker on today's outfit photo — tapped to log which option the
-  /// user actually wore today ("on my body today", hence the standing-figure
-  /// glyph). UI only for now: [_wornOutfitIndex] just holds the pressed
-  /// state, nothing is persisted or sent anywhere. Same disc size/placement
-  /// and translucent chrome as the outfit-details photo's favourite badge;
-  /// the on state fills the figure itself accent (like the favourite heart
-  /// going from outline to solid), leaving the disc unchanged.
-  Widget _buildWornTodayBadge() {
-    final marked = _wornOutfitIndex == _todayOutfitIndex;
-    return CardCornerBadge(
-      icon: Icons.accessibility_new,
-      backgroundColor: AppColors.surfaceTranslucent,
-      iconColor: marked ? AppColors.accent : AppColors.hintText,
-      border: Border.all(color: AppColors.borderSubtle),
-      boxShadow: const [],
-      size: 36,
-      // 24, not the family's usual 20 — see CLAUDE.md's "Corner badges".
-      iconSize: 24,
-      discAlignment: Alignment.topRight,
-      onTap: () =>
-          setState(() => _wornOutfitIndex = marked ? null : _todayOutfitIndex),
+  /// Below [_dailyOutfitsUnlocked]'s target, nudges an established user
+  /// toward the per-category variety it needs — shown regardless of
+  /// whether today happens to have a real/fallback outfit above it.
+  ///
+  /// Once unlocked, switches to a one-time "go get it" prompt instead of
+  /// just disappearing: [_todayOutfit] is what actually gates that —
+  /// still null means nothing has generated today's real plan yet (neither
+  /// this card's own "Get My First Outfit" button nor the backend's daily
+  /// cron), so there's something concrete to prompt for. Once it's
+  /// non-null, _buildOutfitImageCard's own "Today's Outfit" slot already
+  /// shows it, so this card hides for good — same "nothing left to say"
+  /// shape as the locked state's own threshold check.
+  Widget _buildDailyOutfitsUnlockCard() {
+    final l10n = AppLocalizations.of(context);
+    if (!_dailyOutfitsUnlocked) {
+      return _dailyOutfitsCard(
+        title: l10n.dailyOutfitsUnlockTitle,
+        body: l10n.dailyOutfitsUnlockBody,
+        trailing: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _unlockCategoryColumn(
+              emoji: '👕',
+              label: GarmentCategory.top.pluralLabel(context),
+              current: _categoryCount(GarmentCategory.top),
+              target: _dailyOutfitTopTarget,
+            ),
+            _unlockCategoryColumn(
+              emoji: '👖',
+              label: GarmentCategory.bottom.pluralLabel(context),
+              current: _categoryCount(GarmentCategory.bottom),
+              target: _dailyOutfitBottomTarget,
+            ),
+            _unlockCategoryColumn(
+              emoji: '👟',
+              label: GarmentCategory.shoes.pluralLabel(context),
+              current: _categoryCount(GarmentCategory.shoes),
+              target: _dailyOutfitShoesTarget,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_todayOutfit != null) return const SizedBox.shrink();
+    return _dailyOutfitsCard(
+      title: l10n.dailyOutfitsUnlockedTitle,
+      body: l10n.dailyOutfitsUnlockedBody,
+      trailing: Center(
+        child: AccentPillButton(
+          label: l10n.getFirstDailyOutfitButton,
+          icon: Icons.auto_awesome,
+          enabled: !_generatingFirstDailyOutfit,
+          onPressed: _getFirstDailyOutfit,
+        ),
+      ),
     );
   }
+
+  Widget _dailyOutfitsCard({
+    required String title,
+    required String body,
+    required Widget trailing,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppDimens.sectionSpacing),
+        AppCardShell(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionTitle(title),
+              const SizedBox(height: 8),
+              Text(
+                body,
+                style: AppTextStyle.regular14.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: AppDimens.sectionSpacing),
+              trailing,
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _unlockCategoryColumn({
+    required String emoji,
+    required String label,
+    required int current,
+    required int target,
+  }) {
+    return Column(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 26)),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: AppTextStyle.medium13.copyWith(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 2),
+        Text('$current / $target', style: AppTextStyle.bold14),
+      ],
+    );
+  }
+
 
   /// Outfit.reasoning joins multiple points into one string with `\n` —
   /// render each as its own bulleted line rather than one dense paragraph.
@@ -717,23 +939,66 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  void _openOutfitDetails(Outfit outfit) {
+  /// Same optimistic-update-then-revert-on-failure shape as
+  /// OutfitDetailsPage's own `_toggleFavorite` — the difference here is
+  /// which provider owns [target]: a fallback outfit lives in
+  /// [outfitsProvider] ("My Outfits"), a real daily outfit lives in
+  /// [dailyOutfitProvider] instead, so the local update (and its revert)
+  /// has to go through whichever one actually holds it.
+  Future<void> _toggleFavorite(Outfit target, {required bool isFallback}) async {
+    final l10n = AppLocalizations.of(context);
+    final next = target.copyWith(isFavorite: !target.isFavorite);
+    void applyLocally(Outfit value) {
+      if (isFallback) {
+        ref.read(outfitsProvider.notifier).updateOutfit(value);
+      } else {
+        ref.read(dailyOutfitProvider.notifier).updateOutfit(value);
+      }
+    }
+
+    applyLocally(next);
+    try {
+      await OutfitService().updateOutfit(
+        target.groupId,
+        target.id,
+        isFavorite: next.isFavorite,
+      );
+    } on AuthExpiredException {
+      if (!mounted) return;
+      applyLocally(target);
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      applyLocally(target);
+      debugLog('HomePage._toggleFavorite: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.failedToUpdateFavorite)));
+    }
+  }
+
+  /// [isFallback] outfits come from [_latestOwnOutfit] — already a "My
+  /// Outfits" (`type: general`) entry, so this opens exactly like
+  /// outfits_page.dart's own tap handler (plain defaults: `isNew: false`,
+  /// `showEditOutfitWhenSaved: true`, `showAddToMyOutfits: false`) — it's
+  /// already reachable from that list, nothing to offer adding it to.
+  /// A real daily outfit's group is `type: "daily"`, which
+  /// outfits_page.dart's list never fetches (only `type: "general"`), so
+  /// it needs the opposite: `showAddToMyOutfits: true` gives it a real way
+  /// to become reachable there — a fresh render of the same garments/
+  /// background into a new general group.
+  void _openOutfitDetails(Outfit outfit, {required bool isFallback}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => OutfitDetailsPage(
-          outfit: outfit,
-          isNew: false,
-          // This outfit's group is `type: "daily"`, not "general" — a
-          // version created here would land back in that same daily group,
-          // which outfits_page.dart's list never fetches (it only reads
-          // `type: "general"` groups), so it'd be unreachable afterwards.
-          // showAddToMyOutfits offers a real way to keep it instead: a
-          // fresh render of the same garments/background into a new
-          // general group.
-          showEditOutfitWhenSaved: false,
-          showAddToMyOutfits: true,
-        ),
+        builder: (_) => isFallback
+            ? OutfitDetailsPage(outfit: outfit)
+            : OutfitDetailsPage(
+                outfit: outfit,
+                isNew: false,
+                showEditOutfitWhenSaved: false,
+                showAddToMyOutfits: true,
+              ),
       ),
     );
   }

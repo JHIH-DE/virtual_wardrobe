@@ -2421,6 +2421,42 @@ abstract class AppLocalizations {
   /// **'Today\'s Outfit'**
   String get todaysOutfit;
 
+  /// No description provided for @latestOutfitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Latest Outfit'**
+  String get latestOutfitTitle;
+
+  /// No description provided for @dailyOutfitsUnlockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Daily Outfits'**
+  String get dailyOutfitsUnlockTitle;
+
+  /// No description provided for @dailyOutfitsUnlockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a few more pieces to your closet.'**
+  String get dailyOutfitsUnlockBody;
+
+  /// No description provided for @dailyOutfitsUnlockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Outfits Unlocked'**
+  String get dailyOutfitsUnlockedTitle;
+
+  /// No description provided for @dailyOutfitsUnlockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your closet is ready for personalized outfits every day.'**
+  String get dailyOutfitsUnlockedBody;
+
+  /// No description provided for @getFirstDailyOutfitButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Get My First Outfit'**
+  String get getFirstDailyOutfitButton;
+
   /// No description provided for @loadingWeatherEllipsis.
   ///
   /// In en, this message translates to:
@@ -2468,6 +2504,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get Started'**
   String get gettingStartedGetStartedButton;
+
+  /// No description provided for @gettingStartedAboutYouLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'About You'**
+  String get gettingStartedAboutYouLabel;
+
+  /// No description provided for @continueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueLabel;
 
   /// No description provided for @gettingStartedBuildClosetTitle.
   ///

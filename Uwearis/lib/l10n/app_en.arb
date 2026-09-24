@@ -524,6 +524,12 @@
   },
 
   "todaysOutfit": "Today's Outfit",
+  "latestOutfitTitle": "Your Latest Outfit",
+  "dailyOutfitsUnlockTitle": "Unlock Daily Outfits",
+  "dailyOutfitsUnlockBody": "Add a few more pieces to your closet.",
+  "dailyOutfitsUnlockedTitle": "Daily Outfits Unlocked",
+  "dailyOutfitsUnlockedBody": "Your closet is ready for personalized outfits every day.",
+  "getFirstDailyOutfitButton": "Get My First Outfit",
   "loadingWeatherEllipsis": "Loading weather…",
   "viewDetails": "View Details",
 
@@ -533,6 +539,8 @@
   "gettingStartedProfilePhotoLabel": "Profile Photo",
   "gettingStartedFullBodyPhotoLabel": "Full-Body Photo",
   "gettingStartedGetStartedButton": "Get Started",
+  "gettingStartedAboutYouLabel": "About You",
+  "continueLabel": "Continue",
   "gettingStartedBuildClosetTitle": "Build your closet",
   "gettingStartedBuildClosetSubtitle": "Add a top, a bottom, and a pair of shoes so Uwearis can start creating outfits and personalized styling for you.",
   "gettingStartedReadyForFirstLookTitle": "Ready for your first look?",

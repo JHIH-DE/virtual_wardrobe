@@ -1252,6 +1252,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todaysOutfit => 'Today\'s Outfit';
 
   @override
+  String get latestOutfitTitle => 'Your Latest Outfit';
+
+  @override
+  String get dailyOutfitsUnlockTitle => 'Unlock Daily Outfits';
+
+  @override
+  String get dailyOutfitsUnlockBody => 'Add a few more pieces to your closet.';
+
+  @override
+  String get dailyOutfitsUnlockedTitle => 'Daily Outfits Unlocked';
+
+  @override
+  String get dailyOutfitsUnlockedBody =>
+      'Your closet is ready for personalized outfits every day.';
+
+  @override
+  String get getFirstDailyOutfitButton => 'Get My First Outfit';
+
+  @override
   String get loadingWeatherEllipsis => 'Loading weather…';
 
   @override
@@ -1275,6 +1294,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gettingStartedGetStartedButton => 'Get Started';
+
+  @override
+  String get gettingStartedAboutYouLabel => 'About You';
+
+  @override
+  String get continueLabel => 'Continue';
 
   @override
   String get gettingStartedBuildClosetTitle => 'Build your closet';

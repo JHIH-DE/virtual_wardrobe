@@ -435,6 +435,12 @@
   },
 
   "todaysOutfit": "今日穿搭",
+  "latestOutfitTitle": "你的最新穿搭",
+  "dailyOutfitsUnlockTitle": "解鎖每日穿搭",
+  "dailyOutfitsUnlockBody": "再幫衣櫃新增幾件單品。",
+  "dailyOutfitsUnlockedTitle": "每日穿搭已解鎖",
+  "dailyOutfitsUnlockedBody": "你的衣櫃已經準備好,每天都能為你搭配專屬穿搭。",
+  "getFirstDailyOutfitButton": "產生我的第一套穿搭",
   "loadingWeatherEllipsis": "載入天氣中…",
   "viewDetails": "查看詳情",
 
@@ -444,6 +450,8 @@
   "gettingStartedProfilePhotoLabel": "個人照片",
   "gettingStartedFullBodyPhotoLabel": "全身照片",
   "gettingStartedGetStartedButton": "開始設定",
+  "gettingStartedAboutYouLabel": "個人資料",
+  "continueLabel": "繼續",
   "gettingStartedBuildClosetTitle": "打造你的衣櫥",
   "gettingStartedBuildClosetSubtitle": "新增一件上衣、一件下身和一雙鞋子，Uwearis 就能開始為你打造穿搭與個人化風格建議。",
   "gettingStartedReadyForFirstLookTitle": "準備好打造第一套穿搭了嗎？",

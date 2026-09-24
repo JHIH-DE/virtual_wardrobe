@@ -1208,6 +1208,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todaysOutfit => '今日穿搭';
 
   @override
+  String get latestOutfitTitle => '你的最新穿搭';
+
+  @override
+  String get dailyOutfitsUnlockTitle => '解鎖每日穿搭';
+
+  @override
+  String get dailyOutfitsUnlockBody => '再幫衣櫃新增幾件單品。';
+
+  @override
+  String get dailyOutfitsUnlockedTitle => '每日穿搭已解鎖';
+
+  @override
+  String get dailyOutfitsUnlockedBody => '你的衣櫃已經準備好,每天都能為你搭配專屬穿搭。';
+
+  @override
+  String get getFirstDailyOutfitButton => '產生我的第一套穿搭';
+
+  @override
   String get loadingWeatherEllipsis => '載入天氣中…';
 
   @override
@@ -1230,6 +1248,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gettingStartedGetStartedButton => '開始設定';
+
+  @override
+  String get gettingStartedAboutYouLabel => '個人資料';
+
+  @override
+  String get continueLabel => '繼續';
 
   @override
   String get gettingStartedBuildClosetTitle => '打造你的衣櫥';
@@ -2558,6 +2582,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get todaysOutfit => '今日穿搭';
 
   @override
+  String get latestOutfitTitle => '你的最新穿搭';
+
+  @override
+  String get dailyOutfitsUnlockTitle => '解鎖每日穿搭';
+
+  @override
+  String get dailyOutfitsUnlockBody => '再幫衣櫃新增幾件單品。';
+
+  @override
+  String get dailyOutfitsUnlockedTitle => '每日穿搭已解鎖';
+
+  @override
+  String get dailyOutfitsUnlockedBody => '你的衣櫃已經準備好,每天都能為你搭配專屬穿搭。';
+
+  @override
+  String get getFirstDailyOutfitButton => '產生我的第一套穿搭';
+
+  @override
   String get loadingWeatherEllipsis => '載入天氣中…';
 
   @override
@@ -2580,6 +2622,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get gettingStartedGetStartedButton => '開始設定';
+
+  @override
+  String get gettingStartedAboutYouLabel => '個人資料';
+
+  @override
+  String get continueLabel => '繼續';
 
   @override
   String get gettingStartedBuildClosetTitle => '打造你的衣櫥';

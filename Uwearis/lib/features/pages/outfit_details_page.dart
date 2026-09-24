@@ -165,8 +165,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   /// A daily outfit's group isn't `type: general` — it's server-managed by
   /// its own daily-plan pipeline, not something the user curates here, so
-  /// none of the image overlay controls (favorite/version menu) or the
-  /// season/style tag editor apply to it.
+  /// the version menu/regenerate control and the season/style tag editor
+  /// don't apply to it. Favorite is the one exception — see its own
+  /// `Positioned` below for why it isn't gated on this.
   bool get _isDailyOutfit => _current.groupType == OutfitGroupType.daily;
 
   /// The group has a second version loaded. The photo menu's "Set as Cover"
@@ -821,7 +822,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     );
                   },
                 ),
-                if (!_isRegenerating && !_isDailyOutfit) ...[
+                if (!_isRegenerating && !_isDailyOutfit)
                   Positioned(
                     top: 12,
                     right: 12,
@@ -834,6 +835,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                         ? _buildVersionMenuButton()
                         : _buildRegenerateBadge(),
                   ),
+                // Unlike the regenerate/version-menu control above, favorite
+                // isn't gated on !_isDailyOutfit — HomePage's own Today's
+                // Outfit card now offers the exact same toggle on a daily
+                // outfit (see HomePage._toggleFavorite), and it hits the
+                // same generic OutfitService.updateOutfit either way, so
+                // there's no reason to hide it only once the user has
+                // tapped through into this page.
+                if (!_isRegenerating)
                   Positioned(
                     bottom: 12,
                     right: 12,
@@ -855,7 +864,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                       onTap: _toggleFavorite,
                     ),
                   ),
-                ],
                 if (_isRegenerating)
                   Positioned.fill(
                     child: ClipRRect(

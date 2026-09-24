@@ -25,9 +25,19 @@ import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'image_editor_page.dart';
 import 'location_picker_page.dart';
+import 'tryon_profile_page.dart';
 
 class AccountPage extends ConsumerStatefulWidget {
-  const AccountPage({super.key});
+  /// True when opened from HomeGettingStartedView's "About You" step
+  /// (`HomePage._openAccountPageForOnboarding`) rather than Settings. Swaps
+  /// the bottom action button from "Save" (gated on [_isModified], pops on
+  /// success) to "Continue" (gated on the four required fields already
+  /// being filled in, pushes [TryonProfilePage] on success instead of
+  /// popping) — see [_AccountPageState._showsBottomActionButton] and
+  /// [_AccountPageState._handleBottomAction].
+  final bool completingOnboarding;
+
+  const AccountPage({super.key, this.completingOnboarding = false});
 
   @override
   ConsumerState<AccountPage> createState() => _AccountPageState();
@@ -82,6 +92,17 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       _selectedGender != _initialGender ||
       _selectedBirthDate != _initialBirthDate ||
       _homeLocation != _initialLocation;
+
+  /// The onboarding "About You" step's completion rule — all four fields
+  /// non-empty. Deliberately unrelated to [_isModified]: a user who already
+  /// filled these in during an earlier visit (nothing changed *this*
+  /// session) should still see Continue immediately, not just after they
+  /// edit something.
+  bool get _hasRequiredAboutYouFields =>
+      _nameCtrl.text.trim().isNotEmpty &&
+      _selectedGender != null &&
+      _selectedBirthDate != null &&
+      (_homeLocation?.isNotEmpty ?? false);
 
   @override
   void initState() {
@@ -173,7 +194,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  Future<void> _saveProfile() async {
+  /// PATCHes the profile only — no navigation. Returns whether it
+  /// succeeded, so callers ([_handleSave]/[_handleContinue]) each decide
+  /// what happens next (pop vs. push [TryonProfilePage]) rather than this
+  /// method assuming one or the other.
+  Future<bool> _saveProfile() async {
     setState(() {
       _loading = true;
       _error = null;
@@ -187,18 +212,36 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             : null,
         location: _homeLocation,
       );
-      if (!mounted) return;
+      if (!mounted) return false;
       ref.read(profileProvider.notifier).setProfile(result);
-      Navigator.pop(context);
+      return true;
     } on AuthExpiredException {
-      if (!mounted) return;
+      if (!mounted) return false;
       await AuthExpiredHandler.handle(context);
+      return false;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _error = e.toString());
+      return false;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _handleSave() async {
+    if (await _saveProfile() && mounted) Navigator.pop(context);
+  }
+
+  /// Only re-saves if something was actually edited this session — a user
+  /// who arrives with the four fields already filled from an earlier visit
+  /// can just continue straight on without an unnecessary PATCH.
+  Future<void> _handleContinue() async {
+    if (_isModified && !await _saveProfile()) return;
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TryonProfilePage()),
+    );
   }
 
   AppToolBar _buildAppBar() {
@@ -212,10 +255,14 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       extendBody: true,
       appBar: _buildAppBar(),
       bottomNavigationBar: BottomActionButton(
-        label: _l10n.save,
-        onPressed: _saveProfile,
+        label: widget.completingOnboarding ? _l10n.continueLabel : _l10n.save,
+        onPressed: widget.completingOnboarding
+            ? _handleContinue
+            : _handleSave,
         isLoading: _loading,
-        enabled: _isModified,
+        enabled: widget.completingOnboarding
+            ? _hasRequiredAboutYouFields
+            : _isModified,
       ),
       body: Column(
         children: [
@@ -245,7 +292,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     );
   }
 
-  bool get _showsBottomActionButton => _isModified && !_loading;
+  bool get _showsBottomActionButton =>
+      (widget.completingOnboarding ? _hasRequiredAboutYouFields : _isModified) &&
+      !_loading;
 
   /// The backend's OpenAPI schema example ("string") occasionally leaks
   /// through as a literal placeholder value instead of a real URL/null —
