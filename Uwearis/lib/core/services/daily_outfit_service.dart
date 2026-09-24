@@ -27,7 +27,10 @@ class DailyOutfitService with BaseService {
     );
     final envelope = decodeMap(res, op: 'getDailyOutfit');
     final data = envelope['data'];
-    if (data == null) return null;
+    if (data == null) {
+      debugLog('getDailyOutfit: $targetDate -> data is null (no plan yet)');
+      return null;
+    }
     if (data is! Map<String, dynamic>) {
       throw Exception('getDailyOutfit: invalid response');
     }
@@ -35,9 +38,17 @@ class DailyOutfitService with BaseService {
     if (outfits is! List) {
       throw Exception('getDailyOutfit: response missing outfits list');
     }
-    return outfits
-        .whereType<Map<String, dynamic>>()
-        .map(Outfit.fromJson)
-        .toList();
+    final List<Outfit> result;
+    try {
+      result = outfits.whereType<Map<String, dynamic>>().map(Outfit.fromJson).toList();
+    } catch (e) {
+      debugLog('getDailyOutfit: $targetDate -> failed to parse outfits: $e');
+      rethrow;
+    }
+    debugLog(
+      'getDailyOutfit: $targetDate -> ${outfits.length} raw, '
+      '${result.length} parsed',
+    );
+    return result;
   }
 }

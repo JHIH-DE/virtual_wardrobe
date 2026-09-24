@@ -1258,6 +1258,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewDetails => 'View Details';
 
   @override
+  String get gettingStartedSectionLabel => 'Getting Started';
+
+  @override
+  String get gettingStartedWelcomeTitle => 'Welcome to Uwearis';
+
+  @override
+  String get gettingStartedWelcomeSubtitle =>
+      'Set up your profile and build your closet to unlock personalized outfit previews.';
+
+  @override
+  String get gettingStartedProfilePhotoLabel => 'Profile Photo';
+
+  @override
+  String get gettingStartedFullBodyPhotoLabel => 'Full-Body Photo';
+
+  @override
+  String get gettingStartedGetStartedButton => 'Get Started';
+
+  @override
+  String get gettingStartedBuildClosetTitle => 'Build your closet';
+
+  @override
+  String get gettingStartedBuildClosetSubtitle =>
+      'Add a top, a bottom, and a pair of shoes so Uwearis can start creating outfits and personalized styling for you.';
+
+  @override
+  String get gettingStartedReadyForFirstLookTitle =>
+      'Ready for your first look?';
+
+  @override
+  String get gettingStartedReadyForFirstLookSubtitle =>
+      'Your closet is ready. Create your first outfit and see it on you.';
+
+  @override
   String get googleLoginNotConfiguredIOS =>
       'Google login is not configured for iOS yet.';
 
@@ -1303,6 +1337,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get analysisFailedBody =>
       'The AI analysis didn\'t come through. Check your connection and try again.';
+
+  @override
+  String get photoProcessingFailed =>
+      'Couldn\'t process this photo. Please try a different one.';
 
   @override
   String get reset => 'Reset';

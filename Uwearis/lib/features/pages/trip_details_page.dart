@@ -1387,12 +1387,22 @@ class _TripGarmentThumb extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: GarmentImage(
-                url: garment.imageUrl,
-                garmentId: garment.id,
-                memCacheWidth: 160,
-                fit: BoxFit.cover,
-                borderRadius: 12,
+              child: Padding(
+                // contain, not cover — this box is portrait-ish (80x100)
+                // while a garment photo isn't necessarily; cover would crop
+                // a wide/short photo (e.g. shoes) down to an unrecognizable
+                // sliver instead of showing the whole garment. Matches
+                // GarmentCard/GarmentListCard's own thumbnails. A little
+                // inset so a contained image doesn't touch the card's own
+                // rounded border.
+                padding: const EdgeInsets.all(6),
+                child: GarmentImage(
+                  url: garment.imageUrl,
+                  garmentId: garment.id,
+                  memCacheWidth: 160,
+                  fit: BoxFit.contain,
+                  borderRadius: 0,
+                ),
               ),
             ),
             if (isMissing)

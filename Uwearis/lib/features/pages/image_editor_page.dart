@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -288,7 +289,15 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     // to close; a plain `flutter test` run can't catch that gap since its
     // software Skia backend never races. package:image never touches a
     // GPU at all, so there's no such window to lose to.
-    final decoded = img.decodeImage(sourceBytes);
+    // package:image has no HEIF/HEIC decoder — iPhone's default camera
+    // format since iOS 11, which Android never transcodes when a
+    // shared/synced photo keeps its original container, so this is a real
+    // gallery pick, not just an edge case. Fall back to dart:ui's own
+    // codec, which defers to the OS's native image decoder (both Android
+    // and iOS can decode HEIF at the platform level) before giving up.
+    final decoded =
+        img.decodeImage(sourceBytes) ??
+        await _decodeViaPlatformCodec(sourceBytes);
     if (decoded == null) {
       throw StateError('Could not decode image at $path');
     }
@@ -336,6 +345,38 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     return outPath;
   }
 
+  /// Fallback for [_captureFramedImage] when `package:image` can't decode
+  /// the source (see that call site's comment) — decodes via dart:ui's own
+  /// codec instead, then hands the raw pixels back as a `package:image`
+  /// [img.Image] so the crop/resize/encode pipeline above stays unchanged.
+  /// Returns null on failure, same as `img.decodeImage`.
+  Future<img.Image?> _decodeViaPlatformCodec(Uint8List bytes) async {
+    ui.Codec codec;
+    try {
+      codec = await ui.instantiateImageCodec(bytes);
+    } catch (e) {
+      debugLog('_decodeViaPlatformCodec: could not decode: $e');
+      return null;
+    }
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    try {
+      final byteData = await frame.image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      if (byteData == null) return null;
+      return img.Image.fromBytes(
+        width: frame.image.width,
+        height: frame.image.height,
+        bytes: byteData.buffer,
+        bytesOffset: byteData.offsetInBytes,
+        order: img.ChannelOrder.rgba,
+      );
+    } finally {
+      frame.image.dispose();
+    }
+  }
+
   Future<void> _handleConfirmed() async {
     if (_confirming || _currentPath == null || _isAnalyzing) return;
     setState(() => _confirming = true);
@@ -351,6 +392,17 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       } else {
         Navigator.of(context).pop(ImageEditResult(imagePath: processPath));
       }
+    } catch (e) {
+      // Reachable if _captureFramedImage's decode fails even after the
+      // platform-codec fallback (a genuinely corrupt file, or a format
+      // neither decoder supports) — was an uncaught StateError before this,
+      // crashing the whole app instead of letting the user just pick a
+      // different photo.
+      if (!mounted) return;
+      debugLog('_handleConfirmed: could not process image: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.photoProcessingFailed)));
     } finally {
       if (mounted) setState(() => _confirming = false);
     }

@@ -40,4 +40,24 @@ class ProfileNotifier extends AsyncNotifier<ProfileData> {
     if (current == null) return;
     state = AsyncData(current.copyWith(profile: profile));
   }
+
+  /// Reflects a just-completed [ProfileService.uploadBodyRef]/[uploadFaceRef]
+  /// in place, using the signed URL its own `/complete` response already
+  /// returns — deliberately not a [refresh] (re-fetching `GET /users/me`
+  /// immediately afterwards can race a backend-side async job still
+  /// committing that URL to the profile record it reads from; see
+  /// `tryon_profile_page.dart`'s `_completeTimeout` doc for why `complete`
+  /// isn't purely synchronous). Same optimistic-update shape as
+  /// `garmentsProvider.addGarment`/`outfitsProvider.addOutfit`.
+  void setBodyRefUrl(String url) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(bodyRefUrl: url));
+  }
+
+  void setFaceRefUrl(String url) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(current.copyWith(faceRefUrl: url));
+  }
 }

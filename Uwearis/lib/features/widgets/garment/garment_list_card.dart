@@ -48,6 +48,7 @@ class GarmentListCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        height: AppDimens.garmentListCardHeight,
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -59,66 +60,69 @@ class GarmentListCard extends StatelessWidget {
             ),
           ],
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppDimens.cardRadius),
-                ),
-                child: SizedBox(
-                  width: 80,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: GarmentImage(
-                      url: garment.imageUrl,
-                      garmentId: garment.id,
-                      memCacheWidth: 160,
-                      fit: BoxFit.fitHeight,
-                      borderRadius: 0,
-                    ),
-                  ),
-                ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(AppDimens.cardRadius),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Container(width: 1, color: AppColors.borderSubtle),
-              ),
-              Expanded(
+              child: SizedBox(
+                width: 80,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildCategoryTag(context),
-                      const SizedBox(height: 6),
-                      Text(
-                        garment.name,
-                        style: AppTextStyle.bold14,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (garment.color != null &&
-                          garment.color!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          garment.color!,
-                          style: AppTextStyle.regular12.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ],
+                  padding: const EdgeInsets.all(8),
+                  // contain, not fitHeight — this slot is much narrower
+                  // than it is tall, so filling the height would crop a
+                  // wide/short photo (e.g. shoes) down to an unrecognizable
+                  // sliver instead of showing the whole garment. Matches
+                  // GarmentCard/add_outfit_page's own garment thumbnails.
+                  child: GarmentImage(
+                    url: garment.imageUrl,
+                    garmentId: garment.id,
+                    memCacheWidth: 160,
+                    fit: BoxFit.contain,
+                    borderRadius: 0,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Container(width: 1, color: AppColors.borderSubtle),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildCategoryTag(context),
+                    const SizedBox(height: 6),
+                    Text(
+                      garment.name,
+                      style: AppTextStyle.bold14,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (garment.color != null &&
+                        garment.color!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        garment.color!,
+                        style: AppTextStyle.regular12.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

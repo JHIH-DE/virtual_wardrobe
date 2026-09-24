@@ -261,7 +261,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
           _fullBodyUrl = url;
           _fullBodyLocalPath = null;
         });
-        ref.read(profileProvider.notifier).refresh();
+        ref.read(profileProvider.notifier).setBodyRefUrl(url);
       }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -280,7 +280,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
           _faceRefUrl = url;
           _faceLocalPath = null;
         });
-        ref.read(profileProvider.notifier).refresh();
+        ref.read(profileProvider.notifier).setFaceRefUrl(url);
       }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());

@@ -1214,6 +1214,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewDetails => '查看詳情';
 
   @override
+  String get gettingStartedSectionLabel => '開始使用';
+
+  @override
+  String get gettingStartedWelcomeTitle => '歡迎使用 Uwearis';
+
+  @override
+  String get gettingStartedWelcomeSubtitle => '設定你的個人資料並建立衣櫥，解鎖專屬的穿搭預覽。';
+
+  @override
+  String get gettingStartedProfilePhotoLabel => '個人照片';
+
+  @override
+  String get gettingStartedFullBodyPhotoLabel => '全身照片';
+
+  @override
+  String get gettingStartedGetStartedButton => '開始設定';
+
+  @override
+  String get gettingStartedBuildClosetTitle => '打造你的衣櫥';
+
+  @override
+  String get gettingStartedBuildClosetSubtitle =>
+      '新增一件上衣、一件下身和一雙鞋子，Uwearis 就能开始为你打造穿搭与个人化风格建议。';
+
+  @override
+  String get gettingStartedReadyForFirstLookTitle => '準備好打造第一套穿搭了嗎？';
+
+  @override
+  String get gettingStartedReadyForFirstLookSubtitle =>
+      '你的衣櫥已經準備好了，建立第一套穿搭，看看穿在你身上的樣子。';
+
+  @override
   String get googleLoginNotConfiguredIOS => 'iOS 尚未設定 Google 登入。';
 
   @override
@@ -1257,6 +1289,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get analysisFailedBody => 'AI 分析没有完成，请检查网络连接后重试。';
+
+  @override
+  String get photoProcessingFailed => '无法处理这张照片，请换一张试试看。';
 
   @override
   String get reset => '重設';
@@ -2529,6 +2564,38 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get viewDetails => '查看詳情';
 
   @override
+  String get gettingStartedSectionLabel => '開始使用';
+
+  @override
+  String get gettingStartedWelcomeTitle => '歡迎使用 Uwearis';
+
+  @override
+  String get gettingStartedWelcomeSubtitle => '設定你的個人資料並建立衣櫥，解鎖專屬的穿搭預覽。';
+
+  @override
+  String get gettingStartedProfilePhotoLabel => '個人照片';
+
+  @override
+  String get gettingStartedFullBodyPhotoLabel => '全身照片';
+
+  @override
+  String get gettingStartedGetStartedButton => '開始設定';
+
+  @override
+  String get gettingStartedBuildClosetTitle => '打造你的衣櫥';
+
+  @override
+  String get gettingStartedBuildClosetSubtitle =>
+      '新增一件上衣、一件下身和一雙鞋子，Uwearis 就能開始為你打造穿搭與個人化風格建議。';
+
+  @override
+  String get gettingStartedReadyForFirstLookTitle => '準備好打造第一套穿搭了嗎？';
+
+  @override
+  String get gettingStartedReadyForFirstLookSubtitle =>
+      '你的衣櫥已經準備好了，建立第一套穿搭，看看穿在你身上的樣子。';
+
+  @override
   String get googleLoginNotConfiguredIOS => 'iOS 尚未設定 Google 登入。';
 
   @override
@@ -2572,6 +2639,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get analysisFailedBody => 'AI 分析沒有完成，請檢查網路連線後重試。';
+
+  @override
+  String get photoProcessingFailed => '無法處理這張照片，請換一張試試看。';
 
   @override
   String get reset => '重設';

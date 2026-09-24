@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/profile_data.dart';
+import '../../data/user_profile.dart';
 import '../../features/pages/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -11,6 +13,7 @@ import '../providers/profile_provider.dart';
 import '../providers/style_profile_provider.dart';
 import '../providers/style_taste_provider.dart';
 import '../providers/trips_provider.dart';
+import '../utils/image_cache_bust.dart';
 import 'auth_storage.dart';
 import 'garment_service.dart';
 import 'outfit_service.dart';
@@ -77,6 +80,21 @@ Future<void> clearSignedInSession() async {
 /// scope a per-user cache key by instead (see [AuthStorage]'s own doc
 /// comment) — invalidating everything on sign-in is what actually
 /// prevents that leak.
+///
+/// Also bumps [ImageCacheBust] for the avatar/face-reference/body-reference
+/// photos — those three use a fixed, un-scoped cache key each (`avatar`,
+/// `tryon-face-ref`, `tryon-body-ref`; see [avatarImageCacheKey]'s own doc:
+/// "one signed-in user has at most one avatar, so no id"), which was a safe
+/// assumption for a single always-the-same account but not across a
+/// logout/login-as-someone-else cycle: [CachedNetworkImage] keys its cache
+/// by that literal string regardless of which account's signed URL is
+/// passed in, so without this the next account to open Account/Settings/
+/// Try-On Profile would see the previous account's still-cached photo
+/// bytes until they replaced their own. Bumping the version (same
+/// mechanism every in-place photo replacement already uses) makes every
+/// widget pick a cache key that's never been seen before — the same effect
+/// `container.invalidate` has for the Riverpod providers above, just for a
+/// plain string-keyed image cache instead of a provider.
 void invalidateSignedInProviders(BuildContext context) {
   final container = ProviderScope.containerOf(context, listen: false);
   container.invalidate(profileProvider);
@@ -86,6 +104,9 @@ void invalidateSignedInProviders(BuildContext context) {
   container.invalidate(dailyOutfitProvider);
   container.invalidate(styleProfileProvider);
   container.invalidate(styleTasteProfileProvider);
+  ImageCacheBust.bump(avatarImageCacheKey);
+  ImageCacheBust.bump(faceRefImageCacheKey);
+  ImageCacheBust.bump(bodyRefImageCacheKey);
 }
 
 class AuthExpiredHandler {

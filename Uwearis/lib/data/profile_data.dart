@@ -22,9 +22,26 @@ class ProfileData {
 
   const ProfileData({required this.profile, this.bodyRefUrl, this.faceRefUrl});
 
-  ProfileData copyWith({UserProfile? profile}) => ProfileData(
+  ProfileData copyWith({
+    UserProfile? profile,
+    String? bodyRefUrl,
+    String? faceRefUrl,
+  }) => ProfileData(
     profile: profile ?? this.profile,
-    bodyRefUrl: bodyRefUrl,
-    faceRefUrl: faceRefUrl,
+    bodyRefUrl: bodyRefUrl ?? this.bodyRefUrl,
+    faceRefUrl: faceRefUrl ?? this.faceRefUrl,
   );
+
+  /// The backend's OpenAPI schema example ("string") occasionally leaks
+  /// through as a literal placeholder value instead of a real URL/null —
+  /// treat it the same as "no photo set". Canonical version of a check
+  /// otherwise re-derived per screen (settings_page.dart's
+  /// `_hasFaceReference`/`_hasBodyReference`, tryon_profile_page.dart's
+  /// `_resolvedUrl`) — new call sites should use [hasFaceReference] /
+  /// [hasBodyReference] below instead of re-deriving this.
+  static bool isRealPhotoUrl(String? url) =>
+      url != null && url.isNotEmpty && url != 'string';
+
+  bool get hasFaceReference => isRealPhotoUrl(faceRefUrl);
+  bool get hasBodyReference => isRealPhotoUrl(bodyRefUrl);
 }

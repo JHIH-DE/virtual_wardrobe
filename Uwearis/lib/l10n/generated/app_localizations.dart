@@ -2433,6 +2433,66 @@ abstract class AppLocalizations {
   /// **'View Details'**
   String get viewDetails;
 
+  /// No description provided for @gettingStartedSectionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting Started'**
+  String get gettingStartedSectionLabel;
+
+  /// No description provided for @gettingStartedWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Uwearis'**
+  String get gettingStartedWelcomeTitle;
+
+  /// No description provided for @gettingStartedWelcomeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up your profile and build your closet to unlock personalized outfit previews.'**
+  String get gettingStartedWelcomeSubtitle;
+
+  /// No description provided for @gettingStartedProfilePhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Photo'**
+  String get gettingStartedProfilePhotoLabel;
+
+  /// No description provided for @gettingStartedFullBodyPhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full-Body Photo'**
+  String get gettingStartedFullBodyPhotoLabel;
+
+  /// No description provided for @gettingStartedGetStartedButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get gettingStartedGetStartedButton;
+
+  /// No description provided for @gettingStartedBuildClosetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build your closet'**
+  String get gettingStartedBuildClosetTitle;
+
+  /// No description provided for @gettingStartedBuildClosetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a top, a bottom, and a pair of shoes so Uwearis can start creating outfits and personalized styling for you.'**
+  String get gettingStartedBuildClosetSubtitle;
+
+  /// No description provided for @gettingStartedReadyForFirstLookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for your first look?'**
+  String get gettingStartedReadyForFirstLookTitle;
+
+  /// No description provided for @gettingStartedReadyForFirstLookSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your closet is ready. Create your first outfit and see it on you.'**
+  String get gettingStartedReadyForFirstLookSubtitle;
+
   /// No description provided for @googleLoginNotConfiguredIOS.
   ///
   /// In en, this message translates to:
@@ -2522,6 +2582,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The AI analysis didn\'t come through. Check your connection and try again.'**
   String get analysisFailedBody;
+
+  /// No description provided for @photoProcessingFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t process this photo. Please try a different one.'**
+  String get photoProcessingFailed;
 
   /// No description provided for @reset.
   ///

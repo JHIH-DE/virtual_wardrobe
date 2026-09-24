@@ -801,8 +801,11 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     child: child,
   );
 
-  // Shared row sizing so the "Add garment" row and every garment row line up.
-  static const double _outfitRowMinHeight = 64;
+  // Fixed row height so the "Add garment" row and every garment row are
+  // always exactly the same height — a garment row's name can wrap to 2
+  // lines (long product names), which would otherwise make that row taller
+  // than "Add garment"'s fixed 2-line (title + hint) content.
+  static const double _outfitRowHeight = 84;
   // The "Add garment" row's dashed placeholder icon — unrelated to the real
   // garment thumbnail width below, which bleeds edge-to-edge instead.
   static const double _addGarmentIconSize = 56;
@@ -832,26 +835,31 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     final iconColor = enabled ? AppColors.icon : AppColors.hintText;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
-      child: AppListCard(
-        onTap: enabled ? () => _pickGarmentForOutfit() : null,
-        showArrow: true,
-        minHeight: _outfitRowMinHeight,
-        leading: SizedBox(
-          width: _addGarmentIconSize,
-          height: _addGarmentIconSize,
-          child: CustomPaint(
-            painter: DashedBorderPainter(
-              color: enabled ? AppColors.borderStrong : AppColors.hintText,
-              radius: AppDimens.cardRadius,
+      child: SizedBox(
+        height: _outfitRowHeight,
+        child: AppListCard(
+          onTap: enabled ? () => _pickGarmentForOutfit() : null,
+          showArrow: true,
+          minHeight: _outfitRowHeight,
+          leading: SizedBox(
+            width: _addGarmentIconSize,
+            height: _addGarmentIconSize,
+            child: CustomPaint(
+              painter: DashedBorderPainter(
+                color: enabled ? AppColors.borderStrong : AppColors.hintText,
+                radius: AppDimens.cardRadius,
+              ),
+              child: Center(
+                child: Icon(Icons.add, size: 22, color: iconColor),
+              ),
             ),
-            child: Center(child: Icon(Icons.add, size: 22, color: iconColor)),
           ),
-        ),
-        title: _l10n.addGarment,
-        child: Text(
-          _l10n.browseYourClosetHint,
-          style: AppTextStyle.regular12.copyWith(
-            color: AppColors.textSecondary,
+          title: _l10n.addGarment,
+          child: Text(
+            _l10n.browseYourClosetHint,
+            style: AppTextStyle.regular12.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       ),
@@ -885,7 +893,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
               current: g,
             ),
       child: Container(
-        constraints: const BoxConstraints(minHeight: _outfitRowMinHeight),
+        height: _outfitRowHeight,
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -949,8 +957,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                       // Discs stay exactly where they were (24px, 8px apart,
                       // hard against the row's right edge); the hit target
                       // only grows vertically — there's no horizontal room
-                      // between two tightly-packed badges, but the row is
-                      // >=64px tall.
+                      // between two tightly-packed badges, but the row is a
+                      // fixed _outfitRowHeight tall.
                       CardCornerBadge(
                         icon: locked ? Icons.lock : Icons.lock_open,
                         backgroundColor: locked

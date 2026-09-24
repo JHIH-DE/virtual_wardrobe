@@ -9,10 +9,15 @@ import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/daily_outfit_provider.dart';
 import '../../core/providers/garments_provider.dart';
+import '../../core/providers/outfits_provider.dart';
+import '../../core/providers/profile_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/providers/weather_provider.dart';
+import '../../core/services/auth_handler.dart';
+import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
+import '../../data/profile_data.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -23,15 +28,18 @@ import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
-import '../widgets/common/main_tab_async.dart';
 import '../widgets/garment/garment_card.dart';
+import '../widgets/garment/garment_upload_helper.dart';
+import '../widgets/home/home_getting_started_view.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/trip/trip_card.dart';
+import 'add_outfit_page.dart';
 import 'explore_page.dart';
 import 'garment_details_page.dart';
 import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'trips_page.dart';
+import 'tryon_profile_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key, @visibleForTesting DateTime Function()? now})
@@ -73,6 +81,100 @@ class _HomePageState extends ConsumerState<HomePage>
       ? _todayOutfits[_todayOutfitIndex]
       : null;
 
+  // Getting Started state — derived from real data (profileProvider's
+  // reference photos, garmentsProvider's closet, outfitsProvider's "My
+  // Outfits"), never a single isFirstLogin-style flag, so a returning user
+  // who already finished setup never sees it again and a mid-setup user
+  // always lands on the right step. A complete initial flow is Profile
+  // Photo + Full-Body Photo + a closet covering Top/Bottom/Shoes + the
+  // first created outfit — Home stays on Getting Started until all four are
+  // true. All three providers are also watched by other always-mounted
+  // IndexedStack tabs (Try-On Profile/Settings watch profileProvider;
+  // ClosetPage watches garmentsProvider; OutfitsPage/OutfitDetailsPage
+  // watch/refresh outfitsProvider) and are updated in place by their own
+  // upload/add/save flows, so this reflects the latest state on return from
+  // any of them without any extra refresh/didPopNext plumbing.
+  ProfileData? get _profileData => ref.watch(profileProvider).value;
+  bool get _hasProfilePhoto => _profileData?.hasFaceReference ?? false;
+  bool get _hasFullBodyPhoto => _profileData?.hasBodyReference ?? false;
+  List<Garment> get _closetGarments =>
+      (ref.watch(garmentsProvider).value ?? const []).active;
+  bool get _hasTop =>
+      _closetGarments.any((g) => g.category == GarmentCategory.top);
+  bool get _hasBottom =>
+      _closetGarments.any((g) => g.category == GarmentCategory.bottom);
+  bool get _hasShoes =>
+      _closetGarments.any((g) => g.category == GarmentCategory.shoes);
+  bool get _hasRequiredCloset => _hasTop && _hasBottom && _hasShoes;
+  bool get _hasCreatedOutfit =>
+      (ref.watch(outfitsProvider).value ?? const []).isNotEmpty;
+  bool get _hasAnyTrip => (ref.watch(tripsProvider).value ?? const []).isNotEmpty;
+
+  /// True once there's real evidence this is an established user — a
+  /// completed closet, a created outfit, or a planned trip — any one of
+  /// which could only exist after they'd already been through (or past)
+  /// the photo step once. Deleting a reference photo later (to retake it,
+  /// say) shouldn't send an established user all the way back through the
+  /// welcome/profile-photo screen; only [_hasRequiredCloset]/
+  /// [_hasCreatedOutfit] still gate them once this is true (see
+  /// [_isGettingStarted] for [_hasAnyTrip]'s extra role there).
+  bool get _isEstablishedUser =>
+      _hasRequiredCloset || _hasCreatedOutfit || _hasAnyTrip;
+
+  /// [_hasAnyTrip] stands in for [_hasCreatedOutfit] in the established-user
+  /// branch below — [outfitsProvider] only ever holds standalone "My
+  /// Outfits" looks (daily/trip outfits are filtered out server-side, see
+  /// `outfits_provider.dart`), so a user who plans trips and only ever gets
+  /// daily/trip-generated outfits (never a standalone one) would otherwise
+  /// never satisfy [_hasCreatedOutfit] and would stay stuck on this screen
+  /// forever, hiding a Today's Outfit the backend already generated. A
+  /// closet-complete user with no trip and no created outfit yet still
+  /// needs [_hasCreatedOutfit] itself — planning a trip is real evidence of
+  /// outfit-flow use, an empty/default trip list is not.
+  bool get _isGettingStarted {
+    if (_isEstablishedUser) {
+      return !_hasRequiredCloset || (!_hasCreatedOutfit && !_hasAnyTrip);
+    }
+    return !_hasProfilePhoto ||
+        !_hasFullBodyPhoto ||
+        !_hasRequiredCloset ||
+        !_hasCreatedOutfit;
+  }
+
+  /// True once every provider [_isGettingStarted] depends on is no longer
+  /// loading — plain `!isLoading`, deliberately **not** also checking
+  /// `hasValue`. `ref.invalidate` (`invalidateSignedInProviders`, called
+  /// right after a successful sign-in — see `auth_handler.dart`) puts a
+  /// provider into `AsyncLoading` that still carries the *previous*
+  /// account's already-resolved value via Riverpod's own
+  /// `copyWithPrevious` — so `hasValue` is already true again on the very
+  /// first rebuild after login, well before the fresh fetch for the new
+  /// account actually returns. A `isLoading && !hasValue` check (this
+  /// getter's first version) reads that stale-but-present value as "ready"
+  /// immediately, which is exactly what let a freshly signed-in account
+  /// flash the *previous* account's Getting-Started/Home state for the
+  /// ~1-2s the real fetch takes before correcting itself. Gating on
+  /// `isLoading` alone waits out that whole window regardless of whether a
+  /// stale value is attached. A manual `.refresh()` (pull-to-refresh, a
+  /// photo/garment upload) still resolves this the same way it always has
+  /// — those assign a bare `const AsyncLoading()` with no previous value at
+  /// all, so `isLoading` alone already covered them.
+  ///
+  /// Also guards against briefly rendering the wrong body while the very
+  /// first fetch after login is still in flight — mirrors how
+  /// [_buildOutfitImageCard] used to gate on `dailyOutfitProvider`'s own
+  /// loading flag before this.
+  bool get _gettingStartedDataReady {
+    final profile = ref.watch(profileProvider);
+    final garments = ref.watch(garmentsProvider);
+    final outfits = ref.watch(outfitsProvider);
+    final trips = ref.watch(tripsProvider);
+    return !profile.isLoading &&
+        !garments.isLoading &&
+        !outfits.isLoading &&
+        !trips.isLoading;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -82,19 +184,57 @@ class _HomePageState extends ConsumerState<HomePage>
       _dateCheckInterval,
       (_) => _refreshIfDateChanged(),
     );
-    // Deferred to after the first frame — mainTabReporter's MainShellScope
-    // lookup isn't safe to run during initState itself.
+    // Deferred to after the first frame — MainShellScope's lookup isn't
+    // safe to run during initState itself.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final report = mainTabReporter(
-        context,
-        loadingLabel: AppLocalizations.of(context).loading,
-        tab: MainTab.home,
-      );
-      report(ref.read(dailyOutfitProvider));
-      ref.listenManual(dailyOutfitProvider, (_, next) => report(next));
+      _reportHomeLoading();
+      ref.listenManual(dailyOutfitProvider, (_, _) => _reportHomeLoading());
+      ref.listenManual(profileProvider, (_, _) => _reportHomeLoading());
+      ref.listenManual(garmentsProvider, (_, _) => _reportHomeLoading());
+      ref.listenManual(outfitsProvider, (_, _) => _reportHomeLoading());
+      ref.listenManual(tripsProvider, (_, _) => _reportHomeLoading());
       ref.read(dailyOutfitProvider.notifier).refreshIfNeeded();
     });
+  }
+
+  /// Combines [dailyOutfitProvider] (Today's Outfit), [profileProvider],
+  /// [garmentsProvider], [outfitsProvider] and [tripsProvider] (the latter
+  /// four all now also feeding [_isGettingStarted]/[_isEstablishedUser])
+  /// into one shell-level loading state for this tab — widens the
+  /// single-provider `mainTabReporter` shape (`main_tab_async.dart`) other
+  /// main tabs use to cover every source this page's body now reads before
+  /// it can decide what to show. `profileProvider` isn't otherwise
+  /// triggered/watched by any always-mounted tab, so this is also what
+  /// kicks off its first fetch and routes an unrecoverable auth expiry on
+  /// it to [AuthExpiredHandler] (garmentsProvider's/outfitsProvider's/
+  /// tripsProvider's own expiry is already handled independently by
+  /// ClosetPage's/OutfitsPage's/TripsPage's identical listeners).
+  void _reportHomeLoading() {
+    final states = [
+      ref.read(dailyOutfitProvider),
+      ref.read(profileProvider),
+      ref.read(garmentsProvider),
+      ref.read(outfitsProvider),
+      ref.read(tripsProvider),
+    ];
+    for (final state in states) {
+      if (state.hasError && state.error is AuthExpiredException) {
+        AuthExpiredHandler.handle(context);
+        break;
+      }
+    }
+    // Plain isLoading, not `isLoading && !hasValue` — see
+    // _gettingStartedDataReady's doc for why the latter misses an
+    // in-flight ref.invalidate refetch (its stale previous value already
+    // satisfies hasValue), which is exactly the window this overlay needs
+    // to keep covering.
+    final loading = states.any((s) => s.isLoading);
+    MainShellScope.of(context)?.setLoading(
+      loading,
+      label: AppLocalizations.of(context).loading,
+      tab: MainTab.home,
+    );
   }
 
   /// Resuming from background alone isn't enough — an app left open and
@@ -156,42 +296,131 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      appBar: _buildAppBar(),
+      body: _buildBody(),
+    );
+  }
+
+  /// Blank while the data [_isGettingStarted] depends on is still on its
+  /// first fetch (the shell overlay covers the screen for that window — see
+  /// [_reportHomeLoading]); otherwise the header (date/weather) is always
+  /// shown, and only the content below it swaps between
+  /// [_buildGettingStartedContent] and [_buildNormalHomeContent] — decided
+  /// fresh on every rebuild so returning from Try-On Profile/Add Clothing/
+  /// Add Outfit (still mounted underneath, per IndexedStack) always
+  /// reflects the latest state.
+  Widget _buildBody() {
+    if (!_gettingStartedDataReady) return const SizedBox.shrink();
     // mainNavBarClearance alone is tuned for the nav bar's own height,
     // not any given device's safe-area inset — add that explicitly so the
     // last card always clears the main nav bar, gesture-bar devices
     // included, without touching the nav bar's own layout.
     final bottomClearance =
         AppDimens.mainNavBarClearance + MediaQuery.of(context).padding.bottom;
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: AppDimens.sectionSpacing),
-                  _buildOutfitImageCard(),
-                  _buildUpcomingTripSection(),
-                ],
-              ),
-            ),
-            // Outside the 24px page padding so the horizontal card scroller
-            // itself isn't boxed in and can reach the true screen edges —
-            // the section's own label keeps the 24px inset internally so it
-            // still lines up with the rest of the page.
-            _buildRecentlyAddedSection(),
-            SizedBox(height: bottomClearance),
-          ],
-        ),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          ..._isGettingStarted
+              ? _buildGettingStartedContent()
+              : _buildNormalHomeContent(),
+          SizedBox(height: bottomClearance),
+        ],
       ),
     );
+  }
+
+  /// Header + Today's Outfit + Upcoming Trip, then Recently Added.
+  /// Recently Added is its own list entry rather than nested inside the
+  /// padded Column above it, because its horizontal card scroller needs to
+  /// reach the true screen edges — it applies the same 24px inset
+  /// internally instead (see [_buildRecentlyAddedSection]); nesting it here
+  /// would double that padding and choke off its scroll range.
+  List<Widget> _buildNormalHomeContent() => [
+    Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          _buildOutfitImageCard(),
+          _buildUpcomingTripSection(),
+        ],
+      ),
+    ),
+    _buildRecentlyAddedSection(),
+  ];
+
+  List<Widget> _buildGettingStartedContent() => [
+    Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          const SizedBox(height: AppDimens.sectionSpacing),
+          HomeGettingStartedView(
+            hasProfilePhoto: _hasProfilePhoto,
+            hasFullBodyPhoto: _hasFullBodyPhoto,
+            hasTop: _hasTop,
+            hasBottom: _hasBottom,
+            hasShoes: _hasShoes,
+            onOpenTryOnProfile: _openTryOnProfile,
+            onAddClothing: _addGarment,
+            onCreateOutfit: _openAddOutfit,
+          ),
+        ],
+      ),
+    ),
+  ];
+
+  void _openTryOnProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TryonProfilePage()),
+    );
+  }
+
+  void _addGarment() {
+    GarmentUploadHelper.showAddClothingDialog(
+      context,
+      onAdded: (g) => ref.read(garmentsProvider.notifier).addGarment(g),
+    );
+  }
+
+  /// Triggered by [HomeGettingStartedView]'s "Create Outfit" CTA on its
+  /// final "Ready for your first look?" step — mirrors `outfits_page.dart`'s
+  /// own `_openAddOutfit` (warm garmentsProvider, then push [AddOutfitPage],
+  /// loading routed through [MainShellScope] since this page is itself a
+  /// main tab — see CLAUDE.md's main-tab loading convention).
+  Future<void> _openAddOutfit() async {
+    final l10n = AppLocalizations.of(context);
+    MainShellScope.of(
+      context,
+    )?.setLoading(true, label: l10n.loadingGarments, tab: MainTab.home);
+    try {
+      await ref.read(garmentsProvider.future);
+      if (!mounted) return;
+      MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddOutfitPage()),
+      );
+    } on AuthExpiredException {
+      if (!mounted) return;
+      MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
+      debugLog('HomePage._openAddOutfit: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadGarments)));
+    }
   }
 
   AppToolBar _buildAppBar() {
@@ -337,13 +566,20 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Widget _buildOutfitImageCard() {
     final l10n = AppLocalizations.of(context);
-    final loadingOutfit = ref.watch(dailyOutfitProvider).isLoading;
     final outfit = _todayOutfit;
-    final hasImage =
-        !loadingOutfit && outfit != null && outfit.imageUrl.isNotEmpty;
+    // _buildNormalHomeBody only renders once _isGettingStarted is false —
+    // i.e. the user has already created at least one outfit (see
+    // _hasCreatedOutfit) — so no daily outfit *today* here just means the
+    // server hasn't generated today's plan yet, not "first outfit" any
+    // more; nothing to nudge, so the whole section (divider included)
+    // stays hidden rather than showing a "first look" CTA that no longer
+    // applies.
+    if (outfit == null) return const SizedBox.shrink();
+    final hasImage = outfit.imageUrl.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: AppDimens.sectionSpacing),
         LabeledDivider(label: l10n.todaysOutfit),
         const SizedBox(height: AppDimens.cardHeaderGap),
         ClipRRect(
@@ -353,11 +589,7 @@ class _HomePageState extends ConsumerState<HomePage>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                loadingOutfit
-                    // The shell overlay (mainTabReporter) covers the whole
-                    // screen while loading, so this stays blank.
-                    ? Container(color: AppColors.surface)
-                    : !hasImage
+                !hasImage
                     ? Container(
                         color: AppColors.surface,
                         child: Center(

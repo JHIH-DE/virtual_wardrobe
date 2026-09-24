@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/app/theme/app_dimens.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/widgets/garment/garment_list_card.dart';
 
@@ -68,4 +69,45 @@ void main() {
     await tester.tap(find.text('Denim Jacket'));
     expect(taps, 1);
   });
+
+  testWidgets(
+    'the card is always the same fixed height regardless of a long name, a '
+    'color line, or the garment photo\'s own aspect ratio, with no overflow',
+    (tester) async {
+      final long = Garment(
+        id: 2,
+        name: 'Minimalist Oversized Cotton T-Shirt with Contrast Stitching',
+        color: 'White',
+        category: GarmentCategory.top,
+        subCategory: 'T-shirt',
+        uploadUrl: '',
+        objectName: '',
+        imageUrl: '',
+      );
+      final short = _garment();
+
+      await pumpApp(
+        tester,
+        Scaffold(
+          body: Column(
+            children: [
+              GarmentListCard(garment: long, onTap: () {}),
+              GarmentListCard(garment: short, onTap: () {}),
+            ],
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      final cards = find.byType(GarmentListCard);
+      expect(
+        tester.getSize(cards.at(0)).height,
+        AppDimens.garmentListCardHeight,
+      );
+      expect(
+        tester.getSize(cards.at(1)).height,
+        AppDimens.garmentListCardHeight,
+      );
+    },
+  );
 }

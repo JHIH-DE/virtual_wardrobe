@@ -58,6 +58,13 @@ class GarmentCard extends StatelessWidget {
                 // Upper — image
                 Expanded(
                   child: Stack(
+                    // GarmentImage is given a width but no height, so it
+                    // sizes to the photo's own aspect ratio rather than
+                    // filling this slot — Stack's default topStart
+                    // alignment would then pin a short/wide photo (e.g.
+                    // shoes) to the top with the leftover space stranded
+                    // below it, instead of centering it.
+                    alignment: Alignment.center,
                     children: [
                       Container(
                         color: cardColor,

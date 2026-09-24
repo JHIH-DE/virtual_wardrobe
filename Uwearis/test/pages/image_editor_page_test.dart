@@ -169,4 +169,75 @@ void main() {
       );
     });
   });
+
+  // Regression: a source file neither package:image nor dart:ui's own codec
+  // can decode (a genuinely corrupt file, or an as-yet-unsupported format)
+  // used to propagate _captureFramedImage's StateError straight out of
+  // _handleConfirmed uncaught — crashing the whole app instead of letting
+  // the user just pick a different photo. This also covers the
+  // package:image-fails/dart:ui-fallback-also-fails branch generally, since
+  // HEIF's platform-decoder success path isn't reproducible on the
+  // desktop/Skia test host (see _decodeViaPlatformCodec's own doc).
+  testWidgets(
+    'confirming an undecodable photo shows a friendly error instead of '
+    'crashing, and Confirm becomes available again',
+    (tester) async {
+      useTallSurface(tester);
+      final garbageFile = File(
+        '${Directory.systemTemp.path}/image_editor_page_test_garbage_'
+        '${DateTime.now().microsecondsSinceEpoch}.jpg',
+      )..writeAsBytesSync(const [1, 2, 3, 4, 5]);
+      addTearDown(() {
+        if (garbageFile.existsSync()) garbageFile.deleteSync();
+      });
+
+      await tester.runAsync(() async {
+        await pumpApp(
+          tester,
+          ImageEditorPage(
+            title: 'Photo',
+            initialPath: garbageFile.path,
+            showAnalysis: false,
+          ),
+        );
+        await tester.pump();
+
+        var stillHidden = true;
+        for (var i = 0; i < 30 && stillHidden; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          await tester.pump(const Duration(milliseconds: 20));
+          stillHidden = find
+              .byKey(const ValueKey('bottomActionButton-hidden'))
+              .evaluate()
+              .isNotEmpty;
+        }
+        expect(stillHidden, isFalse, reason: 'Confirm never became available');
+
+        await tester.tap(find.byKey(const ValueKey('bottomActionButton-visible')));
+        await tester.pump();
+        // Lets _captureFramedImage's decode attempts (both the
+        // package:image call and the dart:ui fallback) actually run.
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await tester.pump();
+
+        // The garbage bytes also fail to decode for the on-screen preview
+        // itself (_buildImageContent's plain Image.file, with no
+        // errorBuilder) — a pre-existing gap unrelated to the
+        // _captureFramedImage/_handleConfirmed fix this test is actually
+        // checking, so drain it rather than assert on it here (same idiom
+        // as settings_page_test.dart's LoginPage-image drain).
+        while (tester.takeException() != null) {}
+
+        expect(
+          find.text("Couldn't process this photo. Please try a different one."),
+          findsOneWidget,
+        );
+        // The re-entrancy guard reset, not stuck mid-confirm.
+        expect(
+          find.byKey(const ValueKey('bottomActionButton-visible')),
+          findsOneWidget,
+        );
+      });
+    },
+  );
 }

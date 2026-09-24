@@ -42,6 +42,10 @@ abstract class AppDimens {
   static const double garmentCardHeight = 230;
   static const double garmentCardInfoHeight = 70;
 
+  // GarmentListCard (Outfit Details' "Garments" row) — fixed so every row
+  // is the same height regardless of the garment photo's own aspect ratio.
+  static const double garmentListCardHeight = 100;
+
   // Shorter than Material's default kToolbarHeight (56) for a more compact
   // AppToolBar, but 48 rather than [minTouchTarget]'s 44: an AppBar caps
   // its leading and every `actions` child at this height, and the back
