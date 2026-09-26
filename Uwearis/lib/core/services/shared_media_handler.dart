@@ -109,9 +109,7 @@ class SharedMediaHandler {
                           // Land on My Closet regardless of which tab was
                           // active when the share arrived — matches the
                           // quick-action's own "+ Add Clothing" behavior.
-                          MainShellScope.of(
-                            context,
-                          )?.selectTab(MainTab.closet);
+                          MainShellScope.of(context)?.selectTab(MainTab.closet);
                         },
                       );
                     },

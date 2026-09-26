@@ -10,6 +10,7 @@ import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/app_divider.dart';
 import '../common/cards/category_tag.dart';
+import '../common/overlays/error_dialog.dart';
 import '../common/overlays/inline_error_text.dart';
 import 'garment_image.dart';
 
@@ -60,10 +61,9 @@ class _GarmentDetailDialogState extends State<GarmentDetailDialog> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _restoring = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).failedToRestoreGarment),
-        ),
+      showErrorDialog(
+        context,
+        message: AppLocalizations.of(context).failedToRestoreGarment,
       );
     }
   }

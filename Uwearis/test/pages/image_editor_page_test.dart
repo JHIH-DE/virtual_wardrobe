@@ -134,11 +134,7 @@ void main() {
     await tester.runAsync(() async {
       await pumpApp(
         tester,
-        ImageEditorPage(
-          title: 'Photo',
-          initialPath: imageFile.path,
-          showAnalysis: false,
-        ),
+        ImageEditorPage(title: 'Photo', initialPath: imageFile.path),
       );
       await tester.pump();
 
@@ -194,11 +190,7 @@ void main() {
       await tester.runAsync(() async {
         await pumpApp(
           tester,
-          ImageEditorPage(
-            title: 'Photo',
-            initialPath: garbageFile.path,
-            showAnalysis: false,
-          ),
+          ImageEditorPage(title: 'Photo', initialPath: garbageFile.path),
         );
         await tester.pump();
 

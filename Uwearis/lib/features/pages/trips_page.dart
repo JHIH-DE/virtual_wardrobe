@@ -14,6 +14,7 @@ import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/trip/trip_card.dart';
 import '../widgets/trip/trip_create_dialog.dart';
@@ -100,9 +101,7 @@ Future<void> handleCreateTrip(
     navigator.pop(); // close loading indicator
     debugLog('Failed to create trip: $e');
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.failedToCreateTrip)));
+      showErrorDialog(context, message: l10n.failedToCreateTrip);
     }
   }
 }
@@ -130,8 +129,9 @@ Future<void> handleRenameTrip(
     if (!context.mounted) return;
     ref.read(tripsProvider.notifier).updateTrip(trip);
     debugLog('Failed to rename trip: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context).failedToUpdateTrip)),
+    showErrorDialog(
+      context,
+      message: AppLocalizations.of(context).failedToUpdateTrip,
     );
   }
 }
@@ -169,8 +169,9 @@ Future<void> handleDeleteTrip(
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
     debugLog('Failed to delete trip: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context).failedToDeleteTrip)),
+    showErrorDialog(
+      context,
+      message: AppLocalizations.of(context).failedToDeleteTrip,
     );
   }
 }
@@ -206,9 +207,7 @@ Future<void> openTripDetails(
     if (!context.mounted) return;
     MainShellScope.of(context)?.setLoading(false, tab: tab);
     debugLog('Failed to load trip details: $e');
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadTripDetails)));
+    showErrorDialog(context, message: l10n.failedToLoadTripDetails);
   }
 }
 

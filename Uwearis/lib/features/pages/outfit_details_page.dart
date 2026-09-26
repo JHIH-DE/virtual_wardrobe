@@ -12,6 +12,7 @@ import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
 import '../../core/services/outfit_service.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/signed_url.dart';
@@ -35,6 +36,7 @@ import '../widgets/common/images/fullscreen_image_viewer.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/save_changes_dialog.dart';
@@ -424,9 +426,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToLoadGarments)));
+        showErrorDialog(context, message: _l10n.failedToLoadGarments);
       }
     }
   }
@@ -462,9 +462,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.failedToLoadGarments)));
+      showErrorDialog(context, message: _l10n.failedToLoadGarments);
     } finally {
       if (mounted) setState(() => _isCreatingVersion = false);
     }
@@ -617,9 +615,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('OutfitDetailsPage update tags failed: $e');
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitUpdateFailed),
+      );
     }
   }
 
@@ -671,9 +671,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _versions[index] = target);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateFavorite)));
+      showErrorDialog(context, message: _l10n.failedToUpdateFavorite);
     }
   }
 
@@ -708,14 +706,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
+      debugLog('OutfitDetailsPage._setCover failed: $e');
       setState(() {
         _versions
           ..clear()
           ..addAll(previous);
       });
-      ScaffoldMessenger.of(
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitUpdateFailed),
+      );
     } finally {
       if (mounted) setState(() => _isSettingCover = false);
     }
@@ -764,9 +764,15 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('OutfitDetailsPage._regenerateImage failed: $e');
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(
+          _l10n,
+          e,
+          fallback: _l10n.failedToGenerateOutfit,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isRegenerating = false);
     }
@@ -1197,9 +1203,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('OutfitDetailsPage._leaveNewOutfit failed: $e');
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitDeleteFailed),
+      );
     } finally {
       if (mounted) setState(() => _isLeaving = false);
     }
@@ -1238,9 +1246,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('OutfitDetailsPage._confirmThenDeleteGroup failed: $e');
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitDeleteFailed),
+      );
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
@@ -1294,9 +1304,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('OutfitDetailsPage._deleteThisOutfit failed: $e');
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitDeleteFailed),
+      );
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
@@ -1345,9 +1357,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('OutfitDetailsPage rename failed: $e');
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitUpdateFailed),
+      );
     }
   }
 }

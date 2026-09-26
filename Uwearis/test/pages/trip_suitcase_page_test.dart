@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uwearis/core/providers/trip_suggestion_provider.dart';
+import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/features/pages/trip_suitcase_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/expandable_insight_body.dart';
+import 'package:uwearis/l10n/generated/app_localizations_en.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -35,7 +39,14 @@ Trip _trip() => Trip(
 );
 
 void main() {
-  setUp(setUpFakeAuth);
+  setUp(() {
+    setUpFakeAuth();
+    // Needed for the AuthExpiredException test below — AuthExpiredHandler
+    // .handle's clearSignedInSession() reads/writes SharedPreferences
+    // (GarmentService's closet-analysis cache), which otherwise never
+    // resolves in a test binding with no platform channel to answer it.
+    SharedPreferences.setMockInitialValues({});
+  });
 
   void useTallSurface(WidgetTester tester) {
     tester.view.physicalSize = const Size(1000, 4000);
@@ -120,6 +131,51 @@ void main() {
       );
     }, () => suitcaseClient(overallAdvice: 'Layer up for the evenings.'));
   });
+
+  // Regression: tripSuggestionProvider used to only be read via
+  // `.watch(...).when(...)` here (see _buildPackingAdviceCard) — with no
+  // listener of its own, an AuthExpiredException on it would just render
+  // ErrorStateWidget-style nothing (that widget deliberately renders
+  // nothing for AuthExpiredException, expecting some listener elsewhere to
+  // own the redirect) instead of ever prompting the user to log back in.
+  testWidgets(
+    'an AuthExpiredException on tripSuggestionProvider shows the '
+    'session-expired dialog',
+    (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          TripSuitcasePage(trip: _trip()),
+          overrides: [
+            // A small delay before throwing, not an immediate one — the
+            // page's AuthExpired listener is only attached inside
+            // initState's addPostFrameCallback (after the first frame);
+            // a real network failure always arrives well after that point,
+            // but an override that throws on the very first microtask can
+            // race ahead of it, which would make this test pass or fail on
+            // an artifact of test timing rather than the actual page logic.
+            tripSuggestionProvider(7).overrideWith((ref) async {
+              await Future<void>.delayed(const Duration(milliseconds: 50));
+              throw AuthExpiredException();
+            }),
+          ],
+        );
+        await tester.pump();
+        // Real time past the override's 50ms delay, plus AuthExpiredHandler's
+        // own async chain (clearSignedInSession) before it calls showDialog —
+        // pumpAndSettle alone can return between two of those async gaps
+        // with nothing yet scheduled, before the dialog actually goes up.
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(AppLocalizationsEn().sessionExpiredTitle),
+          findsOneWidget,
+        );
+      }, () => suitcaseClient());
+    },
+  );
 
   testWidgets('justCreated opens the outfit-advice card expanded', (
     tester,

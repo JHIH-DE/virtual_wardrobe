@@ -10,15 +10,16 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
 import '../../core/services/profile_service.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
-import '../../core/utils/image_cache_bust.dart';
 import '../../data/profile_data.dart';
-import '../../data/user_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/error_dialog.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'account_page.dart';
@@ -43,6 +44,8 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  bool _deletingAccount = false;
+
   @override
   void initState() {
     super.initState();
@@ -128,6 +131,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Future<void> _deleteAccount() async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: l10n.deleteAccountConfirmTitle,
+        body: l10n.deleteAccountConfirmBody,
+        primaryLabel: l10n.deleteAccount,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (confirmed != true || _deletingAccount) return;
+
+    setState(() => _deletingAccount = true);
+    try {
+      await ProfileService().deleteMyAccount();
+      if (!mounted) return;
+      await clearSignedInSession();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      debugLog('SettingsPage delete account failed: $e');
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(l10n, e, fallback: l10n.deleteAccountFailed),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingAccount = false);
+    }
+  }
+
   AppToolBar _buildAppBar(AppLocalizations l10n) {
     return AppToolBar(title: l10n.settings);
   }
@@ -138,9 +181,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(l10n),
-      body: _loading
-          ? const Center(child: AppSpinner())
-          : ListView(
+      body: Stack(
+        children: [
+          _loading
+              ? const Center(child: AppSpinner())
+              : ListView(
               children: [
                 _buildProfileCard(l10n),
                 const SizedBox(height: AppDimens.sectionSpacing),
@@ -173,18 +218,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildLogoutCard(l10n),
                 ),
+                const SizedBox(height: AppDimens.sectionSpacing),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildDeleteAccountCard(l10n),
+                ),
                 const SizedBox(height: 32),
               ],
             ),
+          if (_deletingAccount)
+            Positioned.fill(
+              child: LoadingOverlay(label: l10n.deletingAccount),
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildProfileCard(AppLocalizations l10n) {
-    final url = (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string')
+    final url =
+        (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string')
         ? _avatarUrl
         : null;
-    final cacheKey =
-        '$avatarImageCacheKey-v${ImageCacheBust.versionOf(avatarImageCacheKey)}';
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: Column(
@@ -192,7 +247,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           // Read-only — see AccountPage for the editable version.
           ProfileAvatar(
             url: url,
-            cacheKey: cacheKey,
             onRefreshUrl: () => ProfileService().getMyAvatar(),
             size: 120,
             showEditLabel: false,
@@ -318,6 +372,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       onTap: _logout,
       leadingAsset: 'assets/images/logout.png',
       child: Text(l10n.logout, style: AppTextStyle.bold16),
+    );
+  }
+
+  Widget _buildDeleteAccountCard(AppLocalizations l10n) {
+    return AppListCard(
+      onTap: _deletingAccount ? null : _deleteAccount,
+      leading: const Icon(
+        Icons.delete_forever_outlined,
+        color: AppColors.error,
+      ),
+      child: Text(
+        l10n.deleteAccount,
+        style: AppTextStyle.bold16.copyWith(color: AppColors.error),
+      ),
     );
   }
 }

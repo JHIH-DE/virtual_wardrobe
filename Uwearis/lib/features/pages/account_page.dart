@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -8,11 +9,10 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
-import '../../core/utils/image_cache_bust.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/location_result.dart';
-import '../../data/user_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
@@ -20,7 +20,7 @@ import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
-import '../widgets/common/overlays/inline_error_text.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'image_editor_page.dart';
@@ -47,7 +47,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   final _nameCtrl = TextEditingController();
 
   bool _loading = false;
-  String? _error;
   String? _selectedGender;
   DateTime? _selectedBirthDate;
   String? _homeLocation;
@@ -122,10 +121,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   }
 
   Future<void> _loadProfile() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
     try {
       // Shared with Settings / Try-on Profile via profileProvider — a
       // no-op fetch if one of those already loaded it.
@@ -147,7 +143,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      debugLog('AccountPage._loadProfile failed: $e');
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.failedToLoad),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -160,7 +160,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         builder: (_) => ImageEditorPage(
           title: _l10n.profilePhotoTitle,
           initialPath: _avatarLocalPath ?? _avatarUrl,
-          showAnalysis: false,
           // This reopens the already-saved avatar — confirming with zero
           // changes would just re-upload an identical copy.
           requireChangeToConfirm: true,
@@ -178,7 +177,17 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     try {
       final url = await ProfileService().uploadAvatar(localPath);
       if (mounted) {
-        ImageCacheBust.bump(avatarImageCacheKey);
+        // Precache before switching over to it — every upload gets a
+        // freshly-signed, genuinely different URL, so plain URL-keyed
+        // caching (no separate cache key) already picks up the change; this
+        // just confirms the new photo is actually fetchable before the UI
+        // commits to it.
+        try {
+          await precacheImage(CachedNetworkImageProvider(url), context);
+        } catch (e) {
+          debugLog('_uploadAvatar: failed to precache avatar: $e');
+        }
+        if (!mounted) return;
         setState(() {
           _avatarUrl = url;
           _avatarLocalPath = null;
@@ -187,8 +196,18 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         // new signed URL.
         ref.read(profileProvider.notifier).refresh();
       }
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
       debugLog('AccountPage avatar upload error: $e');
+      if (mounted) {
+        showErrorDialog(
+          context,
+          message: apiErrorMessage(_l10n, e, fallback: _l10n.photoUploadFailed),
+        );
+      }
     } finally {
       if (mounted) setState(() => _avatarUploading = false);
     }
@@ -199,10 +218,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   /// what happens next (pop vs. push [TryonProfilePage]) rather than this
   /// method assuming one or the other.
   Future<bool> _saveProfile() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
     try {
       final result = await ProfileService().updateMyProfile(
         name: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : null,
@@ -221,7 +237,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       return false;
     } catch (e) {
       if (!mounted) return false;
-      setState(() => _error = e.toString());
+      debugLog('AccountPage._saveProfile failed: $e');
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.profileSaveFailed),
+      );
       return false;
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -256,9 +276,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       appBar: _buildAppBar(),
       bottomNavigationBar: BottomActionButton(
         label: widget.completingOnboarding ? _l10n.continueLabel : _l10n.save,
-        onPressed: widget.completingOnboarding
-            ? _handleContinue
-            : _handleSave,
+        onPressed: widget.completingOnboarding ? _handleContinue : _handleSave,
         isLoading: _loading,
         enabled: widget.completingOnboarding
             ? _hasRequiredAboutYouFields
@@ -272,11 +290,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildAvatarSection(),
-                  if (_error != null)
-                    InlineErrorText(
-                      message: _error!,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    ),
                   _buildFormFields(),
                   SizedBox(
                     height: _showsBottomActionButton
@@ -293,7 +306,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   }
 
   bool get _showsBottomActionButton =>
-      (widget.completingOnboarding ? _hasRequiredAboutYouFields : _isModified) &&
+      (widget.completingOnboarding
+          ? _hasRequiredAboutYouFields
+          : _isModified) &&
       !_loading;
 
   /// The backend's OpenAPI schema example ("string") occasionally leaks
@@ -304,8 +319,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   Widget _buildAvatarSection() {
     final url = _avatarLocalPath ?? _resolvedAvatarUrl(_avatarUrl);
-    final baseKey = avatarImageCacheKey;
-    final cacheKey = '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32),
@@ -319,7 +332,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       child: Center(
         child: ProfileAvatar(
           url: url,
-          cacheKey: cacheKey,
           onRefreshUrl: () => ProfileService().getMyAvatar(),
           size: 120,
           onTap: _avatarUploading ? null : _changeAvatar,

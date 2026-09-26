@@ -155,16 +155,23 @@ class _FakeProfileNotifier extends ProfileNotifier {
 /// [_FakeGarmentsNotifier]'s own doc; this is the 4th, final Getting
 /// Started condition alongside profile photos + closet).
 class _FakeOutfitsNotifier extends OutfitsNotifier {
-  _FakeOutfitsNotifier({List<Outfit>? outfits}) : outfits = outfits ?? _oneOutfit;
+  _FakeOutfitsNotifier({List<Outfit>? outfits})
+    : outfits = outfits ?? _oneOutfit;
 
   static final _oneOutfit = [
     Outfit(id: 100, imageUrl: 'https://example.com/my-outfit.jpg'),
   ];
 
-  final List<Outfit> outfits;
+  List<Outfit> outfits;
 
   @override
   Future<List<Outfit>> build() async => outfits;
+
+  @override
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = AsyncData(outfits);
+  }
 }
 
 /// No trips by default — most of this file's tests don't care about trip
@@ -240,9 +247,7 @@ void main() {
       // The calendar day rolls over while the app is still running, then
       // the OS brings it back to the foreground.
       now = DateTime(2026, 9, 18, 0, 5);
-      tester.binding.handleAppLifecycleStateChanged(
-        AppLifecycleState.resumed,
-      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
       await tester.pump();
 
@@ -285,32 +290,29 @@ void main() {
     },
   );
 
-  testWidgets(
-    'resuming on the same day does not re-trigger a refresh',
-    (tester) async {
-      final now = DateTime(2026, 9, 17, 10);
-      final dailyOutfit = _FakeDailyOutfitNotifier([
-        Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
-      ]);
+  testWidgets('resuming on the same day does not re-trigger a refresh', (
+    tester,
+  ) async {
+    final now = DateTime(2026, 9, 17, 10);
+    final dailyOutfit = _FakeDailyOutfitNotifier([
+      Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
+    ]);
 
-      await pumpApp(
-        tester,
-        HomePage(now: () => now),
-        overrides: overridesWith(dailyOutfit),
-      );
-      await tester.pump();
-      await tester.pump();
+    await pumpApp(
+      tester,
+      HomePage(now: () => now),
+      overrides: overridesWith(dailyOutfit),
+    );
+    await tester.pump();
+    await tester.pump();
 
-      // Still resumed, still the same day — e.g. an unrelated lifecycle
-      // ping, or briefly switching to another app and straight back.
-      tester.binding.handleAppLifecycleStateChanged(
-        AppLifecycleState.resumed,
-      );
-      await tester.pump();
+    // Still resumed, still the same day — e.g. an unrelated lifecycle
+    // ping, or briefly switching to another app and straight back.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
 
-      expect(dailyOutfit.refreshCount, 0);
-    },
-  );
+    expect(dailyOutfit.refreshCount, 0);
+  });
 
   testWidgets(
     'a brand-new account (no reference photos, empty closet, no outfits) '
@@ -552,32 +554,29 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a fully set-up user with no outfit generated for today AND no '
-    '"My Outfits" look to fall back to sees nothing in that slot at all '
-    '(established here via trip data alone, same as the daily-outfit-'
-    'present case above)',
-    (tester) async {
-      final dailyOutfit = _FakeDailyOutfitNotifier(const []);
-      await pumpApp(
-        tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
-        overrides: overridesWith(
-          dailyOutfit,
-          outfits: _FakeOutfitsNotifier(outfits: const []),
-          trips: _FakeTripsNotifier(trips: [_testTrip]),
-        ),
-      );
-      await tester.pump();
-      await tester.pump();
+  testWidgets('a fully set-up user with no outfit generated for today AND no '
+      '"My Outfits" look to fall back to sees nothing in that slot at all '
+      '(established here via trip data alone, same as the daily-outfit-'
+      'present case above)', (tester) async {
+    final dailyOutfit = _FakeDailyOutfitNotifier(const []);
+    await pumpApp(
+      tester,
+      HomePage(now: () => DateTime(2026, 9, 17, 10)),
+      overrides: overridesWith(
+        dailyOutfit,
+        outfits: _FakeOutfitsNotifier(outfits: const []),
+        trips: _FakeTripsNotifier(trips: [_testTrip]),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
 
-      expect(find.text('Getting Started'), findsNothing);
-      expect(find.text('Ready for your first look?'), findsNothing);
-      expect(find.text('No outfit image yet'), findsNothing);
-      expect(find.text("Today's Outfit"), findsNothing);
-      expect(find.text('Your Latest Outfit'), findsNothing);
-    },
-  );
+    expect(find.text('Getting Started'), findsNothing);
+    expect(find.text('Ready for your first look?'), findsNothing);
+    expect(find.text('No outfit image yet'), findsNothing);
+    expect(find.text("Today's Outfit"), findsNothing);
+    expect(find.text('Your Latest Outfit'), findsNothing);
+  });
 
   testWidgets(
     'a returning user whose closet still falls short of the daily-outfit '
@@ -719,13 +718,11 @@ void main() {
     'shared outfitsProvider',
     (tester) async {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
+      final outfits = _FakeOutfitsNotifier(outfits: const []);
       await pumpApp(
         tester,
         HomePage(now: () => DateTime(2026, 9, 17, 10)),
-        overrides: overridesWith(
-          dailyOutfit,
-          outfits: _FakeOutfitsNotifier(outfits: const []),
-        ),
+        overrides: overridesWith(dailyOutfit, outfits: outfits),
       );
       await tester.pump();
       await tester.pump();
@@ -733,12 +730,10 @@ void main() {
 
       // Simulates OutfitDetailsPage's post-save outfitsProvider.refresh()
       // picking up the newly created outfit.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(HomePage)),
-      );
-      container.read(outfitsProvider.notifier).addOutfit(
+      outfits.outfits = [
         Outfit(id: 200, imageUrl: 'https://example.com/new-outfit.jpg'),
-      );
+      ];
+      await outfits.refresh();
       await tester.pump();
 
       expect(find.text('Ready for your first look?'), findsNothing);
@@ -747,58 +742,58 @@ void main() {
     },
   );
 
-  testWidgets(
-    'regression: ref.invalidate (as login does via '
-    'invalidateSignedInProviders) must not flash the previous account\'s '
-    'stale Home content while the new account\'s fetch is still in flight',
-    (tester) async {
-      // Account A: fully set up (normal Home, no Getting Started).
-      final dailyOutfit = _FakeDailyOutfitNotifier([
-        Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
-      ]);
-      const delay = Duration(milliseconds: 50);
-      await pumpApp(
-        tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
-        overrides: overridesWith(
-          dailyOutfit,
-          garments: _DelayedGarmentsNotifier(
-            const [_topGarment, _bottomGarment, _shoesGarment],
-            delay: delay,
-          ),
-        ),
-      );
-      await tester.pump();
-      // Advances the fake clock past the initial fetch's delay — a plain
-      // zero-duration pump() never fires a Future.delayed.
-      await tester.pump(delay);
-      expect(find.text('Thursday, Sep 17'), findsOneWidget);
-      expect(find.text('Getting Started'), findsNothing);
+  testWidgets('regression: ref.invalidate (as login does via '
+      'invalidateSignedInProviders) must not flash the previous account\'s '
+      'stale Home content while the new account\'s fetch is still in flight', (
+    tester,
+  ) async {
+    // Account A: fully set up (normal Home, no Getting Started).
+    final dailyOutfit = _FakeDailyOutfitNotifier([
+      Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
+    ]);
+    const delay = Duration(milliseconds: 50);
+    await pumpApp(
+      tester,
+      HomePage(now: () => DateTime(2026, 9, 17, 10)),
+      overrides: overridesWith(
+        dailyOutfit,
+        garments: _DelayedGarmentsNotifier(const [
+          _topGarment,
+          _bottomGarment,
+          _shoesGarment,
+        ], delay: delay),
+      ),
+    );
+    await tester.pump();
+    // Advances the fake clock past the initial fetch's delay — a plain
+    // zero-duration pump() never fires a Future.delayed.
+    await tester.pump(delay);
+    expect(find.text('Thursday, Sep 17'), findsOneWidget);
+    expect(find.text('Getting Started'), findsNothing);
 
-      // Login for account B calls invalidateSignedInProviders right before
-      // swapping in a fresh MainShell — here, HomePage stays the same
-      // widget (this test isn't re-simulating the MainShell swap), but
-      // container.invalidate is the exact same call that function makes.
-      // Riverpod's own AsyncLoading after an invalidate still carries
-      // account A's already-resolved value via copyWithPrevious, which is
-      // the whole point of this regression test.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(HomePage)),
-      );
-      container.invalidate(garmentsProvider);
-      await tester.pump();
+    // Login for account B calls invalidateSignedInProviders right before
+    // swapping in a fresh MainShell — here, HomePage stays the same
+    // widget (this test isn't re-simulating the MainShell swap), but
+    // container.invalidate is the exact same call that function makes.
+    // Riverpod's own AsyncLoading after an invalidate still carries
+    // account A's already-resolved value via copyWithPrevious, which is
+    // the whole point of this regression test.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomePage)),
+    );
+    container.invalidate(garmentsProvider);
+    await tester.pump();
 
-      // Still mid-refetch (the delayed notifier hasn't resolved yet — the
-      // clock hasn't been advanced past `delay` since the invalidate) —
-      // must show neither account's content, not fall through to A's
-      // still-attached stale value.
-      expect(find.text('Thursday, Sep 17'), findsNothing);
-      expect(find.text('Getting Started'), findsNothing);
+    // Still mid-refetch (the delayed notifier hasn't resolved yet — the
+    // clock hasn't been advanced past `delay` since the invalidate) —
+    // must show neither account's content, not fall through to A's
+    // still-attached stale value.
+    expect(find.text('Thursday, Sep 17'), findsNothing);
+    expect(find.text('Getting Started'), findsNothing);
 
-      // The refetch resolves (same data here — this test is about the
-      // loading window itself, not about B seeing different data).
-      await tester.pump(delay);
-      expect(find.text('Thursday, Sep 17'), findsOneWidget);
-    },
-  );
+    // The refetch resolves (same data here — this test is about the
+    // loading window itself, not about B seeing different data).
+    await tester.pump(delay);
+    expect(find.text('Thursday, Sep 17'), findsOneWidget);
+  });
 }

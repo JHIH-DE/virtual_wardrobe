@@ -37,7 +37,11 @@ class DialogOptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (variant) {
-      DialogOptionCardVariant.row => _RowCard(icon: icon, label: label, onTap: onTap),
+      DialogOptionCardVariant.row => _RowCard(
+        icon: icon,
+        label: label,
+        onTap: onTap,
+      ),
       DialogOptionCardVariant.square => _SquareCard(
         icon: icon,
         label: label,
@@ -52,7 +56,11 @@ class _RowCard extends StatelessWidget {
   final Widget label;
   final VoidCallback onTap;
 
-  const _RowCard({required this.icon, required this.label, required this.onTap});
+  const _RowCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +124,11 @@ class _SquareCard extends StatelessWidget {
   final Widget label;
   final VoidCallback onTap;
 
-  const _SquareCard({required this.icon, required this.label, required this.onTap});
+  const _SquareCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -59,7 +59,10 @@ class DailyOutfitService with BaseService {
     }
     final List<Outfit> result;
     try {
-      result = outfits.whereType<Map<String, dynamic>>().map(Outfit.fromJson).toList();
+      result = outfits
+          .whereType<Map<String, dynamic>>()
+          .map(Outfit.fromJson)
+          .toList();
     } catch (e) {
       debugLog('getDailyOutfit: $targetDate -> failed to parse outfits: $e');
       rethrow;

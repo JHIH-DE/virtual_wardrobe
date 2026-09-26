@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
-import 'package:uwearis/data/outfit.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -56,15 +55,6 @@ void main() {
   });
 
   group('optimistic mutations', () {
-    test('addOutfit prepends', () {
-      return withOutfits([_group(1, 10)], (c) async {
-        c
-            .read(outfitsProvider.notifier)
-            .addOutfit(Outfit.fromJson(_outfit(2, 20)));
-        expect(c.read(outfitsProvider).value!.map((o) => o.id), [2, 1]);
-      });
-    });
-
     test('removeOutfit drops the matching id', () {
       return withOutfits([_group(1, 10), _group(2, 20)], (c) async {
         c.read(outfitsProvider.notifier).removeOutfit(1);
@@ -78,34 +68,40 @@ void main() {
             .read(outfitsProvider.notifier)
             .updateGroupName(20, name: 'Weekend Look');
         final list = c.read(outfitsProvider).value!;
-        expect(list.firstWhere((o) => o.groupId == 20).groupName, 'Weekend Look');
+        expect(
+          list.firstWhere((o) => o.groupId == 20).groupName,
+          'Weekend Look',
+        );
         expect(list.firstWhere((o) => o.groupId == 10).groupName, isNull);
       });
     });
   });
 
   group('isStale / refreshIfNeeded', () {
-    test('isStale is true when a result image URL is an expired signed URL', () {
-      final client = MockClient(
-        (_) async => jsonResponse(
-          envelope({
-            'items': [
-              {
-                'group_id': 10,
-                'cover_outfit_id': null,
-                'outfits': [_outfit(1, 10, imageUrl: expiredSignedUrl)],
-              },
-            ],
-          }),
-        ),
-      );
-      return http.runWithClient(() async {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
-        await container.read(outfitsProvider.future);
-        expect(container.read(outfitsProvider.notifier).isStale, isTrue);
-      }, () => client);
-    });
+    test(
+      'isStale is true when a result image URL is an expired signed URL',
+      () {
+        final client = MockClient(
+          (_) async => jsonResponse(
+            envelope({
+              'items': [
+                {
+                  'group_id': 10,
+                  'cover_outfit_id': null,
+                  'outfits': [_outfit(1, 10, imageUrl: expiredSignedUrl)],
+                },
+              ],
+            }),
+          ),
+        );
+        return http.runWithClient(() async {
+          final container = ProviderContainer();
+          addTearDown(container.dispose);
+          await container.read(outfitsProvider.future);
+          expect(container.read(outfitsProvider.notifier).isStale, isTrue);
+        }, () => client);
+      },
+    );
 
     test('refreshIfNeeded re-fetches an empty list, skips a fresh one', () {
       var requests = 0;

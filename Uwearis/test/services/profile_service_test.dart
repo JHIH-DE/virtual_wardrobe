@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -83,54 +84,68 @@ void main() {
   });
 
   group('avatar upload flow', () {
-    test('avatarInitUpload POSTs a content_type and returns upload details', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(
-          _envelope({
-            'upload_url': 'https://upload.example.com/x',
-            'object_name': 'avatars/1.jpg',
-          }),
+    test(
+      'uploadAvatar runs init-upload -> PUT -> complete and returns the final url',
+      () async {
+        final tempFile = await _writeTempJpeg();
+        addTearDown(() => tempFile.delete());
+
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          if (request.url.toString() == '$_base/avatar/init-upload') {
+            return _jsonResponse(
+              _envelope({
+                'upload_url': 'https://upload.example.com/x',
+                'object_name': 'avatars/1.jpg',
+              }),
+            );
+          }
+          if (request.url.toString() == 'https://upload.example.com/x') {
+            return http.Response('', 200);
+          }
+          return _jsonResponse(
+            _envelope({'object_url': 'https://cdn.example.com/1.jpg'}),
+          );
+        });
+
+        final url = await http.runWithClient(
+          () => ProfileService().uploadAvatar(tempFile.path),
+          () => client,
         );
-      });
 
-      final result = await http.runWithClient(
-        () => ProfileService().avatarInitUpload(),
-        () => client,
-      );
+        expect(url, 'https://cdn.example.com/1.jpg');
+        expect(requests[0].url.toString(), '$_base/avatar/init-upload');
+        expect(jsonDecode(requests[0].body), {'content_type': 'image/jpeg'});
+        expect(requests[1].method, 'PUT');
+        expect(requests[1].url.toString(), 'https://upload.example.com/x');
+        expect(requests[2].url.toString(), '$_base/avatar/complete');
+        expect(jsonDecode(requests[2].body), {'object_name': 'avatars/1.jpg'});
+      },
+    );
 
-      expect(captured.url.toString(), '$_base/avatar/init-upload');
-      expect(jsonDecode(captured.body), {'content_type': 'image/jpeg'});
-      expect(result.uploadUrl, 'https://upload.example.com/x');
-      expect(result.objectName, 'avatars/1.jpg');
-    });
+    test('uploadAvatar throws when complete is missing object_url', () async {
+      final tempFile = await _writeTempJpeg();
+      addTearDown(() => tempFile.delete());
 
-    test('avatarComplete POSTs the object_name and returns the final url', () async {
-      late http.Request captured;
       final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({'object_url': 'https://cdn.example.com/1.jpg'}));
+        if (request.url.toString() == '$_base/avatar/init-upload') {
+          return _jsonResponse(
+            _envelope({
+              'upload_url': 'https://upload.example.com/x',
+              'object_name': 'avatars/1.jpg',
+            }),
+          );
+        }
+        if (request.url.toString() == 'https://upload.example.com/x') {
+          return http.Response('', 200);
+        }
+        return _jsonResponse(_envelope({}));
       });
-
-      final url = await http.runWithClient(
-        () => ProfileService().avatarComplete(objectName: 'avatars/1.jpg'),
-        () => client,
-      );
-
-      expect(captured.url.toString(), '$_base/avatar/complete');
-      expect(jsonDecode(captured.body), {'object_name': 'avatars/1.jpg'});
-      expect(url, 'https://cdn.example.com/1.jpg');
-    });
-
-    test('avatarComplete throws when object_url is missing', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(_envelope({})),
-      );
 
       await expectLater(
         http.runWithClient(
-          () => ProfileService().avatarComplete(objectName: 'x'),
+          () => ProfileService().uploadAvatar(tempFile.path),
           () => client,
         ),
         throwsA(isA<Exception>()),
@@ -151,37 +166,113 @@ void main() {
 
     // avatar / body-ref / face-ref completes share one helper — body-ref and
     // face-ref must reject a missing object_url just like avatar does.
-    test('bodyRefComplete and faceRefComplete throw on a missing object_url', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(_envelope({})),
-      );
+    test('uploadBodyRef and uploadFaceRef throw when complete is missing '
+        'object_url', () async {
+      final tempFile = await _writeTempJpeg();
+      addTearDown(() => tempFile.delete());
 
-      await expectLater(
-        http.runWithClient(
-          () => ProfileService().bodyRefComplete(objectName: 'x'),
-          () => client,
-        ),
-        throwsA(isA<Exception>()),
+      Future<void> expectThrowsFor(
+        Future<String> Function(String) upload,
+        String segment,
+      ) {
+        final client = MockClient((request) async {
+          if (request.url.toString() == '$_base/$segment/init-upload') {
+            return _jsonResponse(
+              _envelope({
+                'upload_url': 'https://upload.example.com/x',
+                'object_name': 'x',
+              }),
+            );
+          }
+          if (request.url.toString() == 'https://upload.example.com/x') {
+            return http.Response('', 200);
+          }
+          return _jsonResponse(_envelope({}));
+        });
+        return expectLater(
+          http.runWithClient(() => upload(tempFile.path), () => client),
+          throwsA(isA<Exception>()),
+        );
+      }
+
+      await expectThrowsFor(
+        (p) => ProfileService().uploadBodyRef(p),
+        'body-reference',
       );
-      await expectLater(
-        http.runWithClient(
-          () => ProfileService().faceRefComplete(objectName: 'x'),
-          () => client,
-        ),
-        throwsA(isA<Exception>()),
+      await expectThrowsFor(
+        (p) => ProfileService().uploadFaceRef(p),
+        'face-reference',
       );
     });
 
-    test('a stalled avatarComplete surfaces a TimeoutException', () async {
+    test('a stalled complete step surfaces a TimeoutException', () async {
+      final tempFile = await _writeTempJpeg();
+      addTearDown(() => tempFile.delete());
+
       await expectLater(
         http.runWithClient(
-          () => ProfileService().avatarComplete(objectName: 'x'),
+          () => ProfileService().uploadAvatar(tempFile.path),
           () => MockClient((request) async {
+            if (request.url.toString() == '$_base/avatar/init-upload') {
+              return _jsonResponse(
+                _envelope({
+                  'upload_url': 'https://upload.example.com/x',
+                  'object_name': 'avatars/1.jpg',
+                }),
+              );
+            }
+            if (request.url.toString() == 'https://upload.example.com/x') {
+              return http.Response('', 200);
+            }
             throw TimeoutException('simulated slow complete');
           }),
         ),
         throwsA(isA<TimeoutException>()),
       );
+    });
+  });
+
+  group('getMyProfileData', () {
+    test('one GET to the profile root parses profile fields + both '
+        'reference URLs together', () async {
+      final urls = <String>[];
+      final client = MockClient((request) async {
+        urls.add(request.url.toString());
+        return _jsonResponse(
+          _envelope({
+            'name': 'Jason',
+            'height': 178,
+            'weight': 70.5,
+            'body_reference_object_url': 'https://cdn.example.com/body.jpg',
+            'face_reference_object_url': 'https://cdn.example.com/face.jpg',
+          }),
+        );
+      });
+
+      final data = await http.runWithClient(
+        () => ProfileService().getMyProfileData(),
+        () => client,
+      );
+
+      expect(urls, [_base]);
+      expect(data.profile.name, 'Jason');
+      expect(data.profile.height, 178);
+      expect(data.bodyRefUrl, 'https://cdn.example.com/body.jpg');
+      expect(data.faceRefUrl, 'https://cdn.example.com/face.jpg');
+    });
+
+    test('tolerates missing reference urls (both null)', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({'name': 'Jason'})),
+      );
+
+      final data = await http.runWithClient(
+        () => ProfileService().getMyProfileData(),
+        () => client,
+      );
+
+      expect(data.bodyRefUrl, isNull);
+      expect(data.faceRefUrl, isNull);
     });
   });
 
@@ -247,17 +338,20 @@ void main() {
       expect(items[0].count, 5);
     });
 
-    test('returns an empty list rather than throwing when items is missing', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(_envelope({})),
-      );
+    test(
+      'returns an empty list rather than throwing when items is missing',
+      () async {
+        final client = MockClient(
+          (request) async => _jsonResponse(_envelope({})),
+        );
 
-      final items = await http.runWithClient(
-        () => ProfileService().getMyStyleProfile(),
-        () => client,
-      );
-      expect(items, isEmpty);
-    });
+        final items = await http.runWithClient(
+          () => ProfileService().getMyStyleProfile(),
+          () => client,
+        );
+        expect(items, isEmpty);
+      },
+    );
   });
 
   group('getMyStyleTaste', () {
@@ -334,25 +428,36 @@ void main() {
       expect(jsonDecode(captured.body), {});
     });
 
-    test('sends weeklySchedule and temperatureOffsetC under their wire keys', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({}));
-      });
+    test(
+      'sends weeklySchedule and temperatureOffsetC under their wire keys',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(_envelope({}));
+        });
 
-      await http.runWithClient(
-        () => ProfileService().updateMyProfile(
-          weeklySchedule: {'mon': 'work', 'sun': 'casual'},
-          temperatureOffsetC: -2,
-        ),
-        () => client,
-      );
+        await http.runWithClient(
+          () => ProfileService().updateMyProfile(
+            weeklySchedule: {'mon': 'work', 'sun': 'casual'},
+            temperatureOffsetC: -2,
+          ),
+          () => client,
+        );
 
-      expect(jsonDecode(captured.body), {
-        'weekly_schedule': {'mon': 'work', 'sun': 'casual'},
-        'temperature_offset_c': -2,
-      });
-    });
+        expect(jsonDecode(captured.body), {
+          'weekly_schedule': {'mon': 'work', 'sun': 'casual'},
+          'temperature_offset_c': -2,
+        });
+      },
+    );
   });
+}
+
+Future<File> _writeTempJpeg() async {
+  final file = File(
+    '${Directory.systemTemp.path}/profile_service_test_${DateTime.now().microsecondsSinceEpoch}.jpg',
+  );
+  await file.writeAsBytes([0xFF, 0xD8, 0xFF, 0xD9]);
+  return file;
 }

@@ -180,46 +180,6 @@ void main() {
     });
   });
 
-  group('refreshAccessToken', () {
-    test('POSTs the refresh_token and returns the new pair', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(
-          _envelope({
-            'access_token': 'new-access',
-            'refresh_token': 'new-refresh',
-          }),
-        );
-      });
-
-      final result = await http.runWithClient(
-        () => AuthService().refreshAccessToken('old-refresh'),
-        () => client,
-      );
-
-      expect(result.accessToken, 'new-access');
-      expect(result.refreshToken, 'new-refresh');
-      expect(captured.url.toString(), '$_base/refresh');
-      expect(jsonDecode(captured.body), {'refresh_token': 'old-refresh'});
-    });
-
-    test('throws when refresh_token is missing from the response', () async {
-      final client = MockClient(
-        (request) async =>
-            _jsonResponse(_envelope({'access_token': 'new-access'})),
-      );
-
-      await expectLater(
-        http.runWithClient(
-          () => AuthService().refreshAccessToken('old-refresh'),
-          () => client,
-        ),
-        throwsA(isA<Exception>()),
-      );
-    });
-  });
-
   group('logout', () {
     test('POSTs the refresh_token, ignoring the response body', () async {
       late http.Request captured;

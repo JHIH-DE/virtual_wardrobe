@@ -8,6 +8,8 @@ import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
+import '../../core/utils/api_error_text.dart';
+import '../../core/utils/debug_log.dart';
 import '../../data/occasion_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/occasion_type_localization.dart';
@@ -15,6 +17,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/number_stepper.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/occasion_picker_sheet.dart';
 import '../widgets/common/section_title.dart';
@@ -102,9 +105,11 @@ class _LifestylePageState extends State<LifestylePage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('LifestylePage._save failed: $e');
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.profileSaveFailed),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }

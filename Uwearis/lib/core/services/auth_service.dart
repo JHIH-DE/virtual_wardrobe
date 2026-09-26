@@ -98,15 +98,4 @@ class AuthService with BaseService {
     // server's response, so this deliberately doesn't check the status.
     await _postJson('/logout', {'refresh_token': refreshToken});
   }
-
-  Future<({String accessToken, String refreshToken})> refreshAccessToken(
-    String refreshToken,
-  ) async {
-    debugLog('--- refreshAccessToken ---');
-    final res = await _postJson('/refresh', {'refresh_token': refreshToken});
-    return _tokenPair(
-      decodeMap(res, op: 'refreshAccessToken'),
-      label: 'Token refresh',
-    );
-  }
 }

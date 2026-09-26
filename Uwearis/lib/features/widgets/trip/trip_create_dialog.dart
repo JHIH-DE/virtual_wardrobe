@@ -21,7 +21,8 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
   /// Gates the "Create" button (see [AppDialog.onPrimary]'s disabled state)
   /// — greyed out until both a name and at least one location are in.
   bool get _canCreate =>
-      _tripNameController.text.trim().isNotEmpty && _legsNotifier.value.isNotEmpty;
+      _tripNameController.text.trim().isNotEmpty &&
+      _legsNotifier.value.isNotEmpty;
 
   @override
   void initState() {

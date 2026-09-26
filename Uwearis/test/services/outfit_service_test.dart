@@ -741,26 +741,6 @@ void main() {
       expect(jsonDecode(captured.body), {'cover_outfit_id': 101});
     });
 
-    test(
-      'clearCoverOutfitId explicitly sends a null cover_outfit_id',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return _jsonResponse(_envelope({}));
-        });
-
-        await http.runWithClient(
-          () => OutfitService().updateGroup(12, clearCoverOutfitId: true),
-          () => client,
-        );
-
-        final payload = jsonDecode(captured.body) as Map<String, dynamic>;
-        expect(payload.containsKey('cover_outfit_id'), isTrue);
-        expect(payload['cover_outfit_id'], isNull);
-      },
-    );
-
     test('sends an empty body when nothing is passed', () async {
       late http.Request captured;
       final client = MockClient((request) async {

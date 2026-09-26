@@ -2,10 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/style_profile.dart';
 import '../services/profile_service.dart';
+import 'retry_policy.dart';
 
 final styleProfileProvider =
     AsyncNotifierProvider<StyleProfileNotifier, List<StyleProfileItem>>(
       StyleProfileNotifier.new,
+      retry: appRetryPolicy,
     );
 
 class StyleProfileNotifier extends AsyncNotifier<List<StyleProfileItem>> {

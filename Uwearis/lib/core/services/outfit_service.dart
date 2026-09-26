@@ -344,23 +344,20 @@ class OutfitService with BaseService {
   /// Only pass what changed; everything else is left untouched server-side.
   /// [coverOutfitId] is the version shown as the group's representative in
   /// the flat Outfits list (see [getAllOutfits]) and must already be fully
-  /// rendered; pass [clearCoverOutfitId] to explicitly null it out (falls
-  /// back to the group's lowest outfit_id).
+  /// rendered.
   Future<void> updateGroup(
     int groupId, {
     String? name,
     int? coverOutfitId,
-    bool clearCoverOutfitId = false,
   }) async {
     debugLog(
       '--- updateGroup: groupId=$groupId name=$name '
-      'coverOutfitId=$coverOutfitId clearCoverOutfitId=$clearCoverOutfitId ---',
+      'coverOutfitId=$coverOutfitId ---',
     );
     final uri = Uri.parse('$_baseUrl/$groupId');
     final payload = <String, dynamic>{
       'name': ?name,
-      if (coverOutfitId != null || clearCoverOutfitId)
-        'cover_outfit_id': coverOutfitId,
+      'cover_outfit_id': ?coverOutfitId,
     };
     final res = await withAuth(
       (token) => http

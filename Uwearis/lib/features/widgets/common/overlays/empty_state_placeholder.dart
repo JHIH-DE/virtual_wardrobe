@@ -116,8 +116,11 @@ class EmptyStatePlaceholder extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: (title == null ? AppTextStyle.regular16 : AppTextStyle.regular14)
-                  .copyWith(color: AppColors.textSecondary),
+              style:
+                  (title == null
+                          ? AppTextStyle.regular16
+                          : AppTextStyle.regular14)
+                      .copyWith(color: AppColors.textSecondary),
             ),
             if (actionLabel != null) ...[
               const SizedBox(height: 16),

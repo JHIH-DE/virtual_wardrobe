@@ -51,6 +51,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addPhotoAction => '新增照片';
 
   @override
+  String get profileSaveFailed => '无法保存个人资料，请再试一次。';
+
+  @override
+  String get photoUploadFailed => '照片上传失败，请再试一次。';
+
+  @override
+  String get faceReferenceNotFound => '脸部参考照片已失效，请重新上传。';
+
+  @override
+  String get bodyReferenceNotFound => '身形参考照片已失效，请重新上传。';
+
+  @override
+  String get fileNotFound => '所需文件已不存在，请重新上传或再试一次。';
+
+  @override
+  String get faceReferenceLoadFailedTitle => '脸部参考照片无法加载';
+
+  @override
+  String get bodyReferenceLoadFailedTitle => '身形参考照片无法加载';
+
+  @override
+  String get referenceLoadFailedSubtitle => '请重新上传照片';
+
+  @override
+  String get reuploadPhotoAction => '重新上传';
+
+  @override
   String get aiModelReady => '已就緒．臉部與身形皆已設定';
 
   @override
@@ -104,6 +131,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get logoutConfirmBody => '登出後需要重新登入才能使用 Uwearis。';
+
+  @override
+  String get deleteAccount => '刪除帳號';
+
+  @override
+  String get deleteAccountConfirmTitle => '確定要刪除帳號嗎？';
+
+  @override
+  String get deleteAccountConfirmBody =>
+      '這將永久刪除您的帳號與所有資料——穿搭、衣物、照片與偏好設定，且無法復原。';
+
+  @override
+  String get deletingAccount => '正在刪除帳號…';
+
+  @override
+  String get deleteAccountFailed => '刪除帳號失敗，請稍後再試。';
 
   @override
   String get language => '語言';
@@ -247,6 +290,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteThisVersion => '刪除版本';
+
+  @override
+  String get outfitUpdateFailed => '无法更新这套穿搭，请再试一次。';
+
+  @override
+  String get outfitDeleteFailed => '无法删除这套穿搭，请再试一次。';
+
+  @override
+  String get outfitCopyFailed => '无法复制这套穿搭，请再试一次。';
 
   @override
   String createdOnDate(String date) {
@@ -769,9 +821,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteGarmentConfirmation => '確定要刪除這件衣物嗎？';
 
   @override
-  String deleteFailedPrefix(String error) {
-    return '刪除失敗：$error';
-  }
+  String get garmentRenameFailed => '无法重新命名，请再试一次。';
+
+  @override
+  String get garmentSaveFailed => '无法保存，请再试一次。';
+
+  @override
+  String get garmentDeleteFailed => '无法删除，请再试一次。';
 
   @override
   String get unsavedChangesTitle => '你有未儲存的變更';
@@ -1294,6 +1350,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get signInWithFacebook => '使用 Facebook 登入';
 
   @override
+  String get loginFailed => '登录失败，请再试一次。';
+
+  @override
   String get copyrightText => '版權所有 © Uwearis inc.';
 
   @override
@@ -1354,6 +1413,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cityNameHint => '城市名稱...';
 
   @override
+  String get locationSearchFailed => '无法搜索该地点，请再试一次。';
+
+  @override
   String get crashScreenTitle => '發生了一點問題';
 
   @override
@@ -1364,6 +1426,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sessionExpiredMessage => '您的登入已過期，請重新登入以繼續使用。';
+
+  @override
+  String get errorDialogTitle => '錯誤';
 
   @override
   String get ok => '確定';
@@ -1425,6 +1490,33 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addPhotoAction => '新增照片';
 
   @override
+  String get profileSaveFailed => '無法儲存個人資料，請再試一次。';
+
+  @override
+  String get photoUploadFailed => '照片上傳失敗，請再試一次。';
+
+  @override
+  String get faceReferenceNotFound => '臉部參考照片已失效，請重新上傳。';
+
+  @override
+  String get bodyReferenceNotFound => '身形參考照片已失效，請重新上傳。';
+
+  @override
+  String get fileNotFound => '所需的檔案已不存在，請重新上傳或再試一次。';
+
+  @override
+  String get faceReferenceLoadFailedTitle => '臉部參考照片無法載入';
+
+  @override
+  String get bodyReferenceLoadFailedTitle => '身形參考照片無法載入';
+
+  @override
+  String get referenceLoadFailedSubtitle => '請重新上傳照片';
+
+  @override
+  String get reuploadPhotoAction => '重新上傳';
+
+  @override
   String get aiModelReady => '已就緒．臉部與身形皆已設定';
 
   @override
@@ -1478,6 +1570,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get logoutConfirmBody => '登出後需要重新登入才能使用 Uwearis。';
+
+  @override
+  String get deleteAccount => '刪除帳號';
+
+  @override
+  String get deleteAccountConfirmTitle => '確定要刪除帳號嗎？';
+
+  @override
+  String get deleteAccountConfirmBody =>
+      '這將永久刪除您的帳號與所有資料——穿搭、衣物、照片與偏好設定，且無法復原。';
+
+  @override
+  String get deletingAccount => '正在刪除帳號…';
+
+  @override
+  String get deleteAccountFailed => '刪除帳號失敗，請稍後再試。';
 
   @override
   String get language => '語言';
@@ -1621,6 +1729,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deleteThisVersion => '刪除版本';
+
+  @override
+  String get outfitUpdateFailed => '無法更新這套穿搭，請再試一次。';
+
+  @override
+  String get outfitDeleteFailed => '無法刪除這套穿搭，請再試一次。';
+
+  @override
+  String get outfitCopyFailed => '無法複製這套穿搭，請再試一次。';
 
   @override
   String createdOnDate(String date) {
@@ -2143,9 +2260,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deleteGarmentConfirmation => '確定要刪除這件衣物嗎？';
 
   @override
-  String deleteFailedPrefix(String error) {
-    return '刪除失敗：$error';
-  }
+  String get garmentRenameFailed => '無法重新命名，請再試一次。';
+
+  @override
+  String get garmentSaveFailed => '無法儲存，請再試一次。';
+
+  @override
+  String get garmentDeleteFailed => '無法刪除，請再試一次。';
 
   @override
   String get unsavedChangesTitle => '你有未儲存的變更';
@@ -2668,6 +2789,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get signInWithFacebook => '使用 Facebook 登入';
 
   @override
+  String get loginFailed => '登入失敗，請再試一次。';
+
+  @override
   String get copyrightText => '版權所有 © Uwearis inc.';
 
   @override
@@ -2728,6 +2852,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get cityNameHint => '城市名稱...';
 
   @override
+  String get locationSearchFailed => '無法搜尋該地點，請再試一次。';
+
+  @override
   String get crashScreenTitle => '發生了一點問題';
 
   @override
@@ -2738,6 +2865,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get sessionExpiredMessage => '您的登入已過期，請重新登入以繼續使用。';
+
+  @override
+  String get errorDialogTitle => '錯誤';
 
   @override
   String get ok => '確定';

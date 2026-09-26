@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +9,9 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
-import '../../core/utils/image_cache_bust.dart';
+import '../../core/utils/api_error_text.dart';
+import '../../core/utils/debug_log.dart';
 import '../../data/image_edit_result.dart';
-import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
@@ -18,7 +19,7 @@ import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/images/app_image.dart';
-import '../widgets/common/overlays/inline_error_text.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/section_title.dart';
 import 'camera_capture_page.dart';
 import 'image_editor_page.dart';
@@ -60,11 +61,20 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
   final _weightLbCtrl = TextEditingController();
 
   bool _loading = false;
-  String? _error;
   String? _fullBodyUrl;
   String? _fullBodyLocalPath;
   String? _faceRefUrl;
   String? _faceLocalPath;
+
+  /// Set when the *image widget* couldn't load the current signed URL (its
+  /// GCS object is gone — see [AppImage.onLoadError]/
+  /// [RefreshableNetworkImage.onLoadError]) — a per-photo UI concern, not an
+  /// API/provider error. Never set from a `catch` block; never affects
+  /// `profileProvider`/the other reference photo/the measurement fields.
+  /// Cleared whenever a fresh URL is loaded (profile reload) or a new photo
+  /// is uploaded.
+  bool _faceRefLoadFailed = false;
+  bool _bodyRefLoadFailed = false;
   String _initialHeight = '';
   String _initialWeight = '';
   _UnitSystem _unitSystem = _UnitSystem.metric;
@@ -145,10 +155,7 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
   }
 
   Future<void> _loadProfile() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
     try {
       // Shared with Account / Settings via profileProvider.
       final data = await ref.read(profileProvider.future);
@@ -163,6 +170,8 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
         if (w != null) _weightCtrl.text = w.toStringAsFixed(0);
         _fullBodyUrl = fullBodyUrl;
         _faceRefUrl = faceRefUrl;
+        _faceRefLoadFailed = false;
+        _bodyRefLoadFailed = false;
         _initialHeight = _heightCtrl.text;
         _initialWeight = _weightCtrl.text;
         _unitSystem = _UnitSystem.fromApiValue(profile.unitSystem);
@@ -174,17 +183,18 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      debugLog('TryonProfilePage._loadProfile failed: $e');
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.failedToLoad),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _saveProfile() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
     try {
       final h = double.tryParse(_heightCtrl.text.trim());
       final w = double.tryParse(_weightCtrl.text.trim());
@@ -201,7 +211,11 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      debugLog('TryonProfilePage._saveProfile failed: $e');
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.profileSaveFailed),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -214,7 +228,6 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
         builder: (_) => ImageEditorPage(
           title: _l10n.bodyReferenceLabel,
           initialPath: _fullBodyLocalPath ?? _fullBodyUrl,
-          showAnalysis: false,
           aspectRatio: 3 / 4,
           cameraFrameRatio: CameraFrameRatio.portrait,
           // This reopens the already-saved photo — confirming with zero
@@ -236,7 +249,6 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
         builder: (_) => ImageEditorPage(
           title: _l10n.faceReferenceLabel,
           initialPath: _faceLocalPath ?? _faceRefUrl,
-          showAnalysis: false,
           aspectRatio: 3 / 4,
           cameraFrameRatio: CameraFrameRatio.portrait,
           // This reopens the already-saved photo — confirming with zero
@@ -256,15 +268,38 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
     try {
       final url = await ProfileService().uploadBodyRef(localPath);
       if (mounted) {
-        ImageCacheBust.bump(bodyRefImageCacheKey);
+        // Precache before switching the card over to it — a plain
+        // AppImage/CachedNetworkImage keyed by this URL (no separate cache
+        // key: every upload gets a freshly-signed, genuinely different URL,
+        // so keying by content identity isn't needed here the way it is for
+        // outfit-regenerate's in-place-overwrite case) still benefits from
+        // confirming the new photo is actually fetchable before the UI
+        // commits to it.
+        try {
+          await precacheImage(CachedNetworkImageProvider(url), context);
+        } catch (e) {
+          debugLog('_uploadFullBody: failed to precache body reference: $e');
+        }
+        if (!mounted) return;
         setState(() {
           _fullBodyUrl = url;
           _fullBodyLocalPath = null;
+          _bodyRefLoadFailed = false;
         });
         ref.read(profileProvider.notifier).setBodyRefUrl(url);
       }
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      debugLog('TryonProfilePage._uploadFullBody failed: $e');
+      if (mounted) {
+        showErrorDialog(
+          context,
+          message: apiErrorMessage(_l10n, e, fallback: _l10n.photoUploadFailed),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -275,15 +310,32 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
     try {
       final url = await ProfileService().uploadFaceRef(localPath);
       if (mounted) {
-        ImageCacheBust.bump(faceRefImageCacheKey);
+        // See the matching comment in _uploadFullBody.
+        try {
+          await precacheImage(CachedNetworkImageProvider(url), context);
+        } catch (e) {
+          debugLog('_uploadFaceRef: failed to precache face reference: $e');
+        }
+        if (!mounted) return;
         setState(() {
           _faceRefUrl = url;
           _faceLocalPath = null;
+          _faceRefLoadFailed = false;
         });
         ref.read(profileProvider.notifier).setFaceRefUrl(url);
       }
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      debugLog('TryonProfilePage._uploadFaceRef failed: $e');
+      if (mounted) {
+        showErrorDialog(
+          context,
+          message: apiErrorMessage(_l10n, e, fallback: _l10n.photoUploadFailed),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -317,7 +369,6 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_error != null) InlineErrorText(message: _error!),
             Text(
               _l10n.aiModelDescription,
               style: AppTextStyle.regular14.copyWith(
@@ -408,12 +459,16 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
     );
   }
 
-  Widget _buildPhotoAction(String? url) {
+  Widget _buildPhotoAction(String? url) => _buildActionLabel(
+    url != null ? _l10n.changePhotoAction : _l10n.addPhotoAction,
+  );
+
+  Widget _buildActionLabel(String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          url != null ? _l10n.changePhotoAction : _l10n.addPhotoAction,
+          label,
           style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
         ),
         Image.asset(
@@ -430,8 +485,8 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
   Widget _buildPhotoLeading(
     String? url, {
     required IconData placeholder,
-    required String cacheKey,
     required Future<String?> Function() onRefreshUrl,
+    VoidCallback? onLoadError,
   }) {
     return SizedBox(
       width: 96,
@@ -439,8 +494,8 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
       child: url != null
           ? AppImage(
               url: url,
-              cacheKey: cacheKey,
               onRefreshUrl: onRefreshUrl,
+              onLoadError: onLoadError,
               fit: BoxFit.cover,
               borderRadius: 12,
             )
@@ -459,44 +514,61 @@ class _TryonProfilePageState extends ConsumerState<TryonProfilePage> {
   }
 
   Widget _buildFaceReferenceCard() {
-    final url = _faceLocalPath ?? _resolvedUrl(_faceRefUrl);
+    // A freshly-picked local photo (upload in flight) always wins over a
+    // stale load-failure flag from the *previous* network URL — the tile
+    // below is about to show that local file, not attempt the network image
+    // at all.
+    final failed = _faceRefLoadFailed && _faceLocalPath == null;
+    final url = _faceLocalPath ?? (failed ? null : _resolvedUrl(_faceRefUrl));
     return _buildReferenceCard(
-      title: _l10n.faceReferenceLabel,
+      title: failed
+          ? _l10n.faceReferenceLoadFailedTitle
+          : _l10n.faceReferenceLabel,
       onTap: _loading ? null : _changeFacePhoto,
       leading: _buildPhotoLeading(
         url,
-        placeholder: Icons.face_outlined,
-        cacheKey: _versionedCacheKey(faceRefImageCacheKey),
+        placeholder: failed ? Icons.error_outline : Icons.face_outlined,
         onRefreshUrl: () => ProfileService().getFaceReference(),
+        onLoadError: () {
+          if (mounted) setState(() => _faceRefLoadFailed = true);
+        },
       ),
-      subtitle: _l10n.faceAppearanceSubtitle,
-      action: _buildPhotoAction(url),
+      subtitle: failed
+          ? _l10n.referenceLoadFailedSubtitle
+          : _l10n.faceAppearanceSubtitle,
+      action: failed
+          ? _buildActionLabel(_l10n.reuploadPhotoAction)
+          : _buildPhotoAction(url),
     );
   }
 
   Widget _buildBodyReferenceCard() {
-    final url = _fullBodyLocalPath ?? _resolvedUrl(_fullBodyUrl);
+    final failed = _bodyRefLoadFailed && _fullBodyLocalPath == null;
+    final url =
+        _fullBodyLocalPath ?? (failed ? null : _resolvedUrl(_fullBodyUrl));
     return _buildReferenceCard(
-      title: _l10n.bodyReferenceLabel,
+      title: failed
+          ? _l10n.bodyReferenceLoadFailedTitle
+          : _l10n.bodyReferenceLabel,
       onTap: _loading ? null : _changeFullBodyPhoto,
       leading: _buildPhotoLeading(
         url,
-        placeholder: Icons.accessibility_new_outlined,
-        cacheKey: _versionedCacheKey(bodyRefImageCacheKey),
+        placeholder: failed
+            ? Icons.error_outline
+            : Icons.accessibility_new_outlined,
         onRefreshUrl: () => ProfileService().getBodyRef(),
+        onLoadError: () {
+          if (mounted) setState(() => _bodyRefLoadFailed = true);
+        },
       ),
-      subtitle: _l10n.bodyProportionsSubtitle,
-      action: _buildPhotoAction(url),
+      subtitle: failed
+          ? _l10n.referenceLoadFailedSubtitle
+          : _l10n.bodyProportionsSubtitle,
+      action: failed
+          ? _buildActionLabel(_l10n.reuploadPhotoAction)
+          : _buildPhotoAction(url),
     );
   }
-
-  /// [baseKey] plus [ImageCacheBust]'s version suffix — see
-  /// [ImageCacheBust]'s own doc and `garmentImageCacheKey`'s call sites for
-  /// why (a re-signed URL for the same underlying photo shouldn't read as a
-  /// disk-cache miss, but a genuinely replaced photo — bumped in
-  /// [_uploadFaceRef]/[_uploadFullBody] below — must).
-  String _versionedCacheKey(String baseKey) =>
-      '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
 
   /// The backend's OpenAPI schema example ("string") occasionally leaks
   /// through as a literal placeholder value instead of a real URL/null —

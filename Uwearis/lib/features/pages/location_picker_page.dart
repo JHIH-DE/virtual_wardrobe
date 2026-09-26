@@ -9,6 +9,7 @@ import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 
 class LocationPickerPage extends StatefulWidget {
   const LocationPickerPage({super.key});
@@ -48,9 +49,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     } catch (e) {
       debugLog('LocationPickerPage search error: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: AppLocalizations.of(context).locationSearchFailed,
+      );
     } finally {
       setState(() => _isLoading = false);
     }

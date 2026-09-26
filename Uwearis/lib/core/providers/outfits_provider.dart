@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../../data/outfit.dart';
 import '../services/outfit_service.dart';
 import '../utils/signed_url.dart';
+import 'retry_policy.dart';
 
 final outfitsProvider = AsyncNotifierProvider<OutfitsNotifier, List<Outfit>>(
   OutfitsNotifier.new,
+  retry: appRetryPolicy,
 );
 
 /// A save/delete that just happened on [OutfitDetailsPage], to be shown as a
@@ -23,8 +25,16 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
   // The Outfits tab is standalone try-ons only — 'daily'/'trip' outfits are
   // managed from Home's daily outfit / Trip Details instead, so they're
   // filtered out server-side rather than fetched and discarded.
+  //
+  // sort: 'created_at_desc' is pinned explicitly rather than left to the
+  // backend's own default (which happens to already be created_at_desc) —
+  // Home's _latestOwnOutfit reads state.first as "the newest outfit" (see
+  // its own doc comment), so that ordering needs to be this provider's own
+  // guaranteed contract, not an incidental default that could change
+  // server-side without this call site noticing.
   @override
-  Future<List<Outfit>> build() => OutfitService().getAllOutfits();
+  Future<List<Outfit>> build() =>
+      OutfitService().getAllOutfits(sort: 'created_at_desc');
 
   /// True if any cached outfit's signed image URL has expired (or is about
   /// to), meaning the cached list should be re-fetched before display.
@@ -42,12 +52,9 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => OutfitService().getAllOutfits());
-  }
-
-  void addOutfit(Outfit outfit) {
-    final current = state.value ?? [];
-    state = AsyncData([outfit, ...current]);
+    state = await AsyncValue.guard(
+      () => OutfitService().getAllOutfits(sort: 'created_at_desc'),
+    );
   }
 
   void removeOutfit(int id) {

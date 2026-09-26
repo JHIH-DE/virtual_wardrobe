@@ -15,6 +15,7 @@ import '../widgets/common/cards/favorite_card.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
@@ -306,10 +307,9 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     } catch (_) {
       ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: !next);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).failedToUpdateFavorite),
-          ),
+        showErrorDialog(
+          context,
+          message: AppLocalizations.of(context).failedToUpdateFavorite,
         );
       }
     }

@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/trip.dart';
 import '../services/trip_service.dart';
+import 'retry_policy.dart';
 
 final tripsProvider = AsyncNotifierProvider<TripsNotifier, List<Trip>>(
   TripsNotifier.new,
+  retry: appRetryPolicy,
 );
 
 class TripsNotifier extends AsyncNotifier<List<Trip>> {

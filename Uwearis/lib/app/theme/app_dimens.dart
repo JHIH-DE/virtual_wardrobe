@@ -44,7 +44,11 @@ abstract class AppDimens {
 
   // GarmentListCard (Outfit Details' "Garments" row) — fixed so every row
   // is the same height regardless of the garment photo's own aspect ratio.
-  static const double garmentListCardHeight = 100;
+  // 108, not 100: NotoSansTC's CJK line box is tall (see AppTextStyle's own
+  // class doc) — 100 fit the category tag + name + color text stack on
+  // Android but clipped ~4px short on iOS, where CoreText renders that same
+  // line box taller.
+  static const double garmentListCardHeight = 108;
 
   // Shorter than Material's default kToolbarHeight (56) for a more compact
   // AppToolBar, but 48 rather than [minTouchTarget]'s 44: an AppBar caps

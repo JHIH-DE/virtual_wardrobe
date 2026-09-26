@@ -32,6 +32,7 @@ import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/labeled_divider.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_upload_helper.dart';
@@ -90,10 +91,11 @@ class _HomePageState extends ConsumerState<HomePage>
 
   /// The newest entry in "My Outfits" — shown in place of Today's Outfit
   /// when the server hasn't generated a daily plan yet (see
-  /// [_buildOutfitImageCard]). [OutfitsNotifier.addOutfit] prepends new
-  /// outfits, so `.first` is already the most recently created one; no
-  /// id-based sort needed (unlike [_buildRecentlyAddedSection]'s garments,
-  /// which have no such ordering guarantee from their own provider).
+  /// [_buildOutfitImageCard]). [OutfitsNotifier] fetches with
+  /// `sort: 'created_at_desc'`, so `.first` is already the most recently
+  /// created one; no id-based sort needed (unlike
+  /// [_buildRecentlyAddedSection]'s garments, which have no such ordering
+  /// guarantee from their own provider).
   Outfit? get _latestOwnOutfit {
     final outfits = ref.watch(outfitsProvider).value ?? const [];
     return outfits.isNotEmpty ? outfits.first : null;
@@ -158,7 +160,8 @@ class _HomePageState extends ConsumerState<HomePage>
 
   bool get _hasCreatedOutfit =>
       (ref.watch(outfitsProvider).value ?? const []).isNotEmpty;
-  bool get _hasAnyTrip => (ref.watch(tripsProvider).value ?? const []).isNotEmpty;
+  bool get _hasAnyTrip =>
+      (ref.watch(tripsProvider).value ?? const []).isNotEmpty;
 
   /// True once there's real evidence this is an established user — a
   /// completed closet, a created outfit, or a planned trip — any one of
@@ -472,9 +475,7 @@ class _HomePageState extends ConsumerState<HomePage>
       if (!mounted) return;
       MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
       debugLog('HomePage._openAddOutfit: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadGarments)));
+      showErrorDialog(context, message: l10n.failedToLoadGarments);
     }
   }
 
@@ -511,9 +512,7 @@ class _HomePageState extends ConsumerState<HomePage>
     } catch (e) {
       if (!mounted) return;
       debugLog('HomePage._getFirstDailyOutfit: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.failedToGenerateOutfit)));
+      showErrorDialog(context, message: l10n.failedToGenerateOutfit);
     } finally {
       if (mounted) {
         MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
@@ -671,9 +670,9 @@ class _HomePageState extends ConsumerState<HomePage>
     // _hasCreatedOutfit) — so no daily outfit *today* just means the server
     // hasn't generated today's plan yet, not "first outfit" any more.
     // Rather than leaving the section blank, fall back to the most
-    // recently created "My Outfit" (outfitsProvider prepends new entries,
-    // so `.first` is the newest — see OutfitsNotifier.addOutfit) so there's
-    // still something to look at; [_isFallbackOutfit] is what tells the
+    // recently created "My Outfit" (outfitsProvider fetches newest-first,
+    // so `.first` is the newest — see OutfitsNotifier.build/refresh) so
+    // there's still something to look at; [_isFallbackOutfit] is what tells the
     // rest of this method (and _openOutfitDetails) that [outfit] came from
     // that fallback rather than the real daily plan.
     final fallbackOutfit = dailyOutfit == null ? _latestOwnOutfit : null;
@@ -914,7 +913,6 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-
   /// Outfit.reasoning joins multiple points into one string with `\n` —
   /// render each as its own bulleted line rather than one dense paragraph.
   Widget _buildReasoningLines(String reasoning) {
@@ -945,7 +943,10 @@ class _HomePageState extends ConsumerState<HomePage>
   /// [outfitsProvider] ("My Outfits"), a real daily outfit lives in
   /// [dailyOutfitProvider] instead, so the local update (and its revert)
   /// has to go through whichever one actually holds it.
-  Future<void> _toggleFavorite(Outfit target, {required bool isFallback}) async {
+  Future<void> _toggleFavorite(
+    Outfit target, {
+    required bool isFallback,
+  }) async {
     final l10n = AppLocalizations.of(context);
     final next = target.copyWith(isFavorite: !target.isFavorite);
     void applyLocally(Outfit value) {
@@ -971,9 +972,7 @@ class _HomePageState extends ConsumerState<HomePage>
       if (!mounted) return;
       applyLocally(target);
       debugLog('HomePage._toggleFavorite: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.failedToUpdateFavorite)));
+      showErrorDialog(context, message: l10n.failedToUpdateFavorite);
     }
   }
 

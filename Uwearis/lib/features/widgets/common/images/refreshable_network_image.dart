@@ -42,6 +42,16 @@ class RefreshableNetworkImage extends StatefulWidget {
   /// the image just shows the error state with no retry attempt.
   final Future<String?> Function()? onRefreshUrl;
 
+  /// Called at most once per [imageUrl], only once this widget has given up
+  /// (no [onRefreshUrl] was provided, or the one-shot refresh it already
+  /// tried didn't fix it) — i.e. once the built-in error state below is
+  /// final, not before a self-heal attempt has had its chance. A caller that
+  /// wants a richer, actionable failure state than the icon/label this
+  /// widget renders (e.g. a "re-upload" prompt) should use this to drive its
+  /// own UI around this widget, rather than this widget growing a
+  /// caller-supplied error-content builder.
+  final VoidCallback? onLoadError;
+
   /// Overrides what [CachedNetworkImage] keys its disk/memory cache entry
   /// by. Leave null to key by [imageUrl] itself (the default) — pass a
   /// stable id instead when the same underlying image is re-fetched under
@@ -65,6 +75,7 @@ class RefreshableNetworkImage extends StatefulWidget {
     this.errorIconSize = 36,
     this.errorLabel,
     this.onRefreshUrl,
+    this.onLoadError,
     this.cacheKey,
   });
 
@@ -77,6 +88,7 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
   late String _url;
   bool _refreshing = false;
   bool _refreshedThisUrl = false;
+  bool _errorReportedThisUrl = false;
 
   @override
   void initState() {
@@ -90,6 +102,7 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
     if (widget.imageUrl != oldWidget.imageUrl) {
       _url = widget.imageUrl;
       _refreshedThisUrl = false;
+      _errorReportedThisUrl = false;
     }
   }
 
@@ -111,6 +124,12 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
     }
   }
 
+  void _reportLoadError() {
+    if (_errorReportedThisUrl) return;
+    _errorReportedThisUrl = true;
+    widget.onLoadError?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     return CachedNetworkImage(
@@ -127,8 +146,14 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
           ? widget.placeholderBuilder!(context)
           : const Center(child: AppSpinner(size: 28)),
       errorWidget: (_, _, _) {
-        if (widget.onRefreshUrl != null) {
+        if (widget.onRefreshUrl != null && !_refreshedThisUrl) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+        } else {
+          // No self-heal in flight and none left to try — this is the final
+          // failure for this URL.
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _reportLoadError(),
+          );
         }
         return Center(
           child: Column(

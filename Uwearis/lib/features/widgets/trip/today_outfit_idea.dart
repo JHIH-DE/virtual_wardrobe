@@ -16,7 +16,6 @@ import '../common/overlays/loading_overlay.dart';
 /// once one exists ([onRegenerate]), Change Garments in the page's own date
 /// header instead.
 class TodayOutfitIdea extends StatelessWidget {
-  final VoidCallback? onTap;
   final String? imageUrl;
 
   /// Whether the selected day has any garments assigned at all — distinct
@@ -27,7 +26,6 @@ class TodayOutfitIdea extends StatelessWidget {
 
   final bool isLoading;
   final String? jobStatus;
-  final String? errorMessage;
 
   /// Shown as a corner badge on top of the image once it exists — styled
   /// like OutfitDetailsPage's own on-image icons (translucent disc, hairline
@@ -67,12 +65,10 @@ class TodayOutfitIdea extends StatelessWidget {
 
   const TodayOutfitIdea({
     super.key,
-    this.onTap,
     this.imageUrl,
     this.hasAssignment = false,
     this.isLoading = false,
     this.jobStatus,
-    this.errorMessage,
     this.onRegenerate,
     this.onGenerate,
     this.generateLabel,
@@ -105,58 +101,55 @@ class TodayOutfitIdea extends StatelessWidget {
   /// while regenerating — rather than blanking it out, so a regenerate
   /// that fails leaves the previously valid image exactly where it was.
   Widget _buildImage(AppLocalizations l10n) {
-    return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: AspectRatio(
-        aspectRatio: 3 / 4,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            RefreshableNetworkImage(
-              imageUrl: imageUrl!,
-              cacheKey: cacheKey,
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              errorIcon: Icons.inventory_2_outlined,
-              errorIconSize: 64,
-              errorLabel: l10n.generatingOutfitEllipsis,
-              onRefreshUrl: onRefreshUrl,
-            ),
-            if (!isLoading && onRegenerate != null)
-              Positioned(
-                top: 12,
-                right: 12,
-                child: CardCornerBadge(
-                  // Same treatment as OutfitDetailsPage's own on-image icons
-                  // (its "⋮" trigger / favourite badge): translucent disc,
-                  // hairline border, no drop shadow.
-                  icon: Icons.refresh,
-                  backgroundColor: AppColors.surfaceTranslucent,
-                  iconColor: AppColors.hintText,
-                  border: Border.all(color: AppColors.borderSubtle),
-                  boxShadow: const [],
-                  size: 36,
-                  iconSize: 20,
-                  // Without this the disc centers inside its (larger,
-                  // touch-target-padded) hit box, sitting ~4px further in
-                  // from the top/right edge than OutfitDetailsPage's own
-                  // plain-Container icons at the same Positioned offset.
-                  discAlignment: Alignment.topRight,
-                  onTap: onRegenerate,
-                ),
+    return AspectRatio(
+      aspectRatio: 3 / 4,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          RefreshableNetworkImage(
+            imageUrl: imageUrl!,
+            cacheKey: cacheKey,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            errorIcon: Icons.inventory_2_outlined,
+            errorIconSize: 64,
+            errorLabel: l10n.generatingOutfitEllipsis,
+            onRefreshUrl: onRefreshUrl,
+          ),
+          if (!isLoading && onRegenerate != null)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: CardCornerBadge(
+                // Same treatment as OutfitDetailsPage's own on-image icons
+                // (its "⋮" trigger / favourite badge): translucent disc,
+                // hairline border, no drop shadow.
+                icon: Icons.refresh,
+                backgroundColor: AppColors.surfaceTranslucent,
+                iconColor: AppColors.hintText,
+                border: Border.all(color: AppColors.borderSubtle),
+                boxShadow: const [],
+                size: 36,
+                iconSize: 20,
+                // Without this the disc centers inside its (larger,
+                // touch-target-padded) hit box, sitting ~4px further in
+                // from the top/right edge than OutfitDetailsPage's own
+                // plain-Container icons at the same Positioned offset.
+                discAlignment: Alignment.topRight,
+                onTap: onRegenerate,
               ),
-            if (isLoading)
-              LoadingOverlay(label: jobStatus ?? l10n.generatingEllipsis),
-          ],
-        ),
+            ),
+          if (isLoading)
+            LoadingOverlay(label: jobStatus ?? l10n.generatingEllipsis),
+        ],
       ),
     );
   }
 
-  /// No outfit image yet — an error, or one of two informational states
-  /// depending on [hasAssignment]. When the day has an option but no image,
-  /// [onGenerate] (if given) turns that state into a "Generate Outfit"
-  /// button — [generateEnabled] false greys it out and shows
+  /// No outfit image yet — one of two informational states depending on
+  /// [hasAssignment]. When the day has an option but no image, [onGenerate]
+  /// (if given) turns that state into a "Generate Outfit" button —
+  /// [generateEnabled] false greys it out and shows
   /// [generateDisabledMessage] above it, rather than hiding the button.
   /// While a render is running, [TripDetailsPage]'s own full-screen overlay
   /// covers this card.
@@ -164,31 +157,12 @@ class TodayOutfitIdea extends StatelessWidget {
     return SizedBox(
       height: 140,
       child: Center(
-        child: errorMessage != null
-            ? _buildErrorView(l10n)
-            : (hasAssignment
-                  ? _buildNoImageView(l10n)
-                  : _buildNoAssignmentView(l10n)),
+        child: hasAssignment
+            ? _buildNoImageView(l10n)
+            : _buildNoAssignmentView(l10n),
       ),
     );
   }
-
-  Widget _buildErrorView(AppLocalizations l10n) => Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      const Icon(Icons.error_outline, size: 32, color: AppColors.icon),
-      const SizedBox(height: 8),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Text(
-          errorMessage!,
-          textAlign: TextAlign.center,
-          style: AppTextStyle.regular13.copyWith(color: AppColors.textPrimary),
-        ),
-      ),
-    ],
-  );
 
   Widget _buildNoImageView(AppLocalizations l10n) {
     final onGenerate = this.onGenerate;

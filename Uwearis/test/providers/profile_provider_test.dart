@@ -7,10 +7,7 @@ import 'package:uwearis/core/providers/profile_provider.dart';
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 
-Map<String, dynamic> _profile({
-  String? bodyRefUrl,
-  String? faceRefUrl,
-}) => {
+Map<String, dynamic> _profile({String? bodyRefUrl, String? faceRefUrl}) => {
   'name': 'Test User',
   'body_reference_object_url': bodyRefUrl,
   'face_reference_object_url': faceRefUrl,
@@ -36,49 +33,60 @@ Future<void> withProfile(
 void main() {
   setUp(setUpFakeAuth);
 
+  test('build() issues exactly one GET /users/me request, not one per '
+      'field (profile / body ref / face ref used to be 3 separate '
+      'Future.wait calls to this same endpoint)', () async {
+    var requestCount = 0;
+    final client = MockClient((_) async {
+      requestCount++;
+      return jsonResponse(envelope(_profile()));
+    });
+
+    await http.runWithClient(() async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await container.read(profileProvider.future);
+      expect(requestCount, 1);
+    }, () => client);
+  });
+
   group('optimistic mutations', () {
     // Regression: uploading a reference photo used to call refresh()
     // (a fresh GET /users/me) right after the upload completed — but the
     // backend's `complete` endpoint can kick off async server-side
-    // processing (see tryon_profile_page.dart's `_completeTimeout` doc),
-    // so that immediate re-fetch could race it and read back a still-null
+    // processing (see ProfileService._completeTimeout's doc), so that
+    // immediate re-fetch could race it and read back a still-null
     // body_reference_object_url, leaving Home's Getting Started checklist
     // showing the photo as missing until the next full sign-in re-fetched
     // it correctly. setBodyRefUrl/setFaceRefUrl apply the URL the upload's
     // own response already returned, instead of asking the backend again.
-    test(
-      'setBodyRefUrl reflects the upload result in place, without a '
-      're-fetch',
-      () {
-        return withProfile(_profile(), (c) async {
-          expect(c.read(profileProvider).value!.bodyRefUrl, isNull);
-          c
-              .read(profileProvider.notifier)
-              .setBodyRefUrl('https://example.com/body-new.jpg');
-          expect(
-            c.read(profileProvider).value!.bodyRefUrl,
-            'https://example.com/body-new.jpg',
-          );
-        });
-      },
-    );
+    test('setBodyRefUrl reflects the upload result in place, without a '
+        're-fetch', () {
+      return withProfile(_profile(), (c) async {
+        expect(c.read(profileProvider).value!.bodyRefUrl, isNull);
+        c
+            .read(profileProvider.notifier)
+            .setBodyRefUrl('https://example.com/body-new.jpg');
+        expect(
+          c.read(profileProvider).value!.bodyRefUrl,
+          'https://example.com/body-new.jpg',
+        );
+      });
+    });
 
-    test(
-      'setFaceRefUrl reflects the upload result in place, without a '
-      're-fetch',
-      () {
-        return withProfile(_profile(), (c) async {
-          expect(c.read(profileProvider).value!.faceRefUrl, isNull);
-          c
-              .read(profileProvider.notifier)
-              .setFaceRefUrl('https://example.com/face-new.jpg');
-          expect(
-            c.read(profileProvider).value!.faceRefUrl,
-            'https://example.com/face-new.jpg',
-          );
-        });
-      },
-    );
+    test('setFaceRefUrl reflects the upload result in place, without a '
+        're-fetch', () {
+      return withProfile(_profile(), (c) async {
+        expect(c.read(profileProvider).value!.faceRefUrl, isNull);
+        c
+            .read(profileProvider.notifier)
+            .setFaceRefUrl('https://example.com/face-new.jpg');
+        expect(
+          c.read(profileProvider).value!.faceRefUrl,
+          'https://example.com/face-new.jpg',
+        );
+      });
+    });
 
     test('setBodyRefUrl leaves the profile and faceRefUrl untouched', () {
       return withProfile(

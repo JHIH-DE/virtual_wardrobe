@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../services/auth_handler.dart';
 import '../services/outfit_service.dart';
+import 'api_error_text.dart';
 import 'debug_log.dart';
 
 /// `generate`/`regenerate` on the new OutfitGroup + Outfit API are
@@ -52,10 +54,16 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       if (mounted) await AuthExpiredHandler.handle(context);
       return null;
     } catch (e) {
+      debugLog('performTryOn failed: $e');
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(() {
           isOutfitLoading = false;
-          tryOnErrorMessage = 'Failed: $e';
+          tryOnErrorMessage = apiErrorMessage(
+            l10n,
+            e,
+            fallback: l10n.failedToGenerateOutfit,
+          );
         });
       }
       return null;

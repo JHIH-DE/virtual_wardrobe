@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import 'locale_provider.dart';
+import 'retry_policy.dart';
 
 class WeatherData {
   final String location;
@@ -93,6 +94,7 @@ class WeatherData {
 
 final weatherProvider = AsyncNotifierProvider<WeatherNotifier, WeatherData>(
   WeatherNotifier.new,
+  retry: appRetryPolicy,
 );
 
 class WeatherNotifier extends AsyncNotifier<WeatherData> {
@@ -128,11 +130,6 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
     }
 
     return _fetchFromNetwork();
-  }
-
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetchFromNetwork);
   }
 
   Future<WeatherData?> _loadCache() async {

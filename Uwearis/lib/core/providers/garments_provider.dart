@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/garment.dart';
 import '../services/garment_service.dart';
 import '../utils/signed_url.dart';
+import 'retry_policy.dart';
 
 final garmentsProvider = AsyncNotifierProvider<GarmentsNotifier, List<Garment>>(
   GarmentsNotifier.new,
+  retry: appRetryPolicy,
 );
 
 class GarmentsNotifier extends AsyncNotifier<List<Garment>> {

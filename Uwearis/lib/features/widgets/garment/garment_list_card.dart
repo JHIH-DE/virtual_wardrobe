@@ -108,8 +108,7 @@ class GarmentListCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (garment.color != null &&
-                        garment.color!.isNotEmpty) ...[
+                    if (garment.color != null && garment.color!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         garment.color!,

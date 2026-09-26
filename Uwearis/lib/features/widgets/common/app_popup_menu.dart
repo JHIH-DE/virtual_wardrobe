@@ -199,10 +199,9 @@ class _PopupMenuOverlay<T> extends StatelessWidget {
           child: FadeTransition(
             opacity: animation,
             child: ScaleTransition(
-              scale: Tween<double>(
-                begin: 0.9,
-                end: 1,
-              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+              scale: Tween<double>(begin: 0.9, end: 1).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              ),
               alignment: Alignment.topRight,
               child: Material(
                 color: AppColors.surface,

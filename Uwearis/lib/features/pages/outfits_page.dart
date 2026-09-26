@@ -13,6 +13,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/outfit_season_style_filter.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/outfit/outfit_grid.dart';
 import 'add_outfit_page.dart';
@@ -84,9 +85,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
       if (!mounted) return;
       MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
       debugLog('Failed to load garments: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.failedToLoadGarments)));
+      showErrorDialog(context, message: l10n.failedToLoadGarments);
     }
   }
 

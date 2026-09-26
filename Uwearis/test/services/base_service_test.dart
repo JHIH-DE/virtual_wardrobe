@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/core/services/api_exception.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/base_service.dart';
 
@@ -204,6 +206,104 @@ void main() {
         ),
       );
       expect(tokens.length, 1);
+    });
+  });
+
+  group('decodeMap', () {
+    test('a non-2xx envelope response throws ApiException carrying the '
+        'status, error_code and message — never the raw body', () {
+      final res = http.Response(
+        jsonEncode({
+          'success': false,
+          'message': 'That garment could not be found.',
+          'data': null,
+          'error_code': 'GARMENT_NOT_FOUND',
+        }),
+        404,
+      );
+
+      expect(
+        () => _TestService().decodeMap(res, op: 'getGarment'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'statusCode', 404)
+              .having((e) => e.errorCode, 'errorCode', 'GARMENT_NOT_FOUND')
+              .having((e) => e.message, 'message', 'That garment could not be found.')
+              .having(
+                (e) => e.toString(),
+                'toString()',
+                isNot(contains('That garment could not be found.')),
+              ),
+        ),
+      );
+    });
+
+    test('a non-2xx response with a non-JSON body falls back to a '
+        'generic ApiException instead of throwing a parsing error', () {
+      final res = http.Response('<html>502 Bad Gateway</html>', 502);
+
+      expect(
+        () => _TestService().decodeMap(res, op: 'getGarment'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'statusCode', 502)
+              .having((e) => e.errorCode, 'errorCode', null)
+              .having(
+                (e) => e.toString(),
+                'toString()',
+                isNot(contains('Bad Gateway')),
+              ),
+        ),
+      );
+    });
+
+    test('a non-2xx response whose JSON body has no error_code/message '
+        'still produces a safe, generic ApiException', () {
+      final res = http.Response(jsonEncode({'detail': 'nope'}), 400);
+
+      expect(
+        () => _TestService().decodeMap(res, op: 'getGarment'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'statusCode', 400)
+              .having((e) => e.errorCode, 'errorCode', null),
+        ),
+      );
+    });
+
+    test('a 2xx response whose body is not valid JSON throws ApiException, '
+        'not a raw FormatException', () {
+      final res = http.Response('not json', 200);
+
+      expect(
+        () => _TestService().decodeMap(res, op: 'getGarment'),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'statusCode', 200)),
+      );
+    });
+
+    test('a 2xx response whose JSON body is not an object throws '
+        'ApiException', () {
+      final res = http.Response(jsonEncode([1, 2, 3]), 200);
+
+      expect(
+        () => _TestService().decodeMap(res, op: 'getGarment'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('a 401 still throws AuthExpiredException, not ApiException', () {
+      final res = http.Response(jsonEncode(envelope(null)), 401);
+
+      expect(
+        () => _TestService().decodeMap(res, op: 'getGarment'),
+        throwsA(isA<AuthExpiredException>()),
+      );
+    });
+
+    test('a valid 2xx envelope decodes normally', () {
+      final res = http.Response(jsonEncode(envelope({'id': 1})), 200);
+      final decoded = _TestService().decodeMap(res, op: 'getGarment');
+      expect(decoded['data'], {'id': 1});
     });
   });
 

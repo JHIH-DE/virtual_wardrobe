@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../data/profile_data.dart';
 import '../../data/style_profile.dart';
 import '../../data/style_taste.dart';
 import '../../data/user_profile.dart';
@@ -35,6 +36,35 @@ class ProfileService with BaseService {
           .timeout(_quick),
     );
     return UserProfile.fromJson(_data(decodeMap(res, op: 'getMyProfile')));
+  }
+
+  /// One `GET /users/me` request parsed into everything Account / Settings /
+  /// Home / Try-on Profile need: the profile fields plus both reference-photo
+  /// signed URLs — all three already live in the same response body (see
+  /// [_profileImageField]'s doc). [ProfileNotifier] uses this instead of
+  /// calling [getMyProfile]/[getBodyRef]/[getFaceReference] separately (that
+  /// used to be 3 redundant requests to this same endpoint via
+  /// `Future.wait`).
+  ///
+  /// Note: this only reflects what the backend's DB record says (an
+  /// `object_name` set → a signed URL comes back) — it does not verify the
+  /// underlying GCS object still exists. A stale/deleted object 404s only
+  /// when the image widget actually requests the signed URL; that's a
+  /// per-image UI concern (see `RefreshableNetworkImage`/`AppImage`'s
+  /// `onLoadError`), not something this call can detect or should fail on.
+  Future<ProfileData> getMyProfileData() async {
+    debugLog('--- getMyProfileData ---');
+    final res = await withAuth(
+      (token) => http
+          .get(Uri.parse(_baseUrl), headers: authHeaders(token))
+          .timeout(_quick),
+    );
+    final data = _data(decodeMap(res, op: 'getMyProfileData'));
+    return ProfileData(
+      profile: UserProfile.fromJson(data),
+      bodyRefUrl: data['body_reference_object_url']?.toString(),
+      faceRefUrl: data['face_reference_object_url']?.toString(),
+    );
   }
 
   // ---- signed-URL upload flow, shared by avatar / body-ref / face-ref ----
@@ -77,24 +107,6 @@ class ProfileService with BaseService {
     }
     return url;
   }
-
-  Future<InitUploadResult> avatarInitUpload() =>
-      _refInitUpload(_avatarUrl, op: 'avatarInitUpload');
-
-  Future<String> avatarComplete({required String objectName}) =>
-      _refComplete(_avatarUrl, objectName, op: 'avatarComplete');
-
-  Future<InitUploadResult> bodyRefInitUpload() =>
-      _refInitUpload(_bodyRefUrl, op: 'bodyRefInitUpload');
-
-  Future<String> bodyRefComplete({required String objectName}) =>
-      _refComplete(_bodyRefUrl, objectName, op: 'bodyRefComplete');
-
-  Future<InitUploadResult> faceRefInitUpload() =>
-      _refInitUpload(_faceRefUrl, op: 'faceRefInitUpload');
-
-  Future<String> faceRefComplete({required String objectName}) =>
-      _refComplete(_faceRefUrl, objectName, op: 'faceRefComplete');
 
   /// The whole init-upload → PUT-to-signed-URL → complete flow for one
   /// reference photo, returning its new signed object URL. Callers just hand
@@ -229,5 +241,13 @@ class ProfileService with BaseService {
     );
 
     return UserProfile.fromJson(_data(decodeMap(res, op: 'updateMyProfile')));
+  }
+
+  /// Permanently deletes the signed-in user's account — every DB row and GCS
+  /// file under it — with no way to undo it. 404 (already deleted) is
+  /// treated as success, same as every other idempotent delete in the app.
+  Future<void> deleteMyAccount() async {
+    debugLog('--- deleteMyAccount ---');
+    await deleteIdempotent(Uri.parse(_baseUrl), op: 'deleteMyAccount');
   }
 }

@@ -4,7 +4,13 @@ import 'garment.dart';
 /// its 1–10 `level` — the backend computes this deterministically from the
 /// number, so Flutter never sees a value outside this set (see
 /// garments-api.md §8).
-enum VersatilityLabel { veryLimited, limited, moderate, versatile, highlyVersatile }
+enum VersatilityLabel {
+  veryLimited,
+  limited,
+  moderate,
+  versatile,
+  highlyVersatile,
+}
 
 extension VersatilityLabelX on VersatilityLabel {
   String get apiValue {

@@ -66,10 +66,7 @@ class ShareCardScaffold extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.pageBackground,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-          color: AppColors.borderStrong,
-          width: _borderWidth,
-        ),
+        border: Border.all(color: AppColors.borderStrong, width: _borderWidth),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(innerRadius),

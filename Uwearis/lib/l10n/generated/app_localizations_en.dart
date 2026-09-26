@@ -52,6 +52,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addPhotoAction => 'Add photo';
 
   @override
+  String get profileSaveFailed =>
+      'Couldn\'t save your profile. Please try again.';
+
+  @override
+  String get photoUploadFailed => 'Couldn\'t upload photo. Please try again.';
+
+  @override
+  String get faceReferenceNotFound =>
+      'Your face reference photo is no longer available. Please upload it again.';
+
+  @override
+  String get bodyReferenceNotFound =>
+      'Your body reference photo is no longer available. Please upload it again.';
+
+  @override
+  String get fileNotFound =>
+      'The required file is no longer available. Please upload it again or try again.';
+
+  @override
+  String get faceReferenceLoadFailedTitle => 'Face reference photo unavailable';
+
+  @override
+  String get bodyReferenceLoadFailedTitle => 'Body reference photo unavailable';
+
+  @override
+  String get referenceLoadFailedSubtitle => 'Please upload the photo again.';
+
+  @override
+  String get reuploadPhotoAction => 'Re-upload';
+
+  @override
   String get aiModelReady => 'Ready · Face + Body Configured';
 
   @override
@@ -110,6 +141,23 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get logoutConfirmBody =>
       'You\'ll need to sign in again to use Uwearis.';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountConfirmBody =>
+      'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone.';
+
+  @override
+  String get deletingAccount => 'Deleting your account…';
+
+  @override
+  String get deleteAccountFailed =>
+      'Couldn\'t delete your account — please try again.';
 
   @override
   String get language => 'Language';
@@ -257,6 +305,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteThisVersion => 'Delete Version';
+
+  @override
+  String get outfitUpdateFailed =>
+      'Couldn\'t update this outfit. Please try again.';
+
+  @override
+  String get outfitDeleteFailed =>
+      'Couldn\'t delete this outfit. Please try again.';
+
+  @override
+  String get outfitCopyFailed =>
+      'Couldn\'t copy this outfit. Please try again.';
 
   @override
   String createdOnDate(String date) {
@@ -800,9 +860,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this garment?';
 
   @override
-  String deleteFailedPrefix(String error) {
-    return 'Delete failed: $error';
-  }
+  String get garmentRenameFailed =>
+      'Couldn\'t rename this item. Please try again.';
+
+  @override
+  String get garmentSaveFailed => 'Couldn\'t save this item. Please try again.';
+
+  @override
+  String get garmentDeleteFailed =>
+      'Couldn\'t delete this item. Please try again.';
 
   @override
   String get unsavedChangesTitle => 'You have unsaved changes';
@@ -1342,6 +1408,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInWithFacebook => 'Sign in with Facebook';
 
   @override
+  String get loginFailed => 'Login failed. Please try again.';
+
+  @override
   String get copyrightText => 'copyright reserved to Uwearis inc.';
 
   @override
@@ -1405,6 +1474,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cityNameHint => 'City name...';
 
   @override
+  String get locationSearchFailed =>
+      'Couldn\'t search for that location. Please try again.';
+
+  @override
   String get crashScreenTitle => 'Something went wrong';
 
   @override
@@ -1417,6 +1490,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sessionExpiredMessage =>
       'Your session has expired. Please log in again to continue.';
+
+  @override
+  String get errorDialogTitle => 'Error';
 
   @override
   String get ok => 'OK';

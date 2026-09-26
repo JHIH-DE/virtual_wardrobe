@@ -1,13 +1,5 @@
 import 'user_profile.dart';
 
-/// Stable cache-key identity for [ImageCacheBust]/[AppImage] — one signed-in
-/// user has at most one face/body reference photo each, so (unlike
-/// [garmentImageCacheKey]) these need no id. Bump the relevant one whenever
-/// Try-on Profile replaces that photo in place, so a stable-key disk cache
-/// doesn't keep serving the old bytes.
-const String faceRefImageCacheKey = 'tryon-face-ref';
-const String bodyRefImageCacheKey = 'tryon-body-ref';
-
 /// Everything `GET /users/me` + the two try-on reference-photo endpoints
 /// return, bundled so the Account / Settings / Try-on Profile screens share
 /// one fetch (see `profileProvider`) instead of each calling

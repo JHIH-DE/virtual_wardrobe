@@ -12,7 +12,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/services/auth_handler.dart';
-import '../../core/services/garment_service.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/image_edit_result.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -20,8 +20,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/pill_button.dart';
 import '../widgets/common/images/app_spinner.dart';
-import '../widgets/common/overlays/app_dialog.dart';
-import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import 'camera_capture_page.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -31,19 +30,6 @@ class ImageEditorPage extends StatefulWidget {
   final String title;
 
   final String? initialPath;
-  final bool showAnalysis;
-
-  /// When [showAnalysis] is false, analysis is normally skipped entirely —
-  /// but Retake/Album (below) let the user swap in a genuinely different
-  /// photo mid-edit regardless of [showAnalysis], and a swapped-in photo
-  /// hasn't had its background removed yet (that only happens as a side
-  /// effect of [GarmentService.analyzeGarment]'s response). Set this to
-  /// still run analysis when the source was actually replaced, even though
-  /// [showAnalysis] itself is false — garment callers only
-  /// ([GarmentDetailsPage._editCurrentImage]); leave false for a body/face/
-  /// avatar reference photo, which must never hit the garment analysis
-  /// endpoint.
-  final bool analyzeIfSourceReplaced;
 
   /// width/height of the crop preview and the final exported image.
   /// Garment photos default to 1:1 (square product shots); portrait
@@ -58,9 +44,9 @@ class ImageEditorPage extends StatefulWidget {
   /// Confirm stays unavailable until the user has actually changed
   /// something (swapped the source photo via Retake/Album, or adjusted the
   /// pinch-zoom/pan framing) — set this for callers that reopen an
-  /// *already-saved* photo to tweak it (garment "Edit image", avatar/body/
-  /// face reference photos), where confirming with zero changes would just
-  /// re-upload an identical copy for no reason. Leave false (default) for a
+  /// *already-saved* photo to tweak it (avatar/body/face reference photos),
+  /// where confirming with zero changes would just re-upload an identical
+  /// copy for no reason. Leave false (default) for a
   /// freshly-picked photo with no "unmodified" baseline to compare against
   /// (the New Clothing / Match a Look flows) — there, confirming as-is with
   /// the default framing is the normal, expected action.
@@ -81,8 +67,6 @@ class ImageEditorPage extends StatefulWidget {
     super.key,
     required this.title,
     this.initialPath,
-    this.showAnalysis = true,
-    this.analyzeIfSourceReplaced = false,
     this.aspectRatio = 1.0,
     this.cameraFrameRatio = CameraFrameRatio.square,
     this.requireChangeToConfirm = false,
@@ -98,15 +82,14 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _previewBoundaryKey = GlobalKey();
-  bool _isAnalyzing = false;
   // Synchronous re-entrancy guard covering the whole confirm flow — set
-  // before _captureFramedImage()'s await (which runs before _isAnalyzing is
-  // raised), so a double-tap during that framing capture can't fire two
-  // analyzeGarment() calls or two Navigator.pop()s. See CLAUDE.md "Guarding
-  // costly / mutating actions against double-invocation".
+  // before _captureFramedImage()'s await, so a double-tap during that
+  // framing capture can't fire two Navigator.pop()s. See CLAUDE.md
+  // "Guarding costly / mutating actions against double-invocation".
   bool _confirming = false;
   // True once Retake/Album has swapped in a different photo than
-  // widget.initialPath — see widget.analyzeIfSourceReplaced.
+  // widget.initialPath — the other half of widget.requireChangeToConfirm's
+  // "did anything actually change" check (see _hasChanges).
   bool _sourceReplaced = false;
   // True once the pinch-zoom/pan framing differs from identity — the other
   // half of widget.requireChangeToConfirm's "did anything actually change"
@@ -177,8 +160,25 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         String? fresh;
         try {
           fresh = await widget.onRefreshUrl!();
+        } on AuthExpiredException {
+          if (mounted) await AuthExpiredHandler.handle(context);
+          return;
         } catch (e2) {
           debugLog('Failed to refresh image URL: $e2');
+          // The underlying reference photo is genuinely gone (not just a
+          // stale signed URL) — surface this instead of silently leaving
+          // the user staring at _buildImageContent's broken-image icon with
+          // no explanation of what to do next (retake/pick a new photo).
+          if (mounted) {
+            showErrorDialog(
+              context,
+              message: apiErrorMessage(
+                _l10n,
+                e2,
+                fallback: _l10n.photoProcessingFailed,
+              ),
+            );
+          }
         }
         if (mounted &&
             fresh != null &&
@@ -378,20 +378,12 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   Future<void> _handleConfirmed() async {
-    if (_confirming || _currentPath == null || _isAnalyzing) return;
+    if (_confirming || _currentPath == null) return;
     setState(() => _confirming = true);
     try {
       final processPath = await _captureFramedImage();
       if (!mounted) return;
-
-      final runAnalysis =
-          widget.showAnalysis ||
-          (_sourceReplaced && widget.analyzeIfSourceReplaced);
-      if (runAnalysis) {
-        await _analyzeAndFinish(processPath);
-      } else {
-        Navigator.of(context).pop(ImageEditResult(imagePath: processPath));
-      }
+      Navigator.of(context).pop(ImageEditResult(imagePath: processPath));
     } catch (e) {
       // Reachable if _captureFramedImage's decode fails even after the
       // platform-codec fallback (a genuinely corrupt file, or a format
@@ -400,107 +392,44 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       // different photo.
       if (!mounted) return;
       debugLog('_handleConfirmed: could not process image: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.photoProcessingFailed)));
+      showErrorDialog(context, message: _l10n.photoProcessingFailed);
     } finally {
       if (mounted) setState(() => _confirming = false);
     }
   }
 
-  /// Runs the AI analysis and pops with the result. On failure it stays on
-  /// this page and asks whether to retry (looping) rather than continuing to
-  /// Garment Details with no analysis — a slow first call (cold start) or a
-  /// dropped one shouldn't silently leave every field blank.
-  Future<void> _analyzeAndFinish(String processPath) async {
-    while (mounted) {
-      setState(() => _isAnalyzing = true);
-      ImageEditResult? done;
-      try {
-        final result = await GarmentService().analyzeGarment(processPath);
-        debugLog('_analyzeAndFinish: ${result.metadata}');
-        done = ImageEditResult(
-          imagePath: result.processedImagePath ?? processPath,
-          analysisData: result.metadata,
-        );
-      } on AuthExpiredException {
-        if (!mounted) return;
-        setState(() => _isAnalyzing = false);
-        await AuthExpiredHandler.handle(context);
-        return;
-      } catch (e) {
-        debugLog('Analysis failed: $e');
-      }
-
-      if (!mounted) return;
-      setState(() => _isAnalyzing = false);
-
-      if (done != null) {
-        Navigator.of(context).pop(done);
-        return;
-      }
-      if (!await _confirmRetryAnalysis()) return;
-    }
-  }
-
-  Future<bool> _confirmRetryAnalysis() async {
-    if (!mounted) return false;
-    final retry = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.analysisFailedTitle,
-        body: _l10n.analysisFailedBody,
-        primaryLabel: _l10n.retry,
-        onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
-      ),
-    );
-    return retry == true;
-  }
-
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: widget.title,
-      onBack: () {
-        if (!_isAnalyzing) Navigator.pop(context);
-      },
+      onBack: () => Navigator.pop(context),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: AppColors.pageBackground,
-          extendBody: true,
-          appBar: _buildAppBar(),
-          bottomNavigationBar: _buildConfirmButton(),
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                _buildImagePreview(),
-                const SizedBox(height: 24),
-                _buildPinchHint(),
-                const SizedBox(height: 32),
-                _buildActionButtons(),
-                SizedBox(
-                  height: _showsBottomActionButton
-                      ? AppDimens.bottomActionBtnClearance
-                      : 0,
-                ),
-              ],
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      extendBody: true,
+      appBar: _buildAppBar(),
+      bottomNavigationBar: _buildConfirmButton(),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            _buildImagePreview(),
+            const SizedBox(height: 24),
+            _buildPinchHint(),
+            const SizedBox(height: 32),
+            _buildActionButtons(),
+            SizedBox(
+              height: _showsBottomActionButton
+                  ? AppDimens.bottomActionBtnClearance
+                  : 0,
             ),
-          ),
+          ],
         ),
-        if (_isAnalyzing)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.analyzingClothingEllipsis),
-          ),
-      ],
+      ),
     );
   }
 
@@ -509,7 +438,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   bool get _canConfirm =>
       _hasImage &&
       _imageReady &&
-      !_isAnalyzing &&
       !_confirming &&
       (!widget.requireChangeToConfirm || _hasChanges);
 
@@ -517,7 +445,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   Widget _buildConfirmButton() {
     return BottomActionButton(
-      label: _isAnalyzing ? _l10n.analyzingEllipsis : _l10n.confirm,
+      label: _l10n.confirm,
       onPressed: _canConfirm ? _handleConfirmed : null,
       leading: Image.asset(
         'assets/images/ai_process.png',
@@ -595,7 +523,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
             ),
           ),
-        if (_hasImage && !_isAnalyzing) _buildResetButton(),
+        if (_hasImage) _buildResetButton(),
       ],
     );
   }
@@ -683,7 +611,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           child: PillButton(
             label: Text(_l10n.retake, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/camera.png', height: 32),
-            onPressed: _isAnalyzing ? () {} : _handleRetake,
+            onPressed: _handleRetake,
           ),
         ),
         const SizedBox(width: 16),
@@ -691,7 +619,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           child: PillButton(
             label: Text(_l10n.album, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/album.png', height: 32),
-            onPressed: _isAnalyzing ? () {} : _handleAlbum,
+            onPressed: _handleAlbum,
           ),
         ),
       ],

@@ -34,6 +34,7 @@ import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/occasion_picker_sheet.dart';
@@ -50,7 +51,7 @@ import 'select_garment_page.dart' show SelectGarmentPage;
 enum _Slot { top, middle, outer, bottom, onePiece, shoes }
 
 /// Where the Match a Look flow currently stands. There's no persisted
-/// "error" state — a failed match just reports itself via a SnackBar and
+/// "error" state — a failed match just reports itself via a dialog and
 /// drops back to [idle] so the card stays usable (see
 /// [_AddOutfitPageState._runMatchALook]).
 enum _MatchALookStatus { idle, analyzing, matched }
@@ -252,7 +253,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
 
     final wornTopKeys = <String>{
-      for (final entry in [(_outfit.top, _Slot.top), (_outfit.middle, _Slot.middle)])
+      for (final entry in [
+        (_outfit.top, _Slot.top),
+        (_outfit.middle, _Slot.middle),
+      ])
         if (entry.$1 != null &&
             entry.$2 != keepSlot &&
             entry.$1!.subCategory.isNotEmpty)
@@ -505,16 +509,12 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       debugLog('Match a Look failed: ${e.errorCode} — ${e.message}');
       if (!mounted) return;
       setState(() => _matchALookStatus = _MatchALookStatus.idle);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_matchLookErrorMessage(e))));
+      showErrorDialog(context, message: _matchLookErrorMessage(e));
     } catch (e, st) {
       debugLog('Match a Look failed: $e', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _matchALookStatus = _MatchALookStatus.idle);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.matchALookFailed)));
+      showErrorDialog(context, message: _l10n.matchALookFailed);
     }
   }
 
@@ -653,9 +653,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       if (tryOnResultUrl != null) {
         await _showTryOnResult(ids);
       } else if (tryOnErrorMessage != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(tryOnErrorMessage!)));
+        showErrorDialog(context, message: tryOnErrorMessage!);
         resetTryOnState();
       }
     } finally {
@@ -849,9 +847,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                 color: enabled ? AppColors.borderStrong : AppColors.hintText,
                 radius: AppDimens.cardRadius,
               ),
-              child: Center(
-                child: Icon(Icons.add, size: 22, color: iconColor),
-              ),
+              child: Center(child: Icon(Icons.add, size: 22, color: iconColor)),
             ),
           ),
           title: _l10n.addGarment,
@@ -1422,9 +1418,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     } catch (e) {
       debugLog('Complete with AI failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.completeWithAiUnavailable)));
+      showErrorDialog(context, message: _l10n.completeWithAiUnavailable);
     } finally {
       if (mounted) setState(() => _isCompletingWithAi = false);
     }

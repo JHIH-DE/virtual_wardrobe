@@ -47,8 +47,8 @@ flutter test test/services/garment_service_test.dart   # single test file
 **Layer structure:**
 
 - `lib/data/` — plain Dart model classes (`Garment`, `Outfit`, `Trip`, ...). Each has `fromJson`/`toJson`; models with nullable fields that are genuinely mutated in place also get `copyWith` with `clearX` bool flags (see [Data models](#data-models) below — not every model needs this).
-- `lib/core/services/` — REST API clients. All mix in `BaseService`, which provides `getSafeToken()`, `authHeaders()`, `decodeMap()`, `throwIfAuthExpired()`, and `withAuth()`. Most services are plain classes instantiated per call. `GarmentService` is the sole singleton (via `factory` + `_internal()`) because it holds shared mutable state (an in-memory cache) — do not make a new service singleton unless it holds equivalent shared state.
-- `lib/core/providers/` — Riverpod `AsyncNotifierProvider` wrappers over services. Providers expose `refresh()` and verb+noun mutation methods (`addGarment`, `removeGarment` — see [Naming](#naming-conventions)).
+- `lib/core/services/` — REST API clients. All mix in `BaseService`, which provides `getSafeToken()`, `authHeaders()`, `decodeMap()`, `throwIfAuthExpired()`, and `withAuth()`. Most services are plain classes instantiated per call. `GarmentService` and `OutfitService` are the current cache-backed singletons (via `factory` + `_internal()`); do not make another service singleton unless it holds equivalent shared mutable state.
+- `lib/core/providers/` — Riverpod providers over services. Stateful collections/profiles use `AsyncNotifierProvider`; a few parameterized reads use `FutureProvider.family`. Network-backed future providers must use the shared `appRetryPolicy` (see [Async provider retry policy](#async-provider-retry-policy)). Providers expose `refresh()` and verb+noun mutation methods (`addGarment`, `removeGarment` — see [Naming](#naming-conventions)).
 - `lib/core/config/` — `Env` reads `String.fromEnvironment` values; `AppConfig` exposes `fullApiUrl`.
 - `lib/core/utils/` — cross-cutting helpers: `debug_log.dart` (logging), `signed_url.dart` (GCS signed-URL expiry), `crash_handler.dart`, `route_observer.dart`, `image_cache_bust.dart`, `try_on_mixin.dart`.
 - `lib/app/` — app shell. `main_shell.dart` hosts `MainShell`, the persistent 4-tab (`Home`/`My Closet`/`Outfits`/`Trips`) `IndexedStack` shell — see [Navigation](#navigation). `lib/app/theme/` has `AppColors`, `AppTextStyle`, `AppDimens`, `AppTheme` (Material 3).
@@ -90,7 +90,7 @@ See [Error handling (UI)](#error-handling-ui) below for the full request-to-reco
 ## Service layer rules
 
 - **Singleton policy**: plain class by default. Only use `factory` + `_internal()` when the service holds real shared mutable state (an in-memory cache, a live connection) — not for DI convenience, not "for consistency." `GarmentService` and `OutfitService` are the only services that qualify — the latter's `_groupCache` caches `getGroupOutfits(groupId)` per group, invalidated by every one of its own mutation methods (`generate`/`regenerate`/`copy`/`update`/`delete`, on either an outfit or its group).
-- **HTTP errors**: never hand-build an error message string outside `BaseService.decodeMap`. If a status code needs special handling (e.g. treat 404 as success for an idempotent delete), check `res.statusCode` *before* calling `decodeMap`, don't catch and reformat its exception. Idempotent `DELETE`s go through `BaseService.deleteIdempotent` (404/2xx = success, everything else routed through `decodeMap` or a passed-in `errorDecode` so the message is still built in one place) rather than each service re-rolling the branch — `GarmentService.deleteGarment` and `MatchLookService.removeReference` both use it.
+- **HTTP errors**: for ordinary `BaseService` calls, route non-2xx responses through `BaseService.decodeMap`; it throws `ApiException` with `statusCode` plus parsed `errorCode`/`message` when the backend envelope is valid, and safely falls back when the body is malformed. Never interpolate `res.body`, `response.body`, or a backend `message` into a user-visible exception/string. Error logging must follow [Logging](#logging): log sanitized status/code/context, not an unfiltered response body that may contain signed URLs, identifiers, or personal data. A feature with an established specialized typed decoder (`ClosetAnalysisException`, `MatchLookException`) may keep that path rather than being forced through `decodeMap`. If a status code needs special handling (e.g. treat 404 as success for an idempotent delete), check `res.statusCode` *before* calling `decodeMap`, don't catch and reformat its exception. Idempotent `DELETE`s go through `BaseService.deleteIdempotent` (404/2xx = success, everything else routed through `decodeMap` or a passed-in `errorDecode`) rather than each service re-rolling the branch.
 - **JSON numeric parsing**: always `(json['x'] as num?)?.toDouble()` / `.toInt()` — never a raw `as int?`/`as double?` cast on a field that comes from an external API. APIs can serialize the same field as an int or a float depending on the value; a raw cast crashes the first time it doesn't match.
 - **Signed URLs**: use `lib/core/utils/signed_url.dart`'s expiry helper rather than re-deriving "is this URL stale" inline at each call site.
 
@@ -99,6 +99,21 @@ See [Error handling (UI)](#error-handling-ui) below for the full request-to-reco
 - `ref.watch` in `build`, `ref.read` in callbacks — no exceptions.
 - `refresh()` follows the standard `AsyncNotifier` shape: `state = const AsyncLoading(); state = await AsyncValue.guard(...)`. This is idiomatic Riverpod and is expected to look the same in every provider — don't extract a shared base class for it.
 - Mutation methods use the verb+noun naming from [Naming conventions](#naming-conventions) above.
+
+### Async provider retry policy {#async-provider-retry-policy}
+
+Network-backed `AsyncNotifierProvider` and `FutureProvider` declarations use the shared `appRetryPolicy` from `lib/core/providers/retry_policy.dart`. Do not rely on Riverpod's default retry policy for app HTTP work.
+
+- The policy is a **whitelist**: retry only errors known to be transient — `TimeoutException`, `SocketException`, `http.ClientException`, and `ApiException` with `statusCode >= 500`.
+- Retry at most 3 times, using the project's short backoff schedule (currently 300ms → 800ms → 1800ms; ~2.9s total pure backoff). Do not silently widen this to Riverpod's default 10 retries.
+- Never retry `AuthExpiredException`, `ApiException` 4xx, known business exceptions such as `ClosetAnalysisException` / `MatchLookException`, deterministic permission/service-disabled errors, unknown ordinary `Exception`s, or Dart `Error`s. Unknown errors fail closed (no retry).
+- `AuthExpiredException` already means the normal token-refresh-and-one-request-retry recovery path failed. Provider retry must not delay `AuthExpiredHandler`.
+- The provider `retry:` hook governs failures from provider evaluation/recomputation. An explicit provider `refresh()` that catches into `AsyncValue.guard(...)` owns its own resulting `AsyncValue`; do not assume the declaration-level retry hook will retry that method's caught error.
+- Do **not** assume `ref.read(provider.future)` by itself is sufficient to drive scheduled retries. If a flow depends on provider retry, keep a real active `watch`/`listen` for the lifetime in which retries are expected. Do not add a fake production listener merely to keep retry alive.
+- If a workflow is purely imperative/one-shot and has no reactive consumer, prefer calling the service/repository directly instead of creating a provider solely to await `.future`.
+- Retry-related provider tests must keep the provider actively listened to for the duration of the retry assertion; otherwise a `.future`-only test can stall for scheduler/lifecycle reasons rather than policy logic.
+
+When a page renders a provider with `.when(...)`, make sure unrecoverable auth expiry has a real listener/handler path. `ErrorStateWidget` intentionally renders nothing for `AuthExpiredException` because recovery UI belongs to `AuthExpiredHandler`; a page must not rely on the error widget itself to handle session expiry.
 
 ## Data models
 
@@ -261,8 +276,8 @@ HTTP 401
   → BaseService.withAuth: silent token refresh + retry the original request once
   → refresh/retry unrecoverable (no stored refresh token, refresh endpoint answers non-200 / without a new token pair, or the retry 401s again)
   → AuthExpiredException thrown
-  → caught at the page layer
-  → AuthExpiredHandler.handle(context)
+  → either caught by an imperative page flow, or surfaced in provider AsyncValue.error
+  → AuthExpiredHandler.handle(context) from the page catch/listener
   → static _isHandling flag dedupes concurrent triggers (e.g. several tabs' listeners firing at once)
 ```
 
@@ -285,16 +300,15 @@ try {
 }
 ```
 
-`on AuthExpiredException` is its own clause, checked before the generic `catch`. Every network call has a `catch` regardless of which shape is used — a bare `try { ... } finally { ... }` around a network call is a bug, not a style choice, in both the current and target patterns.
+`on AuthExpiredException` is its own clause, checked before the generic `catch` for **imperative page/feature-layer network calls**. A bare `try { ... } finally { ... }` around such a call is a bug because it hides the user-facing fallback path. Provider `build()` methods are different: they intentionally allow errors to propagate into Riverpod so `AsyncValue` + `appRetryPolicy` can own retry/error state; provider `refresh()` methods may intentionally capture errors with `AsyncValue.guard(...)`.
+
+For generic API failures, keep technical detail in `debugLog` and derive user-facing copy through `apiErrorMessage(_l10n, e, fallback: ...)` when applicable. The backend `message`, raw response body, HTTP operation label, storage object path, and exception `.toString()` are not UI copy. Cross-cutting `error_code` mappings belong in `lib/core/utils/api_error_text.dart`; do not recreate the same `switch (errorCode)` in multiple pages.
 
 **Current state.** Every page/feature-layer `catch` site uses the target `on AuthExpiredException` clause — the old `if (e is AuthExpiredException)` shared-`catch` shape has been fully migrated out, and `8036b16` removed the last `if (e is AuthExpiredException)` catch-guard (the one inside `BaseService.withAuth`; `withAuth` now has no `try`/`catch` at all).
 
-The only `is AuthExpiredException` checks left in `lib/` are three **provider-state inspections**, not `catch` blocks, and they are legitimate and expected:
+Remaining `is AuthExpiredException` checks in `lib/` are **provider-state inspections**, not generic `catch` branches, and are legitimate. They appear in listener/reporting paths such as `main_tab_async.dart`, `home_page.dart`, `settings_page.dart`, `style_taste_page.dart`, `trip_suitcase_page.dart`, and `garment_outfits_page.dart`, plus `error_state_widget.dart` (which renders nothing for auth expiry because the listener owns recovery UI).
 
-- `main_tab_async.dart` and `trip_suitcase_page.dart` (`ref.listenManual`) — read `AsyncValue.error` in a listener callback to route an already-surfaced auth-expiry to `AuthExpiredHandler.handle`.
-- `error_state_widget.dart` — checks `error is AuthExpiredException` in `build` to render nothing (the page-level listener owns the recovery UI).
-
-These inspect a provider's error *value*; they are not the handle-vs-fallback `catch` shape. Don't reintroduce the `if (e is ...)` shape in a `catch` (it's in [Forbidden patterns](#forbidden-patterns-flutter)).
+These inspect an `AsyncValue.error` *value*; they are not the handle-vs-fallback `catch` shape. Don't reintroduce `if (e is AuthExpiredException)` inside a generic `catch` (it's in [Forbidden patterns](#forbidden-patterns-flutter)). Any new page that uses `.when(...)` with `ErrorStateWidget` must also have a reachable auth-expiry listener/handler unless a parent shell already guarantees one for that exact provider.
 
 ### `BottomActionButton`
 
@@ -355,7 +369,7 @@ These are the **target for new and substantively-touched code**. `lib/features/`
 
 ## Logging
 
-- Every public service method that performs an HTTP call opens with `debugLog('--- methodName: relevant params ---');`, placed *after* any early-return cache check or parameter resolution needed to make the logged values meaningful — e.g. `GarmentService.getGarment` and `OutfitService.getGroupOutfits` both log only once past their cache-hit fast path, and `OutfitService.generateOutfit` resolves `groupId` before logging so the line carries a real value, not `null`. `base_service.dart`'s internal helpers (`decodeMap`, `withAuth`) do not log directly — logging responsibility stays with the calling method so nothing double-logs. Methods that don't perform an HTTP call (pure getters, trivial wrappers) aren't required to log.
+- Every public service method that performs an HTTP call opens with `debugLog('--- methodName: relevant params ---');`, placed *after* any early-return cache check or parameter resolution needed to make the logged values meaningful — e.g. `GarmentService.getGarment` and `OutfitService.getGroupOutfits` both log only once past their cache-hit fast path, and `OutfitService.generateOutfit` resolves `groupId` before logging so the line carries a real value, not `null`. `withAuth` does not add a second entry log. `decodeMap` may emit a failure-only diagnostic, but it must be sanitized (status / error code / safe operation context), never a blanket dump of the raw response body. Methods that don't perform an HTTP call (pure getters, trivial wrappers) aren't required to log.
 - **Never log**: access tokens, `Authorization` header values, signed URLs, photo/image bytes or data URIs, email addresses, or any other personally-identifying data. A log line naming *which* garment/outfit/trip id was involved is fine; logging the credential or the payload that proves who the user is, is not. Also don't log a local filesystem path to a user-picked image — it isn't a credential, but it exposes device directory layout for negligible debugging value (`MatchLookService.uploadReference` still does this — [Migration debt register](#migration-debt-register-flutter) item 10; new code must not copy it).
 
 ## Canonical example files (Flutter)
@@ -367,7 +381,7 @@ Each file below is canonical **only for the specific things listed** — it is n
 | Service | `lib/core/services/trip_service.dart` | Canonical **for these concerns only**: `_baseUrl` convention, `decodeMap`-based error handling, the "one `debugLog` per HTTP method" habit | Not to copy: the `debugLog` lines omit the colon separator ([Logging](#logging) specifies `'--- updateTrip: id=$tripId ---'`; the file writes `'--- updateTrip id=$tripId ---'`). The full-request-body / day-by-day-summary logging this file used to carry was removed in `6255da9` (see the *Recently resolved* note in the [Migration debt register](#migration-debt-register-flutter)) — every method now logs only the `--- method id/params ---` line |
 | Service (singleton) | `lib/core/services/garment_service.dart` | Cache-backed singleton shape, `.timeout()` on every call, cache kept coherent after a successful mutation, `deleteIdempotent`-based delete | `uploadImage()` is a redundant single-caller wrapper over `BaseService.putJpegToSignedUrl` ([Migration debt register](#migration-debt-register-flutter) item 3) — call `putJpegToSignedUrl` directly in new code |
 | Service (minimal shape) | `lib/core/services/daily_outfit_service.dart` | Minimal stateless (non-singleton) service shape | — |
-| Provider | `lib/core/providers/garments_provider.dart` | `AsyncNotifier` `refresh()` shape, verb+noun mutation naming | — (`trips_provider.dart`/`outfits_provider.dart` don't fully mirror this file's naming yet — see [Naming conventions](#naming-conventions)) |
+| Provider | `lib/core/providers/garments_provider.dart` | `AsyncNotifier` `refresh()` shape, verb+noun mutation naming, `retry: appRetryPolicy` on a network-backed provider | — |
 | Data model | `lib/data/outfit.dart` | `copyWith` `clearX` flags, extracted cache-key helper (`outfitImageCacheKey`), `num`-tolerant `parseId`, `OutfitGroupType` enum with `apiValue`/`fromApiValue` | — |
 | Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading, `on AuthExpiredException` clause shape, synchronous re-entrancy guard on costly actions (`_regenerateImage`/`_setCover` — see [Guarding costly / mutating actions against double-invocation](#double-invocation-guard)) | one raw `BorderRadius.circular(16)` instead of `AppDimens.cardRadius` |
 | Shared widget | `lib/features/widgets/common/buttons/bottom_action_button.dart` | Full compliance — colors via `AppColors`, no hardcoded text, documented literals | — |
@@ -393,6 +407,9 @@ When adding a new page/service/provider/model, start from the primary example ab
 - A new abstraction layer, base class, or wrapper introduced for something used in exactly one place "for future flexibility."
 - `BottomActionButton` placed inline in the body instead of via `Scaffold.bottomNavigationBar`.
 - An AI-render / create / copy / paid-call handler with no synchronous re-entrancy guard before its first `await` — relying only on a later-set loading flag, a hidden/disabled button, or the loading overlay to stop a double-tap (see [Guarding costly / mutating actions against double-invocation](#double-invocation-guard)).
+- A network-backed `AsyncNotifierProvider` / `FutureProvider` that falls back to Riverpod's default retry instead of declaring `retry: appRetryPolicy`, unless a concrete exception is documented next to the provider.
+- Depending on a `.future`-only read as the sole mechanism that keeps a retry-dependent provider alive. Use a real reactive watcher/listener for reactive state, or call the service directly for a one-shot imperative workflow.
+- Showing `e.toString()`, `error.toString()`, raw `res.body` / `response.body`, backend `message`, HTTP operation labels, signed URLs, bucket/object paths, or other technical exception detail as user-facing UI copy.
 - Logging an access token, `Authorization` header, signed URL, image payload, email, or other personal data (see [Logging](#logging)).
 - The `if (e is AuthExpiredException)` shape inside a `catch` (use the `on AuthExpiredException` clause instead — see [Error handling (UI)](#error-handling-ui)). The codebase is fully migrated; the only `is AuthExpiredException` uses left are three legitimate `AsyncValue.error` checks in build/listener callbacks, which are not `catch` blocks.
 
@@ -406,6 +423,9 @@ Known gaps between the current code and the rules above. Each is deliberately **
 - `BaseService.withAuth`'s `/auth/refresh` POST had no timeout → fixed in `8036b16`: 15s cap; a `TimeoutException` / transport error on the refresh call now propagates unchanged instead of being masked as `AuthExpiredException`.
 - `Garment.fromJson` / `fromTripItemJson` cast `id` / `garment_id` with a raw `as int?` → fixed in `894d31e`: all three sites go through `Garment._parseNullableId` (int / integer-valued double → int; `null` → `null`; fractional / `NaN` / `Infinity` → `FormatException`; numeric string / bool → `TypeError`, unchanged).
 - `TripService` logged full request / response payloads → **removed in `6255da9`**. `createTrip` no longer logs `jsonEncode(body)` (which had carried the trip name, `legs` / location names, dates and free-text activity strings); `getTrip` no longer logs a day-by-day response summary (which had included the trip's dates); the private `_summarizeDays` helper that built that summary was deleted. Every `TripService` HTTP method is back to a single id-only `--- method id=… ---` line. Endpoints, request bodies, response parsing, exception behaviour, timeouts and public signatures were untouched by that change.
+- **Frontend API-error leakage**: `BaseService.decodeMap` now throws safe `ApiException` values instead of embedding the raw HTTP body in `Exception.toString()`; page catches log technical detail only in debug builds and show ARB copy via `apiErrorMessage(...)`. `FACE_REFERENCE_NOT_FOUND`, `BODY_REFERENCE_NOT_FOUND`, and `FILE_NOT_FOUND` have shared localized mappings; unknown codes fall back safely.
+- **Profile fetch / reference-image isolation**: `profileProvider` now fetches `/users/me` once through `getMyProfileData()` instead of three parallel calls to the same endpoint. Face/body signed-URL load failures stay card-local in Try-On Profile and offer the existing re-upload action; they do not fail the provider or erase the rest of the profile.
+- **Riverpod retry policy**: all current network-backed Future-based providers use the shared whitelist `appRetryPolicy` (max 3 retries / ~2.9s pure backoff). `AuthExpiredException`, 4xx, business errors, permission errors, unknown exceptions and Dart `Error`s do not retry; Style Taste and Trip Suitcase auth-expiry listener gaps were closed.
 
 ### 1. `_l10n` getter not adopted in ~14 pages
 
@@ -437,14 +457,14 @@ Known gaps between the current code and the rules above. Each is deliberately **
 
 ### 5. UI render-test gaps
 
-- **Scope**: 20+ page files and most of `lib/features/widgets/` have no render/widget test. Covered today: services, data models, the three list providers, four large detail pages (`test/pages/`), and a few shared widgets.
+- **Scope**: Many page files and shared widgets still have no render/widget test. Coverage has expanded across services, data models, providers (including retry policy), several large/detail pages, Try-On Profile, Style Taste, Trip Suitcase auth handling, and shared widgets, but it is still not comprehensive.
 - **Risk**: Medium — `flutter analyze` + `flutter test` do **not** catch a layout / navigation / loading regression on an untested page.
 - **Deferred reason**: Page render tests need per-page harness setup (preloaded providers, mock HTTP, real l10n delegates); they're being added opportunistically, not in one batch.
 - **Trigger for revisiting**: Any change to an untested page's visual layout, loading state, or navigation flow — do manual QA of that screen before commit (step 3 of [Pre-change / post-change checks](#pre-change--post-change-checks-flutter)), and add at least a smoke test for that page if feasible.
 
 ### 6. Backend daily try-on quota error not surfaced specifically
 
-- **Scope**: The backend enforces a per-user daily try-on generation limit. Flutter has no branch for it — the rejection falls through to the generic error path (SnackBar / inline error), with no dedicated `error_code` handling or "limit reached" copy.
+- **Scope**: The backend enforces a per-user daily try-on generation limit. Flutter now has a shared `ApiException` + `apiErrorMessage(...)` mapping path, but the quota's exact backend `error_code` is not yet mapped to dedicated "limit reached" copy, so it still falls through to the operation-specific generic fallback.
 - **Risk**: Low-medium — the failure *is* shown, just not explained; a user at the cap sees a vague error.
 - **Deferred reason**: Needs a product decision on the message and confirmation of the exact `error_code` the backend returns; outside the consistency-refactor scope.
 - **Trigger for revisiting**: When the daily / trip try-on UX is next revised, or when the backend's quota `error_code` is confirmed — add an `error_code` branch with an ARB string.
@@ -479,13 +499,20 @@ Known gaps between the current code and the rules above. Each is deliberately **
 - **Deferred reason**: Documentation-only pass; the one-line code fix isn't mixed into it.
 - **Trigger for revisiting**: Next time `MatchLookService` is touched — reduce the line to the method name only (`--- uploadReference ---`). New code must not log local file paths.
 
+### 11. `BaseService.decodeMap` still logs the raw error response body in debug builds
+
+- **Scope**: The recent error-handling hardening removed raw response bodies from `Exception.toString()` and production UI, but `decodeMap` still writes the full non-2xx response body to `debugLog`.
+- **Risk**: Low in release builds because `debugLog` is debug-gated, but the body can still contain backend `message`, identifiers, signed URLs, object paths, or other data that the [Logging](#logging) rules say not to log wholesale.
+- **Deferred reason**: The leakage-to-UI bug is already closed; changing diagnostic shape should be a small dedicated pass so failure observability is preserved while sensitive payload dumping is removed.
+- **Trigger for revisiting**: Next time `BaseService.decodeMap` / `ApiException` logging is touched — replace raw-body logging with sanitized `statusCode`, parsed `errorCode`, and safe operation context. Do not log the full response body.
+
 ## Pre-change / post-change checks (Flutter)
 
 Before committing any change under `lib/` or `test/`:
 
 1. `flutter analyze` — zero issues.
 2. `flutter test` — all passing; if you touched a service or data model with existing coverage in `test/services/` or `test/data/`, its tests must still pass, and a behavior change needs a matching test update, not just a passing run.
-3. If you touched a page's visual layout, loading state, or navigation flow, manually run the app (`flutter run --dart-define-from-file=dart_defines/dev.json`) and exercise the changed screen. `test/` now covers services, data models, the three list providers (`test/providers/`), four large detail pages (`test/pages/`), and a handful of shared widgets (`test/widgets/`) — but 20+ page files and most of `lib/features/widgets/` still have **no render test** (see [Migration debt register](#migration-debt-register-flutter) item 5), so on those screens analyzer + unit tests alone do not catch a UI regression.
+3. If you touched a page's visual layout, loading state, or navigation flow, manually run the app (`flutter run --dart-define-from-file=dart_defines/dev.json`) and exercise the changed screen. Automated coverage includes services, data models, providers/retry policy, several pages, and shared widgets, but render coverage is still incomplete (see [Migration debt register](#migration-debt-register-flutter) item 5), so analyzer + unit tests alone do not catch every UI regression.
 4. If you added or changed a visual object, record the repository-wide search used to find existing Widgets and list every affected caller. Confirm that the result reuses the canonical Widget and does not introduce a near-duplicate.
 5. A rename of a public method/class (service, provider, or otherwise) requires grepping the whole `lib/`/`test/` tree for the old name before considering the change done.
 
@@ -493,6 +520,6 @@ Before committing any change under `lib/` or `test/`:
 
 # Shared contract (both stacks)
 
-- **Response envelope**: the backend's `BaseResponse[T]` (`success`, `message`, `data`, `error_code`) is the response shape every Flutter service call receives. In practice, `BaseService.decodeMap` itself only validates HTTP status and that the body is a JSON object — it doesn't parse any of the four keys itself; each service destructures `envelope['data']` by hand after calling it. `data` is load-bearing at essentially every call site (renaming or removing it is a breaking change across the whole app); `error_code`/`message` are currently only consumed by `MatchLookService`'s own decode path; `success` is not currently read anywhere in `lib/`. **`success` being unread today does not make it safe to remove from the backend response shape** — it's still part of the documented contract, and Flutter simply hasn't needed to branch on it yet. Do not change the envelope shape from either side without coordinating both repos in the same change.
+- **Response envelope**: the backend's own REST endpoints return `BaseResponse[T]` (`success`, `message`, `data`, `error_code`). Direct third-party calls (e.g. Open-Meteo) and signed-URL PUTs to GCS are outside this envelope. For backend calls, `BaseService.decodeMap` handles 401 separately through the auth flow; for other non-2xx responses it safely parses `error_code`/`message` when present and throws `ApiException`, while malformed/non-JSON error bodies fall back without rethrowing parsing detail. On success it validates that the body is a JSON object, and individual services destructure `envelope['data']`. `data` is load-bearing at essentially every call site. Cross-cutting user-facing mappings for selected backend codes live in `api_error_text.dart`; feature-specific paths such as `MatchLookException` / `ClosetAnalysisException` may keep specialized decoding. Backend `message` is diagnostic/contextual data, not default UI copy. `success` is not currently relied on for ordinary branching, but it remains part of the backend contract. Do not change the envelope shape from either side without coordinating both repos in the same change.
 - **Auth expiry**: backend unrecoverable 401 → Flutter's `AuthExpiredException` — see [Error handling (UI)](#error-handling-ui) above for the full flow, including the silent-refresh-and-retry step that happens first. Any backend change to when/how 401 is returned must be checked against this mapping.
-- **Error codes**: the backend's `ErrorCode` enum is the intended full taxonomy; Flutter does not re-declare it — if a page needs to branch on a specific `error_code`, read the value directly rather than inventing a parallel Dart enum that can drift out of sync. Note the backend's own 500 catch-all currently emits a literal `"INTERNAL_SERVER_ERROR"` that isn't itself an `ErrorCode` member — treat that one value as a special case if you ever need to match it from Flutter, not proof the enum is incomplete elsewhere.
+- **Error codes**: the backend's `ErrorCode` enum is the intended full taxonomy; Flutter does not re-declare it as a parallel enum. Cross-cutting mappings belong in `api_error_text.dart`; a feature-specific code may be handled by that feature's established typed exception path. Do not duplicate the same `switch (errorCode)` across pages, and never display the backend `message` merely because a code is unknown — fall back to localized operation-specific copy. Note the backend's own 500 catch-all currently emits a literal `"INTERNAL_SERVER_ERROR"` that isn't itself an `ErrorCode` member — treat that value as a special case if it ever needs matching, not proof the enum is incomplete elsewhere.

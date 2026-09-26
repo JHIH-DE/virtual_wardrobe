@@ -14,8 +14,10 @@ import '../../core/config/env.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -57,9 +59,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
+  Future<void> _showErrorDialog(String msg) =>
+      showErrorDialog(context, message: msg);
 
   Future<void> _loginWithGoogle() async {
     // Synchronous re-entrancy guard — before any await. Disabling the button
@@ -69,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
     // race on the token exchange and AuthStorage.
     if (_isLoading) return;
     if (Platform.isIOS && Env.googleIosClientId.isEmpty) {
-      _showSnack(_l10n.googleLoginNotConfiguredIOS);
+      _showErrorDialog(_l10n.googleLoginNotConfiguredIOS);
       return;
     }
     setState(() => _isLoading = true);
@@ -80,7 +81,8 @@ class _LoginPageState extends State<LoginPage> {
 
       final idToken = account.authentication.idToken;
       if (idToken == null || idToken.isEmpty) {
-        throw Exception(_l10n.googleLoginMissingToken);
+        _showErrorDialog(_l10n.googleLoginMissingToken);
+        return;
       }
       final tokens = await AuthService().loginWithGoogleIdToken(idToken);
       await AuthStorage.saveAccessToken(tokens.accessToken);
@@ -91,16 +93,19 @@ class _LoginPageState extends State<LoginPage> {
     } on GoogleSignInException catch (e) {
       // User dismissed the account picker — not an error worth showing.
       if (e.code == GoogleSignInExceptionCode.canceled) return;
-      _showSnack(e.description ?? e.toString());
+      debugLog('Google sign-in failed: ${e.code} ${e.description}');
+      _showErrorDialog(_l10n.loginFailed);
     } catch (e) {
-      _showSnack(e.toString().replaceFirst('Exception: ', ''));
+      debugLog('Google login failed: $e');
+      _showErrorDialog(apiErrorMessage(_l10n, e, fallback: _l10n.loginFailed));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loginWithApple() async {
-    if (_isLoading) return; // synchronous re-entrancy guard — see _loginWithGoogle
+    // synchronous re-entrancy guard — see _loginWithGoogle
+    if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -112,7 +117,8 @@ class _LoginPageState extends State<LoginPage> {
 
       final idToken = credential.identityToken;
       if (idToken == null) {
-        throw Exception(_l10n.appleLoginMissingToken);
+        _showErrorDialog(_l10n.appleLoginMissingToken);
+        return;
       }
 
       // Apple only ever sends the name on the very first authorization for
@@ -136,14 +142,16 @@ class _LoginPageState extends State<LoginPage> {
           e.code == AuthorizationErrorCode.canceled) {
         return;
       }
-      _showSnack(e.toString());
+      debugLog('Apple login failed: $e');
+      _showErrorDialog(apiErrorMessage(_l10n, e, fallback: _l10n.loginFailed));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loginWithFacebook() async {
-    if (_isLoading) return; // synchronous re-entrancy guard — see _loginWithGoogle
+    // synchronous re-entrancy guard — see _loginWithGoogle
+    if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
       debugLog('--- _loginWithFacebook - Start ---');
@@ -163,11 +171,14 @@ class _LoginPageState extends State<LoginPage> {
       } else if (result.status == LoginStatus.cancelled) {
         return;
       } else {
-        throw Exception('Facebook login failed: ${result.message}');
+        debugLog(
+          '--- _loginWithFacebook - Failed: ${result.status} ${result.message} ---',
+        );
+        _showErrorDialog(_l10n.loginFailed);
       }
     } catch (e) {
       debugLog('--- _loginWithFacebook - Error: $e ---');
-      _showSnack(e.toString());
+      _showErrorDialog(apiErrorMessage(_l10n, e, fallback: _l10n.loginFailed));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

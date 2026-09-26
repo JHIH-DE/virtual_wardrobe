@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -10,12 +9,12 @@ import '../../core/providers/garment_outfits_provider.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/closet_analysis.dart';
 import '../../data/garment.dart';
-import '../../data/image_edit_result.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
@@ -32,8 +31,8 @@ import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
-import '../widgets/common/overlays/inline_error_text.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/overlays/save_changes_dialog.dart';
@@ -41,18 +40,17 @@ import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/garment/garment_share_sheet.dart';
-import '../widgets/garment/garment_upload_helper.dart';
 import 'garment_outfits_page.dart';
 
 enum _GarmentMenuAction { rename, share, delete }
 
 class GarmentDetailsPage extends ConsumerStatefulWidget {
-  final Garment? initialGarment;
+  final Garment initialGarment;
   final Map<String, dynamic>? initialAnalysisData;
 
   const GarmentDetailsPage({
     super.key,
-    this.initialGarment,
+    required this.initialGarment,
     this.initialAnalysisData,
   });
 
@@ -71,7 +69,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   bool _isAnalyzing = false;
   bool _uploading = false;
   int? _id;
-  String? _errorMessage;
   String? _imagePathOrUrl;
   GarmentColor? _selectedColor;
   GarmentFit? _selectedFit;
@@ -163,14 +160,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _runAIAnalysis(_imagePathOrUrl!);
       });
-    } else if (_editingGarment?.metadata != null) {
-      // Editing an existing garment with no fresh analysis this session —
-      // seed from its own saved metadata so a photo-only edit (the image
-      // preview's "Edit image", which doesn't re-run analysis) still has
-      // something to send. `completeUpload`/`/garments/complete` requires
-      // `metadata` — omitting it 500s server-side (it unconditionally reads
-      // `metadata.thickness`).
-      _metaData = _editingGarment!.metadata;
     }
 
     _nameCtrl.addListener(_checkModified);
@@ -335,10 +324,16 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       await AuthExpiredHandler.handle(context);
       return;
     } catch (e) {
+      debugLog('GarmentDetailsPage rename failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
+        showErrorDialog(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+          message: apiErrorMessage(
+            _l10n,
+            e,
+            fallback: _l10n.garmentRenameFailed,
+          ),
+        );
       }
     }
   }
@@ -367,7 +362,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         return;
       } catch (e) {
         if (!mounted) return;
-        setState(() => _errorMessage = _l10n.deleteFailedPrefix(e.toString()));
+        debugLog('GarmentDetailsPage delete failed: $e');
+        showErrorDialog(
+          context,
+          message: apiErrorMessage(
+            _l10n,
+            e,
+            fallback: _l10n.garmentDeleteFailed,
+          ),
+        );
       }
     }
   }
@@ -460,7 +463,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         body: Stack(
           children: [
             _buildForm(),
-            if (_uploading) const Positioned.fill(child: Center(child: AppSpinner())),
+            if (_uploading)
+              const Positioned.fill(child: Center(child: AppSpinner())),
           ],
         ),
         // Save button pinned to the bottom
@@ -498,11 +502,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: AppDivider(topSpacing: 12, bottomSpacing: 16),
           ),
-          if (_errorMessage != null)
-            InlineErrorText(
-              message: _errorMessage!,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
@@ -790,7 +789,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// the insight card's header refresh action. Unlike [_runClosetAnalysis],
   /// this keeps showing the *existing* [_closetAnalysis] for the whole
   /// request: a failure leaves it (and its persisted cache entry) exactly
-  /// as it was, with just a brief SnackBar instead of replacing the card
+  /// as it was, with just an error dialog instead of replacing the card
   /// with the full error state — refreshing re-generates, it never deletes.
   /// Synchronous re-entrancy guard, same reasoning as [_runClosetAnalysis].
   Future<void> _refreshClosetAnalysis() async {
@@ -809,9 +808,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     } catch (e) {
       if (!mounted) return;
       debugLog('closetAnalysis refresh failed: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.closetAnalysisFailed)));
+      showErrorDialog(context, message: _l10n.closetAnalysisFailed);
     } finally {
       if (mounted) setState(() => _isRefreshingAnalysis = false);
     }
@@ -1130,31 +1127,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   Widget _imagePreview() {
     final img = _imagePathOrUrl;
-    if (img == null || img.isEmpty) {
-      return Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-          border: Border.all(
-            color: AppColors.borderSubtle,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: InkWell(
-          onTap: _pickNewImage,
-          child: const AspectRatio(
-            aspectRatio: 1.35,
-            child: Icon(
-              Icons.add_photo_alternate_outlined,
-              size: 40,
-              color: AppColors.icon,
-            ),
-          ),
-        ),
-      );
-    }
-
     return Stack(
       children: [
         Container(
@@ -1194,29 +1166,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  void _handleImageEditResult(ImageEditResult? result) {
-    if (result != null) {
-      setState(() {
-        _imagePathOrUrl = result.imagePath;
-        _isImageChanged = true;
-        if (result.analysisData != null) {
-          _applyAnalysisData(result.analysisData!);
-        }
-      });
-      _checkModified();
-    }
-  }
-
-  Future<void> _pickNewImage() async {
-    final picker = ImagePicker();
-    final xfile = await picker.pickImage(source: ImageSource.gallery);
-    if (xfile == null) return;
-
-    if (!mounted) return;
-    final result = await GarmentUploadHelper.analyzePhoto(context, xfile.path);
-    _handleImageEditResult(result);
-  }
-
   Future<void> _saveGarment() async {
     // Synchronous re-entrancy guard — the bottom button only hides ~200ms
     // after _uploading flips (BottomActionButton's AnimatedSwitcher), so a
@@ -1225,15 +1174,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     // double-invocation".
     if (_uploading) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() {
-      _uploading = true;
-      _errorMessage = null;
-    });
+    setState(() => _uploading = true);
 
     try {
       final wasAdd = _isAddMode;
-      // Upload when adding or when the image changed; otherwise just update text fields
-      final result = (_isAddMode || _isImageChanged)
+      // Adding uploads a fresh photo + creates the record; editing an
+      // existing garment only ever updates its text fields — there is no
+      // UI path to replace an existing garment's photo (see
+      // _uploadNewGarment's doc comment).
+      final result = _isAddMode
           ? await _uploadNewGarment()
           : await _updateGarmentFields();
 
@@ -1244,11 +1193,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       await AuthExpiredHandler.handle(context);
       return;
     } catch (e) {
+      debugLog('GarmentDetailsPage._saveGarment failed: $e');
       if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _uploading = false;
-        });
+        setState(() => _uploading = false);
+        showErrorDialog(
+          context,
+          message: apiErrorMessage(_l10n, e, fallback: _l10n.garmentSaveFailed),
+        );
       }
     }
   }
@@ -1304,7 +1255,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       // _editingGarment in initState.
       _isImageChanged = false;
       _uploading = false;
-      _errorMessage = null;
       if (wasAdd) _outfitCount = 0;
 
       // Re-snapshot the change-detection baseline *before* touching the
@@ -1343,9 +1293,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  /// Uploads the (new or edited) image, then creates the garment record.
-  /// In edit mode this replaces the previous record entirely, since the
-  /// backend has no "update image" endpoint.
+  /// Uploads the picked photo and creates a new garment record. Only ever
+  /// called in add mode (see _saveGarment) — the backend has no "update
+  /// image" endpoint, and there is no UI path to replace an existing
+  /// garment's photo, so editing never reaches this method.
   Future<Garment> _uploadNewGarment() async {
     final initDate = await GarmentService().initUpload();
     await GarmentService().uploadImage(initDate.uploadUrl, _imagePathOrUrl!);
@@ -1361,8 +1312,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
     );
-    // When replacing the image in edit mode, delete the old record first
-    if (!_isAddMode) await GarmentService().deleteGarment(_id!);
     // Fold the one metadata field the form can edit (fit) back in. Never
     // send a bare `null` here: `/complete` requires `metadata` and 500s
     // reading `metadata.thickness` on a null value — `_metaData` is
@@ -1557,7 +1506,10 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
           const SizedBox(height: 10),
           for (var i = 0; i < ideas.length; i++) ...[
             if (i > 0) const AppDivider(),
-            _buildGarmentThumbRow(ideas[i].garments, onGarmentTap: onGarmentTap),
+            _buildGarmentThumbRow(
+              ideas[i].garments,
+              onGarmentTap: onGarmentTap,
+            ),
           ],
         ],
         if (similar.isNotEmpty) ...[
@@ -1609,7 +1561,9 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
           final g = garments[i];
           return _AiGarmentThumb(
             garment: g,
-            onTap: onGarmentTap == null ? null : () => onGarmentTap(g.garmentId),
+            onTap: onGarmentTap == null
+                ? null
+                : () => onGarmentTap(g.garmentId),
           );
         },
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -21,6 +22,7 @@ import '../widgets/common/cards/removable_card.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expandable_insight_body.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
@@ -152,14 +154,25 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.listenManual(garmentsProvider, (_, next) {
-        if (next.hasError && next.error is AuthExpiredException) {
-          AuthExpiredHandler.handle(context);
-        }
-      });
+      _watchAuthExpiry(garmentsProvider);
+      // tripSuggestionProvider is only otherwise read via `.watch(...)
+      // .when(...)` below (_buildPackingAdviceCard) — that path alone never
+      // routes an AuthExpiredException anywhere (ErrorStateWidget-style
+      // widgets deliberately render nothing for it, expecting a listener
+      // like this one to own the redirect), so without this a session that
+      // expires while this card is showing would just go blank.
+      _watchAuthExpiry(tripSuggestionProvider(_tripId));
       ref.read(garmentsProvider.notifier).refreshIfNeeded();
     });
     _loadPackedItems();
+  }
+
+  void _watchAuthExpiry<T>(ProviderListenable<AsyncValue<T>> provider) {
+    ref.listenManual<AsyncValue<T>>(provider, (_, next) {
+      if (next.hasError && next.error is AuthExpiredException) {
+        AuthExpiredHandler.handle(context);
+      }
+    });
   }
 
   Future<void> _loadPackedItems() async {
@@ -250,9 +263,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     } catch (e) {
       debugLog('Failed to update suitcase: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateSuitcase)));
+        showErrorDialog(context, message: _l10n.failedToUpdateSuitcase);
       }
       return false;
     } finally {
@@ -335,9 +346,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       } catch (e) {
         debugLog('Failed to generate trip plan: $e');
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(_l10n.failedToGeneratePlan)));
+          showErrorDialog(context, message: _l10n.failedToGeneratePlan);
         }
       } finally {
         if (mounted) setState(() => _generatingPlan = false);
@@ -390,9 +399,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       if (mounted) setState(() => _packedGarments = previousGarments);
       debugLog('Failed to remove suitcase item: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToRemoveItem)));
+        showErrorDialog(context, message: _l10n.failedToRemoveItem);
       }
     } finally {
       if (mounted) setState(() => _pendingIds.remove(id));

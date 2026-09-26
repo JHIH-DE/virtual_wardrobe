@@ -37,7 +37,10 @@ Future<String?> showPhotoSourceDialog(
                   child: DialogOptionCard(
                     variant: DialogOptionCardVariant.square,
                     icon: Image.asset('assets/images/camera.png', height: 32),
-                    label: Text(l10n.takePhotoLabel, style: AppTextStyle.bold16),
+                    label: Text(
+                      l10n.takePhotoLabel,
+                      style: AppTextStyle.bold16,
+                    ),
                     onTap: () => Navigator.pop(dialogCtx, ImageSource.camera),
                   ),
                 ),

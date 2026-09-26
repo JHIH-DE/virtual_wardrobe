@@ -18,6 +18,15 @@
   "bodyProportionsSubtitle": "Body shape & proportions",
   "changePhotoAction": "Change photo",
   "addPhotoAction": "Add photo",
+  "profileSaveFailed": "Couldn't save your profile. Please try again.",
+  "photoUploadFailed": "Couldn't upload photo. Please try again.",
+  "faceReferenceNotFound": "Your face reference photo is no longer available. Please upload it again.",
+  "bodyReferenceNotFound": "Your body reference photo is no longer available. Please upload it again.",
+  "fileNotFound": "The required file is no longer available. Please upload it again or try again.",
+  "faceReferenceLoadFailedTitle": "Face reference photo unavailable",
+  "bodyReferenceLoadFailedTitle": "Body reference photo unavailable",
+  "referenceLoadFailedSubtitle": "Please upload the photo again.",
+  "reuploadPhotoAction": "Re-upload",
   "aiModelReady": "Ready · Face + Body Configured",
   "aiModelReferencesAdded": "{count}/2 References Added",
   "@aiModelReferencesAdded": {
@@ -49,6 +58,11 @@
   "logout": "Logout",
   "logoutConfirmTitle": "Log out?",
   "logoutConfirmBody": "You'll need to sign in again to use Uwearis.",
+  "deleteAccount": "Delete Account",
+  "deleteAccountConfirmTitle": "Delete your account?",
+  "deleteAccountConfirmBody": "This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone.",
+  "deletingAccount": "Deleting your account…",
+  "deleteAccountFailed": "Couldn't delete your account — please try again.",
   "language": "Language",
   "selectLanguageTitle": "Select Language",
   "languageSystemDefault": "System Default",
@@ -102,6 +116,9 @@
   "deleteOutfitConfirmation": "Are you sure you want to delete this version?",
   "deleteOutfitGroupConfirmation": "This will also delete every other outfit generated together with it. This can't be undone.",
   "deleteThisVersion": "Delete Version",
+  "outfitUpdateFailed": "Couldn't update this outfit. Please try again.",
+  "outfitDeleteFailed": "Couldn't delete this outfit. Please try again.",
+  "outfitCopyFailed": "Couldn't copy this outfit. Please try again.",
 
   "createdOnDate": "Created {date}",
   "@createdOnDate": {
@@ -342,10 +359,9 @@
   "renameGarment": "Rename Garment",
   "deleteGarment": "Delete Garment",
   "deleteGarmentConfirmation": "Are you sure you want to delete this garment?",
-  "deleteFailedPrefix": "Delete failed: {error}",
-  "@deleteFailedPrefix": {
-    "placeholders": { "error": { "type": "String" } }
-  },
+  "garmentRenameFailed": "Couldn't rename this item. Please try again.",
+  "garmentSaveFailed": "Couldn't save this item. Please try again.",
+  "garmentDeleteFailed": "Couldn't delete this item. Please try again.",
   "unsavedChangesTitle": "You have unsaved changes",
   "unsavedChangesBody": "If you leave this page, your changes will be lost.",
   "dontSave": "Don't Save",
@@ -554,6 +570,7 @@
   "continueWithApple": "Continue with Apple",
   "signInWithGoogle": "Sign in with Google",
   "signInWithFacebook": "Sign in with Facebook",
+  "loginFailed": "Login failed. Please try again.",
   "copyrightText": "copyright reserved to Uwearis inc.",
 
   "noItemsFound": "No items found.",
@@ -578,12 +595,14 @@
 
   "searchLocationTitle": "Search Location",
   "cityNameHint": "City name...",
+  "locationSearchFailed": "Couldn't search for that location. Please try again.",
 
   "crashScreenTitle": "Something went wrong",
   "crashScreenMessage": "Please restart the app. If the problem continues, contact support.",
 
   "sessionExpiredTitle": "Session Expired",
   "sessionExpiredMessage": "Your session has expired. Please log in again to continue.",
+  "errorDialogTitle": "Error",
   "ok": "OK",
   "googleLoginMissingToken": "Google login failed: missing ID token",
   "appleLoginMissingToken": "Apple login failed: missing ID token",

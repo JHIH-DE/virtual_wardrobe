@@ -21,6 +21,11 @@ class AppImage extends StatelessWidget {
   final String? url;
   final String? cacheKey;
   final Future<String?> Function()? onRefreshUrl;
+
+  /// See [RefreshableNetworkImage.onLoadError] — only fires for the
+  /// network-URL case below; a local file source has no equivalent failure
+  /// signal today.
+  final VoidCallback? onLoadError;
   final double? width;
   final double? height;
 
@@ -37,6 +42,7 @@ class AppImage extends StatelessWidget {
     required this.url,
     this.cacheKey,
     this.onRefreshUrl,
+    this.onLoadError,
     this.width,
     this.height,
     this.memCacheWidth,
@@ -72,6 +78,7 @@ class AppImage extends StatelessWidget {
         fadeInDuration: const Duration(milliseconds: 200),
         errorIcon: Icons.broken_image,
         onRefreshUrl: onRefreshUrl,
+        onLoadError: onLoadError,
       );
     } else if (u.startsWith('file://')) {
       image = Image.file(

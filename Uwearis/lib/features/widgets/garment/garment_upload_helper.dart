@@ -90,11 +90,9 @@ class GarmentUploadHelper {
 
   /// Runs [GarmentService.analyzeGarment] on [imagePath] (background
   /// removal + AI metadata) behind a modal loading overlay, offering
-  /// retry-or-cancel on failure. Shared by [startAddClothingFlow] above and
-  /// [GarmentDetailsPage]'s "Edit image" (re-analyzing a freshly-picked
-  /// replacement photo the same way) — a manual crop step used to run
-  /// before this call (`ImageEditorPage`), but the backend's own
-  /// auto-crop-to-subject (`_finalize_garment_image` in
+  /// retry-or-cancel on failure. Called by [startAddClothingFlow] above — a
+  /// manual crop step used to run before this call (`ImageEditorPage`), but
+  /// the backend's own auto-crop-to-subject (`_finalize_garment_image` in
   /// virtual-wardrobe-backend) makes that unnecessary now. Returns null if
   /// the user cancels the retry prompt, or on an unrecoverable auth expiry
   /// (already handled here).

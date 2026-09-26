@@ -15,6 +15,19 @@ import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
 
+// Matches the shape GarmentUploadHelper.startAddClothingFlow actually
+// constructs for a not-yet-saved garment (no id) — GarmentDetailsPage now
+// requires initialGarment, so add-mode tests need a stand-in for "nothing
+// has been picked/entered yet" rather than the page's own default.
+const _draftGarment = Garment(
+  name: '',
+  category: GarmentCategory.top,
+  subCategory: '',
+  uploadUrl: '',
+  objectName: '',
+  imageUrl: '',
+);
+
 void main() {
   setUp(() {
     setUpFakeAuth();
@@ -46,7 +59,10 @@ void main() {
   ) async {
     await runWithEmptyCloset(() async {
       useTallSurface(tester);
-      await pumpApp(tester, const GarmentDetailsPage());
+      await pumpApp(
+        tester,
+        const GarmentDetailsPage(initialGarment: _draftGarment),
+      );
       await tester.pump();
 
       expect(find.text('Add Clothing'), findsWidgets);
@@ -62,7 +78,10 @@ void main() {
   testWidgets('editing the name reveals the Add-to-Closet bar', (tester) async {
     await runWithEmptyCloset(() async {
       useTallSurface(tester);
-      await pumpApp(tester, const GarmentDetailsPage());
+      await pumpApp(
+        tester,
+        const GarmentDetailsPage(initialGarment: _draftGarment),
+      );
       await tester.pump();
 
       await tester.enterText(find.byType(TextField).first, 'Blue Oxford Shirt');
@@ -81,6 +100,7 @@ void main() {
       await pumpApp(
         tester,
         const GarmentDetailsPage(
+          initialGarment: _draftGarment,
           initialAnalysisData: {'name': 'Tee', 'category': 'Top'},
         ),
       );

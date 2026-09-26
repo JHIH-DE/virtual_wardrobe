@@ -78,20 +78,13 @@ class TripService with BaseService {
   /// fresh empty day. Per day: omitting `activity` keeps its current
   /// value, omitting both temperature fields makes the backend refetch
   /// them (forecast within 15 days, historical average otherwise) rather
-  /// than leaving them stale.
-  ///
-  /// [activities] is a known no-op against the current backend contract —
-  /// `activity` moved from the trip itself down to each `TripPlanDay`
-  /// (`days[].activity`), and PATCH's request body has no trip-level
-  /// `activity` field left to receive this anymore. Kept only so existing
-  /// callers still compile; per-day activity edits need to go through
-  /// [days] instead (each entry's own `activity` key) once that's wired up
-  /// on the UI side.
+  /// than leaving them stale. Per-day activity edits go through [days]
+  /// (each entry's own `activity` key) — there is no trip-level activity
+  /// field.
   Future<void> updateTrip(
     int tripId, {
     String? name,
     List<TripLeg>? legs,
-    List<String>? activities,
     List<Map<String, dynamic>>? days,
   }) async {
     debugLog('--- updateTrip id=$tripId ---');
@@ -100,7 +93,6 @@ class TripService with BaseService {
     final body = <String, dynamic>{
       'name': ?name,
       if (legs != null) 'legs': legs.map((l) => l.toJson()).toList(),
-      'activity': ?activities,
       'days': ?days,
     };
 

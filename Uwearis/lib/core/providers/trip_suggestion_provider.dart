@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/packing_analysis.dart';
 import '../services/trip_service.dart';
+import 'retry_policy.dart';
 
 /// A trip's packing analysis (`GET /{trip_id}/suggestion`), keyed by trip id.
 /// Shared by Trip Details' packing-advice card and the suitcase garment
@@ -10,4 +11,5 @@ import '../services/trip_service.dart';
 /// `ref.invalidate(tripSuggestionProvider(tripId))`.
 final tripSuggestionProvider = FutureProvider.family<PackingAnalysis, int>(
   (ref, tripId) => TripService().getTripSuggestion(tripId),
+  retry: appRetryPolicy,
 );

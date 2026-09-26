@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -7,6 +8,7 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../core/providers/style_profile_provider.dart';
 import '../../core/providers/style_taste_provider.dart';
+import '../../core/services/auth_handler.dart';
 import '../../data/style_taste.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/style_taste_dimension_localization.dart';
@@ -53,6 +55,24 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
       if (!mounted) return;
       ref.invalidate(styleTasteProfileProvider);
       ref.invalidate(styleProfileProvider);
+      _watchAuthExpiry(styleTasteProfileProvider);
+      _watchAuthExpiry(styleProfileProvider);
+    });
+  }
+
+  /// Routes an unrecoverable auth expiry on [provider] to
+  /// [AuthExpiredHandler] — same `listenManual` + `hasError` shape as
+  /// `settings_page.dart`/`main_tab_async.dart`'s `mainTabReporter`. Needed
+  /// here because this page only otherwise reads these two providers via
+  /// `.watch(...).when(...)`, and `ErrorStateWidget` deliberately renders
+  /// nothing for an `AuthExpiredException` (it expects a listener like this
+  /// one to own the redirect) — without this, a session that expires while
+  /// on this page would just go blank instead of prompting to log in again.
+  void _watchAuthExpiry<T>(ProviderListenable<AsyncValue<T>> provider) {
+    ref.listenManual<AsyncValue<T>>(provider, (_, next) {
+      if (next.hasError && next.error is AuthExpiredException && mounted) {
+        AuthExpiredHandler.handle(context);
+      }
     });
   }
 

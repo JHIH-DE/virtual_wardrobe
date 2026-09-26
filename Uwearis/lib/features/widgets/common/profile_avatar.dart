@@ -8,11 +8,8 @@ import 'images/app_image.dart';
 class ProfileAvatar extends StatelessWidget {
   final String? url;
 
-  /// See [AppImage.cacheKey] / [AppImage.onRefreshUrl] — pass a stable,
-  /// [ImageCacheBust]-versioned key (e.g. `avatarImageCacheKey`) and a
-  /// re-fetch callback so a re-signed URL doesn't miss the disk cache and a
-  /// freshly-replaced avatar doesn't keep showing the old one.
-  final String? cacheKey;
+  /// See [AppImage.onRefreshUrl] — a re-fetch callback so a broken/expired
+  /// signed URL self-heals once instead of just showing the error state.
   final Future<String?> Function()? onRefreshUrl;
 
   final VoidCallback? onTap;
@@ -23,7 +20,6 @@ class ProfileAvatar extends StatelessWidget {
   const ProfileAvatar({
     super.key,
     this.url,
-    this.cacheKey,
     this.onRefreshUrl,
     this.onTap,
     this.size = 120,
@@ -47,7 +43,6 @@ class ProfileAvatar extends StatelessWidget {
               hasImage
                   ? AppImage(
                       url: url,
-                      cacheKey: cacheKey,
                       onRefreshUrl: onRefreshUrl,
                       fit: BoxFit.cover,
                     )

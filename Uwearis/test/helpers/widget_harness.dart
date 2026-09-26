@@ -12,14 +12,24 @@ import 'package:uwearis/l10n/generated/app_localizations.dart';
 ///
 /// Pass a `Scaffold` as [child] when the widget under test needs one
 /// (an `appBar:` slot, a `RefreshIndicator`, `ScaffoldMessenger`, …).
+///
+/// [retry] is a plain pass-through to [ProviderScope.retry] — typed as the
+/// raw function shape rather than Riverpod's own `Retry` typedef, which
+/// isn't part of its public export surface. Riverpod's `AsyncNotifier`s
+/// retry a failed `build()` with backoff by default, which means a test
+/// simulating a provider-level failure can otherwise hang waiting for
+/// `.future` to settle — pass `(_, _) => null` to make the first failure
+/// terminal.
 Future<void> pumpApp(
   WidgetTester tester,
   Widget child, {
   List<Override> overrides = const [],
+  Duration? Function(int retryCount, Object error)? retry,
 }) {
   return tester.pumpWidget(
     ProviderScope(
       overrides: overrides,
+      retry: retry,
       child: MaterialApp(
         localizationsDelegates: const [
           AppLocalizations.delegate,

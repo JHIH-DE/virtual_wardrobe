@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../data/outfit.dart';
 import '../services/daily_outfit_service.dart';
 import '../utils/signed_url.dart';
+import 'retry_policy.dart';
 
 /// Today's server-generated daily outfit options (empty means no plan for
 /// today yet). Generation/rendering is entirely server-side on its own
@@ -12,6 +13,7 @@ import '../utils/signed_url.dart';
 final dailyOutfitProvider =
     AsyncNotifierProvider<DailyOutfitNotifier, List<Outfit>>(
       DailyOutfitNotifier.new,
+      retry: appRetryPolicy,
     );
 
 class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {

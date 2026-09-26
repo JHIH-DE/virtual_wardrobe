@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
+import 'api_exception.dart';
 import 'auth_handler.dart';
 import 'auth_storage.dart';
 
@@ -124,9 +125,7 @@ mixin BaseService {
   /// string is logged, only the URL path. Debug builds only, like every
   /// other [debugLog] line. [withAuth] uses it for authenticated calls;
   /// unauthenticated callers (login, token refresh) wrap their own POST.
-  Future<http.Response> sendTimed(
-    Future<http.Response> Function() send,
-  ) async {
+  Future<http.Response> sendTimed(Future<http.Response> Function() send) async {
     final sw = Stopwatch()..start();
     try {
       final res = await send();
@@ -144,14 +143,40 @@ mixin BaseService {
     }
   }
 
+  /// Decodes a JSON object response, or throws for anything that isn't one.
+  /// [op] identifies the call for `debugLog` only — a technical detail, not
+  /// something that reaches the thrown exception (see [ApiException]).
+  ///
+  /// The raw response body is only ever logged (debug builds), never carried
+  /// on the exception itself: a non-2xx becomes an [ApiException] built from
+  /// whatever of the backend's envelope (`error_code`/`message`) the body
+  /// parses as, and a 2xx body that isn't valid JSON / isn't a JSON object
+  /// becomes a generic-message [ApiException] too — this never throws a
+  /// second, different exception type for a malformed body.
   Map<String, dynamic> decodeMap(http.Response res, {required String op}) {
     throwIfAuthExpired(res);
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception('$op failed (${res.statusCode}): ${res.body}');
+      debugLog('decodeMap: $op failed (${res.statusCode}): ${res.body}');
+      throw ApiException.fromResponse(res);
     }
-    final data = jsonDecode(res.body);
-    if (data is! Map<String, dynamic>) throw Exception('$op: invalid response');
-    return data;
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(res.body);
+    } catch (e) {
+      debugLog('decodeMap: $op returned invalid JSON: ${res.body}');
+      throw ApiException(
+        statusCode: res.statusCode,
+        message: 'Invalid response',
+      );
+    }
+    if (decoded is! Map<String, dynamic>) {
+      debugLog('decodeMap: $op returned a non-object JSON body: ${res.body}');
+      throw ApiException(
+        statusCode: res.statusCode,
+        message: 'Invalid response',
+      );
+    }
+    return decoded;
   }
 
   void throwIfAuthExpired(http.Response res) {

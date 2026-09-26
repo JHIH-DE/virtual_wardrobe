@@ -7,10 +7,13 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/outfit_service.dart';
+import '../../core/utils/api_error_text.dart';
+import '../../core/utils/debug_log.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/outfit/outfit_card.dart';
@@ -51,9 +54,12 @@ class _SelectOutfitGroupPageState extends ConsumerState<SelectOutfitGroupPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      debugLog('SelectOutfitGroupPage._copyInto failed: $e');
+      final l10n = AppLocalizations.of(context);
+      showErrorDialog(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+        message: apiErrorMessage(l10n, e, fallback: l10n.outfitCopyFailed),
+      );
     } finally {
       if (mounted) setState(() => _isCopying = false);
     }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/outfit.dart';
 import '../services/outfit_service.dart';
+import 'retry_policy.dart';
 
 /// The `type: general` (user-saved) outfits a garment appears in, keyed by
 /// garment id. `GET /outfits/by-garments` also returns daily/trip-generated
@@ -13,4 +14,4 @@ final garmentOutfitsProvider = FutureProvider.family<List<Outfit>, int>((
 ) async {
   final outfits = await OutfitService().getOutfitsByGarments([garmentId]);
   return outfits.where((o) => o.groupType == OutfitGroupType.general).toList();
-});
+}, retry: appRetryPolicy);

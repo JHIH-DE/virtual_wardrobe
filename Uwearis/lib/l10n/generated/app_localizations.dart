@@ -183,6 +183,60 @@ abstract class AppLocalizations {
   /// **'Add photo'**
   String get addPhotoAction;
 
+  /// No description provided for @profileSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your profile. Please try again.'**
+  String get profileSaveFailed;
+
+  /// No description provided for @photoUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t upload photo. Please try again.'**
+  String get photoUploadFailed;
+
+  /// No description provided for @faceReferenceNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Your face reference photo is no longer available. Please upload it again.'**
+  String get faceReferenceNotFound;
+
+  /// No description provided for @bodyReferenceNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Your body reference photo is no longer available. Please upload it again.'**
+  String get bodyReferenceNotFound;
+
+  /// No description provided for @fileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The required file is no longer available. Please upload it again or try again.'**
+  String get fileNotFound;
+
+  /// No description provided for @faceReferenceLoadFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Face reference photo unavailable'**
+  String get faceReferenceLoadFailedTitle;
+
+  /// No description provided for @bodyReferenceLoadFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Body reference photo unavailable'**
+  String get bodyReferenceLoadFailedTitle;
+
+  /// No description provided for @referenceLoadFailedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please upload the photo again.'**
+  String get referenceLoadFailedSubtitle;
+
+  /// No description provided for @reuploadPhotoAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-upload'**
+  String get reuploadPhotoAction;
+
   /// No description provided for @aiModelReady.
   ///
   /// In en, this message translates to:
@@ -284,6 +338,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'ll need to sign in again to use Uwearis.'**
   String get logoutConfirmBody;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountConfirmTitle;
+
+  /// No description provided for @deleteAccountConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone.'**
+  String get deleteAccountConfirmBody;
+
+  /// No description provided for @deletingAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting your account…'**
+  String get deletingAccount;
+
+  /// No description provided for @deleteAccountFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete your account — please try again.'**
+  String get deleteAccountFailed;
 
   /// No description provided for @language.
   ///
@@ -566,6 +650,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete Version'**
   String get deleteThisVersion;
+
+  /// No description provided for @outfitUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update this outfit. Please try again.'**
+  String get outfitUpdateFailed;
+
+  /// No description provided for @outfitDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete this outfit. Please try again.'**
+  String get outfitDeleteFailed;
+
+  /// No description provided for @outfitCopyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t copy this outfit. Please try again.'**
+  String get outfitCopyFailed;
 
   /// Footer showing the creation date of an outfit
   ///
@@ -1575,11 +1677,23 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete this garment?'**
   String get deleteGarmentConfirmation;
 
-  /// No description provided for @deleteFailedPrefix.
+  /// No description provided for @garmentRenameFailed.
   ///
   /// In en, this message translates to:
-  /// **'Delete failed: {error}'**
-  String deleteFailedPrefix(String error);
+  /// **'Couldn\'t rename this item. Please try again.'**
+  String get garmentRenameFailed;
+
+  /// No description provided for @garmentSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this item. Please try again.'**
+  String get garmentSaveFailed;
+
+  /// No description provided for @garmentDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete this item. Please try again.'**
+  String get garmentDeleteFailed;
 
   /// No description provided for @unsavedChangesTitle.
   ///
@@ -2589,6 +2703,12 @@ abstract class AppLocalizations {
   /// **'Sign in with Facebook'**
   String get signInWithFacebook;
 
+  /// No description provided for @loginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed. Please try again.'**
+  String get loginFailed;
+
   /// No description provided for @copyrightText.
   ///
   /// In en, this message translates to:
@@ -2709,6 +2829,12 @@ abstract class AppLocalizations {
   /// **'City name...'**
   String get cityNameHint;
 
+  /// No description provided for @locationSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search for that location. Please try again.'**
+  String get locationSearchFailed;
+
   /// No description provided for @crashScreenTitle.
   ///
   /// In en, this message translates to:
@@ -2732,6 +2858,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your session has expired. Please log in again to continue.'**
   String get sessionExpiredMessage;
+
+  /// No description provided for @errorDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get errorDialogTitle;
 
   /// No description provided for @ok.
   ///

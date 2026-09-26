@@ -25,6 +25,7 @@ import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/edge_fade_scrim.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/common/section_title.dart';
@@ -89,6 +90,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   int _selectedDayIndex = 0;
   final ScrollController _dayScrollController = ScrollController();
+
+  // Which EdgeFadeScrim edges still have something to fade — start
+  // fully-visible (matching EdgeFadeScrim's own always-visible default) and
+  // get corrected by the first ScrollMetricsNotification each row's
+  // NotificationListener sees, which fires on initial layout as well as on
+  // every real scroll/content-size change (see _applyEdgeFadeVisibility).
+  bool _daySelectorFadeLeftVisible = true;
+  bool _daySelectorFadeRightVisible = true;
+  bool _wardrobeFadeLeftVisible = true;
+  bool _wardrobeFadeRightVisible = true;
 
   // Mutable local copy — the app bar's edit menu (name/destinations/
   // activities) needs to update what's on screen immediately, and
@@ -298,9 +309,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     } catch (e) {
       debugLog('Failed to load suitcase: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateDayOutfit)));
+        showErrorDialog(context, message: _l10n.failedToUpdateDayOutfit);
       }
       return null;
     }
@@ -375,9 +384,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       } catch (e) {
         debugLog('Failed to replan trip: $e');
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(_l10n.failedToGeneratePlan)));
+          showErrorDialog(context, message: _l10n.failedToGeneratePlan);
         }
       } finally {
         if (mounted) setState(() => _replanningPlan = false);
@@ -484,9 +491,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       } catch (e) {
         debugLog('Failed to generate day outfit: $e');
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(_l10n.failedToGenerateOutfit)));
+          showErrorDialog(context, message: _l10n.failedToGenerateOutfit);
         }
       } finally {
         if (mounted) setState(() => _generatingOutfit = false);
@@ -555,9 +560,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     } catch (e) {
       debugLog('Failed to update day outfit: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateDayOutfit)));
+        showErrorDialog(context, message: _l10n.failedToUpdateDayOutfit);
       }
     }
   }
@@ -584,9 +587,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     } catch (e) {
       debugLog('Failed to re-add missing suitcase items: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateSuitcase)));
+        showErrorDialog(context, message: _l10n.failedToUpdateSuitcase);
       }
     }
   }
@@ -755,9 +756,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       setState(() => _trip = previous);
       ref.read(tripsProvider.notifier).updateTrip(previous);
       debugLog('Failed to update trip: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.failedToUpdateTrip)));
+      showErrorDialog(context, message: _l10n.failedToUpdateTrip);
     }
   }
 
@@ -796,9 +795,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       if (!mounted) return;
       Navigator.pop(context); // close loading indicator
       debugLog('Failed to delete trip: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.failedToDeleteTrip)));
+      showErrorDialog(context, message: _l10n.failedToDeleteTrip);
     }
   }
 
@@ -1088,29 +1085,45 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     // actually holds.
     final int totalDays = _dayOutfits.length;
     return EdgeFadeScrim(
-      child: SizedBox(
-        height: _dayCardHeight,
-        child: ListView.separated(
-          controller: _dayScrollController,
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: totalDays,
-          separatorBuilder: (_, _) => const SizedBox(width: _dayCardGap),
-          itemBuilder: (context, index) {
-            final dayOutfit = index < _dayOutfits.length
-                ? _dayOutfits[index]
-                : null;
-            final date =
-                dayOutfit?.date ??
-                _trip.dateRange.start.add(Duration(days: index));
-            return TripDayCard(
-              date: date,
-              isSelected: index == _selectedDayIndex,
-              temperatureMaxC: dayOutfit?.temperatureMaxC,
-              temperatureMinC: dayOutfit?.temperatureMinC,
-              onTap: () => _selectDay(index),
-            );
-          },
+      leftVisible: _daySelectorFadeLeftVisible,
+      rightVisible: _daySelectorFadeRightVisible,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          _applyEdgeFadeVisibility(
+            notification.metrics,
+            _daySelectorFadeLeftVisible,
+            _daySelectorFadeRightVisible,
+            (left, right) {
+              _daySelectorFadeLeftVisible = left;
+              _daySelectorFadeRightVisible = right;
+            },
+          );
+          return false;
+        },
+        child: SizedBox(
+          height: _dayCardHeight,
+          child: ListView.separated(
+            controller: _dayScrollController,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: totalDays,
+            separatorBuilder: (_, _) => const SizedBox(width: _dayCardGap),
+            itemBuilder: (context, index) {
+              final dayOutfit = index < _dayOutfits.length
+                  ? _dayOutfits[index]
+                  : null;
+              final date =
+                  dayOutfit?.date ??
+                  _trip.dateRange.start.add(Duration(days: index));
+              return TripDayCard(
+                date: date,
+                isSelected: index == _selectedDayIndex,
+                temperatureMaxC: dayOutfit?.temperatureMaxC,
+                temperatureMinC: dayOutfit?.temperatureMinC,
+                onTap: () => _selectDay(index),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -1146,6 +1159,27 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
+  }
+
+  /// Recomputes which edge(s) of an [EdgeFadeScrim] row still have content
+  /// to fade from [metrics] — [currentLeft]/[currentRight] are that row's
+  /// own current flags, [apply] writes the new ones back into its two
+  /// fields. Shared by the day selector's and wardrobe row's
+  /// `NotificationListener<ScrollNotification>` (both real scroll updates
+  /// and content-size changes deliver a ScrollMetricsNotification here, so
+  /// this covers initial layout too — no separate post-frame callback
+  /// needed).
+  void _applyEdgeFadeVisibility(
+    ScrollMetrics metrics,
+    bool currentLeft,
+    bool currentRight,
+    void Function(bool left, bool right) apply,
+  ) {
+    final left = metrics.pixels > metrics.minScrollExtent;
+    final right = metrics.pixels < metrics.maxScrollExtent;
+    if (left != currentLeft || right != currentRight) {
+      setState(() => apply(left, right));
+    }
   }
 
   TripLeg? _legForDate(DateTime date) {
@@ -1187,20 +1221,36 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           )
         else ...[
           EdgeFadeScrim(
-            child: SizedBox(
-              height: 100,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: _todayGarments.length,
-                itemBuilder: (context, index) {
-                  final g = _todayGarments[index];
-                  return _TripGarmentThumb(
-                    garment: g,
-                    isMissing: g.id != null && !_suitcaseIds.contains(g.id),
-                    onTap: () => GarmentDetailDialog.show(context, g),
-                  );
-                },
+            leftVisible: _wardrobeFadeLeftVisible,
+            rightVisible: _wardrobeFadeRightVisible,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                _applyEdgeFadeVisibility(
+                  notification.metrics,
+                  _wardrobeFadeLeftVisible,
+                  _wardrobeFadeRightVisible,
+                  (left, right) {
+                    _wardrobeFadeLeftVisible = left;
+                    _wardrobeFadeRightVisible = right;
+                  },
+                );
+                return false;
+              },
+              child: SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _todayGarments.length,
+                  itemBuilder: (context, index) {
+                    final g = _todayGarments[index];
+                    return _TripGarmentThumb(
+                      garment: g,
+                      isMissing: g.id != null && !_suitcaseIds.contains(g.id),
+                      onTap: () => GarmentDetailDialog.show(context, g),
+                    );
+                  },
+                ),
               ),
             ),
           ),

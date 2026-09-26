@@ -11,6 +11,7 @@ import '../features/pages/home_page.dart';
 import '../features/pages/outfits_page.dart';
 import '../features/pages/trips_page.dart';
 import '../features/widgets/common/main_nav_bar.dart';
+import '../features/widgets/common/overlays/error_dialog.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -192,10 +193,9 @@ Future<void> openAddOutfit(
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator
     debugLog('Failed to load garments: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context).failedToLoadGarments),
-      ),
+    showErrorDialog(
+      context,
+      message: AppLocalizations.of(context).failedToLoadGarments,
     );
   }
 }
