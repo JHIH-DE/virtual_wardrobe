@@ -21,32 +21,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profilePhotoTitle => 'Profile Photo';
 
   @override
-  String get aiModel => 'Try-On Profile';
+  String get myVirtualModelTitle => 'My Virtual Model';
 
   @override
-  String get aiModelDescription =>
-      'Add reference photos to help Uwearis create more accurate try-ons.';
+  String get myVirtualModelDescription =>
+      'Add a face photo and a full-body photo to create your virtual model.';
 
   @override
-  String get faceReferenceLabel => 'Face Reference';
+  String get facePhotoLabel => 'Face Photo';
 
   @override
   String get faceReferenceComingSoon => 'Coming soon';
 
   @override
-  String get bodyReferenceLabel => 'Body Reference';
+  String get fullBodyPhotoLabel => 'Full-Body Photo';
 
   @override
   String get bodyMeasurementsLabel => 'Body Measurements';
 
   @override
-  String get faceAppearanceSubtitle => 'Face, hair & facial features';
-
-  @override
-  String get bodyProportionsSubtitle => 'Body shape & proportions';
-
-  @override
-  String get changePhotoAction => 'Change photo';
+  String get updatePhotoAction => 'Update photo';
 
   @override
   String get addPhotoAction => 'Add photo';
@@ -59,28 +53,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photoUploadFailed => 'Couldn\'t upload photo. Please try again.';
 
   @override
-  String get faceReferenceNotFound =>
-      'Your face reference photo is no longer available. Please upload it again.';
+  String get facePhotoNotFound =>
+      'Your face photo is no longer available. Please upload it again.';
 
   @override
-  String get bodyReferenceNotFound =>
-      'Your body reference photo is no longer available. Please upload it again.';
+  String get fullBodyPhotoNotFound =>
+      'Your full-body photo is no longer available. Please upload it again.';
 
   @override
   String get fileNotFound =>
       'The required file is no longer available. Please upload it again or try again.';
 
   @override
-  String get faceReferenceLoadFailedTitle => 'Face reference photo unavailable';
+  String get facePhotoLoadFailedTitle => 'Face photo unavailable';
 
   @override
-  String get bodyReferenceLoadFailedTitle => 'Body reference photo unavailable';
+  String get fullBodyPhotoLoadFailedTitle => 'Full-body photo unavailable';
 
   @override
-  String get referenceLoadFailedSubtitle => 'Please upload the photo again.';
+  String get photoLoadFailedSubtitle => 'Please upload the photo again.';
 
   @override
   String get reuploadPhotoAction => 'Re-upload';
+
+  @override
+  String get virtualModelSectionTitle => 'Virtual Model';
+
+  @override
+  String get virtualModelSectionSubtitle =>
+      'Your virtual model is used to create consistent and realistic try-on images.';
+
+  @override
+  String get virtualModelGenerateRequiresBodyRefHint =>
+      'Add a full-body photo first.';
+
+  @override
+  String get virtualModelGenerateAction => 'Generate';
+
+  @override
+  String get virtualModelGenerateConfirmTitle => 'Generate virtual model?';
+
+  @override
+  String get virtualModelGenerateConfirmBody =>
+      'This creates a new virtual model from your current photos and replaces any previous version.';
+
+  @override
+  String get virtualModelGenerateSuccessTitle => 'Done';
+
+  @override
+  String get virtualModelGenerateSuccessBody =>
+      'Your virtual model has been generated.';
+
+  @override
+  String get virtualModelGenerateFailed =>
+      'Couldn\'t generate your virtual model. Please try again.';
 
   @override
   String get aiModelReady => 'Ready · Face + Body Configured';
@@ -1505,4 +1531,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unknownLocation => 'Unknown Location';
+
+  @override
+  String get debugTools => 'Debug Tools';
+
+  @override
+  String get debugToolsErrorDialogButton => 'Show Backend Error Dialog';
+
+  @override
+  String get debugToolsErrorDialogSummary =>
+      'Preview the dialog shown for a backend error';
+
+  @override
+  String get debugToolsSampleErrorMessage =>
+      'This is a simulated backend error message, shown to preview the error dialog design.';
 }

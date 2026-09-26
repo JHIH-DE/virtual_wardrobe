@@ -81,7 +81,7 @@ Future<void> clearSignedInSession() async {
 /// The avatar/face-reference/body-reference photos don't need an explicit
 /// bump here the way the providers above do: `AppImage`'s cache for those
 /// three is keyed by the signed URL itself (no separate stable cache key —
-/// see `AccountPage`/`TryonProfilePage`), and a freshly signed-in account's
+/// see `AccountPage`/`MyVirtualModelPage`), and a freshly signed-in account's
 /// `/users/me` naturally returns a different URL than the previous
 /// account's, so there's no shared cache key for a stale entry to hide
 /// behind.

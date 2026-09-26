@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -16,6 +17,8 @@ import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/cards/app_card_shell.dart';
+import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
@@ -25,14 +28,29 @@ import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'image_editor_page.dart';
 import 'location_picker_page.dart';
-import 'tryon_profile_page.dart';
+import 'my_virtual_model_page.dart';
+
+/// Height/weight are always stored and saved as cm/kg (see
+/// [ProfileService.updateMyProfile]) — this only controls which unit the
+/// page displays and accepts input in. Not shared outside this page; promote
+/// to a provider if another screen needs to display height/weight in the
+/// user's preferred unit too.
+enum _UnitSystem {
+  metric,
+  imperial;
+
+  String get apiValue => this == metric ? 'metric' : 'imperial';
+
+  static _UnitSystem fromApiValue(String? value) =>
+      value == 'imperial' ? imperial : metric;
+}
 
 class AccountPage extends ConsumerStatefulWidget {
   /// True when opened from HomeGettingStartedView's "About You" step
   /// (`HomePage._openAccountPageForOnboarding`) rather than Settings. Swaps
   /// the bottom action button from "Save" (gated on [_isModified], pops on
   /// success) to "Continue" (gated on the four required fields already
-  /// being filled in, pushes [TryonProfilePage] on success instead of
+  /// being filled in, pushes [MyVirtualModelPage] on success instead of
   /// popping) — see [_AccountPageState._showsBottomActionButton] and
   /// [_AccountPageState._handleBottomAction].
   final bool completingOnboarding;
@@ -44,7 +62,19 @@ class AccountPage extends ConsumerStatefulWidget {
 }
 
 class _AccountPageState extends ConsumerState<AccountPage> {
+  static const double _cmPerInch = 2.54;
+  static const double _kgPerLb = 0.45359237;
+
   final _nameCtrl = TextEditingController();
+  // Canonical values (always cm/kg) — these are what get saved.
+  final _heightCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
+  // Imperial display/input — kept in sync with the canonical controllers
+  // above rather than being a second source of truth (see
+  // _syncImperialFromMetric and _onImperialHeight/WeightChanged).
+  final _heightFeetCtrl = TextEditingController();
+  final _heightInchesCtrl = TextEditingController();
+  final _weightLbCtrl = TextEditingController();
 
   bool _loading = false;
   String? _selectedGender;
@@ -53,11 +83,15 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   String? _avatarUrl;
   String? _avatarLocalPath;
   bool _avatarUploading = false;
+  _UnitSystem _unitSystem = _UnitSystem.metric;
 
   String _initialName = '';
   String? _initialGender;
   DateTime? _initialBirthDate;
   String? _initialLocation;
+  String _initialHeight = '';
+  String _initialWeight = '';
+  _UnitSystem _initialUnitSystem = _UnitSystem.metric;
 
   final List<String> _genderOptions = [
     'Male',
@@ -90,7 +124,10 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       _nameCtrl.text.trim() != _initialName ||
       _selectedGender != _initialGender ||
       _selectedBirthDate != _initialBirthDate ||
-      _homeLocation != _initialLocation;
+      _homeLocation != _initialLocation ||
+      _heightCtrl.text != _initialHeight ||
+      _weightCtrl.text != _initialWeight ||
+      _unitSystem != _initialUnitSystem;
 
   /// The onboarding "About You" step's completion rule — all four fields
   /// non-empty. Deliberately unrelated to [_isModified]: a user who already
@@ -108,8 +145,10 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     super.initState();
     _loadProfile();
     // Typing doesn't rebuild this widget on its own — force one so
-    // _isModified gets re-evaluated as the user edits the name field.
+    // _isModified gets re-evaluated as the user edits a field.
     _nameCtrl.addListener(_onFieldChanged);
+    _heightCtrl.addListener(_onFieldChanged);
+    _weightCtrl.addListener(_onFieldChanged);
   }
 
   void _onFieldChanged() => setState(() {});
@@ -117,13 +156,63 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _heightCtrl.dispose();
+    _weightCtrl.dispose();
+    _heightFeetCtrl.dispose();
+    _heightInchesCtrl.dispose();
+    _weightLbCtrl.dispose();
     super.dispose();
+  }
+
+  void _setUnitSystem(_UnitSystem next) {
+    if (next == _unitSystem) return;
+    setState(() {
+      _unitSystem = next;
+      if (next == _UnitSystem.imperial) _syncImperialFromMetric();
+    });
+  }
+
+  /// Recomputes the ft/in/lb fields from the canonical cm/kg controllers —
+  /// called on load and whenever the toggle switches to imperial, since
+  /// the imperial fields aren't kept live-updated while hidden.
+  void _syncImperialFromMetric() {
+    final cm = double.tryParse(_heightCtrl.text);
+    if (cm != null) {
+      final totalInches = cm / _cmPerInch;
+      final feet = (totalInches / 12).floor();
+      final inches = (totalInches - feet * 12).round();
+      _heightFeetCtrl.text = '$feet';
+      _heightInchesCtrl.text = '$inches';
+    }
+    final kg = double.tryParse(_weightCtrl.text);
+    if (kg != null) {
+      _weightLbCtrl.text = (kg / _kgPerLb).round().toString();
+    }
+  }
+
+  // Imperial fields push into the canonical controllers as the user
+  // types (one-directional — the metric fields aren't visible at the
+  // same time, so there's no risk of the two fighting each other).
+  void _onImperialHeightChanged() {
+    final feet = double.tryParse(_heightFeetCtrl.text) ?? 0;
+    final inches = double.tryParse(_heightInchesCtrl.text) ?? 0;
+    if (_heightFeetCtrl.text.isEmpty && _heightInchesCtrl.text.isEmpty) {
+      return;
+    }
+    final cm = (feet * 12 + inches) * _cmPerInch;
+    _heightCtrl.text = cm.round().toString();
+  }
+
+  void _onImperialWeightChanged() {
+    final lb = double.tryParse(_weightLbCtrl.text);
+    if (lb == null) return;
+    _weightCtrl.text = (lb * _kgPerLb).round().toString();
   }
 
   Future<void> _loadProfile() async {
     setState(() => _loading = true);
     try {
-      // Shared with Settings / Try-on Profile via profileProvider — a
+      // Shared with Settings / My Virtual Model via profileProvider — a
       // no-op fetch if one of those already loaded it.
       final profile = (await ref.read(profileProvider.future)).profile;
       if (!mounted) return;
@@ -133,10 +222,19 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         _homeLocation = profile.location;
         _avatarUrl = profile.avatarObjectUrl;
         _selectedBirthDate = profile.birthDate;
+        final h = profile.height;
+        final w = profile.weight;
+        if (h != null) _heightCtrl.text = h.toStringAsFixed(0);
+        if (w != null) _weightCtrl.text = w.toStringAsFixed(0);
+        _unitSystem = _UnitSystem.fromApiValue(profile.unitSystem);
+        _syncImperialFromMetric();
         _initialName = _nameCtrl.text.trim();
         _initialGender = _selectedGender;
         _initialBirthDate = _selectedBirthDate;
         _initialLocation = _homeLocation;
+        _initialHeight = _heightCtrl.text;
+        _initialWeight = _weightCtrl.text;
+        _initialUnitSystem = _unitSystem;
       });
     } on AuthExpiredException {
       if (!mounted) return;
@@ -215,7 +313,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   /// PATCHes the profile only — no navigation. Returns whether it
   /// succeeded, so callers ([_handleSave]/[_handleContinue]) each decide
-  /// what happens next (pop vs. push [TryonProfilePage]) rather than this
+  /// what happens next (pop vs. push [MyVirtualModelPage]) rather than this
   /// method assuming one or the other.
   Future<bool> _saveProfile() async {
     setState(() => _loading = true);
@@ -227,6 +325,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             ? DateFormat('yyyy-MM-dd').format(_selectedBirthDate!)
             : null,
         location: _homeLocation,
+        height: double.tryParse(_heightCtrl.text.trim()),
+        weight: double.tryParse(_weightCtrl.text.trim()),
+        unitSystem: _unitSystem.apiValue,
       );
       if (!mounted) return false;
       ref.read(profileProvider.notifier).setProfile(result);
@@ -260,7 +361,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     if (!mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TryonProfilePage()),
+      MaterialPageRoute(builder: (_) => const MyVirtualModelPage()),
     );
   }
 
@@ -355,6 +456,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           _buildBirthdayField(),
           const SizedBox(height: 20),
           _buildLocationField(),
+          const SizedBox(height: 20),
+          _buildBodyMeasurementsCard(),
         ],
       ),
     );
@@ -467,5 +570,156 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     );
     if (result == null) return;
     setState(() => _homeLocation = result.name);
+  }
+
+  Widget _buildBodyMeasurementsCard() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            FieldLabel(_l10n.bodyMeasurementsLabel.toUpperCase()),
+            const Spacer(),
+            _buildUnitToggle(),
+          ],
+        ),
+        const SizedBox(height: 8),
+        AppCardShell(
+          child: _unitSystem == _UnitSystem.metric
+              ? _buildMetricFields()
+              : _buildImperialFields(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnitToggle() {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: AppColors.placeholderSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderStrong),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildUnitOption(_UnitSystem.metric, _l10n.unitMetricLabel),
+          _buildUnitOption(_UnitSystem.imperial, _l10n.unitImperialLabel),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnitOption(_UnitSystem value, String label) {
+    final selected = _unitSystem == value;
+    return GestureDetector(
+      // opaque so the padding around the label is tappable — an unselected
+      // option's AnimatedContainer is transparent and absorbs nothing.
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _setUnitSystem(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.shadowResting,
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: AppTextStyle.regular12.copyWith(
+            color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static final _decimalFormatters = [
+    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+  ];
+
+  Widget _buildMetricFields() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildMeasurementField(
+            controller: _heightCtrl,
+            label: _l10n.heightHint,
+            unit: 'cm',
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildMeasurementField(
+            controller: _weightCtrl,
+            label: _l10n.weightHint,
+            unit: 'kg',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImperialFields() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildMeasurementField(
+            controller: _heightFeetCtrl,
+            label: _l10n.feetLabel,
+            unit: 'ft',
+            onChanged: (_) => _onImperialHeightChanged(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildMeasurementField(
+            controller: _heightInchesCtrl,
+            label: _l10n.inchesLabel,
+            unit: 'in',
+            onChanged: (_) => _onImperialHeightChanged(),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildMeasurementField(
+            controller: _weightLbCtrl,
+            label: _l10n.weightHint,
+            unit: 'lb',
+            onChanged: (_) => _onImperialWeightChanged(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMeasurementField({
+    required TextEditingController controller,
+    required String label,
+    required String unit,
+    ValueChanged<String>? onChanged,
+  }) {
+    return LabeledField(
+      label: label,
+      child: AppTextField(
+        controller: controller,
+        suffixText: unit,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: _decimalFormatters,
+        onChanged: onChanged,
+      ),
+    );
   }
 }

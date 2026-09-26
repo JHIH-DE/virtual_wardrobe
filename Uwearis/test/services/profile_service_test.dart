@@ -232,9 +232,71 @@ void main() {
     });
   });
 
+  group('generateBaseModel', () {
+    test(
+      'POSTs to base-model/generate with no request body and returns the '
+      'object_url',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({'object_url': 'https://cdn.example.com/base-model.jpg'}),
+          );
+        });
+
+        final url = await http.runWithClient(
+          () => ProfileService().generateBaseModel(),
+          () => client,
+        );
+
+        expect(captured.method, 'POST');
+        expect(captured.url.toString(), '$_base/base-model/generate');
+        expect(captured.body, isEmpty);
+        expect(url, 'https://cdn.example.com/base-model.jpg');
+      },
+    );
+
+    test('throws when the response is missing object_url', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope({})),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => ProfileService().generateBaseModel(),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('throws when the backend reports an error', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(
+          {
+            'success': false,
+            'message': 'no body reference',
+            'data': null,
+            'error_code': 'BODY_REFERENCE_NOT_FOUND',
+          },
+          status: 400,
+        ),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => ProfileService().generateBaseModel(),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
+
   group('getMyProfileData', () {
-    test('one GET to the profile root parses profile fields + both '
-        'reference URLs together', () async {
+    test('one GET to the profile root parses profile fields + the '
+        'reference and base-model URLs together', () async {
       final urls = <String>[];
       final client = MockClient((request) async {
         urls.add(request.url.toString());
@@ -245,6 +307,7 @@ void main() {
             'weight': 70.5,
             'body_reference_object_url': 'https://cdn.example.com/body.jpg',
             'face_reference_object_url': 'https://cdn.example.com/face.jpg',
+            'base_model_object_url': 'https://cdn.example.com/base-model.jpg',
           }),
         );
       });
@@ -259,9 +322,10 @@ void main() {
       expect(data.profile.height, 178);
       expect(data.bodyRefUrl, 'https://cdn.example.com/body.jpg');
       expect(data.faceRefUrl, 'https://cdn.example.com/face.jpg');
+      expect(data.baseModelUrl, 'https://cdn.example.com/base-model.jpg');
     });
 
-    test('tolerates missing reference urls (both null)', () async {
+    test('tolerates missing reference/base-model urls (all null)', () async {
       final client = MockClient(
         (request) async => _jsonResponse(_envelope({'name': 'Jason'})),
       );
@@ -273,6 +337,7 @@ void main() {
 
       expect(data.bodyRefUrl, isNull);
       expect(data.faceRefUrl, isNull);
+      expect(data.baseModelUrl, isNull);
     });
   });
 

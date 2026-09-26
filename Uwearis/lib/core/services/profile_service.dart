@@ -16,6 +16,7 @@ class ProfileService with BaseService {
   static final String _avatarUrl = '$_baseUrl/avatar';
   static final String _bodyRefUrl = '$_baseUrl/body-reference';
   static final String _faceRefUrl = '$_baseUrl/face-reference';
+  static final String _baseModelUrl = '$_baseUrl/base-model';
   static final String _styleTasteUrl = '$_baseUrl/style_taste';
   static final String _styleProfileUrl = '$_baseUrl/style_profile';
 
@@ -39,12 +40,12 @@ class ProfileService with BaseService {
   }
 
   /// One `GET /users/me` request parsed into everything Account / Settings /
-  /// Home / Try-on Profile need: the profile fields plus both reference-photo
-  /// signed URLs — all three already live in the same response body (see
-  /// [_profileImageField]'s doc). [ProfileNotifier] uses this instead of
-  /// calling [getMyProfile]/[getBodyRef]/[getFaceReference] separately (that
-  /// used to be 3 redundant requests to this same endpoint via
-  /// `Future.wait`).
+  /// Home / My Virtual Model need: the profile fields plus both reference-photo
+  /// signed URLs and the generated base-model signed URL — all four already
+  /// live in the same response body (see [_profileImageField]'s doc).
+  /// [ProfileNotifier] uses this instead of calling
+  /// [getMyProfile]/[getBodyRef]/[getFaceReference] separately (that used to
+  /// be 3 redundant requests to this same endpoint via `Future.wait`).
   ///
   /// Note: this only reflects what the backend's DB record says (an
   /// `object_name` set → a signed URL comes back) — it does not verify the
@@ -64,6 +65,7 @@ class ProfileService with BaseService {
       profile: UserProfile.fromJson(data),
       bodyRefUrl: data['body_reference_object_url']?.toString(),
       faceRefUrl: data['face_reference_object_url']?.toString(),
+      baseModelUrl: data['base_model_object_url']?.toString(),
     );
   }
 
@@ -110,7 +112,7 @@ class ProfileService with BaseService {
 
   /// The whole init-upload → PUT-to-signed-URL → complete flow for one
   /// reference photo, returning its new signed object URL. Callers just hand
-  /// over the local file path — see [account_page] / [tryon_profile_page].
+  /// over the local file path — see [account_page] / [my_virtual_model_page].
   Future<String> _uploadRef(
     String baseUrl,
     String localPath, {
@@ -129,6 +131,28 @@ class ProfileService with BaseService {
 
   Future<String> uploadFaceRef(String localPath) =>
       _uploadRef(_faceRefUrl, localPath, opPrefix: 'faceRef');
+
+  /// Manually (re-)triggers base-model generation from the user's currently
+  /// committed body-reference (required) and face-reference (optional —
+  /// used as the face identity input only if one has been uploaded) photos.
+  /// Every successful generation clears the previous base-model GCS file on
+  /// the backend, so this is a destructive replace, not an append. Returns
+  /// the newly-generated base model's signed `object_url`.
+  Future<String> generateBaseModel() async {
+    debugLog('--- generateBaseModel ---');
+    final res = await withAuth(
+      (token) => http
+          .post(Uri.parse('$_baseModelUrl/generate'), headers: authHeaders(token))
+          .timeout(_completeTimeout),
+    );
+    final url = _data(
+      decodeMap(res, op: 'generateBaseModel'),
+    )['object_url']?.toString();
+    if (url == null) {
+      throw Exception('generateBaseModel: response missing object_url');
+    }
+    return url;
+  }
 
   // ---- image reads (a 404 means "not set yet", not an error) ----
 

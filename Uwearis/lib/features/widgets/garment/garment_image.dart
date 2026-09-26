@@ -10,7 +10,7 @@ import '../common/images/app_image.dart';
 /// exact garment's photo — see garment_details_page.dart) and the
 /// signed-URL refresh callback; [AppImage] itself owns the actual
 /// local-file/network rendering, shared with any other "one photo, mixed
-/// source" screen (e.g. Try-on Profile's reference photos).
+/// source" screen (e.g. My Virtual Model's reference photos).
 class GarmentImage extends StatelessWidget {
   final String? url;
 

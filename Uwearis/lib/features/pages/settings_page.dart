@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/config/env.dart';
 import '../../core/providers/locale_provider.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
@@ -23,10 +24,11 @@ import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'account_page.dart';
+import 'debug_tools_page.dart';
 import 'lifestyle_page.dart';
 import 'login_page.dart';
+import 'my_virtual_model_page.dart';
 import 'style_taste_page.dart';
-import 'tryon_profile_page.dart';
 
 /// Wraps the bottom sheet's chosen locale so a `null` result (System
 /// Default, itself a valid choice) can be told apart from the sheet being
@@ -84,7 +86,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   void _openAccount() {
-    // Account / Try-on Profile update profileProvider themselves on save, so
+    // Account / My Virtual Model update profileProvider themselves on save, so
     // this screen (watching it) reflects the change on return — no reload.
     Navigator.push(
       context,
@@ -92,10 +94,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  void _openTryOnProfile() {
+  void _openMyVirtualModel() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const TryonProfilePage()),
+      MaterialPageRoute(builder: (_) => const MyVirtualModelPage()),
     );
   }
 
@@ -213,6 +215,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _buildLanguageCard(l10n),
                 ),
+                if (Env.enableDebugTools) ...[
+                  const SizedBox(height: AppDimens.sectionSpacing),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildDebugToolsCard(l10n),
+                  ),
+                ],
                 const SizedBox(height: AppDimens.sectionSpacing),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -279,11 +288,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildTryOnProfileCard(AppLocalizations l10n) {
     return AppListCard(
-      onTap: _openTryOnProfile,
+      onTap: _openMyVirtualModel,
       leadingAsset: 'assets/images/figure_setting.png',
       showArrow: true,
       summary: _aiModelStatusLabel(l10n),
-      child: Text(l10n.aiModel, style: AppTextStyle.bold16),
+      child: Text(l10n.myVirtualModelTitle, style: AppTextStyle.bold16),
     );
   }
 
@@ -365,6 +374,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     if (choice == null || choice.locale == current) return;
     ref.read(localeProvider.notifier).setLocale(choice.locale);
+  }
+
+  Widget _buildDebugToolsCard(AppLocalizations l10n) {
+    return AppListCard(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DebugToolsPage()),
+      ),
+      leading: const Icon(Icons.bug_report_outlined, color: AppColors.icon),
+      showArrow: true,
+      child: Text(l10n.debugTools, style: AppTextStyle.bold16),
+    );
   }
 
   Widget _buildLogoutCard(AppLocalizations l10n) {

@@ -49,9 +49,9 @@ String apiErrorMessage(
 String? _messageForErrorCode(AppLocalizations l10n, String? errorCode) {
   switch (errorCode) {
     case 'FACE_REFERENCE_NOT_FOUND':
-      return l10n.faceReferenceNotFound;
+      return l10n.facePhotoNotFound;
     case 'BODY_REFERENCE_NOT_FOUND':
-      return l10n.bodyReferenceNotFound;
+      return l10n.fullBodyPhotoNotFound;
     case 'FILE_NOT_FOUND':
       return l10n.fileNotFound;
     default:

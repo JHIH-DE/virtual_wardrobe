@@ -123,23 +123,23 @@ abstract class AppLocalizations {
   /// **'Profile Photo'**
   String get profilePhotoTitle;
 
-  /// No description provided for @aiModel.
+  /// No description provided for @myVirtualModelTitle.
   ///
   /// In en, this message translates to:
-  /// **'Try-On Profile'**
-  String get aiModel;
+  /// **'My Virtual Model'**
+  String get myVirtualModelTitle;
 
-  /// No description provided for @aiModelDescription.
+  /// No description provided for @myVirtualModelDescription.
   ///
   /// In en, this message translates to:
-  /// **'Add reference photos to help Uwearis create more accurate try-ons.'**
-  String get aiModelDescription;
+  /// **'Add a face photo and a full-body photo to create your virtual model.'**
+  String get myVirtualModelDescription;
 
-  /// No description provided for @faceReferenceLabel.
+  /// No description provided for @facePhotoLabel.
   ///
   /// In en, this message translates to:
-  /// **'Face Reference'**
-  String get faceReferenceLabel;
+  /// **'Face Photo'**
+  String get facePhotoLabel;
 
   /// No description provided for @faceReferenceComingSoon.
   ///
@@ -147,11 +147,11 @@ abstract class AppLocalizations {
   /// **'Coming soon'**
   String get faceReferenceComingSoon;
 
-  /// No description provided for @bodyReferenceLabel.
+  /// No description provided for @fullBodyPhotoLabel.
   ///
   /// In en, this message translates to:
-  /// **'Body Reference'**
-  String get bodyReferenceLabel;
+  /// **'Full-Body Photo'**
+  String get fullBodyPhotoLabel;
 
   /// No description provided for @bodyMeasurementsLabel.
   ///
@@ -159,23 +159,11 @@ abstract class AppLocalizations {
   /// **'Body Measurements'**
   String get bodyMeasurementsLabel;
 
-  /// No description provided for @faceAppearanceSubtitle.
+  /// No description provided for @updatePhotoAction.
   ///
   /// In en, this message translates to:
-  /// **'Face, hair & facial features'**
-  String get faceAppearanceSubtitle;
-
-  /// No description provided for @bodyProportionsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Body shape & proportions'**
-  String get bodyProportionsSubtitle;
-
-  /// No description provided for @changePhotoAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Change photo'**
-  String get changePhotoAction;
+  /// **'Update photo'**
+  String get updatePhotoAction;
 
   /// No description provided for @addPhotoAction.
   ///
@@ -195,17 +183,17 @@ abstract class AppLocalizations {
   /// **'Couldn\'t upload photo. Please try again.'**
   String get photoUploadFailed;
 
-  /// No description provided for @faceReferenceNotFound.
+  /// No description provided for @facePhotoNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Your face reference photo is no longer available. Please upload it again.'**
-  String get faceReferenceNotFound;
+  /// **'Your face photo is no longer available. Please upload it again.'**
+  String get facePhotoNotFound;
 
-  /// No description provided for @bodyReferenceNotFound.
+  /// No description provided for @fullBodyPhotoNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Your body reference photo is no longer available. Please upload it again.'**
-  String get bodyReferenceNotFound;
+  /// **'Your full-body photo is no longer available. Please upload it again.'**
+  String get fullBodyPhotoNotFound;
 
   /// No description provided for @fileNotFound.
   ///
@@ -213,29 +201,83 @@ abstract class AppLocalizations {
   /// **'The required file is no longer available. Please upload it again or try again.'**
   String get fileNotFound;
 
-  /// No description provided for @faceReferenceLoadFailedTitle.
+  /// No description provided for @facePhotoLoadFailedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Face reference photo unavailable'**
-  String get faceReferenceLoadFailedTitle;
+  /// **'Face photo unavailable'**
+  String get facePhotoLoadFailedTitle;
 
-  /// No description provided for @bodyReferenceLoadFailedTitle.
+  /// No description provided for @fullBodyPhotoLoadFailedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Body reference photo unavailable'**
-  String get bodyReferenceLoadFailedTitle;
+  /// **'Full-body photo unavailable'**
+  String get fullBodyPhotoLoadFailedTitle;
 
-  /// No description provided for @referenceLoadFailedSubtitle.
+  /// No description provided for @photoLoadFailedSubtitle.
   ///
   /// In en, this message translates to:
   /// **'Please upload the photo again.'**
-  String get referenceLoadFailedSubtitle;
+  String get photoLoadFailedSubtitle;
 
   /// No description provided for @reuploadPhotoAction.
   ///
   /// In en, this message translates to:
   /// **'Re-upload'**
   String get reuploadPhotoAction;
+
+  /// No description provided for @virtualModelSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Virtual Model'**
+  String get virtualModelSectionTitle;
+
+  /// No description provided for @virtualModelSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your virtual model is used to create consistent and realistic try-on images.'**
+  String get virtualModelSectionSubtitle;
+
+  /// No description provided for @virtualModelGenerateRequiresBodyRefHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a full-body photo first.'**
+  String get virtualModelGenerateRequiresBodyRefHint;
+
+  /// No description provided for @virtualModelGenerateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get virtualModelGenerateAction;
+
+  /// No description provided for @virtualModelGenerateConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate virtual model?'**
+  String get virtualModelGenerateConfirmTitle;
+
+  /// No description provided for @virtualModelGenerateConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This creates a new virtual model from your current photos and replaces any previous version.'**
+  String get virtualModelGenerateConfirmBody;
+
+  /// No description provided for @virtualModelGenerateSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get virtualModelGenerateSuccessTitle;
+
+  /// No description provided for @virtualModelGenerateSuccessBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your virtual model has been generated.'**
+  String get virtualModelGenerateSuccessBody;
+
+  /// No description provided for @virtualModelGenerateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t generate your virtual model. Please try again.'**
+  String get virtualModelGenerateFailed;
 
   /// No description provided for @aiModelReady.
   ///
@@ -2888,6 +2930,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown Location'**
   String get unknownLocation;
+
+  /// No description provided for @debugTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug Tools'**
+  String get debugTools;
+
+  /// No description provided for @debugToolsErrorDialogButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Backend Error Dialog'**
+  String get debugToolsErrorDialogButton;
+
+  /// No description provided for @debugToolsErrorDialogSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview the dialog shown for a backend error'**
+  String get debugToolsErrorDialogSummary;
+
+  /// No description provided for @debugToolsSampleErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a simulated backend error message, shown to preview the error dialog design.'**
+  String get debugToolsSampleErrorMessage;
 }
 
 class _AppLocalizationsDelegate

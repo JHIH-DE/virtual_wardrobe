@@ -53,7 +53,7 @@ void main() {
         message: 'face reference object missing',
       );
       final message = apiErrorMessage(l10n, error, fallback: l10n.failedToGenerateOutfit);
-      expect(message, l10n.faceReferenceNotFound);
+      expect(message, l10n.facePhotoNotFound);
     });
 
     test('maps BODY_REFERENCE_NOT_FOUND to its shared message', () {
@@ -63,7 +63,7 @@ void main() {
         message: 'body reference object missing',
       );
       final message = apiErrorMessage(l10n, error, fallback: l10n.failedToGenerateOutfit);
-      expect(message, l10n.bodyReferenceNotFound);
+      expect(message, l10n.fullBodyPhotoNotFound);
     });
 
     test('maps FILE_NOT_FOUND to a generic, GCS-agnostic message', () {

@@ -18,7 +18,7 @@ abstract class AppDimens {
   // Gap between a card's header block (title, or title+subtitle) and the
   // body content below it — AppListCard, UwearisInsightCard, and every
   // page-level card with its own title (Style Taste's radar/profile cards,
-  // Daily Outfit Plan, tryon_profile_page's reference sections, ...). Distinct
+  // Daily Outfit Plan, my_virtual_model_page's reference sections, ...). Distinct
   // from [cardSpacing]'s "between separate cards" role.
   static const double cardHeaderGap = 12;
 

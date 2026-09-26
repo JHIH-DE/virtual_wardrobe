@@ -42,6 +42,21 @@ class RefreshableNetworkImage extends StatefulWidget {
   /// the image just shows the error state with no retry attempt.
   final Future<String?> Function()? onRefreshUrl;
 
+  /// Called once [onRefreshUrl] hands back a working replacement URL and
+  /// this widget has switched to rendering it — with the URL this refresh
+  /// started from (`oldUrl`) and the fresh one (`newUrl`). The refreshed URL
+  /// otherwise only ever lives in this widget's own private State — a
+  /// caller holding a longer-lived copy of the same URL elsewhere (a page's
+  /// own field, a provider) must use this to stay in sync, or it keeps
+  /// handing out the now-stale one it started with. `oldUrl` is included so
+  /// that caller can do a compare-and-set — a refresh started against an
+  /// old URL that a separate, newer flow has since superseded (e.g. a fresh
+  /// upload just committed a different URL for the same photo) must not
+  /// clobber that newer value once this stale refresh finally resolves; see
+  /// `ProfileNotifier.setBodyRefUrlIfCurrent`/`setFaceRefUrlIfCurrent` for
+  /// the compare-and-set half of this contract.
+  final void Function(String oldUrl, String newUrl)? onUrlRefreshed;
+
   /// Called at most once per [imageUrl], only once this widget has given up
   /// (no [onRefreshUrl] was provided, or the one-shot refresh it already
   /// tried didn't fix it) — i.e. once the built-in error state below is
@@ -75,6 +90,7 @@ class RefreshableNetworkImage extends StatefulWidget {
     this.errorIconSize = 36,
     this.errorLabel,
     this.onRefreshUrl,
+    this.onUrlRefreshed,
     this.onLoadError,
     this.cacheKey,
   });
@@ -115,7 +131,9 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
     try {
       final fresh = await widget.onRefreshUrl!();
       if (mounted && fresh != null && fresh.isNotEmpty && fresh != _url) {
+        final oldUrl = _url;
         setState(() => _url = fresh);
+        widget.onUrlRefreshed?.call(oldUrl, fresh);
       }
     } catch (_) {
       // Leave the existing (broken) URL — the error state below covers it.

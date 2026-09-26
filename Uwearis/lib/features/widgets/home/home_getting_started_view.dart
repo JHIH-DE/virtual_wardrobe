@@ -47,7 +47,7 @@ class HomeGettingStartedView extends StatelessWidget {
 
   /// Opens `AccountPage` (in its onboarding mode) — the first sub-step of
   /// this profile step. `AccountPage` itself continues on to the existing
-  /// Try-On Profile flow (`TryonProfilePage`, which owns both
+  /// My Virtual Model flow (`MyVirtualModelPage`, which owns both
   /// reference-photo upload flows) once its own required fields are filled
   /// in, so this view never re-implements either of those flows.
   final VoidCallback onGetStarted;

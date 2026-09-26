@@ -25,7 +25,7 @@ enum CameraFrameRatio {
 
 class CameraCapturePage extends StatefulWidget {
   /// Which cutout shape the framing guide uses. Portrait callers (e.g. the
-  /// Try-On Profile's full-body / face photos) pass
+  /// My Virtual Model's full-body / face photos) pass
   /// [CameraFrameRatio.portrait]; garment shots keep the [square] default.
   final CameraFrameRatio initialRatio;
 

@@ -22,6 +22,7 @@ import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
+import '../widgets/common/cards/generated_image_card.dart';
 import '../widgets/common/edge_fade_scrim.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
@@ -32,7 +33,6 @@ import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/trip/replan_confirm_dialog.dart';
-import '../widgets/trip/today_outfit_idea.dart';
 import '../widgets/trip/trip_day_card.dart';
 import '../widgets/trip/trip_legs_editor.dart';
 import 'outfit_edit_page.dart';
@@ -1016,18 +1016,22 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// while [_hasCoreOutfit] is false, since rendering an incomplete core
   /// selection isn't offered. Once an image exists, a corner badge on the
   /// image itself (styled like OutfitDetailsPage's own on-image icons — see
-  /// [TodayOutfitIdea]) covers regenerating; Change Garments stays in
+  /// [GeneratedImageCard]) covers regenerating; Change Garments stays in
   /// [_buildOutfitDateHeader] above.
   Widget _buildOutfitSection() {
     final outfit = _currentDayOutfit;
     final outfitId = outfit?.outfitId;
     final needsRender = outfit?.optionId != null && outfitId == null;
     final hasCoreOutfit = _hasCoreOutfit;
-    return TodayOutfitIdea(
+    return GeneratedImageCard(
       imageUrl: outfit?.resultImageUrl,
       hasAssignment: outfit?.optionId != null,
       isLoading: _generatingOutfit,
       jobStatus: _l10n.generatingOutfitEllipsis,
+      errorLabel: _l10n.generatingOutfitEllipsis,
+      noImageMessage: _l10n.noOutfitImageYet,
+      noAssignmentTitle: _l10n.noOutfitPlannedYetTitle,
+      noAssignmentHint: _l10n.noOutfitPlannedYetHint,
       cacheKey: outfitId == null ? null : 'trip-outfit-$outfitId',
       onRefreshUrl: outfitId == null ? null : _refreshOutfitImageUrl,
       onRegenerate: (outfitId == null || _dayOutfitActionInFlight)

@@ -16,7 +16,6 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/garment_color_type_filter.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
 import '../widgets/common/expandable_insight_body.dart';
-import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
@@ -101,41 +100,10 @@ class _TripGarmentSelectionPageState
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
-        _justSelectedIds.remove(id);
       } else {
         _selectedIds.add(id);
-        _justSelectedIds.add(id);
       }
     });
-  }
-
-  /// Ids whose quantity stepper (see [_buildQuantityStepper]) should open
-  /// fully revealed because this is the actual unselected→selected tap, not
-  /// some unrelated rebuild (e.g. switching category tabs back to Socks
-  /// remounts every card in that tab, including ones selected long ago —
-  /// [NumberStepper.onRevealConsumed] clears an id out of this set right
-  /// after its one-shot reveal, so that later remount finds it already gone).
-  final Set<int> _justSelectedIds = {};
-
-  /// How many of a selected garment to pack — UI only for now: purely
-  /// local display state, not read by [_selectedIds]/Recommended·Selected,
-  /// not sent anywhere. Only surfaced for Socks (see
-  /// [_buildQuantityStepper]), where packing more than one identical pair
-  /// is the common case.
-  final Map<int, int> _quantities = {};
-
-  int _quantityOf(Garment g) => _quantities[g.id] ?? 1;
-
-  void _incrementQuantity(Garment g) {
-    final id = g.id;
-    if (id == null) return;
-    setState(() => _quantities[id] = _quantityOf(g) + 1);
-  }
-
-  void _decrementQuantity(Garment g) {
-    final id = g.id;
-    if (id == null || _quantityOf(g) <= 1) return;
-    setState(() => _quantities[id] = _quantityOf(g) - 1);
   }
 
   /// Lets the user pick a saved outfit, then selects whichever of its
@@ -304,30 +272,7 @@ class _TripGarmentSelectionPageState
       children: [
         GarmentCard(garment: g, isSelected: selected, onTap: () => _toggle(g)),
         if (suggested) _buildSuggestedBadge(advice),
-        if (selected && g.category == GarmentCategory.socks)
-          _buildQuantityStepper(g),
       ],
-    );
-  }
-
-  /// Floats over the card's image, just clear of GarmentCard's own
-  /// divider/info block below it — [AppDimens.garmentCardInfoHeight] (+1 for
-  /// the divider) is that block's own height, +12 for clearance above it.
-  Widget _buildQuantityStepper(Garment g) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: AppDimens.garmentCardInfoHeight + 1 + 12,
-      child: Center(
-        child: NumberStepper(
-          variant: NumberStepperVariant.pill,
-          valueLabel: '${_quantityOf(g)}',
-          onDecrement: _quantityOf(g) > 1 ? () => _decrementQuantity(g) : null,
-          onIncrement: () => _incrementQuantity(g),
-          startRevealed: _justSelectedIds.contains(g.id),
-          onRevealConsumed: () => _justSelectedIds.remove(g.id),
-        ),
-      ),
     );
   }
 

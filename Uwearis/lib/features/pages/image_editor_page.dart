@@ -55,12 +55,15 @@ class ImageEditorPage extends StatefulWidget {
   /// Called at most once, only when [initialPath] is a URL and fails to
   /// precache/load — mirrors [RefreshableNetworkImage]'s "self-heal a
   /// stale signed URL" contract. Return a fresh URL to retry with, or
-  /// null/empty to give up. Reopening an *already-saved* http(s) reference
-  /// photo (avatar, AI Model's body/face) should always pass this — the
-  /// page that shows it thumbnail-sized already self-heals the same way via
-  /// [RefreshableNetworkImage], but that refreshed URL lives in that
-  /// widget's own state and never reaches whatever's held here, so this
-  /// page needs its own retry to open the same, possibly since-expired URL.
+  /// null/empty to give up. Only relevant to a caller that hands this page
+  /// a signed URL directly (account_page.dart's avatar flow does) rather
+  /// than pre-downloading it to a local file first — a caller that
+  /// pre-downloads (my_virtual_model_page.dart's face/body reference photos,
+  /// via `downloadReferencePhotoOriginal`) always passes a local path here
+  /// instead, so this branch never runs for it; that pre-download is what
+  /// keeps the refreshed URL in sync with the page's own longer-lived state
+  /// (e.g. `profileProvider`) instead of it living only inside whichever
+  /// widget happened to trigger the refresh.
   final Future<String?> Function()? onRefreshUrl;
 
   const ImageEditorPage({

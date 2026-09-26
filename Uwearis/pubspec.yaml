@@ -56,6 +56,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  # Test-only: lets widget tests fake image_picker's platform channel (e.g.
+  # my_virtual_model_page_test.dart's Album-pick fake) instead of hitting a
+  # real, unmocked platform implementation.
+  image_picker_platform_interface: ^2.11.1
+  plugin_platform_interface: ^2.1.8
 
 # Home-screen app icon. Regenerate after changing the source images:
 #   dart run flutter_launcher_icons

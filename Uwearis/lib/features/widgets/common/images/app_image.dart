@@ -9,7 +9,7 @@ import 'refreshable_network_image.dart';
 /// widget — a local file path, a `file://` URI, or an http(s) URL — with
 /// disk caching and signed-URL-refresh-on-expiry for the network case (via
 /// [RefreshableNetworkImage]). This is the shared rendering behind
-/// [GarmentImage] (garment photos) and Try-on Profile's face/body reference
+/// [GarmentImage] (garment photos) and My Virtual Model's face/body reference
 /// photos; reach for this directly for a new "one photo from a mixed
 /// local/remote source" case rather than copying the branching here a
 /// second time. [cacheKey]/[onRefreshUrl] are plain pass-throughs to
@@ -21,6 +21,10 @@ class AppImage extends StatelessWidget {
   final String? url;
   final String? cacheKey;
   final Future<String?> Function()? onRefreshUrl;
+
+  /// See [RefreshableNetworkImage.onUrlRefreshed] — only fires for the
+  /// network-URL case below.
+  final void Function(String oldUrl, String newUrl)? onUrlRefreshed;
 
   /// See [RefreshableNetworkImage.onLoadError] — only fires for the
   /// network-URL case below; a local file source has no equivalent failure
@@ -42,6 +46,7 @@ class AppImage extends StatelessWidget {
     required this.url,
     this.cacheKey,
     this.onRefreshUrl,
+    this.onUrlRefreshed,
     this.onLoadError,
     this.width,
     this.height,
@@ -78,6 +83,7 @@ class AppImage extends StatelessWidget {
         fadeInDuration: const Duration(milliseconds: 200),
         errorIcon: Icons.broken_image,
         onRefreshUrl: onRefreshUrl,
+        onUrlRefreshed: onUrlRefreshed,
         onLoadError: onLoadError,
       );
     } else if (u.startsWith('file://')) {

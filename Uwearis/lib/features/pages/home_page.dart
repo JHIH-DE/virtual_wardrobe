@@ -109,8 +109,8 @@ class _HomePageState extends ConsumerState<HomePage>
   // initial flow is About You + Profile Photo + Full-Body Photo + a closet
   // covering Top/Bottom/Shoes + the first created outfit — Home stays on
   // Getting Started until all five are true. All three providers are also
-  // watched by other always-mounted IndexedStack tabs (Account/Try-On
-  // Profile/Settings watch profileProvider; ClosetPage watches
+  // watched by other always-mounted IndexedStack tabs (Account/My Virtual
+  // Model/Settings watch profileProvider; ClosetPage watches
   // garmentsProvider; OutfitsPage/OutfitDetailsPage watch/refresh
   // outfitsProvider) and are updated in place by their own upload/add/save
   // flows, so this reflects the latest state on return from any of them
@@ -359,7 +359,7 @@ class _HomePageState extends ConsumerState<HomePage>
   /// [_reportHomeLoading]); otherwise the header (date/weather) is always
   /// shown, and only the content below it swaps between
   /// [_buildGettingStartedContent] and [_buildNormalHomeContent] — decided
-  /// fresh on every rebuild so returning from Try-On Profile/Add Clothing/
+  /// fresh on every rebuild so returning from My Virtual Model/Add Clothing/
   /// Add Outfit (still mounted underneath, per IndexedStack) always
   /// reflects the latest state.
   Widget _buildBody() {
@@ -431,7 +431,7 @@ class _HomePageState extends ConsumerState<HomePage>
   ];
 
   /// The profile step's first sub-step — `AccountPage` itself continues on
-  /// to `TryonProfilePage` once its own required fields are filled in (see
+  /// to `MyVirtualModelPage` once its own required fields are filled in (see
   /// `AccountPage.completingOnboarding`).
   void _openAccountPageForOnboarding() {
     Navigator.push(

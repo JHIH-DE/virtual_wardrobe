@@ -21,31 +21,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profilePhotoTitle => '個人頭像';
 
   @override
-  String get aiModel => '試穿檔案';
+  String get myVirtualModelTitle => '我的虚拟模特';
 
   @override
-  String get aiModelDescription => '新增參考照片，幫助 Uwearis 打造更精準的試穿效果。';
+  String get myVirtualModelDescription => '新增脸部照片与全身照，建立您的虚拟模特。';
 
   @override
-  String get faceReferenceLabel => '臉部參考';
+  String get facePhotoLabel => '脸部照片';
 
   @override
   String get faceReferenceComingSoon => '即將推出';
 
   @override
-  String get bodyReferenceLabel => '身形參考';
+  String get fullBodyPhotoLabel => '全身照片';
 
   @override
   String get bodyMeasurementsLabel => '身形數據';
 
   @override
-  String get faceAppearanceSubtitle => '臉部、髮型與五官特徵';
-
-  @override
-  String get bodyProportionsSubtitle => '身形與整體比例';
-
-  @override
-  String get changePhotoAction => '更換照片';
+  String get updatePhotoAction => '更新照片';
 
   @override
   String get addPhotoAction => '新增照片';
@@ -57,25 +51,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get photoUploadFailed => '照片上传失败，请再试一次。';
 
   @override
-  String get faceReferenceNotFound => '脸部参考照片已失效，请重新上传。';
+  String get facePhotoNotFound => '脸部照片已失效，请重新上传。';
 
   @override
-  String get bodyReferenceNotFound => '身形参考照片已失效，请重新上传。';
+  String get fullBodyPhotoNotFound => '全身照片已失效，请重新上传。';
 
   @override
   String get fileNotFound => '所需文件已不存在，请重新上传或再试一次。';
 
   @override
-  String get faceReferenceLoadFailedTitle => '脸部参考照片无法加载';
+  String get facePhotoLoadFailedTitle => '脸部照片无法加载';
 
   @override
-  String get bodyReferenceLoadFailedTitle => '身形参考照片无法加载';
+  String get fullBodyPhotoLoadFailedTitle => '全身照片无法加载';
 
   @override
-  String get referenceLoadFailedSubtitle => '请重新上传照片';
+  String get photoLoadFailedSubtitle => '请重新上传照片';
 
   @override
   String get reuploadPhotoAction => '重新上传';
+
+  @override
+  String get virtualModelSectionTitle => '虚拟模特';
+
+  @override
+  String get virtualModelSectionSubtitle => '您的虚拟模特能用来生成一致且真实的试穿图片。';
+
+  @override
+  String get virtualModelGenerateRequiresBodyRefHint => '请先添加全身照片。';
+
+  @override
+  String get virtualModelGenerateAction => '生成';
+
+  @override
+  String get virtualModelGenerateConfirmTitle => '要生成虚拟模特吗？';
+
+  @override
+  String get virtualModelGenerateConfirmBody => '系统将以目前的照片重新生成虚拟模特，并取代先前的版本。';
+
+  @override
+  String get virtualModelGenerateSuccessTitle => '完成';
+
+  @override
+  String get virtualModelGenerateSuccessBody => '虚拟模特已生成完成。';
+
+  @override
+  String get virtualModelGenerateFailed => '虚拟模特生成失败，请稍后再试。';
 
   @override
   String get aiModelReady => '已就緒．臉部與身形皆已設定';
@@ -1441,6 +1462,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unknownLocation => '未知地點';
+
+  @override
+  String get debugTools => '测试工具';
+
+  @override
+  String get debugToolsErrorDialogButton => '显示后端错误弹窗';
+
+  @override
+  String get debugToolsErrorDialogSummary => '预览收到后端错误时的弹窗';
+
+  @override
+  String get debugToolsSampleErrorMessage => '这是一条模拟的后端错误消息，用于预览错误弹窗的设计。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1460,31 +1493,25 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get profilePhotoTitle => '個人頭像';
 
   @override
-  String get aiModel => '試穿檔案';
+  String get myVirtualModelTitle => '我的虛擬模特兒';
 
   @override
-  String get aiModelDescription => '新增參考照片，幫助 Uwearis 打造更精準的試穿效果。';
+  String get myVirtualModelDescription => '新增臉部照片與全身照，建立您的虛擬模特兒。';
 
   @override
-  String get faceReferenceLabel => '臉部參考';
+  String get facePhotoLabel => '臉部照片';
 
   @override
   String get faceReferenceComingSoon => '即將推出';
 
   @override
-  String get bodyReferenceLabel => '身形參考';
+  String get fullBodyPhotoLabel => '全身照片';
 
   @override
   String get bodyMeasurementsLabel => '身形數據';
 
   @override
-  String get faceAppearanceSubtitle => '臉部、髮型與五官特徵';
-
-  @override
-  String get bodyProportionsSubtitle => '身形與整體比例';
-
-  @override
-  String get changePhotoAction => '更換照片';
+  String get updatePhotoAction => '更新照片';
 
   @override
   String get addPhotoAction => '新增照片';
@@ -1496,25 +1523,52 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get photoUploadFailed => '照片上傳失敗，請再試一次。';
 
   @override
-  String get faceReferenceNotFound => '臉部參考照片已失效，請重新上傳。';
+  String get facePhotoNotFound => '臉部照片已失效，請重新上傳。';
 
   @override
-  String get bodyReferenceNotFound => '身形參考照片已失效，請重新上傳。';
+  String get fullBodyPhotoNotFound => '全身照片已失效，請重新上傳。';
 
   @override
   String get fileNotFound => '所需的檔案已不存在，請重新上傳或再試一次。';
 
   @override
-  String get faceReferenceLoadFailedTitle => '臉部參考照片無法載入';
+  String get facePhotoLoadFailedTitle => '臉部照片無法載入';
 
   @override
-  String get bodyReferenceLoadFailedTitle => '身形參考照片無法載入';
+  String get fullBodyPhotoLoadFailedTitle => '全身照片無法載入';
 
   @override
-  String get referenceLoadFailedSubtitle => '請重新上傳照片';
+  String get photoLoadFailedSubtitle => '請重新上傳照片';
 
   @override
   String get reuploadPhotoAction => '重新上傳';
+
+  @override
+  String get virtualModelSectionTitle => '虛擬模特兒';
+
+  @override
+  String get virtualModelSectionSubtitle => '您的虛擬模特兒能用來生成一致且真實的試穿圖片。';
+
+  @override
+  String get virtualModelGenerateRequiresBodyRefHint => '請先新增全身照片。';
+
+  @override
+  String get virtualModelGenerateAction => '生成';
+
+  @override
+  String get virtualModelGenerateConfirmTitle => '要生成虛擬模特兒嗎？';
+
+  @override
+  String get virtualModelGenerateConfirmBody => '系統將以目前的照片重新生成虛擬模特兒，並取代先前的版本。';
+
+  @override
+  String get virtualModelGenerateSuccessTitle => '完成';
+
+  @override
+  String get virtualModelGenerateSuccessBody => '虛擬模特兒已生成完成。';
+
+  @override
+  String get virtualModelGenerateFailed => '虛擬模特兒生成失敗，請稍後再試。';
 
   @override
   String get aiModelReady => '已就緒．臉部與身形皆已設定';
@@ -2880,4 +2934,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get unknownLocation => '未知地點';
+
+  @override
+  String get debugTools => '測試工具';
+
+  @override
+  String get debugToolsErrorDialogButton => '顯示後端錯誤彈窗';
+
+  @override
+  String get debugToolsErrorDialogSummary => '預覽收到後端錯誤時的彈窗';
+
+  @override
+  String get debugToolsSampleErrorMessage => '這是一則模擬的後端錯誤訊息，用於預覽錯誤彈窗的設計。';
 }
