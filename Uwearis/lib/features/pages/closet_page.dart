@@ -145,12 +145,29 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
 
   AppToolBar _buildAppBar(AsyncValue<List<Garment>> garmentsAsync) {
     final all = garmentsAsync.value ?? [];
+    final available = _availableCategories(all);
+    final effectiveCategory = _effectiveCategory(available);
     return AppToolBar(
       title: AppLocalizations.of(context).navCloset,
       titleCount: _currentListCount(all),
       centerTitle: false,
       showBackButton: false,
       actions: [_buildFilterButton(all), const SizedBox(width: 8)],
+      // Nothing to switch between when the closet is completely empty — see
+      // _buildBody's matching `if (available.isNotEmpty)` note for why this
+      // is still shown whenever at least one category has garments, even if
+      // the *currently selected* one doesn't.
+      bottom: available.isEmpty
+          ? null
+          : CategorySelector(
+              categories: available,
+              selectedCategory: effectiveCategory,
+              onSelected: (category) => setState(() {
+                _selectedCategory = category;
+                _selectedColors = {'All'};
+                _selectedProductTypes = {'All'};
+              }),
+            ),
     );
   }
 
@@ -175,32 +192,13 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     final available = _availableCategories(all);
     final effectiveCategory = _effectiveCategory(available);
     _scheduleCategoryFix(effectiveCategory);
-    return Column(
-      children: [
-        // Nothing to switch between when the closet is completely empty —
-        // skip it so the empty state below centers across the *whole* body
-        // instead of a shorter area this 64px-tall bar pushes down by half
-        // its height. Still shown whenever at least one category has
-        // garments, even if the *currently selected* one doesn't — that's
-        // exactly when switching categories matters.
-        if (available.isNotEmpty)
-          CategorySelector(
-            categories: available,
-            selectedCategory: effectiveCategory,
-            onSelected: (category) => setState(() {
-              _selectedCategory = category;
-              _selectedColors = {'All'};
-              _selectedProductTypes = {'All'};
-            }),
-          ),
-        Expanded(
-          child: _buildGarmentGridSection(
-            all,
-            effectiveCategory,
-            closetIsEmpty: available.isEmpty,
-          ),
-        ),
-      ],
+    // CategorySelector now renders via the app bar's `bottom:` slot (see
+    // _buildAppBar), so the body is just the grid section — Scaffold already
+    // sizes it to the remaining space below the combined app bar.
+    return _buildGarmentGridSection(
+      all,
+      effectiveCategory,
+      closetIsEmpty: available.isEmpty,
     );
   }
 
@@ -262,7 +260,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     return GarmentGrid(
       padding: const EdgeInsets.fromLTRB(
         16,
-        0,
+        AppDimens.cardSpacing,
         16,
         AppDimens.mainNavBarClearance,
       ),

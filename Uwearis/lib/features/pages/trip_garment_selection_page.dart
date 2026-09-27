@@ -164,6 +164,10 @@ class _TripGarmentSelectionPageState
           onChanged: () => setState(() {}),
         ),
       ],
+      // Sharing the app bar's own Material/shadow with the tab strip (rather
+      // than stacking it below in the body) keeps the two reading as one
+      // continuous surface — see CategorySelector's preferredSize doc.
+      bottom: _buildCategorySelector(),
     );
   }
 
@@ -207,30 +211,20 @@ class _TripGarmentSelectionPageState
       child: Scaffold(
         backgroundColor: AppColors.pageBackground,
         appBar: _buildAppBar(),
-        body: Column(
-          children: [
-            _buildCategorySelector(),
-            Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  if (_loadingAdvice || advice != null)
-                    SliverToBoxAdapter(
-                      child: _buildUwearisInsightCard(
-                        advice,
-                        selectedInCategory,
-                      ),
-                    ),
-                  _buildGridSliver(items, advice),
-                ],
+        body: CustomScrollView(
+          slivers: [
+            if (_loadingAdvice || advice != null)
+              SliverToBoxAdapter(
+                child: _buildUwearisInsightCard(advice, selectedInCategory),
               ),
-            ),
+            _buildGridSliver(items, advice),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCategorySelector() {
+  CategorySelector _buildCategorySelector() {
     return CategorySelector(
       categories: _availableCategories,
       selectedCategory: _selectedCategory,

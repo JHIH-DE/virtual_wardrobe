@@ -566,7 +566,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editTripName => '編輯名稱';
 
   @override
-  String get editDestinations => '編輯目的地';
+  String get editItinerary => '編輯行程';
 
   @override
   String get enterTripName => '輸入行程名稱';
@@ -587,7 +587,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tripNameHint => '例如：日本春季之旅';
 
   @override
-  String get destinationAndDatesLabel => '目的地與日期';
+  String get itineraryAndDatesLabel => '行程與日期';
 
   @override
   String get create => '建立';
@@ -702,7 +702,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirm => '確認';
 
   @override
-  String get addLocation => '新增目的地';
+  String get addLocation => '新增行程';
 
   @override
   String get camera => '拍照';
@@ -1090,6 +1090,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deletingTripEllipsis => '刪除行程中…';
 
   @override
+  String get updatingTripEllipsis => '更新行程中…';
+
+  @override
   String get failedToCreateTrip => '建立行程失敗';
 
   @override
@@ -1318,13 +1321,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gettingStartedWelcomeSubtitle => '設定你的個人資料並建立衣櫥，解鎖專屬的穿搭預覽。';
 
   @override
-  String get gettingStartedProfilePhotoLabel => '個人照片';
-
-  @override
-  String get gettingStartedFullBodyPhotoLabel => '全身照片';
-
-  @override
   String get gettingStartedGetStartedButton => '開始設定';
+
+  @override
+  String get gettingStartedNextButton => '下一步';
 
   @override
   String get gettingStartedAboutYouLabel => '個人資料';
@@ -2038,7 +2038,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get editTripName => '編輯名稱';
 
   @override
-  String get editDestinations => '編輯目的地';
+  String get editItinerary => '編輯行程';
 
   @override
   String get enterTripName => '輸入行程名稱';
@@ -2059,7 +2059,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get tripNameHint => '例如：日本春季之旅';
 
   @override
-  String get destinationAndDatesLabel => '目的地與日期';
+  String get itineraryAndDatesLabel => '行程與日期';
 
   @override
   String get create => '建立';
@@ -2174,7 +2174,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get confirm => '確認';
 
   @override
-  String get addLocation => '新增目的地';
+  String get addLocation => '新增行程';
 
   @override
   String get camera => '拍照';
@@ -2562,6 +2562,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deletingTripEllipsis => '刪除行程中…';
 
   @override
+  String get updatingTripEllipsis => '更新行程中…';
+
+  @override
   String get failedToCreateTrip => '建立行程失敗';
 
   @override
@@ -2790,13 +2793,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get gettingStartedWelcomeSubtitle => '設定你的個人資料並建立衣櫥，解鎖專屬的穿搭預覽。';
 
   @override
-  String get gettingStartedProfilePhotoLabel => '個人照片';
-
-  @override
-  String get gettingStartedFullBodyPhotoLabel => '全身照片';
-
-  @override
   String get gettingStartedGetStartedButton => '開始設定';
+
+  @override
+  String get gettingStartedNextButton => '下一步';
 
   @override
   String get gettingStartedAboutYouLabel => '個人資料';

@@ -27,19 +27,16 @@ void main() {
     },
   );
 
-  testWidgets(
-    '"Add Destination" renders as an AccentPillButton and opens the '
-    'location picker',
-    (tester) async {
-      await pumpApp(tester, const TripCreateDialog());
-      await tester.pump();
+  testWidgets('"Add Itinerary" renders as an AccentPillButton and opens the '
+      'location picker', (tester) async {
+    await pumpApp(tester, const TripCreateDialog());
+    await tester.pump();
 
-      expect(find.byType(AccentPillButton), findsOneWidget);
+    expect(find.byType(AccentPillButton), findsOneWidget);
 
-      await tester.tap(find.byType(AccentPillButton));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byType(AccentPillButton));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(LocationPickerPage), findsOneWidget);
-    },
-  );
+    expect(find.byType(LocationPickerPage), findsOneWidget);
+  });
 }

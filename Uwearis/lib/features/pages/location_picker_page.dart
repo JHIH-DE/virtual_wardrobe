@@ -26,11 +26,14 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Future<void> _search() async {
     if (_controller.text.isEmpty) return;
     setState(() => _isLoading = true);
+    final language = Localizations.localeOf(context).languageCode;
     final url = Uri.parse(
-      'https://geocoding-api.open-meteo.com/v1/search?name=${_controller.text}&count=5',
+      'https://geocoding-api.open-meteo.com/v1/search'
+      '?name=${Uri.encodeQueryComponent(_controller.text)}'
+      '&count=5&language=$language',
     );
     try {
-      final res = await http.get(url);
+      final res = await http.get(url).timeout(const Duration(seconds: 15));
       final data = json.decode(res.body);
       if (data['results'] != null) {
         setState(() {
@@ -38,8 +41,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               .map(
                 (r) => LocationResult(
                   name: "${r['name']}, ${r['country']}",
-                  latitude: r['latitude'],
-                  longitude: r['longitude'],
+                  latitude: (r['latitude'] as num).toDouble(),
+                  longitude: (r['longitude'] as num).toDouble(),
                   timezone: r['timezone'] ?? 'UTC',
                 ),
               )

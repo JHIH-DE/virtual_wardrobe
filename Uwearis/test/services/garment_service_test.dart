@@ -1061,9 +1061,7 @@ void main() {
 
     test('different garments cache independently, not overwriting each other', () async {
       final client = MockClient((request) async {
-        final id = int.parse(
-          request.url.pathSegments[request.url.pathSegments.length - 2],
-        );
+        final id = (jsonDecode(request.body) as Map<String, dynamic>)['garment_id'] as int;
         return _jsonResponse(
           _envelope({
             'versatility': versatilityJson(level: id == 9107 ? 3 : 7),
@@ -1087,9 +1085,7 @@ void main() {
     test('deleteGarment removes only that garment\'s cached analysis', () async {
       final client = MockClient((request) async {
         if (request.method == 'DELETE') return http.Response('', 200);
-        final id = int.parse(
-          request.url.pathSegments[request.url.pathSegments.length - 2],
-        );
+        final id = (jsonDecode(request.body) as Map<String, dynamic>)['garment_id'] as int;
         return _jsonResponse(
           _envelope({
             'versatility': versatilityJson(level: id == 9109 ? 2 : 4),

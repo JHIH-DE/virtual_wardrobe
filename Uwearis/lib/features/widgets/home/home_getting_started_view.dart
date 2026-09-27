@@ -6,22 +6,22 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../common/buttons/accent_pill_button.dart';
 import '../common/cards/app_card_shell.dart';
-import '../common/labeled_divider.dart';
 
 /// The Getting Started content [HomePage] shows in place of Today's
 /// Outfit/Upcoming Trip/Recently Added for a user who hasn't finished the
 /// minimum setup yet — see `home_page.dart`'s `_isGettingStarted` for the
 /// completion rule this reflects. A complete initial flow is About You +
 /// Profile Photo + Full-Body Photo + Closet + creating the first outfit —
-/// this view walks through all five in that order, without acting like a
-/// multi-page onboarding wizard: only the current relevant step is shown.
-/// The date/
-/// weather header above it, and the main nav bar, stay exactly as they are
-/// in normal Home — [HomePage] renders this as one section of its existing
-/// scroll body, not a full-screen replacement, so it owns no scroll
-/// container, outer page padding, or bottom nav-bar clearance of its own.
+/// this view shows all five as one checklist card, with a single CTA below
+/// it that always targets whichever step is next (see
+/// [_buildChecklistCard]/[_buildCtaButton]), rather than swapping between
+/// separate step screens. [HomePage] omits its date/weather header for this
+/// state (nothing there
+/// is relevant before setup is done) and renders this as one section of its
+/// existing scroll body, not a full-screen replacement, so it owns no
+/// scroll container, outer page padding, or bottom nav-bar clearance of its
+/// own — the main nav bar stays exactly as it is in normal Home.
 ///
 /// Purely presentational — [HomePage] owns every provider read and
 /// navigation call and passes down plain booleans + callbacks, so this
@@ -80,8 +80,6 @@ class HomeGettingStartedView extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Column(
       children: [
-        LabeledDivider(label: l10n.gettingStartedSectionLabel),
-        const SizedBox(height: AppDimens.sectionSpacing),
         Text(
           l10n.gettingStartedWelcomeTitle,
           textAlign: TextAlign.center,
@@ -97,131 +95,127 @@ class HomeGettingStartedView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppDimens.sectionSpacing * 2),
-        _buildCurrentStep(context, l10n),
+        _buildChecklistCard(context, l10n),
       ],
     );
   }
 
-  Widget _buildCurrentStep(BuildContext context, AppLocalizations l10n) {
-    if (!_profileReady) return _buildProfileStep(l10n);
-    if (!_closetReady) return _buildClosetStep(context, l10n);
-    return _buildFirstOutfitStep(l10n);
-  }
-
-  Widget _buildProfileStep(AppLocalizations l10n) {
-    return Column(
-      children: [
-        AppCardShell(
-          child: Column(
-            children: [
-              _ChecklistRow(
-                label: l10n.gettingStartedAboutYouLabel,
-                done: hasAboutYou,
-              ),
-              const SizedBox(height: 14),
-              _ChecklistRow(
-                label: l10n.gettingStartedProfilePhotoLabel,
-                done: hasProfilePhoto,
-              ),
-              const SizedBox(height: 14),
-              _ChecklistRow(
-                label: l10n.gettingStartedFullBodyPhotoLabel,
-                done: hasFullBodyPhoto,
-              ),
-            ],
+  /// One checklist covering the whole initial flow — About You, My Virtual
+  /// Model, Top, Bottom, Shoes, then creating the first outfit — instead of
+  /// swapping between three separate step screens. [onCreateOutfit]'s row
+  /// has no "done" state of its own to show as checked: [HomePage] only
+  /// renders this whole view while [_isGettingStarted] is true, and that
+  /// stays true until the outfit is actually created, so this row is always
+  /// the last one pending whenever it's reachable (i.e. once every row
+  /// above it is done). The CTA lives inside the same card, right-aligned
+  /// below the checklist, rather than as a separate full-width element
+  /// beneath it.
+  Widget _buildChecklistCard(BuildContext context, AppLocalizations l10n) {
+    return AppCardShell(
+      child: Column(
+        children: [
+          _ChecklistRow(
+            label: l10n.gettingStartedAboutYouLabel,
+            done: hasAboutYou,
           ),
-        ),
-        const SizedBox(height: AppDimens.sectionSpacing),
-        AccentPillButton(
-          label: l10n.gettingStartedGetStartedButton,
-          icon: Icons.arrow_forward_rounded,
-          onPressed: onGetStarted,
-        ),
-      ],
+          const SizedBox(height: 14),
+          _ChecklistRow(
+            label: l10n.myVirtualModelTitle,
+            done: hasProfilePhoto && hasFullBodyPhoto,
+          ),
+          const SizedBox(height: 14),
+          _ChecklistRow(
+            label: GarmentCategory.top.localizedLabel(context),
+            done: hasTop,
+          ),
+          const SizedBox(height: 14),
+          _ChecklistRow(
+            label: GarmentCategory.bottom.localizedLabel(context),
+            done: hasBottom,
+          ),
+          const SizedBox(height: 14),
+          _ChecklistRow(
+            label: GarmentCategory.shoes.localizedLabel(context),
+            done: hasShoes,
+          ),
+          const SizedBox(height: 14),
+          _ChecklistRow(label: l10n.createOutfit, done: false),
+          const SizedBox(height: AppDimens.sectionSpacing),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [_buildCtaButton(l10n)],
+          ),
+        ],
+      ),
     );
   }
 
-  /// Requires one active garment each in Top/Bottom/Shoes — enough category
-  /// coverage to actually assemble an outfit — shown as the same ○/✓
-  /// checklist shape as [_buildProfileStep], rather than just "closet
-  /// non-empty", so the user knows exactly what's still missing.
-  Widget _buildClosetStep(BuildContext context, AppLocalizations l10n) {
-    return Column(
-      children: [
-        Text(
-          l10n.gettingStartedBuildClosetTitle,
-          textAlign: TextAlign.center,
-          style: AppTextStyle.bold18,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          l10n.gettingStartedBuildClosetSubtitle,
-          textAlign: TextAlign.center,
-          style: AppTextStyle.regular14.copyWith(
-            color: AppColors.textSecondary,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: AppDimens.sectionSpacing),
-        AppCardShell(
-          child: Column(
-            children: [
-              _ChecklistRow(
-                label: GarmentCategory.top.localizedLabel(context),
-                done: hasTop,
-              ),
-              const SizedBox(height: 14),
-              _ChecklistRow(
-                label: GarmentCategory.bottom.localizedLabel(context),
-                done: hasBottom,
-              ),
-              const SizedBox(height: 14),
-              _ChecklistRow(
-                label: GarmentCategory.shoes.localizedLabel(context),
-                done: hasShoes,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppDimens.sectionSpacing),
-        AccentPillButton(
-          label: l10n.quickActionAddClothing,
-          icon: Icons.add,
-          onPressed: onAddClothing,
-        ),
-      ],
+  /// One CTA that always targets whichever step is next, rather than a
+  /// separate button per step screen. Styled like [AppDialog]'s filled
+  /// accent primary button (same fill/radius/elevation/border/text
+  /// treatment) rather than [AccentPillButton] — this sits at the bottom of
+  /// a content card as the checklist's one call to action, the same role
+  /// that button plays at the bottom of a dialog, not a lightweight
+  /// secondary affordance next to a section header. It hugs its label
+  /// instead of stretching full-width, since it's right-aligned beside the
+  /// checklist rather than stacked alone.
+  ///
+  /// The label only ever says "Get Started" (before [hasAboutYou] — the
+  /// checklist's first row — is done) or "Next" (every step after); it
+  /// doesn't spell out which specific action comes next the way the
+  /// checklist rows themselves already do. [onPressed] still targets the
+  /// right callback for whichever step is actually next.
+  Widget _buildCtaButton(AppLocalizations l10n) {
+    final VoidCallback onPressed;
+    if (!_profileReady) {
+      onPressed = onGetStarted;
+    } else if (!_closetReady) {
+      onPressed = onAddClothing;
+    } else {
+      onPressed = onCreateOutfit;
+    }
+    return _AccentActionButton(
+      label: hasAboutYou
+          ? l10n.gettingStartedNextButton
+          : l10n.gettingStartedGetStartedButton,
+      onPressed: onPressed,
     );
   }
+}
 
-  /// The final Getting Started step — same copy/CTA as before this became a
-  /// dedicated step (see git history), just relocated here instead of
-  /// living as a normal-Home contextual empty state, since creating the
-  /// first outfit is now part of the initial flow rather than something a
-  /// "graduated" user can skip.
-  Widget _buildFirstOutfitStep(AppLocalizations l10n) {
-    return Column(
-      children: [
-        Text(
-          l10n.gettingStartedReadyForFirstLookTitle,
-          textAlign: TextAlign.center,
-          style: AppTextStyle.bold18,
+/// The filled accent button from [AppDialog]'s own `_buildPrimaryButton`,
+/// re-shaped to hug its label instead of stretching full-width — that
+/// version is a private build method on a `StatefulWidget`, not a shared
+/// component, so this reproduces its exact fill/radius/elevation/border/
+/// text recipe rather than importing it.
+class _AccentActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+
+  const _AccentActionButton({required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.accent,
+        // Matches BottomActionButton's/AppDialog's primary button height —
+        // width hugs the label since this button sits right-aligned, not
+        // stretched full-width like AppDialog's own.
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        side: const BorderSide(color: AppColors.borderOnDark, width: 1.5),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyle.regular16.copyWith(
+          color: AppColors.textOnPrimary,
+          fontWeight: FontWeight.w500,
         ),
-        const SizedBox(height: 8),
-        Text(
-          l10n.gettingStartedReadyForFirstLookSubtitle,
-          textAlign: TextAlign.center,
-          style: AppTextStyle.regular14.copyWith(
-            color: AppColors.textSecondary,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: AppDimens.sectionSpacing),
-        AccentPillButton(
-          label: l10n.createOutfit,
-          icon: Icons.add,
-          onPressed: onCreateOutfit,
-        ),
-      ],
+      ),
     );
   }
 }

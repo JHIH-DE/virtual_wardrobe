@@ -506,21 +506,20 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
           ),
-          if (!_isAddMode) ...[
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _UwearisAiAnalysisCard(
-                analysis: _closetAnalysis,
-                isAnalyzing: _isAnalyzingCloset,
-                isRefreshing: _isRefreshingAnalysis,
-                errorMessage: _closetAnalysisError,
-                onAnalyze: _runClosetAnalysis,
-                onRefresh: _refreshClosetAnalysis,
-                onGarmentTap: _openAiGarmentDetail,
-              ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _UwearisAiAnalysisCard(
+              analysis: _closetAnalysis,
+              isAnalyzing: _isAnalyzingCloset,
+              isRefreshing: _isRefreshingAnalysis,
+              errorMessage: _closetAnalysisError,
+              onAnalyze: _runClosetAnalysis,
+              onRefresh: _refreshClosetAnalysis,
+              onGarmentTap: _openAiGarmentDetail,
+              targetImageOverride: _isAddMode ? _imagePathOrUrl : null,
             ),
-          ],
+          ),
           const SizedBox(height: AppDimens.sectionSpacing),
           _buildDetailsSection(),
         ],
@@ -735,19 +734,23 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   /// Runs the AI closet analysis (versatility level + outfit ideas + similar
-  /// garments) for this already-saved garment — the insight card's "Analyze
-  /// with AI" / "Analyze Again" button. Synchronous re-entrancy guard — it's
-  /// a paid AI call. Only reachable once [_id] is set (see [_closetAnalysis]
-  /// doc comment).
+  /// garments) for this garment — the insight card's "Analyze with AI" /
+  /// "Analyze Again" button. Synchronous re-entrancy guard — it's a paid AI
+  /// call. In Add mode (no [_id] yet) this runs the same analysis as a
+  /// preview against the garment's current form fields instead — see
+  /// [GarmentService.closetAnalysis]'s null-[garmentId] mode.
   Future<void> _runClosetAnalysis() async {
-    final id = _id;
-    if (id == null || _isAnalyzingCloset) return;
+    if (_isAnalyzingCloset) return;
     setState(() {
       _isAnalyzingCloset = true;
       _closetAnalysisError = null;
     });
     try {
-      final result = await GarmentService().closetAnalysis(id);
+      final id = _id;
+      final result = await GarmentService().closetAnalysis(
+        id,
+        id == null ? _closetAnalysisPreviewFields() : null,
+      );
       if (!mounted) return;
       setState(() => _closetAnalysis = result);
     } on AuthExpiredException {
@@ -793,13 +796,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// with the full error state — refreshing re-generates, it never deletes.
   /// Synchronous re-entrancy guard, same reasoning as [_runClosetAnalysis].
   Future<void> _refreshClosetAnalysis() async {
-    final id = _id;
-    if (id == null || _isRefreshingAnalysis || _closetAnalysis == null) {
-      return;
-    }
+    if (_isRefreshingAnalysis || _closetAnalysis == null) return;
     setState(() => _isRefreshingAnalysis = true);
     try {
-      final result = await GarmentService().closetAnalysis(id);
+      final id = _id;
+      final result = await GarmentService().closetAnalysis(
+        id,
+        id == null ? _closetAnalysisPreviewFields() : null,
+      );
       if (!mounted) return;
       setState(() => _closetAnalysis = result);
     } on AuthExpiredException {
@@ -1177,17 +1181,35 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     setState(() => _uploading = true);
 
     try {
-      final wasAdd = _isAddMode;
-      // Adding uploads a fresh photo + creates the record; editing an
-      // existing garment only ever updates its text fields — there is no
-      // UI path to replace an existing garment's photo (see
-      // _uploadNewGarment's doc comment).
-      final result = _isAddMode
-          ? await _uploadNewGarment()
-          : await _updateGarmentFields();
-
+      if (_isAddMode) {
+        // Adding uploads a fresh photo + creates the record, then hands the
+        // new Garment back to whichever screen started the add-clothing
+        // flow (GarmentUploadHelper.startAddClothingFlow) — that caller owns
+        // the closet provider update and the "added" confirmation shown once
+        // back on its own page.
+        final result = await _uploadNewGarment();
+        if (!mounted) return;
+        // If the user already ran "Analyze with AI" before saving, carry
+        // that result over into the real per-garment cache instead of
+        // discarding it — otherwise reopening the same garment right after
+        // Add to Closet looks like the analysis never ran.
+        final previewAnalysis = _closetAnalysis;
+        if (previewAnalysis != null && result.id != null) {
+          await GarmentService().cacheClosetAnalysis(
+            result.id!,
+            _retargetClosetAnalysis(previewAnalysis, result),
+          );
+          if (!mounted) return;
+        }
+        Navigator.pop(context, result);
+        return;
+      }
+      // Editing an existing garment only ever updates its text fields —
+      // there is no UI path to replace an existing garment's photo (see
+      // _uploadNewGarment's doc comment) — and keeps the user on this page.
+      final result = await _updateGarmentFields();
       if (!mounted) return;
-      await _adoptSaved(result, wasAdd: wasAdd);
+      await _adoptSaved(result);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -1204,10 +1226,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Save keeps the user on this page: the persisted garment is folded into
-  /// local state (Add Mode flips to Edit Mode), the closet provider is
+  /// Only reached for an edit save (add-mode save pops back to the caller
+  /// instead — see _saveGarment). Keeps the user on this page: the
+  /// persisted garment is folded into local state, the closet provider is
   /// updated here rather than via a pop result, and a confirmation shows.
-  Future<void> _adoptSaved(Garment g, {required bool wasAdd}) async {
+  Future<void> _adoptSaved(Garment g) async {
     // A new/edited photo lands at the *same* garmentImageCacheKey (stable,
     // keyed by id) as whatever was cached before — GarmentImage's disk
     // cache would otherwise keep serving the old bytes indefinitely since
@@ -1255,7 +1278,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       // _editingGarment in initState.
       _isImageChanged = false;
       _uploading = false;
-      if (wasAdd) _outfitCount = 0;
 
       // Re-snapshot the change-detection baseline *before* touching the
       // controllers — assigning their text fires _checkModified, which must
@@ -1280,17 +1302,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       _priceCtrl.text = g.price?.toString() ?? '';
     });
 
-    final notifier = ref.read(garmentsProvider.notifier);
-    if (wasAdd) {
-      notifier.addGarment(g);
-    } else {
-      notifier.updateGarment(g);
-    }
+    ref.read(garmentsProvider.notifier).updateGarment(g);
 
-    showFeedbackOverlay(
-      context,
-      message: wasAdd ? _l10n.clothingAdded : _l10n.changesSaved,
-    );
+    showFeedbackOverlay(context, message: _l10n.changesSaved);
   }
 
   /// Uploads the picked photo and creates a new garment record. Only ever
@@ -1323,6 +1337,59 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       if (_selectedFit != null) 'fit': _selectedFit!.apiValue,
     };
     return GarmentService().completeUpload(temp, metadata);
+  }
+
+  /// Add mode only: the current form fields, in the shape
+  /// `GarmentService.closetAnalysis`'s null-`garmentId` mode sends to the
+  /// backend — same category/sub_category/name/brand/color/fit the form is
+  /// currently showing, with thickness/formality/material/style folded in
+  /// from [_metaData] (the form has no widgets for those; see
+  /// [_uploadNewGarment] for the same fold-in over `fit`).
+  Map<String, dynamic> _closetAnalysisPreviewFields() {
+    final brand = _brandCtrl.text.trim();
+    return <String, dynamic>{
+      ...?_metaData,
+      'category': _category.apiValue,
+      'sub_category': _subCategory.text.trim(),
+      'name': _nameCtrl.text.trim(),
+      'brand': brand.isEmpty ? null : brand,
+      'color': _selectedColor?.label,
+      'fit': _selectedFit?.apiValue,
+    };
+  }
+
+  /// Re-points a preview analysis's sentinel target entries (see
+  /// [GarmentService.closetAnalysis]'s null-`garmentId` mode: garmentId 0,
+  /// empty imageUrl) at
+  /// the real garment [saved] just became — used to seed the normal
+  /// per-garment cache on save (see [GarmentService.cacheClosetAnalysis]) so
+  /// reopening it right after Add to Closet doesn't show a broken thumbnail
+  /// under an id that no longer means anything, or force a fresh AI call.
+  /// [similarGarments] never contains the target (excluded by construction
+  /// on the backend), so only outfit ideas' garment lists need rewriting.
+  ClosetAnalysis _retargetClosetAnalysis(ClosetAnalysis analysis, Garment saved) {
+    ClosetAnalysisGarment retarget(ClosetAnalysisGarment g) {
+      if (!g.isTarget) return g;
+      return ClosetAnalysisGarment(
+        garmentId: saved.id!,
+        category: saved.category,
+        name: saved.name,
+        imageUrl: saved.imageUrl ?? '',
+        isTarget: true,
+      );
+    }
+
+    return ClosetAnalysis(
+      versatility: analysis.versatility,
+      outfitIdeas: [
+        for (final idea in analysis.outfitIdeas)
+          ClosetAnalysisOutfitIdea(
+            title: idea.title,
+            garments: idea.garments.map(retarget).toList(),
+          ),
+      ],
+      similarGarments: analysis.similarGarments,
+    );
   }
 
   /// Updates just the text fields of an existing garment (image unchanged).
@@ -1375,6 +1442,12 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
   final VoidCallback onRefresh;
   final void Function(int garmentId) onGarmentTap;
 
+  /// Add mode only: the target garment's own [ClosetAnalysisGarment.imageUrl]
+  /// is always empty (the backend preview endpoint has no persisted photo for
+  /// it) — shown instead via the same local photo already on screen on this
+  /// page. Null in edit mode, where the target already has a real signed URL.
+  final String? targetImageOverride;
+
   const _UwearisAiAnalysisCard({
     required this.analysis,
     required this.isAnalyzing,
@@ -1383,6 +1456,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
     required this.onAnalyze,
     required this.onRefresh,
     required this.onGarmentTap,
+    this.targetImageOverride,
   });
 
   @override
@@ -1509,6 +1583,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
             _buildGarmentThumbRow(
               ideas[i].garments,
               onGarmentTap: onGarmentTap,
+              targetImageOverride: targetImageOverride,
             ),
           ],
         ],
@@ -1516,7 +1591,11 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
           const SizedBox(height: 20),
           FieldLabel(l10n.similarInClosetHeading.toUpperCase()),
           const SizedBox(height: 10),
-          _buildGarmentThumbRow(similar, onGarmentTap: onGarmentTap),
+          _buildGarmentThumbRow(
+            similar,
+            onGarmentTap: onGarmentTap,
+            targetImageOverride: targetImageOverride,
+          ),
         ],
       ],
     );
@@ -1550,6 +1629,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
   Widget _buildGarmentThumbRow(
     List<ClosetAnalysisGarment> garments, {
     void Function(int garmentId)? onGarmentTap,
+    String? targetImageOverride,
   }) {
     return SizedBox(
       height: _AiGarmentThumb.size,
@@ -1559,11 +1639,14 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final g = garments[i];
+          // The preview-mode target rides a sentinel non-positive id (see
+          // GarmentService.closetAnalysis's null-garmentId mode) — it isn't
+          // a real garment, so there's nothing for a tap to open.
+          final canOpen = onGarmentTap != null && g.garmentId > 0;
           return _AiGarmentThumb(
             garment: g,
-            onTap: onGarmentTap == null
-                ? null
-                : () => onGarmentTap(g.garmentId),
+            targetImageOverride: targetImageOverride,
+            onTap: canOpen ? () => onGarmentTap(g.garmentId) : null,
           );
         },
       ),
@@ -1615,12 +1698,24 @@ class _AiGarmentThumb extends StatelessWidget {
   final ClosetAnalysisGarment garment;
   final VoidCallback? onTap;
 
-  const _AiGarmentThumb({required this.garment, this.onTap});
+  /// See [_UwearisAiAnalysisCard.targetImageOverride] — substituted only
+  /// when this tile is the target and the backend gave it no image of its
+  /// own (the preview-mode case).
+  final String? targetImageOverride;
+
+  const _AiGarmentThumb({
+    required this.garment,
+    this.onTap,
+    this.targetImageOverride,
+  });
 
   static const double size = 64;
 
   @override
   Widget build(BuildContext context) {
+    final url = garment.isTarget && garment.imageUrl.isEmpty
+        ? targetImageOverride
+        : garment.imageUrl;
     final thumb = Container(
       width: size,
       height: size,
@@ -1634,8 +1729,8 @@ class _AiGarmentThumb extends StatelessWidget {
         ),
       ),
       child: GarmentImage(
-        url: garment.imageUrl,
-        garmentId: garment.garmentId,
+        url: url,
+        garmentId: garment.garmentId > 0 ? garment.garmentId : null,
         memCacheWidth: 128,
         memCacheHeight: 128,
         fit: BoxFit.cover,

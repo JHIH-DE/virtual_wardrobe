@@ -1,7 +1,18 @@
+import '../core/utils/image_cache_bust.dart';
+
 /// Stable per-outfit cache-key identity for [ImageCacheBust]/image widgets —
 /// pass the same key everywhere a given outfit's rendered image is cached
 /// or bumped so a regenerate in one place busts the cache everywhere else.
 String outfitImageCacheKey(int outfitId) => 'outfit-job-$outfitId';
+
+/// [outfitImageCacheKey] plus its live [ImageCacheBust] version — the actual
+/// cache key every widget rendering an outfit's image should use (Home,
+/// Outfit Details, `OutfitImage`), so a regenerate bump in one place is seen
+/// by all of them instead of some staying on a stale/mismatched key.
+String outfitImageVersionedCacheKey(int outfitId) {
+  final baseKey = outfitImageCacheKey(outfitId);
+  return '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
+}
 
 /// The kind of `OutfitGroup` an outfit belongs to (backend `OutfitGroupType`).
 /// Every outfit under a group shares its group's type; it's only ever a

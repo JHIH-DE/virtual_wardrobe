@@ -6,10 +6,15 @@ import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../common/fields/selectable_chip.dart';
 
-class CategorySelector extends StatelessWidget {
+class CategorySelector extends StatelessWidget implements PreferredSizeWidget {
   final List<GarmentCategory> categories;
   final GarmentCategory selectedCategory;
   final ValueChanged<GarmentCategory> onSelected;
+
+  // 64 − 2×8 padding = 48px tall rows, so each SelectableChip's tap target
+  // clears AppDimens.minTouchTarget even though the visible pill stays
+  // ~38px.
+  static const double _height = 64;
 
   const CategorySelector({
     super.key,
@@ -18,17 +23,20 @@ class CategorySelector extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Lets a caller pass this directly as an [AppToolBar]'s `bottom:` — the
+  /// combined app bar + selector then share one Material surface/shadow, so
+  /// the toolbar's drop shadow lands below the selector instead of across it.
+  @override
+  Size get preferredSize => const Size.fromHeight(_height);
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
       color: AppColors.toolbarBackground,
       child: SizedBox(
-        // 64 − 2×8 padding = 48px tall rows, so each SelectableChip's tap
-        // target clears AppDimens.minTouchTarget even though the visible
-        // pill stays ~38px.
-        height: 64,
+        height: _height,
         child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
           scrollDirection: Axis.horizontal,
           itemCount: categories.length,
           separatorBuilder: (_, _) => const SizedBox(width: 12),

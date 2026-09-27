@@ -108,7 +108,7 @@ Future<void> handleCreateTrip(
 
 /// Renames a trip in place and reflects it in [tripsProvider]. Shared
 /// between [TripsPage]'s own card and any other list-style trip card (e.g.
-/// the Home page's). Destination/activity edits and deletion-with-
+/// the Home page's). Itinerary/activity edits and deletion-with-
 /// navigation live on [TripDetailsPage]'s own app bar menu instead — a
 /// list card only ever needs the lightweight rename+delete pair.
 Future<void> handleRenameTrip(

@@ -101,7 +101,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   bool _wardrobeFadeLeftVisible = true;
   bool _wardrobeFadeRightVisible = true;
 
-  // Mutable local copy — the app bar's edit menu (name/destinations/
+  // Mutable local copy — the app bar's edit menu (name/itinerary/
   // activities) needs to update what's on screen immediately, and
   // [widget.trip] is otherwise a fixed snapshot from whoever pushed this
   // page. Kept in sync with [tripsProvider] by [_updateTrip].
@@ -123,6 +123,17 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   // triggered from the Daily Outfit Plan refresh icon — see [_replanPlan].
   bool _replanActionInFlight = false;
   bool _replanningPlan = false;
+  // Guards the whole itinerary-edit flow (the edit dialog plus the
+  // save-and-reanalyze work that follows a legs change) — see
+  // [_editTripLegs]. [_updatingTripLegs] is the narrower flag that only
+  // covers that save-and-reanalyze work, for the loading overlay: it starts
+  // the instant Save is tapped (dialog closed) and spans the PATCH, the plan
+  // refetch, and the AI reanalysis together, since all three are awaited
+  // back-to-back with nothing else to show progress in between — flipping it
+  // on only around the last (AI) step left a multi-second gap after Save
+  // with no visible feedback at all.
+  bool _editLegsActionInFlight = false;
+  bool _updatingTripLegs = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -284,6 +295,34 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
+  /// Force-reruns the AI packing analysis (`POST .../packing-analysis`) after
+  /// an itinerary edit changes the trip's legs/dates — called from
+  /// [_updateTrip]'s `legsChanged` branch. Unlike [_loadPackingAnalysis],
+  /// which only re-reads whatever [tripSuggestionProvider] already has
+  /// cached, this asks the backend to actually recompute the analysis for
+  /// the new legs, since [_updateTrip] already invalidated that cache and a
+  /// plain re-read would otherwise still return the pre-edit result. Doesn't
+  /// own [_updatingTripLegs] itself — [_editTripLegs] holds that flag for
+  /// this call and the awaits before it, see its doc comment.
+  Future<void> _analyzeTrip() async {
+    try {
+      final analysis = await TripService().analyzeTrip(int.parse(_trip.id));
+      if (mounted) {
+        setState(() {
+          _recommendedTotal = analysis.categories.isEmpty
+              ? null
+              : analysis.recommendedTotal;
+        });
+      }
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      debugLog('Failed to analyze trip: $e');
+    }
+  }
+
   /// Fetches the trip's current suitcase, resolved to full [Garment]
   /// objects straight from each item's own embedded `image_url`/`category`/
   /// `name` fields (`TripSuitcaseItemResponse`) — no closet fetch needed —
@@ -354,7 +393,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// day-level data at all). On success this refreshes in place
   /// ([_refreshTripPlan]) rather than popping anywhere.
   Future<void> _replanPlan() async {
-    if (_replanActionInFlight || _dayOutfitActionInFlight) return;
+    if (_replanActionInFlight ||
+        _dayOutfitActionInFlight ||
+        _editLegsActionInFlight) {
+      return;
+    }
     setState(() => _replanActionInFlight = true);
     try {
       final confirmed = await showReplanConfirmDialog(context);
@@ -429,7 +472,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     // show once the AI call itself starts, not over the confirm dialog. See
     // CLAUDE.md "Guarding costly / mutating actions against
     // double-invocation".
-    if (_dayOutfitActionInFlight) return;
+    if (_dayOutfitActionInFlight || _editLegsActionInFlight) return;
     setState(() => _dayOutfitActionInFlight = true);
     try {
       final dayIndex = _selectedDayIndex;
@@ -615,7 +658,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 size: 20,
                 color: AppColors.icon,
               ),
-              label: _l10n.editDestinations,
+              label: _l10n.editItinerary,
             ),
             AppPopupMenu.item(
               value: _TripMenuAction.delete,
@@ -655,30 +698,53 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     await _updateTrip(_trip.copyWith(name: result));
   }
 
+  /// Guarded the same way as [_replanPlan]/[_generateSelectedDayOutfit]:
+  /// [_editLegsActionInFlight] covers the whole flow (dialog included), not
+  /// just the save-and-reanalyze work [_updateTrip] does afterward when legs
+  /// actually change — see CLAUDE.md "Guarding costly / mutating actions
+  /// against double-invocation". [_updatingTripLegs] is the narrower visible-
+  /// loading flag for that save-and-reanalyze work specifically (see its own
+  /// doc comment for why it starts here rather than deeper inside
+  /// [_analyzeTrip]).
   Future<void> _editTripLegs() async {
-    final initialLegs = List<TripLeg>.unmodifiable(_trip.legs);
-    final legsNotifier = ValueNotifier<List<TripLeg>>(List.of(initialLegs));
-    final result = await showDialog<List<TripLeg>>(
-      context: context,
-      builder: (ctx) => ValueListenableBuilder<List<TripLeg>>(
-        valueListenable: legsNotifier,
-        builder: (context, legs, _) {
-          final hasChange = legs.isNotEmpty && !_legsEqual(initialLegs, legs);
-          return AppDialog(
-            title: _l10n.editDestinations,
-            content: TripLegsEditor(legsNotifier: legsNotifier),
-            primaryLabel: _l10n.save,
-            onPrimary: hasChange ? () => Navigator.pop(ctx, legs) : null,
-            secondaryLabel: _l10n.cancel,
-            onSecondary: () => Navigator.pop(ctx),
-          );
-        },
-      ),
-    );
-    legsNotifier.dispose();
+    if (_editLegsActionInFlight ||
+        _replanActionInFlight ||
+        _dayOutfitActionInFlight) {
+      return;
+    }
+    setState(() => _editLegsActionInFlight = true);
+    try {
+      final initialLegs = List<TripLeg>.unmodifiable(_trip.legs);
+      final legsNotifier = ValueNotifier<List<TripLeg>>(List.of(initialLegs));
+      final result = await showDialog<List<TripLeg>>(
+        context: context,
+        builder: (ctx) => ValueListenableBuilder<List<TripLeg>>(
+          valueListenable: legsNotifier,
+          builder: (context, legs, _) {
+            final hasChange = legs.isNotEmpty && !_legsEqual(initialLegs, legs);
+            return AppDialog(
+              title: _l10n.editItinerary,
+              content: TripLegsEditor(legsNotifier: legsNotifier),
+              primaryLabel: _l10n.save,
+              onPrimary: hasChange ? () => Navigator.pop(ctx, legs) : null,
+              secondaryLabel: _l10n.cancel,
+              onSecondary: () => Navigator.pop(ctx),
+            );
+          },
+        ),
+      );
+      legsNotifier.dispose();
 
-    if (result == null || result.isEmpty) return;
-    await _updateTrip(_trip.copyWith(legs: result));
+      if (result == null || result.isEmpty) return;
+      setState(() => _updatingTripLegs = true);
+      try {
+        await _updateTrip(_trip.copyWith(legs: result));
+      } finally {
+        if (mounted) setState(() => _updatingTripLegs = false);
+      }
+    } finally {
+      if (mounted) setState(() => _editLegsActionInFlight = false);
+    }
   }
 
   /// Field-by-field comparison — [TripLeg]/[LocationResult] don't override
@@ -743,7 +809,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 ? 0
                 : _selectedDayIndex.clamp(0, _dayOutfits.length - 1);
           });
-          _loadPackingAnalysis();
+          await _analyzeTrip();
         }
       }
     } on AuthExpiredException {
@@ -821,7 +887,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                   bottomSpacing: AppDimens.sectionSpacing,
                 ),
               ),
-              _paddedSection(_TripDestinationsHeader(trip: _trip)),
+              _paddedSection(_TripItineraryHeader(trip: _trip)),
               const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildSuitcaseSection()),
               const SizedBox(height: AppDimens.sectionSpacing),
@@ -840,6 +906,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         if (_replanningPlan)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
+          ),
+        if (_updatingTripLegs)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.updatingTripEllipsis),
           ),
       ],
     );
@@ -883,7 +953,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                         icon: Icons.autorenew,
                         tooltip: _l10n.replanTripOutfits,
                         onTap:
-                            (_replanActionInFlight || _dayOutfitActionInFlight)
+                            (_replanActionInFlight ||
+                                _dayOutfitActionInFlight ||
+                                _editLegsActionInFlight)
                             ? null
                             : _replanPlan,
                       ),
@@ -1034,10 +1106,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       noAssignmentHint: _l10n.noOutfitPlannedYetHint,
       cacheKey: outfitId == null ? null : 'trip-outfit-$outfitId',
       onRefreshUrl: outfitId == null ? null : _refreshOutfitImageUrl,
-      onRegenerate: (outfitId == null || _dayOutfitActionInFlight)
+      onRegenerate:
+          (outfitId == null ||
+              _dayOutfitActionInFlight ||
+              _editLegsActionInFlight)
           ? null
           : _generateSelectedDayOutfit,
-      onGenerate: (needsRender && !_dayOutfitActionInFlight)
+      onGenerate:
+          (needsRender && !_dayOutfitActionInFlight && !_editLegsActionInFlight)
           ? _generateSelectedDayOutfit
           : null,
       generateEnabled: hasCoreOutfit,
@@ -1328,12 +1404,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 }
 
-/// The trip's destinations + date ranges, one row per leg — a static readout
+/// The trip's itinerary + date ranges, one row per leg — a static readout
 /// of [trip]'s own metadata with no interaction of its own.
-class _TripDestinationsHeader extends StatelessWidget {
+class _TripItineraryHeader extends StatelessWidget {
   final Trip trip;
 
-  const _TripDestinationsHeader({required this.trip});
+  const _TripItineraryHeader({required this.trip});
 
   @override
   Widget build(BuildContext context) {

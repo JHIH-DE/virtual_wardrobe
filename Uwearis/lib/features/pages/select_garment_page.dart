@@ -86,30 +86,24 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
           onChanged: () => setState(() {}),
         ),
       ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_tabMode) {
-      return Scaffold(
-        backgroundColor: AppColors.pageBackground,
-        appBar: _buildAppBar(),
-        body: Column(
-          children: [
-            CategorySelector(
+      // Sharing the app bar's own Material/shadow with the tab strip (rather
+      // than stacking it below in the body) keeps the two reading as one
+      // continuous surface — see CategorySelector's preferredSize doc.
+      bottom: _tabMode
+          ? CategorySelector(
               categories: widget.categoryTabs!,
               selectedCategory: _selectedTab,
               onSelected: (category) => setState(() {
                 _selectedTab = category;
                 _filter.reset();
               }),
-            ),
-            Expanded(child: _buildGrid()),
-          ],
-        ),
-      );
-    }
+            )
+          : null,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(),

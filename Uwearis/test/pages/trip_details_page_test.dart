@@ -367,11 +367,11 @@ void main() {
     },
   );
 
-  // New behavior: Edit Destinations' Save button (AppDialog's onPrimary)
+  // New behavior: Edit Itinerary's Save button (AppDialog's onPrimary)
   // stays disabled until the legs actually differ from what the dialog
   // opened with — mirrors the rename dialog's "no-op has nothing to save"
   // gating (see showTextInputDialog).
-  testWidgets('Edit Destinations: Save starts disabled, enables once a leg is '
+  testWidgets('Edit Itinerary: Save starts disabled, enables once a leg is '
       'removed, and persists the change', (tester) async {
     late http.Request capturedPatch;
     final client = MockClient((request) async {
@@ -430,14 +430,14 @@ void main() {
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
       // AppPopupMenu's item Row hard-caps at ~196px (its own maxWidth:220
-      // minus padding — see app_popup_menu.dart); "Edit Destinations" only
+      // minus padding — see app_popup_menu.dart); "Edit Itinerary" only
       // fits that in the app's real bundled NotoSansTC font, which
       // `flutter test` doesn't load, so its fallback-font metrics render
       // this one label a hair wider and trip a RenderFlex overflow here
       // that doesn't reproduce in the running app. Drain it so it doesn't
       // fail this test.
       while (tester.takeException() != null) {}
-      await tester.tap(find.text('Edit Destinations'));
+      await tester.tap(find.text('Edit Itinerary'));
       await tester.pumpAndSettle();
 
       Finder saveButtonFinder() => find.byType(ElevatedButton).last;

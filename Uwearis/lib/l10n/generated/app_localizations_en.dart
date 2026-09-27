@@ -602,7 +602,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editTripName => 'Edit Name';
 
   @override
-  String get editDestinations => 'Edit Destinations';
+  String get editItinerary => 'Edit Itinerary';
 
   @override
   String get enterTripName => 'Enter trip name';
@@ -624,7 +624,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripNameHint => 'e.g. Japan Spring Trip';
 
   @override
-  String get destinationAndDatesLabel => 'Destination & Dates';
+  String get itineraryAndDatesLabel => 'Itinerary & Dates';
 
   @override
   String get create => 'Create';
@@ -745,7 +745,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get addLocation => 'Add Destination';
+  String get addLocation => 'Add Itinerary';
 
   @override
   String get camera => 'Camera';
@@ -1143,6 +1143,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deletingTripEllipsis => 'Deleting Trip…';
 
   @override
+  String get updatingTripEllipsis => 'Updating Trip…';
+
+  @override
   String get failedToCreateTrip => 'Failed to create trip';
 
   @override
@@ -1379,13 +1382,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Set up your profile and build your closet to unlock personalized outfit previews.';
 
   @override
-  String get gettingStartedProfilePhotoLabel => 'Profile Photo';
-
-  @override
-  String get gettingStartedFullBodyPhotoLabel => 'Full-Body Photo';
-
-  @override
   String get gettingStartedGetStartedButton => 'Get Started';
+
+  @override
+  String get gettingStartedNextButton => 'Next';
 
   @override
   String get gettingStartedAboutYouLabel => 'About You';

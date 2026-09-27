@@ -208,8 +208,26 @@ class MainNavBar extends StatelessWidget {
   Widget _buildQuickActionButton(BuildContext context) {
     return _QuickActionButton(
       size: _centerButtonSize,
-      onTap: () => _showQuickActionMenu(context),
+      onTap: () => _handleQuickActionTap(context),
     );
+  }
+
+  /// On My Closet/Outfits/Trips, the "+" button's own tab already implies
+  /// which quick action the user wants, so skip the menu and fire it
+  /// directly. Home has no single implied action, so it still shows the
+  /// full menu.
+  void _handleQuickActionTap(BuildContext context) {
+    final directAction = switch (current) {
+      MainTab.closet => QuickAction.addClothing,
+      MainTab.outfits => QuickAction.addOutfit,
+      MainTab.tripPlanner => QuickAction.newTrip,
+      MainTab.home => null,
+    };
+    if (directAction != null) {
+      onQuickAction(directAction);
+    } else {
+      _showQuickActionMenu(context);
+    }
   }
 
   /// Shows the quick-action menu centered horizontally on screen (not

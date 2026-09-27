@@ -56,6 +56,16 @@ class AppImage extends StatelessWidget {
     this.borderRadius = 0,
   });
 
+  // Image.file decodes to an EXACT cacheWidth x cacheHeight when both are
+  // given, silently squishing any source whose aspect ratio doesn't already
+  // match that box — unlike the network branch above, where
+  // cached_network_image's own memCacheWidth/memCacheHeight resize doesn't
+  // distort non-square sources the same way. Passing only one dimension
+  // lets Flutter derive the other proportionally instead; `fit` still crops
+  // the (correctly-proportioned) result into the target box.
+  int? get _localCacheWidth => memCacheWidth;
+  int? get _localCacheHeight => memCacheWidth == null ? memCacheHeight : null;
+
   @override
   Widget build(BuildContext context) {
     final u = (url ?? '').trim();
@@ -91,8 +101,8 @@ class AppImage extends StatelessWidget {
         File.fromUri(Uri.parse(u)),
         width: width,
         height: height,
-        cacheWidth: memCacheWidth,
-        cacheHeight: memCacheHeight,
+        cacheWidth: _localCacheWidth,
+        cacheHeight: _localCacheHeight,
         fit: fit,
       );
     } else {
@@ -100,8 +110,8 @@ class AppImage extends StatelessWidget {
         File(u),
         width: width,
         height: height,
-        cacheWidth: memCacheWidth,
-        cacheHeight: memCacheHeight,
+        cacheWidth: _localCacheWidth,
+        cacheHeight: _localCacheHeight,
         fit: fit,
       );
     }

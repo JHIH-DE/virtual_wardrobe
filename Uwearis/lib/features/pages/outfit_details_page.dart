@@ -804,12 +804,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     // ImageCacheBust's live version — bumped by
                     // _regenerateImage/_openCreateAnotherVersion, and read
                     // fresh by every widget that shows this outfit's image
-                    // (OutfitImage elsewhere included), so nothing keeps
-                    // serving pre-regenerate bytes from a stable key's
+                    // (OutfitImage, Home elsewhere included), so nothing
+                    // keeps serving pre-regenerate bytes from a stable key's
                     // cache entry.
-                    final baseKey = outfitImageCacheKey(outfit.id);
-                    final cacheKey =
-                        '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
+                    final cacheKey = outfitImageVersionedCacheKey(outfit.id);
                     return GestureDetector(
                       onTap: () => showFullscreenImage(
                         context,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,11 +92,30 @@ void main() {
     });
   });
 
-  // The Uwearis AI card only shows once the garment is actually in the
-  // closet (closet-analysis needs a real garment id) — Add mode has no
-  // insight card at all.
-  testWidgets('add mode has no Uwearis AI analysis card', (tester) async {
-    await runWithEmptyCloset(() async {
+  // Add mode shows the same insight card as edit mode — tapping "Analyze
+  // with AI" before the garment is ever saved runs a preview analysis
+  // against the current form fields instead of a real garment id (see
+  // GarmentService.closetAnalysis's null-garmentId mode).
+  testWidgets('add mode: Uwearis AI analysis card runs a preview analysis', (
+    tester,
+  ) async {
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/closet-analysis') &&
+          (jsonDecode(request.body) as Map<String, dynamic>)['garment_id'] ==
+              null) {
+        return jsonResponse(
+          envelope({
+            'versatility': {'level': 8, 'label': 'Versatile'},
+            'outfit_ideas': <Object?>[],
+            'similar_garments': <Object?>[],
+          }),
+        );
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
       useTallSurface(tester);
       await pumpApp(
         tester,
@@ -106,9 +126,177 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Analyze with AI'), findsNothing);
-    });
+      expect(find.text('Analyze with AI'), findsOneWidget);
+      expect(find.text('Versatile'), findsNothing);
+
+      await tester.tap(find.text('Analyze with AI'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('LEVEL 8'), findsOneWidget);
+      expect(find.text('Versatile'), findsOneWidget);
+    }, () => client);
   });
+
+  testWidgets(
+    'a preview analysis run before Add to Closet carries over into the '
+    'real per-garment cache, so reopening it shows the result without '
+    're-analyzing',
+    (tester) async {
+      final tempDir = await Directory.systemTemp.createTemp('garment_photo');
+      final photo = File('${tempDir.path}/photo.jpg');
+      await photo.writeAsBytes(const [0xFF, 0xD8, 0xFF, 0xD9]);
+      addTearDown(() => tempDir.delete(recursive: true));
+
+      var previewCalls = 0;
+      var perGarmentAnalysisCalls = 0;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/closet-analysis')) {
+          final garmentId =
+              (jsonDecode(request.body) as Map<String, dynamic>)['garment_id'];
+          if (garmentId == null) {
+            previewCalls++;
+            return jsonResponse(
+              envelope({
+                'versatility': {'level': 8, 'label': 'Versatile'},
+                // Includes a target entry (sentinel id 0, no image) so the
+                // save flow's retargeting is actually exercised, not just
+                // the no-outfit-ideas easy case.
+                'outfit_ideas': [
+                  {
+                    'title': 'Preview Idea',
+                    'garments': [
+                      {
+                        'garment_id': 0,
+                        'category': 'Top',
+                        'name': 'Preview Cache Tee',
+                        'image_url': '',
+                        'is_target': true,
+                      },
+                    ],
+                  },
+                ],
+                'similar_garments': <Object?>[],
+              }),
+            );
+          }
+          perGarmentAnalysisCalls++;
+          return jsonResponse(
+            envelope({
+              'versatility': {'level': 2, 'label': 'Very Limited'},
+              'outfit_ideas': <Object?>[],
+              'similar_garments': <Object?>[],
+            }),
+          );
+        }
+        if (request.method == 'POST' &&
+            path.endsWith('/garments/init-upload')) {
+          return jsonResponse(
+            envelope({
+              'upload_url': 'https://example.com/upload',
+              'object_name': 'obj-700501',
+              'public_url': '',
+            }),
+          );
+        }
+        if (request.method == 'PUT' &&
+            request.url.toString() == 'https://example.com/upload') {
+          return http.Response('', 200);
+        }
+        if (request.method == 'POST' && path.endsWith('/garments/complete')) {
+          return jsonResponse(
+            envelope({
+              'id': 700501,
+              'category': 'Top',
+              'name': 'Preview Cache Tee',
+              'sub_category': 'T-Shirt',
+              'image_url': 'https://cdn.example.com/700501.jpg',
+              'is_favorite': false,
+              'is_deleted': false,
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        Garment? saved;
+        await pumpApp(
+          tester,
+          Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () async {
+                  saved = await Navigator.push<Garment>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GarmentDetailsPage(
+                        initialGarment: Garment(
+                          name: '',
+                          category: GarmentCategory.top,
+                          subCategory: '',
+                          uploadUrl: '',
+                          objectName: '',
+                          imageUrl: photo.path,
+                        ),
+                        initialAnalysisData: const {
+                          'name': 'Preview Cache Tee',
+                          'category': 'Top',
+                          'sub_category': 'T-Shirt',
+                        },
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+
+        // Run the preview analysis before ever saving. Plain pump()s, not
+        // pumpAndSettle() — the card's own loading state is an indeterminate
+        // CircularProgressIndicator, which never "settles" on its own.
+        await tester.tap(find.text('Analyze with AI'));
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('LEVEL 8'), findsOneWidget);
+        expect(previewCalls, 1);
+
+        // Make sure Add to Closet is actually enabled, then save.
+        await tester.enterText(
+          find.byType(TextField).first,
+          'Preview Cache Tee',
+        );
+        await tester.pump();
+        // Same reasoning as above — the bottom button shows its own
+        // indeterminate spinner (isLoading: _uploading) while the
+        // init-upload/PUT/complete/cache chain runs.
+        await tester.tap(find.text('Add to Closet'));
+        for (var i = 0; i < 6; i++) {
+          await tester.pump();
+        }
+
+        expect(find.byType(GarmentDetailsPage), findsNothing);
+        expect(saved?.id, 700501);
+
+        // Reopen the now-real garment — the preview result must already be
+        // cached under its real id, with no fresh per-garment analysis call.
+        await pumpApp(tester, GarmentDetailsPage(initialGarment: saved!));
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('LEVEL 8'), findsOneWidget);
+        expect(find.text('Analyze with AI'), findsNothing);
+        expect(perGarmentAnalysisCalls, 0);
+      }, () => client);
+    },
+  );
 
   testWidgets('edit mode: closet-analysis card starts as a prompt + Analyze '
       'button, then shows the versatility result', (tester) async {

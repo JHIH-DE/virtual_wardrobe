@@ -356,12 +356,12 @@ class _HomePageState extends ConsumerState<HomePage>
 
   /// Blank while the data [_isGettingStarted] depends on is still on its
   /// first fetch (the shell overlay covers the screen for that window — see
-  /// [_reportHomeLoading]); otherwise the header (date/weather) is always
-  /// shown, and only the content below it swaps between
-  /// [_buildGettingStartedContent] and [_buildNormalHomeContent] — decided
-  /// fresh on every rebuild so returning from My Virtual Model/Add Clothing/
-  /// Add Outfit (still mounted underneath, per IndexedStack) always
-  /// reflects the latest state.
+  /// [_reportHomeLoading]); otherwise the body swaps between
+  /// [_buildGettingStartedContent] (no date/weather header — nothing there
+  /// is relevant before setup is done) and [_buildNormalHomeContent] (which
+  /// owns the header) — decided fresh on every rebuild so returning from My
+  /// Virtual Model/Add Clothing/Add Outfit (still mounted underneath, per
+  /// IndexedStack) always reflects the latest state.
   Widget _buildBody() {
     if (!_gettingStartedDataReady) return const SizedBox.shrink();
     // mainNavBarClearance alone is tuned for the nav bar's own height,
@@ -412,8 +412,6 @@ class _HomePageState extends ConsumerState<HomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
-          const SizedBox(height: AppDimens.sectionSpacing),
           HomeGettingStartedView(
             hasAboutYou: _hasAboutYou,
             hasProfilePhoto: _hasProfilePhoto,
@@ -449,9 +447,10 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  /// Triggered by [HomeGettingStartedView]'s "Create Outfit" CTA on its
-  /// final "Ready for your first look?" step — mirrors `outfits_page.dart`'s
-  /// own `_openAddOutfit` (warm garmentsProvider, then push [AddOutfitPage],
+  /// Triggered by [HomeGettingStartedView]'s "Create Outfit" CTA once its
+  /// checklist has nothing left but the outfit itself — mirrors
+  /// `outfits_page.dart`'s own `_openAddOutfit` (warm garmentsProvider, then
+  /// push [AddOutfitPage],
   /// loading routed through [MainShellScope] since this page is itself a
   /// main tab — see CLAUDE.md's main-tab loading convention).
   Future<void> _openAddOutfit() async {
@@ -734,8 +733,13 @@ class _HomePageState extends ConsumerState<HomePage>
                             child: Container(
                               color: AppColors.surface,
                               child: RefreshableNetworkImage(
+                                key: ValueKey(
+                                  outfitImageVersionedCacheKey(option.id),
+                                ),
                                 imageUrl: option.imageUrl,
-                                cacheKey: outfitImageCacheKey(option.id),
+                                cacheKey: outfitImageVersionedCacheKey(
+                                  option.id,
+                                ),
                                 fit: BoxFit.cover,
                                 errorIconSize: 48,
                                 // Plain white background instead of a loading

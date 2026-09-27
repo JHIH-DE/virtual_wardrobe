@@ -334,13 +334,11 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // The date/weather header stays visible even during Getting Started
-      // — only the Today's Outfit/Upcoming Trip/Recently Added content
-      // below it is replaced.
-      expect(find.text('Thursday, Sep 17'), findsOneWidget);
+      // The date/weather header is hidden during Getting Started — nothing
+      // there is relevant before setup is done.
+      expect(find.text('Thursday, Sep 17'), findsNothing);
       expect(find.text('Welcome to Uwearis'), findsOneWidget);
-      expect(find.text('Profile Photo'), findsOneWidget);
-      expect(find.text('Full-Body Photo'), findsOneWidget);
+      expect(find.text('My Virtual Model'), findsOneWidget);
       expect(find.text('Get Started'), findsOneWidget);
       expect(find.text("Today's Outfit"), findsNothing);
       expect(find.text('Recently Added'), findsNothing);
@@ -348,8 +346,8 @@ void main() {
   );
 
   testWidgets(
-    'reference photos done but an empty closet shows the Build your closet '
-    'step, not the photo checklist',
+    'reference photos done but an empty closet shows My Virtual Model '
+    'checked and the CTA already reading Next (About You is done)',
     (tester) async {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
@@ -363,17 +361,15 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Build your closet'), findsOneWidget);
-      expect(find.text('Add Clothing'), findsOneWidget);
+      expect(find.text('My Virtual Model'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
       expect(find.text('Get Started'), findsNothing);
-      expect(find.text('Profile Photo'), findsNothing);
     },
   );
 
   testWidgets(
     'a closet covering only two of the three required categories (Top + '
-    'Bottom, no Shoes) still shows the Build your closet step, not the '
-    'first-outfit step',
+    'Bottom, no Shoes) still keeps the CTA reading Next',
     (tester) async {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
@@ -389,14 +385,13 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Build your closet'), findsOneWidget);
-      expect(find.text('Ready for your first look?'), findsNothing);
+      expect(find.text('Next'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'photos and closet done but no outfit created yet shows the final '
-    '"Ready for your first look?" Getting Started step, not normal Home',
+    'photos and closet done but no outfit created yet still keeps the CTA '
+    'reading Next, not normal Home',
     (tester) async {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
@@ -410,9 +405,10 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Thursday, Sep 17'), findsOneWidget);
-      expect(find.text('Getting Started'), findsOneWidget);
-      expect(find.text('Ready for your first look?'), findsOneWidget);
+      expect(find.text('Thursday, Sep 17'), findsNothing);
+      expect(find.text('Welcome to Uwearis'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
+      // "Create Outfit" only labels the checklist row now.
       expect(find.text('Create Outfit'), findsOneWidget);
       expect(find.text("Today's Outfit"), findsNothing);
       expect(find.text('Recently Added'), findsNothing);
@@ -436,7 +432,6 @@ void main() {
 
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
       expect(find.text('Welcome to Uwearis'), findsNothing);
-      expect(find.text('Getting Started'), findsNothing);
     },
   );
 
@@ -463,7 +458,6 @@ void main() {
       await tester.pump();
 
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
-      expect(find.text('Getting Started'), findsNothing);
       expect(find.text('Welcome to Uwearis'), findsNothing);
     },
   );
@@ -494,8 +488,8 @@ void main() {
       // step (see home_page.dart's _isEstablishedUser — trip data only
       // matters once closet/outfit are also both done); still Getting
       // Started, from the top.
-      expect(find.text('Getting Started'), findsOneWidget);
-      expect(find.text('Profile Photo'), findsOneWidget);
+      expect(find.text('Welcome to Uwearis'), findsOneWidget);
+      expect(find.text('My Virtual Model'), findsOneWidget);
     },
   );
 
@@ -522,7 +516,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Getting Started'), findsNothing);
+      expect(find.text('Welcome to Uwearis'), findsNothing);
       expect(find.text("Today's Outfit"), findsOneWidget);
     },
   );
@@ -544,7 +538,6 @@ void main() {
       await tester.pump();
 
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
-      expect(find.text('Ready for your first look?'), findsNothing);
       expect(find.text('No outfit image yet'), findsNothing);
       // The "Today's Outfit" divider is reserved for when the backend has
       // actually returned an outfit for today — this is the fallback
@@ -571,8 +564,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Getting Started'), findsNothing);
-    expect(find.text('Ready for your first look?'), findsNothing);
+    expect(find.text('Welcome to Uwearis'), findsNothing);
     expect(find.text('No outfit image yet'), findsNothing);
     expect(find.text("Today's Outfit"), findsNothing);
     expect(find.text('Your Latest Outfit'), findsNothing);
@@ -693,7 +685,7 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      expect(find.text('Build your closet'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
 
       // Simulates GarmentUploadHelper's onAdded callback (the same
       // optimistic update closet_page.dart / main_shell.dart use) after the
@@ -706,8 +698,8 @@ void main() {
 
       // outfitsProvider's default fake already has a created outfit, so
       // adding the last missing piece (Shoes) completes Getting Started.
-      expect(find.text('Build your closet'), findsNothing);
-      expect(find.text('Getting Started'), findsNothing);
+      expect(find.text('Next'), findsNothing);
+      expect(find.text('Welcome to Uwearis'), findsNothing);
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
     },
   );
@@ -726,7 +718,10 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      expect(find.text('Ready for your first look?'), findsOneWidget);
+      // "Create Outfit" labels the checklist row; the CTA itself reads
+      // "Next".
+      expect(find.text('Create Outfit'), findsOneWidget);
+      expect(find.text('Next'), findsOneWidget);
 
       // Simulates OutfitDetailsPage's post-save outfitsProvider.refresh()
       // picking up the newly created outfit.
@@ -736,8 +731,9 @@ void main() {
       await outfits.refresh();
       await tester.pump();
 
-      expect(find.text('Ready for your first look?'), findsNothing);
-      expect(find.text('Getting Started'), findsNothing);
+      expect(find.text('Create Outfit'), findsNothing);
+      expect(find.text('Next'), findsNothing);
+      expect(find.text('Welcome to Uwearis'), findsNothing);
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
     },
   );
@@ -769,7 +765,7 @@ void main() {
     // zero-duration pump() never fires a Future.delayed.
     await tester.pump(delay);
     expect(find.text('Thursday, Sep 17'), findsOneWidget);
-    expect(find.text('Getting Started'), findsNothing);
+    expect(find.text('Welcome to Uwearis'), findsNothing);
 
     // Login for account B calls invalidateSignedInProviders right before
     // swapping in a fresh MainShell — here, HomePage stays the same
@@ -789,7 +785,7 @@ void main() {
     // must show neither account's content, not fall through to A's
     // still-attached stale value.
     expect(find.text('Thursday, Sep 17'), findsNothing);
-    expect(find.text('Getting Started'), findsNothing);
+    expect(find.text('Welcome to Uwearis'), findsNothing);
 
     // The refetch resolves (same data here — this test is about the
     // loading window itself, not about B seeing different data).

@@ -1179,11 +1179,11 @@ abstract class AppLocalizations {
   /// **'Edit Name'**
   String get editTripName;
 
-  /// No description provided for @editDestinations.
+  /// No description provided for @editItinerary.
   ///
   /// In en, this message translates to:
-  /// **'Edit Destinations'**
-  String get editDestinations;
+  /// **'Edit Itinerary'**
+  String get editItinerary;
 
   /// No description provided for @enterTripName.
   ///
@@ -1221,11 +1221,11 @@ abstract class AppLocalizations {
   /// **'e.g. Japan Spring Trip'**
   String get tripNameHint;
 
-  /// No description provided for @destinationAndDatesLabel.
+  /// No description provided for @itineraryAndDatesLabel.
   ///
   /// In en, this message translates to:
-  /// **'Destination & Dates'**
-  String get destinationAndDatesLabel;
+  /// **'Itinerary & Dates'**
+  String get itineraryAndDatesLabel;
 
   /// No description provided for @create.
   ///
@@ -1446,7 +1446,7 @@ abstract class AppLocalizations {
   /// No description provided for @addLocation.
   ///
   /// In en, this message translates to:
-  /// **'Add Destination'**
+  /// **'Add Itinerary'**
   String get addLocation;
 
   /// No description provided for @camera.
@@ -2211,6 +2211,12 @@ abstract class AppLocalizations {
   /// **'Deleting Trip…'**
   String get deletingTripEllipsis;
 
+  /// No description provided for @updatingTripEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating Trip…'**
+  String get updatingTripEllipsis;
+
   /// No description provided for @failedToCreateTrip.
   ///
   /// In en, this message translates to:
@@ -2643,23 +2649,17 @@ abstract class AppLocalizations {
   /// **'Set up your profile and build your closet to unlock personalized outfit previews.'**
   String get gettingStartedWelcomeSubtitle;
 
-  /// No description provided for @gettingStartedProfilePhotoLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Profile Photo'**
-  String get gettingStartedProfilePhotoLabel;
-
-  /// No description provided for @gettingStartedFullBodyPhotoLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Full-Body Photo'**
-  String get gettingStartedFullBodyPhotoLabel;
-
   /// No description provided for @gettingStartedGetStartedButton.
   ///
   /// In en, this message translates to:
   /// **'Get Started'**
   String get gettingStartedGetStartedButton;
+
+  /// No description provided for @gettingStartedNextButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get gettingStartedNextButton;
 
   /// No description provided for @gettingStartedAboutYouLabel.
   ///

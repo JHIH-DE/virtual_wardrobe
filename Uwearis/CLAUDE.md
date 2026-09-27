@@ -370,7 +370,7 @@ These are the **target for new and substantively-touched code**. `lib/features/`
 ## Logging
 
 - Every public service method that performs an HTTP call opens with `debugLog('--- methodName: relevant params ---');`, placed *after* any early-return cache check or parameter resolution needed to make the logged values meaningful — e.g. `GarmentService.getGarment` and `OutfitService.getGroupOutfits` both log only once past their cache-hit fast path, and `OutfitService.generateOutfit` resolves `groupId` before logging so the line carries a real value, not `null`. `withAuth` does not add a second entry log. `decodeMap` may emit a failure-only diagnostic, but it must be sanitized (status / error code / safe operation context), never a blanket dump of the raw response body. Methods that don't perform an HTTP call (pure getters, trivial wrappers) aren't required to log.
-- **Never log**: access tokens, `Authorization` header values, signed URLs, photo/image bytes or data URIs, email addresses, or any other personally-identifying data. A log line naming *which* garment/outfit/trip id was involved is fine; logging the credential or the payload that proves who the user is, is not. Also don't log a local filesystem path to a user-picked image — it isn't a credential, but it exposes device directory layout for negligible debugging value (`MatchLookService.uploadReference` still does this — [Migration debt register](#migration-debt-register-flutter) item 10; new code must not copy it).
+- **Never log**: access tokens, `Authorization` header values, signed URLs, photo/image bytes or data URIs, email addresses, or any other personally-identifying data. A log line naming *which* garment/outfit/trip id was involved is fine; logging the credential or the payload that proves who the user is, is not. Also don't log a local filesystem path to a user-picked image — it isn't a credential, but it exposes device directory layout for negligible debugging value (`MatchLookService.uploadReference` still does this — [Migration debt register](#migration-debt-register-flutter) item 9; new code must not copy it).
 
 ## Canonical example files (Flutter)
 
@@ -426,6 +426,7 @@ Known gaps between the current code and the rules above. Each is deliberately **
 - **Frontend API-error leakage**: `BaseService.decodeMap` now throws safe `ApiException` values instead of embedding the raw HTTP body in `Exception.toString()`; page catches log technical detail only in debug builds and show ARB copy via `apiErrorMessage(...)`. `FACE_REFERENCE_NOT_FOUND`, `BODY_REFERENCE_NOT_FOUND`, and `FILE_NOT_FOUND` have shared localized mappings; unknown codes fall back safely.
 - **Profile fetch / reference-image isolation**: `profileProvider` now fetches `/users/me` once through `getMyProfileData()` instead of three parallel calls to the same endpoint. Face/body signed-URL load failures stay card-local in My Virtual Model and offer the existing re-upload action; they do not fail the provider or erase the rest of the profile.
 - **Riverpod retry policy**: all current network-backed Future-based providers use the shared whitelist `appRetryPolicy` (max 3 retries / ~2.9s pure backoff). `AuthExpiredException`, 4xx, business errors, permission errors, unknown exceptions and Dart `Error`s do not retry; Style Taste and Trip Suitcase auth-expiry listener gaps were closed.
+- **`location_picker_page.dart` Chinese-search / debt items 8 & 9**: `_search`'s Open-Meteo request had no `language` param, so it only matched a place's English/default GeoNames name — any Chinese input (e.g. `東京`, `北京`) returned an empty result set, which read as "Chinese isn't supported." Fixed by passing `language=${Localizations.localeOf(context).languageCode}` (and `Uri.encodeQueryComponent` on the query text). In the same pass, the two items this file tracked individually are resolved: a `.timeout(const Duration(seconds: 15))` was added (former item 8, which now only covers `weather_provider.dart`), and `latitude`/`longitude` parsing switched to `(r['latitude'] as num).toDouble()` (former item 9, removed — `trip.dart`'s convention). Note: places with no Chinese alternate name in GeoNames (e.g. some spellings of Taipei) still only match their English name — that's third-party data coverage, not app behavior.
 
 ### 1. `_l10n` getter not adopted in ~14 pages
 
@@ -478,28 +479,20 @@ Known gaps between the current code and the rules above. Each is deliberately **
 
 ### 8. Third-party HTTP calls without a timeout
 
-- **Scope**: Two direct `package:http` calls that don't go through `BaseService` (which always caps its own calls) have no `.timeout()`:
+- **Scope**: One direct `package:http` call that doesn't go through `BaseService` (which always caps its own calls) has no `.timeout()`:
   - `weather_provider.dart`'s Open-Meteo forecast fetch (`_fetchWeatherApi`).
-  - `location_picker_page.dart`'s Open-Meteo geocoding search (`_search`).
-- **Risk**: Low-medium — if the third-party request stays pending, the provider / page can sit in a loading state indefinitely. Neither call touches auth or user data, and both already have status/error handling around the response.
-- **Deferred reason**: Not on the `BaseService` path, so each needs its own timeout-UX decision (duration, error copy, retry) and its own test approach; outside the core service slice the consistency refactor covered.
-- **Trigger for revisiting**: Next time the weather or location integration is touched, or if a request-hang / stuck-loading bug is reported — add a consistent `.timeout()` and test the post-timeout UI / provider state.
+- **Risk**: Low-medium — if the third-party request stays pending, the provider can sit in a loading state indefinitely. The call doesn't touch auth or user data, and already has status/error handling around the response.
+- **Deferred reason**: Not on the `BaseService` path, so it needs its own timeout-UX decision (duration, error copy, retry) and its own test approach; outside the core service slice the consistency refactor covered.
+- **Trigger for revisiting**: Next time the weather integration is touched, or if a request-hang / stuck-loading bug is reported — add a `.timeout()` matching the project's 15s convention and test the post-timeout provider state.
 
-### 9. `location_picker_page.dart` passes raw JSON coordinates into `double` fields
-
-- **Scope**: `_search` builds `LocationResult(latitude: r['latitude'], longitude: r['longitude'], ...)` straight from the decoded Open-Meteo geocoding JSON — the `dynamic` values go into `LocationResult`'s `double` fields with no `num`-tolerant conversion. `trip.dart` parses the same fields correctly with `(json['latitude'] as num?)?.toDouble()`.
-- **Risk**: Low — Open-Meteo returns fractional coordinates in practice, but an integer-valued response would throw a `TypeError` at construction.
-- **Deferred reason**: `location_picker_page.dart` has no render/unit test, so the fix wants a parsing change plus at least a smoke test added in the same pass.
-- **Trigger for revisiting**: Next time the location picker is touched — switch to `num`-tolerant `.toDouble()` parsing and test int / double / null / malformed input.
-
-### 10. `MatchLookService.uploadReference` logs a local image path
+### 9. `MatchLookService.uploadReference` logs a local image path
 
 - **Scope**: `match_look_service.dart`'s `uploadReference` opens with `debugLog('--- uploadReference: $localImagePath ---')` — the device-local filesystem path of the user-picked image. It is not the image bytes, a data URI, or a signed URL, so it isn't a [Logging](#logging) "never log" violation, but a local path exposes device directory layout for negligible debugging value.
 - **Risk**: Low.
 - **Deferred reason**: Documentation-only pass; the one-line code fix isn't mixed into it.
 - **Trigger for revisiting**: Next time `MatchLookService` is touched — reduce the line to the method name only (`--- uploadReference ---`). New code must not log local file paths.
 
-### 11. `BaseService.decodeMap` still logs the raw error response body in debug builds
+### 10. `BaseService.decodeMap` still logs the raw error response body in debug builds
 
 - **Scope**: The recent error-handling hardening removed raw response bodies from `Exception.toString()` and production UI, but `decodeMap` still writes the full non-2xx response body to `debugLog`.
 - **Risk**: Low in release builds because `debugLog` is debug-gated, but the body can still contain backend `message`, identifiers, signed URLs, object paths, or other data that the [Logging](#logging) rules say not to log wholesale.

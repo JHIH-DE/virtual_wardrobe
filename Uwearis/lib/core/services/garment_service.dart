@@ -356,23 +356,43 @@ class GarmentService with BaseService {
     return body;
   }
 
-  /// Analyzes an already-in-the-closet garment against the user's current
-  /// full closet (`POST /garments/{id}/closet-analysis`) — a versatility
-  /// level, up to 3 outfit ideas, and up to 3 similar garments. Takes no
-  /// body; doesn't write DB — the backend recomputes it fresh on every call
-  /// (see [ClosetAnalysis]'s own doc comment). Always hits the network (an
-  /// explicit "Analyze with AI" / "Analyze Again" / refresh tap should never
-  /// silently serve a stale result) and persists the result to
-  /// [cachedClosetAnalysis]'s cache only once the call actually succeeds —
-  /// a failed refresh leaves whatever was cached before untouched. Replaced
-  /// the now-removed `POST /garments/versatility-score`, which scored a
-  /// not-yet-created garment instead of one already in the closet.
-  Future<ClosetAnalysis> closetAnalysis(int garmentId) async {
+  /// Runs the AI closet analysis via the unified `POST
+  /// /garments/closet-analysis` endpoint — a versatility level, up to 3
+  /// outfit ideas, and up to 3 similar garments (see [ClosetAnalysis]'s own
+  /// doc comment). Two modes, matching the backend's `ClosetAnalysisRequest`:
+  /// - [garmentId] set: analyzes that already-in-the-closet garment against
+  ///   the user's current full closet (Garment Details' "Analyze with AI" /
+  ///   "Analyze Again" / refresh). [fields] is ignored by the backend in
+  ///   this mode.
+  /// - [garmentId] null: [fields] carries the same category/sub_category/
+  ///   name/brand/color/thickness/formality/material/style/fit the backend
+  ///   expects for a garment that hasn't been added to the closet yet — Add
+  ///   Clothing's own "Analyze with AI" (try before deciding whether to
+  ///   actually save it). See `GarmentDetailsPage._closetAnalysisPreviewFields`.
+  ///   The target garment rides a backend-assigned sentinel id in the
+  ///   response and is never persisted or cached (there is no [garmentId] to
+  ///   cache it under).
+  ///
+  /// Doesn't write DB — the backend recomputes it fresh on every call.
+  /// Always hits the network (an explicit action should never silently serve
+  /// a stale result) and persists the result to [cachedClosetAnalysis]'s
+  /// cache only when [garmentId] is set and the call actually succeeds — a
+  /// failed refresh leaves whatever was cached before untouched. Replaced
+  /// the now-removed `POST /garments/{id}/closet-analysis` and `POST
+  /// /garments/closet-analysis-preview` endpoints.
+  Future<ClosetAnalysis> closetAnalysis(
+    int? garmentId, [
+    Map<String, dynamic>? fields,
+  ]) async {
     debugLog('--- closetAnalysis: $garmentId ---');
-    final uri = Uri.parse('$_baseUrl/$garmentId/closet-analysis');
+    final uri = Uri.parse('$_baseUrl/closet-analysis');
     final res = await withAuth(
       (token) => http
-          .post(uri, headers: authHeaders(token))
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'garment_id': garmentId, ...?fields}),
+          )
           .timeout(const Duration(seconds: 45)),
     );
     final data = _decodeClosetAnalysis(res, op: 'closetAnalysis')['data'];
@@ -383,8 +403,24 @@ class GarmentService with BaseService {
       );
     }
     final result = ClosetAnalysis.fromJson(data);
-    await _saveClosetAnalysisCache(garmentId, result);
+    if (garmentId != null) {
+      await _saveClosetAnalysisCache(garmentId, result);
+    }
     return result;
+  }
+
+  /// Promotes an Add-mode preview result (see [closetAnalysis]'s null-
+  /// [garmentId] mode) into the normal per-garment cache once the garment is
+  /// actually saved, so reopening it right after Add to Closet shows the
+  /// same result instead of requiring the user to run "Analyze with AI" all
+  /// over again — the same cache [closetAnalysis]/[cachedClosetAnalysis]
+  /// read/write, just seeded from a result the caller already has rather
+  /// than a fresh network call. [analysis] must already have its target
+  /// entries re-pointed at [garmentId]'s real data (see
+  /// `GarmentDetailsPage._retargetClosetAnalysis`) — the preview response's
+  /// own sentinel id/empty image would otherwise get cached verbatim.
+  Future<void> cacheClosetAnalysis(int garmentId, ClosetAnalysis analysis) {
+    return _saveClosetAnalysisCache(garmentId, analysis);
   }
 
   Future<void> _saveClosetAnalysisCache(
