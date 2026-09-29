@@ -48,33 +48,30 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return PopScope(
-      canPop: false,
-      child: AppDialog(
-        title: l10n.newTrip,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LabeledField(
-              label: l10n.tripNameLabel,
-              child: AppTextField(
-                controller: _tripNameController,
-                hint: l10n.tripNameHint,
-              ),
+    return AppDialog(
+      title: l10n.newTrip,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LabeledField(
+            label: l10n.tripNameLabel,
+            child: AppTextField(
+              controller: _tripNameController,
+              hint: l10n.tripNameHint,
             ),
-            const SizedBox(height: 20),
-            LabeledField(
-              label: l10n.itineraryAndDatesLabel,
-              child: TripLegsEditor(legsNotifier: _legsNotifier),
-            ),
-          ],
-        ),
-        primaryLabel: l10n.create,
-        onPrimary: _canCreate ? _submit : null,
-        secondaryLabel: l10n.cancel,
-        onSecondary: () => Navigator.pop(context),
+          ),
+          const SizedBox(height: 20),
+          LabeledField(
+            label: l10n.itineraryAndDatesLabel,
+            child: TripLegsEditor(legsNotifier: _legsNotifier),
+          ),
+        ],
       ),
+      primaryLabel: l10n.create,
+      onPrimary: _canCreate ? _submit : null,
+      secondaryLabel: l10n.cancel,
+      onSecondary: () => Navigator.pop(context),
     );
   }
 

@@ -53,7 +53,7 @@ class MainShellScope extends InheritedWidget {
 /// always knows which page they're on. Purely presentational — [onSelect]
 /// and [onQuickAction] are called with the tapped tab/action and the host
 /// (e.g. a persistent IndexedStack shell) decides what to do with them.
-class MainNavBar extends StatelessWidget {
+class MainNavBar extends StatefulWidget {
   final MainTab current;
   final ValueChanged<MainTab> onSelect;
   final ValueChanged<QuickAction> onQuickAction;
@@ -65,9 +65,19 @@ class MainNavBar extends StatelessWidget {
     required this.onQuickAction,
   });
 
+  @override
+  State<MainNavBar> createState() => _MainNavBarState();
+}
+
+class _MainNavBarState extends State<MainNavBar> {
   static const double _centerButtonSize = 56;
   static const double _notchRadius = 34;
   static const double _cornerRadius = 28;
+
+  /// Only ever true while the Home tab's quick-action menu is open — the
+  /// other tabs fire their quick action directly with no menu, so the "+"
+  /// button's icon only needs to reflect open/closed state on Home.
+  bool _menuOpen = false;
 
   @override
   Widget build(BuildContext context) {
@@ -180,10 +190,10 @@ class MainNavBar extends StatelessWidget {
     required IconData inactiveIcon,
     required String label,
   }) {
-    final isActive = tab == current;
+    final isActive = tab == widget.current;
     final color = isActive ? AppColors.accent : AppColors.textOnPrimary;
     return InkWell(
-      onTap: () => onSelect(tab),
+      onTap: () => widget.onSelect(tab),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -206,8 +216,13 @@ class MainNavBar extends StatelessWidget {
   }
 
   Widget _buildQuickActionButton(BuildContext context) {
+    final showClose = widget.current == MainTab.home && _menuOpen;
     return _QuickActionButton(
       size: _centerButtonSize,
+      icon: showClose ? Icons.close : Icons.add,
+      // Icons.close draws much closer to its glyph bounds than Icons.add,
+      // so the same nominal size reads visibly bigger — shrink it to match.
+      iconSize: showClose ? 24 : 28,
       onTap: () => _handleQuickActionTap(context),
     );
   }
@@ -217,22 +232,25 @@ class MainNavBar extends StatelessWidget {
   /// directly. Home has no single implied action, so it still shows the
   /// full menu.
   void _handleQuickActionTap(BuildContext context) {
-    final directAction = switch (current) {
+    final directAction = switch (widget.current) {
       MainTab.closet => QuickAction.addClothing,
       MainTab.outfits => QuickAction.addOutfit,
       MainTab.tripPlanner => QuickAction.newTrip,
       MainTab.home => null,
     };
     if (directAction != null) {
-      onQuickAction(directAction);
+      widget.onQuickAction(directAction);
     } else {
       _showQuickActionMenu(context);
     }
   }
 
   /// Shows the quick-action menu centered horizontally on screen (not
-  /// anchored to the button), directly above the nav bar.
+  /// anchored to the button), directly above the nav bar. Only reachable
+  /// from the Home tab (see [_handleQuickActionTap]), so the "+" button
+  /// swaps to a close "X" for its duration.
   Future<void> _showQuickActionMenu(BuildContext context) async {
+    setState(() => _menuOpen = true);
     final l10n = AppLocalizations.of(context);
     final action = await showGeneralDialog<QuickAction>(
       context: context,
@@ -295,7 +313,8 @@ class MainNavBar extends StatelessWidget {
         ),
       ),
     );
-    if (action != null) onQuickAction(action);
+    if (mounted) setState(() => _menuOpen = false);
+    if (action != null) widget.onQuickAction(action);
   }
 
   Widget _quickActionItem(
@@ -338,9 +357,16 @@ class MainNavBar extends StatelessWidget {
 /// back past full size on release for a tactile, bouncy tap response.
 class _QuickActionButton extends StatefulWidget {
   final double size;
+  final IconData icon;
+  final double iconSize;
   final VoidCallback onTap;
 
-  const _QuickActionButton({required this.size, required this.onTap});
+  const _QuickActionButton({
+    required this.size,
+    required this.icon,
+    required this.iconSize,
+    required this.onTap,
+  });
 
   @override
   State<_QuickActionButton> createState() => _QuickActionButtonState();
@@ -378,10 +404,10 @@ class _QuickActionButtonState extends State<_QuickActionButton>
               ),
             ],
           ),
-          child: const Icon(
-            Icons.add,
+          child: Icon(
+            widget.icon,
             color: AppColors.textOnPrimary,
-            size: 28,
+            size: widget.iconSize,
           ),
         ),
       ),

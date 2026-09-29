@@ -57,7 +57,6 @@ Future<void> handleCreateTrip(
 
   final input = await showDialog<Trip>(
     context: context,
-    barrierDismissible: false,
     builder: (_) => const TripCreateDialog(),
   );
   if (input == null || !context.mounted) return;

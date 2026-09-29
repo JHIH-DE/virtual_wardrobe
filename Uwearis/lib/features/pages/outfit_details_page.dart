@@ -1091,6 +1091,33 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     };
   }
 
+  /// Fixed display order for the garment list: categories not in this list
+  /// (e.g. one-piece, socks) sort after the ones that are, keeping their
+  /// relative order stable.
+  static const List<GarmentCategory> _garmentCategoryDisplayOrder = [
+    GarmentCategory.top,
+    GarmentCategory.bottom,
+    GarmentCategory.outer,
+    GarmentCategory.shoes,
+    GarmentCategory.accessory,
+  ];
+
+  List<Garment> _sortGarmentsByCategory(Iterable<Garment> garments) {
+    int rank(Garment g) {
+      final index = _garmentCategoryDisplayOrder.indexOf(g.category);
+      return index == -1 ? _garmentCategoryDisplayOrder.length : index;
+    }
+
+    // Indexed sort (rather than List.sort directly) keeps garments with the
+    // same category in their original order — List.sort isn't stable.
+    final indexed = garments.toList();
+    final order = List<int>.generate(indexed.length, (i) => i)..sort((a, b) {
+      final cmp = rank(indexed[a]).compareTo(rank(indexed[b]));
+      return cmp != 0 ? cmp : a.compareTo(b);
+    });
+    return [for (final i in order) indexed[i]];
+  }
+
   /// Loads [_current]'s garments. Called from several places that don't
   /// coordinate with each other (`initState`, [_loadGroupOutfits] once it
   /// resolves, version swipe/create/delete) — most of them end up wanting
@@ -1141,7 +1168,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
       if (mounted) {
         setState(() {
-          _garments = results.whereType<Garment>().toList();
+          _garments = _sortGarmentsByCategory(results.whereType<Garment>());
           _loadedGarmentIds = idsToLoad;
         });
       }
