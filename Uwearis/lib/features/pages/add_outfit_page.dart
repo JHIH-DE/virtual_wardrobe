@@ -28,8 +28,6 @@ import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
-import '../widgets/common/edge_fade_mask.dart';
-import '../widgets/common/expand_arrow_icon.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
@@ -41,6 +39,7 @@ import '../widgets/common/overlays/occasion_picker_sheet.dart';
 import '../widgets/common/overlays/photo_source_dialog.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
+import '../widgets/outfit/outfit_background_section.dart';
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
@@ -160,9 +159,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   static const int _maxAccessories = 4;
 
-  // Whether the collapsible "BACKGROUND" section below "Your Outfit" is
-  // open — see [_buildBackgroundSectionHeader].
-  bool _backgroundExpanded = false;
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
   BackgroundOption _background = BackgroundOption.all.first;
@@ -170,8 +166,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   // has a concrete default, so this is the only way to tell "picked
   // Fitting Room on purpose" apart from "never opened the picker".
   bool _backgroundCustomized = false;
-
-  final ScrollController _backgroundScrollController = ScrollController();
 
   // "Complete with AI" state — garment ids the user has locked (AI must keep
   // them), ids the AI has already recommended and the user then moved past
@@ -374,12 +368,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         _startMatchALookFlow(initialImagePath: sharedPath);
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _backgroundScrollController.dispose();
-    super.dispose();
   }
 
   _OutfitSelection _buildInitialOutfit(List<Garment> garments) {
@@ -751,20 +739,15 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         ),
       ),
       const SizedBox(height: AppDimens.sectionSpacing),
-      _hInset(_buildBackgroundSectionHeader()),
-      AnimatedCrossFade(
-        key: const ValueKey('backgroundSection'),
-        duration: const Duration(milliseconds: 150),
-        crossFadeState: _backgroundExpanded
-            ? CrossFadeState.showFirst
-            : CrossFadeState.showSecond,
-        firstChild: Column(
-          children: [
-            const SizedBox(height: AppDimens.cardHeaderGap),
-            _buildBackgroundSelector(),
-          ],
-        ),
-        secondChild: const SizedBox.shrink(),
+      OutfitBackgroundSection(
+        selected: _background,
+        horizontalInset: _createFlowInset,
+        onSelected: isOutfitLoading
+            ? null
+            : (background) => setState(() {
+                _background = background;
+                _backgroundCustomized = true;
+              }),
       ),
       const SizedBox(height: AppDimens.sectionSpacing),
       _hInset(
@@ -1422,205 +1405,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     } finally {
       if (mounted) setState(() => _isCompletingWithAi = false);
     }
-  }
-
-  /// Tappable "BACKGROUND" header — collapsed by default.
-  Widget _buildBackgroundSectionHeader() => _collapsibleSectionHeader(
-    label: _l10n.backgroundLabel.toUpperCase(),
-    expanded: _backgroundExpanded,
-    onToggle: () => setState(() => _backgroundExpanded = !_backgroundExpanded),
-    trailing: _backgroundExpanded
-        ? null
-        : _sectionSummaryText(_background.label),
-  );
-
-  /// The grey one-line summary shown in a collapsed
-  /// [_collapsibleSectionHeader] — OUTFIT CONTEXT's "Casual · 16°C",
-  /// BACKGROUND's selected preset name.
-  Widget _sectionSummaryText(String text) => Text(
-    text,
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-    style: AppTextStyle.regular12.copyWith(color: AppColors.textSecondary),
-  );
-
-  /// Shared "FieldLabel + expand arrow" tappable header behind the create
-  /// flow's two collapsible sections (OUTFIT CONTEXT and BACKGROUND).
-  /// [trailing] sits just before the arrow — used for each section's
-  /// collapsed-state summary.
-  Widget _collapsibleSectionHeader({
-    required String label,
-    required bool expanded,
-    required VoidCallback onToggle,
-    Widget? trailing,
-  }) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onToggle,
-      child: Row(
-        children: [
-          FieldLabel(label),
-          const SizedBox(width: 12),
-          Expanded(
-            child: trailing == null
-                ? const SizedBox.shrink()
-                : Align(alignment: Alignment.centerRight, child: trailing),
-          ),
-          const SizedBox(width: 8),
-          ExpandArrowIcon(expanded: expanded),
-        ],
-      ),
-    );
-  }
-
-  /// Horizontally swipeable row of bundled background photos — tapping one
-  /// selects it immediately, no separate picker page needed since there
-  /// are only a handful of backgrounds.
-  Widget _buildBackgroundSelector() {
-    return SizedBox(
-      height: 170,
-      child: EdgeFadeMask(
-        controller: _backgroundScrollController,
-        child: ListView.separated(
-          controller: _backgroundScrollController,
-          scrollDirection: Axis.horizontal,
-          // The row is full-bleed; keep the first/last card at the page
-          // inset.
-          padding: const EdgeInsets.symmetric(horizontal: _createFlowInset),
-          itemCount: BackgroundOption.all.length,
-          separatorBuilder: (_, _) =>
-              const SizedBox(width: _backgroundCardSpacing),
-          itemBuilder: (context, i) =>
-              _buildBackgroundCard(BackgroundOption.all[i], i),
-        ),
-      ),
-    );
-  }
-
-  static const _backgroundCardWidth = 120.0;
-  // Matched to the "Your Outfit" row's card gap.
-  static const _backgroundCardSpacing = AppDimens.cardSpacing;
-
-  /// Scrolls so the just-selected background at [index] is fully in view,
-  /// centered in the row — tapping a card near either edge would otherwise
-  /// leave it half cut off under the fade scrim.
-  void _centerBackgroundCard(int index) {
-    if (!_backgroundScrollController.hasClients) return;
-    final position = _backgroundScrollController.position;
-    final itemStart =
-        _createFlowInset +
-        index * (_backgroundCardWidth + _backgroundCardSpacing);
-    final target =
-        itemStart - (position.viewportDimension - _backgroundCardWidth) / 2;
-    _backgroundScrollController.animateTo(
-      target.clamp(0.0, position.maxScrollExtent),
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
-  }
-
-  /// Selected-state treatment (foreground border + checkmark badge) mirrors
-  /// `GarmentCard`'s selected styling, so the same "picked" affordance reads
-  /// consistently across the app.
-  Widget _buildBackgroundCard(BackgroundOption background, int index) {
-    final isSelected = background.id == _background.id;
-    return GestureDetector(
-      onTap: isOutfitLoading
-          ? null
-          : () {
-              setState(() {
-                _background = background;
-                _backgroundCustomized = true;
-              });
-              _centerBackgroundCard(index);
-            },
-      child: SizedBox(
-        width: _backgroundCardWidth,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadowResting,
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          // Painted after the child (unlike `decoration`), so this stays
-          // visible over the photo instead of being covered by it.
-          foregroundDecoration: isSelected
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderStrong, width: 1.5),
-                )
-              : null,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(background.assetPath, fit: BoxFit.cover),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, AppColors.scrimBackdrop],
-                      ),
-                    ),
-                    child: Text(
-                      background.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyle.bold12.copyWith(
-                        color: AppColors.textOnPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.accent : AppColors.surface,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.shadowResting,
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: isSelected
-                        ? const Icon(
-                            Icons.check,
-                            color: AppColors.textOnPrimary,
-                            size: 14,
-                          )
-                        : null,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   /// Create Outfit is always shown in the create flow now — if Top/Bottom/

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/debug_log.dart';
 import 'app_spinner.dart';
 
 /// A [CachedNetworkImage] that self-heals once when [imageUrl] fails to load
@@ -135,8 +136,9 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
         setState(() => _url = fresh);
         widget.onUrlRefreshed?.call(oldUrl, fresh);
       }
-    } catch (_) {
+    } catch (e) {
       // Leave the existing (broken) URL — the error state below covers it.
+      debugLog('RefreshableNetworkImage: onRefreshUrl failed: $e');
     } finally {
       _refreshing = false;
     }
@@ -151,6 +153,13 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
   @override
   Widget build(BuildContext context) {
     return CachedNetworkImage(
+      // Keyed by the actual URL (on top of widget.cacheKey, which stays
+      // fixed across a self-heal so the retry logic above keeps working) —
+      // without this, Flutter's ImageProvider/ImageCache can treat a post-
+      // refresh CachedNetworkImage as "the same image" as the one that just
+      // failed (same cacheKey) and replay its cached error instead of
+      // actually fetching the new URL.
+      key: ValueKey('${widget.cacheKey}::$_url'),
       imageUrl: _url,
       cacheKey: widget.cacheKey,
       width: widget.width,

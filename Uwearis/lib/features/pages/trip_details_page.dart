@@ -562,7 +562,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
     // See _skipPlanRefreshOnNextPop's doc comment.
     _skipPlanRefreshOnNextPop = true;
-    final result = await Navigator.push<Set<int>>(
+    final result = await Navigator.push<OutfitEditResult>(
       context,
       MaterialPageRoute(
         builder: (_) => OutfitEditPage(
@@ -579,7 +579,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       final newGarments = await TripService().updateOptionItems(
         int.parse(_trip.id),
         optionId: optionId,
-        garmentIds: result.toList(),
+        garmentIds: result.garmentIds.toList(),
       );
       if (!mounted) return;
       setState(() {

@@ -517,6 +517,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               onAnalyze: _runClosetAnalysis,
               onRefresh: _refreshClosetAnalysis,
               onGarmentTap: _openAiGarmentDetail,
+              onGarmentImageRefreshed: _onOutfitIdeaImageRefreshed,
               targetImageOverride: _isAddMode ? _imagePathOrUrl : null,
             ),
           ),
@@ -786,6 +787,55 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       if (cached != null) _closetAnalysis = cached;
       _isAnalyzingCloset = false;
     });
+  }
+
+  /// Called when an Outfit Ideas / Similar Garments thumbnail's own self-heal
+  /// (see [GarmentImage.onUrlRefreshed]) picks up a working replacement URL
+  /// for [garmentId] — [_closetAnalysis]'s persisted cache has no TTL of its
+  /// own (see [_loadCachedClosetAnalysis]), so without this every future
+  /// read of that cache (this session's next visit to this page, or after an
+  /// app restart) would keep re-serving the same already-expired URL and
+  /// repeat the same expired-URL failure this fix is meant to skip.
+  void _onOutfitIdeaImageRefreshed(int garmentId, String freshUrl) {
+    final analysis = _closetAnalysis;
+    final id = _id;
+    if (analysis == null || id == null) return;
+    final updated = _withRefreshedGarmentImage(analysis, garmentId, freshUrl);
+    setState(() => _closetAnalysis = updated);
+    GarmentService().cacheClosetAnalysis(id, updated);
+  }
+
+  /// Returns a copy of [analysis] with every [ClosetAnalysisGarment] entry
+  /// matching [garmentId] (it may appear in more than one outfit idea, plus
+  /// possibly Similar in Your Closet) pointed at [freshUrl] instead of its
+  /// original, now-expired one.
+  ClosetAnalysis _withRefreshedGarmentImage(
+    ClosetAnalysis analysis,
+    int garmentId,
+    String freshUrl,
+  ) {
+    ClosetAnalysisGarment refreshIfMatch(ClosetAnalysisGarment g) {
+      if (g.garmentId != garmentId) return g;
+      return ClosetAnalysisGarment(
+        garmentId: g.garmentId,
+        category: g.category,
+        name: g.name,
+        imageUrl: freshUrl,
+        isTarget: g.isTarget,
+      );
+    }
+
+    return ClosetAnalysis(
+      versatility: analysis.versatility,
+      outfitIdeas: [
+        for (final idea in analysis.outfitIdeas)
+          ClosetAnalysisOutfitIdea(
+            title: idea.title,
+            garments: idea.garments.map(refreshIfMatch).toList(),
+          ),
+      ],
+      similarGarments: analysis.similarGarments.map(refreshIfMatch).toList(),
+    );
   }
 
   /// Re-runs the closet analysis for a garment that already has a result —
@@ -1442,6 +1492,12 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
   final VoidCallback onRefresh;
   final void Function(int garmentId) onGarmentTap;
 
+  /// Fires when a thumbnail's own self-heal (see [GarmentImage.onUrlRefreshed])
+  /// picks up a working replacement URL for a garment — lets the caller fold
+  /// it back into its own longer-lived copy of [analysis] (this card itself
+  /// only ever reads a snapshot passed in from above).
+  final void Function(int garmentId, String freshUrl) onGarmentImageRefreshed;
+
   /// Add mode only: the target garment's own [ClosetAnalysisGarment.imageUrl]
   /// is always empty (the backend preview endpoint has no persisted photo for
   /// it) — shown instead via the same local photo already on screen on this
@@ -1456,6 +1512,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
     required this.onAnalyze,
     required this.onRefresh,
     required this.onGarmentTap,
+    required this.onGarmentImageRefreshed,
     this.targetImageOverride,
   });
 
@@ -1584,6 +1641,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
               ideas[i].garments,
               onGarmentTap: onGarmentTap,
               targetImageOverride: targetImageOverride,
+              onImageUrlRefreshed: onGarmentImageRefreshed,
             ),
           ],
         ],
@@ -1595,6 +1653,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
             similar,
             onGarmentTap: onGarmentTap,
             targetImageOverride: targetImageOverride,
+            onImageUrlRefreshed: onGarmentImageRefreshed,
           ),
         ],
       ],
@@ -1630,6 +1689,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
     List<ClosetAnalysisGarment> garments, {
     void Function(int garmentId)? onGarmentTap,
     String? targetImageOverride,
+    void Function(int garmentId, String freshUrl)? onImageUrlRefreshed,
   }) {
     return SizedBox(
       height: _AiGarmentThumb.size,
@@ -1647,6 +1707,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
             garment: g,
             targetImageOverride: targetImageOverride,
             onTap: canOpen ? () => onGarmentTap(g.garmentId) : null,
+            onImageUrlRefreshed: onImageUrlRefreshed,
           );
         },
       ),
@@ -1694,7 +1755,7 @@ class _VersatilityLevelBar extends StatelessWidget {
 /// as "this one" within an outfit idea without adding visual complexity.
 /// [onTap] opens the same [GarmentDetailDialog] Outfit Details' own garment
 /// list uses; leave it null for a non-interactive thumbnail.
-class _AiGarmentThumb extends StatelessWidget {
+class _AiGarmentThumb extends StatefulWidget {
   final ClosetAnalysisGarment garment;
   final VoidCallback? onTap;
 
@@ -1703,22 +1764,122 @@ class _AiGarmentThumb extends StatelessWidget {
   /// own (the preview-mode case).
   final String? targetImageOverride;
 
+  /// See [_UwearisAiAnalysisCard.onGarmentImageRefreshed].
+  final void Function(int garmentId, String freshUrl)? onImageUrlRefreshed;
+
   const _AiGarmentThumb({
     required this.garment,
     this.onTap,
     this.targetImageOverride,
+    this.onImageUrlRefreshed,
   });
 
   static const double size = 64;
 
   @override
+  State<_AiGarmentThumb> createState() => _AiGarmentThumbState();
+}
+
+class _AiGarmentThumbState extends State<_AiGarmentThumb> {
+  /// Non-null while this tile's [ClosetAnalysisGarment.imageUrl] is a signed
+  /// URL that's *already known* to be expired (e.g. restored from
+  /// [GarmentDetailsPage]'s untimeboxed persisted closet-analysis cache —
+  /// see `_loadCachedClosetAnalysis`'s doc comment). Rather than handing that
+  /// URL to [GarmentImage] knowing it will fail and flash the broken-image
+  /// icon before [GarmentImage]'s own reactive self-heal kicks in, this pre-
+  /// fetches a fresh one first and shows a blank placeholder (matching
+  /// [AppImage]'s own loading treatment) in the meantime.
+  Future<String?>? _preRefresh;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeStartPreRefresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AiGarmentThumb oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.garment.imageUrl != oldWidget.garment.imageUrl) {
+      _maybeStartPreRefresh();
+    }
+  }
+
+  void _maybeStartPreRefresh() {
+    final id = widget.garment.garmentId;
+    final url = widget.garment.imageUrl;
+    final knownExpired =
+        id > 0 &&
+        url.isNotEmpty &&
+        url.startsWith('http') &&
+        isSignedUrlExpired(url);
+    _preRefresh = knownExpired ? _fetchFreshUrl(id, url) : null;
+  }
+
+  Future<String?> _fetchFreshUrl(int id, String staleUrl) async {
+    try {
+      final fresh = await GarmentService().getGarment(
+        id,
+        includeDeleted: true,
+      );
+      final freshUrl = fresh.imageUrl;
+      if (freshUrl != null && freshUrl.isNotEmpty && freshUrl != staleUrl) {
+        widget.onImageUrlRefreshed?.call(id, freshUrl);
+        return freshUrl;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildImage(String? url) {
+    final garment = widget.garment;
+    return GarmentImage(
+      url: url,
+      garmentId: garment.garmentId > 0 ? garment.garmentId : null,
+      // Width only — pinning both forces a non-square source to decode
+      // squashed into a square.
+      memCacheWidth: 160,
+      fit: BoxFit.contain,
+      onUrlRefreshed: widget.onImageUrlRefreshed == null
+          ? null
+          : (_, newUrl) =>
+                widget.onImageUrlRefreshed!(garment.garmentId, newUrl),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final url = garment.isTarget && garment.imageUrl.isEmpty
-        ? targetImageOverride
-        : garment.imageUrl;
+    final garment = widget.garment;
+    final preRefresh = _preRefresh;
+    final Widget image;
+    if (preRefresh != null) {
+      image = FutureBuilder<String?>(
+        future: preRefresh,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const SizedBox.shrink();
+          }
+          final resolved = snapshot.data;
+          return _buildImage(
+            resolved != null && resolved.isNotEmpty
+                ? resolved
+                : garment.imageUrl,
+          );
+        },
+      );
+    } else {
+      image = _buildImage(
+        garment.isTarget && garment.imageUrl.isEmpty
+            ? widget.targetImageOverride
+            : garment.imageUrl,
+      );
+    }
     final thumb = Container(
-      width: size,
-      height: size,
+      width: _AiGarmentThumb.size,
+      height: _AiGarmentThumb.size,
+      padding: const EdgeInsets.all(6),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -1728,18 +1889,12 @@ class _AiGarmentThumb extends StatelessWidget {
           width: garment.isTarget ? 1.5 : 1,
         ),
       ),
-      child: GarmentImage(
-        url: url,
-        garmentId: garment.garmentId > 0 ? garment.garmentId : null,
-        memCacheWidth: 128,
-        memCacheHeight: 128,
-        fit: BoxFit.cover,
-      ),
+      child: image,
     );
-    if (onTap == null) return thumb;
+    if (widget.onTap == null) return thumb;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: widget.onTap,
       child: thumb,
     );
   }

@@ -56,15 +56,15 @@ class AppImage extends StatelessWidget {
     this.borderRadius = 0,
   });
 
-  // Image.file decodes to an EXACT cacheWidth x cacheHeight when both are
-  // given, silently squishing any source whose aspect ratio doesn't already
-  // match that box — unlike the network branch above, where
-  // cached_network_image's own memCacheWidth/memCacheHeight resize doesn't
-  // distort non-square sources the same way. Passing only one dimension
-  // lets Flutter derive the other proportionally instead; `fit` still crops
-  // the (correctly-proportioned) result into the target box.
-  int? get _localCacheWidth => memCacheWidth;
-  int? get _localCacheHeight => memCacheWidth == null ? memCacheHeight : null;
+  // Both Image.file's cacheWidth/cacheHeight and cached_network_image's
+  // memCacheWidth/memCacheHeight (a ResizeImage with ResizePolicy.exact)
+  // decode to an EXACT width x height when both are given, silently
+  // squishing any source whose aspect ratio doesn't already match that box.
+  // Passing only one dimension lets Flutter derive the other proportionally
+  // instead; `fit` still crops the (correctly-proportioned) result into the
+  // target box.
+  int? get _decodeWidth => memCacheWidth;
+  int? get _decodeHeight => memCacheWidth == null ? memCacheHeight : null;
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +83,8 @@ class AppImage extends StatelessWidget {
         cacheKey: cacheKey,
         width: width,
         height: height,
-        memCacheWidth: memCacheWidth,
-        memCacheHeight: memCacheHeight,
+        memCacheWidth: _decodeWidth,
+        memCacheHeight: _decodeHeight,
         fit: fit,
         // Plain white background instead of a per-tile loading spinner —
         // quieter for dense grids/lists — with a quick cross-fade once the
@@ -101,8 +101,8 @@ class AppImage extends StatelessWidget {
         File.fromUri(Uri.parse(u)),
         width: width,
         height: height,
-        cacheWidth: _localCacheWidth,
-        cacheHeight: _localCacheHeight,
+        cacheWidth: _decodeWidth,
+        cacheHeight: _decodeHeight,
         fit: fit,
       );
     } else {
@@ -110,8 +110,8 @@ class AppImage extends StatelessWidget {
         File(u),
         width: width,
         height: height,
-        cacheWidth: _localCacheWidth,
-        cacheHeight: _localCacheHeight,
+        cacheWidth: _decodeWidth,
+        cacheHeight: _decodeHeight,
         fit: fit,
       );
     }

@@ -16,7 +16,10 @@ class GarmentImage extends StatelessWidget {
 
   /// When set, a load failure triggers one refetch of this garment from
   /// the backend to pick up a freshly-signed image URL (e.g. the cached one
-  /// expired). Leave null to skip the retry (no ID available to refetch).
+  /// expired, or this id came from a closet-analysis result — outfit ideas /
+  /// similar garments — that was persisted before the garment got deleted;
+  /// see [GarmentService.getGarment]'s `includeDeleted` doc). Leave null to
+  /// skip the retry (no ID available to refetch).
   final int? garmentId;
   final double? width;
   final double? height;
@@ -28,6 +31,13 @@ class GarmentImage extends StatelessWidget {
   final BoxFit fit;
   final double borderRadius;
 
+  /// See [AppImage.onUrlRefreshed] — fires once self-heal picks up a working
+  /// replacement URL. A caller that holds its own longer-lived copy of this
+  /// garment's image URL (e.g. a persisted closet-analysis result) should
+  /// use this to fold the fresh URL back in, or it keeps re-serving the
+  /// expired one on every future read of that copy.
+  final void Function(String oldUrl, String newUrl)? onUrlRefreshed;
+
   const GarmentImage({
     super.key,
     required this.url,
@@ -38,6 +48,7 @@ class GarmentImage extends StatelessWidget {
     this.memCacheHeight,
     this.fit = BoxFit.cover,
     this.borderRadius = 0,
+    this.onUrlRefreshed,
   });
 
   @override
@@ -60,9 +71,19 @@ class GarmentImage extends StatelessWidget {
       onRefreshUrl: id == null
           ? null
           : () async {
-              final fresh = await GarmentService().getGarment(id);
+              // includeDeleted: true — this id may come from a persisted
+              // closet-analysis result (outfit ideas / similar garments)
+              // that's older than the garment's own since-deleted state;
+              // without it, getGarment 404s instead of returning the still-
+              // resolvable fresh URL (mirrors _openAiGarmentDetail's own
+              // lookup for the same data).
+              final fresh = await GarmentService().getGarment(
+                id,
+                includeDeleted: true,
+              );
               return fresh.imageUrl;
             },
+      onUrlRefreshed: onUrlRefreshed,
       width: width,
       height: height,
       memCacheWidth: memCacheWidth,

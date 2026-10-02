@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../data/background_option.dart';
 import '../../data/garment.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -14,6 +15,7 @@ import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/garment/garment_image.dart';
+import '../widgets/outfit/outfit_background_section.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
 /// The page's own identity for each garment slot — distinct from
@@ -76,17 +78,24 @@ class _OutfitSelection {
   }
 }
 
+/// What [OutfitEditPage] pops on Confirm. [backgroundId] is only set when
+/// the page was opened with `showBackgroundPicker` and there's a background
+/// worth sending (see [_OutfitEditPageState._resultBackgroundId]); `null`
+/// leaves it to the backend's default.
+typedef OutfitEditResult = ({Set<int> garmentIds, int? backgroundId});
+
 /// Lets the user pick which garments from a fixed pool (e.g. a trip's
 /// suitcase, or the whole closet) make up an outfit — the "Change Garments"
 /// flow off [TripDetailsPage]'s day header, and Outfit Details' "Create
-/// Another Version" picker. Pops the selected garment ids as a `Set<int>` on
-/// Confirm; `null` if the user backs out without confirming.
+/// Another Version" picker. Pops an [OutfitEditResult] on Confirm; `null` if
+/// the user backs out without confirming.
 ///
 /// Same "Add garment" vertical-list UI as `AddOutfitPage`'s create flow — a
 /// pinned "Add garment" row plus one card per current pick, tapping any card
 /// reopens the picker to swap it — this page just has no AI/try-on/
-/// background/Match-a-Look concepts, and draws from a fixed
-/// [preloadedGarments] pool instead of the app-wide closet.
+/// Match-a-Look concepts, and draws from a fixed [preloadedGarments] pool
+/// instead of the app-wide closet. The BACKGROUND section is opt-in via
+/// [showBackgroundPicker], since only the new-version flow renders an image.
 class OutfitEditPage extends StatefulWidget {
   final List<Garment> initialGarments;
 
@@ -106,6 +115,16 @@ class OutfitEditPage extends StatefulWidget {
   /// reads as a different flow from there.
   final String? title;
 
+  /// Shows Create Outfit's BACKGROUND section — Outfit Details' "+ New
+  /// Version" flow, whose result is AI-rendered. Trip's "Change Garments"
+  /// only swaps garment ids and leaves it off.
+  final bool showBackgroundPicker;
+
+  /// The background preselected when [showBackgroundPicker] is on — the
+  /// version being branched from, so a new version keeps its scene unless
+  /// the user changes it.
+  final int? initialBackgroundId;
+
   const OutfitEditPage({
     super.key,
     this.initialGarments = const [],
@@ -113,6 +132,8 @@ class OutfitEditPage extends StatefulWidget {
     this.onBack,
     this.validGarmentIds,
     this.title,
+    this.showBackgroundPicker = false,
+    this.initialBackgroundId,
   });
 
   @override
@@ -128,6 +149,12 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
 
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
+
+  // The preset matching [OutfitEditPage.initialBackgroundId], or null when
+  // there's none (no id, or one outside [BackgroundOption.all]).
+  BackgroundOption? _initialBackground;
+  late BackgroundOption _background;
+  bool _backgroundCustomized = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -160,7 +187,8 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         sameSlot(_outfit.bottom, _initialOutfit.bottom) &&
         sameSlot(_outfit.onePiece, _initialOutfit.onePiece) &&
         sameSlot(_outfit.shoes, _initialOutfit.shoes) &&
-        setEquals(_accessoryIds, _initialAccessoryIds));
+        setEquals(_accessoryIds, _initialAccessoryIds) &&
+        !_backgroundCustomized);
   }
 
   bool get _showsBottomActionButton => _hasSelection && _isModified;
@@ -178,6 +206,10 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         ..addAll(_buildInitialAccessories(widget.initialGarments));
     }
     _initialAccessoryIds = _accessoryIds;
+    _initialBackground = BackgroundOption.all
+        .where((b) => b.backgroundId == widget.initialBackgroundId)
+        .firstOrNull;
+    _background = _initialBackground ?? BackgroundOption.all.first;
   }
 
   _OutfitSelection _buildInitialOutfit(List<Garment> garments) {
@@ -356,6 +388,15 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     return {...coreIds, ...accessoryIds}.toList();
   }
 
+  /// Mirrors Create Outfit: an untouched default (no matching initial
+  /// background) sends nothing, so the backend picks its own default rather
+  /// than us asserting Fitting Room.
+  int? get _resultBackgroundId {
+    if (!widget.showBackgroundPicker) return null;
+    if (!_backgroundCustomized && _initialBackground == null) return null;
+    return _background.backgroundId;
+  }
+
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: widget.title ?? _l10n.selectGarmentsTitle,
@@ -372,27 +413,50 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
       body: ListView(
         physics: const ClampingScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
-          20,
+          0,
           24,
-          20,
+          0,
           _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 24,
         ),
         children: [
-          _buildInstructions(),
+          _hInset(_buildInstructions()),
           const SizedBox(height: AppDimens.sectionSpacing),
-          FieldLabel(_l10n.yourOutfitLabel.toUpperCase()),
+          if (widget.showBackgroundPicker) ...[
+            OutfitBackgroundSection(
+              selected: _background,
+              horizontalInset: _pageInset,
+              onSelected: (background) => setState(() {
+                _background = background;
+                _backgroundCustomized =
+                    background.id !=
+                    (_initialBackground ?? BackgroundOption.all.first).id;
+              }),
+            ),
+            const SizedBox(height: AppDimens.sectionSpacing),
+          ],
+          _hInset(FieldLabel(_l10n.yourOutfitLabel.toUpperCase())),
           const SizedBox(height: AppDimens.cardHeaderGap),
-          _buildYourOutfitRow(),
+          _hInset(_buildYourOutfitRow()),
         ],
       ),
       bottomNavigationBar: _buildBottomBar(),
     );
   }
 
+  static const double _pageInset = 20;
+
+  Widget _hInset(Widget child) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: _pageInset),
+    child: child,
+  );
+
   Widget _buildBottomBar() {
     return BottomActionButton(
       label: _l10n.confirm,
-      onPressed: () => Navigator.pop(context, _selectedGarmentIds().toSet()),
+      onPressed: () => Navigator.pop<OutfitEditResult>(context, (
+        garmentIds: _selectedGarmentIds().toSet(),
+        backgroundId: _resultBackgroundId,
+      )),
       enabled: _showsBottomActionButton,
     );
   }

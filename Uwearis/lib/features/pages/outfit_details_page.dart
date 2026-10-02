@@ -406,18 +406,23 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
       if (!context.mounted) return;
-      final result = await Navigator.push<Set<int>>(
+      final result = await Navigator.push<OutfitEditResult>(
         context,
         MaterialPageRoute(
           builder: (_) => OutfitEditPage(
             initialGarments: _garments ?? const [],
             preloadedGarments: closet,
             title: _l10n.addVersionTitle,
+            showBackgroundPicker: true,
+            initialBackgroundId: _current.backgroundId,
           ),
         ),
       );
-      if (result == null || result.isEmpty || !mounted) return;
-      await _createVersionFromGarmentIds(result.toList());
+      if (result == null || result.garmentIds.isEmpty || !mounted) return;
+      await _createVersionFromGarmentIds(
+        result.garmentIds.toList(),
+        backgroundId: result.backgroundId,
+      );
     } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
@@ -436,12 +441,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// resulting [Outfit] to [_versions]. Re-entrancy is already covered by
   /// the caller's [_isOpeningTryOn] guard; [_isCreatingVersion] here is
   /// purely the visual "generating" flag.
-  Future<void> _createVersionFromGarmentIds(List<int> garmentIds) async {
+  Future<void> _createVersionFromGarmentIds(
+    List<int> garmentIds, {
+    int? backgroundId,
+  }) async {
     setState(() => _isCreatingVersion = true);
     try {
       final outfit = await OutfitService().generateOutfit(
         garmentIds: garmentIds,
         groupId: _current.groupId,
+        backgroundId: backgroundId,
       );
       if (!mounted) return;
       setState(() {
@@ -1111,10 +1120,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     // Indexed sort (rather than List.sort directly) keeps garments with the
     // same category in their original order — List.sort isn't stable.
     final indexed = garments.toList();
-    final order = List<int>.generate(indexed.length, (i) => i)..sort((a, b) {
-      final cmp = rank(indexed[a]).compareTo(rank(indexed[b]));
-      return cmp != 0 ? cmp : a.compareTo(b);
-    });
+    final order = List<int>.generate(indexed.length, (i) => i)
+      ..sort((a, b) {
+        final cmp = rank(indexed[a]).compareTo(rank(indexed[b]));
+        return cmp != 0 ? cmp : a.compareTo(b);
+      });
     return [for (final i in order) indexed[i]];
   }
 
