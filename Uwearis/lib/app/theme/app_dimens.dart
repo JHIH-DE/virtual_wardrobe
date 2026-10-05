@@ -87,4 +87,12 @@ abstract class AppDimens {
   // being hidden behind it.
   static const double mainNavBarClearance = 95;
   static const double bottomActionBtnClearance = 85;
+
+  // ActionButton — the full-width pill CTA (BottomActionButton's own button,
+  // and the tinted in-page variant). Height was an overridable 56 once; the
+  // one shorter call site's 48 is now the fixed height everywhere.
+  static const double actionButtonHeight = 48;
+  static const double actionButtonRadius = 100;
+  static const double actionButtonBorderWidth = 1.5;
+  static const double actionButtonIconGap = 8;
 }

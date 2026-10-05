@@ -157,6 +157,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteAccount => '刪除帳號';
 
   @override
+  String get tierGold => '金牌';
+
+  @override
+  String get tierSilver => '銀牌';
+
+  @override
+  String get tierBronze => '銅牌';
+
+  @override
   String get deleteAccountConfirmTitle => '確定要刪除帳號嗎？';
 
   @override
@@ -878,6 +887,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get analyzeAgain => '重新分析';
 
   @override
+  String get closetMatch => '衣櫥匹配度';
+
+  @override
+  String get viewClosetMatch => '查看衣櫥匹配度';
+
+  @override
   String get closetAnalysisFailed => '分析失敗，請再試一次。';
 
   @override
@@ -885,11 +900,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get versatilityDescription => '這件單品跟你衣櫃的搭配度。';
-
-  @override
-  String versatilityLevelValue(int level) {
-    return '等級 $level';
-  }
 
   @override
   String get versatilityBandVeryLimited => '非常有限';
@@ -908,6 +918,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get outfitIdeasHeading => '穿搭靈感';
+
+  @override
+  String outfitIdeaNumber(int number) {
+    return '穿搭 $number';
+  }
+
+  @override
+  String get tryItOn => '試穿看看';
 
   @override
   String get similarInClosetHeading => '衣櫃中的相似單品';
@@ -940,6 +958,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fitLabel => '版型';
 
   @override
+  String get fitSkinny => '緊身';
+
+  @override
   String get fitSlim => '修身';
 
   @override
@@ -950,6 +971,84 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fitOversized => '寬鬆';
+
+  @override
+  String get silhouetteLabel => '形狀';
+
+  @override
+  String get sleeveLengthLabel => '袖長';
+
+  @override
+  String get cropLengthLabel => '下身長度';
+
+  @override
+  String get silhouetteStraight => '直筒';
+
+  @override
+  String get silhouetteBoxy => '方正短寬';
+
+  @override
+  String get silhouetteLongline => '長版';
+
+  @override
+  String get silhouetteCropped => '短版';
+
+  @override
+  String get silhouetteCocoon => '繭型';
+
+  @override
+  String get silhouetteTapered => '錐形';
+
+  @override
+  String get silhouetteBalloon => '氣球褲';
+
+  @override
+  String get silhouetteJogger => '束口';
+
+  @override
+  String get silhouetteFlared => '喇叭／傘擺';
+
+  @override
+  String get silhouettePencil => '窄裙';
+
+  @override
+  String get silhouetteALine => 'A 字';
+
+  @override
+  String get silhouettePleated => '百褶';
+
+  @override
+  String get silhouetteShift => '直身';
+
+  @override
+  String get silhouetteFitAndFlare => '收腰傘擺';
+
+  @override
+  String get sleeveSleeveless => '無袖';
+
+  @override
+  String get sleeveShort => '短袖';
+
+  @override
+  String get sleeveThreeQuarter => '五分／七分袖';
+
+  @override
+  String get sleeveLong => '長袖';
+
+  @override
+  String get cropFullLength => '全長';
+
+  @override
+  String get cropNineLength => '九分';
+
+  @override
+  String get cropSevenLength => '七分';
+
+  @override
+  String get cropFiveLength => '五分';
+
+  @override
+  String get cropShorts => '短褲';
 
   @override
   String get brandOptionalLabel => '品牌（選填）';
@@ -1627,6 +1726,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deleteAccount => '刪除帳號';
+
+  @override
+  String get tierGold => '金牌';
+
+  @override
+  String get tierSilver => '銀牌';
+
+  @override
+  String get tierBronze => '銅牌';
 
   @override
   String get deleteAccountConfirmTitle => '確定要刪除帳號嗎？';
@@ -2350,6 +2458,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get analyzeAgain => '重新分析';
 
   @override
+  String get closetMatch => '衣櫥匹配度';
+
+  @override
+  String get viewClosetMatch => '查看衣櫥匹配度';
+
+  @override
   String get closetAnalysisFailed => '分析失敗，請再試一次。';
 
   @override
@@ -2357,11 +2471,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get versatilityDescription => '這件單品跟你衣櫃的搭配度。';
-
-  @override
-  String versatilityLevelValue(int level) {
-    return '等級 $level';
-  }
 
   @override
   String get versatilityBandVeryLimited => '非常有限';
@@ -2380,6 +2489,14 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get outfitIdeasHeading => '穿搭靈感';
+
+  @override
+  String outfitIdeaNumber(int number) {
+    return '穿搭 $number';
+  }
+
+  @override
+  String get tryItOn => '試穿看看';
 
   @override
   String get similarInClosetHeading => '衣櫃中的相似單品';
@@ -2412,6 +2529,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get fitLabel => '版型';
 
   @override
+  String get fitSkinny => '緊身';
+
+  @override
   String get fitSlim => '修身';
 
   @override
@@ -2422,6 +2542,84 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get fitOversized => '寬鬆';
+
+  @override
+  String get silhouetteLabel => '形狀';
+
+  @override
+  String get sleeveLengthLabel => '袖長';
+
+  @override
+  String get cropLengthLabel => '下身長度';
+
+  @override
+  String get silhouetteStraight => '直筒';
+
+  @override
+  String get silhouetteBoxy => '方正短寬';
+
+  @override
+  String get silhouetteLongline => '長版';
+
+  @override
+  String get silhouetteCropped => '短版';
+
+  @override
+  String get silhouetteCocoon => '繭型';
+
+  @override
+  String get silhouetteTapered => '錐形';
+
+  @override
+  String get silhouetteBalloon => '氣球褲';
+
+  @override
+  String get silhouetteJogger => '束口';
+
+  @override
+  String get silhouetteFlared => '喇叭／傘擺';
+
+  @override
+  String get silhouettePencil => '窄裙';
+
+  @override
+  String get silhouetteALine => 'A 字';
+
+  @override
+  String get silhouettePleated => '百褶';
+
+  @override
+  String get silhouetteShift => '直身';
+
+  @override
+  String get silhouetteFitAndFlare => '收腰傘擺';
+
+  @override
+  String get sleeveSleeveless => '無袖';
+
+  @override
+  String get sleeveShort => '短袖';
+
+  @override
+  String get sleeveThreeQuarter => '五分／七分袖';
+
+  @override
+  String get sleeveLong => '長袖';
+
+  @override
+  String get cropFullLength => '全長';
+
+  @override
+  String get cropNineLength => '九分';
+
+  @override
+  String get cropSevenLength => '七分';
+
+  @override
+  String get cropFiveLength => '五分';
+
+  @override
+  String get cropShorts => '短褲';
 
   @override
   String get brandOptionalLabel => '品牌（選填）';

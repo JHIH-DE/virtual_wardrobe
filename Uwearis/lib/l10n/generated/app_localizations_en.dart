@@ -172,6 +172,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAccount => 'Delete Account';
 
   @override
+  String get tierGold => 'Gold';
+
+  @override
+  String get tierSilver => 'Silver';
+
+  @override
+  String get tierBronze => 'Bronze';
+
+  @override
   String get deleteAccountConfirmTitle => 'Delete your account?';
 
   @override
@@ -925,6 +934,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analyzeAgain => 'Analyze Again';
 
   @override
+  String get closetMatch => 'Closet Match';
+
+  @override
+  String get viewClosetMatch => 'View Closet Match';
+
+  @override
   String get closetAnalysisFailed => 'Couldn\'t analyze — please try again.';
 
   @override
@@ -934,11 +949,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get versatilityDescription =>
       'How well this piece works with your closet.';
-
-  @override
-  String versatilityLevelValue(int level) {
-    return 'LEVEL $level';
-  }
 
   @override
   String get versatilityBandVeryLimited => 'Very Limited';
@@ -957,6 +967,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outfitIdeasHeading => 'Outfit Ideas';
+
+  @override
+  String outfitIdeaNumber(int number) {
+    return 'Outfit $number';
+  }
+
+  @override
+  String get tryItOn => 'Try It On';
 
   @override
   String get similarInClosetHeading => 'Similar in Your Closet';
@@ -989,6 +1007,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fitLabel => 'Fit';
 
   @override
+  String get fitSkinny => 'Skinny';
+
+  @override
   String get fitSlim => 'Slim';
 
   @override
@@ -999,6 +1020,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fitOversized => 'Oversized';
+
+  @override
+  String get silhouetteLabel => 'Silhouette';
+
+  @override
+  String get sleeveLengthLabel => 'Sleeve Length';
+
+  @override
+  String get cropLengthLabel => 'Length';
+
+  @override
+  String get silhouetteStraight => 'Straight';
+
+  @override
+  String get silhouetteBoxy => 'Boxy';
+
+  @override
+  String get silhouetteLongline => 'Longline';
+
+  @override
+  String get silhouetteCropped => 'Cropped';
+
+  @override
+  String get silhouetteCocoon => 'Cocoon';
+
+  @override
+  String get silhouetteTapered => 'Tapered';
+
+  @override
+  String get silhouetteBalloon => 'Balloon';
+
+  @override
+  String get silhouetteJogger => 'Jogger';
+
+  @override
+  String get silhouetteFlared => 'Flared';
+
+  @override
+  String get silhouettePencil => 'Pencil';
+
+  @override
+  String get silhouetteALine => 'A-line';
+
+  @override
+  String get silhouettePleated => 'Pleated';
+
+  @override
+  String get silhouetteShift => 'Shift';
+
+  @override
+  String get silhouetteFitAndFlare => 'Fit-and-flare';
+
+  @override
+  String get sleeveSleeveless => 'Sleeveless';
+
+  @override
+  String get sleeveShort => 'Short Sleeve';
+
+  @override
+  String get sleeveThreeQuarter => 'Three-quarter Sleeve';
+
+  @override
+  String get sleeveLong => 'Long Sleeve';
+
+  @override
+  String get cropFullLength => 'Full-length';
+
+  @override
+  String get cropNineLength => 'Nine-length';
+
+  @override
+  String get cropSevenLength => 'Seven-length';
+
+  @override
+  String get cropFiveLength => 'Five-length';
+
+  @override
+  String get cropShorts => 'Shorts';
 
   @override
   String get brandOptionalLabel => 'Brand (optional)';

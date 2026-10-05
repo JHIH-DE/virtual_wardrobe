@@ -123,7 +123,8 @@ extension GarmentColorX on GarmentColor {
   }
 }
 
-enum GarmentFit { slim, regular, relaxed, oversized }
+/// Ordered tight → loose; the details page fit slider relies on this order.
+enum GarmentFit { skinny, slim, regular, relaxed, oversized }
 
 extension GarmentFitX on GarmentFit {
   String get label {
@@ -144,6 +145,146 @@ extension GarmentFitX on GarmentFit {
     return null;
   }
 }
+
+/// Matches the backend's normalization: case, spaces, hyphens and
+/// underscores don't matter ("a line" == "A-Line" == "A-line").
+String _normalizeAttr(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'[\s_-]'), '');
+
+T? _attrFromApiValue<T>(String? value, List<T> values, String Function(T) api) {
+  if (value == null || value.isEmpty) return null;
+  final key = _normalizeAttr(value);
+  for (final v in values) {
+    if (_normalizeAttr(api(v)) == key) return v;
+  }
+  return null;
+}
+
+enum GarmentSilhouette {
+  straight,
+  boxy,
+  longline,
+  cropped,
+  cocoon,
+  tapered,
+  balloon,
+  jogger,
+  flared,
+  pencil,
+  aLine,
+  pleated,
+  shift,
+  fitAndFlare,
+}
+
+extension GarmentSilhouetteX on GarmentSilhouette {
+  String get apiValue {
+    switch (this) {
+      case GarmentSilhouette.aLine:
+        return 'A-line';
+      case GarmentSilhouette.fitAndFlare:
+        return 'Fit-and-flare';
+      default:
+        return name[0].toUpperCase() + name.substring(1);
+    }
+  }
+
+  static GarmentSilhouette? fromApiValue(String? value) =>
+      _attrFromApiValue(value, GarmentSilhouette.values, (v) => v.apiValue);
+}
+
+/// Silhouettes the backend accepts per category (garments-api.md 附錄 C).
+/// Bottom covers both the trouser and skirt groups (`Flared` is shared).
+const Map<GarmentCategory, List<GarmentSilhouette>>
+garmentSilhouettesByCategory = {
+  GarmentCategory.top: [
+    GarmentSilhouette.straight,
+    GarmentSilhouette.boxy,
+    GarmentSilhouette.longline,
+    GarmentSilhouette.cropped,
+  ],
+  GarmentCategory.outer: [
+    GarmentSilhouette.straight,
+    GarmentSilhouette.boxy,
+    GarmentSilhouette.longline,
+    GarmentSilhouette.cocoon,
+  ],
+  GarmentCategory.bottom: [
+    GarmentSilhouette.straight,
+    GarmentSilhouette.tapered,
+    GarmentSilhouette.balloon,
+    GarmentSilhouette.jogger,
+    GarmentSilhouette.flared,
+    GarmentSilhouette.pencil,
+    GarmentSilhouette.aLine,
+    GarmentSilhouette.pleated,
+  ],
+  GarmentCategory.onePiece: [
+    GarmentSilhouette.straight,
+    GarmentSilhouette.shift,
+    GarmentSilhouette.aLine,
+    GarmentSilhouette.fitAndFlare,
+  ],
+};
+
+enum GarmentSleeveLength { sleeveless, short, threeQuarter, long }
+
+extension GarmentSleeveLengthX on GarmentSleeveLength {
+  String get apiValue {
+    switch (this) {
+      case GarmentSleeveLength.sleeveless:
+        return 'Sleeveless';
+      case GarmentSleeveLength.short:
+        return 'Short';
+      case GarmentSleeveLength.threeQuarter:
+        return 'Three-quarter';
+      case GarmentSleeveLength.long:
+        return 'Long';
+    }
+  }
+
+  static GarmentSleeveLength? fromApiValue(String? value) =>
+      _attrFromApiValue(value, GarmentSleeveLength.values, (v) => v.apiValue);
+}
+
+const Set<GarmentCategory> garmentSleeveLengthCategories = {
+  GarmentCategory.top,
+  GarmentCategory.outer,
+  GarmentCategory.onePiece,
+};
+
+enum GarmentCropLength {
+  fullLength,
+  nineLength,
+  sevenLength,
+  fiveLength,
+  shorts,
+}
+
+extension GarmentCropLengthX on GarmentCropLength {
+  String get apiValue {
+    switch (this) {
+      case GarmentCropLength.fullLength:
+        return 'Full-length';
+      case GarmentCropLength.nineLength:
+        return 'Nine-length';
+      case GarmentCropLength.sevenLength:
+        return 'Seven-length';
+      case GarmentCropLength.fiveLength:
+        return 'Five-length';
+      case GarmentCropLength.shorts:
+        return 'Shorts';
+    }
+  }
+
+  static GarmentCropLength? fromApiValue(String? value) =>
+      _attrFromApiValue(value, GarmentCropLength.values, (v) => v.apiValue);
+}
+
+const Set<GarmentCategory> garmentCropLengthCategories = {
+  GarmentCategory.bottom,
+  GarmentCategory.onePiece,
+};
 
 /// Categories a garment's [GarmentFit] applies to — cut/silhouette is a
 /// meaningful choice for clothing with a body shape, not for shoes or
@@ -192,6 +333,12 @@ class Garment {
   final String? brand;
   final String? color;
   final String? fit;
+
+  /// Raw API values. `""` means the category has no such concept (e.g. a
+  /// shoe's sleeve length); `null` means applicable but not set.
+  final String? silhouette;
+  final String? sleeveLength;
+  final String? cropLength;
   final double? price;
   final DateTime? purchaseDate;
   final String? imageUrl;
@@ -229,6 +376,9 @@ class Garment {
     this.brand,
     this.color,
     this.fit,
+    this.silhouette,
+    this.sleeveLength,
+    this.cropLength,
     this.price,
     this.purchaseDate,
     this.imageUrl,
@@ -242,6 +392,9 @@ class Garment {
     String? brand,
     String? color,
     String? fit,
+    String? silhouette,
+    String? sleeveLength,
+    String? cropLength,
     double? price,
     DateTime? purchaseDate,
     GarmentCategory? category,
@@ -259,6 +412,9 @@ class Garment {
     bool clearBrand = false,
     bool clearColor = false,
     bool clearFit = false,
+    bool clearSilhouette = false,
+    bool clearSleeveLength = false,
+    bool clearCropLength = false,
     bool clearPrice = false,
     bool clearPurchaseDate = false,
     bool clearMetadata = false,
@@ -277,6 +433,11 @@ class Garment {
       imageUrl: imageUrl ?? this.imageUrl,
       color: clearColor ? null : (color ?? this.color),
       fit: clearFit ? null : (fit ?? this.fit),
+      silhouette: clearSilhouette ? null : (silhouette ?? this.silhouette),
+      sleeveLength: clearSleeveLength
+          ? null
+          : (sleeveLength ?? this.sleeveLength),
+      cropLength: clearCropLength ? null : (cropLength ?? this.cropLength),
       price: clearPrice ? null : (price ?? this.price),
       purchaseDate: clearPurchaseDate
           ? null
@@ -327,6 +488,9 @@ class Garment {
       brand: json['brand'] as String?,
       color: json['color'] as String?,
       fit: json['fit'] as String?,
+      silhouette: json['silhouette'] as String?,
+      sleeveLength: json['sleeve_length'] as String?,
+      cropLength: json['crop_length'] as String?,
       price: parseNum(json['price']),
       thickness: parseIntField(json['thickness']) ?? 0,
       formality: parseIntField(json['formality']) ?? 0,
@@ -384,6 +548,9 @@ class Garment {
       'brand': brand,
       'color': color,
       'fit': fit,
+      'silhouette': silhouette,
+      'sleeve_length': sleeveLength,
+      'crop_length': cropLength,
       'price': price,
       'thickness': thickness,
       'formality': formality,

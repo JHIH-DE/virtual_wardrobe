@@ -15,16 +15,10 @@ class UwearisInsightCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? margin;
 
-  /// Optional header accessory, right-aligned after the "AI" tag — e.g.
-  /// Garment Details' Closet Analysis refresh action. Leave null for the
-  /// plain header every other caller uses.
-  final Widget? trailing;
-
   const UwearisInsightCard({
     super.key,
     required this.child,
     this.margin,
-    this.trailing,
   });
 
   @override
@@ -35,11 +29,7 @@ class UwearisInsightCard extends StatelessWidget {
       margin: margin,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.surface, AppColors.uwearisCardTint],
-        ),
+        gradient: AppColors.uwearisGradient,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
         boxShadow: [
@@ -89,7 +79,6 @@ class UwearisInsightCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (trailing != null) ...[const Spacer(), trailing!],
             ],
           ),
           const SizedBox(height: AppDimens.cardHeaderGap),

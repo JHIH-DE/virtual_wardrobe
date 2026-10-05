@@ -20,6 +20,7 @@ void main() {
 
   group('GarmentFitX.fromApiValue', () {
     test('parses by enum name or label, case-insensitively', () {
+      expect(GarmentFitX.fromApiValue('Skinny'), GarmentFit.skinny);
       expect(GarmentFitX.fromApiValue('slim'), GarmentFit.slim);
       expect(GarmentFitX.fromApiValue('Relaxed'), GarmentFit.relaxed);
       expect(GarmentFitX.fromApiValue('OVERSIZED'), GarmentFit.oversized);
@@ -31,7 +32,75 @@ void main() {
     });
   });
 
+  group('garment attribute enums', () {
+    test('fromApiValue ignores case, spaces and hyphens', () {
+      expect(
+        GarmentSilhouetteX.fromApiValue('a line'),
+        GarmentSilhouette.aLine,
+      );
+      expect(
+        GarmentSilhouetteX.fromApiValue('Fit-And-Flare'),
+        GarmentSilhouette.fitAndFlare,
+      );
+      expect(
+        GarmentSleeveLengthX.fromApiValue('three-quarter'),
+        GarmentSleeveLength.threeQuarter,
+      );
+      expect(
+        GarmentCropLengthX.fromApiValue('Nine-length'),
+        GarmentCropLength.nineLength,
+      );
+    });
+
+    test('fromApiValue returns null for "", null and unknown values', () {
+      expect(GarmentSilhouetteX.fromApiValue(''), isNull);
+      expect(GarmentSleeveLengthX.fromApiValue(null), isNull);
+      expect(GarmentCropLengthX.fromApiValue('Unknown'), isNull);
+    });
+
+    test('apiValue round-trips for every value', () {
+      for (final v in GarmentSilhouette.values) {
+        expect(GarmentSilhouetteX.fromApiValue(v.apiValue), v);
+      }
+      for (final v in GarmentSleeveLength.values) {
+        expect(GarmentSleeveLengthX.fromApiValue(v.apiValue), v);
+      }
+      for (final v in GarmentCropLength.values) {
+        expect(GarmentCropLengthX.fromApiValue(v.apiValue), v);
+      }
+    });
+
+    test('silhouette options follow the category', () {
+      expect(
+        garmentSilhouettesByCategory[GarmentCategory.outer],
+        contains(GarmentSilhouette.cocoon),
+      );
+      expect(
+        garmentSilhouettesByCategory[GarmentCategory.top],
+        isNot(contains(GarmentSilhouette.cocoon)),
+      );
+      expect(
+        garmentSilhouettesByCategory[GarmentCategory.bottom],
+        containsAll([GarmentSilhouette.tapered, GarmentSilhouette.pleated]),
+      );
+      expect(garmentSilhouettesByCategory[GarmentCategory.shoes], isNull);
+    });
+  });
+
   group('Garment.fromJson', () {
+    test('keeps "" (not applicable) apart from null (unset)', () {
+      final garment = Garment.fromJson({
+        'id': 8,
+        'category': 'Bottom',
+        'silhouette': 'Tapered',
+        'sleeve_length': '',
+        'crop_length': null,
+      });
+      expect(garment.silhouette, 'Tapered');
+      expect(garment.sleeveLength, '');
+      expect(garment.cropLength, isNull);
+    });
+
     test('parses a typical fully-populated payload', () {
       final garment = Garment.fromJson({
         'id': 7,

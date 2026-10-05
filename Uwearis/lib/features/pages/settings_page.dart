@@ -14,7 +14,9 @@ import '../../core/services/profile_service.dart';
 import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/profile_data.dart';
+import '../../data/user_tier.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/user_tier_localization.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/images/app_spinner.dart';
@@ -188,57 +190,55 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _loading
               ? const Center(child: AppSpinner())
               : ListView(
-              children: [
-                _buildProfileCard(l10n),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildAccountCard(l10n),
+                  children: [
+                    _buildProfileCard(l10n),
+                    const SizedBox(height: AppDimens.sectionSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildAccountCard(l10n),
+                    ),
+                    const SizedBox(height: AppDimens.sectionSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildTryOnProfileCard(l10n),
+                    ),
+                    const SizedBox(height: AppDimens.sectionSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildStyleTasteCard(l10n),
+                    ),
+                    const SizedBox(height: AppDimens.sectionSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildLifestyleCard(l10n),
+                    ),
+                    const SizedBox(height: AppDimens.sectionSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildLanguageCard(l10n),
+                    ),
+                    if (Env.enableDebugTools) ...[
+                      const SizedBox(height: AppDimens.sectionSpacing),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _buildDebugToolsCard(l10n),
+                      ),
+                    ],
+                    const SizedBox(height: AppDimens.sectionSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildLogoutCard(l10n),
+                    ),
+                    const SizedBox(height: AppDimens.sectionSpacing),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildDeleteAccountCard(l10n),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildTryOnProfileCard(l10n),
-                ),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildStyleTasteCard(l10n),
-                ),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildLifestyleCard(l10n),
-                ),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildLanguageCard(l10n),
-                ),
-                if (Env.enableDebugTools) ...[
-                  const SizedBox(height: AppDimens.sectionSpacing),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildDebugToolsCard(l10n),
-                  ),
-                ],
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildLogoutCard(l10n),
-                ),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildDeleteAccountCard(l10n),
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
           if (_deletingAccount)
-            Positioned.fill(
-              child: LoadingOverlay(label: l10n.deletingAccount),
-            ),
+            Positioned.fill(child: LoadingOverlay(label: l10n.deletingAccount)),
         ],
       ),
     );
@@ -272,6 +272,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               color: AppColors.textSecondary,
             ),
           ),
+          if (_data != null) ...[
+            const SizedBox(height: 12),
+            _TierBadge(tier: _data!.profile.tier),
+          ],
         ],
       ),
     );
@@ -406,6 +410,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Text(
         l10n.deleteAccount,
         style: AppTextStyle.bold16.copyWith(color: AppColors.error),
+      ),
+    );
+  }
+}
+
+class _TierBadge extends StatelessWidget {
+  final UserTier tier;
+  const _TierBadge({required this.tier});
+
+  (Color, Color) get _colors {
+    switch (tier) {
+      case UserTier.gold:
+        return (AppColors.tierGold, AppColors.tierGoldText);
+      case UserTier.silver:
+        return (AppColors.tierSilver, AppColors.tierSilverText);
+      case UserTier.bronze:
+        return (AppColors.tierBronze, AppColors.tierBronzeText);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (fill, text) = _colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.workspace_premium, size: 16, color: text),
+          const SizedBox(width: 4),
+          Text(
+            tier.localizedLabel(context),
+            style: AppTextStyle.bold12.copyWith(color: text),
+          ),
+        ],
       ),
     );
   }

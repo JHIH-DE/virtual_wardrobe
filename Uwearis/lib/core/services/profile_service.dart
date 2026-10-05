@@ -21,8 +21,12 @@ class ProfileService with BaseService {
   static final String _styleProfileUrl = '$_baseUrl/style_profile';
 
   static const _quick = Duration(seconds: 15);
-  // `complete` can kick off server-side base-model / face generation.
+  // Body/face-ref `complete` runs a background-removal pass server-side
+  // (1 to several seconds), on top of a possible Cloud Run cold start.
   static const _completeTimeout = Duration(seconds: 60);
+  // `base-model/generate` is synchronous AI generation (usually tens of
+  // seconds); the API doc asks for a timeout of at least 120 s.
+  static const _generateTimeout = Duration(seconds: 120);
 
   /// `data` out of a decoded envelope, falling back to the whole envelope for
   /// a bare (un-enveloped) response — the shape every method here expects.
@@ -132,18 +136,38 @@ class ProfileService with BaseService {
   Future<String> uploadFaceRef(String localPath) =>
       _uploadRef(_faceRefUrl, localPath, opPrefix: 'faceRef');
 
+  /// Deletes one photo (plus its server-processed variant). `PHOTO_NOT_FOUND`
+  /// (404) is treated as success, same as every other idempotent delete.
+  Future<void> _deleteRef(String baseUrl, {required String op}) async {
+    debugLog('--- $op ---');
+    await deleteIdempotent(Uri.parse(baseUrl), op: op);
+  }
+
+  Future<void> deleteAvatar() => _deleteRef(_avatarUrl, op: 'deleteAvatar');
+
+  /// Also deletes the existing base model on the backend, since it was
+  /// generated from this photo — callers should clear `baseModelUrl` too.
+  Future<void> deleteBodyRef() => _deleteRef(_bodyRefUrl, op: 'deleteBodyRef');
+
+  /// Same base-model side effect as [deleteBodyRef].
+  Future<void> deleteFaceRef() => _deleteRef(_faceRefUrl, op: 'deleteFaceRef');
+
   /// Manually (re-)triggers base-model generation from the user's currently
   /// committed body-reference (required) and face-reference (optional —
   /// used as the face identity input only if one has been uploaded) photos.
-  /// Every successful generation clears the previous base-model GCS file on
-  /// the backend, so this is a destructive replace, not an append. Returns
-  /// the newly-generated base model's signed `object_url`.
+  /// Uploading a new reference photo does not regenerate it automatically.
+  /// The previous base model is only deleted once the new one succeeds; a
+  /// failed generation keeps it. Does not count against the daily try-on
+  /// quota. Returns the newly-generated base model's signed `object_url`.
   Future<String> generateBaseModel() async {
     debugLog('--- generateBaseModel ---');
     final res = await withAuth(
       (token) => http
-          .post(Uri.parse('$_baseModelUrl/generate'), headers: authHeaders(token))
-          .timeout(_completeTimeout),
+          .post(
+            Uri.parse('$_baseModelUrl/generate'),
+            headers: authHeaders(token),
+          )
+          .timeout(_generateTimeout),
     );
     final url = _data(
       decodeMap(res, op: 'generateBaseModel'),
@@ -156,19 +180,9 @@ class ProfileService with BaseService {
 
   // ---- image reads (a 404 means "not set yet", not an error) ----
 
-  Future<String?> getMyAvatar() async {
-    debugLog('--- getMyAvatar ---');
-    final res = await withAuth(
-      (token) => http
-          .get(Uri.parse(_avatarUrl), headers: authHeaders(token))
-          .timeout(_quick),
-    );
-    if (res.statusCode == 404) return null;
-    return _data(decodeMap(res, op: 'getMyAvatar'))['object_url']?.toString();
-  }
-
-  /// Body-ref and face-ref have no dedicated GET — both are bundled into the
-  /// main profile response under their own key.
+  /// None of the photos has a dedicated GET — avatar, body-ref and face-ref
+  /// signed URLs are all bundled into the main profile response under their
+  /// own key. Used to re-sign an expired URL.
   Future<String?> _profileImageField(String key, {required String op}) async {
     debugLog('--- $op ---');
     final res = await withAuth(
@@ -180,13 +194,12 @@ class ProfileService with BaseService {
     return _data(decodeMap(res, op: op))[key]?.toString();
   }
 
+  Future<String?> getMyAvatar() =>
+      _profileImageField('avatar_object_url', op: 'getMyAvatar');
+
   Future<String?> getBodyRef() =>
       _profileImageField('body_reference_object_url', op: 'getBodyRef');
 
-  /// The response key (`face_reference_object_url`) is inferred from the
-  /// `face-reference` URL path since there's no backend response sample to
-  /// confirm against yet; verify once the endpoint is live and adjust if the
-  /// key differs.
   Future<String?> getFaceReference() =>
       _profileImageField('face_reference_object_url', op: 'getFaceReference');
 
@@ -237,10 +250,14 @@ class ProfileService with BaseService {
     num? weight,
     String? unitSystem,
     String? location,
-    Map<String, String>? weeklySchedule,
+    Map<String, String?>? weeklySchedule,
     num? temperatureOffsetC,
     String? locale,
   }) async {
+    // A null argument means "leave unchanged" (the field is omitted), so this
+    // can't clear a field. `weeklySchedule` replaces the whole object on the
+    // backend — always pass all 7 days (`mon`..`sun`); a `null` value clears
+    // that day.
     debugLog('--- updateMyProfile ---');
     final uri = Uri.parse(_baseUrl);
 

@@ -1,3 +1,5 @@
+import 'user_tier.dart';
+
 /// The signed-in user's profile (`GET /users/me`, `PATCH /users/me` —
 /// `ProfileService.getMyProfile` / `updateMyProfile`). Only the fields the
 /// app actually reads back are modelled here; write-only fields
@@ -24,6 +26,9 @@ class UserProfile {
   final double? weight;
   final String? unitSystem;
 
+  /// `tier` — read-only on the backend, defaults to bronze (`tier_3`).
+  final UserTier tier;
+
   const UserProfile({
     this.name = '',
     this.gender,
@@ -34,6 +39,7 @@ class UserProfile {
     this.height,
     this.weight,
     this.unitSystem,
+    this.tier = UserTier.bronze,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -50,6 +56,7 @@ class UserProfile {
       height: (json['height'] as num?)?.toDouble(),
       weight: (json['weight'] as num?)?.toDouble(),
       unitSystem: json['unit_system'] as String?,
+      tier: userTierFromApiValue(json['tier'] as String?),
     );
   }
 }

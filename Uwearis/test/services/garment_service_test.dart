@@ -660,6 +660,112 @@ void main() {
         '2025-03-14',
       );
     });
+
+    // garments-api.md §6: object_name / image_url in a PATCH body is a
+    // 400 FIELD_NOT_EDITABLE; thickness / formality must be 1–5.
+    test('omits non-editable fields and unset scales from the PATCH', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(_envelope(_garmentJson(306)));
+      });
+
+      final garment = Garment(
+        id: 306,
+        name: 'Clean',
+        category: GarmentCategory.bottom,
+        subCategory: 'Jeans',
+        uploadUrl: 'https://upload',
+        objectName: 'g/306.webp',
+        imageUrl: 'https://image',
+        price: 1490,
+      );
+
+      await http.runWithClient(
+        () => GarmentService().updateGarment(garment),
+        () => client,
+      );
+
+      final payload = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(payload.containsKey('object_name'), isFalse);
+      expect(payload.containsKey('image_url'), isFalse);
+      expect(payload.containsKey('thickness'), isFalse);
+      expect(payload.containsKey('formality'), isFalse);
+      expect(payload['fit'], isNull);
+      expect(payload.containsKey('fit'), isTrue);
+      expect(payload['price'], 1490);
+      expect(payload['category'], 'Bottom');
+    });
+
+    test('sends only the attributes the category supports', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final client = MockClient((request) async {
+        bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return _jsonResponse(_envelope(_garmentJson(307)));
+      });
+
+      const base = Garment(
+        id: 307,
+        name: 'Attrs',
+        category: GarmentCategory.bottom,
+        subCategory: '',
+        uploadUrl: '',
+        objectName: '',
+        fit: 'Relaxed',
+        silhouette: 'Tapered',
+        sleeveLength: 'Long',
+        cropLength: 'Nine-length',
+      );
+
+      await http.runWithClient(() async {
+        await GarmentService().updateGarment(base);
+        await GarmentService().updateGarment(
+          base.copyWith(category: GarmentCategory.top, cropLength: ''),
+        );
+        await GarmentService().updateGarment(
+          base.copyWith(category: GarmentCategory.shoes),
+        );
+      }, () => client);
+
+      // Bottom: no sleeve_length.
+      expect(bodies[0]['fit'], 'Relaxed');
+      expect(bodies[0]['silhouette'], 'Tapered');
+      expect(bodies[0]['crop_length'], 'Nine-length');
+      expect(bodies[0].containsKey('sleeve_length'), isFalse);
+      // Top: no crop_length.
+      expect(bodies[1]['sleeve_length'], 'Long');
+      expect(bodies[1].containsKey('crop_length'), isFalse);
+      // Shoes: none of the four.
+      for (final key in ['fit', 'silhouette', 'sleeve_length', 'crop_length']) {
+        expect(bodies[2].containsKey(key), isFalse, reason: key);
+      }
+    });
+
+    test('never sends a null crop_length', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(_envelope(_garmentJson(308)));
+      });
+
+      await http.runWithClient(
+        () => GarmentService().updateGarment(
+          const Garment(
+            id: 308,
+            name: 'No crop',
+            category: GarmentCategory.bottom,
+            subCategory: '',
+            uploadUrl: '',
+            objectName: '',
+          ),
+        ),
+        () => client,
+      );
+
+      final payload = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(payload.containsKey('crop_length'), isFalse);
+      expect(payload['silhouette'], isNull);
+    });
   });
 
   group('setFavorite', () {
@@ -865,7 +971,7 @@ void main() {
     });
   });
 
-  group('uploadImage', () {
+  group('putJpegToSignedUrl', () {
     test('PUTs the file bytes as image/jpeg to the signed url', () async {
       final tempFile = await _writeTempJpeg();
       addTearDown(() => tempFile.delete());
@@ -877,7 +983,7 @@ void main() {
       });
 
       await http.runWithClient(
-        () => GarmentService().uploadImage(
+        () => GarmentService().putJpegToSignedUrl(
           'https://upload.example.com/signed',
           tempFile.path,
         ),
@@ -898,7 +1004,8 @@ void main() {
 
       await expectLater(
         http.runWithClient(
-          () => GarmentService().uploadImage('https://x/y', tempFile.path),
+          () =>
+              GarmentService().putJpegToSignedUrl('https://x/y', tempFile.path),
           () => client,
         ),
         throwsA(
@@ -915,6 +1022,57 @@ void main() {
   group('closet-analysis cache', () {
     Map<String, dynamic> versatilityJson({int level = 8, String label = 'Versatile'}) =>
         {'level': level, 'label': label};
+
+    test(
+      'preview mode sends only the form fields, without garment_id',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({
+              'versatility': versatilityJson(),
+              'outfit_ideas': <Object?>[],
+              'similar_garments': <Object?>[],
+            }),
+          );
+        });
+
+        await http.runWithClient(
+          () => GarmentService().closetAnalysis(null, {
+            'category': 'Bottom',
+            'crop_length': 'Shorts',
+          }),
+          () => client,
+        );
+
+        expect(jsonDecode(captured.body), {
+          'category': 'Bottom',
+          'crop_length': 'Shorts',
+        });
+      },
+    );
+
+    test('existing-garment mode sends only garment_id', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope({
+            'versatility': versatilityJson(),
+            'outfit_ideas': <Object?>[],
+            'similar_garments': <Object?>[],
+          }),
+        );
+      });
+
+      await http.runWithClient(
+        () => GarmentService().closetAnalysis(9100, {'category': 'Top'}),
+        () => client,
+      );
+
+      expect(jsonDecode(captured.body), {'garment_id': 9100});
+    });
 
     test('closetAnalysis persists its result for cachedClosetAnalysis to read back', () async {
       final client = MockClient(

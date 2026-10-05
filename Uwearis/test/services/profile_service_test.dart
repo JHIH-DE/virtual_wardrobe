@@ -152,6 +152,23 @@ void main() {
       );
     });
 
+    test('getMyAvatar reads avatar_object_url from the profile root', () async {
+      final urls = <String>[];
+      final client = MockClient((request) async {
+        urls.add(request.url.toString());
+        return _jsonResponse(
+          _envelope({'avatar_object_url': 'https://cdn.example.com/a.jpg'}),
+        );
+      });
+
+      final url = await http.runWithClient(
+        () => ProfileService().getMyAvatar(),
+        () => client,
+      );
+      expect(url, 'https://cdn.example.com/a.jpg');
+      expect(urls, [_base]);
+    });
+
     test('getMyAvatar returns null on a 404 instead of throwing', () async {
       final client = MockClient(
         (request) async => _jsonResponse(_envelope(null), status: 404),
@@ -232,30 +249,84 @@ void main() {
     });
   });
 
-  group('generateBaseModel', () {
-    test(
-      'POSTs to base-model/generate with no request body and returns the '
-      'object_url',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return _jsonResponse(
-            _envelope({'object_url': 'https://cdn.example.com/base-model.jpg'}),
-          );
-        });
+  group('photo deletes', () {
+    test('DELETE each photo at its own path', () async {
+      final calls = <String>[];
+      final client = MockClient((request) async {
+        calls.add('${request.method} ${request.url}');
+        return _jsonResponse(_envelope(null));
+      });
 
-        final url = await http.runWithClient(
-          () => ProfileService().generateBaseModel(),
+      await http.runWithClient(() async {
+        await ProfileService().deleteAvatar();
+        await ProfileService().deleteBodyRef();
+        await ProfileService().deleteFaceRef();
+      }, () => client);
+
+      expect(calls, [
+        'DELETE $_base/avatar',
+        'DELETE $_base/body-reference',
+        'DELETE $_base/face-reference',
+      ]);
+    });
+
+    test('PHOTO_NOT_FOUND (404) is treated as already deleted', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse({
+          'success': false,
+          'message': 'not found',
+          'data': null,
+          'error_code': 'PHOTO_NOT_FOUND',
+        }, status: 404),
+      );
+
+      await http.runWithClient(
+        () => ProfileService().deleteBodyRef(),
+        () => client,
+      );
+    });
+
+    test('a server error surfaces as an exception', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse({
+          'success': false,
+          'message': 'boom',
+          'data': null,
+          'error_code': 'INTERNAL_SERVER_ERROR',
+        }, status: 500),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => ProfileService().deleteFaceRef(),
           () => client,
-        );
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
 
-        expect(captured.method, 'POST');
-        expect(captured.url.toString(), '$_base/base-model/generate');
-        expect(captured.body, isEmpty);
-        expect(url, 'https://cdn.example.com/base-model.jpg');
-      },
-    );
+  group('generateBaseModel', () {
+    test('POSTs to base-model/generate with no request body and returns the '
+        'object_url', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope({'object_url': 'https://cdn.example.com/base-model.jpg'}),
+        );
+      });
+
+      final url = await http.runWithClient(
+        () => ProfileService().generateBaseModel(),
+        () => client,
+      );
+
+      expect(captured.method, 'POST');
+      expect(captured.url.toString(), '$_base/base-model/generate');
+      expect(captured.body, isEmpty);
+      expect(url, 'https://cdn.example.com/base-model.jpg');
+    });
 
     test('throws when the response is missing object_url', () async {
       final client = MockClient(
@@ -273,15 +344,12 @@ void main() {
 
     test('throws when the backend reports an error', () async {
       final client = MockClient(
-        (request) async => _jsonResponse(
-          {
-            'success': false,
-            'message': 'no body reference',
-            'data': null,
-            'error_code': 'BODY_REFERENCE_NOT_FOUND',
-          },
-          status: 400,
-        ),
+        (request) async => _jsonResponse({
+          'success': false,
+          'message': 'no body reference',
+          'data': null,
+          'error_code': 'BODY_REFERENCE_NOT_FOUND',
+        }, status: 400),
       );
 
       await expectLater(
@@ -504,14 +572,14 @@ void main() {
 
         await http.runWithClient(
           () => ProfileService().updateMyProfile(
-            weeklySchedule: {'mon': 'work', 'sun': 'casual'},
+            weeklySchedule: {'mon': 'work', 'sat': 'casual', 'sun': null},
             temperatureOffsetC: -2,
           ),
           () => client,
         );
 
         expect(jsonDecode(captured.body), {
-          'weekly_schedule': {'mon': 'work', 'sun': 'casual'},
+          'weekly_schedule': {'mon': 'work', 'sat': 'casual', 'sun': null},
           'temperature_offset_c': -2,
         });
       },

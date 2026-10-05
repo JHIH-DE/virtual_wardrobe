@@ -387,6 +387,24 @@ abstract class AppLocalizations {
   /// **'Delete Account'**
   String get deleteAccount;
 
+  /// No description provided for @tierGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get tierGold;
+
+  /// No description provided for @tierSilver.
+  ///
+  /// In en, this message translates to:
+  /// **'Silver'**
+  String get tierSilver;
+
+  /// No description provided for @tierBronze.
+  ///
+  /// In en, this message translates to:
+  /// **'Bronze'**
+  String get tierBronze;
+
   /// No description provided for @deleteAccountConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -1791,6 +1809,18 @@ abstract class AppLocalizations {
   /// **'Analyze Again'**
   String get analyzeAgain;
 
+  /// No description provided for @closetMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Closet Match'**
+  String get closetMatch;
+
+  /// No description provided for @viewClosetMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'View Closet Match'**
+  String get viewClosetMatch;
+
   /// No description provided for @closetAnalysisFailed.
   ///
   /// In en, this message translates to:
@@ -1808,12 +1838,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How well this piece works with your closet.'**
   String get versatilityDescription;
-
-  /// No description provided for @versatilityLevelValue.
-  ///
-  /// In en, this message translates to:
-  /// **'LEVEL {level}'**
-  String versatilityLevelValue(int level);
 
   /// No description provided for @versatilityBandVeryLimited.
   ///
@@ -1850,6 +1874,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Outfit Ideas'**
   String get outfitIdeasHeading;
+
+  /// Closet Match sheet: title of each suggested outfit card, numbered from 1
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit {number}'**
+  String outfitIdeaNumber(int number);
+
+  /// No description provided for @tryItOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Try It On'**
+  String get tryItOn;
 
   /// No description provided for @similarInClosetHeading.
   ///
@@ -1911,6 +1947,12 @@ abstract class AppLocalizations {
   /// **'Fit'**
   String get fitLabel;
 
+  /// No description provided for @fitSkinny.
+  ///
+  /// In en, this message translates to:
+  /// **'Skinny'**
+  String get fitSkinny;
+
   /// No description provided for @fitSlim.
   ///
   /// In en, this message translates to:
@@ -1934,6 +1976,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Oversized'**
   String get fitOversized;
+
+  /// No description provided for @silhouetteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Silhouette'**
+  String get silhouetteLabel;
+
+  /// No description provided for @sleeveLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleeve Length'**
+  String get sleeveLengthLabel;
+
+  /// No description provided for @cropLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get cropLengthLabel;
+
+  /// No description provided for @silhouetteStraight.
+  ///
+  /// In en, this message translates to:
+  /// **'Straight'**
+  String get silhouetteStraight;
+
+  /// No description provided for @silhouetteBoxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Boxy'**
+  String get silhouetteBoxy;
+
+  /// No description provided for @silhouetteLongline.
+  ///
+  /// In en, this message translates to:
+  /// **'Longline'**
+  String get silhouetteLongline;
+
+  /// No description provided for @silhouetteCropped.
+  ///
+  /// In en, this message translates to:
+  /// **'Cropped'**
+  String get silhouetteCropped;
+
+  /// No description provided for @silhouetteCocoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Cocoon'**
+  String get silhouetteCocoon;
+
+  /// No description provided for @silhouetteTapered.
+  ///
+  /// In en, this message translates to:
+  /// **'Tapered'**
+  String get silhouetteTapered;
+
+  /// No description provided for @silhouetteBalloon.
+  ///
+  /// In en, this message translates to:
+  /// **'Balloon'**
+  String get silhouetteBalloon;
+
+  /// No description provided for @silhouetteJogger.
+  ///
+  /// In en, this message translates to:
+  /// **'Jogger'**
+  String get silhouetteJogger;
+
+  /// No description provided for @silhouetteFlared.
+  ///
+  /// In en, this message translates to:
+  /// **'Flared'**
+  String get silhouetteFlared;
+
+  /// No description provided for @silhouettePencil.
+  ///
+  /// In en, this message translates to:
+  /// **'Pencil'**
+  String get silhouettePencil;
+
+  /// No description provided for @silhouetteALine.
+  ///
+  /// In en, this message translates to:
+  /// **'A-line'**
+  String get silhouetteALine;
+
+  /// No description provided for @silhouettePleated.
+  ///
+  /// In en, this message translates to:
+  /// **'Pleated'**
+  String get silhouettePleated;
+
+  /// No description provided for @silhouetteShift.
+  ///
+  /// In en, this message translates to:
+  /// **'Shift'**
+  String get silhouetteShift;
+
+  /// No description provided for @silhouetteFitAndFlare.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit-and-flare'**
+  String get silhouetteFitAndFlare;
+
+  /// No description provided for @sleeveSleeveless.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleeveless'**
+  String get sleeveSleeveless;
+
+  /// No description provided for @sleeveShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short Sleeve'**
+  String get sleeveShort;
+
+  /// No description provided for @sleeveThreeQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-quarter Sleeve'**
+  String get sleeveThreeQuarter;
+
+  /// No description provided for @sleeveLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Long Sleeve'**
+  String get sleeveLong;
+
+  /// No description provided for @cropFullLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Full-length'**
+  String get cropFullLength;
+
+  /// No description provided for @cropNineLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Nine-length'**
+  String get cropNineLength;
+
+  /// No description provided for @cropSevenLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Seven-length'**
+  String get cropSevenLength;
+
+  /// No description provided for @cropFiveLength.
+  ///
+  /// In en, this message translates to:
+  /// **'Five-length'**
+  String get cropFiveLength;
+
+  /// No description provided for @cropShorts.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorts'**
+  String get cropShorts;
 
   /// No description provided for @brandOptionalLabel.
   ///

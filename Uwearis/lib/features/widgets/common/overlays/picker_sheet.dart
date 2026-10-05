@@ -72,18 +72,76 @@ class SheetDragHandle extends StatelessWidget {
 /// Opens a bottom sheet with the app's standard picker-sheet chrome —
 /// surface background, rounded top corners, and [builder]'s content
 /// (typically starting with a [PickerSheetHeader]).
+///
+/// By default Flutter caps a modal sheet at 9/16 of the screen. With
+/// [fitContent] the sheet grows to its content's height instead (still kept
+/// below the status bar).
 Future<T?> showPickerSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   EdgeInsetsGeometry padding = const EdgeInsets.fromLTRB(20, 12, 20, 20),
+  bool fitContent = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
+    isScrollControlled: fitContent,
+    useSafeArea: fitContent,
     backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (sheetContext) =>
         Padding(padding: padding, child: builder(sheetContext)),
+  );
+}
+
+/// The standard single-choice picker: [PickerSheetHeader] + one radio row
+/// per option, the current [selected] in bold. Resolves to the tapped
+/// option, or `null` when the sheet is dismissed without a choice.
+Future<T?> showSingleChoiceSheet<T>(
+  BuildContext context, {
+  required String title,
+  required List<T> options,
+  required T? selected,
+  required String Function(T) labelOf,
+}) {
+  return showPickerSheet<T>(
+    context,
+    fitContent: true,
+    builder: (sheetContext) => RadioGroup<T>(
+      groupValue: selected,
+      onChanged: (v) => Navigator.pop(sheetContext, v),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PickerSheetHeader(title),
+          // Only scrolls when the options can't fit the whole screen.
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              children: [
+                for (final option in options)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      labelOf(option),
+                      style: option == selected
+                          ? AppTextStyle.bold16
+                          : AppTextStyle.regular16,
+                    ),
+                    trailing: Radio<T>(
+                      value: option,
+                      activeColor: AppColors.accent,
+                    ),
+                    onTap: () => Navigator.pop(sheetContext, option),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }

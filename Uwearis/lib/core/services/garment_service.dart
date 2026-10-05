@@ -72,11 +72,6 @@ class GarmentService with BaseService {
     return InitUploadResult.fromJson(data);
   }
 
-  Future<void> uploadImage(String uploadUrl, String localPath) async {
-    debugLog('--- uploadImage ---');
-    await putJpegToSignedUrl(uploadUrl, localPath);
-  }
-
   Future<Garment> completeUpload(
     Garment garment,
     Map<String, dynamic>? metaData,
@@ -85,8 +80,10 @@ class GarmentService with BaseService {
     final uri = Uri.parse('$_baseUrl/complete');
 
     // Per the garments API: category / sub_category / name / color are the
-    // top-level body fields; thickness / formality / fit / material / style /
-    // crop_length / description ride inside `metadata`.
+    // top-level body fields; thickness / formality / material / style / fit /
+    // silhouette / sleeve_length / crop_length / description ride inside
+    // `metadata` — send analyze-instant's whole metadata map (user-edited),
+    // since any field left out is stored as null.
     final payload = <String, dynamic>{
       'name': garment.name,
       'category': garment.category.apiValue,
@@ -102,7 +99,9 @@ class GarmentService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
-          .timeout(const Duration(seconds: 15)),
+          // Longer than the other CRUD calls: `complete` re-downloads the
+          // upload and re-runs background removal server-side.
+          .timeout(const Duration(seconds: 30)),
     );
 
     final envelope = decodeMap(res, op: 'completeUpload');
@@ -230,7 +229,7 @@ class GarmentService with BaseService {
           .patch(
             uri,
             headers: authHeaders(token),
-            body: jsonEncode(garment.toJson()),
+            body: jsonEncode(_patchPayload(garment)),
           )
           .timeout(const Duration(seconds: 15)),
     );
@@ -242,6 +241,40 @@ class GarmentService with BaseService {
     final updated = Garment.fromJson(data);
     if (updated.id != null) _cache[updated.id!] = updated;
     return updated;
+  }
+
+  /// Only the PATCH-editable fields. `Garment.toJson` also carries
+  /// `object_name` / `image_url`, which the backend rejects with
+  /// `FIELD_NOT_EDITABLE`.
+  ///
+  /// fit / silhouette / sleeve_length / crop_length are only sent for a
+  /// category they apply to — left out otherwise, so the backend sets them
+  /// to `""` itself on a category change. PATCH validates them strictly
+  /// (400 `INVALID_GARMENT_ATTRIBUTE`), so `""` is sent as `null` (= clear).
+  /// `crop_length` isn't nullable on PATCH, so it's only sent with a value.
+  static Map<String, dynamic> _patchPayload(Garment garment) {
+    String? valueOrNull(String? v) => (v == null || v.isEmpty) ? null : v;
+    final category = garment.category;
+    final cropLength = valueOrNull(garment.cropLength);
+    return {
+      'name': garment.name,
+      'category': category.apiValue,
+      'sub_category': garment.subCategory,
+      'brand': garment.brand,
+      'color': garment.color,
+      'price': garment.price?.round(),
+      'purchase_date': garment.purchaseDateApiValue,
+      if (garment.thickness > 0) 'thickness': garment.thickness,
+      if (garment.formality > 0) 'formality': garment.formality,
+      if (garmentFitCategories.contains(category)) ...{
+        'fit': valueOrNull(garment.fit),
+        'silhouette': valueOrNull(garment.silhouette),
+      },
+      if (garmentSleeveLengthCategories.contains(category))
+        'sleeve_length': valueOrNull(garment.sleeveLength),
+      if (garmentCropLengthCategories.contains(category) && cropLength != null)
+        'crop_length': cropLength,
+    };
   }
 
   Future<void> setFavorite(int garmentId, {required bool isFavorite}) async {
@@ -306,10 +339,11 @@ class GarmentService with BaseService {
           contentType: MediaType.parse(mimeType),
         ),
       );
-      // Generous: this is an AI vision call and the first one after an idle
-      // period also eats the backend's cold start.
+      // Backend caps AI analysis + background removal at 100s
+      // (AI_ANALYSIS_TIMEOUT); leave headroom for upload and cold start so
+      // the server's own error reaches us instead of a client timeout.
       final streamedRes = await request.send().timeout(
-        const Duration(seconds: 60),
+        const Duration(seconds: 110),
       );
       return http.Response.fromStream(streamedRes);
     });
@@ -324,7 +358,7 @@ class GarmentService with BaseService {
       final bytes = base64Decode(base64Str);
       final tempDir = await getTemporaryDirectory();
       final file = File(
-        '${tempDir.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        '${tempDir.path}/processed_${DateTime.now().millisecondsSinceEpoch}.webp',
       );
       await file.writeAsBytes(bytes);
       processedImagePath = file.path;
@@ -369,9 +403,11 @@ class GarmentService with BaseService {
   ///   expects for a garment that hasn't been added to the closet yet — Add
   ///   Clothing's own "Analyze with AI" (try before deciding whether to
   ///   actually save it). See `GarmentDetailsPage._closetAnalysisPreviewFields`.
-  ///   The target garment rides a backend-assigned sentinel id in the
-  ///   response and is never persisted or cached (there is no [garmentId] to
-  ///   cache it under).
+  ///   `category` is required in this mode (422 otherwise); fit /
+  ///   silhouette / sleeve_length / crop_length / description are all
+  ///   accepted, so the fuller the metadata the better the result. The
+  ///   target garment comes back as `garment_id: 0`, `image_url: ""` and is
+  ///   never persisted or cached (there is no [garmentId] to cache it under).
   ///
   /// Doesn't write DB — the backend recomputes it fresh on every call.
   /// Always hits the network (an explicit action should never silently serve
@@ -391,7 +427,9 @@ class GarmentService with BaseService {
           .post(
             uri,
             headers: authHeaders(token),
-            body: jsonEncode({'garment_id': garmentId, ...?fields}),
+            body: jsonEncode(
+              garmentId != null ? {'garment_id': garmentId} : {...?fields},
+            ),
           )
           .timeout(const Duration(seconds: 45)),
     );

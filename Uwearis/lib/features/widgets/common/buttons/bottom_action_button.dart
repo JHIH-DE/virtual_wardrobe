@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_text_styles.dart';
+import 'action_button.dart';
 
+/// A screen's primary action pinned to the bottom (via
+/// `Scaffold.bottomNavigationBar`): the solid [ActionButton] in a padded,
+/// safe-area-aware panel that hides itself whenever the action can't be
+/// taken.
 class BottomActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -10,15 +13,7 @@ class BottomActionButton extends StatelessWidget {
   final bool isLoading;
   final Widget? leading;
   final Widget? trailing;
-  final Color buttonColor;
-  final Color textColor;
   final EdgeInsets panelPadding;
-  final BorderSide? borderSide;
-
-  // Was an overridable param (default 56); the one call site that needed a
-  // shorter bar (Outfit Details' "Edit Outfit" button) is the only value
-  // actually in use, so that's now the fixed height everywhere.
-  static const double _height = 48;
 
   const BottomActionButton({
     super.key,
@@ -28,13 +23,7 @@ class BottomActionButton extends StatelessWidget {
     this.isLoading = false,
     this.leading,
     this.trailing,
-    this.buttonColor = AppColors.accent,
-    this.textColor = AppColors.textOnPrimary,
     this.panelPadding = const EdgeInsets.fromLTRB(20, 0, 20, 0),
-    this.borderSide = const BorderSide(
-      color: AppColors.borderOnDark,
-      width: 1.5,
-    ),
   });
 
   // Hidden whenever the action can't currently be taken — genuinely
@@ -63,44 +52,11 @@ class BottomActionButton extends StatelessWidget {
         top: false,
         left: false,
         right: false,
-        child: SizedBox(
-          width: double.infinity,
-          height: _height,
-          child: ElevatedButton(
-            onPressed: onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: buttonColor,
-              foregroundColor: textColor,
-              elevation: 0,
-              side: borderSide,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(100),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (leading != null) ...[
-                  IconTheme(
-                    data: IconThemeData(color: textColor),
-                    child: leading!,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  label,
-                  style: AppTextStyle.medium16.copyWith(color: textColor),
-                ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 8),
-                  IconTheme(
-                    data: IconThemeData(color: textColor),
-                    child: trailing!,
-                  ),
-                ],
-              ],
-            ),
-          ),
+        child: ActionButton(
+          label: label,
+          onPressed: onPressed,
+          leading: leading,
+          trailing: trailing,
         ),
       ),
     );

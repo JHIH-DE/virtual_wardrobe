@@ -118,4 +118,40 @@ void main() {
       expect(await GarmentService().cachedClosetAnalysis(4242), isNull);
     },
   );
+
+  group('tier badge', () {
+    Future<void> pumpWithTier(WidgetTester tester, String? tier) {
+      return http.runWithClient(
+        () async {
+          useTallSurface(tester);
+          await pumpApp(tester, const SettingsPage());
+          await tester.pumpAndSettle();
+        },
+        () => MockClient(
+          (_) async => jsonResponse(
+            envelope({
+              'name': 'Test User',
+              'email': 'test@example.com',
+              'tier': ?tier,
+            }),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('tier_1 shows Gold', (tester) async {
+      await pumpWithTier(tester, 'tier_1');
+      expect(find.text('Gold'), findsOneWidget);
+    });
+
+    testWidgets('tier_2 shows Silver', (tester) async {
+      await pumpWithTier(tester, 'tier_2');
+      expect(find.text('Silver'), findsOneWidget);
+    });
+
+    testWidgets('a missing tier falls back to Bronze', (tester) async {
+      await pumpWithTier(tester, null);
+      expect(find.text('Bronze'), findsOneWidget);
+    });
+  });
 }

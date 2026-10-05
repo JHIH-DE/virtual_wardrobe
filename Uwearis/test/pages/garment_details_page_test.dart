@@ -6,10 +6,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/core/services/garment_service.dart';
 import 'package:uwearis/data/garment.dart';
+import 'package:uwearis/features/pages/add_outfit_page.dart';
 import 'package:uwearis/features/pages/garment_details_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
+import 'package:uwearis/features/widgets/common/buttons/action_button.dart';
+import 'package:uwearis/features/widgets/common/cards/app_card_shell.dart';
+import 'package:uwearis/features/widgets/common/cards/uwearis_insight_card.dart';
+import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
+import 'package:uwearis/features/widgets/common/section_title.dart';
 import 'package:uwearis/features/widgets/garment/garment_image.dart';
 
 import '../helpers/fake_auth.dart';
@@ -55,6 +62,24 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
+  // The closet analysis lives in a page sheet opened from the page's
+  // Closet Match button. Fixed-duration pumps rather than pumpAndSettle() — the
+  // sheet's loading state is an indeterminate spinner that never settles.
+  Future<void> openAnalysisSheet(
+    WidgetTester tester, {
+    String label = 'View Closet Match',
+  }) async {
+    await tester.tap(find.text(label));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
+  Future<void> closeAnalysisSheet(WidgetTester tester) async {
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
   testWidgets('add mode: title, gated Add-to-Closet bar, empty color field', (
     tester,
   ) async {
@@ -76,6 +101,172 @@ void main() {
     });
   });
 
+  group('garment attributes (fit / silhouette / sleeve / crop length)', () {
+    const bottom = Garment(
+      id: 9301,
+      name: 'Wide Pants',
+      category: GarmentCategory.bottom,
+      subCategory: 'Trousers',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: '',
+      fit: 'Relaxed',
+      silhouette: 'Tapered',
+      sleeveLength: '',
+      cropLength: 'Nine-length',
+    );
+
+    Future<void> openPage(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(tester, const GarmentDetailsPage(initialGarment: bottom));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    Future<void> pick(WidgetTester tester, String field, String option) async {
+      await tester.tap(find.text(field));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text(option).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    testWidgets('shows only the fields the category supports', (tester) async {
+      await runWithEmptyCloset(() async {
+        await openPage(tester);
+
+        expect(find.text('Relaxed'), findsOneWidget);
+        expect(find.text('Tapered'), findsOneWidget);
+        expect(find.text('Nine-length'), findsOneWidget);
+        expect(find.text('SLEEVE LENGTH'), findsNothing);
+        expect(find.byType(Slider), findsNothing);
+      });
+    });
+
+    testWidgets('picking from the bottom sheet updates the field and marks '
+        'the form modified', (tester) async {
+      await runWithEmptyCloset(() async {
+        await openPage(tester);
+        expect(
+          find.byKey(const ValueKey('bottomActionButton-hidden')),
+          findsOneWidget,
+        );
+
+        await pick(tester, 'Relaxed', 'Oversized');
+
+        expect(find.text('Oversized'), findsOneWidget);
+        expect(find.text('Relaxed'), findsNothing);
+        expect(
+          find.byKey(const ValueKey('bottomActionButton-visible')),
+          findsOneWidget,
+        );
+      });
+    });
+
+    testWidgets('switching category drops values the new category rejects', (
+      tester,
+    ) async {
+      await runWithEmptyCloset(() async {
+        await openPage(tester);
+
+        await pick(tester, 'Bottom', 'Top');
+
+        // Fit carries over; Tapered isn't a Top silhouette; tops have no
+        // crop length but do have a sleeve length.
+        expect(find.text('Relaxed'), findsOneWidget);
+        expect(find.text('Tapered'), findsNothing);
+        expect(find.text('Nine-length'), findsNothing);
+        expect(find.text('SLEEVE LENGTH'), findsOneWidget);
+      });
+    });
+
+    testWidgets('a long option list (Bottom silhouettes) shows every option '
+        'at once on a phone-sized screen, without scrolling', (tester) async {
+      await runWithEmptyCloset(() async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await pumpApp(tester, const GarmentDetailsPage(initialGarment: bottom));
+        await tester.pump();
+        await tester.pump();
+
+        await tester.ensureVisible(find.text('Tapered'));
+        await tester.pump();
+        await tester.tap(find.text('Tapered'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(tester.takeException(), isNull);
+        final sheet = tester.getRect(find.byType(BottomSheet));
+        for (final option in [
+          'Straight',
+          'Tapered',
+          'Balloon',
+          'Jogger',
+          'Flared',
+          'Pencil',
+          'A-line',
+          'Pleated',
+        ]) {
+          final row = tester.getRect(
+            find.descendant(
+              of: find.byType(BottomSheet),
+              matching: find.widgetWithText(ListTile, option),
+            ),
+          );
+          expect(row.bottom, lessThanOrEqualTo(sheet.bottom), reason: option);
+        }
+        final sheetPosition = tester
+            .state<ScrollableState>(
+              find.descendant(
+                of: find.byType(BottomSheet),
+                matching: find.byType(Scrollable),
+              ),
+            )
+            .position;
+        expect(sheetPosition.maxScrollExtent, 0);
+
+        await tester.tap(find.text('Pleated'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Pleated'), findsOneWidget);
+        expect(find.text('Tapered'), findsNothing);
+      });
+    });
+
+    testWidgets('add mode pre-fills the attributes from AI metadata', (
+      tester,
+    ) async {
+      await runWithEmptyCloset(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          const GarmentDetailsPage(
+            initialGarment: _draftGarment,
+            initialAnalysisData: {
+              'name': 'Coach Jacket',
+              'category': 'Outer',
+              'sub_category': 'Jacket',
+              'fit': 'Regular',
+              'silhouette': 'Boxy',
+              'sleeve_length': 'Long',
+              'crop_length': '',
+            },
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Regular'), findsOneWidget);
+        expect(find.text('Boxy'), findsOneWidget);
+        expect(find.text('Long Sleeve'), findsOneWidget);
+        expect(find.text('LENGTH'), findsNothing);
+      });
+    });
+  });
+
   testWidgets('editing the name reveals the Add-to-Closet bar', (tester) async {
     await runWithEmptyCloset(() async {
       useTallSurface(tester);
@@ -92,8 +283,8 @@ void main() {
     });
   });
 
-  // Add mode shows the same insight card as edit mode — tapping "Analyze
-  // with AI" before the garment is ever saved runs a preview analysis
+  // Add mode shows the same Closet Match button as edit mode — tapping it
+  // before the garment is ever saved runs a preview analysis
   // against the current form fields instead of a real garment id (see
   // GarmentService.closetAnalysis's null-garmentId mode).
   testWidgets('add mode: Uwearis AI analysis card runs a preview analysis', (
@@ -126,15 +317,60 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Analyze with AI'), findsOneWidget);
+      expect(find.text('View Closet Match'), findsOneWidget);
       expect(find.text('Versatile'), findsNothing);
 
-      await tester.tap(find.text('Analyze with AI'));
-      await tester.pump();
+      await openAnalysisSheet(tester);
+
+      expect(find.text('8/10'), findsOneWidget);
+      expect(find.text('Versatile'), findsOneWidget);
+    }, () => client);
+  });
+
+  testWidgets('add mode: outfit ideas have no Try It On button — the '
+      'garment isn\'t in the closet yet', (tester) async {
+    final client = MockClient((request) async {
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/closet-analysis')) {
+        return jsonResponse(
+          envelope({
+            'versatility': {'level': 8, 'label': 'Versatile'},
+            'outfit_ideas': [
+              {
+                'title': 'Idea',
+                'garments': [
+                  {
+                    'garment_id': 109,
+                    'category': 'Bottom',
+                    'name': 'Wide Tapered Denim Pants',
+                    'image_url': '',
+                    'is_target': false,
+                  },
+                ],
+              },
+            ],
+            'similar_garments': <Object?>[],
+          }),
+        );
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const GarmentDetailsPage(
+          initialGarment: _draftGarment,
+          initialAnalysisData: {'name': 'Tee', 'category': 'Top'},
+        ),
+      );
       await tester.pump();
 
-      expect(find.text('LEVEL 8'), findsOneWidget);
-      expect(find.text('Versatile'), findsOneWidget);
+      await openAnalysisSheet(tester);
+
+      expect(find.text('Outfit 1'), findsOneWidget);
+      expect(find.text('Try It On'), findsNothing);
     }, () => client);
   });
 
@@ -143,10 +379,17 @@ void main() {
     'real per-garment cache, so reopening it shows the result without '
     're-analyzing',
     (tester) async {
-      final tempDir = await Directory.systemTemp.createTemp('garment_photo');
-      final photo = File('${tempDir.path}/photo.jpg');
-      await photo.writeAsBytes(const [0xFF, 0xD8, 0xFF, 0xD9]);
-      addTearDown(() => tempDir.delete(recursive: true));
+      // Real file I/O never completes inside testWidgets' fake-async zone.
+      final tempDir = Directory.systemTemp.createTempSync('garment_photo');
+      // A real (1×1 PNG) image, since the page's photo preview decodes it.
+      final photo = File('${tempDir.path}/photo.jpg')
+        ..writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk'
+            '+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          ),
+        );
+      addTearDown(() => tempDir.deleteSync(recursive: true));
 
       var previewCalls = 0;
       var perGarmentAnalysisCalls = 0;
@@ -259,14 +502,12 @@ void main() {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
 
-        // Run the preview analysis before ever saving. Plain pump()s, not
-        // pumpAndSettle() — the card's own loading state is an indeterminate
-        // CircularProgressIndicator, which never "settles" on its own.
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
-        expect(find.text('LEVEL 8'), findsOneWidget);
+        // Run the preview analysis before ever saving, then close the sheet
+        // to get back to the form.
+        await openAnalysisSheet(tester);
+        expect(find.text('8/10'), findsOneWidget);
         expect(previewCalls, 1);
+        await closeAnalysisSheet(tester);
 
         // Make sure Add to Closet is actually enabled, then save.
         await tester.enterText(
@@ -277,10 +518,16 @@ void main() {
         // Same reasoning as above — the bottom button shows its own
         // indeterminate spinner (isLoading: _uploading) while the
         // init-upload/PUT/complete/cache chain runs.
+        // The upload reads the photo with real file I/O, so give it real
+        // time between pumps.
         await tester.tap(find.text('Add to Closet'));
         for (var i = 0; i < 6; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 50)),
+          );
           await tester.pump();
         }
+        await tester.pump(const Duration(milliseconds: 500));
 
         expect(find.byType(GarmentDetailsPage), findsNothing);
         expect(saved?.id, 700501);
@@ -291,15 +538,15 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        expect(find.text('LEVEL 8'), findsOneWidget);
-        expect(find.text('Analyze with AI'), findsNothing);
+        await openAnalysisSheet(tester);
+        expect(find.text('8/10'), findsOneWidget);
         expect(perGarmentAnalysisCalls, 0);
       }, () => client);
     },
   );
 
-  testWidgets('edit mode: closet-analysis card starts as a prompt + Analyze '
-      'button, then shows the versatility result', (tester) async {
+  testWidgets('edit mode: the Closet Match button opens the analysis sheet, '
+      'which runs it and shows the versatility result', (tester) async {
     final client = MockClient((request) async {
       if (request.method == 'POST' &&
           request.url.path.endsWith('/closet-analysis')) {
@@ -329,21 +576,37 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // No analysis until the user asks for it — a one-line prompt and the
-      // "Analyze with AI" pill, no result yet.
+      // No analysis until the user asks for it — just the tinted View
+      // Closet Match button under the photo, no Uwearis AI card or result.
+      expect(find.text('View Closet Match'), findsOneWidget);
+      expect(
+        tester
+            .widget<ActionButton>(find.byType(ActionButton))
+            .variant,
+        ActionButtonVariant.tinted,
+      );
+      expect(find.byType(UwearisInsightCard), findsNothing);
       expect(
         find.text('How well this piece works with your closet.'),
+        findsNothing,
+      );
+
+      await openAnalysisSheet(tester);
+
+      // The sheet itself is titled just "Closet Match".
+      expect(
+        find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.text('Closet Match'),
+        ),
         findsOneWidget,
       );
-      expect(find.text('Analyze with AI'), findsOneWidget);
-      expect(find.text('Versatile'), findsNothing);
-
-      await tester.tap(find.text('Analyze with AI'));
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('LEVEL 8'), findsOneWidget);
+      expect(find.text('8/10'), findsOneWidget);
       expect(find.text('Versatile'), findsOneWidget);
+
+      await closeAnalysisSheet(tester);
+      expect(find.text('8/10'), findsNothing);
+      expect(find.text('View Closet Match'), findsOneWidget);
     }, () => client);
   });
 
@@ -407,12 +670,9 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
+        await openAnalysisSheet(tester);
 
-        // The outfit idea's title isn't shown — just its garment thumbnails,
-        // separated from other ideas by a divider (see _buildResult).
+        // Ideas are titled by number, not by the backend's own idea title.
         expect(find.text('Rugged Workwear Layering'), findsNothing);
         final thumbFinder = find.byWidgetPredicate(
           (w) => w is GarmentImage && w.garmentId == 109,
@@ -429,8 +689,8 @@ void main() {
   );
 
   testWidgets(
-    'edit mode: multiple outfit ideas show no title and are separated by '
-    'a divider',
+    'edit mode: each outfit idea gets its own card titled Outfit 1, Outfit 2, '
+    '… with a "+" between its garments',
     (tester) async {
       final client = MockClient((request) async {
         if (request.method == 'POST' &&
@@ -446,6 +706,13 @@ void main() {
                       'garment_id': 109,
                       'category': 'Bottom',
                       'name': 'Wide Tapered Denim Pants',
+                      'image_url': '',
+                      'is_target': false,
+                    },
+                    {
+                      'garment_id': 110,
+                      'category': 'Outer',
+                      'name': 'Waxed Canvas Jacket',
                       'image_url': '',
                       'is_target': false,
                     },
@@ -486,14 +753,20 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        final dividersBefore = find.byType(AppDivider).evaluate().length;
+        await openAnalysisSheet(tester);
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
-
+        // Numbered titles, not the backend's own idea titles.
         expect(find.text('Rugged Workwear Layering'), findsNothing);
         expect(find.text('Clean Casual'), findsNothing);
+        expect(find.text('Outfit 1'), findsOneWidget);
+        expect(find.text('Outfit 2'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(AppCardShell),
+          ),
+          findsNWidgets(2),
+        );
         expect(
           find.byWidgetPredicate((w) => w is GarmentImage && w.garmentId == 109),
           findsOneWidget,
@@ -502,8 +775,137 @@ void main() {
           find.byWidgetPredicate((w) => w is GarmentImage && w.garmentId == 205),
           findsOneWidget,
         );
-        // Exactly one new divider — the one separator between the two ideas.
-        expect(find.byType(AppDivider).evaluate().length, dividersBefore + 1);
+        // Outfit thumbnails sit borderless inside their card.
+        final thumbFrame = tester.widget<Container>(
+          find
+              .ancestor(
+                of: find.byWidgetPredicate(
+                  (w) => w is GarmentImage && w.garmentId == 109,
+                ),
+                matching: find.byType(Container),
+              )
+              .first,
+        );
+        expect((thumbFrame.decoration! as BoxDecoration).border, isNull);
+
+        // One "+" — between Outfit 1's two garments; Outfit 2 has just one.
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byIcon(Icons.add),
+          ),
+          findsOneWidget,
+        );
+      }, () => client);
+    },
+  );
+
+  testWidgets(
+    'edit mode: an outfit idea\'s Try It On button opens Add Outfit '
+    'pre-filled with that idea\'s garments, skipping any since deleted',
+    (tester) async {
+      Map<String, Object?> garmentJson(int id, {bool deleted = false}) => {
+        'id': id,
+        'category': 'Bottom',
+        'name': 'Garment $id',
+        'sub_category': 'Jeans',
+        'image_url': '',
+        'is_favorite': false,
+        'is_deleted': deleted,
+      };
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/closet-analysis')) {
+          return jsonResponse(
+            envelope({
+              'versatility': {'level': 8, 'label': 'Versatile'},
+              'outfit_ideas': [
+                {
+                  'title': 'Idea',
+                  'garments': [
+                    for (final id in [501, 109, 110])
+                      {
+                        'garment_id': id,
+                        'category': 'Bottom',
+                        'name': 'Garment $id',
+                        'image_url': '',
+                        'is_target': id == 501,
+                      },
+                  ],
+                },
+              ],
+              'similar_garments': <Object?>[],
+            }),
+          );
+        }
+        if (request.method == 'GET' && path.endsWith('/garments')) {
+          return jsonResponse(
+            envelope({
+              'items': [
+                garmentJson(501),
+                garmentJson(109),
+                garmentJson(110, deleted: true),
+              ],
+              'total': 3,
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        final garment = Garment(
+          id: 501,
+          name: 'Black Leather Moc Toe Work Boots',
+          category: GarmentCategory.shoes,
+          subCategory: 'Boots',
+          uploadUrl: '',
+          objectName: '',
+          imageUrl: '',
+        );
+        await pumpApp(tester, GarmentDetailsPage(initialGarment: garment));
+        await tester.pump();
+        await tester.pump();
+
+        await openAnalysisSheet(tester);
+
+        // Inside the outfit card only the analyzed garment (501) is framed,
+        // in borderStrong; the others are borderless.
+        Border? frameBorder(int id) {
+          final frame = tester.widget<Container>(
+            find
+                .ancestor(
+                  of: find.descendant(
+                    of: find.byType(BottomSheet),
+                    matching: find.byWidgetPredicate(
+                      (w) => w is GarmentImage && w.garmentId == id,
+                    ),
+                  ),
+                  matching: find.byType(Container),
+                )
+                .first,
+          );
+          return (frame.decoration! as BoxDecoration).border as Border?;
+        }
+
+        expect(frameBorder(501)!.top.color, AppColors.borderStrong);
+        expect(frameBorder(109), isNull);
+
+        // The button sits level with its card's "Outfit 1" title.
+        expect(
+          tester.getCenter(find.text('Try It On')).dy,
+          tester.getCenter(find.text('Outfit 1')).dy,
+        );
+
+        await tester.tap(find.text('Try It On'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        final addOutfit = tester.widget<AddOutfitPage>(
+          find.byType(AddOutfitPage),
+        );
+        expect(addOutfit.initialGarments.map((g) => g.id), [501, 109]);
       }, () => client);
     },
   );
@@ -562,9 +964,22 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
+        await openAnalysisSheet(tester);
+
+        // Section headings are SectionTitles in normal case.
+        expect(
+          find.widgetWithText(SectionTitle, 'Similar in Your Closet'),
+          findsOneWidget,
+        );
+
+        // A divider separates Similar in Your Closet from what's above it.
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(AppDivider),
+          ),
+          findsOneWidget,
+        );
 
         await tester.tap(
           find.byWidgetPredicate((w) => w is GarmentImage && w.garmentId == 106),
@@ -617,12 +1032,11 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
+        await openAnalysisSheet(tester);
 
-        expect(find.text('LEVEL 8'), findsOneWidget);
+        expect(find.text('8/10'), findsOneWidget);
         expect(closetAnalysisCalls, 1);
+        await closeAnalysisSheet(tester);
 
         // Simulate leaving and coming back: `pumpApp` mounts a brand new
         // widget tree, so this is a fresh GarmentDetailsPage State for the
@@ -631,9 +1045,10 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        expect(find.text('LEVEL 8'), findsOneWidget);
-        expect(find.text('Analyze with AI'), findsNothing);
+        await openAnalysisSheet(tester);
+        expect(find.text('8/10'), findsOneWidget);
         expect(closetAnalysisCalls, 1);
+        await closeAnalysisSheet(tester);
 
         // No TTL: rewrite the persisted entry's own analyzed_at far into
         // the past and confirm a third visit still reads it from cache
@@ -650,15 +1065,16 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        expect(find.text('LEVEL 8'), findsOneWidget);
-        expect(find.text('Analyze with AI'), findsNothing);
+        await openAnalysisSheet(tester);
+        expect(find.text('8/10'), findsOneWidget);
         expect(closetAnalysisCalls, 1);
+        await closeAnalysisSheet(tester);
       }, () => client);
     },
   );
 
   testWidgets(
-    'edit mode: the header refresh action only appears once a result '
+    'edit mode: the refresh action only appears once a result '
     'exists, not while showing the initial prompt',
     (tester) async {
       final client = MockClient((request) async {
@@ -692,9 +1108,7 @@ void main() {
 
         expect(find.byIcon(Icons.refresh), findsNothing);
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
+        await openAnalysisSheet(tester);
 
         expect(find.byIcon(Icons.refresh), findsOneWidget);
       }, () => client);
@@ -745,20 +1159,37 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
-        expect(find.text('LEVEL 8'), findsOneWidget);
+        await openAnalysisSheet(tester);
+        expect(find.text('8/10'), findsOneWidget);
+        // Re-analyze is the sheet's top-left action now, mirroring the X —
+        // no separate button below the result.
+        expect(find.text('Analyze Again'), findsNothing);
+        final sheet = tester.getRect(find.byType(BottomSheet));
+        expect(
+          tester.getCenter(find.byIcon(Icons.refresh)),
+          tester.getCenter(find.byIcon(Icons.close)).translate(
+            -(sheet.width - 2 * (16 + 18)),
+            0,
+          ),
+        );
 
         await tester.tap(find.byIcon(Icons.refresh));
-        // Mid-flight: the old result is still on screen — refresh
-        // regenerates, it never deletes first.
+        // Mid-flight: the old result is still there, under the sheet's
+        // LoadingOverlay — refresh regenerates, it never deletes first.
         await tester.pump();
-        expect(find.text('LEVEL 8'), findsOneWidget);
+        expect(find.text('8/10'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(LoadingOverlay),
+          ),
+          findsOneWidget,
+        );
 
         await tester.pump(const Duration(milliseconds: 100));
-        expect(find.text('LEVEL 3'), findsOneWidget);
-        expect(find.text('LEVEL 8'), findsNothing);
+        expect(find.byType(LoadingOverlay), findsNothing);
+        expect(find.text('3/10'), findsOneWidget);
+        expect(find.text('8/10'), findsNothing);
         expect(find.text('Limited'), findsOneWidget);
 
         final cached = await GarmentService().cachedClosetAnalysis(502);
@@ -813,10 +1244,8 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
-        expect(find.text('LEVEL 8'), findsOneWidget);
+        await openAnalysisSheet(tester);
+        expect(find.text('8/10'), findsOneWidget);
 
         await tester.tap(find.byIcon(Icons.refresh));
         await tester.pump();
@@ -824,7 +1253,7 @@ void main() {
 
         // The old result is still the whole card — not replaced by the
         // full-body error state that a first-run failure would show.
-        expect(find.text('LEVEL 8'), findsOneWidget);
+        expect(find.text('8/10'), findsOneWidget);
         expect(find.text('Versatile'), findsOneWidget);
         expect(
           find.text("Couldn't analyze — please try again."),
@@ -874,9 +1303,7 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.text('Analyze with AI'));
-        await tester.pump();
-        await tester.pump();
+        await openAnalysisSheet(tester);
 
         expect(
           find.text('This item could no longer be found in your closet.'),

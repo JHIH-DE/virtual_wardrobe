@@ -20,11 +20,10 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/accent_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
+import '../widgets/common/buttons/action_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/cards/uwearis_insight_card.dart';
-import '../widgets/common/field_label.dart';
+import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
@@ -34,12 +33,15 @@ import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
+import '../widgets/common/overlays/page_sheet.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/overlays/save_changes_dialog.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
+import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/garment/garment_share_sheet.dart';
+import 'add_outfit_page.dart';
 import 'garment_outfits_page.dart';
 
 enum _GarmentMenuAction { rename, share, delete }
@@ -68,30 +70,44 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   bool _isImageChanged = false;
   bool _isAnalyzing = false;
   bool _uploading = false;
+  bool _openingAddOutfit = false;
   int? _id;
   String? _imagePathOrUrl;
   GarmentColor? _selectedColor;
   GarmentFit? _selectedFit;
+  GarmentSilhouette? _selectedSilhouette;
+  GarmentSleeveLength? _selectedSleeveLength;
+  GarmentCropLength? _selectedCropLength;
   GarmentCategory _category = GarmentCategory.top;
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
-  // Closet-analysis result — null shows the insight card's prompt +
-  // "Analyze with AI" button; set once the user runs _runClosetAnalysis, or
-  // restored in initState from GarmentService's persisted cache if this
-  // garment has ever been analyzed (see _loadCachedClosetAnalysis). Only
-  // reachable once the garment has an [_id] — an in-progress Add Clothing
-  // draft isn't in the closet yet for the backend to analyze.
-  ClosetAnalysis? _closetAnalysis;
-  // Drives the insight card's *initial* loading state — the first-ever
-  // "Analyze with AI" run, and (reused, since it looks identical) the brief
-  // async cache read in initState. [_isRefreshingAnalysis] is the separate
-  // in-flight flag for re-analyzing once a result already exists, since
-  // that must keep showing the old result rather than this full-body
-  // loading state — see _refreshClosetAnalysis.
-  bool _isAnalyzingCloset = false;
-  bool _isRefreshingAnalysis = false;
-  String? _closetAnalysisError;
+  // The closet-analysis state below is ValueNotifiers rather than plain
+  // setState fields: the result is shown in a modal sheet (its own route),
+  // which this page's setState never rebuilds — the sheet listens to these
+  // instead.
+  //
+  // Closet-analysis result — null until the user opens the Closet Match
+  // sheet (which runs _runClosetAnalysis), or restored in
+  // initState from GarmentService's persisted cache if this garment has
+  // ever been analyzed (see _loadCachedClosetAnalysis). In Add mode it's a
+  // preview run against the form fields (see _runClosetAnalysis).
+  final _closetAnalysis = ValueNotifier<ClosetAnalysis?>(null);
+  // Drives the *initial* loading state — the first-ever "Analyze with AI"
+  // run, and (reused, since it looks identical) the brief async cache read
+  // in initState. [_isRefreshingAnalysis] is the separate in-flight flag
+  // for re-analyzing once a result already exists, since that must keep
+  // showing the old result rather than this full-body loading state — see
+  // _refreshClosetAnalysis.
+  final _isAnalyzingCloset = ValueNotifier<bool>(false);
+  final _isRefreshingAnalysis = ValueNotifier<bool>(false);
+  final _closetAnalysisError = ValueNotifier<String?>(null);
+  late final Listenable _closetAnalysisState = Listenable.merge([
+    _closetAnalysis,
+    _isAnalyzingCloset,
+    _isRefreshingAnalysis,
+    _closetAnalysisError,
+  ]);
   int? _outfitCount;
 
   /// The App Bar title's source of truth — mirrors
@@ -110,9 +126,18 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   late String _initialPrice;
   GarmentColor? _initialColor;
   GarmentFit? _initialFit;
+  GarmentSilhouette? _initialSilhouette;
+  GarmentSleeveLength? _initialSleeveLength;
+  GarmentCropLength? _initialCropLength;
   DateTime? _initialDate;
 
   bool get _showFitField => garmentFitCategories.contains(_category);
+  bool get _showSleeveLengthField =>
+      garmentSleeveLengthCategories.contains(_category);
+  bool get _showCropLengthField =>
+      garmentCropLengthCategories.contains(_category);
+  List<GarmentSilhouette> get _silhouetteOptions =>
+      garmentSilhouettesByCategory[_category] ?? const [];
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -128,7 +153,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     // "Analyzing…" loading state for that brief window instead of flashing
     // the "Analyze with AI" prompt right before it's (usually) immediately
     // replaced by a cached result. See _loadCachedClosetAnalysis.
-    if (_id != null) _isAnalyzingCloset = true;
+    if (_id != null) _isAnalyzingCloset.value = true;
 
     // Snapshot initial values for later change detection
     _initialName = _editingGarment?.name ?? '';
@@ -138,6 +163,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _initialPrice = _editingGarment?.price?.toString() ?? '';
     _initialColor = _tryParseGarmentColor(_editingGarment?.color);
     _initialFit = GarmentFitX.fromApiValue(_editingGarment?.fit);
+    _initialSilhouette = GarmentSilhouetteX.fromApiValue(
+      _editingGarment?.silhouette,
+    );
+    _initialSleeveLength = GarmentSleeveLengthX.fromApiValue(
+      _editingGarment?.sleeveLength,
+    );
+    _initialCropLength = GarmentCropLengthX.fromApiValue(
+      _editingGarment?.cropLength,
+    );
     _initialDate = _editingGarment?.purchaseDate;
 
     if (_editingGarment != null) {
@@ -149,6 +183,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       _purchaseDate = _editingGarment!.purchaseDate;
       _selectedColor ??= _initialColor;
       _selectedFit ??= _initialFit;
+      _selectedSilhouette ??= _initialSilhouette;
+      _selectedSleeveLength ??= _initialSleeveLength;
+      _selectedCropLength ??= _initialCropLength;
     }
 
     if (widget.initialAnalysisData != null) {
@@ -219,6 +256,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         _priceCtrl.text != _initialPrice ||
         _selectedColor != _initialColor ||
         _selectedFit != _initialFit ||
+        _selectedSilhouette != _initialSilhouette ||
+        _selectedSleeveLength != _initialSleeveLength ||
+        _selectedCropLength != _initialCropLength ||
         _purchaseDate != _initialDate;
 
     if (changed != _isModified) {
@@ -232,6 +272,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _subCategory.dispose();
     _brandCtrl.dispose();
     _priceCtrl.dispose();
+    _closetAnalysis.dispose();
+    _isAnalyzingCloset.dispose();
+    _isRefreshingAnalysis.dispose();
+    _closetAnalysisError.dispose();
     super.dispose();
   }
 
@@ -506,19 +550,17 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _UwearisAiAnalysisCard(
-              analysis: _closetAnalysis,
-              isAnalyzing: _isAnalyzingCloset,
-              isRefreshing: _isRefreshingAnalysis,
-              errorMessage: _closetAnalysisError,
-              onAnalyze: _runClosetAnalysis,
-              onRefresh: _refreshClosetAnalysis,
-              onGarmentTap: _openAiGarmentDetail,
-              onGarmentImageRefreshed: _onOutfitIdeaImageRefreshed,
-              targetImageOverride: _isAddMode ? _imagePathOrUrl : null,
+            child: ActionButton(
+              label: _l10n.viewClosetMatch,
+              variant: ActionButtonVariant.tinted,
+              leading: const Icon(
+                Icons.auto_awesome_outlined,
+                size: AppDimens.iconSmallSize,
+              ),
+              onPressed: _openClosetAnalysisSheet,
             ),
           ),
           const SizedBox(height: AppDimens.sectionSpacing),
@@ -546,7 +588,20 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           _buildSubCategoryField(),
           const SizedBox(height: 20),
           _buildColorField(),
-          if (_showFitField) ...[const SizedBox(height: 20), _buildFitField()],
+          if (_showFitField) ...[
+            const SizedBox(height: 20),
+            _buildFitField(),
+            const SizedBox(height: 20),
+            _buildSilhouetteField(),
+          ],
+          if (_showSleeveLengthField) ...[
+            const SizedBox(height: 20),
+            _buildSleeveLengthField(),
+          ],
+          if (_showCropLengthField) ...[
+            const SizedBox(height: 20),
+            _buildCropLengthField(),
+          ],
           const SizedBox(height: 20),
           _buildBrandField(),
           const SizedBox(height: 20),
@@ -570,63 +625,75 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   Widget _buildCategoryField() {
-    return LabeledField(
+    return _buildOptionField<GarmentCategory>(
       label: _l10n.clothingCategoryLabel,
-      child: PickerField(
-        text: _category.localizedLabel(context),
-        onTap: _openCategoryPicker,
-      ),
+      value: _category,
+      options: GarmentCategory.values,
+      labelOf: (c) => c.localizedLabel(context),
+      onSelected: (c) {
+        _category = c;
+        _dropInapplicableAttributes();
+      },
     );
   }
 
-  Future<void> _openCategoryPicker() async {
-    await showPickerSheet<void>(
-      context,
-      builder: (sheetContext) => RadioGroup<GarmentCategory>(
-        groupValue: _category,
-        onChanged: (v) {
-          if (v != null) _applyCategoryChange(v);
-          Navigator.pop(sheetContext);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PickerSheetHeader(_l10n.clothingCategoryLabel),
-            for (final c in GarmentCategory.values)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  c.localizedLabel(context),
-                  style: c == _category
-                      ? AppTextStyle.bold16
-                      : AppTextStyle.regular16,
-                ),
-                trailing: Radio<GarmentCategory>(
-                  value: c,
-                  activeColor: AppColors.accent,
-                ),
-                onTap: () {
-                  _applyCategoryChange(c);
-                  Navigator.pop(sheetContext);
-                },
-              ),
-          ],
+  /// A labeled [PickerField] that opens a single-choice bottom sheet — shared
+  /// by category and every garment attribute (fit / silhouette / sleeve
+  /// length / crop length). [onSelected] runs inside setState, followed by
+  /// [_checkModified].
+  Widget _buildOptionField<T>({
+    required String label,
+    required T? value,
+    required List<T> options,
+    required String Function(T) labelOf,
+    required void Function(T) onSelected,
+  }) {
+    return LabeledField(
+      label: label,
+      child: PickerField(
+        text: value == null ? '' : labelOf(value),
+        hint: _l10n.notSelected,
+        onTap: () => _openOptionPicker<T>(
+          title: label,
+          value: value,
+          options: options,
+          labelOf: labelOf,
+          onSelected: onSelected,
         ),
       ),
     );
   }
 
-  /// Fit only makes sense for garments with a body-shape silhouette
-  /// ([garmentFitCategories]), so a category switch away from those clears
-  /// any previously-picked fit rather than silently saving a stale value
-  /// for a category where the field is now hidden.
-  void _applyCategoryChange(GarmentCategory category) {
-    setState(() {
-      _category = category;
-      if (!_showFitField) _selectedFit = null;
-    });
+  Future<void> _openOptionPicker<T>({
+    required String title,
+    required T? value,
+    required List<T> options,
+    required String Function(T) labelOf,
+    required void Function(T) onSelected,
+  }) async {
+    final picked = await showSingleChoiceSheet<T>(
+      context,
+      title: title,
+      options: options,
+      selected: value,
+      labelOf: labelOf,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => onSelected(picked));
     _checkModified();
+  }
+
+  /// Clears attributes the current [_category] doesn't support, mirroring
+  /// the backend: a hidden field must not silently save a stale value, and
+  /// a silhouette from another category's option set would 400 on PATCH
+  /// (`INVALID_GARMENT_ATTRIBUTE`).
+  void _dropInapplicableAttributes() {
+    if (!_showFitField) _selectedFit = null;
+    if (!_silhouetteOptions.contains(_selectedSilhouette)) {
+      _selectedSilhouette = null;
+    }
+    if (!_showSleeveLengthField) _selectedSleeveLength = null;
+    if (!_showCropLengthField) _selectedCropLength = null;
   }
 
   Widget _buildSubCategoryField() {
@@ -647,7 +714,43 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   Widget _buildFitField() {
-    return LabeledField(label: _l10n.fitLabel, child: _fitSlider());
+    return _buildOptionField<GarmentFit>(
+      label: _l10n.fitLabel,
+      value: _selectedFit,
+      options: GarmentFit.values,
+      labelOf: (f) => f.localizedLabel(context),
+      onSelected: (f) => _selectedFit = f,
+    );
+  }
+
+  Widget _buildSilhouetteField() {
+    return _buildOptionField<GarmentSilhouette>(
+      label: _l10n.silhouetteLabel,
+      value: _selectedSilhouette,
+      options: _silhouetteOptions,
+      labelOf: (v) => v.localizedLabel(context),
+      onSelected: (v) => _selectedSilhouette = v,
+    );
+  }
+
+  Widget _buildSleeveLengthField() {
+    return _buildOptionField<GarmentSleeveLength>(
+      label: _l10n.sleeveLengthLabel,
+      value: _selectedSleeveLength,
+      options: GarmentSleeveLength.values,
+      labelOf: (v) => v.localizedLabel(context),
+      onSelected: (v) => _selectedSleeveLength = v,
+    );
+  }
+
+  Widget _buildCropLengthField() {
+    return _buildOptionField<GarmentCropLength>(
+      label: _l10n.cropLengthLabel,
+      value: _selectedCropLength,
+      options: GarmentCropLength.values,
+      labelOf: (v) => v.localizedLabel(context),
+      onSelected: (v) => _selectedCropLength = v,
+    );
   }
 
   Widget _buildBrandField() {
@@ -707,6 +810,17 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     if (colorStr != null) {
       _selectedColor = _tryParseGarmentColor(colorStr);
     }
+    _selectedFit = GarmentFitX.fromApiValue(analysisData['fit']?.toString());
+    _selectedSilhouette = GarmentSilhouetteX.fromApiValue(
+      analysisData['silhouette']?.toString(),
+    );
+    _selectedSleeveLength = GarmentSleeveLengthX.fromApiValue(
+      analysisData['sleeve_length']?.toString(),
+    );
+    _selectedCropLength = GarmentCropLengthX.fromApiValue(
+      analysisData['crop_length']?.toString(),
+    );
+    _dropInapplicableAttributes();
     _metaData = analysisData;
     _checkModified();
   }
@@ -741,11 +855,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// preview against the garment's current form fields instead — see
   /// [GarmentService.closetAnalysis]'s null-[garmentId] mode.
   Future<void> _runClosetAnalysis() async {
-    if (_isAnalyzingCloset) return;
-    setState(() {
-      _isAnalyzingCloset = true;
-      _closetAnalysisError = null;
-    });
+    if (_isAnalyzingCloset.value) return;
+    _isAnalyzingCloset.value = true;
+    _closetAnalysisError.value = null;
     try {
       final id = _id;
       final result = await GarmentService().closetAnalysis(
@@ -753,24 +865,22 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         id == null ? _closetAnalysisPreviewFields() : null,
       );
       if (!mounted) return;
-      setState(() => _closetAnalysis = result);
+      _closetAnalysis.value = result;
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } on ClosetAnalysisException catch (e) {
       if (!mounted) return;
       debugLog('closetAnalysis failed: ${e.errorCode}');
-      setState(() {
-        _closetAnalysisError = e.errorCode == 'GARMENT_NOT_FOUND'
-            ? _l10n.closetAnalysisGarmentNotFound
-            : _l10n.closetAnalysisFailed;
-      });
+      _closetAnalysisError.value = e.errorCode == 'GARMENT_NOT_FOUND'
+          ? _l10n.closetAnalysisGarmentNotFound
+          : _l10n.closetAnalysisFailed;
     } catch (e) {
       if (!mounted) return;
       debugLog('closetAnalysis failed: $e');
-      setState(() => _closetAnalysisError = _l10n.closetAnalysisFailed);
+      _closetAnalysisError.value = _l10n.closetAnalysisFailed;
     } finally {
-      if (mounted) setState(() => _isAnalyzingCloset = false);
+      if (mounted) _isAnalyzingCloset.value = false;
     }
   }
 
@@ -783,10 +893,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     if (id == null) return;
     final cached = await GarmentService().cachedClosetAnalysis(id);
     if (!mounted) return;
-    setState(() {
-      if (cached != null) _closetAnalysis = cached;
-      _isAnalyzingCloset = false;
-    });
+    if (cached != null) _closetAnalysis.value = cached;
+    _isAnalyzingCloset.value = false;
   }
 
   /// Called when an Outfit Ideas / Similar Garments thumbnail's own self-heal
@@ -797,11 +905,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// app restart) would keep re-serving the same already-expired URL and
   /// repeat the same expired-URL failure this fix is meant to skip.
   void _onOutfitIdeaImageRefreshed(int garmentId, String freshUrl) {
-    final analysis = _closetAnalysis;
+    final analysis = _closetAnalysis.value;
     final id = _id;
     if (analysis == null || id == null) return;
     final updated = _withRefreshedGarmentImage(analysis, garmentId, freshUrl);
-    setState(() => _closetAnalysis = updated);
+    _closetAnalysis.value = updated;
     GarmentService().cacheClosetAnalysis(id, updated);
   }
 
@@ -839,15 +947,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   /// Re-runs the closet analysis for a garment that already has a result —
-  /// the insight card's header refresh action. Unlike [_runClosetAnalysis],
+  /// the analysis sheet's refresh action. Unlike [_runClosetAnalysis],
   /// this keeps showing the *existing* [_closetAnalysis] for the whole
   /// request: a failure leaves it (and its persisted cache entry) exactly
   /// as it was, with just an error dialog instead of replacing the card
   /// with the full error state — refreshing re-generates, it never deletes.
   /// Synchronous re-entrancy guard, same reasoning as [_runClosetAnalysis].
   Future<void> _refreshClosetAnalysis() async {
-    if (_isRefreshingAnalysis || _closetAnalysis == null) return;
-    setState(() => _isRefreshingAnalysis = true);
+    if (_isRefreshingAnalysis.value || _closetAnalysis.value == null) return;
+    _isRefreshingAnalysis.value = true;
     try {
       final id = _id;
       final result = await GarmentService().closetAnalysis(
@@ -855,7 +963,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         id == null ? _closetAnalysisPreviewFields() : null,
       );
       if (!mounted) return;
-      setState(() => _closetAnalysis = result);
+      _closetAnalysis.value = result;
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -864,7 +972,101 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       debugLog('closetAnalysis refresh failed: $e');
       showErrorDialog(context, message: _l10n.closetAnalysisFailed);
     } finally {
-      if (mounted) setState(() => _isRefreshingAnalysis = false);
+      if (mounted) _isRefreshingAnalysis.value = false;
+    }
+  }
+
+  /// Opens the full closet analysis in a [showPageSheet]. With no
+  /// result yet, the first run starts as the sheet opens so it shows the
+  /// "Analyzing…" state straight away; an existing (or cached) result is
+  /// shown as-is, re-runnable via the sheet's top-left refresh action.
+  /// Closing the sheet mid-run doesn't cancel anything — the run keeps going
+  /// and reopening shows wherever it's got to.
+  void _openClosetAnalysisSheet() {
+    if (_closetAnalysis.value == null) _runClosetAnalysis();
+    showPageSheet<void>(
+      context,
+      title: _l10n.closetMatch,
+      // Re-analyze lives at the sheet's top left, and only once there's a
+      // result to re-run — a first run's retry is the error state's own
+      // "Analyze Again" button.
+      leading: ListenableBuilder(
+        listenable: _closetAnalysisState,
+        builder: (_, _) => _closetAnalysis.value == null
+            ? const SizedBox.shrink()
+            : PageSheetAction(
+                icon: Icons.refresh,
+                label: _l10n.analyzeAgain,
+                busy: _isRefreshingAnalysis.value,
+                onTap: _refreshClosetAnalysis,
+              ),
+      ),
+      // A first run has nothing to show yet, so its LoadingOverlay fills an
+      // empty body; a refresh lays it over the old result instead, which
+      // stays (blurred, untappable) until the new one replaces it.
+      builder: (_) => ListenableBuilder(
+        listenable: _closetAnalysisState,
+        builder: (_, _) => Stack(
+          children: [
+            if (!_isAnalyzingCloset.value)
+              Positioned.fill(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: _ClosetAnalysisSheetContent(
+                    analysis: _closetAnalysis.value,
+                    errorMessage: _closetAnalysisError.value,
+                    onAnalyze: _runClosetAnalysis,
+                    onGarmentTap: _openAiGarmentDetail,
+                    // Add mode's own garment isn't in the closet yet, so an
+                    // outfit idea built around it can't be saved as a real
+                    // outfit.
+                    onCreateOutfit: _isAddMode ? null : _openAddOutfitFromIdea,
+                    onGarmentImageRefreshed: _onOutfitIdeaImageRefreshed,
+                    targetImageOverride: _isAddMode ? _imagePathOrUrl : null,
+                  ),
+                ),
+              ),
+            if (_isAnalyzingCloset.value || _isRefreshingAnalysis.value)
+              Positioned.fill(
+                child: LoadingOverlay(label: _l10n.analyzingEllipsis),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Opens Add Outfit pre-filled with an outfit idea's garments. The idea
+  /// only carries ids, so they're resolved against the closet (warming
+  /// garmentsProvider first, which Add Outfit reads anyway); `.active`
+  /// drops any garment deleted since the analysis ran. Pushed on top of the
+  /// analysis sheet, so backing out of Add Outfit returns to it. Re-entrancy
+  /// guard so a double tap can't push the page twice.
+  Future<void> _openAddOutfitFromIdea(
+    List<ClosetAnalysisGarment> ideaGarments,
+  ) async {
+    if (_openingAddOutfit) return;
+    _openingAddOutfit = true;
+    try {
+      final closet = (await ref.read(garmentsProvider.future)).active;
+      if (!mounted) return;
+      final byId = {for (final g in closet) g.id: g};
+      final garments = [for (final g in ideaGarments) ?byId[g.garmentId]];
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddOutfitPage(initialGarments: garments),
+        ),
+      );
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      debugLog('_openAddOutfitFromIdea: failed to load garments: $e');
+      showErrorDialog(context, message: _l10n.failedToLoadGarments);
+    } finally {
+      _openingAddOutfit = false;
     }
   }
 
@@ -1091,61 +1293,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  Widget _fitSlider() {
-    final values = GarmentFit.values;
-    // The slider always shows a concrete position (unlike the old picker,
-    // which could sit at an explicit "nothing selected" state) — defaults
-    // to Regular until the user actually drags it, at which point
-    // _selectedFit becomes non-null and the change is tracked normally.
-    final displayed = _selectedFit ?? GarmentFit.regular;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderStrong, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 8,
-              activeTrackColor: AppColors.accentTint,
-              inactiveTrackColor: AppColors.borderSubtle,
-              thumbColor: AppColors.accent,
-              overlayColor: AppColors.accent.withValues(alpha: 0.12),
-            ),
-            child: Slider(
-              value: displayed.index.toDouble(),
-              min: 0,
-              max: (values.length - 1).toDouble(),
-              divisions: values.length - 1,
-              onChanged: (v) {
-                final fit = values[v.round()];
-                setState(() => _selectedFit = fit);
-                _checkModified();
-              },
-            ),
-          ),
-          SizedBox(
-            width: double.infinity,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                displayed.localizedLabel(context),
-                textAlign: TextAlign.center,
-                style: AppTextStyle.regular16.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _purchaseDateField() {
     return TappableFieldDecorator(
       onTap: () async {
@@ -1243,7 +1390,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         // that result over into the real per-garment cache instead of
         // discarding it — otherwise reopening the same garment right after
         // Add to Closet looks like the analysis never ran.
-        final previewAnalysis = _closetAnalysis;
+        final previewAnalysis = _closetAnalysis.value;
         if (previewAnalysis != null && result.id != null) {
           await GarmentService().cacheClosetAnalysis(
             result.id!,
@@ -1336,6 +1483,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       _purchaseDate = g.purchaseDate;
       _selectedColor = _tryParseGarmentColor(g.color);
       _selectedFit = GarmentFitX.fromApiValue(g.fit);
+      _selectedSilhouette = GarmentSilhouetteX.fromApiValue(g.silhouette);
+      _selectedSleeveLength = GarmentSleeveLengthX.fromApiValue(g.sleeveLength);
+      _selectedCropLength = GarmentCropLengthX.fromApiValue(g.cropLength);
       _initialName = g.name;
       _initialCategory = g.category;
       _initialSub = g.subCategory;
@@ -1343,6 +1493,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       _initialPrice = g.price?.toString() ?? '';
       _initialColor = _selectedColor;
       _initialFit = _selectedFit;
+      _initialSilhouette = _selectedSilhouette;
+      _initialSleeveLength = _selectedSleeveLength;
+      _initialCropLength = _selectedCropLength;
       _initialDate = g.purchaseDate;
       _isModified = false;
 
@@ -1363,7 +1516,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// garment's photo, so editing never reaches this method.
   Future<Garment> _uploadNewGarment() async {
     final initDate = await GarmentService().initUpload();
-    await GarmentService().uploadImage(initDate.uploadUrl, _imagePathOrUrl!);
+    await GarmentService().putJpegToSignedUrl(
+      initDate.uploadUrl,
+      _imagePathOrUrl!,
+    );
     final temp = Garment(
       uploadUrl: initDate.uploadUrl,
       objectName: initDate.objectName,
@@ -1373,10 +1529,16 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
       color: _selectedColor?.label,
       fit: _selectedFit?.apiValue,
+      silhouette: _selectedSilhouette?.apiValue,
+      sleeveLength: _selectedSleeveLength?.apiValue,
+      cropLength: _selectedCropLength?.apiValue,
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
     );
-    // Fold the one metadata field the form can edit (fit) back in. Never
+    // Fold the metadata fields the form can edit (fit / silhouette /
+    // sleeve_length / crop_length) back in — `/complete` reads them only
+    // from `metadata`. `crop_length` isn't nullable there, so unset goes
+    // as "". Never
     // send a bare `null` here: `/complete` requires `metadata` and 500s
     // reading `metadata.thickness` on a null value — `_metaData` is
     // normally seeded (fresh analysis, or an existing garment's own saved
@@ -1384,14 +1546,18 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     // case both are somehow unavailable.
     final metadata = <String, dynamic>{
       ...?_metaData,
-      if (_selectedFit != null) 'fit': _selectedFit!.apiValue,
+      'fit': _selectedFit?.apiValue,
+      'silhouette': _selectedSilhouette?.apiValue,
+      'sleeve_length': _selectedSleeveLength?.apiValue,
+      'crop_length': _selectedCropLength?.apiValue ?? '',
     };
     return GarmentService().completeUpload(temp, metadata);
   }
 
   /// Add mode only: the current form fields, in the shape
   /// `GarmentService.closetAnalysis`'s null-`garmentId` mode sends to the
-  /// backend — same category/sub_category/name/brand/color/fit the form is
+  /// backend — same category/sub_category/name/brand/color/fit/silhouette/
+  /// sleeve_length/crop_length the form is
   /// currently showing, with thickness/formality/material/style folded in
   /// from [_metaData] (the form has no widgets for those; see
   /// [_uploadNewGarment] for the same fold-in over `fit`).
@@ -1405,6 +1571,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       'brand': brand.isEmpty ? null : brand,
       'color': _selectedColor?.label,
       'fit': _selectedFit?.apiValue,
+      'silhouette': _selectedSilhouette?.apiValue,
+      'sleeve_length': _selectedSleeveLength?.apiValue,
+      'crop_length': _selectedCropLength?.apiValue,
     };
   }
 
@@ -1452,6 +1621,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       color: _selectedColor?.label,
       fit: _selectedFit?.apiValue,
       clearFit: _selectedFit == null,
+      silhouette: _selectedSilhouette?.apiValue,
+      clearSilhouette: _selectedSilhouette == null,
+      sleeveLength: _selectedSleeveLength?.apiValue,
+      clearSleeveLength: _selectedSleeveLength == null,
+      cropLength: _selectedCropLength?.apiValue,
+      clearCropLength: _selectedCropLength == null,
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
     );
@@ -1471,26 +1646,30 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 }
 
-/// The "Uwearis AI" closet-analysis card — shown on Garment Details once the
-/// garment is saved (edit mode only; see [_closetAnalysis]'s doc comment).
-/// Starts as a one-line prompt + "Analyze with AI" button; once the user
-/// runs it (or a persisted result is restored on open), shows a 1–10
+/// The closet analysis, laid out directly on the analysis page sheet
+/// (see `_openClosetAnalysisSheet`) — the sheet itself paints the AI
+/// gradient, so there's no card chrome or header of its own. While a run is
+/// in flight the sheet shows a LoadingOverlay instead (see
+/// `_openClosetAnalysisSheet`), so this normally opens straight into a
+/// result; the one-line prompt + "Analyze with AI" button is only a
+/// fallback. Once a run finishes (or a persisted result is restored on
+/// open), shows a 1–10
 /// versatility level, up to 3 outfit ideas, and up to 3 similar-in-closet
-/// garments (see garments-api.md §8), plus a header refresh action to
-/// re-run it. [onAnalyze] triggers the first run and a retry after
-/// [errorMessage]; [onRefresh] re-runs it once [analysis] already exists,
-/// keeping the old result on screen (and [isRefreshing] true) for the
-/// duration. [onGarmentTap] opens the same [GarmentDetailDialog] Outfit
+/// garments (see garments-api.md §8). Re-running an existing result is the
+/// sheet's own top-left action (see `_openClosetAnalysisSheet`), not part of
+/// this content. [onAnalyze] triggers the first run and a retry after
+/// [errorMessage]. [onGarmentTap] opens the same [GarmentDetailDialog] Outfit
 /// Details' own garment list uses, for a garment tapped inside an outfit
 /// idea or the Similar in Your Closet row.
-class _UwearisAiAnalysisCard extends StatelessWidget {
+class _ClosetAnalysisSheetContent extends StatelessWidget {
   final ClosetAnalysis? analysis;
-  final bool isAnalyzing;
-  final bool isRefreshing;
   final String? errorMessage;
   final VoidCallback onAnalyze;
-  final VoidCallback onRefresh;
   final void Function(int garmentId) onGarmentTap;
+
+  /// Opens Add Outfit pre-filled with an outfit idea's garments — the
+  /// "Try It On" button on each idea's card. Null hides the button.
+  final void Function(List<ClosetAnalysisGarment> garments)? onCreateOutfit;
 
   /// Fires when a thumbnail's own self-heal (see [GarmentImage.onUrlRefreshed])
   /// picks up a working replacement URL for a garment — lets the caller fold
@@ -1504,14 +1683,12 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
   /// page. Null in edit mode, where the target already has a real signed URL.
   final String? targetImageOverride;
 
-  const _UwearisAiAnalysisCard({
+  const _ClosetAnalysisSheetContent({
     required this.analysis,
-    required this.isAnalyzing,
-    required this.isRefreshing,
     required this.errorMessage,
     required this.onAnalyze,
-    required this.onRefresh,
     required this.onGarmentTap,
+    this.onCreateOutfit,
     required this.onGarmentImageRefreshed,
     this.targetImageOverride,
   });
@@ -1520,63 +1697,9 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    final Widget body;
-    if (isAnalyzing) {
-      body = _buildLoading(l10n);
-    } else if (errorMessage != null) {
-      body = _buildError(l10n, errorMessage!);
-    } else if (analysis == null) {
-      body = _buildPrompt(l10n);
-    } else {
-      body = _buildResult(context, l10n, analysis!);
-    }
-
-    return UwearisInsightCard(
-      trailing: analysis == null ? null : _buildRefreshAction(),
-      child: body,
-    );
-  }
-
-  Widget _buildRefreshAction() {
-    if (isRefreshing) {
-      return const SizedBox(
-        width: 32,
-        height: 32,
-        child: Center(
-          child: SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.accent,
-            ),
-          ),
-        ),
-      );
-    }
-    return AccentIconButton(icon: Icons.refresh, onPressed: onRefresh);
-  }
-
-  Widget _buildLoading(AppLocalizations l10n) {
-    return Row(
-      children: [
-        const SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.accent,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Flexible(
-          child: Text(
-            l10n.analyzingEllipsis,
-            style: AppTextStyle.insightCardBody,
-          ),
-        ),
-      ],
-    );
+    if (errorMessage != null) return _buildError(l10n, errorMessage!);
+    if (analysis == null) return _buildPrompt(l10n);
+    return _buildResult(context, l10n, analysis!);
   }
 
   Widget _buildPrompt(AppLocalizations l10n) {
@@ -1623,6 +1746,9 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
   ) {
     final ideas = analysis.outfitIdeas;
     final similar = analysis.similarGarments;
+    final headingStyle = AppTextStyle.bold18.copyWith(
+      color: AppColors.textSecondary,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1633,21 +1759,54 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
         // showing empty space or a placeholder grid.
         if (ideas.isNotEmpty) ...[
           const SizedBox(height: 20),
-          FieldLabel(l10n.outfitIdeasHeading.toUpperCase()),
+          SectionTitle(l10n.outfitIdeasHeading, style: headingStyle),
           const SizedBox(height: 10),
           for (var i = 0; i < ideas.length; i++) ...[
-            if (i > 0) const AppDivider(),
-            _buildGarmentThumbRow(
-              ideas[i].garments,
-              onGarmentTap: onGarmentTap,
-              targetImageOverride: targetImageOverride,
-              onImageUrlRefreshed: onGarmentImageRefreshed,
+            if (i > 0) const SizedBox(height: AppDimens.cardSpacing),
+            // The title row is AccentPillButton's full 44px tap-target
+            // height (with or without the button) — the reduced top padding
+            // and gap below make up for its transparent band, so the visible
+            // pill sits 14 from the card's top like its sides.
+            AppCardShell(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: AppDimens.minTouchTarget,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.outfitIdeaNumber(i + 1),
+                            style: AppTextStyle.bold16,
+                          ),
+                        ),
+                        if (onCreateOutfit case final onCreate?)
+                          AccentPillButton(
+                            label: l10n.tryItOn,
+                            icon: Icons.checkroom_outlined,
+                            onPressed: () => onCreate(ideas[i].garments),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  _buildGarmentThumbRow(
+                    ideas[i].garments,
+                    isOutfit: true,
+                    onGarmentTap: onGarmentTap,
+                    targetImageOverride: targetImageOverride,
+                    onImageUrlRefreshed: onGarmentImageRefreshed,
+                  ),
+                ],
+              ),
             ),
           ],
         ],
         if (similar.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          FieldLabel(l10n.similarInClosetHeading.toUpperCase()),
+          const AppDivider(topSpacing: 20, bottomSpacing: 16),
+          SectionTitle(l10n.similarInClosetHeading, style: headingStyle),
           const SizedBox(height: 10),
           _buildGarmentThumbRow(
             similar,
@@ -1668,25 +1827,57 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.versatilityDescription, style: AppTextStyle.insightCardBody),
-        const SizedBox(height: 10),
-        Text(
-          l10n.versatilityLevelValue(versatility.level),
-          style: AppTextStyle.bold18,
+        Row(
+          children: [
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '${versatility.level}',
+                    style: AppTextStyle.bold24.copyWith(
+                      fontSize: 52,
+                      height: 1,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '/${_VersatilityLevelBar.segments}',
+                    style: AppTextStyle.bold24.copyWith(
+                      fontSize: 34,
+                      height: 1,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 48,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: AppColors.borderSubtle,
+            ),
+            Expanded(
+              child: Text(
+                versatility.label.localizedLabel(context),
+                style: AppTextStyle.bold20.copyWith(color: AppColors.accent),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         _VersatilityLevelBar(level: versatility.level),
-        const SizedBox(height: 10),
-        Text(
-          versatility.label.localizedLabel(context),
-          style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
-        ),
       ],
     );
   }
 
+  /// [isOutfit] is for an outfit idea, whose garments combine into one look
+  /// (as opposed to a plain list): a "+" between thumbnails, and no
+  /// thumbnail borders inside the outfit's own card except the analyzed
+  /// garment's own outline.
   Widget _buildGarmentThumbRow(
     List<ClosetAnalysisGarment> garments, {
+    bool isOutfit = false,
     void Function(int garmentId)? onGarmentTap,
     String? targetImageOverride,
     void Function(int garmentId, String freshUrl)? onImageUrlRefreshed,
@@ -1696,7 +1887,16 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: garments.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => isOutfit
+            ? const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  Icons.add,
+                  size: AppDimens.iconSmallSize,
+                  color: AppColors.hintText,
+                ),
+              )
+            : const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final g = garments[i];
           // The preview-mode target rides a sentinel non-positive id (see
@@ -1705,6 +1905,7 @@ class _UwearisAiAnalysisCard extends StatelessWidget {
           final canOpen = onGarmentTap != null && g.garmentId > 0;
           return _AiGarmentThumb(
             garment: g,
+            bordered: !isOutfit,
             targetImageOverride: targetImageOverride,
             onTap: canOpen ? () => onGarmentTap(g.garmentId) : null,
             onImageUrlRefreshed: onImageUrlRefreshed,
@@ -1723,21 +1924,21 @@ class _VersatilityLevelBar extends StatelessWidget {
 
   const _VersatilityLevelBar({required this.level});
 
-  static const int _segments = 10;
+  static const int segments = 10;
 
   @override
   Widget build(BuildContext context) {
-    final filled = level.clamp(0, _segments);
+    final filled = level.clamp(0, segments);
     return Row(
       children: [
-        for (var i = 0; i < _segments; i++) ...[
-          if (i > 0) const SizedBox(width: 4),
+        for (var i = 0; i < segments; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
           Expanded(
             child: Container(
-              height: 6,
+              height: 8,
               decoration: BoxDecoration(
                 color: i < filled ? AppColors.accent : AppColors.borderSubtle,
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
           ),
@@ -1750,31 +1951,36 @@ class _VersatilityLevelBar extends StatelessWidget {
 /// Compact garment thumbnail for the AI analysis card's outfit-idea and
 /// similar-garments rows — same bordered-square shape as the "compatible
 /// garments" thumbnails this card used to show (see git history), just
-/// smaller. [ClosetAnalysisGarment.isTarget] gets a subtly accent-colored
-/// border instead of a separate badge/label, so the analyzed garment reads
-/// as "this one" within an outfit idea without adding visual complexity.
+/// smaller. [ClosetAnalysisGarment.isTarget] gets a 1.5px `borderStrong`
+/// outline — the same one a selected GarmentCard uses — instead of a
+/// separate badge/label, so the analyzed garment reads as "this one"
+/// without adding visual complexity. With [bordered] false (outfit ideas,
+/// already inside their own card) only that target outline is drawn — the
+/// other garments have none.
 /// [onTap] opens the same [GarmentDetailDialog] Outfit Details' own garment
 /// list uses; leave it null for a non-interactive thumbnail.
 class _AiGarmentThumb extends StatefulWidget {
   final ClosetAnalysisGarment garment;
   final VoidCallback? onTap;
+  final bool bordered;
 
-  /// See [_UwearisAiAnalysisCard.targetImageOverride] — substituted only
+  /// See [_ClosetAnalysisSheetContent.targetImageOverride] — substituted only
   /// when this tile is the target and the backend gave it no image of its
   /// own (the preview-mode case).
   final String? targetImageOverride;
 
-  /// See [_UwearisAiAnalysisCard.onGarmentImageRefreshed].
+  /// See [_ClosetAnalysisSheetContent.onGarmentImageRefreshed].
   final void Function(int garmentId, String freshUrl)? onImageUrlRefreshed;
 
   const _AiGarmentThumb({
     required this.garment,
     this.onTap,
+    this.bordered = true,
     this.targetImageOverride,
     this.onImageUrlRefreshed,
   });
 
-  static const double size = 64;
+  static const double size = 70;
 
   @override
   State<_AiGarmentThumb> createState() => _AiGarmentThumbState();
@@ -1884,10 +2090,14 @@ class _AiGarmentThumbState extends State<_AiGarmentThumb> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: garment.isTarget ? AppColors.accent : AppColors.borderSubtle,
-          width: garment.isTarget ? 1.5 : 1,
-        ),
+        border: widget.bordered || garment.isTarget
+            ? Border.all(
+                color: garment.isTarget
+                    ? AppColors.borderStrong
+                    : AppColors.borderSubtle,
+                width: garment.isTarget ? 1.5 : 1,
+              )
+            : null,
       ),
       child: image,
     );

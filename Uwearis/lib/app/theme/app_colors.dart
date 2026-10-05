@@ -61,8 +61,25 @@ class AppColors {
   static const Color statusUpcoming = Color(0xFF4F7FFF);
   static const Color statusPast = Color(0xFF9E9E9E);
 
+  // Settings' plan badge (UserTier) — metallic tones, each paired with a
+  // text color that keeps >= 4.5:1 contrast on its own fill.
+  static const Color tierGold = Color(0xFFE9C46A);
+  static const Color tierGoldText = Color(0xFF5C4300);
+  static const Color tierSilver = Color(0xFFD6D8DB);
+  static const Color tierSilverText = Color(0xFF3F4347);
+  static const Color tierBronze = Color(0xFFE2B48C);
+  static const Color tierBronzeText = Color(0xFF5A3214);
+
   // UwearisInsightCard — the AI-output call-out's gradient background tint
   static const Color uwearisCardTint = Color(0xFFF3EFE6);
+
+  // The AI-output gradient background — UwearisInsightCard and the
+  // page sheet (showPageSheet) both paint this.
+  static const LinearGradient uwearisGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [surface, uwearisCardTint],
+  );
 
   // CategoryTag (season/style/collection chips)
   static const Color tagBackground = Color(0xFFEFEAE2);

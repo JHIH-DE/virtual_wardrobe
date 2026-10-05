@@ -116,6 +116,8 @@ extension GarmentFitLocalization on GarmentFit {
   String localizedLabel(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     switch (this) {
+      case GarmentFit.skinny:
+        return l10n.fitSkinny;
       case GarmentFit.slim:
         return l10n.fitSlim;
       case GarmentFit.regular:
@@ -124,6 +126,76 @@ extension GarmentFitLocalization on GarmentFit {
         return l10n.fitRelaxed;
       case GarmentFit.oversized:
         return l10n.fitOversized;
+    }
+  }
+}
+
+extension GarmentSilhouetteLocalization on GarmentSilhouette {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case GarmentSilhouette.straight:
+        return l10n.silhouetteStraight;
+      case GarmentSilhouette.boxy:
+        return l10n.silhouetteBoxy;
+      case GarmentSilhouette.longline:
+        return l10n.silhouetteLongline;
+      case GarmentSilhouette.cropped:
+        return l10n.silhouetteCropped;
+      case GarmentSilhouette.cocoon:
+        return l10n.silhouetteCocoon;
+      case GarmentSilhouette.tapered:
+        return l10n.silhouetteTapered;
+      case GarmentSilhouette.balloon:
+        return l10n.silhouetteBalloon;
+      case GarmentSilhouette.jogger:
+        return l10n.silhouetteJogger;
+      case GarmentSilhouette.flared:
+        return l10n.silhouetteFlared;
+      case GarmentSilhouette.pencil:
+        return l10n.silhouettePencil;
+      case GarmentSilhouette.aLine:
+        return l10n.silhouetteALine;
+      case GarmentSilhouette.pleated:
+        return l10n.silhouettePleated;
+      case GarmentSilhouette.shift:
+        return l10n.silhouetteShift;
+      case GarmentSilhouette.fitAndFlare:
+        return l10n.silhouetteFitAndFlare;
+    }
+  }
+}
+
+extension GarmentSleeveLengthLocalization on GarmentSleeveLength {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case GarmentSleeveLength.sleeveless:
+        return l10n.sleeveSleeveless;
+      case GarmentSleeveLength.short:
+        return l10n.sleeveShort;
+      case GarmentSleeveLength.threeQuarter:
+        return l10n.sleeveThreeQuarter;
+      case GarmentSleeveLength.long:
+        return l10n.sleeveLong;
+    }
+  }
+}
+
+extension GarmentCropLengthLocalization on GarmentCropLength {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case GarmentCropLength.fullLength:
+        return l10n.cropFullLength;
+      case GarmentCropLength.nineLength:
+        return l10n.cropNineLength;
+      case GarmentCropLength.sevenLength:
+        return l10n.cropSevenLength;
+      case GarmentCropLength.fiveLength:
+        return l10n.cropFiveLength;
+      case GarmentCropLength.shorts:
+        return l10n.cropShorts;
     }
   }
 }
