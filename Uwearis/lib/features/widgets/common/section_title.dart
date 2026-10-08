@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 /// Heading for a block of content within a page — e.g. Lifestyle's
-/// "Weekly Schedule"/"Comfort Adjustment", Add Outfit's "Accessories"/
+/// "Weekly Routine"/"Comfort Adjustment", Add Outfit's "Accessories"/
 /// "Background", My Virtual Model's "Face Photo"/"Full-Body Photo", Account's
 /// "Body Measurements". One step down from the page's own AppBar title, one
 /// step up from a [FieldLabel]. Unlike [FieldLabel], this isn't

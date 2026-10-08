@@ -1433,7 +1433,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get comfortAdjustment => 'Perceived Temperature Offset';
 
   @override
-  String get weeklySchedule => 'Weekly Schedule';
+  String get weeklyRoutine => 'Weekly Routine';
 
   @override
   String get perceivedTempOffset => 'Offset';
@@ -1443,7 +1443,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.';
 
   @override
-  String get weeklyScheduleIntro =>
+  String get weeklyRoutineIntro =>
       'Set what a typical week looks like for you.';
 
   @override

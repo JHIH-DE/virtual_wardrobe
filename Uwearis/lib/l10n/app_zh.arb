@@ -488,10 +488,10 @@
   "occasionTravel": "旅行",
   "occasionParty": "派對",
   "comfortAdjustment": "體感溫度調整",
-  "weeklySchedule": "每週排程",
+  "weeklyRoutine": "每週排程",
   "perceivedTempOffset": "偏移量",
   "lifestyleDescription": "告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。",
-  "weeklyScheduleIntro": "設定你一週的典型作息。",
+  "weeklyRoutineIntro": "設定你一週的典型作息。",
   "comfortAdjustmentIntro": "微調你平常感受到的冷熱程度。",
   "selectOccasionTitle": "選擇{day}的場合",
   "@selectOccasionTitle": {

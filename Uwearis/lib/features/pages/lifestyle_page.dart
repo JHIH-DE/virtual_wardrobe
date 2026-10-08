@@ -195,7 +195,7 @@ class _LifestylePageState extends State<LifestylePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardHeader(_l10n.weeklySchedule, _l10n.weeklyScheduleIntro),
+          _buildCardHeader(_l10n.weeklyRoutine, _l10n.weeklyRoutineIntro),
           const SizedBox(height: AppDimens.cardHeaderGap),
           const Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
           for (var i = 0; i < 7; i++) ...[

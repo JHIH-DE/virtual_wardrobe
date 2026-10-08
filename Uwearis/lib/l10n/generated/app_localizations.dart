@@ -2763,11 +2763,11 @@ abstract class AppLocalizations {
   /// **'Perceived Temperature Offset'**
   String get comfortAdjustment;
 
-  /// No description provided for @weeklySchedule.
+  /// No description provided for @weeklyRoutine.
   ///
   /// In en, this message translates to:
-  /// **'Weekly Schedule'**
-  String get weeklySchedule;
+  /// **'Weekly Routine'**
+  String get weeklyRoutine;
 
   /// No description provided for @perceivedTempOffset.
   ///
@@ -2781,11 +2781,11 @@ abstract class AppLocalizations {
   /// **'Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.'**
   String get lifestyleDescription;
 
-  /// No description provided for @weeklyScheduleIntro.
+  /// No description provided for @weeklyRoutineIntro.
   ///
   /// In en, this message translates to:
   /// **'Set what a typical week looks like for you.'**
-  String get weeklyScheduleIntro;
+  String get weeklyRoutineIntro;
 
   /// No description provided for @comfortAdjustmentIntro.
   ///
