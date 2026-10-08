@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,8 +9,8 @@ import '../../core/providers/garments_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_service.dart';
 import '../../core/utils/api_error_text.dart';
+import '../../core/utils/auto_save_controller.dart';
 import '../../core/utils/debug_log.dart';
-import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/signed_url.dart';
 import '../../data/closet_analysis.dart';
 import '../../data/garment.dart';
@@ -23,15 +22,14 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/action_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/auto_save_prompts.dart';
 import '../widgets/common/overlays/error_dialog.dart';
-import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/page_sheet.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
@@ -40,6 +38,7 @@ import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
+import '../widgets/garment/garment_outfit_ideas_card.dart';
 import '../widgets/garment/garment_share_sheet.dart';
 import 'add_outfit_page.dart';
 import 'garment_outfits_page.dart';
@@ -110,14 +109,30 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   ]);
   int? _outfitCount;
 
-  /// The App Bar title's source of truth — mirrors
-  /// `OutfitDetailsPage._name`. Only [_showRenameDialog] updates this
-  /// (not [_nameCtrl] directly), so the title doesn't flicker through
-  /// every uncommitted keystroke in the form's Name field; a full-form
-  /// save via the bottom button pops this page anyway, so it never needs
-  /// to reflect that path.
+  /// The edit-mode name heading's source of truth — mirrors
+  /// `OutfitDetailsPage._name`. Only [_showRenameDialog] updates this (edit
+  /// mode has no inline name field), and add mode shows the toolbar's
+  /// "Add Clothing" title instead.
   String? _name;
 
+  // Edit mode only: every change saves itself (see _onEdited). Add mode
+  // never requests a save through it — it keeps the explicit Add to Closet
+  // button and its own unsaved-changes prompt.
+  late final AutoSaveController _autoSave = AutoSaveController(
+    onSave: _persistEdits,
+    onError: (e) => showAutoSaveErrorDialog(
+      context,
+      _autoSave,
+      e,
+      fallback: _l10n.garmentSaveFailed,
+    ),
+  );
+  // Re-entrancy guard for _leave — a double-tap on back must not pop twice.
+  bool _leaving = false;
+  // Only while leaving waits on a save — drives the loading overlay.
+  bool _savingBeforeLeave = false;
+
+  // Add mode only — gates Add to Closet and the leave prompt.
   bool _isModified = false;
   late String _initialName;
   late GarmentCategory _initialCategory;
@@ -247,6 +262,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   void _checkModified() {
+    if (!_isAddMode) return;
     final changed =
         _isImageChanged ||
         _nameCtrl.text != _initialName ||
@@ -266,8 +282,32 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
+  /// Every user edit lands here. Add mode just re-evaluates the Add to
+  /// Closet gate; edit mode saves — a discrete choice (picker, color, date,
+  /// rename) right away, typing after a pause ([_onTextFieldBlur] cuts that
+  /// short).
+  void _onEdited({bool typing = false}) {
+    if (_isAddMode) {
+      _checkModified();
+    } else if (typing) {
+      _autoSave.scheduleSave();
+    } else {
+      _autoSave.requestSave();
+    }
+  }
+
+  /// Leaving a text field (or tapping Done) saves now rather than waiting
+  /// out the debounce. Skipped after a failure so a blur doesn't re-raise
+  /// the error dialog the user just dismissed.
+  void _onTextFieldBlur() {
+    if (_autoSave.hasPendingChanges && !_autoSave.hasFailed) {
+      _autoSave.requestSave();
+    }
+  }
+
   @override
   void dispose() {
+    _autoSave.dispose();
     _nameCtrl.dispose();
     _subCategory.dispose();
     _brandCtrl.dispose();
@@ -329,13 +369,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  /// Instant rename, independent of the full-form Save button — mirrors
-  /// `OutfitDetailsPage._showRenameDialog`. Unlike the rest of this
-  /// form's fields (batched into one `updateGarment` PATCH on Save), this
-  /// persists immediately via the same endpoint with just the name
-  /// changed, then syncs [_nameCtrl]/[_initialName] so the bottom Save
-  /// button's "unsaved changes" detection doesn't treat the rename itself
-  /// as a pending edit.
+  /// Edit mode's only way to rename — mirrors
+  /// `OutfitDetailsPage._showRenameDialog`. Goes through [_autoSave] like
+  /// every other field (the PATCH carries the whole form, [_nameCtrl]
+  /// included), so a rename can never race a field save already in flight.
   Future<void> _showRenameDialog() async {
     final result = await showTextInputDialog(
       context,
@@ -343,43 +380,13 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       hint: _l10n.clothingNameLabel,
       initialValue: _name ?? '',
     );
+    if (result == null || !mounted || _editingGarment == null) return;
 
-    if (result == null || !mounted) return;
-    if (_editingGarment == null) return;
-
-    try {
-      final updated = await GarmentService().updateGarment(
-        _editingGarment!.copyWith(name: result),
-      );
-      if (!mounted) return;
-      setState(() {
-        _editingGarment = updated;
-        _name = updated.name;
-        // _initialName must be updated *before* _nameCtrl.text: assigning the
-        // controller's text fires the _checkModified listener synchronously,
-        // and if it still saw the old _initialName it would latch
-        // _isModified = true and the unsaved-changes prompt would then fire
-        // on leave even though the rename is already persisted.
-        _initialName = updated.name;
-        _nameCtrl.text = updated.name;
-      });
-      ref.read(garmentsProvider.notifier).updateGarment(updated);
-    } on AuthExpiredException {
-      await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      debugLog('GarmentDetailsPage rename failed: $e');
-      if (mounted) {
-        showErrorDialog(
-          context,
-          message: apiErrorMessage(
-            _l10n,
-            e,
-            fallback: _l10n.garmentRenameFailed,
-          ),
-        );
-      }
-    }
+    setState(() {
+      _name = result;
+      _nameCtrl.text = result;
+    });
+    _onEdited();
   }
 
   Future<void> _handleDelete() async {
@@ -419,7 +426,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  Future<bool> _onWillPop() async {
+  /// Add mode's leave check: Add to Closet hasn't been tapped yet, so ask.
+  Future<bool> _confirmLeaveAddMode() async {
     if (!_isModified) return true;
 
     final choice = await showSaveChangesDialog(
@@ -434,6 +442,24 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return choice == SaveChangesChoice.discard;
   }
 
+  Future<void> _leave() async {
+    if (_leaving) return;
+    _leaving = true;
+    try {
+      final canLeave = _isAddMode
+          ? await _confirmLeaveAddMode()
+          : await confirmLeaveAfterAutoSave(
+              context,
+              _autoSave,
+              onFlushingChanged: (saving) =>
+                  setState(() => _savingBeforeLeave = saving),
+            );
+      if (canLeave && mounted) Navigator.pop(context);
+    } finally {
+      _leaving = false;
+    }
+  }
+
   AppToolBar _buildAppBar() {
     return AppToolBar(
       // Add mode: "Add Clothing" in the toolbar (the name field takes its
@@ -441,10 +467,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       // Details' fixed AppBar title — the garment's own name still shows as
       // its own block below the app bar (see [_buildForm]).
       title: _isAddMode ? _title : _l10n.clothingDetailsTitle,
-      onBack: () async {
-        final shouldPop = await _onWillPop();
-        if (shouldPop && mounted) Navigator.pop(context);
-      },
+      onBack: _leave,
       actions: [
         if (!_isAddMode)
           AppPopupMenu<_GarmentMenuAction>(
@@ -486,20 +509,18 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      // Only intercept when there's actually something to lose — same
-      // condition _onWillPop already checks. A hardcoded false disables the
-      // iOS edge-swipe-back gesture outright (matches OutfitDetailsPage's
-      // `canPop: !widget.isNew || _saved`, not TripDetailsPage's lack of a
-      // PopScope at all — this page always has unsaved-changes to guard).
-      canPop: !_isModified,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (!shouldPop) return;
-        if (!context.mounted) return;
-        Navigator.of(context).pop();
-      },
+    return ListenableBuilder(
+      listenable: _autoSave,
+      builder: (context, child) => PopScope(
+        // Only intercept when there's actually something to lose. A
+        // hardcoded false would disable the iOS edge-swipe-back gesture
+        // outright.
+        canPop: _isAddMode ? !_isModified : !_autoSave.hasPendingChanges,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _leave();
+        },
+        child: child!,
+      ),
       child: Scaffold(
         backgroundColor: AppColors.pageBackground,
         extendBody: true,
@@ -509,23 +530,34 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             _buildForm(),
             if (_uploading)
               const Positioned.fill(child: Center(child: AppSpinner())),
+            if (_savingBeforeLeave)
+              Positioned.fill(
+                child: LoadingOverlay(label: _l10n.savingEllipsis),
+              ),
           ],
         ),
-        // Save button pinned to the bottom
-        bottomNavigationBar: BottomActionButton(
-          label: _isAddMode ? _l10n.addToCloset : _l10n.save,
-          onPressed: _isModified ? _saveGarment : null,
-          isLoading: _uploading,
-        ),
+        bottomNavigationBar: _isAddMode
+            ? BottomActionButton(
+                label: _l10n.addToCloset,
+                onPressed: _isModified ? _saveGarment : null,
+                isLoading: _uploading,
+              )
+            : null,
       ),
     );
   }
 
-  bool get _showsBottomActionButton => _isModified && !_uploading;
+  bool get _showsBottomActionButton => _isAddMode && _isModified && !_uploading;
 
   Widget _buildForm() {
     return Form(
       key: _formKey,
+      // Edit mode has no submit step to validate on, so a field that goes
+      // invalid (an emptied Product Type) flags itself as the user types —
+      // and _updateGarmentFields keeps the saved value meanwhile.
+      autovalidateMode: _isAddMode
+          ? AutovalidateMode.disabled
+          : AutovalidateMode.onUserInteraction,
       child: ListView(
         padding: EdgeInsets.only(
           bottom: _showsBottomActionButton
@@ -555,7 +587,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: ActionButton(
               label: _l10n.viewClosetMatch,
-              variant: ActionButtonVariant.tinted,
+              // Secondary only while Add to Closet is the screen's main
+              // action; once the garment exists nothing else competes.
+              variant: _isAddMode
+                  ? ActionButtonVariant.secondary
+                  : ActionButtonVariant.primary,
               leading: const Icon(
                 Icons.auto_awesome_outlined,
                 size: AppDimens.iconSmallSize,
@@ -563,7 +599,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               onPressed: _openClosetAnalysisSheet,
             ),
           ),
-          const SizedBox(height: AppDimens.sectionSpacing),
+          SizedBox(height: _isAddMode ? 0 : AppDimens.sectionSpacing),
           _buildDetailsSection(),
         ],
       ),
@@ -640,7 +676,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// A labeled [PickerField] that opens a single-choice bottom sheet — shared
   /// by category and every garment attribute (fit / silhouette / sleeve
   /// length / crop length). [onSelected] runs inside setState, followed by
-  /// [_checkModified].
+  /// [_onEdited] — so a category change and the attributes it drops (see
+  /// [_dropInapplicableAttributes]) go out as one save.
   Widget _buildOptionField<T>({
     required String label,
     required T? value,
@@ -678,9 +715,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       selected: value,
       labelOf: labelOf,
     );
-    if (picked == null || !mounted) return;
+    if (picked == null || picked == value || !mounted) return;
     setState(() => onSelected(picked));
-    _checkModified();
+    _onEdited();
   }
 
   /// Clears attributes the current [_category] doesn't support, mirroring
@@ -699,12 +736,16 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   Widget _buildSubCategoryField() {
     return LabeledField(
       label: _l10n.productType,
-      child: AppTextField(
-        controller: _subCategory,
-        hint: _l10n.productTypeHint,
-        validator: (v) => (v == null || v.trim().isEmpty)
-            ? _l10n.pleaseEnterProductTypeError
-            : null,
+      child: _savesOnBlur(
+        AppTextField(
+          controller: _subCategory,
+          hint: _l10n.productTypeHint,
+          validator: (v) => (v == null || v.trim().isEmpty)
+              ? _l10n.pleaseEnterProductTypeError
+              : null,
+          onChanged: (_) => _onEdited(typing: true),
+          onSubmitted: (_) => _onTextFieldBlur(),
+        ),
       ),
     );
   }
@@ -756,18 +797,38 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   Widget _buildBrandField() {
     return LabeledField(
       label: _l10n.brandOptionalLabel,
-      child: AppTextField(controller: _brandCtrl, hint: _l10n.brandHint),
+      child: _savesOnBlur(
+        AppTextField(
+          controller: _brandCtrl,
+          hint: _l10n.brandHint,
+          onChanged: (_) => _onEdited(typing: true),
+          onSubmitted: (_) => _onTextFieldBlur(),
+        ),
+      ),
     );
   }
 
   Widget _buildPriceField() {
     return LabeledField(
       label: _l10n.priceOptionalLabel,
-      child: AppTextField(
-        controller: _priceCtrl,
-        hint: _l10n.priceHint,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      child: _savesOnBlur(
+        AppTextField(
+          controller: _priceCtrl,
+          hint: _l10n.priceHint,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (_) => _onEdited(typing: true),
+          onSubmitted: (_) => _onTextFieldBlur(),
+        ),
       ),
+    );
+  }
+
+  Widget _savesOnBlur(Widget field) {
+    return Focus(
+      onFocusChange: (focused) {
+        if (!focused) _onTextFieldBlur();
+      },
+      child: field,
     );
   }
 
@@ -976,7 +1037,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Opens the full closet analysis in a [showPageSheet]. With no
+  /// Opens the full closet analysis in a [pageSheet]. With no
   /// result yet, the first run starts as the sheet opens so it shows the
   /// "Analyzing…" state straight away; an existing (or cached) result is
   /// shown as-is, re-runnable via the sheet's top-left refresh action.
@@ -984,7 +1045,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// and reopening shows wherever it's got to.
   void _openClosetAnalysisSheet() {
     if (_closetAnalysis.value == null) _runClosetAnalysis();
-    showPageSheet<void>(
+    pageSheet<void>(
       context,
       title: _l10n.closetMatch,
       // Re-analyze lives at the sheet's top left, and only once there's a
@@ -1223,9 +1284,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             _l10n.chooseColorTitle,
             trailing: TextButton(
               onPressed: () {
-                setState(() => _selectedColor = null);
-                _checkModified();
                 Navigator.pop(context);
+                if (_selectedColor == null) return;
+                setState(() => _selectedColor = null);
+                _onEdited();
               },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
@@ -1271,9 +1333,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       // its own.
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        setState(() => _selectedColor = c);
-        _checkModified();
         Navigator.pop(context);
+        if (c == _selectedColor) return;
+        setState(() => _selectedColor = c);
+        _onEdited();
       },
       child: Container(
         width: 44,
@@ -1303,9 +1366,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           firstDate: DateTime(2000),
           lastDate: DateTime(now.year + 2),
         );
-        if (picked != null) {
+        if (picked != null && picked != _purchaseDate && mounted) {
           setState(() => _purchaseDate = picked);
-          _checkModified();
+          _onEdited();
         }
       },
       children: [
@@ -1367,6 +1430,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
+  /// Add mode's Add to Closet — edit mode auto-saves via [_persistEdits].
   Future<void> _saveGarment() async {
     // Synchronous re-entrancy guard — the bottom button only hides ~200ms
     // after _uploading flips (BottomActionButton's AnimatedSwitcher), so a
@@ -1378,35 +1442,26 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     setState(() => _uploading = true);
 
     try {
-      if (_isAddMode) {
-        // Adding uploads a fresh photo + creates the record, then hands the
-        // new Garment back to whichever screen started the add-clothing
-        // flow (GarmentUploadHelper.startAddClothingFlow) — that caller owns
-        // the closet provider update and the "added" confirmation shown once
-        // back on its own page.
-        final result = await _uploadNewGarment();
-        if (!mounted) return;
-        // If the user already ran "Analyze with AI" before saving, carry
-        // that result over into the real per-garment cache instead of
-        // discarding it — otherwise reopening the same garment right after
-        // Add to Closet looks like the analysis never ran.
-        final previewAnalysis = _closetAnalysis.value;
-        if (previewAnalysis != null && result.id != null) {
-          await GarmentService().cacheClosetAnalysis(
-            result.id!,
-            _retargetClosetAnalysis(previewAnalysis, result),
-          );
-          if (!mounted) return;
-        }
-        Navigator.pop(context, result);
-        return;
-      }
-      // Editing an existing garment only ever updates its text fields —
-      // there is no UI path to replace an existing garment's photo (see
-      // _uploadNewGarment's doc comment) — and keeps the user on this page.
-      final result = await _updateGarmentFields();
+      // Adding uploads a fresh photo + creates the record, then hands the
+      // new Garment back to whichever screen started the add-clothing
+      // flow (GarmentUploadHelper.startAddClothingFlow) — that caller owns
+      // the closet provider update and the "added" confirmation shown once
+      // back on its own page.
+      final result = await _uploadNewGarment();
       if (!mounted) return;
-      await _adoptSaved(result);
+      // If the user already ran "Analyze with AI" before saving, carry
+      // that result over into the real per-garment cache instead of
+      // discarding it — otherwise reopening the same garment right after
+      // Add to Closet looks like the analysis never ran.
+      final previewAnalysis = _closetAnalysis.value;
+      if (previewAnalysis != null && result.id != null) {
+        await GarmentService().cacheClosetAnalysis(
+          result.id!,
+          _retargetClosetAnalysis(previewAnalysis, result),
+        );
+        if (!mounted) return;
+      }
+      Navigator.pop(context, result);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -1423,91 +1478,17 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Only reached for an edit save (add-mode save pops back to the caller
-  /// instead — see _saveGarment). Keeps the user on this page: the
-  /// persisted garment is folded into local state, the closet provider is
-  /// updated here rather than via a pop result, and a confirmation shows.
-  Future<void> _adoptSaved(Garment g) async {
-    // A new/edited photo lands at the *same* garmentImageCacheKey (stable,
-    // keyed by id) as whatever was cached before — GarmentImage's disk
-    // cache would otherwise keep serving the old bytes indefinitely since
-    // nothing about the cache key itself changed. Read _isImageChanged
-    // before the setState below resets it.
-    final imageChanged = _isImageChanged && g.id != null;
-    if (imageChanged) {
-      ImageCacheBust.bump(garmentImageCacheKey(g.id!));
-    }
-    // Precache the freshly-uploaded photo under the exact cache key
-    // GarmentImage will request — other surfaces showing this garment (the
-    // Closet grid card, compatibility rows, ...) read the network URL from
-    // the provider update below the moment it lands, so this is what keeps
-    // *their* first paint from flashing a placeholder. This page's own
-    // preview deliberately never makes that switch at all — see
-    // _imagePathOrUrl below.
-    final url = g.imageUrl;
-    if (imageChanged && url != null && url.isNotEmpty) {
-      final baseKey = garmentImageCacheKey(g.id!);
-      final cacheKey = '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
-      try {
-        await precacheImage(
-          CachedNetworkImageProvider(url, cacheKey: cacheKey),
-          context,
-        );
-      } catch (e) {
-        // Not fatal — GarmentImage falls back to its own placeholder/error
-        // state same as any other failed load.
-        debugLog('_adoptSaved: failed to precache garment photo: $e');
-      }
-      if (!mounted) return;
-    }
-    setState(() {
-      _editingGarment = g;
-      _id = g.id;
-      _name = g.name;
-      // Deliberately NOT _imagePathOrUrl = g.imageUrl — this page keeps
-      // showing the local file (already decoded, already on screen) for
-      // the rest of its own lifetime rather than switching to the network
-      // copy of the same photo, which would otherwise flash a placeholder
-      // as GarmentImage remounts onto a different widget branch. Other
-      // screens pick up the real network URL from the provider update
-      // below the moment they next build; only a fresh instance of *this*
-      // page (a new visit from Closet) ever reads the network URL, via
-      // _editingGarment in initState.
-      _isImageChanged = false;
-      _uploading = false;
-
-      // Re-snapshot the change-detection baseline *before* touching the
-      // controllers — assigning their text fires _checkModified, which must
-      // see the new baseline so the form reads "not modified".
-      _category = g.category;
-      _purchaseDate = g.purchaseDate;
-      _selectedColor = _tryParseGarmentColor(g.color);
-      _selectedFit = GarmentFitX.fromApiValue(g.fit);
-      _selectedSilhouette = GarmentSilhouetteX.fromApiValue(g.silhouette);
-      _selectedSleeveLength = GarmentSleeveLengthX.fromApiValue(g.sleeveLength);
-      _selectedCropLength = GarmentCropLengthX.fromApiValue(g.cropLength);
-      _initialName = g.name;
-      _initialCategory = g.category;
-      _initialSub = g.subCategory;
-      _initialBrand = g.brand ?? '';
-      _initialPrice = g.price?.toString() ?? '';
-      _initialColor = _selectedColor;
-      _initialFit = _selectedFit;
-      _initialSilhouette = _selectedSilhouette;
-      _initialSleeveLength = _selectedSleeveLength;
-      _initialCropLength = _selectedCropLength;
-      _initialDate = g.purchaseDate;
-      _isModified = false;
-
-      _nameCtrl.text = g.name;
-      _subCategory.text = g.subCategory;
-      _brandCtrl.text = g.brand ?? '';
-      _priceCtrl.text = g.price?.toString() ?? '';
-    });
-
-    ref.read(garmentsProvider.notifier).updateGarment(g);
-
-    showFeedbackOverlay(context, message: _l10n.changesSaved);
+  /// [_autoSave]'s `onSave` (edit mode): PATCHes the whole form and syncs
+  /// the closet provider. Throws on failure so the controller can offer a
+  /// retry. Deliberately doesn't write the response back into the form
+  /// fields — the user may already be typing the next change.
+  Future<void> _persistEdits() async {
+    final garments = ref.read(garmentsProvider.notifier);
+    final updated = await _updateGarmentFields();
+    // The next PATCH builds on this (see _updateGarmentFields), and the
+    // closet must see it even if this page is already gone.
+    _editingGarment = updated;
+    garments.updateGarment(updated);
   }
 
   /// Uploads the picked photo and creates a new garment record. Only ever
@@ -1586,7 +1567,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// under an id that no longer means anything, or force a fresh AI call.
   /// [similarGarments] never contains the target (excluded by construction
   /// on the backend), so only outfit ideas' garment lists need rewriting.
-  ClosetAnalysis _retargetClosetAnalysis(ClosetAnalysis analysis, Garment saved) {
+  ClosetAnalysis _retargetClosetAnalysis(
+    ClosetAnalysis analysis,
+    Garment saved,
+  ) {
     ClosetAnalysisGarment retarget(ClosetAnalysisGarment g) {
       if (!g.isTarget) return g;
       return ClosetAnalysisGarment(
@@ -1613,12 +1597,22 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   /// Updates just the text fields of an existing garment (image unchanged).
   Future<Garment> _updateGarmentFields() async {
-    final updated = _editingGarment!.copyWith(
-      name: _nameCtrl.text.trim(),
+    final saved = _editingGarment!;
+    final name = _nameCtrl.text.trim();
+    final subCategory = _subCategory.text.trim();
+    final brand = _brandCtrl.text.trim();
+    final priceText = _priceCtrl.text.trim();
+    final price = double.tryParse(priceText);
+    final updated = saved.copyWith(
+      // A field that's currently invalid (empty name/product type, a price
+      // that doesn't parse) keeps its saved value instead of being sent.
+      name: name.isEmpty ? saved.name : name,
       category: _category,
-      subCategory: _subCategory.text.trim(),
-      brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+      subCategory: subCategory.isEmpty ? saved.subCategory : subCategory,
+      brand: brand.isEmpty ? null : brand,
+      clearBrand: brand.isEmpty,
       color: _selectedColor?.label,
+      clearColor: _selectedColor == null,
       fit: _selectedFit?.apiValue,
       clearFit: _selectedFit == null,
       silhouette: _selectedSilhouette?.apiValue,
@@ -1627,8 +1621,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       clearSleeveLength: _selectedSleeveLength == null,
       cropLength: _selectedCropLength?.apiValue,
       clearCropLength: _selectedCropLength == null,
-      price: double.tryParse(_priceCtrl.text.trim()),
+      price: price,
+      clearPrice: priceText.isEmpty,
       purchaseDate: _purchaseDate,
+      clearPurchaseDate: _purchaseDate == null,
     );
     return GarmentService().updateGarment(updated);
   }
@@ -1763,43 +1759,18 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
           const SizedBox(height: 10),
           for (var i = 0; i < ideas.length; i++) ...[
             if (i > 0) const SizedBox(height: AppDimens.cardSpacing),
-            // The title row is AccentPillButton's full 44px tap-target
-            // height (with or without the button) — the reduced top padding
-            // and gap below make up for its transparent band, so the visible
-            // pill sits 14 from the card's top like its sides.
-            AppCardShell(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: AppDimens.minTouchTarget,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.outfitIdeaNumber(i + 1),
-                            style: AppTextStyle.bold16,
-                          ),
-                        ),
-                        if (onCreateOutfit case final onCreate?)
-                          AccentPillButton(
-                            label: l10n.tryItOn,
-                            icon: Icons.checkroom_outlined,
-                            onPressed: () => onCreate(ideas[i].garments),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  _buildGarmentThumbRow(
-                    ideas[i].garments,
-                    isOutfit: true,
-                    onGarmentTap: onGarmentTap,
-                    targetImageOverride: targetImageOverride,
-                    onImageUrlRefreshed: onGarmentImageRefreshed,
-                  ),
-                ],
+            GarmentOutfitIdeasCard(
+              title: l10n.outfitIdeaNumber(i + 1),
+              onTryOn: switch (onCreateOutfit) {
+                final onCreate? => () => onCreate(ideas[i].garments),
+                null => null,
+              },
+              child: _buildGarmentThumbRow(
+                ideas[i].garments,
+                isOutfit: true,
+                onGarmentTap: onGarmentTap,
+                targetImageOverride: targetImageOverride,
+                onImageUrlRefreshed: onGarmentImageRefreshed,
               ),
             ),
           ],
@@ -2024,10 +1995,7 @@ class _AiGarmentThumbState extends State<_AiGarmentThumb> {
 
   Future<String?> _fetchFreshUrl(int id, String staleUrl) async {
     try {
-      final fresh = await GarmentService().getGarment(
-        id,
-        includeDeleted: true,
-      );
+      final fresh = await GarmentService().getGarment(id, includeDeleted: true);
       final freshUrl = fresh.imageUrl;
       if (freshUrl != null && freshUrl.isNotEmpty && freshUrl != staleUrl) {
         widget.onImageUrlRefreshed?.call(id, freshUrl);

@@ -54,11 +54,7 @@ void main() {
 
       expect(find.text('Match a Look'), findsNothing);
       expect(find.text('BACKGROUND'), findsNothing);
-      expect(
-        find.text("Choose which suitcase items make up this day's outfit."),
-        findsOneWidget,
-      );
-      expect(find.text('YOUR OUTFIT'), findsOneWidget);
+      expect(find.text('OUTFIT ITEMS'), findsOneWidget);
       expect(find.text('Add Garment'), findsOneWidget);
       expect(find.text('Tee'), findsOneWidget);
       // Confirm stays hidden until the selection actually changes.
@@ -172,6 +168,82 @@ void main() {
       expect(find.text('Confirm'), findsOneWidget);
     },
   );
+
+  group('base-layer top exclusivity (same rules as Add Outfit)', () {
+    final wardrobe = [
+      _garment(
+        id: 1,
+        category: GarmentCategory.top,
+        name: 'Tee',
+        subCategory: 'T-shirt',
+      ),
+      _garment(
+        id: 2,
+        category: GarmentCategory.top,
+        name: 'Polo',
+        subCategory: 'Polo shirt',
+      ),
+      _garment(
+        id: 3,
+        category: GarmentCategory.top,
+        name: 'Cardi',
+        subCategory: 'Cardigan',
+      ),
+    ];
+
+    testWidgets(
+      'Add garment hides the worn top\'s base-layer alternative, but a '
+      'genuine mid-layer piece still shows and stacks',
+      (tester) async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitEditPage(
+            preloadedGarments: wardrobe,
+            initialGarments: [wardrobe[0]],
+          ),
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Add Garment'));
+        await tester.pumpAndSettle();
+        expect(find.text('Polo'), findsNothing);
+        expect(find.text('Cardi'), findsOneWidget);
+
+        await tester.tap(find.text('Cardi'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Top · T-shirt'), findsOneWidget);
+        expect(find.text('Top · Cardigan'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'swapping the worn top offers its base-layer alternative, and picking '
+      'it replaces the top rather than adding a mid layer',
+      (tester) async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitEditPage(
+            preloadedGarments: wardrobe,
+            initialGarments: [wardrobe[0]],
+          ),
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Tee'));
+        await tester.pumpAndSettle();
+        expect(find.text('Polo'), findsOneWidget);
+
+        await tester.tap(find.text('Polo'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Tee'), findsNothing);
+        expect(find.text('Top · Polo shirt'), findsOneWidget);
+      },
+    );
+  });
 
   testWidgets('the ✕ badge removes a card from the outfit', (tester) async {
     useTallSurface(tester);

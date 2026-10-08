@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/app_popup_menu.dart';
 import 'package:uwearis/features/widgets/common/app_tool_bar.dart';
@@ -35,7 +36,7 @@ void main() {
         ),
         body: Builder(
           builder: (context) => ElevatedButton(
-            onPressed: () => showPageSheet<void>(
+            onPressed: () => pageSheet<void>(
               context,
               title: 'Sheet',
               leading: leading,
@@ -137,6 +138,26 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     await tester.tap(find.byIcon(Icons.refresh), warnIfMissed: false);
     expect(taps, 0);
+  });
+
+  testWidgets('the sheet is plain pageBackground, with no gradient', (
+    tester,
+  ) async {
+    await pumpAndOpen(tester);
+
+    expect(
+      tester.widget<BottomSheet>(find.byType(BottomSheet)).backgroundColor,
+      AppColors.pageBackground,
+    );
+    final gradients = tester
+        .widgetList<DecoratedBox>(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(DecoratedBox),
+          ),
+        )
+        .where((d) => (d.decoration as BoxDecoration?)?.gradient != null);
+    expect(gradients, isEmpty);
   });
 
   testWidgets('close button dismisses the sheet', (tester) async {

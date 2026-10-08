@@ -292,7 +292,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get myOutfit => '我的穿搭';
 
   @override
-  String get yourOutfitLabel => '你的穿搭';
+  String get outfitItemsLabel => '你的穿搭';
 
   @override
   String get shareComingSoon => '分享功能即將推出';
@@ -473,6 +473,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get finishWithAi => '使用 AI 完成';
+
+  @override
+  String get outfitIncompleteTitle => '穿搭不完整';
+
+  @override
+  String outfitIncompleteBody(String parts) {
+    return '缺少$parts，無法組合成穿搭。要由 AI 幫你補齊缺少的部分嗎？';
+  }
+
+  @override
+  String get yes => '是';
+
+  @override
+  String get no => '否';
+
+  @override
+  String get listSeparator => '、';
 
   @override
   String get occasionFieldLabel => '場合';
@@ -851,9 +868,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteGarmentConfirmation => '確定要刪除這件衣物嗎？';
 
   @override
-  String get garmentRenameFailed => '无法重新命名，请再试一次。';
-
-  @override
   String get garmentSaveFailed => '无法保存，请再试一次。';
 
   @override
@@ -864,6 +878,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unsavedChangesBody => '如果離開此頁面，你的變更將會遺失。';
+
+  @override
+  String get autoSaveFailedLeaveBody => '最新的變更未能儲存。如果現在離開，這些變更將會遺失。';
+
+  @override
+  String get savingEllipsis => '儲存中…';
 
   @override
   String get dontSave => '不要儲存';
@@ -1093,9 +1113,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectDate => '選擇日期';
 
   @override
-  String get changesSaved => '變更已儲存';
-
-  @override
   String get itemDeleted => '已刪除衣物';
 
   @override
@@ -1109,9 +1126,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get outerwear => '外套';
-
-  @override
-  String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
 
   @override
   String get creatingOutfitsEllipsis => '建立穿搭中…';
@@ -1863,7 +1877,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get myOutfit => '我的穿搭';
 
   @override
-  String get yourOutfitLabel => '你的穿搭';
+  String get outfitItemsLabel => '你的穿搭';
 
   @override
   String get shareComingSoon => '分享功能即將推出';
@@ -2044,6 +2058,23 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get finishWithAi => '使用 AI 完成';
+
+  @override
+  String get outfitIncompleteTitle => '穿搭不完整';
+
+  @override
+  String outfitIncompleteBody(String parts) {
+    return '缺少$parts，無法組合成穿搭。要由 AI 幫你補齊缺少的部分嗎？';
+  }
+
+  @override
+  String get yes => '是';
+
+  @override
+  String get no => '否';
+
+  @override
+  String get listSeparator => '、';
 
   @override
   String get occasionFieldLabel => '場合';
@@ -2422,9 +2453,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deleteGarmentConfirmation => '確定要刪除這件衣物嗎？';
 
   @override
-  String get garmentRenameFailed => '無法重新命名，請再試一次。';
-
-  @override
   String get garmentSaveFailed => '無法儲存，請再試一次。';
 
   @override
@@ -2435,6 +2463,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get unsavedChangesBody => '如果離開此頁面，你的變更將會遺失。';
+
+  @override
+  String get autoSaveFailedLeaveBody => '最新的變更未能儲存。如果現在離開，這些變更將會遺失。';
+
+  @override
+  String get savingEllipsis => '儲存中…';
 
   @override
   String get dontSave => '不要儲存';
@@ -2664,9 +2698,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get selectDate => '選擇日期';
 
   @override
-  String get changesSaved => '變更已儲存';
-
-  @override
   String get itemDeleted => '已刪除衣物';
 
   @override
@@ -2680,9 +2711,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get outerwear => '外套';
-
-  @override
-  String get editDayOutfitInstruction => '選擇這天穿搭要用行李箱裡的哪些衣物。';
 
   @override
   String get creatingOutfitsEllipsis => '建立穿搭中…';

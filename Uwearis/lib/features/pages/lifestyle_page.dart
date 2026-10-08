@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,19 +5,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
-import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
-import '../../core/utils/api_error_text.dart';
-import '../../core/utils/debug_log.dart';
+import '../../core/utils/auto_save_controller.dart';
 import '../../data/occasion_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/occasion_type_localization.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/fields/number_stepper.dart';
-import '../widgets/common/overlays/error_dialog.dart';
-import '../widgets/common/overlays/feedback_overlay.dart';
+import '../widgets/common/overlays/auto_save_prompts.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/occasion_picker_sheet.dart';
 import '../widgets/common/section_title.dart';
 
@@ -32,16 +28,22 @@ class LifestylePage extends StatefulWidget {
 class _LifestylePageState extends State<LifestylePage> {
   List<String> _weeklyOccasions = _defaultWeeklyOccasions();
   int _temperatureOffset = 0;
-  bool _saving = false;
 
-  late List<String> _initialWeeklyOccasions = List.of(_weeklyOccasions);
-  int _initialTemperatureOffset = 0;
+  late final AutoSaveController _autoSave = AutoSaveController(
+    onSave: _persist,
+    onError: (e) => showAutoSaveErrorDialog(
+      context,
+      _autoSave,
+      e,
+      fallback: _l10n.profileSaveFailed,
+    ),
+  );
+  // Re-entrancy guard for _leave — a double-tap on back must not pop twice.
+  bool _leaving = false;
+  // Only while leaving waits on a save — drives the loading overlay.
+  bool _savingBeforeLeave = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
-
-  bool get _isModified =>
-      !listEquals(_weeklyOccasions, _initialWeeklyOccasions) ||
-      _temperatureOffset != _initialTemperatureOffset;
 
   // Index 0 = Monday ... 6 = Sunday, matching the fixed weekly card order.
   static List<String> _defaultWeeklyOccasions() => List.generate(
@@ -63,6 +65,12 @@ class _LifestylePageState extends State<LifestylePage> {
     _init();
   }
 
+  @override
+  void dispose() {
+    _autoSave.dispose();
+    super.dispose();
+  }
+
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList('weekly_occasions');
@@ -74,87 +82,90 @@ class _LifestylePageState extends State<LifestylePage> {
     setState(() {
       _weeklyOccasions = loaded;
       _temperatureOffset = offset;
-      _initialWeeklyOccasions = List.of(loaded);
-      _initialTemperatureOffset = offset;
     });
   }
 
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    try {
-      await ProfileService().updateMyProfile(
-        weeklySchedule: Map.fromIterables(_weekdayKeys, _weeklyOccasions),
-        temperatureOffsetC: _temperatureOffset,
-      );
+  /// [AutoSaveController.onSave] — persists the whole current state; errors
+  /// propagate so the controller can offer a retry. Snapshots the values
+  /// first so the local cache always matches what was actually sent, even
+  /// if the user changes another day while the PATCH is in flight.
+  Future<void> _persist() async {
+    final occasions = List.of(_weeklyOccasions);
+    final offset = _temperatureOffset;
+    await ProfileService().updateMyProfile(
+      weeklySchedule: Map.fromIterables(_weekdayKeys, occasions),
+      temperatureOffsetC: offset,
+    );
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList('weekly_occasions', _weeklyOccasions);
-      await prefs.setString(
-        'occasions_last_saved',
-        DateFormat('yyyy-MM-dd').format(DateTime.now()),
-      );
-      await prefs.setInt('temperature_offset', _temperatureOffset);
-      if (!mounted) return;
-      setState(() {
-        _initialWeeklyOccasions = List.of(_weeklyOccasions);
-        _initialTemperatureOffset = _temperatureOffset;
-      });
-      showFeedbackOverlay(context, message: _l10n.changesSaved);
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      debugLog('LifestylePage._save failed: $e');
-      showErrorDialog(
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('weekly_occasions', occasions);
+    await prefs.setInt('temperature_offset', offset);
+  }
+
+  Future<void> _leave() async {
+    if (_leaving) return;
+    _leaving = true;
+    try {
+      final canLeave = await confirmLeaveAfterAutoSave(
         context,
-        message: apiErrorMessage(_l10n, e, fallback: _l10n.profileSaveFailed),
+        _autoSave,
+        onFlushingChanged: (saving) =>
+            setState(() => _savingBeforeLeave = saving),
       );
+      if (canLeave && mounted) Navigator.pop(context);
     } finally {
-      if (mounted) setState(() => _saving = false);
+      _leaving = false;
     }
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: _l10n.lifestyle);
+    return AppToolBar(title: _l10n.lifestyle, onBack: _leave);
   }
-
-  bool get _showsBottomActionButton => _isModified && !_saving;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      extendBody: true,
-      appBar: _buildAppBar(),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 20,
+    return ListenableBuilder(
+      listenable: _autoSave,
+      builder: (context, child) => PopScope(
+        canPop: !_autoSave.hasPendingChanges,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _leave();
+        },
+        child: child!,
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.pageBackground,
+        appBar: _buildAppBar(),
+        body: Stack(
+          children: [
+            _buildContent(),
+            if (_savingBeforeLeave)
+              Positioned.fill(
+                child: LoadingOverlay(label: _l10n.savingEllipsis),
+              ),
+          ],
         ),
-        children: [
-          const SizedBox(height: AppDimens.sectionSpacing),
-          Text(
-            _l10n.lifestyleDescription,
-            style: AppTextStyle.regular14.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      children: [
+        const SizedBox(height: AppDimens.sectionSpacing),
+        Text(
+          _l10n.lifestyleDescription,
+          style: AppTextStyle.regular14.copyWith(
+            color: AppColors.textSecondary,
+            height: 1.4,
           ),
-          const SizedBox(height: AppDimens.sectionSpacing),
-          _buildWeeklyScheduleCard(),
-          const SizedBox(height: AppDimens.sectionSpacing),
-          _buildComfortAdjustmentCard(),
-        ],
-      ),
-      bottomNavigationBar: BottomActionButton(
-        label: _l10n.save,
-        onPressed: _save,
-        isLoading: _saving,
-        enabled: _isModified,
-      ),
+        ),
+        const SizedBox(height: AppDimens.sectionSpacing),
+        _buildWeeklyScheduleCard(),
+        const SizedBox(height: AppDimens.sectionSpacing),
+        _buildComfortAdjustmentCard(),
+      ],
     );
   }
 
@@ -260,10 +271,14 @@ class _LifestylePageState extends State<LifestylePage> {
             onDecrement: () {
               if (_temperatureOffset > -5) {
                 setState(() => _temperatureOffset--);
+                _autoSave.requestSave();
               }
             },
             onIncrement: () {
-              if (_temperatureOffset < 5) setState(() => _temperatureOffset++);
+              if (_temperatureOffset < 5) {
+                setState(() => _temperatureOffset++);
+                _autoSave.requestSave();
+              }
             },
           ),
         ],
@@ -285,7 +300,8 @@ class _LifestylePageState extends State<LifestylePage> {
       title: _l10n.selectOccasionTitle(dayName),
     );
 
-    if (selected == null || selected == current) return;
+    if (selected == null || selected == current || !mounted) return;
     setState(() => _weeklyOccasions[index] = selected.apiValue);
+    _autoSave.requestSave();
   }
 }

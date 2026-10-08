@@ -309,7 +309,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myOutfit => 'My Outfit';
 
   @override
-  String get yourOutfitLabel => 'Your Outfit';
+  String get outfitItemsLabel => 'Outfit Items';
 
   @override
   String get shareComingSoon => 'Share coming soon';
@@ -494,13 +494,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exploreNavSaved => 'Saved';
 
   @override
-  String get finishOutfit => 'Finish Outfit';
+  String get finishOutfit => 'Auto-Complete';
 
   @override
   String get finishOutfitPromptBody => 'Let AI complete your selected pieces.';
 
   @override
   String get finishWithAi => 'Finish with AI';
+
+  @override
+  String get outfitIncompleteTitle => 'Outfit Incomplete';
+
+  @override
+  String outfitIncompleteBody(String parts) {
+    return 'Your outfit is missing $parts, so it can\'t be created yet. Let AI fill in the missing pieces?';
+  }
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get no => 'No';
+
+  @override
+  String get listSeparator => ', ';
 
   @override
   String get occasionFieldLabel => 'Occasion';
@@ -895,10 +912,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this garment?';
 
   @override
-  String get garmentRenameFailed =>
-      'Couldn\'t rename this item. Please try again.';
-
-  @override
   String get garmentSaveFailed => 'Couldn\'t save this item. Please try again.';
 
   @override
@@ -911,6 +924,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get unsavedChangesBody =>
       'If you leave this page, your changes will be lost.';
+
+  @override
+  String get autoSaveFailedLeaveBody =>
+      'Your latest changes couldn\'t be saved. If you leave now, they\'ll be lost.';
+
+  @override
+  String get savingEllipsis => 'Saving…';
 
   @override
   String get dontSave => 'Don\'t Save';
@@ -1142,9 +1162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectDate => 'Select Date';
 
   @override
-  String get changesSaved => 'Changes Saved';
-
-  @override
   String get itemDeleted => 'Clothing Deleted';
 
   @override
@@ -1158,10 +1175,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outerwear => 'Outerwear';
-
-  @override
-  String get editDayOutfitInstruction =>
-      'Choose which suitcase items make up this day\'s outfit.';
 
   @override
   String get creatingOutfitsEllipsis => 'Creating Outfits…';

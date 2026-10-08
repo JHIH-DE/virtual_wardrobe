@@ -86,7 +86,14 @@ mixin BaseService {
           )
           .timeout(const Duration(seconds: 15)),
     );
-    if (refreshRes.statusCode != 200) throw AuthExpiredException();
+    if (refreshRes.statusCode != 200) {
+      final rejected = ApiException.fromResponse(refreshRes);
+      debugLog(
+        'auth/refresh rejected: ${rejected.statusCode} '
+        'error_code=${rejected.errorCode}',
+      );
+      throw AuthExpiredException();
+    }
 
     final body = jsonDecode(refreshRes.body) as Map<String, dynamic>;
     final data = body['data'] as Map<String, dynamic>?;

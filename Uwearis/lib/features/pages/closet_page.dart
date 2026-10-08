@@ -330,14 +330,8 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
           imagePath: 'assets/images/delete_success.png',
         );
       }
-    } else if (result is Garment) {
-      ref.read(garmentsProvider.notifier).updateGarment(result);
-      if (mounted) {
-        showFeedbackOverlay(
-          context,
-          message: AppLocalizations.of(context).changesSaved,
-        );
-      }
     }
+    // Edits auto-save from inside GarmentDetailsPage, which keeps
+    // garmentsProvider in sync itself — nothing to apply here.
   }
 }

@@ -64,7 +64,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // AddOutfitPage's own create-mode content.
-      expect(find.text('Match a Look'), findsOneWidget);
+      expect(find.byTooltip('Match a Look'), findsOneWidget);
     },
   );
 }

@@ -70,102 +70,211 @@ void main() {
     },
   );
 
-  testWidgets(
-    'editing weight alone enables Save, and Save PATCHes height/weight/'
-    'unit_system alongside the untouched profile fields',
-    (tester) async {
-      await tester.runAsync(() async {
-        useTallSurface(tester);
-        late http.Request captured;
-        await http.runWithClient(() async {
-          await pumpApp(
-            tester,
-            const AccountPage(),
-            overrides: [
-              profileProvider.overrideWith(() => _FakeProfileNotifier()),
-            ],
-          );
-          await tester.pump();
-          await tester.pump();
+  /// Records every PATCH body; [fail] makes responses 500s.
+  List<Map<String, dynamic>> patches = [];
+  var fail = false;
+  MockClient backend() => MockClient((request) async {
+    patches.add(jsonDecode(request.body) as Map<String, dynamic>);
+    if (fail) return jsonResponse({'success': false}, status: 500);
+    return jsonResponse(envelope({'name': 'Test User', 'weight': 72}));
+  });
 
-          // Nothing edited yet — Save stays hidden.
-          expect(
-            find.byKey(const ValueKey('bottomActionButton-visible')),
-            findsNothing,
-          );
+  setUp(() {
+    patches = [];
+    fail = false;
+  });
 
-          await tester.enterText(find.text('70'), '72');
-          await tester.pump();
+  Future<void> pumpAccount(
+    WidgetTester tester, {
+    bool completingOnboarding = false,
+  }) async {
+    useTallSurface(tester);
+    await pumpApp(
+      tester,
+      AccountPage(completingOnboarding: completingOnboarding),
+      overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
+    );
+    await tester.pump();
+    await tester.pump();
+  }
 
-          expect(
-            find.byKey(const ValueKey('bottomActionButton-visible')),
-            findsOneWidget,
-          );
+  /// Pushes AccountPage over a placeholder home so popping is observable.
+  Future<void> pushAccount(WidgetTester tester) async {
+    useTallSurface(tester);
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AccountPage()),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+      overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+  }
 
-          await tester.tap(
-            find.byKey(const ValueKey('bottomActionButton-visible')),
-          );
-          await tester.pump();
-          // Navigator.pop on the test harness's single-route MaterialApp has
-          // nothing to actually pop to — drain that, it's unrelated to what
-          // this test checks (the outgoing PATCH body).
-          while (tester.takeException() != null) {}
-        }, () => MockClient((request) async {
-          captured = request;
-          return jsonResponse(
-            envelope({
-              'name': 'Test User',
-              'gender': 'Male',
-              'location': 'Taipei',
-              'height': 178,
-              'weight': 72,
-              'unit_system': 'metric',
-            }),
-          );
-        }));
-
-        expect(captured.method, 'PATCH');
-        final body = jsonDecode(captured.body) as Map<String, dynamic>;
-        expect(body['weight'], 72);
-        expect(body['height'], 178);
-        expect(body['unit_system'], 'metric');
-        // The fields this test didn't touch are still sent unchanged.
-        expect(body['name'], 'Test User');
-        expect(body['gender'], 'Male');
-        expect(body['location'], 'Taipei');
-      });
-    },
+  final backButton = find.ancestor(
+    of: find.image(const AssetImage('assets/images/page_arrow_left.png')),
+    matching: find.byType(IconButton),
   );
 
   testWidgets(
-    'switching to Imperial converts the displayed height/weight and marks '
-    'the page modified even with no field directly edited',
+    'from Settings there is no Save button; typing a weight auto-saves '
+    'after a pause, sending the untouched profile fields alongside',
     (tester) async {
-      useTallSurface(tester);
-      await pumpApp(
-        tester,
-        const AccountPage(),
-        overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
-      );
+      await http.runWithClient(() async {
+        await pumpAccount(tester);
+        expect(
+          find.byKey(const ValueKey('bottomActionButton-visible')),
+          findsNothing,
+        );
+
+        await tester.enterText(find.text('70'), '72');
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(patches, isEmpty);
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump();
+
+        expect(patches, hasLength(1));
+        final body = patches.single;
+        expect(body['weight'], 72);
+        expect(body['height'], 178);
+        expect(body['unit_system'], 'metric');
+        expect(body['name'], 'Test User');
+        expect(body['gender'], 'Male');
+        expect(body['location'], 'Taipei');
+        expect(
+          find.byKey(const ValueKey('bottomActionButton-visible')),
+          findsNothing,
+        );
+      }, backend);
+    },
+  );
+
+  testWidgets('leaving a text field saves right away instead of waiting out '
+      'the pause', (tester) async {
+    await http.runWithClient(() async {
+      await pumpAccount(tester);
+
+      await tester.enterText(find.text('Test User'), 'New Name');
+      await tester.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
       await tester.pump();
 
-      expect(
-        find.byKey(const ValueKey('bottomActionButton-visible')),
-        findsNothing,
-      );
+      expect(patches.single['name'], 'New Name');
+      // The debounce that was pending doesn't fire a second save.
+      await tester.pump(const Duration(seconds: 1));
+      expect(patches, hasLength(1));
+    }, backend);
+  });
+
+  testWidgets('a cleared name is left out of the save rather than sent '
+      'empty', (tester) async {
+    await http.runWithClient(() async {
+      await pumpAccount(tester);
+
+      await tester.enterText(find.text('Test User'), '');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+
+      expect(patches.single.containsKey('name'), isFalse);
+    }, backend);
+  });
+
+  testWidgets(
+    'switching to Imperial converts the displayed height/weight and saves '
+    'the new unit immediately',
+    (tester) async {
+      await http.runWithClient(() async {
+        await pumpAccount(tester);
+
+        await tester.tap(find.text(_l10n.unitImperialLabel));
+        await tester.pump();
+        await tester.pump();
+
+        // 178cm/70kg converted to ft/in/lb.
+        expect(find.text('5'), findsOneWidget); // feet
+        expect(find.text('10'), findsOneWidget); // inches
+        expect(find.text('154'), findsOneWidget); // lb
+        expect(patches.single['unit_system'], 'imperial');
+        // Still stored canonically in cm/kg.
+        expect(patches.single['height'], 178);
+      }, backend);
+    },
+  );
+
+  testWidgets('back while a typed change is still waiting saves it first, '
+      'then pops', (tester) async {
+    await http.runWithClient(() async {
+      await pushAccount(tester);
+
+      await tester.enterText(find.text('70'), '72');
+      await tester.pump();
+      await tester.tap(backButton);
+      await tester.pumpAndSettle();
+
+      expect(patches.single['weight'], 72);
+      expect(find.byType(AccountPage), findsNothing);
+    }, backend);
+  });
+
+  testWidgets('a failed auto-save offers Retry', (tester) async {
+    fail = true;
+    await http.runWithClient(() async {
+      await pumpAccount(tester);
 
       await tester.tap(find.text(_l10n.unitImperialLabel));
-      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(find.text(_l10n.profileSaveFailed), findsOneWidget);
 
-      // 178cm/70kg converted to ft/in/lb.
-      expect(find.text('5'), findsOneWidget); // feet
-      expect(find.text('10'), findsOneWidget); // inches
-      expect(find.text('154'), findsOneWidget); // lb
+      fail = false;
+      await tester.tap(find.text(_l10n.retry));
+      await tester.pumpAndSettle();
+      expect(patches, hasLength(2));
+      expect(find.text(_l10n.profileSaveFailed), findsNothing);
+    }, backend);
+  });
+
+  testWidgets('onboarding keeps Continue and does not auto-save edits', (
+    tester,
+  ) async {
+    await http.runWithClient(() async {
+      await pumpAccount(tester, completingOnboarding: true);
+
       expect(
         find.byKey(const ValueKey('bottomActionButton-visible')),
         findsOneWidget,
       );
-    },
-  );
+      expect(find.text(_l10n.continueLabel), findsOneWidget);
+
+      await tester.enterText(find.text('70'), '72');
+      await tester.tap(find.text(_l10n.unitImperialLabel));
+      await tester.pump(const Duration(seconds: 1));
+      expect(patches, isEmpty);
+    }, backend);
+  });
+
+  testWidgets('picking a gender from the sheet saves it right away', (
+    tester,
+  ) async {
+    await http.runWithClient(() async {
+      await pumpAccount(tester);
+
+      await tester.tap(find.text(_l10n.genderMale));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(_l10n.genderFemale));
+      await tester.pumpAndSettle();
+
+      expect(patches.single['gender'], 'Female');
+      expect(find.text(_l10n.genderFemale), findsOneWidget);
+    }, backend);
+  });
 }

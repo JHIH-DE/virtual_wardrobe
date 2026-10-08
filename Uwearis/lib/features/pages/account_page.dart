@@ -11,6 +11,7 @@ import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/api_error_text.dart';
+import '../../core/utils/auto_save_controller.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/location_result.dart';
@@ -23,7 +24,9 @@ import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
+import '../widgets/common/overlays/auto_save_prompts.dart';
 import '../widgets/common/overlays/error_dialog.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'image_editor_page.dart';
@@ -47,12 +50,12 @@ enum _UnitSystem {
 
 class AccountPage extends ConsumerStatefulWidget {
   /// True when opened from HomeGettingStartedView's "About You" step
-  /// (`HomePage._openAccountPageForOnboarding`) rather than Settings. Swaps
-  /// the bottom action button from "Save" (gated on [_isModified], pops on
-  /// success) to "Continue" (gated on the four required fields already
-  /// being filled in, pushes [MyVirtualModelPage] on success instead of
-  /// popping) — see [_AccountPageState._showsBottomActionButton] and
-  /// [_AccountPageState._handleBottomAction].
+  /// (`HomePage._openAccountPageForOnboarding`) rather than Settings. That
+  /// step keeps an explicit "Continue" button (gated on the four required
+  /// fields already being filled in, saves only if something changed, then
+  /// pushes [MyVirtualModelPage]) — see [_AccountPageState._handleContinue].
+  /// From Settings there's no button: every edit auto-saves (see
+  /// [_AccountPageState._autoSave]).
   final bool completingOnboarding;
 
   const AccountPage({super.key, this.completingOnboarding = false});
@@ -93,6 +96,22 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   String _initialWeight = '';
   _UnitSystem _initialUnitSystem = _UnitSystem.metric;
 
+  // Settings mode only — onboarding never requests a save through it, so
+  // its leave check is a no-op there.
+  late final AutoSaveController _autoSave = AutoSaveController(
+    onSave: _persistProfile,
+    onError: (e) => showAutoSaveErrorDialog(
+      context,
+      _autoSave,
+      e,
+      fallback: _l10n.profileSaveFailed,
+    ),
+  );
+  // Re-entrancy guard for _leave — a double-tap on back must not pop twice.
+  bool _leaving = false;
+  // Only while leaving waits on a save — drives the loading overlay.
+  bool _savingBeforeLeave = false;
+
   final List<String> _genderOptions = [
     'Male',
     'Female',
@@ -120,6 +139,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
+  /// Onboarding's "anything to save before Continue?" check — auto-save
+  /// (Settings mode) doesn't use it.
   bool get _isModified =>
       _nameCtrl.text.trim() != _initialName ||
       _selectedGender != _initialGender ||
@@ -145,7 +166,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     super.initState();
     _loadProfile();
     // Typing doesn't rebuild this widget on its own — force one so
-    // _isModified gets re-evaluated as the user edits a field.
+    // onboarding's Continue gate gets re-evaluated as the user edits.
     _nameCtrl.addListener(_onFieldChanged);
     _heightCtrl.addListener(_onFieldChanged);
     _weightCtrl.addListener(_onFieldChanged);
@@ -155,6 +176,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   @override
   void dispose() {
+    _autoSave.dispose();
     _nameCtrl.dispose();
     _heightCtrl.dispose();
     _weightCtrl.dispose();
@@ -164,12 +186,34 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     super.dispose();
   }
 
+  /// Called after every user edit. Onboarding saves only on Continue; from
+  /// Settings a discrete choice (picker, toggle, date) saves right away and
+  /// typing waits for a pause — [_onTextFieldBlur] cuts that wait short.
+  void _onEdited({bool typing = false}) {
+    if (widget.completingOnboarding) return;
+    if (typing) {
+      _autoSave.scheduleSave();
+    } else {
+      _autoSave.requestSave();
+    }
+  }
+
+  /// Leaving a text field (or tapping Done) saves now rather than waiting
+  /// out the debounce. Skipped after a failure so a blur doesn't re-raise
+  /// the error dialog the user just dismissed.
+  void _onTextFieldBlur() {
+    if (_autoSave.hasPendingChanges && !_autoSave.hasFailed) {
+      _autoSave.requestSave();
+    }
+  }
+
   void _setUnitSystem(_UnitSystem next) {
     if (next == _unitSystem) return;
     setState(() {
       _unitSystem = next;
       if (next == _UnitSystem.imperial) _syncImperialFromMetric();
     });
+    _onEdited();
   }
 
   /// Recomputes the ft/in/lb fields from the canonical cm/kg controllers —
@@ -201,12 +245,14 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
     final cm = (feet * 12 + inches) * _cmPerInch;
     _heightCtrl.text = cm.round().toString();
+    _onEdited(typing: true);
   }
 
   void _onImperialWeightChanged() {
     final lb = double.tryParse(_weightLbCtrl.text);
     if (lb == null) return;
     _weightCtrl.text = (lb * _kgPerLb).round().toString();
+    _onEdited(typing: true);
   }
 
   Future<void> _loadProfile() async {
@@ -311,27 +357,35 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  /// PATCHes the profile only — no navigation. Returns whether it
-  /// succeeded, so callers ([_handleSave]/[_handleContinue]) each decide
-  /// what happens next (pop vs. push [MyVirtualModelPage]) rather than this
-  /// method assuming one or the other.
+  /// PATCHes the whole form and syncs [profileProvider]. Throws on failure —
+  /// this is [_autoSave]'s `onSave` as-is; onboarding's Continue wraps it in
+  /// [_saveProfile] for its own loading/error handling. An empty name or an
+  /// unparseable height/weight is left out (= "unchanged" on the backend)
+  /// rather than sent.
+  Future<void> _persistProfile() async {
+    // Read up front: a save can still land after the page is gone, and
+    // Settings must see it even then.
+    final profile = ref.read(profileProvider.notifier);
+    final result = await ProfileService().updateMyProfile(
+      name: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : null,
+      gender: _selectedGender,
+      birthday: _selectedBirthDate != null
+          ? DateFormat('yyyy-MM-dd').format(_selectedBirthDate!)
+          : null,
+      location: _homeLocation,
+      height: double.tryParse(_heightCtrl.text.trim()),
+      weight: double.tryParse(_weightCtrl.text.trim()),
+      unitSystem: _unitSystem.apiValue,
+    );
+    profile.setProfile(result);
+  }
+
+  /// Onboarding's save before Continue. Returns whether it succeeded.
   Future<bool> _saveProfile() async {
     setState(() => _loading = true);
     try {
-      final result = await ProfileService().updateMyProfile(
-        name: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : null,
-        gender: _selectedGender,
-        birthday: _selectedBirthDate != null
-            ? DateFormat('yyyy-MM-dd').format(_selectedBirthDate!)
-            : null,
-        location: _homeLocation,
-        height: double.tryParse(_heightCtrl.text.trim()),
-        weight: double.tryParse(_weightCtrl.text.trim()),
-        unitSystem: _unitSystem.apiValue,
-      );
-      if (!mounted) return false;
-      ref.read(profileProvider.notifier).setProfile(result);
-      return true;
+      await _persistProfile();
+      return mounted;
     } on AuthExpiredException {
       if (!mounted) return false;
       await AuthExpiredHandler.handle(context);
@@ -349,10 +403,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  Future<void> _handleSave() async {
-    if (await _saveProfile() && mounted) Navigator.pop(context);
-  }
-
   /// Only re-saves if something was actually edited this session — a user
   /// who arrives with the four fields already filled from an earlier visit
   /// can just continue straight on without an unnecessary PATCH.
@@ -365,52 +415,83 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     );
   }
 
+  Future<void> _leave() async {
+    if (_leaving) return;
+    _leaving = true;
+    try {
+      final canLeave = await confirmLeaveAfterAutoSave(
+        context,
+        _autoSave,
+        onFlushingChanged: (saving) =>
+            setState(() => _savingBeforeLeave = saving),
+      );
+      if (canLeave && mounted) Navigator.pop(context);
+    } finally {
+      _leaving = false;
+    }
+  }
+
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: _l10n.account);
+    return AppToolBar(title: _l10n.account, onBack: _leave);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      extendBody: true,
-      appBar: _buildAppBar(),
-      bottomNavigationBar: BottomActionButton(
-        label: widget.completingOnboarding ? _l10n.continueLabel : _l10n.save,
-        onPressed: widget.completingOnboarding ? _handleContinue : _handleSave,
-        isLoading: _loading,
-        enabled: widget.completingOnboarding
-            ? _hasRequiredAboutYouFields
-            : _isModified,
+    return ListenableBuilder(
+      listenable: _autoSave,
+      builder: (context, child) => PopScope(
+        canPop: !_autoSave.hasPendingChanges,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _leave();
+        },
+        child: child!,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildAvatarSection(),
-                  _buildFormFields(),
-                  SizedBox(
-                    height: _showsBottomActionButton
-                        ? AppDimens.bottomActionBtnClearance
-                        : 0,
+      child: Scaffold(
+        backgroundColor: AppColors.pageBackground,
+        extendBody: true,
+        appBar: _buildAppBar(),
+        bottomNavigationBar: widget.completingOnboarding
+            ? BottomActionButton(
+                label: _l10n.continueLabel,
+                onPressed: _handleContinue,
+                isLoading: _loading,
+                enabled: _hasRequiredAboutYouFields,
+              )
+            : null,
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildAvatarSection(),
+                        _buildFormFields(),
+                        SizedBox(
+                          height: _showsBottomActionButton
+                              ? AppDimens.bottomActionBtnClearance
+                              : 0,
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ],
+            if (_savingBeforeLeave)
+              Positioned.fill(
+                child: LoadingOverlay(label: _l10n.savingEllipsis),
+              ),
+          ],
+        ),
       ),
     );
   }
 
   bool get _showsBottomActionButton =>
-      (widget.completingOnboarding
-          ? _hasRequiredAboutYouFields
-          : _isModified) &&
-      !_loading;
+      widget.completingOnboarding && _hasRequiredAboutYouFields && !_loading;
 
   /// The backend's OpenAPI schema example ("string") occasionally leaks
   /// through as a literal placeholder value instead of a real URL/null —
@@ -466,7 +547,17 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   Widget _buildNameField() {
     return LabeledField(
       label: _l10n.accountNameLabel,
-      child: AppTextField(controller: _nameCtrl, hint: _l10n.enterYourNameHint),
+      child: Focus(
+        onFocusChange: (focused) {
+          if (!focused) _onTextFieldBlur();
+        },
+        child: AppTextField(
+          controller: _nameCtrl,
+          hint: _l10n.enterYourNameHint,
+          onChanged: (_) => _onEdited(typing: true),
+          onSubmitted: (_) => _onTextFieldBlur(),
+        ),
+      ),
     );
   }
 
@@ -484,41 +575,21 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   }
 
   Future<void> _openGenderPicker() async {
-    await showPickerSheet<void>(
+    final picked = await showSingleChoiceSheet<String>(
       context,
-      builder: (sheetContext) => RadioGroup<String>(
-        groupValue: _selectedGender,
-        onChanged: (v) {
-          setState(() => _selectedGender = v);
-          Navigator.pop(sheetContext);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            PickerSheetHeader(_l10n.selectGenderHint),
-            for (final g in _genderOptions)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  _genderDisplayLabel(g),
-                  style: g == _selectedGender
-                      ? AppTextStyle.bold16
-                      : AppTextStyle.regular16,
-                ),
-                trailing: Radio<String>(
-                  value: g,
-                  activeColor: AppColors.accent,
-                ),
-                onTap: () {
-                  setState(() => _selectedGender = g);
-                  Navigator.pop(sheetContext);
-                },
-              ),
-          ],
-        ),
-      ),
+      title: _l10n.selectGenderHint,
+      options: _genderOptions,
+      selected: _selectedGender,
+      labelOf: _genderDisplayLabel,
     );
+    if (picked == null || !mounted) return;
+    _selectGender(picked);
+  }
+
+  void _selectGender(String? value) {
+    if (value == _selectedGender) return;
+    setState(() => _selectedGender = value);
+    _onEdited();
   }
 
   Widget _buildBirthdayField() {
@@ -531,7 +602,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         lastDate: DateTime.now(),
         onChanged: _loading
             ? null
-            : (d) => setState(() => _selectedBirthDate = d),
+            : (d) {
+                if (d == _selectedBirthDate) return;
+                setState(() => _selectedBirthDate = d);
+                _onEdited();
+              },
       ),
     );
   }
@@ -568,8 +643,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       context,
       MaterialPageRoute(builder: (_) => const LocationPickerPage()),
     );
-    if (result == null) return;
+    if (result == null || !mounted || result.name == _homeLocation) return;
     setState(() => _homeLocation = result.name);
+    _onEdited();
   }
 
   Widget _buildBodyMeasurementsCard() {
@@ -657,6 +733,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             controller: _heightCtrl,
             label: _l10n.heightHint,
             unit: 'cm',
+            onChanged: (_) => _onEdited(typing: true),
           ),
         ),
         const SizedBox(width: 12),
@@ -665,6 +742,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             controller: _weightCtrl,
             label: _l10n.weightHint,
             unit: 'kg',
+            onChanged: (_) => _onEdited(typing: true),
           ),
         ),
       ],
@@ -713,12 +791,18 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   }) {
     return LabeledField(
       label: label,
-      child: AppTextField(
-        controller: controller,
-        suffixText: unit,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: _decimalFormatters,
-        onChanged: onChanged,
+      child: Focus(
+        onFocusChange: (focused) {
+          if (!focused) _onTextFieldBlur();
+        },
+        child: AppTextField(
+          controller: controller,
+          suffixText: unit,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: _decimalFormatters,
+          onChanged: onChanged,
+          onSubmitted: (_) => _onTextFieldBlur(),
+        ),
       ),
     );
   }

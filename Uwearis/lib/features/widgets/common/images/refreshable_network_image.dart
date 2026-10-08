@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/services/auth_handler.dart';
+import '../../../../core/services/auth_storage.dart';
 import '../../../../core/utils/debug_log.dart';
 import 'app_spinner.dart';
 
@@ -136,6 +138,15 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
         setState(() => _url = fresh);
         widget.onUrlRefreshed?.call(oldUrl, fresh);
       }
+    } on AuthExpiredException {
+      // The session itself is gone (the refresh token was rejected too) —
+      // route to login instead of leaving a broken image that retries again
+      // on every remount. Empty storage means the session was already ended
+      // on purpose (logout, or another image's handler already cleared it):
+      // the old screen can still be mounted for a moment after a logout,
+      // and that must not raise a "Session Expired" dialog.
+      if (await AuthStorage.getRefreshToken() == null) return;
+      if (mounted) await AuthExpiredHandler.handle(context);
     } catch (e) {
       // Leave the existing (broken) URL — the error state below covers it.
       debugLog('RefreshableNetworkImage: onRefreshUrl failed: $e');

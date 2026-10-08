@@ -40,6 +40,7 @@ import '../widgets/common/overlays/photo_source_dialog.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/outfit/outfit_background_section.dart';
+import 'camera_capture_page.dart' show CameraFrameRatio;
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
@@ -55,7 +56,7 @@ enum _Slot { top, middle, outer, bottom, onePiece, shoes }
 /// [_AddOutfitPageState._runMatchALook]).
 enum _MatchALookStatus { idle, analyzing, matched }
 
-enum _MatchALookCardAction { remove }
+enum _ReferenceLookCardAction { remove }
 
 /// One garment shown in the create flow's "Your Outfit" list — either a
 /// core slot pick ([slot] set) or an accessory ([accessoryIndex] set).
@@ -474,7 +475,12 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   Future<void> _startMatchALookFlow({String? initialImagePath}) async {
     final imagePath =
         initialImagePath ??
-        await showPhotoSourceDialog(context, title: _l10n.matchALookTitle);
+        await showPhotoSourceDialog(
+          context,
+          title: _l10n.matchALookTitle,
+          subtitle: _l10n.matchALookSubtitle,
+          cameraFrameRatio: CameraFrameRatio.portrait,
+        );
     if (imagePath == null || !mounted) return;
     await _runMatchALook(imagePath);
   }
@@ -614,11 +620,17 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     if (_tryOnRequested || isOutfitLoading || _isCompletingWithAi) return;
     setState(() => _tryOnRequested = true);
     try {
-      // If any core slot (Top / Bottom / Shoes) is still empty, run Finish
-      // Outfit first to fill the gaps, then render. A closet with none of
-      // those three categories skips this (Finish Outfit can't help there).
+      // If any core slot (Top / Bottom / Shoes) is still empty, ask before
+      // letting AI fill the gaps — "No" leaves the user to pick them. A
+      // closet with none of those three categories skips this (AI can't
+      // help there).
       if (_coreChecklist.isNotEmpty && !_coreComplete) {
-        await _completeWithAi();
+        final missing = _coreChecklist.where((c) => !_coreSlotMet(c)).toList();
+        final proceed = await _showOutfitIncompleteDialog(missing);
+        if (proceed != true || !mounted) return;
+        // Only the missing slots get filled — everything already picked
+        // stays, locked or not (Match a Look's picks are unlocked).
+        await _completeWithAi(keepGarmentIds: _selectedGarmentIds().toSet());
         if (!mounted) return;
         // Finish Outfit couldn't complete the core slots — it already
         // surfaced the failure, so just stop here.
@@ -674,7 +686,31 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: _l10n.quickActionAddOutfit, onBack: widget.onBack);
+    return AppToolBar(
+      title: _l10n.quickActionAddOutfit,
+      onBack: widget.onBack,
+      actions: [
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: AppDimens.toolbarHeight,
+            minHeight: AppDimens.toolbarHeight,
+          ),
+          tooltip: _l10n.matchALookTitle,
+          icon: Image.asset(
+            'assets/images/camera.png',
+            width: AppDimens.toolbarActionIconSize,
+            height: AppDimens.toolbarActionIconSize,
+          ),
+          // With a reference already matched this swaps it out, same as
+          // the reference card's "Change".
+          onPressed: _referenceImagePath != null
+              ? _changeReferenceLook
+              : _startMatchALookFlow,
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
   }
 
   @override
@@ -723,22 +759,26 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// The default "New Outfit" layout: Match a Look, the collapsible
-  /// BACKGROUND section, then the "Your Outfit" header (with the Finish
-  /// Outfit action) and a vertical list of the picked garments (+ an "Add
-  /// garment" row). Occasion/temperature live in the Finish Outfit dialog.
+  /// The default "New Outfit" layout: the Match a Look reference card (once
+  /// matched), the collapsible BACKGROUND section, then the "Outfit Items"
+  /// header (with the Auto-Complete action) and a vertical list of the
+  /// picked garments (+ an "Add garment" row). Occasion/temperature live in
+  /// the Auto-Complete dialog.
   List<Widget> _buildCreateFlowBody() {
     return [
-      _hInset(
-        _MatchALookCard(
-          referenceImagePath: _referenceImagePath,
-          matchedSlotCount: _aiPopulatedSlots.length,
-          onStart: _startMatchALookFlow,
-          onChange: _changeReferenceLook,
-          onRemove: _clearMatchALookSession,
+      // The app bar's Match a Look icon is the entry point; this card only
+      // appears once a reference photo has been matched.
+      if (_referenceImagePath != null) ...[
+        _hInset(
+          _ReferenceLookCard(
+            referenceImagePath: _referenceImagePath!,
+            matchedSlotCount: _aiPopulatedSlots.length,
+            onChange: _changeReferenceLook,
+            onRemove: _clearMatchALookSession,
+          ),
         ),
-      ),
-      const SizedBox(height: AppDimens.sectionSpacing),
+        const SizedBox(height: AppDimens.sectionSpacing),
+      ],
       OutfitBackgroundSection(
         selected: _background,
         horizontalInset: _createFlowInset,
@@ -753,7 +793,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       _hInset(
         Row(
           children: [
-            FieldLabel(_l10n.yourOutfitLabel.toUpperCase()),
+            FieldLabel(_l10n.outfitItemsLabel.toUpperCase()),
             const Spacer(),
             AccentPillButton(
               label: _l10n.finishOutfit,
@@ -1194,7 +1234,16 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   /// already locked in by the user) are remembered in
   /// [_excludedGarmentIds], so a later "Complete with AI" tap asks for
   /// something different instead of risking the same suggestion again.
-  void _applyCompletedOutfit(List<int> garmentIds) {
+  ///
+  /// [keepGarmentIds] overrides which ids count as "locked" for this one
+  /// application (see [_completeWithAi]).
+  void _applyCompletedOutfit(
+    List<int> garmentIds, {
+    required Set<int> keepGarmentIds,
+  }) {
+    bool kept(Garment? g) =>
+        g != null && g.id != null && keepGarmentIds.contains(g.id);
+
     final byId = {
       for (final g in _garmentPool)
         if (g.id != null) g.id!: g,
@@ -1206,32 +1255,32 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
     setState(() {
       _excludedGarmentIds.addAll(
-        garmentIds.where((id) => !_lockedGarmentIds.contains(id)),
+        garmentIds.where((id) => !keepGarmentIds.contains(id)),
       );
-      if (!_isLocked(_outfit.top)) _outfit = _outfit.copyWith(clearTop: true);
-      if (!_isLocked(_outfit.middle)) {
+      if (!kept(_outfit.top)) _outfit = _outfit.copyWith(clearTop: true);
+      if (!kept(_outfit.middle)) {
         _outfit = _outfit.copyWith(clearMiddle: true);
       }
-      if (!_isLocked(_outfit.outer)) {
+      if (!kept(_outfit.outer)) {
         _outfit = _outfit.copyWith(clearOuter: true);
       }
-      if (!_isLocked(_outfit.bottom)) {
+      if (!kept(_outfit.bottom)) {
         _outfit = _outfit.copyWith(clearBottom: true);
       }
-      if (!_isLocked(_outfit.onePiece)) {
+      if (!kept(_outfit.onePiece)) {
         _outfit = _outfit.copyWith(clearOnePiece: true);
       }
-      if (!_isLocked(_outfit.shoes)) {
+      if (!kept(_outfit.shoes)) {
         _outfit = _outfit.copyWith(clearShoes: true);
       }
       for (var i = 0; i < _accessories.length; i++) {
-        if (!_isLocked(_accessories[i])) _accessories[i] = null;
+        if (!kept(_accessories[i])) _accessories[i] = null;
       }
       _accessories.removeWhere((g) => g == null);
       if (_accessories.length < _maxAccessories) _accessories.add(null);
 
       for (final g in recommended) {
-        if (_isLocked(g)) continue; // already kept in place above
+        if (kept(g)) continue; // already kept in place above
         _placeGarment(g, lock: false);
       }
     });
@@ -1374,12 +1423,36 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
+  /// Shown when Create Outfit is tapped with core slots ([missing]) still
+  /// empty: explains why it can't render yet and asks whether AI should
+  /// fill them in. `true` = Yes; "No" / dismiss leaves the user to edit.
+  Future<bool?> _showOutfitIncompleteDialog(List<GarmentCategory> missing) {
+    final parts = missing
+        .map((c) => c.localizedLabel(context))
+        .join(_l10n.listSeparator);
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AppDialog(
+        title: _l10n.outfitIncompleteTitle,
+        body: _l10n.outfitIncompleteBody(parts),
+        primaryLabel: _l10n.yes,
+        onPrimary: () => Navigator.pop(dialogContext, true),
+        secondaryLabel: _l10n.no,
+        onSecondary: () => Navigator.pop(dialogContext, false),
+      ),
+    );
+  }
+
   /// Calls [GarmentRecommendationService.completeOutfit] with the currently
   /// locked garments + occasion + weather (best-effort). Style comes from
   /// the user's own Style Taste analysis, resolved silently on the backend
   /// — nothing to fetch or send from here. Text-only: no Try-On image is
   /// generated here, only [_startTryOn] (behind "Create Outfit") does that.
-  Future<void> _completeWithAi() async {
+  ///
+  /// [keepGarmentIds] defaults to the locked garments (the Finish Outfit
+  /// pill: unlocked picks may be swapped). Create Outfit passes every
+  /// selected id so the AI only fills what's missing.
+  Future<void> _completeWithAi({Set<int>? keepGarmentIds}) async {
     if (_isCompletingWithAi) return;
     setState(() => _isCompletingWithAi = true);
     try {
@@ -1387,14 +1460,15 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       // null when there's neither — the backend then decides on its own).
       final temperatureC =
           _weatherTempOverrideC ?? (await _fetchWeatherBestEffort())?.temp;
+      final keep = keepGarmentIds ?? {..._lockedGarmentIds};
       final ids = await GarmentRecommendationService().completeOutfit(
-        garmentIds: _lockedGarmentIds.toList(),
+        garmentIds: keep.toList(),
         excludeGarmentIds: _excludedGarmentIds.toList(),
         occasion: _completeWithAiOccasion,
         temperatureC: temperatureC,
       );
       if (!mounted) return;
-      _applyCompletedOutfit(ids);
+      _applyCompletedOutfit(ids, keepGarmentIds: keep);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -1438,21 +1512,20 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 }
 
-/// "Upload a photo, match it to closet items" entry point — idle before a
-/// reference photo has been matched ([referenceImagePath] null), the
-/// active reference readout once one has. Same AI call-out treatment as
-/// [UwearisInsightCard] (gradient tint, sparkle badge, "AI" tag).
-class _MatchALookCard extends StatelessWidget {
-  final String? referenceImagePath;
+/// The active Match a Look reference readout — the reference thumbnail and
+/// how many slots it filled, plus Change/Remove. Same AI call-out treatment
+/// as [UwearisInsightCard] (gradient tint, sparkle). No destructive-looking
+/// button: "Remove Reference Look" lives in the overflow menu per the
+/// design brief.
+class _ReferenceLookCard extends StatelessWidget {
+  final String referenceImagePath;
   final int matchedSlotCount;
-  final VoidCallback onStart;
   final VoidCallback onChange;
   final VoidCallback onRemove;
 
-  const _MatchALookCard({
+  const _ReferenceLookCard({
     required this.referenceImagePath,
     required this.matchedSlotCount,
-    required this.onStart,
     required this.onChange,
     required this.onRemove,
   });
@@ -1476,99 +1549,6 @@ class _MatchALookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return referenceImagePath != null ? _active(context) : _idle(context);
-  }
-
-  Widget _idle(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return GestureDetector(
-      // opaque so the whole card opens Match a Look — the gradient
-      // `_cardDecoration` doesn't absorb hits, leaving only the icon/text/
-      // arrow tappable.
-      behavior: HitTestBehavior.opaque,
-      onTap: onStart,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: _cardDecoration,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.uwearisCardTint,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Image.asset(
-                'assets/images/camera.png',
-                width: 28,
-                height: 28,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.auto_awesome,
-                        size: 16,
-                        color: AppColors.icon,
-                      ),
-                      const SizedBox(width: 6),
-                      SectionTitle(l10n.matchALookTitle),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          l10n.aiTag,
-                          style: AppTextStyle.bold12.copyWith(
-                            color: AppColors.textSecondary,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.matchALookSubtitle,
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Image.asset(
-              'assets/images/page_arrow_right.png',
-              width: AppDimens.iconSmallSize,
-              height: AppDimens.iconSmallSize,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Replaces [_idle] once a reference photo has been matched — same card
-  /// chrome, now showing the reference thumbnail and how many slots it
-  /// filled, plus Change/Remove actions instead of the whole card being one
-  /// big tap target. No destructive-looking button: "Remove Reference Look"
-  /// lives in the overflow menu per the design brief.
-  Widget _active(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1579,7 +1559,7 @@ class _MatchALookCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: Image.file(
-              File(referenceImagePath!),
+              File(referenceImagePath),
               width: 64,
               height: 64,
               fit: BoxFit.cover,
@@ -1621,16 +1601,16 @@ class _MatchALookCard extends StatelessWidget {
               ],
             ),
           ),
-          AppPopupMenu<_MatchALookCardAction>(
+          AppPopupMenu<_ReferenceLookCardAction>(
             onSelected: (action) {
               switch (action) {
-                case _MatchALookCardAction.remove:
+                case _ReferenceLookCardAction.remove:
                   onRemove();
               }
             },
             items: [
               AppPopupMenu.item(
-                value: _MatchALookCardAction.remove,
+                value: _ReferenceLookCardAction.remove,
                 label: l10n.removeReferenceLook,
                 isDestructive: true,
               ),

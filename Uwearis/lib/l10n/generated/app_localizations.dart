@@ -651,11 +651,11 @@ abstract class AppLocalizations {
   /// **'My Outfit'**
   String get myOutfit;
 
-  /// No description provided for @yourOutfitLabel.
+  /// No description provided for @outfitItemsLabel.
   ///
   /// In en, this message translates to:
-  /// **'Your Outfit'**
-  String get yourOutfitLabel;
+  /// **'Outfit Items'**
+  String get outfitItemsLabel;
 
   /// No description provided for @shareComingSoon.
   ///
@@ -990,7 +990,7 @@ abstract class AppLocalizations {
   /// No description provided for @finishOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Finish Outfit'**
+  /// **'Auto-Complete'**
   String get finishOutfit;
 
   /// No description provided for @finishOutfitPromptBody.
@@ -1004,6 +1004,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finish with AI'**
   String get finishWithAi;
+
+  /// No description provided for @outfitIncompleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit Incomplete'**
+  String get outfitIncompleteTitle;
+
+  /// No description provided for @outfitIncompleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your outfit is missing {parts}, so it can\'t be created yet. Let AI fill in the missing pieces?'**
+  String outfitIncompleteBody(String parts);
+
+  /// No description provided for @yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
+
+  /// No description provided for @listSeparator.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get listSeparator;
 
   /// No description provided for @occasionFieldLabel.
   ///
@@ -1737,12 +1767,6 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete this garment?'**
   String get deleteGarmentConfirmation;
 
-  /// No description provided for @garmentRenameFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t rename this item. Please try again.'**
-  String get garmentRenameFailed;
-
   /// No description provided for @garmentSaveFailed.
   ///
   /// In en, this message translates to:
@@ -1766,6 +1790,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'If you leave this page, your changes will be lost.'**
   String get unsavedChangesBody;
+
+  /// No description provided for @autoSaveFailedLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your latest changes couldn\'t be saved. If you leave now, they\'ll be lost.'**
+  String get autoSaveFailedLeaveBody;
+
+  /// No description provided for @savingEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get savingEllipsis;
 
   /// No description provided for @dontSave.
   ///
@@ -2217,12 +2253,6 @@ abstract class AppLocalizations {
   /// **'Select Date'**
   String get selectDate;
 
-  /// No description provided for @changesSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Changes Saved'**
-  String get changesSaved;
-
   /// No description provided for @itemDeleted.
   ///
   /// In en, this message translates to:
@@ -2252,12 +2282,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Outerwear'**
   String get outerwear;
-
-  /// No description provided for @editDayOutfitInstruction.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose which suitcase items make up this day\'s outfit.'**
-  String get editDayOutfitInstruction;
 
   /// No description provided for @creatingOutfitsEllipsis.
   ///

@@ -18,11 +18,12 @@ import '../cards/card_corner_badge.dart';
 /// X) — no drag handle or divider; [builder]'s content fills the rest of the height
 /// below it, so make it scrollable if it can overflow.
 ///
-/// The sheet paints [AppColors.uwearisGradient] behind everything.
+/// The sheet's background is [AppColors.pageBackground], like the page it
+/// stands in for.
 ///
 /// A separate design from [showPickerSheet]'s "pick one from a list"
 /// chrome, so it deliberately doesn't share that header.
-Future<T?> showPageSheet<T>(
+Future<T?> pageSheet<T>(
   BuildContext context, {
   required String title,
   required WidgetBuilder builder,
@@ -36,7 +37,7 @@ Future<T?> showPageSheet<T>(
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.pageBackground,
     clipBehavior: Clip.antiAlias,
     // Full screen width (Material 3 otherwise caps a sheet at 640): it
     // stands in for the page body it covers.
@@ -44,9 +45,8 @@ Future<T?> showPageSheet<T>(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (sheetContext) => Container(
+    builder: (sheetContext) => SizedBox(
       height: media.size.height - toolBarBottom,
-      decoration: const BoxDecoration(gradient: AppColors.uwearisGradient),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -98,9 +98,9 @@ Future<T?> showPageSheet<T>(
   );
 }
 
-/// A [showPageSheet] header action — an icon on a translucent disc in a
+/// A [pageSheet] header action — an icon on a translucent disc in a
 /// 48px tap target, the sheet's own close (X) button's look. Pass one as
-/// [showPageSheet]'s `leading` for a matching action at the top left. While
+/// [pageSheet]'s `leading` for a matching action at the top left. While
 /// [busy], a small spinner replaces the icon and taps are ignored.
 class PageSheetAction extends StatelessWidget {
   final IconData icon;

@@ -75,25 +75,28 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  testWidgets('create mode shows Match a Look and an empty Your Outfit row', (
-    tester,
-  ) async {
-    useTallSurface(tester);
-    await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
-    await tester.pump();
+  testWidgets(
+    'create mode shows the Match a Look app-bar icon and an empty Your Outfit row',
+    (tester) async {
+      useTallSurface(tester);
+      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+      await tester.pump();
 
-    expect(find.text('Match a Look'), findsOneWidget);
-    expect(find.text('YOUR OUTFIT'), findsOneWidget);
-    // Nothing picked yet — only the "Add Garment" row is in the list.
-    expect(find.text('Add Garment'), findsOneWidget);
+      expect(find.byTooltip('Match a Look'), findsOneWidget);
+      // No reference matched yet, so no reference card.
+      expect(find.text('Reference Look'), findsNothing);
+      expect(find.text('OUTFIT ITEMS'), findsOneWidget);
+      // Nothing picked yet — only the "Add Garment" row is in the list.
+      expect(find.text('Add Garment'), findsOneWidget);
 
-    // Create Outfit is always shown now — missing core slots get filled by
-    // Finish Outfit before the render (see _startTryOn).
-    expect(
-      find.widgetWithText(BottomActionButton, 'Create Outfit'),
-      findsOneWidget,
-    );
-  });
+      // Create Outfit is always shown now — missing core slots get filled by
+      // Finish Outfit before the render (see _startTryOn).
+      expect(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('Create Outfit shows even when the checklist is incomplete', (
     tester,
@@ -129,59 +132,124 @@ void main() {
     );
   });
 
-  testWidgets(
-    'Create Outfit with a missing core slot runs Finish Outfit before rendering',
-    (tester) async {
+  group('Create Outfit with a missing core slot', () {
+    Future<void> openIncompleteDialog(WidgetTester tester) async {
+      await pumpApp(
+        tester,
+        AddOutfitPage(
+          initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
+        ),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks first, naming the missing part', (tester) async {
+      useTallSurface(tester);
+      await openIncompleteDialog(tester);
+
+      expect(find.text('Outfit Incomplete'), findsOneWidget);
+      expect(
+        find.text(
+          "Your outfit is missing Shoes, so it can't be created yet. "
+          'Let AI fill in the missing pieces?',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Yes'), findsOneWidget);
+      expect(find.text('No'), findsOneWidget);
+    });
+
+    testWidgets('"No" closes the dialog without calling AI', (tester) async {
       useTallSurface(tester);
       final requests = <http.Request>[];
-      final client = MockClient((request) async {
-        requests.add(request);
-        if (request.url.path.endsWith('/outfit/advice')) {
-          return jsonResponse(
-            envelope({
-              'outfit_name': 'AI Pick',
-              'selected_garment_ids': [1, 2, 3],
-              'items': const [
-                {'garment_id': 1, 'role': 'top', 'order': 0, 'reason': null},
-                {'garment_id': 2, 'role': 'bottom', 'order': 1, 'reason': null},
-                {'garment_id': 3, 'role': 'shoes', 'order': 2, 'reason': null},
-              ],
-              'styling_tips': null,
-              'reasoning': null,
-            }),
+      await http.runWithClient(
+        () async {
+          await openIncompleteDialog(tester);
+          await tester.tap(find.text('No'));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Outfit Incomplete'), findsNothing);
+          expect(requests, isEmpty);
+          // Still on Add Outfit, picks untouched, ready to edit.
+          expect(find.text('Tee'), findsOneWidget);
+          expect(find.text('Jeans'), findsOneWidget);
+        },
+        () => MockClient((r) async {
+          requests.add(r);
+          return jsonResponse(envelope(null), status: 500);
+        }),
+      );
+    });
+
+    testWidgets(
+      '"Yes" runs AI keeping every current pick (locked or not), then renders',
+      (tester) async {
+        useTallSurface(tester);
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          if (request.url.path.endsWith('/outfit/advice')) {
+            return jsonResponse(
+              envelope({
+                'outfit_name': 'AI Pick',
+                'selected_garment_ids': [1, 2, 3],
+                'items': const [
+                  {'garment_id': 1, 'role': 'top', 'order': 0, 'reason': null},
+                  {
+                    'garment_id': 2,
+                    'role': 'bottom',
+                    'order': 1,
+                    'reason': null,
+                  },
+                  {
+                    'garment_id': 3,
+                    'role': 'shoes',
+                    'order': 2,
+                    'reason': null,
+                  },
+                ],
+                'styling_tips': null,
+                'reasoning': null,
+              }),
+            );
+          }
+          // The try-on generate call that follows — fail it so the flow
+          // stops after the AI step (this test only asserts the ordering).
+          return jsonResponse(envelope(null), status: 500);
+        });
+
+        await http.runWithClient(() async {
+          await openIncompleteDialog(tester);
+          await tester.tap(find.text('Yes'));
+          await tester.pump();
+          await tester.pump(const Duration(seconds: 6)); // weather timeout
+          await tester.pump();
+          await tester.pump(const Duration(seconds: 6));
+          await tester.pump();
+
+          final advice = requests.firstWhere(
+            (r) => r.url.path.endsWith('/outfit/advice'),
           );
-        }
-        // The try-on generate call that follows — fail it so the flow stops
-        // after the Finish Outfit step (this test only asserts the ordering).
-        return jsonResponse(envelope(null), status: 500);
-      });
+          // The initial Tee/Jeans aren't locked, but Create Outfit keeps
+          // them anyway — AI only fills the missing Shoes.
+          final body = jsonDecode(advice.body) as Map<String, dynamic>;
+          expect(body['garment_ids'], unorderedEquals([1, 2]));
 
-      await http.runWithClient(() async {
-        await pumpApp(
-          tester,
-          AddOutfitPage(
-            initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
-          ),
-          overrides: closetOverride(),
-        );
-        await tester.pump();
-
-        await tester.tap(
-          find.widgetWithText(BottomActionButton, 'Create Outfit'),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 6)); // weather timeout
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 6));
-        await tester.pump();
-
-        expect(
-          requests.any((r) => r.url.path.endsWith('/outfit/advice')),
-          isTrue,
-        );
-      }, () => client);
-    },
-  );
+          final adviceIndex = requests.indexOf(advice);
+          expect(
+            requests.skip(adviceIndex + 1).isNotEmpty,
+            isTrue,
+            reason: 'the try-on render should follow the AI step',
+          );
+        }, () => client);
+      },
+    );
+  });
 
   testWidgets(
     'a manually added garment is locked by default; removing it clears the lock',
@@ -454,9 +522,24 @@ void main() {
     (tester) async {
       useTallSurface(tester);
       final wardrobe = [
-        _garment(id: 1, category: GarmentCategory.top, name: 'Tee', subCategory: 'T-shirt'),
-        _garment(id: 2, category: GarmentCategory.top, name: 'Polo', subCategory: 'Polo shirt'),
-        _garment(id: 3, category: GarmentCategory.top, name: 'Cardi', subCategory: 'Cardigan'),
+        _garment(
+          id: 1,
+          category: GarmentCategory.top,
+          name: 'Tee',
+          subCategory: 'T-shirt',
+        ),
+        _garment(
+          id: 2,
+          category: GarmentCategory.top,
+          name: 'Polo',
+          subCategory: 'Polo shirt',
+        ),
+        _garment(
+          id: 3,
+          category: GarmentCategory.top,
+          name: 'Cardi',
+          subCategory: 'Cardigan',
+        ),
       ];
       await pumpApp(
         tester,
@@ -488,8 +571,18 @@ void main() {
     (tester) async {
       useTallSurface(tester);
       final wardrobe = [
-        _garment(id: 1, category: GarmentCategory.top, name: 'Tee', subCategory: 'T-shirt'),
-        _garment(id: 2, category: GarmentCategory.top, name: 'Polo', subCategory: 'Polo shirt'),
+        _garment(
+          id: 1,
+          category: GarmentCategory.top,
+          name: 'Tee',
+          subCategory: 'T-shirt',
+        ),
+        _garment(
+          id: 2,
+          category: GarmentCategory.top,
+          name: 'Polo',
+          subCategory: 'Polo shirt',
+        ),
       ];
       await pumpApp(
         tester,

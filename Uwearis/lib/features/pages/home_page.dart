@@ -1097,10 +1097,10 @@ class _HomePageState extends ConsumerState<HomePage>
       ),
     );
     if (!mounted) return;
+    // Edits auto-save and sync garmentsProvider from inside the page; only
+    // a delete comes back as a result.
     if (result == 'deleted' && garment.id != null) {
       ref.read(garmentsProvider.notifier).removeGarment(garment.id!);
-    } else if (result is Garment) {
-      ref.read(garmentsProvider.notifier).updateGarment(result);
     }
   }
 }

@@ -15,35 +15,36 @@ void main() {
   ButtonStyle styleOf(WidgetTester tester) =>
       tester.widget<ElevatedButton>(find.byType(ElevatedButton)).style!;
 
-  testWidgets('tinted: pale accent fill with an accent label, and taps fire', (
-    tester,
-  ) async {
-    var taps = 0;
-    await tester.pumpWidget(
-      host(
-        ActionButton(
-          label: 'View Closet Match',
-          variant: ActionButtonVariant.tinted,
-          onPressed: () => taps++,
+  testWidgets(
+    'secondary: pale accent fill with an accent label, and taps fire',
+    (tester) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        host(
+          ActionButton(
+            label: 'View Closet Match',
+            variant: ActionButtonVariant.secondary,
+            onPressed: () => taps++,
+          ),
         ),
-      ),
-    );
+      );
 
-    final style = styleOf(tester);
-    expect(style.backgroundColor!.resolve({}), AppColors.accentTint);
-    expect(style.foregroundColor!.resolve({}), AppColors.accent);
+      final style = styleOf(tester);
+      expect(style.backgroundColor!.resolve({}), AppColors.accentTint);
+      expect(style.foregroundColor!.resolve({}), AppColors.accent);
 
-    await tester.tap(find.text('View Closet Match'));
-    expect(taps, 1);
-  });
+      await tester.tap(find.text('View Closet Match'));
+      expect(taps, 1);
+    },
+  );
 
-  testWidgets('tinted: pressed deepens the tint, disabled is far paler with '
+  testWidgets('secondary: pressed deepens the tint, disabled is far paler with '
       'a dimmed label, and no state adds elevation', (tester) async {
     await tester.pumpWidget(
       host(
         ActionButton(
           label: 'View Closet Match',
-          variant: ActionButtonVariant.tinted,
+          variant: ActionButtonVariant.secondary,
           onPressed: () {},
         ),
       ),
@@ -79,7 +80,7 @@ void main() {
       host(
         const ActionButton(
           label: 'View Closet Match',
-          variant: ActionButtonVariant.tinted,
+          variant: ActionButtonVariant.secondary,
         ),
       ),
     );
@@ -90,7 +91,7 @@ void main() {
     );
   });
 
-  testWidgets('solid is the default: accent fill with a white label', (
+  testWidgets('primary is the default: accent fill with a white label', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -116,15 +117,59 @@ void main() {
         panelPadding: EdgeInsets.zero,
       ),
     );
-    final tinted = await sizeOf(
+    final secondary = await sizeOf(
       ActionButton(
         label: 'Save',
-        variant: ActionButtonVariant.tinted,
+        variant: ActionButtonVariant.secondary,
         onPressed: () {},
       ),
     );
 
     expect(bottom.height, AppDimens.actionButtonHeight);
-    expect(tinted, bottom);
+    expect(secondary, bottom);
+  });
+
+  testWidgets('primary looks exactly like BottomActionButton\'s button — '
+      'same fill, label, border, shape and elevation in every state', (
+    tester,
+  ) async {
+    Future<ButtonStyle> render(Widget button) async {
+      await tester.pumpWidget(host(button));
+      return styleOf(tester);
+    }
+
+    final bottom = await render(
+      BottomActionButton(
+        label: 'Save',
+        onPressed: () {},
+        panelPadding: EdgeInsets.zero,
+      ),
+    );
+    final inPage = await render(ActionButton(label: 'Save', onPressed: () {}));
+
+    for (final states in [
+      <WidgetState>{},
+      {WidgetState.pressed},
+      {WidgetState.hovered},
+    ]) {
+      expect(
+        inPage.backgroundColor!.resolve(states),
+        bottom.backgroundColor!.resolve(states),
+      );
+      expect(
+        inPage.foregroundColor!.resolve(states),
+        bottom.foregroundColor!.resolve(states),
+      );
+      expect(
+        inPage.overlayColor!.resolve(states),
+        bottom.overlayColor!.resolve(states),
+      );
+      expect(inPage.side!.resolve(states), bottom.side!.resolve(states));
+      expect(inPage.shape!.resolve(states), bottom.shape!.resolve(states));
+      expect(
+        inPage.elevation!.resolve(states),
+        bottom.elevation!.resolve(states),
+      );
+    }
   });
 }

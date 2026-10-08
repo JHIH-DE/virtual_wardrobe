@@ -73,8 +73,7 @@ class AppColors {
   // UwearisInsightCard — the AI-output call-out's gradient background tint
   static const Color uwearisCardTint = Color(0xFFF3EFE6);
 
-  // The AI-output gradient background — UwearisInsightCard and the
-  // page sheet (showPageSheet) both paint this.
+  // The AI-output gradient background — UwearisInsightCard's.
   static const LinearGradient uwearisGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

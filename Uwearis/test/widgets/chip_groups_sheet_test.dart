@@ -6,7 +6,10 @@ import 'package:uwearis/features/widgets/common/fields/selectable_chip.dart';
 import '../helpers/widget_harness.dart';
 
 void main() {
-  Future<void> open(WidgetTester tester, VoidCallback Function(BuildContext) run) {
+  Future<void> open(
+    WidgetTester tester,
+    VoidCallback Function(BuildContext) run,
+  ) {
     return pumpApp(
       tester,
       Scaffold(
@@ -22,9 +25,8 @@ void main() {
     );
   }
 
-  Finder chipWithText(String text) => find.byWidgetPredicate(
-    (w) => w is SelectableChip && w.label == text,
-  );
+  Finder chipWithText(String text) =>
+      find.byWidgetPredicate((w) => w is SelectableChip && w.label == text);
 
   MainAxisAlignment rowAlignmentOf(WidgetTester tester, String chipLabel) {
     // The chip's own subtree has no Row, so its single Row ancestor is the
@@ -45,59 +47,62 @@ void main() {
   }
 
   group('showChipGroupsSheet — filter (toggleAll) group', () {
-    testWidgets('the "All" pill sits beside the title, above the option chips', (
-      tester,
-    ) async {
-      var seasons = {'All'};
-      await open(
-        tester,
-        (context) => () => showChipGroupsSheet<void>(
-          context,
-          groups: [
-            FilterGroup.toggleAll(
-              label: 'Season',
-              options: const ['All', 'Summer', 'Winter'],
-              selected: () => seasons,
-              onChanged: (next) => seasons = next,
-            ),
-          ],
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'the "All" pill sits beside the title, above the option chips',
+      (tester) async {
+        var seasons = {'All'};
+        await open(
+          tester,
+          (context) =>
+              () => showChipGroupsSheet(
+                context,
+                groups: [
+                  FilterGroup.toggleAll(
+                    label: 'Season',
+                    options: const ['All', 'Summer', 'Winter'],
+                    selected: () => seasons,
+                    onChanged: (next) => seasons = next,
+                  ),
+                ],
+              ),
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
 
-      // one "All" chip (a real SelectableChip pill), and the option chips
-      expect(chipWithText('All'), findsOneWidget);
-      expect(chipWithText('Summer'), findsOneWidget);
-      expect(chipWithText('Winter'), findsOneWidget);
+        // one "All" chip (a real SelectableChip pill), and the option chips
+        expect(chipWithText('All'), findsOneWidget);
+        expect(chipWithText('Summer'), findsOneWidget);
+        expect(chipWithText('Winter'), findsOneWidget);
 
-      // the "All" pill is on the title's row...
-      final titleY = tester.getCenter(find.text('Season')).dy;
-      final allY = tester.getCenter(chipWithText('All')).dy;
-      expect((allY - titleY).abs(), lessThan(30));
+        // the "All" pill is on the title's row...
+        final titleY = tester.getCenter(find.text('Season')).dy;
+        final allY = tester.getCenter(chipWithText('All')).dy;
+        expect((allY - titleY).abs(), lessThan(30));
 
-      // ...and the option chips are below it
-      expect(
-        tester.getTopLeft(chipWithText('Summer')).dy,
-        greaterThan(tester.getBottomLeft(chipWithText('All')).dy),
-      );
-    });
+        // ...and the option chips are below it
+        expect(
+          tester.getTopLeft(chipWithText('Summer')).dy,
+          greaterThan(tester.getBottomLeft(chipWithText('All')).dy),
+        );
+      },
+    );
 
     Future<void> openColorSheet(WidgetTester tester, List<String> opts) async {
       var colors = {'All'};
       await open(
         tester,
-        (context) => () => showChipGroupsSheet<void>(
-          context,
-          groups: [
-            FilterGroup.toggleAll(
-              label: 'Color',
-              options: ['All', ...opts],
-              selected: () => colors,
-              onChanged: (n) => colors = n,
+        (context) =>
+            () => showChipGroupsSheet(
+              context,
+              groups: [
+                FilterGroup.toggleAll(
+                  label: 'Color',
+                  options: ['All', ...opts],
+                  selected: () => colors,
+                  onChanged: (n) => colors = n,
+                ),
+              ],
             ),
-          ],
-        ),
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
@@ -127,17 +132,18 @@ void main() {
       var seasons = {'All'};
       await open(
         tester,
-        (context) => () => showChipGroupsSheet<void>(
-          context,
-          groups: [
-            FilterGroup.toggleAll(
-              label: 'Season',
-              options: const ['All', 'Summer', 'Winter'],
-              selected: () => seasons,
-              onChanged: (next) => seasons = next,
+        (context) =>
+            () => showChipGroupsSheet(
+              context,
+              groups: [
+                FilterGroup.toggleAll(
+                  label: 'Season',
+                  options: const ['All', 'Summer', 'Winter'],
+                  selected: () => seasons,
+                  onChanged: (next) => seasons = next,
+                ),
+              ],
             ),
-          ],
-        ),
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
@@ -152,17 +158,16 @@ void main() {
     });
   });
 
-  group('showChipGroupsSheet — plain multi-select + confirm button', () {
-    testWidgets('no "All" pill, a Save button, and it pops confirmResult', (
-      tester,
-    ) async {
+  group('showChipGroupsSheet — plain multi-select group', () {
+    testWidgets('no "All" pill and no button; taps toggle the caller\'s set '
+        'directly, and the sheet completes once dismissed', (tester) async {
       final sel = <String>{'Spring'};
-      ({List<String> tags})? result;
+      var closed = false;
 
       await open(
         tester,
         (context) => () async {
-          result = await showChipGroupsSheet<({List<String> tags})>(
+          await showChipGroupsSheet(
             context,
             groups: [
               FilterGroup(
@@ -174,56 +179,24 @@ void main() {
                 },
               ),
             ],
-            confirmLabel: 'Save',
-            confirmResult: () => (tags: sel.toList()),
           );
+          closed = true;
         },
       );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
       expect(chipWithText('All'), findsNothing);
-      expect(find.widgetWithText(ElevatedButton, 'Save'), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsOneWidget); // just 'open'
 
       await tester.tap(chipWithText('Summer'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Save'));
-      await tester.pumpAndSettle();
-
-      expect(result, isNotNull);
-      expect(result!.tags.toSet(), {'Spring', 'Summer'});
-    });
-
-    testWidgets('dismissing without Save pops null', (tester) async {
-      final sel = <String>{'Spring'};
-      Object? result = 'unset';
-
-      await open(
-        tester,
-        (context) => () async {
-          result = await showChipGroupsSheet<({List<String> tags})>(
-            context,
-            groups: [
-              FilterGroup(
-                label: 'Season',
-                options: const ['Spring', 'Summer'],
-                selected: () => sel,
-                onToggle: (o) {
-                  if (!sel.remove(o)) sel.add(o);
-                },
-              ),
-            ],
-            confirmLabel: 'Save',
-            confirmResult: () => (tags: sel.toList()),
-          );
-        },
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
+      expect(sel, {'Spring', 'Summer'});
+      expect(closed, isFalse);
 
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
-      expect(result, isNull);
+      expect(closed, isTrue);
     });
   });
 }

@@ -16,11 +16,17 @@ class AppCardShell extends StatelessWidget {
   /// than hand-rolling the whole `BoxDecoration`.
   final double blurRadius;
 
+  /// Pass [Clip.antiAlias] when [child] paints its own background up to the
+  /// card's edge (e.g. GarmentOutfitIdeasCard's tinted header band), so the
+  /// rounded corners clip it.
+  final Clip clipBehavior;
+
   const AppCardShell({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(14),
     this.blurRadius = 8,
+    this.clipBehavior = Clip.none,
   });
 
   @override
@@ -28,6 +34,7 @@ class AppCardShell extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: padding,
+      clipBehavior: clipBehavior,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),

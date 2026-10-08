@@ -191,8 +191,8 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         top: false,
         // Anchor the content to the bottom so the login card + copyright sit
-        // flush against the bottom edge (any slack goes above the logo);
-        // still scrolls when the content is taller than the screen.
+        // flush against the bottom edge (any slack goes above the header
+        // image); still scrolls when the content is taller than the screen.
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             child: ConstrainedBox(
@@ -200,8 +200,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const SizedBox(height: 60),
-                  _buildHeaderImages(),
+                  _buildHeaderImage(),
                   _buildLoginCard(),
                 ],
               ),
@@ -212,15 +211,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildHeaderImages() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        children: [
-          Image.asset('assets/images/logo.png', height: 68),
-          const SizedBox(height: 50),
-          Image.asset('assets/images/main-character.png', height: 422),
-        ],
+  Widget _buildHeaderImage() {
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.transparent, Colors.black],
+        stops: [0, 0.15],
+      ).createShader(bounds),
+      child: Image.asset(
+        'assets/images/login_page.png',
+        width: double.infinity,
+        fit: BoxFit.fitWidth,
       ),
     );
   }

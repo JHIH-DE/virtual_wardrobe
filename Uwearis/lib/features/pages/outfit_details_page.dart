@@ -119,6 +119,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isAddingToMyOutfits = false;
   // True while _setCover's request is in flight.
   bool _isSettingCover = false;
+  // True while _saveTags's request is in flight — the tag button stays
+  // disabled meanwhile so two saves can never race each other.
+  bool _isSavingTags = false;
 
   // Every outfit in this group, swipeable via [_pageController] — starts
   // with just the seed outfit and gets replaced with the full set once
@@ -284,8 +287,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   AppToolBar _buildAppBar() {
+    // A brand-new outfit only gets Rename/Delete once the user has tapped
+    // "Save" — before that, leaving with "Don't Save" is how it's discarded.
+    final isSaved = !widget.isNew || _saved;
     final items = [
-      if (!widget.isNew)
+      if (isSaved)
         AppPopupMenu.item(
           value: _OutfitMenuAction.rename,
           icon: const Icon(
@@ -299,7 +305,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       // regenerate (the image is changing), not a Daily outfit (its whole
       // version menu is hidden the same way). Unlike Rename/Delete, Share
       // makes sense on a brand-new unsaved outfit too, so it isn't gated on
-      // widget.isNew.
+      // isSaved.
       if (!_isRegenerating && !_isDailyOutfit)
         AppPopupMenu.item(
           value: _OutfitMenuAction.share,
@@ -310,7 +316,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
           label: _l10n.share,
         ),
-      if (!widget.isNew)
+      if (isSaved)
         AppPopupMenu.item(
           value: _OutfitMenuAction.delete,
           enabled: !_isDeleting,
@@ -545,7 +551,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           if (!_isDailyOutfit) ...[
             AccentIconButton(
               icon: Icons.sell_outlined,
-              onPressed: _openEditTagsSheet,
+              onPressed: _isSavingTags ? null : _openEditTagsSheet,
             ),
             // Small — AccentIconButton already carries ~6px of transparent
             // padding around its disc on this side.
@@ -561,18 +567,20 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// Opens a bottom sheet to multi-select Season/Style tags, then saves via
-  /// [OutfitService.updateOutfit] on confirm. Applies to whichever version
-  /// was current when the sheet was opened — captured up front so a swipe
-  /// while the sheet is still open can't retarget the save. Uses the same
-  /// [showChipGroupsSheet] chrome as the filter sheets; the only difference
-  /// is a plain multi-select (no "All") plus a Save button (this mutates,
-  /// it doesn't filter live).
+  /// Opens a bottom sheet to multi-select Season/Style tags and auto-saves
+  /// on close (however it's dismissed) if the selection changed — same
+  /// [showChipGroupsSheet] chrome as the filter sheets, plain multi-select
+  /// (no "All"). Applies to whichever version was current when the sheet
+  /// was opened — captured up front so a swipe while the sheet is still
+  /// open can't retarget the save.
   Future<void> _openEditTagsSheet() async {
+    if (_isSavingTags) return;
     final target = _current;
     final index = _currentIndex;
-    final selectedSeasons = target.seasons.map(_titleCase).toSet();
-    final selectedStyles = target.style.map(_titleCase).toSet();
+    final initialSeasons = target.seasons.map(_titleCase).toSet();
+    final initialStyles = target.style.map(_titleCase).toSet();
+    final selectedSeasons = {...initialSeasons};
+    final selectedStyles = {...initialStyles};
 
     FilterGroup tagGroup(String label, List<String> options, Set<String> sel) {
       return FilterGroup(
@@ -585,29 +593,54 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
     }
 
-    final result =
-        await showChipGroupsSheet<
-          ({List<String> seasons, List<String> styles})
-        >(
-          context,
-          groups: [
-            tagGroup(_l10n.seasonLabel, seasonOptions, selectedSeasons),
-            tagGroup(_l10n.styleLabel, styleOptions, selectedStyles),
-          ],
-          confirmLabel: _l10n.save,
-          confirmResult: () => (
-            seasons: selectedSeasons.toList(),
-            styles: selectedStyles.toList(),
-          ),
-        );
-    if (result == null || !mounted) return;
+    await showChipGroupsSheet(
+      context,
+      groups: [
+        tagGroup(_l10n.seasonLabel, seasonOptions, selectedSeasons),
+        tagGroup(_l10n.styleLabel, styleOptions, selectedStyles),
+      ],
+    );
+    if (!mounted) return;
+    if (setEquals(selectedSeasons, initialSeasons) &&
+        setEquals(selectedStyles, initialStyles)) {
+      return;
+    }
 
-    final seasons = result.seasons.map((s) => s.toLowerCase()).toList();
-    // Reverses _titleCase's underscore-to-space swap so multi-word styles
-    // round-trip back to the backend's snake_case wire format.
-    final styles = result.styles
-        .map((s) => s.toLowerCase().replaceAll(' ', '_'))
-        .toList();
+    await _saveTags(
+      index,
+      target,
+      seasons: selectedSeasons.map((s) => s.toLowerCase()).toList(),
+      // Reverses _titleCase's underscore-to-space swap so multi-word styles
+      // round-trip back to the backend's snake_case wire format.
+      styles: selectedStyles
+          .map((s) => s.toLowerCase().replaceAll(' ', '_'))
+          .toList(),
+    );
+  }
+
+  /// Shows the new tags right away and PATCHes them; a failure rolls the
+  /// version back to [target] and offers Retry (success stays silent — see
+  /// the auto-save convention in [AutoSaveController]'s doc).
+  Future<void> _saveTags(
+    int index,
+    Outfit target, {
+    required List<String> seasons,
+    required List<String> styles,
+  }) async {
+    final updated = target.copyWith(seasons: seasons, style: styles);
+    setState(() {
+      _isSavingTags = true;
+      if (index < _versions.length) _versions[index] = updated;
+    });
+
+    void rollBack() {
+      // Only undo our own optimistic write — a reload may have replaced it.
+      if (index < _versions.length && identical(_versions[index], updated)) {
+        _versions[index] = target;
+      }
+    }
+
+    var retry = false;
     try {
       await OutfitService().updateOutfit(
         target.groupId,
@@ -615,20 +648,26 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         season: seasons,
         style: styles,
       );
-      if (!mounted || index >= _versions.length) return;
-      setState(() {
-        _versions[index] = target.copyWith(seasons: seasons, style: styles);
-      });
     } on AuthExpiredException {
       if (!mounted) return;
+      setState(rollBack);
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage update tags failed: $e');
-      showErrorDialog(
+      setState(rollBack);
+      await showErrorDialog(
         context,
         message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitUpdateFailed),
+        onRetry: () => retry = true,
       );
+    } finally {
+      if (mounted) setState(() => _isSavingTags = false);
+    }
+    // Only after this attempt's finally — retrying from inside the catch
+    // would let that finally clear _isSavingTags under the retry.
+    if (retry && mounted) {
+      await _saveTags(index, target, seasons: seasons, styles: styles);
     }
   }
 

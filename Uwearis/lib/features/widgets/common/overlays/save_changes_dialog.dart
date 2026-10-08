@@ -7,9 +7,9 @@ enum SaveChangesChoice { save, discard, cancel }
 
 /// The app's standard "you have unsaved changes, leaving now?" prompt — an
 /// [AppDialog] with Save / Cancel / Don't Save. The one dialog behind every
-/// leave-without-saving flow (Garment Details' edits, a freshly-rendered
-/// outfit); callers differ only in [title]/[body] and what they do per
-/// choice. Dismissing it (barrier tap / system back) counts as
+/// leave-without-saving flow (Garment Details' add mode, a freshly-rendered
+/// outfit, an auto-save that failed — see `confirmLeaveAfterAutoSave`);
+/// callers differ only in [title]/[body] and what they do per choice. Dismissing it (barrier tap / system back) counts as
 /// [SaveChangesChoice.cancel].
 Future<SaveChangesChoice> showSaveChangesDialog(
   BuildContext context, {

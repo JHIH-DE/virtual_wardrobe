@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -300,6 +302,38 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a new outfit offers Rename/Delete in the app-bar menu once Saved',
+    (tester) async {
+      useTallSurface(tester);
+
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(outfit: _outfit(), isNew: true),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Rename'), findsNothing);
+        expect(find.text('Delete Outfit'), findsNothing);
+        await tester.tapAt(Offset.zero);
+        await tester.pump(const Duration(milliseconds: 500));
+
+        await tester.tap(find.text('Save'));
+        // Past the "Outfit Saved" feedback overlay.
+        await tester.pump(const Duration(seconds: 3));
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Rename'), findsOneWidget);
+        expect(find.text('Delete Outfit'), findsOneWidget);
+      }, stubClient);
+    },
+  );
+
   testWidgets('the pill reads "New Version" with only a single version', (
     tester,
   ) async {
@@ -425,4 +459,114 @@ void main() {
       }, () => client);
     },
   );
+
+  group('edit tags sheet auto-saves on close', () {
+    late List<Map<String, dynamic>> patches;
+    late bool fail;
+
+    setUp(() {
+      patches = [];
+      fail = false;
+    });
+
+    http.Client tagsClient() => MockClient((request) async {
+      if (request.method == 'PATCH') {
+        patches.add(jsonDecode(request.body) as Map<String, dynamic>);
+        if (fail) return jsonResponse({'success': false}, status: 500);
+        return jsonResponse(envelope({'id': 1, 'group_id': 3}));
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    // The page keeps an image-loading animation running, so pumpAndSettle
+    // never settles — pump past the sheet/dialog transitions instead.
+    Future<void> settle(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    Future<void> openSheet(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(outfit: _outfit(style: ['street'])),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.sell_outlined));
+      await settle(tester);
+    }
+
+    Future<void> dismissSheet(WidgetTester tester) async {
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester);
+    }
+
+    testWidgets('has no Save button; a changed selection is PATCHed once the '
+        'sheet closes and shows right away', (tester) async {
+      await http.runWithClient(() async {
+        await openSheet(tester);
+        expect(find.widgetWithText(ElevatedButton, 'Save'), findsNothing);
+
+        await tester.tap(find.text('Summer'));
+        await tester.tap(find.text('Classic'));
+        await settle(tester);
+        expect(patches, isEmpty);
+
+        await dismissSheet(tester);
+        expect(patches, hasLength(1));
+        expect(patches.single['season'], ['summer']);
+        expect((patches.single['style'] as List).toSet(), {
+          'street',
+          'classic',
+        });
+        expect(find.text('Classic'), findsOneWidget);
+      }, tagsClient);
+    });
+
+    testWidgets('closing without a change sends nothing', (tester) async {
+      await http.runWithClient(() async {
+        await openSheet(tester);
+        await tester.tap(find.text('Summer'));
+        await tester.tap(find.text('Summer')); // toggled back off
+        await settle(tester);
+        await dismissSheet(tester);
+
+        expect(patches, isEmpty);
+      }, tagsClient);
+    });
+
+    testWidgets('a failed save rolls the tags back and offers Retry', (
+      tester,
+    ) async {
+      fail = true;
+      await http.runWithClient(() async {
+        await openSheet(tester);
+        await tester.tap(find.text('Classic'));
+        await settle(tester);
+        await dismissSheet(tester);
+
+        expect(find.text('Retry'), findsOneWidget);
+        // Rolled back behind the dialog — only the original tag remains.
+        expect(find.byType(CategoryTag), findsOneWidget);
+
+        fail = false;
+        await tester.tap(find.text('Retry'));
+        await settle(tester);
+
+        expect(patches, hasLength(2));
+        expect(find.text('Retry'), findsNothing);
+        expect(find.byType(CategoryTag), findsNWidgets(2));
+        // The tag button is usable again after the retry settles.
+        final button = tester.widget<AccentIconButton>(
+          find.ancestor(
+            of: find.byIcon(Icons.sell_outlined),
+            matching: find.byType(AccentIconButton),
+          ),
+        );
+        expect(button.onPressed, isNotNull);
+      }, tagsClient);
+    });
+  });
 }

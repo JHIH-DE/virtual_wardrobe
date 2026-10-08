@@ -317,8 +317,9 @@ String accessorySlotKey(String subCategory) {
 /// simultaneous [GarmentCategory.top] pick (unlike a genuine Mid Layer piece
 /// — a sweater/cardigan worn *over* a base top). Same shape as
 /// [accessorySlotKey]: only merges pairs known to collide; extend the set
-/// here if more turn up. Used by AddOutfitPage's "Add garment" auto-slotting
-/// ([AddOutfitPage] `_placeGarment`) to decide top vs. mid-layer placement.
+/// here if more turn up. Used by both outfit-composing pickers
+/// (AddOutfitPage, OutfitEditPage) to hide a worn top's base-layer
+/// alternatives and to decide top vs. mid-layer placement.
 String baseTopSlotKey(String subCategory) {
   final normalized = subCategory.toLowerCase();
   const baseTop = {'t-shirt', 'polo shirt'};

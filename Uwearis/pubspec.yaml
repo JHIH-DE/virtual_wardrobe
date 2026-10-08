@@ -61,6 +61,10 @@ dev_dependencies:
   # real, unmocked platform implementation.
   image_picker_platform_interface: ^2.11.1
   plugin_platform_interface: ^2.1.8
+  # Test-only: lets widget tests swap CachedNetworkImage's default cache
+  # manager (which needs path_provider/sqflite platform channels) for a fake
+  # — see refreshable_network_image_test.dart.
+  flutter_cache_manager: ^3.4.1
 
 # Home-screen app icon. Regenerate after changing the source images:
 #   dart run flutter_launcher_icons

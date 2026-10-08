@@ -11,10 +11,16 @@ import 'dialog_option_card.dart';
 /// photo's local path, or null if the user cancels at any step (the dialog
 /// itself, or the camera/gallery picker it opens). Shared by every flow that
 /// needs one photo from either source: [GarmentUploadHelper]'s new-garment
-/// flow and Match a Look's reference photo.
+/// flow and Match a Look's reference photo. [cameraFrameRatio] picks the
+/// camera's framing guide: garments keep the square default, a full-body
+/// look photo passes [CameraFrameRatio.portrait]. [subtitle] replaces the
+/// generic "How would you like to add it?" line when the flow needs to
+/// explain itself (Match a Look has no other entry card to do that).
 Future<String?> showPhotoSourceDialog(
   BuildContext context, {
   required String title,
+  String? subtitle,
+  CameraFrameRatio cameraFrameRatio = CameraFrameRatio.square,
 }) async {
   final source = await showDialog<ImageSource>(
     context: context,
@@ -26,7 +32,7 @@ Future<String?> showPhotoSourceDialog(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              l10n.photoSourceDialogSubtitle,
+              subtitle ?? l10n.photoSourceDialogSubtitle,
               textAlign: TextAlign.center,
               style: AppTextStyle.medium16,
             ),
@@ -71,7 +77,9 @@ Future<String?> showPhotoSourceDialog(
   if (source == ImageSource.camera) {
     return Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (_) => const CameraCapturePage()),
+      MaterialPageRoute(
+        builder: (_) => CameraCapturePage(initialRatio: cameraFrameRatio),
+      ),
     );
   }
   final xFile = await ImagePicker().pickImage(source: ImageSource.gallery);

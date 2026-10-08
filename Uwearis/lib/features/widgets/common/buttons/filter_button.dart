@@ -89,7 +89,7 @@ class FilterButton extends StatelessWidget {
   }
 
   void _openFilterSheet(BuildContext context) =>
-      showChipGroupsSheet<void>(context, groups: groups);
+      showChipGroupsSheet(context, groups: groups);
 
   @override
   Widget build(BuildContext context) {
@@ -131,18 +131,15 @@ class FilterButton extends StatelessWidget {
 /// chip beside it when [FilterGroup.headerAll]), a divider, and a justified
 /// row of option chips.
 ///
-/// Used by [FilterButton] (applies live, no button) and by "edit tags"
-/// style sheets — pass [confirmLabel] to add a trailing full-width button
-/// that pops [confirmResult]; without it the sheet has no button and the
-/// caller reacts to the [FilterGroup]s' own `onToggle` side effects.
-Future<T?> showChipGroupsSheet<T>(
+/// Has no button: selection applies through the [FilterGroup]s' own
+/// `onToggle` as the user taps. [FilterButton] filters live; the outfit tag
+/// editor reads the final selection once the sheet closes and auto-saves it.
+Future<void> showChipGroupsSheet(
   BuildContext context, {
   required List<FilterGroup> groups,
-  String? confirmLabel,
-  T Function()? confirmResult,
 }) {
   final l10n = AppLocalizations.of(context);
-  return showPickerSheet<T>(
+  return showPickerSheet<void>(
     context,
     padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
     builder: (sheetContext) => StatefulBuilder(
@@ -157,31 +154,6 @@ Future<T?> showChipGroupsSheet<T>(
             for (var i = 0; i < groups.length; i++) ...[
               _ChipGroup(group: groups[i], l10n: l10n, onChanged: rebuild),
               if (i != groups.length - 1) const SizedBox(height: 32),
-            ],
-            if (confirmLabel != null) ...[
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: () =>
-                      Navigator.pop(sheetContext, confirmResult?.call()),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Text(
-                    confirmLabel,
-                    style: AppTextStyle.regular14.copyWith(
-                      color: AppColors.textOnPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ],
         );
