@@ -142,9 +142,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get lifestyle => '生活風格';
-
-  @override
   String get logout => '登出';
 
   @override
@@ -1375,27 +1372,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get occasionParty => '派對';
 
   @override
-  String get comfortAdjustment => '體感溫度調整';
-
-  @override
-  String get weeklyRoutine => '每週排程';
-
-  @override
-  String get perceivedTempOffset => '偏移量';
-
-  @override
-  String get lifestyleDescription => '告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。';
-
-  @override
-  String get weeklyRoutineIntro => '設定你一週的典型作息。';
-
-  @override
-  String get comfortAdjustmentIntro => '微調你平常感受到的冷熱程度。';
-
-  @override
-  String selectOccasionTitle(String day) {
-    return '選擇$day的場合';
-  }
+  String get perceivedTempOffset => '體感溫度調整';
 
   @override
   String get todaysOutfit => '今日穿搭';
@@ -1725,9 +1702,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String styleTasteAnalysisStats(int count, int favoriteCount) {
     return '已分析 $count 套穿搭．$favoriteCount 套收藏';
   }
-
-  @override
-  String get lifestyle => '生活風格';
 
   @override
   String get logout => '登出';
@@ -2960,27 +2934,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get occasionParty => '派對';
 
   @override
-  String get comfortAdjustment => '體感溫度調整';
-
-  @override
-  String get weeklyRoutine => '每週排程';
-
-  @override
-  String get perceivedTempOffset => '偏移量';
-
-  @override
-  String get lifestyleDescription => '告訴 Uwearis 你的作息與舒適度偏好，讓每日穿搭建議更貼近你。';
-
-  @override
-  String get weeklyRoutineIntro => '設定你一週的典型作息。';
-
-  @override
-  String get comfortAdjustmentIntro => '微調你平常感受到的冷熱程度。';
-
-  @override
-  String selectOccasionTitle(String day) {
-    return '選擇$day的場合';
-  }
+  String get perceivedTempOffset => '體感溫度調整';
 
   @override
   String get todaysOutfit => '今日穿搭';

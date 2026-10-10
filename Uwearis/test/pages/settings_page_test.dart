@@ -119,6 +119,91 @@ void main() {
     },
   );
 
+  group('perceived temperature offset', () {
+    // GET /users/me answers the profile load; PATCH /users/me is the save,
+    // answered with [patchStatus].
+    http.Client client(List<http.Request> patches, {int patchStatus = 200}) =>
+        MockClient((request) async {
+          if (request.method == 'PATCH') {
+            patches.add(request);
+            return patchStatus == 200
+                ? jsonResponse(envelope({'name': 'Test User'}))
+                : jsonResponse(envelope(null), status: patchStatus);
+          }
+          return jsonResponse(
+            envelope({'name': 'Test User', 'email': 'test@example.com'}),
+          );
+        });
+
+    testWidgets('shows the locally cached offset', (tester) async {
+      SharedPreferences.setMockInitialValues({'temperature_offset': -2});
+      await runWithProfile(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const SettingsPage());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Perceived Temperature Offset'), findsOneWidget);
+        expect(find.text('-2°C'), findsOneWidget);
+      });
+    });
+
+    testWidgets('picking a value PATCHes it and caches it locally', (
+      tester,
+    ) async {
+      final patches = <http.Request>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const SettingsPage());
+        await tester.pumpAndSettle();
+        expect(find.text('0°C'), findsOneWidget);
+
+        await tester.tap(find.text('Perceived Temperature Offset'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('+2°C'));
+        await tester.pumpAndSettle();
+
+        expect(patches, hasLength(1));
+        final body = jsonDecode(patches.single.body) as Map<String, dynamic>;
+        expect(body, {'temperature_offset_c': 2});
+        expect(find.text('+2°C'), findsOneWidget);
+      }, () => client(patches));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('temperature_offset'), 2);
+    });
+
+    testWidgets('a failed save rolls back and offers Retry', (tester) async {
+      final patches = <http.Request>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const SettingsPage());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Perceived Temperature Offset'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('+2°C'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Retry'), findsOneWidget);
+        expect(find.text('+2°C'), findsNothing);
+        expect(find.text('0°C'), findsOneWidget);
+      }, () => client(patches, patchStatus: 500));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('temperature_offset'), isNull);
+    });
+
+    testWidgets('Settings no longer links to a Lifestyle page', (tester) async {
+      await runWithProfile(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const SettingsPage());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Lifestyle'), findsNothing);
+      });
+    });
+  });
+
   group('tier badge', () {
     Future<void> pumpWithTier(WidgetTester tester, String? tier) {
       return http.runWithClient(

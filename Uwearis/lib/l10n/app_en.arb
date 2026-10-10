@@ -61,7 +61,6 @@
       }
     }
   },
-  "lifestyle": "Lifestyle",
   "logout": "Logout",
   "logoutConfirmTitle": "Log out?",
   "logoutConfirmBody": "You'll need to sign in again to use Uwearis.",
@@ -581,16 +580,7 @@
   "occasionDate": "Date",
   "occasionTravel": "Travel",
   "occasionParty": "Party",
-  "comfortAdjustment": "Perceived Temperature Offset",
-  "weeklyRoutine": "Weekly Routine",
-  "perceivedTempOffset": "Offset",
-  "lifestyleDescription": "Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.",
-  "weeklyRoutineIntro": "Set what a typical week looks like for you.",
-  "comfortAdjustmentIntro": "Fine-tune how warm or cool you usually feel.",
-  "selectOccasionTitle": "Select {day}'s Occasion",
-  "@selectOccasionTitle": {
-    "placeholders": { "day": { "type": "String" } }
-  },
+  "perceivedTempOffset": "Perceived Temperature Offset",
 
   "todaysOutfit": "Today's Outfit",
   "latestOutfitTitle": "Your Latest Outfit",

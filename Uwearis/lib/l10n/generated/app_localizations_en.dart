@@ -156,9 +156,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get lifestyle => 'Lifestyle';
-
-  @override
   String get logout => 'Logout';
 
   @override
@@ -1430,30 +1427,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get occasionParty => 'Party';
 
   @override
-  String get comfortAdjustment => 'Perceived Temperature Offset';
-
-  @override
-  String get weeklyRoutine => 'Weekly Routine';
-
-  @override
-  String get perceivedTempOffset => 'Offset';
-
-  @override
-  String get lifestyleDescription =>
-      'Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.';
-
-  @override
-  String get weeklyRoutineIntro =>
-      'Set what a typical week looks like for you.';
-
-  @override
-  String get comfortAdjustmentIntro =>
-      'Fine-tune how warm or cool you usually feel.';
-
-  @override
-  String selectOccasionTitle(String day) {
-    return 'Select $day\'s Occasion';
-  }
+  String get perceivedTempOffset => 'Perceived Temperature Offset';
 
   @override
   String get todaysOutfit => 'Today\'s Outfit';

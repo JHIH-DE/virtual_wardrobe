@@ -6,10 +6,8 @@ import '../../../../data/occasion_type.dart';
 import '../../../../l10n/occasion_type_localization.dart';
 import 'picker_sheet.dart';
 
-/// Shared "pick one occasion" bottom sheet — Lifestyle's weekly routine and
-/// Add Outfit's "Complete with AI" context both need the exact same
-/// icon + label + radio list, just with a different [title] and starting
-/// [current] value.
+/// "Pick one occasion" bottom sheet — an icon + label + radio list, used by
+/// Add Outfit's Auto-Complete dialog.
 Future<OccasionType?> showOccasionPickerSheet(
   BuildContext context, {
   required OccasionType current,

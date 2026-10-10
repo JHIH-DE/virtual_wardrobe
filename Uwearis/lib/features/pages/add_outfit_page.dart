@@ -171,9 +171,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   // "Complete with AI" state — garment ids the user has locked (AI must keep
   // them), ids the AI has already recommended and the user then moved past
   // (a fresh run should try something else instead of repeating them — see
-  // `_applyCompletedOutfit`), the occasion this outfit is for (independent
-  // of Lifestyle's per-weekday routine), and whether a completion request is
-  // in flight.
+  // `_applyCompletedOutfit`), the occasion this outfit is for, and whether
+  // a completion request is in flight.
   final Set<int> _lockedGarmentIds = {};
   final Set<int> _excludedGarmentIds = {};
   OccasionType _completeWithAiOccasion = OccasionType.casual;
@@ -1288,9 +1287,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   static const double _defaultTemperatureC = 20;
 
-  /// "Occasion   [icon] Casual  ›" row shown in the Finish Outfit dialog —
-  /// same layout as Lifestyle's weekday rows; tapping it opens the shared
-  /// [showOccasionPickerSheet]. [onChanged] rebuilds the host dialog after a
+  /// "Occasion   [icon] Casual  ›" row shown in the Auto-Complete dialog;
+  /// tapping it opens [showOccasionPickerSheet]. [onChanged] rebuilds the host dialog after a
   /// pick (page `setState` alone doesn't reach the dialog route).
   Widget _buildOccasionPickerRow({VoidCallback? onChanged}) {
     return InkWell(

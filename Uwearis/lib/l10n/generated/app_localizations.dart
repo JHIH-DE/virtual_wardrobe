@@ -357,12 +357,6 @@ abstract class AppLocalizations {
   /// **'Analyzed {count} outfits · {favoriteCount} favorites'**
   String styleTasteAnalysisStats(int count, int favoriteCount);
 
-  /// No description provided for @lifestyle.
-  ///
-  /// In en, this message translates to:
-  /// **'Lifestyle'**
-  String get lifestyle;
-
   /// No description provided for @logout.
   ///
   /// In en, this message translates to:
@@ -2757,47 +2751,11 @@ abstract class AppLocalizations {
   /// **'Party'**
   String get occasionParty;
 
-  /// No description provided for @comfortAdjustment.
-  ///
-  /// In en, this message translates to:
-  /// **'Perceived Temperature Offset'**
-  String get comfortAdjustment;
-
-  /// No description provided for @weeklyRoutine.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly Routine'**
-  String get weeklyRoutine;
-
   /// No description provided for @perceivedTempOffset.
   ///
   /// In en, this message translates to:
-  /// **'Offset'**
+  /// **'Perceived Temperature Offset'**
   String get perceivedTempOffset;
-
-  /// No description provided for @lifestyleDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Tell Uwearis about your routine and comfort preferences to make daily outfit recommendations more personal.'**
-  String get lifestyleDescription;
-
-  /// No description provided for @weeklyRoutineIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'Set what a typical week looks like for you.'**
-  String get weeklyRoutineIntro;
-
-  /// No description provided for @comfortAdjustmentIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'Fine-tune how warm or cool you usually feel.'**
-  String get comfortAdjustmentIntro;
-
-  /// No description provided for @selectOccasionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Select {day}\'s Occasion'**
-  String selectOccasionTitle(String day);
 
   /// No description provided for @todaysOutfit.
   ///

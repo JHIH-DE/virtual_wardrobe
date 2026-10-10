@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -27,7 +28,6 @@ import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'account_page.dart';
 import 'debug_tools_page.dart';
-import 'lifestyle_page.dart';
 import 'login_page.dart';
 import 'my_virtual_model_page.dart';
 import 'style_taste_page.dart';
@@ -50,9 +50,21 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _deletingAccount = false;
 
+  // Perceived temperature offset (°C, -5..+5). The backend field is
+  // write-only (not in the /users/me response), so the last saved value is
+  // cached locally under this key.
+  static const _temperatureOffsetKey = 'temperature_offset';
+  static const _temperatureOffsetOptions = [
+    -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, //
+  ];
+  int _temperatureOffset = 0;
+  // Disables the row while its PATCH is in flight so two saves can't race.
+  bool _savingTemperatureOffset = false;
+
   @override
   void initState() {
     super.initState();
+    _loadTemperatureOffset();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.listenManual(profileProvider, (_, next) {
@@ -85,6 +97,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _aiModelStatusLabel(AppLocalizations l10n) {
     final count = (_hasFaceReference ? 1 : 0) + (_hasBodyReference ? 1 : 0);
     return count == 2 ? l10n.aiModelReady : l10n.aiModelReferencesAdded(count);
+  }
+
+  Future<void> _loadTemperatureOffset() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getInt(_temperatureOffsetKey);
+    if (saved == null || !mounted) return;
+    setState(() => _temperatureOffset = saved);
+  }
+
+  String _temperatureOffsetLabel(int offset) =>
+      '${offset > 0 ? '+' : ''}$offset°C';
+
+  Future<void> _openTemperatureOffsetPicker(AppLocalizations l10n) async {
+    final selected = await showSingleChoiceSheet<int>(
+      context,
+      title: l10n.perceivedTempOffset,
+      options: _temperatureOffsetOptions,
+      selected: _temperatureOffset,
+      labelOf: _temperatureOffsetLabel,
+    );
+    if (selected == null || selected == _temperatureOffset || !mounted) {
+      return;
+    }
+    await _saveTemperatureOffset(selected);
+  }
+
+  /// One-shot edit: shows [offset] right away, PATCHes it, and rolls back
+  /// with a Retry offer if the save fails.
+  Future<void> _saveTemperatureOffset(int offset) async {
+    if (_savingTemperatureOffset) return;
+    final previous = _temperatureOffset;
+    setState(() {
+      _temperatureOffset = offset;
+      _savingTemperatureOffset = true;
+    });
+    try {
+      await ProfileService().updateMyProfile(temperatureOffsetC: offset);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_temperatureOffsetKey, offset);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      setState(() => _temperatureOffset = previous);
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      debugLog('SettingsPage save temperature offset failed: $e');
+      if (!mounted) return;
+      setState(() => _temperatureOffset = previous);
+      final l10n = AppLocalizations.of(context);
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(l10n, e, fallback: l10n.profileSaveFailed),
+        onRetry: () => _saveTemperatureOffset(offset),
+      );
+    } finally {
+      if (mounted) setState(() => _savingTemperatureOffset = false);
+    }
   }
 
   void _openAccount() {
@@ -210,7 +278,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: AppDimens.sectionSpacing),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildLifestyleCard(l10n),
+                      child: _buildTemperatureOffsetCard(l10n),
                     ),
                     const SizedBox(height: AppDimens.sectionSpacing),
                     Padding(
@@ -313,15 +381,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildLifestyleCard(AppLocalizations l10n) {
+  Widget _buildTemperatureOffsetCard(AppLocalizations l10n) {
     return AppListCard(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const LifestylePage()),
-      ),
-      leadingAsset: 'assets/images/daily_planner.png',
+      onTap: _savingTemperatureOffset
+          ? null
+          : () => _openTemperatureOffsetPicker(l10n),
+      leading: const Icon(Icons.thermostat_outlined, color: AppColors.icon),
       showArrow: true,
-      child: Text(l10n.lifestyle, style: AppTextStyle.bold16),
+      summary: _temperatureOffsetLabel(_temperatureOffset),
+      child: Text(l10n.perceivedTempOffset, style: AppTextStyle.bold16),
     );
   }
 

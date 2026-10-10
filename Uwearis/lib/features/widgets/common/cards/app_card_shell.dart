@@ -4,8 +4,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 
 /// Shared white-card chrome — radius, padding, resting shadow — used by
-/// page-level cards across the app (e.g. Lifestyle's schedule/comfort
-/// cards, AI Model's reference/body-measurements cards) so they read as
+/// page-level cards across the app (e.g. AI Model's reference/
+/// body-measurements cards, Style Taste's cards) so they read as
 /// one family even though their contents differ.
 class AppCardShell extends StatelessWidget {
   final Widget child;

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 /// Drives auto-save for a page that edits an *existing* record (Garment
-/// Details in edit mode, Account, Lifestyle) — creating a new record keeps
+/// Details in edit mode, Account) — creating a new record keeps
 /// an explicit Save/Add button instead.
 ///
 /// The page stays the single source of truth: [onSave] reads the page's

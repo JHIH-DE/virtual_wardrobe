@@ -16,9 +16,8 @@ extension OccasionTypeApi on OccasionType {
   /// `interview` / `date_night` / `party` / `wedding_guest` / `outdoor` /
   /// `travel` / `sport` / `home_lounge` — see the Outfit Advice tech pack);
   /// anything else is accepted but silently skips the filter. [apiValue]
-  /// stays a stable identifier used for local persistence (Lifestyle's
-  /// weekly occasion routine, `lifestyle_page.dart`) and must never change
-  /// shape to chase an unrelated backend's vocabulary.
+  /// stays a stable app-side identifier and must never change shape to
+  /// chase an unrelated backend's vocabulary.
   ///
   /// This app is casual-leaning, so `work` maps to `smart_casual` rather
   /// than `business`/`business_formal`/`interview` — those finer corporate
