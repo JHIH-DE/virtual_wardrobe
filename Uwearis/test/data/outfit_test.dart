@@ -46,7 +46,6 @@ void main() {
       expect(outfit.style, isEmpty);
       expect(outfit.backgroundId, isNull);
       expect(outfit.isFavorite, isFalse);
-      expect(outfit.reasoning, isNull);
       // Attached separately by OutfitService from the group wrapper, never
       // present on a bare OutfitOut payload.
       expect(outfit.coverOutfitId, isNull);
@@ -137,22 +136,6 @@ void main() {
       final outfit = Outfit.fromJson({'outfit_id': 1, 'season': '', 'style': ''});
       expect(outfit.seasons, isEmpty);
       expect(outfit.style, isEmpty);
-    });
-
-    test('joins a reasoning list into newline-separated text', () {
-      final outfit = Outfit.fromJson({
-        'outfit_id': 1,
-        'reasoning': ['Warm layers for the forecast.', 'Matches your saved style.'],
-      });
-      expect(
-        outfit.reasoning,
-        'Warm layers for the forecast.\nMatches your saved style.',
-      );
-    });
-
-    test('accepts reasoning as a plain string', () {
-      final outfit = Outfit.fromJson({'outfit_id': 1, 'reasoning': 'Good for rain.'});
-      expect(outfit.reasoning, 'Good for rain.');
     });
 
     test('treats is_favorite of 1 the same as true (loose backend typing)', () {

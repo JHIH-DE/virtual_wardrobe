@@ -3,7 +3,7 @@ import 'user_tier.dart';
 /// The signed-in user's profile (`GET /users/me`, `PATCH /users/me` —
 /// `ProfileService.getMyProfile` / `updateMyProfile`). Only the fields the
 /// app actually reads back are modelled here; write-only fields
-/// (`weekly_schedule`, `temperature_offset_c`, `locale`) stay as plain
+/// (`temperature_offset_c`, `locale`) stay as plain
 /// arguments on `updateMyProfile` since nothing consumes them from the
 /// response. Read-only, never patched in place — no `copyWith`.
 class UserProfile {

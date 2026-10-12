@@ -17,19 +17,17 @@ String outfitImageVersionedCacheKey(int outfitId) {
 /// The kind of `OutfitGroup` an outfit belongs to (backend `OutfitGroupType`).
 /// Every outfit under a group shares its group's type; it's only ever a
 /// filter/tag, never per-outfit state.
-enum OutfitGroupType { general, daily, trip }
+enum OutfitGroupType { general, trip }
 
 extension OutfitGroupTypeApi on OutfitGroupType {
   String get apiValue => switch (this) {
     OutfitGroupType.general => 'general',
-    OutfitGroupType.daily => 'daily',
     OutfitGroupType.trip => 'trip',
   };
 
   /// Anything unrecognized (or null) falls back to [OutfitGroupType.general],
   /// the default group type.
   static OutfitGroupType fromApiValue(String? value) => switch (value) {
-    'daily' => OutfitGroupType.daily,
     'trip' => OutfitGroupType.trip,
     _ => OutfitGroupType.general,
   };
@@ -52,11 +50,6 @@ class Outfit {
   final String? errorMessage;
   final int? backgroundId;
   final bool isFavorite;
-
-  /// Why the AI picked this option — only populated on daily-outfit reads
-  /// ([DailyOutfitService.getDailyOutfit]); other outfit sources don't
-  /// return it.
-  final String? reasoning;
 
   /// How many versions this outfit's group actually has — only meaningful
   /// on the representative [Outfit] a flattened list like
@@ -96,7 +89,6 @@ class Outfit {
     this.backgroundId,
     this.isFavorite = false,
     this.versionCount = 1,
-    this.reasoning,
     this.coverOutfitId,
     this.groupName,
   });
@@ -127,7 +119,6 @@ class Outfit {
       backgroundId: backgroundId,
       isFavorite: isFavorite ?? this.isFavorite,
       versionCount: versionCount ?? this.versionCount,
-      reasoning: reasoning,
       coverOutfitId: clearCoverOutfitId
           ? null
           : (coverOutfitId ?? this.coverOutfitId),
@@ -174,14 +165,6 @@ class Outfit {
       return [];
     }
 
-    // Robust reasoning parsing to handle both String and List from the API,
-    // same as TripGarmentSelectionPage's advice parsing.
-    String? parseReasoning(dynamic v) {
-      if (v is List) return v.map((e) => e.toString()).join('\n');
-      if (v is String && v.isNotEmpty) return v;
-      return null;
-    }
-
     return Outfit(
       id: parseId(json['outfit_id']),
       groupId: parseId(json['group_id']),
@@ -195,7 +178,6 @@ class Outfit {
       errorMessage: json['error_message'] as String?,
       backgroundId: (json['background_id'] as num?)?.toInt(),
       isFavorite: json['is_favorite'] == true || json['is_favorite'] == 1,
-      reasoning: parseReasoning(json['reasoning']),
     );
   }
 

@@ -43,9 +43,6 @@ String apiErrorMessage(
 /// Confirmed backend codes not (yet) mapped here, on purpose:
 /// - `OBJECT_NAME_REQUIRED` — not user-facing; a client request-shape bug,
 ///   not something the person did.
-/// - `OUTFIT_COPY_FAILED` — still covered by `outfitCopyFailed`, the copy
-///   flow's own fallback; no case added until a more specific message is
-///   needed.
 String? _messageForErrorCode(AppLocalizations l10n, String? errorCode) {
   switch (errorCode) {
     case 'FACE_REFERENCE_NOT_FOUND':

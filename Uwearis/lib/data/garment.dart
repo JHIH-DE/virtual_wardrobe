@@ -356,7 +356,7 @@ class Garment {
   final bool isFavorite;
 
   /// Soft-deleted from the user's closet (backend keeps the row + image
-  /// because an outfit/daily-outfit/trip item still references it) — see
+  /// because an outfit/trip item still references it) — see
   /// [ActiveGarmentsX.active]. Never true for a garment `complete`d or
   /// `PATCH`ed through the normal edit flow; only the backend's own delete
   /// logic and `PATCH {is_deleted: false}` (restore) change it.

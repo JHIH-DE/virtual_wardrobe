@@ -591,6 +591,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Stack(
+                      fit: StackFit.expand,
                       clipBehavior: Clip.none,
                       children: [
                         GarmentImage(

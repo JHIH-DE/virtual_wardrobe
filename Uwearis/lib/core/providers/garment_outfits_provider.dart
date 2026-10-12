@@ -5,7 +5,7 @@ import '../services/outfit_service.dart';
 import 'retry_policy.dart';
 
 /// The `type: general` (user-saved) outfits a garment appears in, keyed by
-/// garment id. `GET /outfits/by-garments` also returns daily/trip-generated
+/// garment id. `GET /outfits/by-garments` also returns trip-generated
 /// outfits — those are filtered out here so every caller (the "Used in
 /// outfits" page and Garment Details' count tile) agrees on the number.
 final garmentOutfitsProvider = FutureProvider.family<List<Outfit>, int>((

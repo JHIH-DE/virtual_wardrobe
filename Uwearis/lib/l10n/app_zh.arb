@@ -89,9 +89,6 @@
   "addVersionTitle": "新增版本",
   "versionLimitReachedTitle": "已達版本上限",
   "versionLimitReachedBody": "每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。",
-  "addToMyOutfits": "加入我的穿搭",
-  "selectOutfitGroupTitle": "加入穿搭",
-  "newOutfitGroup": "新增穿搭",
   "currentOutfitLabel": "目前穿搭",
   "accessoriesLabel": "配件",
   "optionalLabel": "選填",
@@ -117,7 +114,6 @@
   "deleteThisVersion": "刪除版本",
   "outfitUpdateFailed": "无法更新这套穿搭，请再试一次。",
   "outfitDeleteFailed": "无法删除这套穿搭，请再试一次。",
-  "outfitCopyFailed": "无法复制这套穿搭，请再试一次。",
 
   "createdOnDate": "建立於 {date}",
   "outfitTitle": "{style}穿搭",
@@ -490,11 +486,6 @@
 
   "todaysOutfit": "今日穿搭",
   "latestOutfitTitle": "你的最新穿搭",
-  "dailyOutfitsUnlockTitle": "解鎖每日穿搭",
-  "dailyOutfitsUnlockBody": "再幫衣櫃新增幾件單品。",
-  "dailyOutfitsUnlockedTitle": "每日穿搭已解鎖",
-  "dailyOutfitsUnlockedBody": "你的衣櫃已經準備好,每天都能為你搭配專屬穿搭。",
-  "getFirstDailyOutfitButton": "產生我的第一套穿搭",
   "loadingWeatherEllipsis": "載入天氣中…",
   "viewDetails": "查看詳情",
 

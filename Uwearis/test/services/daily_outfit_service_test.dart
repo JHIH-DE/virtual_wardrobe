@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
+import 'package:uwearis/core/services/api_exception.dart';
 import 'package:uwearis/core/services/daily_outfit_service.dart';
-import 'package:uwearis/data/outfit.dart';
 
 import '../helpers/fake_auth.dart';
 
@@ -41,7 +41,7 @@ void main() {
               {
                 'outfit_id': 1,
                 'group_id': 5,
-                'group_type': 'daily',
+                'group_type': 'general',
                 'result_image_url': 'https://example.com/1.jpg',
               },
             ],
@@ -57,7 +57,7 @@ void main() {
       expect(captured.method, 'GET');
       expect(captured.url.toString(), '$_base/2026-09-02');
       expect(outfits, hasLength(1));
-      expect(outfits!.single.groupType, OutfitGroupType.daily);
+      expect(outfits!.single.id, 1);
     });
 
     test('returns null when data is null (no plan for that date yet)', () async {
@@ -98,6 +98,74 @@ void main() {
           }),
         ),
         throwsA(isA<TimeoutException>()),
+      );
+    });
+  });
+
+  group('generate', () {
+    test(
+      'POSTs the date and alternatives without the removed default_occasion',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({
+              'id': 169,
+              'date': '2026-10-17',
+              'occasion': 'casual_daily',
+              'options': [
+                {'id': 362, 'option_type': 'primary', 'outfit_id': 148},
+                {'id': 363, 'option_type': 'alternative', 'outfit_id': 62},
+              ],
+              'outfits': [
+                {'outfit_id': 148, 'group_id': 78, 'group_type': 'general'},
+                {'outfit_id': 62, 'group_id': 30, 'group_type': 'general'},
+              ],
+            }),
+          );
+        });
+
+        final outfits = await http.runWithClient(
+          () => DailyOutfitService().generate(
+            date: DateTime(2026, 10, 17),
+            alternativesPerDay: 1,
+          ),
+          () => client,
+        );
+
+        expect(captured.method, 'POST');
+        expect(captured.url.toString(), '$_base/generate');
+        expect(jsonDecode(captured.body), {
+          'date': '2026-10-17',
+          'alternatives_per_day': 1,
+        });
+        expect(outfits.map((o) => o.id), [148, 62]);
+      },
+    );
+
+    test('surfaces INSUFFICIENT_OUTFIT_DATA as an ApiException', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse({
+          'success': false,
+          'message': 'Not enough outfits',
+          'data': null,
+          'error_code': 'INSUFFICIENT_OUTFIT_DATA',
+        }, status: 422),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => DailyOutfitService().generate(date: DateTime(2026, 10, 17)),
+          () => client,
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            'INSUFFICIENT_OUTFIT_DATA',
+          ),
+        ),
       );
     });
   });

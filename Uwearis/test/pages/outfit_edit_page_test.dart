@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/outfit_edit_page.dart';
 import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
+import 'package:uwearis/features/widgets/garment/garment_image.dart';
 
 import '../helpers/widget_harness.dart';
 
@@ -243,6 +244,23 @@ void main() {
         expect(find.text('Top · Polo shirt'), findsOneWidget);
       },
     );
+  });
+
+  testWidgets('a garment row thumbnail fills its slot, same as Add Outfit\'s', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    await pumpApp(
+      tester,
+      OutfitEditPage(
+        preloadedGarments: suitcase,
+        initialGarments: [suitcase.first],
+      ),
+    );
+    await tester.pump();
+
+    // 78 wide x 84 tall slot, minus the 8px padding on every side.
+    expect(tester.getSize(find.byType(GarmentImage)), const Size(62, 68));
   });
 
   testWidgets('the ✕ badge removes a card from the outfit', (tester) async {

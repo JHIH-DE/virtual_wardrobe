@@ -74,25 +74,6 @@ const _shoesGarment = Garment(
   objectName: '',
 );
 
-/// Builds [count] distinct active garments in [category], ids starting at
-/// [startId] — used to test _buildDailyOutfitsUnlockCard's per-category
-/// thresholds, which need more garments than the single [_topGarment]/
-/// [_bottomGarment]/[_shoesGarment] fixtures each provide.
-List<Garment> _garmentsOf(
-  GarmentCategory category,
-  int count, {
-  required int startId,
-}) => List.generate(
-  count,
-  (i) => Garment(
-    id: startId + i,
-    name: 'Test ${category.label} $i',
-    category: category,
-    subCategory: 'Test',
-    uploadUrl: '',
-    objectName: '',
-  ),
-);
 
 /// A closet covering Top/Bottom/Shoes by default — Getting Started's closet
 /// step requires one active garment in each of those three categories (see
@@ -569,102 +550,6 @@ void main() {
     expect(find.text("Today's Outfit"), findsNothing);
     expect(find.text('Your Latest Outfit'), findsNothing);
   });
-
-  testWidgets(
-    'a returning user whose closet still falls short of the daily-outfit '
-    'variety thresholds (6 tops / 4 bottoms / 3 shoes) sees the "Daily '
-    'Outfits" unlock card with their current per-category counts',
-    (tester) async {
-      final dailyOutfit = _FakeDailyOutfitNotifier([
-        Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
-      ]);
-      await pumpApp(
-        tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
-        // Default _FakeGarmentsNotifier closet is 1 top / 1 bottom / 1
-        // shoe — enough to clear Getting Started's _hasRequiredCloset gate
-        // but well short of every unlock target below.
-        overrides: overridesWith(dailyOutfit),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('Unlock Daily Outfits'), findsOneWidget);
-      expect(
-        find.text('Add a few more pieces to your closet.'),
-        findsOneWidget,
-      );
-      expect(find.text('1 / 6'), findsOneWidget);
-      expect(find.text('1 / 4'), findsOneWidget);
-      expect(find.text('1 / 3'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'a closet that meets every daily-outfit variety threshold (6 tops / 4 '
-    'bottoms / 3 shoes) but has no daily outfit for today yet switches the '
-    'card to the "Daily Outfits Unlocked" success state with a "Get My '
-    'First Outfit" button, instead of the locked progress columns',
-    (tester) async {
-      final dailyOutfit = _FakeDailyOutfitNotifier(const []);
-      await pumpApp(
-        tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
-        overrides: overridesWith(
-          dailyOutfit,
-          garments: _FakeGarmentsNotifier(
-            garments: [
-              ..._garmentsOf(GarmentCategory.top, 6, startId: 1),
-              ..._garmentsOf(GarmentCategory.bottom, 4, startId: 101),
-              ..._garmentsOf(GarmentCategory.shoes, 3, startId: 201),
-            ],
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('Unlock Daily Outfits'), findsNothing);
-      expect(find.text('Daily Outfits Unlocked'), findsOneWidget);
-      expect(
-        find.text('Your closet is ready for personalized outfits every day.'),
-        findsOneWidget,
-      );
-      expect(find.text('Get My First Outfit'), findsOneWidget);
-      expect(find.text('1 / 6'), findsNothing);
-    },
-  );
-
-  testWidgets(
-    'a closet that meets every daily-outfit variety threshold, but which '
-    'already has a real daily outfit for today, shows neither the locked '
-    'progress card nor the "Daily Outfits Unlocked" success card — '
-    '_buildOutfitImageCard\'s own "Today\'s Outfit" slot already covers it',
-    (tester) async {
-      final dailyOutfit = _FakeDailyOutfitNotifier([
-        Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
-      ]);
-      await pumpApp(
-        tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
-        overrides: overridesWith(
-          dailyOutfit,
-          garments: _FakeGarmentsNotifier(
-            garments: [
-              ..._garmentsOf(GarmentCategory.top, 6, startId: 1),
-              ..._garmentsOf(GarmentCategory.bottom, 4, startId: 101),
-              ..._garmentsOf(GarmentCategory.shoes, 3, startId: 201),
-            ],
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('Unlock Daily Outfits'), findsNothing);
-      expect(find.text('Daily Outfits Unlocked'), findsNothing);
-    },
-  );
 
   testWidgets(
     'adding the last missing closet category (Shoes) while Home stays '

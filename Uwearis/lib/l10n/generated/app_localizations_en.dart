@@ -259,15 +259,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'You can keep up to 10 versions for each outfit. Delete a version to create a new one.';
 
   @override
-  String get addToMyOutfits => 'Add to My Outfits';
-
-  @override
-  String get selectOutfitGroupTitle => 'Add to Outfit';
-
-  @override
-  String get newOutfitGroup => 'New Outfit';
-
-  @override
   String get currentOutfitLabel => 'Current Outfit';
 
   @override
@@ -345,10 +336,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get outfitDeleteFailed =>
       'Couldn\'t delete this outfit. Please try again.';
-
-  @override
-  String get outfitCopyFailed =>
-      'Couldn\'t copy this outfit. Please try again.';
 
   @override
   String createdOnDate(String date) {
@@ -1434,22 +1421,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get latestOutfitTitle => 'Your Latest Outfit';
-
-  @override
-  String get dailyOutfitsUnlockTitle => 'Unlock Daily Outfits';
-
-  @override
-  String get dailyOutfitsUnlockBody => 'Add a few more pieces to your closet.';
-
-  @override
-  String get dailyOutfitsUnlockedTitle => 'Daily Outfits Unlocked';
-
-  @override
-  String get dailyOutfitsUnlockedBody =>
-      'Your closet is ready for personalized outfits every day.';
-
-  @override
-  String get getFirstDailyOutfitButton => 'Get My First Outfit';
 
   @override
   String get loadingWeatherEllipsis => 'Loading weather…';

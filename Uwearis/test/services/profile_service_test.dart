@@ -562,7 +562,7 @@ void main() {
     });
 
     test(
-      'sends weeklySchedule and temperatureOffsetC under their wire keys',
+      'sends temperatureOffsetC under its wire key',
       () async {
         late http.Request captured;
         final client = MockClient((request) async {
@@ -572,14 +572,12 @@ void main() {
 
         await http.runWithClient(
           () => ProfileService().updateMyProfile(
-            weeklySchedule: {'mon': 'work', 'sat': 'casual', 'sun': null},
             temperatureOffsetC: -2,
           ),
           () => client,
         );
 
         expect(jsonDecode(captured.body), {
-          'weekly_schedule': {'mon': 'work', 'sat': 'casual', 'sun': null},
           'temperature_offset_c': -2,
         });
       },

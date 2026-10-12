@@ -250,14 +250,11 @@ class ProfileService with BaseService {
     num? weight,
     String? unitSystem,
     String? location,
-    Map<String, String?>? weeklySchedule,
     num? temperatureOffsetC,
     String? locale,
   }) async {
     // A null argument means "leave unchanged" (the field is omitted), so this
-    // can't clear a field. `weeklySchedule` replaces the whole object on the
-    // backend — always pass all 7 days (`mon`..`sun`); a `null` value clears
-    // that day.
+    // can't clear a field.
     debugLog('--- updateMyProfile ---');
     final uri = Uri.parse(_baseUrl);
 
@@ -269,7 +266,6 @@ class ProfileService with BaseService {
     if (weight != null) payload['weight'] = weight;
     if (unitSystem != null) payload['unit_system'] = unitSystem;
     if (location != null) payload['location'] = location;
-    if (weeklySchedule != null) payload['weekly_schedule'] = weeklySchedule;
     if (temperatureOffsetC != null) {
       payload['temperature_offset_c'] = temperatureOffsetC;
     }

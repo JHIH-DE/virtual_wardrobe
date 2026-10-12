@@ -404,34 +404,6 @@ void main() {
       expect(groupOutfitsRequests, 2);
     });
 
-    test('copyOutfit (into the target group)', () async {
-      var groupOutfitsRequests = 0;
-      final client = MockClient((request) async {
-        if (request.url.path.endsWith('/copy')) {
-          return _jsonResponse(
-            _envelope(_outfitJson(outfitId: 9, groupId: 603)),
-          );
-        }
-        groupOutfitsRequests++;
-        return _jsonResponse(
-          _envelope({
-            'group_id': 603,
-            'name': null,
-            'cover_outfit_id': null,
-            'outfits': [_outfitJson(outfitId: 1, groupId: 603)],
-          }),
-        );
-      });
-
-      await http.runWithClient(() async {
-        await OutfitService().getGroupOutfits(603);
-        await OutfitService().copyOutfit(groupId: 603, sourceOutfitId: 999);
-        await OutfitService().getGroupOutfits(603);
-      }, () => client);
-
-      expect(groupOutfitsRequests, 2);
-    });
-
     test('updateOutfit', () async {
       var groupOutfitsRequests = 0;
       final client = MockClient((request) async {
@@ -646,25 +618,6 @@ void main() {
     );
   });
 
-  group('copyOutfit', () {
-    test('POSTs source_outfit_id to the copy endpoint', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope(_outfitJson(outfitId: 66, groupId: 40)));
-      });
-
-      final outfit = await http.runWithClient(
-        () => OutfitService().copyOutfit(groupId: 40, sourceOutfitId: 65),
-        () => client,
-      );
-
-      expect(outfit.id, 66);
-      expect(captured.url.toString(), '$_base/40/copy');
-      expect(jsonDecode(captured.body), {'source_outfit_id': 65});
-    });
-  });
-
   group('updateOutfit', () {
     test('only sends the fields that were actually passed', () async {
       late http.Request captured;
@@ -799,7 +752,7 @@ void main() {
         return _jsonResponse(
           _envelope([
             _outfitJson(outfitId: 101, groupId: 12, groupType: 'general'),
-            _outfitJson(outfitId: 214, groupId: 40, groupType: 'daily'),
+            _outfitJson(outfitId: 214, groupId: 40, groupType: 'trip'),
           ]),
         );
       });
@@ -814,7 +767,7 @@ void main() {
         'garment_ids': [12, 55],
       });
       expect(outfits, hasLength(2));
-      expect(outfits[1].groupType, OutfitGroupType.daily);
+      expect(outfits[1].groupType, OutfitGroupType.trip);
     });
   });
 

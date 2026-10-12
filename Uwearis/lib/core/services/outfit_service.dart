@@ -10,7 +10,7 @@ import '../utils/signed_url.dart';
 import 'base_service.dart';
 
 /// Client for the OutfitGroup + Outfit API (`/api/v1/outfit`). Every outfit
-/// lives inside a group (general/daily/trip) and carries its own render
+/// lives inside a group (general/trip) and carries its own render
 /// result inline, and `generate` does creation + AI render in one
 /// synchronous call. Only `type=general` has a full, actively-used path
 /// today — a general-flow outfit gets its own dedicated group, so
@@ -18,7 +18,7 @@ import 'base_service.dart';
 /// and the rest of the app keeps treating outfits as a flat list.
 ///
 /// A singleton (like [GarmentService]) purely for [_groupCache]: every
-/// mutation method below (`generate`/`regenerate`/`copy`/`update`/`delete`,
+/// mutation method below (`generate`/`regenerate`/`update`/`delete`,
 /// on either an outfit or its group) invalidates the mutated group's entry,
 /// so [getGroupOutfits] only actually re-hits the backend when that group's
 /// data could genuinely have changed since the last fetch — e.g. reopening
@@ -190,38 +190,6 @@ class OutfitService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('regenerateOutfit: response missing outfit data object');
     }
-    _groupCache.remove(groupId);
-    return Outfit.fromJson(data);
-  }
-
-  /// Duplicates [sourceOutfitId] (any group type, must already be fully
-  /// rendered) into [groupId] as a new, independent [Outfit] there — no AI
-  /// re-render, the backend copies the existing image to a new GCS path.
-  /// [groupId] must be a `type: general` group; omit it to create a fresh
-  /// one first. The source outfit itself is untouched (this is a copy, not
-  /// a move).
-  Future<Outfit> copyOutfit({int? groupId, required int sourceOutfitId}) async {
-    groupId ??= await createGroup(type: 'general');
-    debugLog(
-      '--- copyOutfit: groupId=$groupId sourceOutfitId=$sourceOutfitId ---',
-    );
-    final uri = Uri.parse('$_baseUrl/$groupId/copy');
-    final res = await withAuth(
-      (token) => http
-          .post(
-            uri,
-            headers: authHeaders(token),
-            body: jsonEncode({'source_outfit_id': sourceOutfitId}),
-          )
-          .timeout(const Duration(seconds: 15)),
-    );
-    final envelope = decodeMap(res, op: 'copyOutfit');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('copyOutfit: response missing outfit data object');
-    }
-    // Only the target group gained an outfit — sourceOutfitId's own group is
-    // untouched (this is a copy, not a move), so it doesn't need invalidating.
     _groupCache.remove(groupId);
     return Outfit.fromJson(data);
   }

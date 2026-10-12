@@ -22,9 +22,10 @@ final outfitFeedbackProvider = StateProvider<OutfitFeedbackKind?>(
 );
 
 class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
-  // The Outfits tab is standalone try-ons only — 'daily'/'trip' outfits are
-  // managed from Home's daily outfit / Trip Details instead, so they're
-  // filtered out server-side rather than fetched and discarded.
+  // The Outfits tab is the user's own (`general`) outfits only — 'trip'
+  // outfits are managed from Trip Details instead, so they're filtered out
+  // server-side rather than fetched and discarded. Home's daily outfits are
+  // picked from these same outfits (see dailyOutfitProvider).
   //
   // sort: 'created_at_desc' is pinned explicitly rather than left to the
   // backend's own default (which happens to already be created_at_desc) —

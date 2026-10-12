@@ -242,15 +242,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
-  String get addToMyOutfits => '加入我的穿搭';
-
-  @override
-  String get selectOutfitGroupTitle => '加入穿搭';
-
-  @override
-  String get newOutfitGroup => '新增穿搭';
-
-  @override
   String get currentOutfitLabel => '目前穿搭';
 
   @override
@@ -323,9 +314,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get outfitDeleteFailed => '无法删除这套穿搭，请再试一次。';
-
-  @override
-  String get outfitCopyFailed => '无法复制这套穿搭，请再试一次。';
 
   @override
   String createdOnDate(String date) {
@@ -1381,21 +1369,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get latestOutfitTitle => '你的最新穿搭';
 
   @override
-  String get dailyOutfitsUnlockTitle => '解鎖每日穿搭';
-
-  @override
-  String get dailyOutfitsUnlockBody => '再幫衣櫃新增幾件單品。';
-
-  @override
-  String get dailyOutfitsUnlockedTitle => '每日穿搭已解鎖';
-
-  @override
-  String get dailyOutfitsUnlockedBody => '你的衣櫃已經準備好,每天都能為你搭配專屬穿搭。';
-
-  @override
-  String get getFirstDailyOutfitButton => '產生我的第一套穿搭';
-
-  @override
   String get loadingWeatherEllipsis => '載入天氣中…';
 
   @override
@@ -1804,15 +1777,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
-  String get addToMyOutfits => '加入我的穿搭';
-
-  @override
-  String get selectOutfitGroupTitle => '加入穿搭';
-
-  @override
-  String get newOutfitGroup => '新增穿搭';
-
-  @override
   String get currentOutfitLabel => '目前穿搭';
 
   @override
@@ -1885,9 +1849,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get outfitDeleteFailed => '無法刪除這套穿搭，請再試一次。';
-
-  @override
-  String get outfitCopyFailed => '無法複製這套穿搭，請再試一次。';
 
   @override
   String createdOnDate(String date) {
@@ -2941,21 +2902,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get latestOutfitTitle => '你的最新穿搭';
-
-  @override
-  String get dailyOutfitsUnlockTitle => '解鎖每日穿搭';
-
-  @override
-  String get dailyOutfitsUnlockBody => '再幫衣櫃新增幾件單品。';
-
-  @override
-  String get dailyOutfitsUnlockedTitle => '每日穿搭已解鎖';
-
-  @override
-  String get dailyOutfitsUnlockedBody => '你的衣櫃已經準備好,每天都能為你搭配專屬穿搭。';
-
-  @override
-  String get getFirstDailyOutfitButton => '產生我的第一套穿搭';
 
   @override
   String get loadingWeatherEllipsis => '載入天氣中…';

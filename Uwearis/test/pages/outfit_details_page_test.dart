@@ -8,6 +8,7 @@ import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_icon_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
+import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
 import 'package:uwearis/features/widgets/common/images/refreshable_network_image.dart';
 
@@ -349,7 +350,8 @@ void main() {
     }, stubClient);
   });
 
-  testWidgets('the pill shrinks to a bare "+" once a sibling version exists', (
+  testWidgets('the pill keeps reading "New Version" once a sibling version '
+      'exists, with an "n / total" counter (no dots) on the same row', (
     tester,
   ) async {
     useTallSurface(tester);
@@ -387,13 +389,67 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('New Version'), findsNothing);
-      // Also an unrelated AccentIconButton on this page (the tag-edit
-      // pill) — narrow to the "+" one specifically.
-      expect(find.widgetWithIcon(AccentIconButton, Icons.add), findsOneWidget);
-      expect(find.byType(AccentPillButton), findsNothing);
+      expect(
+        find.widgetWithText(AccentPillButton, 'New Version'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithIcon(AccentIconButton, Icons.add), findsNothing);
+      expect(find.text('1 / 2'), findsOneWidget);
+      expect(find.byType(CarouselDotsIndicator), findsNothing);
+      expect(
+        tester.getCenter(find.text('1 / 2')).dy,
+        moreOrLessEquals(
+          tester.getCenter(find.byType(AccentPillButton)).dy,
+          epsilon: 1,
+        ),
+      );
     }, () => client);
   });
+
+  testWidgets(
+    'the version row keeps the pill\'s height when only the counter shows',
+    (tester) async {
+      useTallSurface(tester);
+      const groupId = 790;
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/$groupId')) {
+          return jsonResponse(
+            envelope({
+              'outfits': [
+                for (final id in [1, 2])
+                  {
+                    'id': id,
+                    'group_id': groupId,
+                    'image_url': 'https://img.example/$id.png',
+                  },
+              ],
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        // An entry point that doesn't offer "+ New Version".
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: _outfit(groupId: groupId),
+            showEditOutfitWhenSaved: false,
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byType(AccentPillButton), findsNothing);
+        final row = find.ancestor(
+          of: find.text('1 / 2'),
+          matching: find.byType(Row),
+        );
+        expect(tester.getSize(row.first).height, 44);
+      }, () => client);
+    },
+  );
 
   // Regression: tapping "+ New Version" once the group already has
   // _maxVersions versions used to just open OutfitEditPage like any other
@@ -436,10 +492,7 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        // maxVersions versions are already loaded, so the pill has swapped
-        // for a bare "+" AccentIconButton — narrow past the page's other
-        // one (the tag-edit pill).
-        await tester.tap(find.widgetWithIcon(AccentIconButton, Icons.add));
+        await tester.tap(find.widgetWithText(AccentPillButton, 'New Version'));
         await tester.pump();
         await tester.pump();
 

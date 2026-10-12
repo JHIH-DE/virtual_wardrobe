@@ -88,16 +88,5 @@ void main() {
       final message = apiErrorMessage(l10n, error, fallback: l10n.garmentSaveFailed);
       expect(message, l10n.garmentSaveFailed);
     });
-
-    test('OUTFIT_COPY_FAILED is deliberately not mapped yet — the copy flow '
-        'keeps using its own fallback', () {
-      const error = ApiException(
-        statusCode: 500,
-        errorCode: 'OUTFIT_COPY_FAILED',
-        message: 'copy failed',
-      );
-      final message = apiErrorMessage(l10n, error, fallback: l10n.outfitCopyFailed);
-      expect(message, l10n.outfitCopyFailed);
-    });
   });
 }

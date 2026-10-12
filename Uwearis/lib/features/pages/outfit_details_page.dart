@@ -27,10 +27,8 @@ import '../widgets/common/buttons/accent_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/filter_button.dart';
-import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/category_tag.dart';
-import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/images/fullscreen_image_viewer.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
@@ -46,7 +44,6 @@ import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/outfit/outfit_share_sheet.dart';
 import 'outfit_edit_page.dart';
-import 'select_outfit_group_page.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
 
@@ -68,20 +65,11 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
   /// edited from here — the card is hidden entirely in that case instead.
   final bool showEditOutfitWhenSaved;
 
-  /// Shows an "Add to My Outfits" bottom action — for outfits whose group
-  /// isn't `type: general` (e.g. a daily outfit). Its own group is
-  /// server-managed and never shows up in the Outfits tab (which only lists
-  /// `type: general` groups), so this re-renders the same
-  /// garments/background into a brand new general group, landing the result
-  /// somewhere the user can find it again.
-  final bool showAddToMyOutfits;
-
   const OutfitDetailsPage({
     super.key,
     required this.outfit,
     this.isNew = false,
     this.showEditOutfitWhenSaved = true,
-    this.showAddToMyOutfits = false,
   });
 
   @override
@@ -115,8 +103,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _saved = false;
   // True while regenerateOutfit's AI render is in flight.
   bool _isRegenerating = false;
-  // True while _addToMyOutfits's AI render is in flight.
-  bool _isAddingToMyOutfits = false;
   // True while _setCover's request is in flight.
   bool _isSettingCover = false;
   // True while _saveTags's request is in flight — the tag button stays
@@ -167,13 +153,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   List<String> get _effectiveSeasons => _current.seasons;
   List<String> get _effectiveStyle => _current.style;
-
-  /// A daily outfit's group isn't `type: general` — it's server-managed by
-  /// its own daily-plan pipeline, not something the user curates here, so
-  /// the version menu/regenerate control and the season/style tag editor
-  /// don't apply to it. Favorite is the one exception — see its own
-  /// `Positioned` below for why it isn't gated on this.
-  bool get _isDailyOutfit => _current.groupType == OutfitGroupType.daily;
 
   /// The group has a second version loaded. The photo menu's "Set as Cover"
   /// and "Delete This Version" items only make sense then: with a single
@@ -302,11 +281,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           label: _l10n.rename,
         ),
       // Same availability Share had as a photo-overlay action: not mid
-      // regenerate (the image is changing), not a Daily outfit (its whole
-      // version menu is hidden the same way). Unlike Rename/Delete, Share
+      // regenerate (the image is changing). Unlike Rename/Delete, Share
       // makes sense on a brand-new unsaved outfit too, so it isn't gated on
       // isSaved.
-      if (!_isRegenerating && !_isDailyOutfit)
+      if (!_isRegenerating)
         AppPopupMenu.item(
           value: _OutfitMenuAction.share,
           icon: const Icon(
@@ -372,21 +350,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
     }
 
-    if (widget.showAddToMyOutfits) {
-      return BottomActionButton(
-        label: _l10n.addToMyOutfits,
-        leading: const Icon(Icons.add),
-        onPressed: _isAddingToMyOutfits ? null : _addToMyOutfits,
-        isLoading: _isAddingToMyOutfits,
-      );
-    }
-
     return const SizedBox.shrink();
   }
 
   bool get _showsBottomActionButton =>
-      !_isResolvingSavedStatus &&
-      ((widget.isNew && !_saved) || widget.showAddToMyOutfits);
+      !_isResolvingSavedStatus && widget.isNew && !_saved;
 
   /// Opens [OutfitEditPage] so the user can pick this version's garments,
   /// then renders the pick into this outfit's *same* group instead of a
@@ -501,33 +469,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// Opens [SelectOutfitGroupPage] so the user can pick which `type:
-  /// general` group to copy this outfit into (see
-  /// [OutfitDetailsPage.showAddToMyOutfits]) — an existing group or a new
-  /// one. [OutfitService.copyOutfit] duplicates the existing render
-  /// server-side, no AI re-render. Mirrors [_leaveNewOutfit]'s "jump to Outfits
-  /// with a saved toast" ending, since the result is the same: a new
-  /// outfit the user can now find in the Outfits tab.
-  Future<void> _addToMyOutfits() async {
-    if (_isAddingToMyOutfits) return;
-    setState(() => _isAddingToMyOutfits = true);
-    try {
-      final result = await Navigator.push<Outfit>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SelectOutfitGroupPage(sourceOutfit: _current),
-        ),
-      );
-      if (result == null || !mounted) return;
-      final feedback = ref.read(outfitFeedbackProvider.notifier);
-      MainShellScope.of(context)?.selectTab(MainTab.outfits);
-      Navigator.popUntil(context, (route) => route.isFirst);
-      feedback.state = OutfitFeedbackKind.saved;
-    } finally {
-      if (mounted) setState(() => _isAddingToMyOutfits = false);
-    }
-  }
-
   // Styles come back from the backend snake_case (`smart_casual`); seasons
   // are single lowercase words either way, so the underscore swap is a
   // no-op for them.
@@ -548,15 +489,13 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (!_isDailyOutfit) ...[
-            AccentIconButton(
-              icon: Icons.sell_outlined,
-              onPressed: _isSavingTags ? null : _openEditTagsSheet,
-            ),
-            // Small — AccentIconButton already carries ~6px of transparent
-            // padding around its disc on this side.
-            const SizedBox(width: 2),
-          ],
+          AccentIconButton(
+            icon: Icons.sell_outlined,
+            onPressed: _isSavingTags ? null : _openEditTagsSheet,
+          ),
+          // Small — AccentIconButton already carries ~6px of transparent
+          // padding around its disc on this side.
+          const SizedBox(width: 2),
           Expanded(
             child: tags.isEmpty
                 ? Text(_l10n.myCollection, style: tagStyle)
@@ -874,7 +813,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     );
                   },
                 ),
-                if (!_isRegenerating && !_isDailyOutfit)
+                if (!_isRegenerating)
                   Positioned(
                     top: 12,
                     right: 12,
@@ -887,13 +826,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                         ? _buildVersionMenuButton()
                         : _buildRegenerateBadge(),
                   ),
-                // Unlike the regenerate/version-menu control above, favorite
-                // isn't gated on !_isDailyOutfit — HomePage's own Today's
-                // Outfit card now offers the exact same toggle on a daily
-                // outfit (see HomePage._toggleFavorite), and it hits the
-                // same generic OutfitService.updateOutfit either way, so
-                // there's no reason to hide it only once the user has
-                // tapped through into this page.
                 if (!_isRegenerating)
                   Positioned(
                     bottom: 12,
@@ -927,60 +859,48 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
         _buildVersionActionRow(),
       ],
     );
   }
 
-  /// The row under the carousel: the "+ New Version" pill, left-aligned,
-  /// shown straight away. Once the group's sibling versions have loaded and
-  /// there's more than one, the page dots + "n / total" counter sit centred
-  /// behind it — with the pill swapping for a bare-"+" [AccentIconButton] so
-  /// it doesn't compete with the dots for space now that they're doing the
-  /// "how many versions" job. Collapses to nothing where adding a version
-  /// isn't offered (see [_openCreateAnotherVersion]: the Add Outfit flow,
-  /// daily outfits, edit-hidden entry points).
+  /// The row under the carousel: the "+ New Version" pill on the left and,
+  /// once the group's sibling versions have loaded and there's more than
+  /// one, an "n / total" counter on the right. The pill collapses to nothing
+  /// where adding a version isn't offered (see [_openCreateAnotherVersion]:
+  /// the Add Outfit flow, edit-hidden entry points).
   Widget _buildVersionActionRow() {
-    final canAddVersion =
-        !widget.isNew &&
-        !widget.showAddToMyOutfits &&
-        widget.showEditOutfitWhenSaved;
+    final canAddVersion = !widget.isNew && widget.showEditOutfitWhenSaved;
 
-    final showsDots = _versionsResolved && _versions.length >= 2;
+    final showsCounter = _versionsResolved && _versions.length >= 2;
     final enabled = !_isOpeningTryOn && !_isCreatingVersion;
 
-    final button = canAddVersion
-        ? Align(
-            alignment: Alignment.centerLeft,
-            child: showsDots
-                ? AccentIconButton(
-                    icon: Icons.add,
-                    enabled: enabled,
-                    onPressed: _openCreateAnotherVersion,
-                  )
-                : AccentPillButton(
-                    label: _l10n.addVersionButton,
-                    icon: Icons.add,
-                    enabled: enabled,
-                    onPressed: _openCreateAnotherVersion,
-                  ),
-          )
-        : null;
+    if (!canAddVersion && !showsCounter) return const SizedBox.shrink();
 
-    if (!showsDots) {
-      return button ?? const SizedBox.shrink();
-    }
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        CarouselDotsIndicator(
-          count: _versions.length,
-          currentIndex: _currentIndex,
-        ),
-        ?button,
-      ],
+    // Pinned to the pill's own min touch-target height, so a counter-only
+    // row (no pill offered) keeps the same spacing below the photo.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
+      child: Row(
+        children: [
+          if (canAddVersion)
+            AccentPillButton(
+              label: _l10n.addVersionButton,
+              icon: Icons.add,
+              enabled: enabled,
+              onPressed: _openCreateAnotherVersion,
+            ),
+          const Spacer(),
+          if (showsCounter)
+            Text(
+              '${_currentIndex + 1} / ${_versions.length}',
+              style: AppTextStyle.semibold14.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -999,8 +919,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// Dots marking which version's photo is shown, plus a "current / total"
-  /// counter trailing them — hidden entirely when there's only one version.
   /// The photo's own "..." corner menu — Regenerate and Delete this
   /// version for whichever version is currently shown (see
   /// [_deleteThisOutfit] for what "delete" actually does depending on

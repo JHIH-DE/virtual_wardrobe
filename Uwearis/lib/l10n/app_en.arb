@@ -96,9 +96,6 @@
   "addVersionTitle": "Add Version",
   "versionLimitReachedTitle": "Version limit reached",
   "versionLimitReachedBody": "You can keep up to 10 versions for each outfit. Delete a version to create a new one.",
-  "addToMyOutfits": "Add to My Outfits",
-  "selectOutfitGroupTitle": "Add to Outfit",
-  "newOutfitGroup": "New Outfit",
   "currentOutfitLabel": "Current Outfit",
   "accessoriesLabel": "Accessories",
   "optionalLabel": "Optional",
@@ -127,7 +124,6 @@
   "deleteThisVersion": "Delete Version",
   "outfitUpdateFailed": "Couldn't update this outfit. Please try again.",
   "outfitDeleteFailed": "Couldn't delete this outfit. Please try again.",
-  "outfitCopyFailed": "Couldn't copy this outfit. Please try again.",
 
   "createdOnDate": "Created {date}",
   "@createdOnDate": {
@@ -584,11 +580,6 @@
 
   "todaysOutfit": "Today's Outfit",
   "latestOutfitTitle": "Your Latest Outfit",
-  "dailyOutfitsUnlockTitle": "Unlock Daily Outfits",
-  "dailyOutfitsUnlockBody": "Add a few more pieces to your closet.",
-  "dailyOutfitsUnlockedTitle": "Daily Outfits Unlocked",
-  "dailyOutfitsUnlockedBody": "Your closet is ready for personalized outfits every day.",
-  "getFirstDailyOutfitButton": "Get My First Outfit",
   "loadingWeatherEllipsis": "Loading weather…",
   "viewDetails": "View Details",
 

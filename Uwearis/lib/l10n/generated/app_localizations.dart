@@ -555,24 +555,6 @@ abstract class AppLocalizations {
   /// **'You can keep up to 10 versions for each outfit. Delete a version to create a new one.'**
   String get versionLimitReachedBody;
 
-  /// No description provided for @addToMyOutfits.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to My Outfits'**
-  String get addToMyOutfits;
-
-  /// No description provided for @selectOutfitGroupTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to Outfit'**
-  String get selectOutfitGroupTitle;
-
-  /// No description provided for @newOutfitGroup.
-  ///
-  /// In en, this message translates to:
-  /// **'New Outfit'**
-  String get newOutfitGroup;
-
   /// No description provided for @currentOutfitLabel.
   ///
   /// In en, this message translates to:
@@ -716,12 +698,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t delete this outfit. Please try again.'**
   String get outfitDeleteFailed;
-
-  /// No description provided for @outfitCopyFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t copy this outfit. Please try again.'**
-  String get outfitCopyFailed;
 
   /// Footer showing the creation date of an outfit
   ///
@@ -2768,36 +2744,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your Latest Outfit'**
   String get latestOutfitTitle;
-
-  /// No description provided for @dailyOutfitsUnlockTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlock Daily Outfits'**
-  String get dailyOutfitsUnlockTitle;
-
-  /// No description provided for @dailyOutfitsUnlockBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Add a few more pieces to your closet.'**
-  String get dailyOutfitsUnlockBody;
-
-  /// No description provided for @dailyOutfitsUnlockedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily Outfits Unlocked'**
-  String get dailyOutfitsUnlockedTitle;
-
-  /// No description provided for @dailyOutfitsUnlockedBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Your closet is ready for personalized outfits every day.'**
-  String get dailyOutfitsUnlockedBody;
-
-  /// No description provided for @getFirstDailyOutfitButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Get My First Outfit'**
-  String get getFirstDailyOutfitButton;
 
   /// No description provided for @loadingWeatherEllipsis.
   ///
