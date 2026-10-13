@@ -640,6 +640,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       title: _l10n.tripDetailsTitle,
       actions: [
         AppPopupMenu<_TripMenuAction>(
+          variant: AppPopupMenuVariant.toolbar,
           onSelected: _handleTripMenuAction,
           items: [
             AppPopupMenu.item(

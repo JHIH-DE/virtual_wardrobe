@@ -963,53 +963,11 @@ abstract class AppLocalizations {
   /// **'Auto-Complete'**
   String get finishOutfit;
 
-  /// No description provided for @finishOutfitPromptBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Let AI complete your selected pieces.'**
-  String get finishOutfitPromptBody;
-
   /// No description provided for @finishWithAi.
   ///
   /// In en, this message translates to:
   /// **'Finish with AI'**
   String get finishWithAi;
-
-  /// No description provided for @outfitIncompleteTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Outfit Incomplete'**
-  String get outfitIncompleteTitle;
-
-  /// No description provided for @outfitIncompleteBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Your outfit is missing {parts}, so it can\'t be created yet. Let AI fill in the missing pieces?'**
-  String outfitIncompleteBody(String parts);
-
-  /// No description provided for @yes.
-  ///
-  /// In en, this message translates to:
-  /// **'Yes'**
-  String get yes;
-
-  /// No description provided for @no.
-  ///
-  /// In en, this message translates to:
-  /// **'No'**
-  String get no;
-
-  /// No description provided for @listSeparator.
-  ///
-  /// In en, this message translates to:
-  /// **', '**
-  String get listSeparator;
-
-  /// No description provided for @occasionFieldLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Occasion'**
-  String get occasionFieldLabel;
 
   /// No description provided for @temperatureFieldLabel.
   ///
@@ -2193,6 +2151,12 @@ abstract class AppLocalizations {
   /// **'Choose a color'**
   String get chooseColorTitle;
 
+  /// No description provided for @chooseBackgroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a background'**
+  String get chooseBackgroundTitle;
+
   /// No description provided for @clear.
   ///
   /// In en, this message translates to:
@@ -2348,6 +2312,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Style'**
   String get styleLabel;
+
+  /// No description provided for @styleAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get styleAuto;
 
   /// No description provided for @noOutfitsYet.
   ///
@@ -2690,42 +2660,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add Garments'**
   String get addGarmentsButton;
-
-  /// No description provided for @occasionWork.
-  ///
-  /// In en, this message translates to:
-  /// **'Work'**
-  String get occasionWork;
-
-  /// No description provided for @occasionCasual.
-  ///
-  /// In en, this message translates to:
-  /// **'Casual'**
-  String get occasionCasual;
-
-  /// No description provided for @occasionWorkout.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout'**
-  String get occasionWorkout;
-
-  /// No description provided for @occasionDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Date'**
-  String get occasionDate;
-
-  /// No description provided for @occasionTravel.
-  ///
-  /// In en, this message translates to:
-  /// **'Travel'**
-  String get occasionTravel;
-
-  /// No description provided for @occasionParty.
-  ///
-  /// In en, this message translates to:
-  /// **'Party'**
-  String get occasionParty;
 
   /// No description provided for @perceivedTempOffset.
   ///

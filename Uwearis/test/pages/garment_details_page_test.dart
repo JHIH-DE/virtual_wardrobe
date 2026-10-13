@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/app/theme/app_dimens.dart';
 import 'package:uwearis/core/services/garment_service.dart';
@@ -1195,7 +1196,7 @@ void main() {
           tester.getCenter(find.byIcon(Icons.refresh)),
           tester
               .getCenter(find.byIcon(Icons.close))
-              .translate(-(sheet.width - 2 * (16 + 18)), 0),
+              .translate(-(sheet.width - 2 * (20 + 18)), 0),
         );
 
         await tester.tap(find.byIcon(Icons.refresh));
@@ -1385,8 +1386,8 @@ void main() {
     }
 
     final backButton = find.ancestor(
-      of: find.image(const AssetImage('assets/images/page_arrow_left.png')),
-      matching: find.byType(IconButton),
+      of: find.byIcon(Icons.arrow_back_ios_new_rounded),
+      matching: find.byType(ActionDiscButton),
     );
 
     testWidgets('switching category saves once, with the attributes the new '

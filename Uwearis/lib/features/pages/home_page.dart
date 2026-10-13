@@ -21,6 +21,7 @@ import '../../data/outfit.dart';
 import '../../data/profile_data.dart';
 import '../../data/trip.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
@@ -458,28 +459,18 @@ class _HomePageState extends ConsumerState<HomePage>
       leading: _buildExploreButton(),
       leadingWidth: 128,
       actions: [
-        InkWell(
-          onTap: () {
+        ActionDiscButton(
+          icon: Image.asset(
+            'assets/images/setting.png',
+            height: ActionDisc.iconSize,
+          ),
+          onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SettingsPage()),
             );
           },
-          borderRadius: BorderRadius.circular(AppDimens.toolbarHeight / 2),
-          // Fills the toolbar slot (same touch target as the back button /
-          // "⋮" menu); the glyph itself stays at the toolbar action-icon
-          // size, only the tappable area grows.
-          child: SizedBox.square(
-            dimension: AppDimens.toolbarHeight,
-            child: Center(
-              child: Image.asset(
-                'assets/images/setting.png',
-                height: AppDimens.toolbarActionIconSize,
-              ),
-            ),
-          ),
         ),
-        const SizedBox(width: 8),
       ],
     );
   }

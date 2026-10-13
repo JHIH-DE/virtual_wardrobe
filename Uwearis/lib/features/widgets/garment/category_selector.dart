@@ -14,7 +14,7 @@ class CategorySelector extends StatelessWidget implements PreferredSizeWidget {
   // 64 − 2×8 padding = 48px tall rows, so each SelectableChip's tap target
   // clears AppDimens.minTouchTarget even though the visible pill stays
   // ~38px.
-  static const double _height = 64;
+  static const double _height = 52;
 
   const CategorySelector({
     super.key,

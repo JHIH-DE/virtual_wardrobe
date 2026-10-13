@@ -16,6 +16,7 @@ import '../../data/trip.dart';
 import '../../data/trip_plan.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/removable_card.dart';
@@ -411,21 +412,13 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       title: _l10n.suitcaseLabel,
       onBack: _leaveWithCommit,
       actions: [
-        InkWell(
-          onTap: () => _handleAddGarment(closetGarments),
-          borderRadius: BorderRadius.circular(AppDimens.toolbarHeight / 2),
-          // Fills the toolbar slot (same touch target as the back button).
-          child: SizedBox.square(
-            dimension: AppDimens.toolbarHeight,
-            child: Center(
-              child: Image.asset(
-                'assets/images/plus.png',
-                height: AppDimens.toolbarActionIconSize,
-              ),
-            ),
+        ActionDiscButton(
+          icon: Image.asset(
+            'assets/images/plus.png',
+            height: ActionDisc.iconSize,
           ),
+          onPressed: () => _handleAddGarment(closetGarments),
         ),
-        const SizedBox(width: 8),
       ],
     );
   }

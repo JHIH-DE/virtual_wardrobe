@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../app_divider.dart';
 import '../fields/selectable_chip.dart';
 import '../overlays/picker_sheet.dart';
+import 'action_disc_button.dart';
 
 /// One labeled row of selectable chips inside a [FilterButton]'s sheet.
 /// The group owns its own selection state and toggle logic, so callers
@@ -96,16 +96,12 @@ class FilterButton extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        IconButton(
-          // Zero padding + a toolbar-slot square so the hit target matches
-          // AppToolBar's back button and the "⋮" menu (IconButton's default
-          // 8px padding would otherwise clamp the glyph and shrink the area).
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(
-            minWidth: AppDimens.toolbarHeight,
-            minHeight: AppDimens.toolbarHeight,
+        ActionDiscButton(
+          icon: const Icon(
+            Icons.filter_list,
+            size: ActionDisc.iconSize,
+            color: AppColors.icon,
           ),
-          icon: const Icon(Icons.filter_list),
           onPressed: () => _openFilterSheet(context),
         ),
         if (isFiltered)

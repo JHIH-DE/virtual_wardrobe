@@ -152,7 +152,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
       titleCount: _currentListCount(all),
       centerTitle: false,
       showBackButton: false,
-      actions: [_buildFilterButton(all), const SizedBox(width: 8)],
+      actions: [_buildFilterButton(all)],
       // Nothing to switch between when the closet is completely empty — see
       // _buildBody's matching `if (available.isNotEmpty)` note for why this
       // is still shown whenever at least one category has garments, even if

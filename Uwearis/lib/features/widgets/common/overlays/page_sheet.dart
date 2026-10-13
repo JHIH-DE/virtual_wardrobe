@@ -4,7 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../cards/card_corner_badge.dart';
+import '../buttons/action_disc_button.dart';
 
 /// Opens a page sheet — a bottom sheet used as a page of its own, for a
 /// self-contained view (e.g. Garment Details' Closet Match analysis) that
@@ -51,11 +51,11 @@ Future<T?> pageSheet<T>(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // A [PageSheetAction]'s 36px disc is centred in its 48px tap target,
-          // so this puts each disc 16 below the sheet's top and 16 in from
-          // its side. The title keeps the same inset on both sides so it
+          // so this puts each disc 20 below the sheet's top and 20 in from
+          // its side (AppToolBar's edge inset). The title keeps the same inset on both sides so it
           // stays centred on the whole sheet without running under either.
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: 14),
             child: SizedBox(
               height: AppDimens.toolbarHeight,
               child: Stack(
@@ -63,7 +63,7 @@ Future<T?> pageSheet<T>(
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimens.toolbarHeight + 10,
+                      horizontal: AppDimens.toolbarHeight + 14,
                     ),
                     child: Text(
                       title,
@@ -73,9 +73,9 @@ Future<T?> pageSheet<T>(
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (leading != null) Positioned(left: 10, child: leading),
+                  if (leading != null) Positioned(left: 14, child: leading),
                   Positioned(
-                    right: 10,
+                    right: 14,
                     child: PageSheetAction(
                       icon: Icons.close,
                       label: AppLocalizations.of(sheetContext).close,
@@ -122,29 +122,29 @@ class PageSheetAction extends StatelessWidget {
       button: true,
       enabled: !busy,
       label: label,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CardCornerBadge(
-            icon: icon,
-            iconColor: busy ? Colors.transparent : AppColors.icon,
-            backgroundColor: AppColors.surfaceTranslucent,
-            border: Border.all(color: AppColors.borderSubtle),
-            boxShadow: const [],
-            size: 36,
-            iconSize: 20,
-            hitTargetSize: const Size.square(AppDimens.toolbarHeight),
-            onTap: busy ? null : onTap,
-          ),
-          if (busy)
-            const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.accent,
-              ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: busy ? null : onTap,
+        child: SizedBox.square(
+          dimension: AppDimens.toolbarHeight,
+          child: Center(
+            child: ActionDisc(
+              child: busy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.accent,
+                      ),
+                    )
+                  : Icon(
+                      icon,
+                      size: ActionDisc.iconSize,
+                      color: AppColors.icon,
+                    ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

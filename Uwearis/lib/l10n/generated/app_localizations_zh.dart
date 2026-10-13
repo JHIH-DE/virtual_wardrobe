@@ -454,30 +454,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get finishOutfit => '完成穿搭';
 
   @override
-  String get finishOutfitPromptBody => '讓 AI 補完你已選的單品。';
-
-  @override
   String get finishWithAi => '使用 AI 完成';
-
-  @override
-  String get outfitIncompleteTitle => '穿搭不完整';
-
-  @override
-  String outfitIncompleteBody(String parts) {
-    return '缺少$parts，無法組合成穿搭。要由 AI 幫你補齊缺少的部分嗎？';
-  }
-
-  @override
-  String get yes => '是';
-
-  @override
-  String get no => '否';
-
-  @override
-  String get listSeparator => '、';
-
-  @override
-  String get occasionFieldLabel => '場合';
 
   @override
   String get temperatureFieldLabel => '溫度';
@@ -1083,6 +1060,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chooseColorTitle => '選擇顏色';
 
   @override
+  String get chooseBackgroundTitle => '選擇背景';
+
+  @override
   String get clear => '清除';
 
   @override
@@ -1159,6 +1139,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get styleLabel => '風格';
+
+  @override
+  String get styleAuto => '自動';
 
   @override
   String get noOutfitsYet => '尚無穿搭';
@@ -1340,24 +1323,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addGarmentsButton => '新增衣物';
-
-  @override
-  String get occasionWork => '工作';
-
-  @override
-  String get occasionCasual => '休閒';
-
-  @override
-  String get occasionWorkout => '運動';
-
-  @override
-  String get occasionDate => '約會';
-
-  @override
-  String get occasionTravel => '旅行';
-
-  @override
-  String get occasionParty => '派對';
 
   @override
   String get perceivedTempOffset => '體感溫度調整';
@@ -1989,30 +1954,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get finishOutfit => '完成穿搭';
 
   @override
-  String get finishOutfitPromptBody => '讓 AI 補完你已選的單品。';
-
-  @override
   String get finishWithAi => '使用 AI 完成';
-
-  @override
-  String get outfitIncompleteTitle => '穿搭不完整';
-
-  @override
-  String outfitIncompleteBody(String parts) {
-    return '缺少$parts，無法組合成穿搭。要由 AI 幫你補齊缺少的部分嗎？';
-  }
-
-  @override
-  String get yes => '是';
-
-  @override
-  String get no => '否';
-
-  @override
-  String get listSeparator => '、';
-
-  @override
-  String get occasionFieldLabel => '場合';
 
   @override
   String get temperatureFieldLabel => '溫度';
@@ -2618,6 +2560,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get chooseColorTitle => '選擇顏色';
 
   @override
+  String get chooseBackgroundTitle => '選擇背景';
+
+  @override
   String get clear => '清除';
 
   @override
@@ -2694,6 +2639,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleLabel => '風格';
+
+  @override
+  String get styleAuto => '自動';
 
   @override
   String get noOutfitsYet => '尚無穿搭';
@@ -2875,24 +2823,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get addGarmentsButton => '新增衣物';
-
-  @override
-  String get occasionWork => '工作';
-
-  @override
-  String get occasionCasual => '休閒';
-
-  @override
-  String get occasionWorkout => '運動';
-
-  @override
-  String get occasionDate => '約會';
-
-  @override
-  String get occasionTravel => '旅行';
-
-  @override
-  String get occasionParty => '派對';
 
   @override
   String get perceivedTempOffset => '體感溫度調整';

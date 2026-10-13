@@ -8,6 +8,7 @@ import '../../data/background_option.dart';
 import '../../data/garment.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -15,7 +16,7 @@ import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/garment/garment_image.dart';
-import '../widgets/outfit/outfit_background_section.dart';
+import '../widgets/outfit/outfit_background_field.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
 /// The page's own identity for each garment slot — distinct from
@@ -94,7 +95,7 @@ typedef OutfitEditResult = ({Set<int> garmentIds, int? backgroundId});
 /// pinned "Add garment" row plus one card per current pick, tapping any card
 /// reopens the picker to swap it — this page just has no AI/try-on/
 /// Match-a-Look concepts, and draws from a fixed [preloadedGarments] pool
-/// instead of the app-wide closet. The BACKGROUND section is opt-in via
+/// instead of the app-wide closet. The BACKGROUND field is opt-in via
 /// [showBackgroundPicker], since only the new-version flow renders an image.
 class OutfitEditPage extends StatefulWidget {
   final List<Garment> initialGarments;
@@ -115,7 +116,7 @@ class OutfitEditPage extends StatefulWidget {
   /// reads as a different flow from there.
   final String? title;
 
-  /// Shows Create Outfit's BACKGROUND section — Outfit Details' "+ New
+  /// Shows Create Outfit's BACKGROUND field — Outfit Details' "+ New
   /// Version" flow, whose result is AI-rendered. Trip's "Change Garments"
   /// only swaps garment ids and leaves it off.
   final bool showBackgroundPicker;
@@ -439,22 +440,23 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
           _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 24,
         ),
         children: [
-          if (widget.showBackgroundPicker) ...[
-            OutfitBackgroundSection(
-              selected: _background,
-              horizontalInset: _pageInset,
-              onSelected: (background) => setState(() {
-                _background = background;
-                _backgroundCustomized =
-                    background.id !=
-                    (_initialBackground ?? BackgroundOption.all.first).id;
-              }),
-            ),
-            const SizedBox(height: AppDimens.sectionSpacing),
-          ],
           _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
           const SizedBox(height: AppDimens.cardHeaderGap),
           _hInset(_buildYourOutfitRow()),
+          if (widget.showBackgroundPicker) ...[
+            _hInset(const AppDivider(spacing: AppDimens.sectionSpacing)),
+            _hInset(
+              OutfitBackgroundField(
+                selected: _background,
+                onSelected: (background) => setState(() {
+                  _background = background;
+                  _backgroundCustomized =
+                      background.id !=
+                      (_initialBackground ?? BackgroundOption.all.first).id;
+                }),
+              ),
+            ),
+          ],
         ],
       ),
       bottomNavigationBar: _buildBottomBar(),

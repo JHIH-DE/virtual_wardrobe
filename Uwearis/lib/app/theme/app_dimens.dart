@@ -54,7 +54,7 @@ abstract class AppDimens {
   // AppToolBar, but 48 rather than [minTouchTarget]'s 44: an AppBar caps
   // its leading and every `actions` child at this height, and the back
   // button / "⋮" menu should each clear a full 48x48 touch target.
-  static const double toolbarHeight = 48;
+  static const double toolbarHeight = 56;
 
   // Measured height of a tappable form field (PickerField, DateDropdownField,
   // TappableFieldDecorator) so mixed text-field/picker rows line up.
@@ -63,12 +63,9 @@ abstract class AppDimens {
   static const double iconSmallSize = 20;
   static const double iconMediumSize = 24;
 
-  // AppToolBar action-slot glyphs — the "⋮" overflow menu, the filter
-  // button, and the image-asset actions (settings gear, suitcase "+").
-  // Matched to [backArrowIconSize] so every icon on the bar (both sides)
-  // reads as one size. The action IconButtons take zero padding + a 44px
-  // box so their default 8px padding doesn't clamp the glyph or shrink the
-  // hit area.
+  // A bare (disc-less) header-action glyph — the camera page's own header
+  // and an inline "⋮" menu on a card. AppToolBar's actions sit on an
+  // ActionDisc and use its smaller ActionDisc.iconSize instead.
   static const double toolbarActionIconSize = 26;
 
   // Minimum comfortable hit-target edge (logical px) for an interactive
@@ -78,8 +75,8 @@ abstract class AppDimens {
   // cross-platform target where layout allows.
   static const double minTouchTarget = 44;
 
-  // AppToolBar's back-arrow glyph (a Material Icon). Matches
-  // [toolbarActionIconSize] so both sides of the bar render at one size.
+  // The camera page's bare back-arrow glyph. Matches
+  // [toolbarActionIconSize] so both sides of its header render at one size.
   static const double backArrowIconSize = 26;
 
   // Extra bottom padding for scrollable lists/grids on the main tabs, so the

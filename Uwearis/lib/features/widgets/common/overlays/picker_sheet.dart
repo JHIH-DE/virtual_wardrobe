@@ -5,8 +5,8 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../app_divider.dart';
 
 /// Shared chrome for every "pick one from a list" bottom sheet in the app
-/// (Occasion, Gender, Language, Color): a drag handle, a title row (with
-/// an optional trailing action, e.g. Color's "Clear" button), and a
+/// (Style, Gender, Language, Color, Background): a drag handle, a title row
+/// (with an optional trailing action, e.g. Color's "Clear" button), and a
 /// divider inset 24px from each side. Put the actual list/grid as further
 /// children after it in the same [Column].
 class PickerSheetHeader extends StatelessWidget {

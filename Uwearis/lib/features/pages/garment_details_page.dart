@@ -471,6 +471,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       actions: [
         if (!_isAddMode)
           AppPopupMenu<_GarmentMenuAction>(
+            variant: AppPopupMenuVariant.toolbar,
             onSelected: _handleMenuAction,
             items: [
               AppPopupMenu.item(

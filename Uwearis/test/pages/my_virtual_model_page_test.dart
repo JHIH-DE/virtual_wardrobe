@@ -92,6 +92,14 @@ Map<String, dynamic> _profileJson({String? bodyRefUrl, String? faceRefUrl}) => {
   'face_reference_object_url': faceRefUrl,
 };
 
+/// Whether a change-photo attempt has fully wound down: the uploading
+/// spinner is gone and both temp files it created are deleted.
+bool _cleanupFinished(String? downloadedOriginalPath, String? pendingPath) =>
+    find.byType(AppSpinner).evaluate().isEmpty &&
+    (downloadedOriginalPath == null ||
+        !File(downloadedOriginalPath).existsSync()) &&
+    (pendingPath == null || !File(pendingPath).existsSync());
+
 Future<void> _pumpUntil(
   WidgetTester tester,
   bool Function() condition, {
@@ -541,9 +549,16 @@ void main() {
             () => find.text(_l10n.photoUploadFailed).evaluate().isNotEmpty,
             maxTries: 100,
           );
-          // Let the finally-block cleanups (both _uploadPhoto's and the
-          // outer _changePhoto's) actually run before checking disk state.
-          await tester.pump();
+          // The error dialog shows from _uploadPhoto's catch, before the
+          // finally-block cleanups (both _uploadPhoto's and the outer
+          // _changePhoto's) do their real file I/O and clear the spinner —
+          // wait for all of that rather than a single pump, which loses the
+          // race on a loaded machine.
+          await _pumpUntil(
+            tester,
+            () => _cleanupFinished(downloadedOriginalPath, pendingUploadPath),
+            maxTries: 100,
+          );
 
           expect(find.text(_l10n.photoUploadFailed), findsOneWidget);
           final container = ProviderScope.containerOf(
@@ -592,6 +607,14 @@ void main() {
           await _pumpUntil(
             tester,
             () => find.text(_l10n.photoUploadFailed).evaluate().isNotEmpty,
+            maxTries: 100,
+          );
+
+          // The spinner clears only after the finally-block cleanup's real
+          // file I/O — see the PUT-failure test above.
+          await _pumpUntil(
+            tester,
+            () => find.byType(AppSpinner).evaluate().isEmpty,
             maxTries: 100,
           );
 
@@ -677,7 +700,12 @@ void main() {
             () => _hasAppImageWithUrl(tester, newPath),
             maxTries: 150,
           );
-          await tester.pump(); // let the finally-block cleanups run.
+          // Let the finally-block cleanups' real file I/O finish.
+          await _pumpUntil(
+            tester,
+            () => _cleanupFinished(downloadedOriginalPath, pendingUploadPath),
+            maxTries: 100,
+          );
 
           expect(verifiedUrl, newPath);
           expect(downloadedOriginalPath, isNotNull);

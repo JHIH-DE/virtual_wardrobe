@@ -134,6 +134,14 @@ class AppColors {
   static const Color surfaceTranslucentMedium = Color(
     0xA6FFFFFF,
   ); // white @65%, e.g. a badge sitting on top of a photo (slightly lighter than surfaceTranslucent)
+  // The disc behind a toolbar / page-sheet header action icon (ActionDisc),
+  // modelled on iOS 26's glass bar buttons: barely lighter than the page,
+  // brightest at the centre, lifted by a cool rim + a white inner highlight.
+  static const Color actionDiscFillCenter = Color(0x80FFFFFF); // white @50%
+  static const Color actionDiscFillEdge = Color(0x10FFFFFF); // white @6%
+  static const Color actionDiscRim = Color(
+    0x4A3C3C43,
+  ); // iOS separator grey @29%
   static const Color borderOnDark = Color(
     0x8AFFFFFF,
   ); // subtle border on dark buttons/dialogs (was Colors.white54), white @54%

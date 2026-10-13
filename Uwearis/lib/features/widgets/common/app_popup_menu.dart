@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import 'buttons/action_disc_button.dart';
 
 /// The app's one "⋮" overflow-menu look — same shape, elevation, sizing,
 /// and item layout everywhere it shows up (trip/outfit/garment detail app
@@ -22,19 +23,22 @@ import '../../../app/theme/app_text_styles.dart';
 /// regardless of screen position.
 ///
 /// The trigger defaults to a plain "⋮" glyph in a [AppDimens.toolbarHeight]
-/// square, so in an AppToolBar its touch target matches the back button.
-/// Pass [trigger] for a fully custom widget instead — for menus that sit on
-/// top of a photo and need their own contrasting backdrop.
+/// square; [AppPopupMenuVariant.toolbar] puts it on an [ActionDisc] to match
+/// the rest of an AppToolBar's actions. Pass [trigger] for a fully custom
+/// widget instead — for menus that sit on top of a photo and need their own
+/// contrasting backdrop.
 class AppPopupMenu<T> extends StatefulWidget {
   final List<AppPopupMenuItem<T>> items;
   final ValueChanged<T> onSelected;
   final Widget? trigger;
+  final AppPopupMenuVariant variant;
 
   const AppPopupMenu({
     super.key,
     required this.items,
     required this.onSelected,
     this.trigger,
+    this.variant = AppPopupMenuVariant.inline,
   });
 
   /// One row: an optional [icon] + [label], sized/spaced the same in every
@@ -60,6 +64,15 @@ class AppPopupMenu<T> extends StatefulWidget {
 
   @override
   State<AppPopupMenu<T>> createState() => _AppPopupMenuState<T>();
+}
+
+/// Where an [AppPopupMenu]'s default "⋮" trigger sits.
+enum AppPopupMenuVariant {
+  /// On a card or row — a bare glyph.
+  inline,
+
+  /// In an AppToolBar's actions — on an [ActionDisc].
+  toolbar,
 }
 
 class _AppPopupMenuState<T> extends State<AppPopupMenu<T>>
@@ -139,14 +152,23 @@ class _AppPopupMenuState<T> extends State<AppPopupMenu<T>>
             height: AppDimens.minTouchTarget,
             child: Align(alignment: Alignment.topRight, child: widget.trigger),
           )
-        : const SizedBox.square(
+        : SizedBox.square(
             dimension: AppDimens.toolbarHeight,
             child: Center(
-              child: Icon(
-                Icons.more_vert,
-                size: AppDimens.toolbarActionIconSize,
-                color: AppColors.icon,
-              ),
+              child: switch (widget.variant) {
+                AppPopupMenuVariant.inline => const Icon(
+                  Icons.more_vert,
+                  size: AppDimens.toolbarActionIconSize,
+                  color: AppColors.icon,
+                ),
+                AppPopupMenuVariant.toolbar => const ActionDisc(
+                  child: Icon(
+                    Icons.more_vert,
+                    size: ActionDisc.iconSize,
+                    color: AppColors.icon,
+                  ),
+                ),
+              },
             ),
           );
 
@@ -155,9 +177,7 @@ class _AppPopupMenuState<T> extends State<AppPopupMenu<T>>
       child: Tooltip(
         message: MaterialLocalizations.of(context).showMenuTooltip,
         child: InkWell(
-          borderRadius: widget.trigger == null
-              ? BorderRadius.circular(AppDimens.toolbarHeight / 2)
-              : null,
+          customBorder: widget.trigger == null ? const CircleBorder() : null,
           onTap: _toggle,
           child: Semantics(button: true, child: target),
         ),

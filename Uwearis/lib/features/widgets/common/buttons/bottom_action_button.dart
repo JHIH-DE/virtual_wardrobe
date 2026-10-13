@@ -35,6 +35,13 @@ class BottomActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
+      // The default transition keys each FadeTransition by its child's key,
+      // so flipping hidden → visible → hidden within 200ms leaves two
+      // outgoing transitions with the same key ("Duplicate keys found").
+      // An unkeyed transition lets AnimatedSwitcher give each one a unique
+      // key of its own.
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
       child: _isUnavailable
           ? const SizedBox.shrink(key: ValueKey('bottomActionButton-hidden'))
           : _buildButton(key: const ValueKey('bottomActionButton-visible')),

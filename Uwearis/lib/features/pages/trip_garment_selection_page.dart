@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/services/auth_handler.dart';
@@ -12,6 +11,7 @@ import '../../data/outfit.dart';
 import '../../data/packing_analysis.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/garment_color_type_filter.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
@@ -146,16 +146,13 @@ class _TripGarmentSelectionPageState
       title: l10n.selectGarmentsTitle,
       onBack: _returnSelection,
       actions: [
-        IconButton(
-          // Zero padding + a toolbar-slot square so the hit target matches
-          // the back button / "⋮" menu (see FilterButton).
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(
-            minWidth: AppDimens.toolbarHeight,
-            minHeight: AppDimens.toolbarHeight,
-          ),
+        ActionDiscButton(
           tooltip: l10n.addFromOutfit,
-          icon: const Icon(Icons.style_outlined, color: AppColors.icon),
+          icon: const Icon(
+            Icons.style_outlined,
+            size: ActionDisc.iconSize,
+            color: AppColors.icon,
+          ),
           onPressed: _pickFromOutfit,
         ),
         _filter.buildButton(

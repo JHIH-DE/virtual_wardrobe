@@ -313,6 +313,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       actions: [
         if (items.isNotEmpty)
           AppPopupMenu<_OutfitMenuAction>(
+            variant: AppPopupMenuVariant.toolbar,
             onSelected: _handleMenuAction,
             items: items,
           ),
@@ -867,16 +868,21 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   /// The row under the carousel: the "+ New Version" pill on the left and,
   /// once the group's sibling versions have loaded and there's more than
-  /// one, an "n / total" counter on the right. The pill collapses to nothing
-  /// where adding a version isn't offered (see [_openCreateAnotherVersion]:
-  /// the Add Outfit flow, edit-hidden entry points).
+  /// one, an "n / total" counter on the right. The pill isn't offered
+  /// everywhere (see [_openCreateAnotherVersion]: the Add Outfit flow,
+  /// edit-hidden entry points); with neither it nor the counter, the row
+  /// shrinks to a plain gap.
   Widget _buildVersionActionRow() {
     final canAddVersion = !widget.isNew && widget.showEditOutfitWhenSaved;
 
     final showsCounter = _versionsResolved && _versions.length >= 2;
     final enabled = !_isOpeningTryOn && !_isCreatingVersion;
 
-    if (!canAddVersion && !showsCounter) return const SizedBox.shrink();
+    // Nothing to show — keep a gap so the photo doesn't butt up against the
+    // garments divider below.
+    if (!canAddVersion && !showsCounter) {
+      return const SizedBox(height: AppDimens.sectionSpacing);
+    }
 
     // Pinned to the pill's own min touch-target height, so a counter-only
     // row (no pill offered) keeps the same spacing below the photo.

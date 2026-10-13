@@ -42,6 +42,13 @@ class WeatherData {
   bool get hasWeeklyData =>
       weeklyCodes.isNotEmpty && weeklyHighs.isNotEmpty && weeklyLows.isNotEmpty;
 
+  /// The average of today's forecast high and low — the same "dress for
+  /// the day" temperature the backend's daily outfits use. Falls back to
+  /// the current reading when today's forecast is missing.
+  double get todayMeanTemp => weeklyHighs.isNotEmpty && weeklyLows.isNotEmpty
+      ? (weeklyHighs.first + weeklyLows.first) / 2
+      : temp;
+
   static String conditionFromCode(int code) {
     if (code == 0) return 'Clear';
     if (code <= 3) return 'Clouds';

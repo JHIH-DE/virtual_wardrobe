@@ -224,7 +224,10 @@ void main() {
           find.text("Couldn't process this photo. Please try a different one."),
           findsOneWidget,
         );
-        // The re-entrancy guard reset, not stuck mid-confirm.
+        // The re-entrancy guard reset, not stuck mid-confirm. Let the
+        // button's 200ms hide/show cross-fade finish first — mid-fade the
+        // outgoing and incoming copies are both briefly in the tree.
+        await tester.pump(const Duration(milliseconds: 250));
         expect(
           find.byKey(const ValueKey('bottomActionButton-visible')),
           findsOneWidget,

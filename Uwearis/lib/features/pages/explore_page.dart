@@ -4,6 +4,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/explore_nav_bar.dart';
@@ -61,7 +62,7 @@ class _ExplorePageState extends State<ExplorePage> {
             ),
           ),
         ),
-        actions: [_NotificationsButton(), const SizedBox(width: 8)],
+        actions: [_NotificationsButton()],
       ),
       body: Stack(
         children: [
@@ -93,19 +94,13 @@ class _NotificationsButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: AppLocalizations.of(context).notifications,
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(AppDimens.toolbarHeight / 2),
-        child: SizedBox.square(
-          dimension: AppDimens.toolbarHeight,
-          child: const Center(
-            child: Icon(
-              Icons.notifications_none,
-              size: AppDimens.toolbarActionIconSize,
-              color: AppColors.icon,
-            ),
-          ),
+      child: ActionDiscButton(
+        icon: const Icon(
+          Icons.notifications_none,
+          size: ActionDisc.iconSize,
+          color: AppColors.icon,
         ),
+        onPressed: () {},
       ),
     );
   }

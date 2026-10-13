@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/features/widgets/common/fields/number_stepper.dart';
 
 void main() {
-  Widget host(Widget child) => MaterialApp(home: Scaffold(body: Center(child: child)));
+  Widget host(Widget child) => MaterialApp(
+    home: Scaffold(body: Center(child: child)),
+  );
 
   testWidgets('pill variant renders no label, just minus/value/plus', (
     tester,
@@ -22,6 +24,30 @@ void main() {
     expect(find.text('1'), findsOneWidget);
     expect(find.byIcon(Icons.remove_circle_outline), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
+  });
+
+  testWidgets('tile variant renders no label, just minus/value/plus', (
+    tester,
+  ) async {
+    var incremented = 0;
+    await tester.pumpWidget(
+      host(
+        SizedBox(
+          width: 200,
+          child: NumberStepper(
+            variant: NumberStepperVariant.tile,
+            valueLabel: '15°C',
+            onIncrement: () => incremented++,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('15°C'), findsOneWidget);
+    // Spread across the host's width rather than shrink-wrapped.
+    expect(tester.getSize(find.byType(NumberStepper)).width, 200);
+    await tester.tap(find.byIcon(Icons.add_circle_outline));
+    expect(incremented, 1);
   });
 
   testWidgets('pill variant: tapping +/- fires the right callback', (
@@ -68,42 +94,41 @@ void main() {
   double opacityOf(WidgetTester tester) =>
       tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity;
 
-  testWidgets(
-    'pill variant with startRevealed opens fully opaque, fades to '
-    'translucent after 3s idle, and a +/- tap revives it for another 3s',
-    (tester) async {
-      await tester.pumpWidget(
-        host(
-          NumberStepper(
-            variant: NumberStepperVariant.pill,
-            valueLabel: '1',
-            onDecrement: null,
-            onIncrement: () {},
-            startRevealed: true,
-          ),
+  testWidgets('pill variant with startRevealed opens fully opaque, fades to '
+      'translucent after 3s idle, and a +/- tap revives it for another 3s', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        NumberStepper(
+          variant: NumberStepperVariant.pill,
+          valueLabel: '1',
+          onDecrement: null,
+          onIncrement: () {},
+          startRevealed: true,
         ),
-      );
+      ),
+    );
 
-      // Just appeared because the caller says this is a fresh selection —
-      // fully visible.
-      expect(opacityOf(tester), 1);
+    // Just appeared because the caller says this is a fresh selection —
+    // fully visible.
+    expect(opacityOf(tester), 1);
 
-      // Not yet 3s — still fully revealed.
-      await tester.pump(const Duration(seconds: 2));
-      expect(opacityOf(tester), 1);
+    // Not yet 3s — still fully revealed.
+    await tester.pump(const Duration(seconds: 2));
+    expect(opacityOf(tester), 1);
 
-      await tester.pump(const Duration(seconds: 2));
-      expect(opacityOf(tester), 0.6);
+    await tester.pump(const Duration(seconds: 2));
+    expect(opacityOf(tester), 0.6);
 
-      // A tap revives it for another 3s.
-      await tester.tap(find.byIcon(Icons.add_circle_outline));
-      await tester.pump();
-      expect(opacityOf(tester), 1);
+    // A tap revives it for another 3s.
+    await tester.tap(find.byIcon(Icons.add_circle_outline));
+    await tester.pump();
+    expect(opacityOf(tester), 1);
 
-      await tester.pump(const Duration(seconds: 4));
-      expect(opacityOf(tester), 0.6);
-    },
-  );
+    await tester.pump(const Duration(seconds: 4));
+    expect(opacityOf(tester), 0.6);
+  });
 
   testWidgets(
     'pill variant defaults to startRevealed: false — mounts already at '

@@ -481,30 +481,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get finishOutfit => 'Auto-Complete';
 
   @override
-  String get finishOutfitPromptBody => 'Let AI complete your selected pieces.';
-
-  @override
   String get finishWithAi => 'Finish with AI';
-
-  @override
-  String get outfitIncompleteTitle => 'Outfit Incomplete';
-
-  @override
-  String outfitIncompleteBody(String parts) {
-    return 'Your outfit is missing $parts, so it can\'t be created yet. Let AI fill in the missing pieces?';
-  }
-
-  @override
-  String get yes => 'Yes';
-
-  @override
-  String get no => 'No';
-
-  @override
-  String get listSeparator => ', ';
-
-  @override
-  String get occasionFieldLabel => 'Occasion';
 
   @override
   String get temperatureFieldLabel => 'Temperature';
@@ -1131,6 +1108,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseColorTitle => 'Choose a color';
 
   @override
+  String get chooseBackgroundTitle => 'Choose a background';
+
+  @override
   String get clear => 'Clear';
 
   @override
@@ -1207,6 +1187,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get styleLabel => 'Style';
+
+  @override
+  String get styleAuto => 'Auto';
 
   @override
   String get noOutfitsYet => 'No outfits yet';
@@ -1394,24 +1377,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addGarmentsButton => 'Add Garments';
-
-  @override
-  String get occasionWork => 'Work';
-
-  @override
-  String get occasionCasual => 'Casual';
-
-  @override
-  String get occasionWorkout => 'Workout';
-
-  @override
-  String get occasionDate => 'Date';
-
-  @override
-  String get occasionTravel => 'Travel';
-
-  @override
-  String get occasionParty => 'Party';
 
   @override
   String get perceivedTempOffset => 'Perceived Temperature Offset';

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/core/providers/profile_provider.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
@@ -121,8 +122,8 @@ void main() {
   }
 
   final backButton = find.ancestor(
-    of: find.image(const AssetImage('assets/images/page_arrow_left.png')),
-    matching: find.byType(IconButton),
+    of: find.byIcon(Icons.arrow_back_ios_new_rounded),
+    matching: find.byType(ActionDiscButton),
   );
 
   testWidgets(

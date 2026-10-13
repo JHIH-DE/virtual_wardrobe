@@ -4,6 +4,7 @@ import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/app_popup_menu.dart';
 import 'package:uwearis/features/widgets/common/app_tool_bar.dart';
+import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/overlays/page_sheet.dart';
 import 'package:uwearis/features/widgets/common/overlays/picker_sheet.dart';
 
@@ -52,9 +53,7 @@ void main() {
   }
 
   testWidgets('sheet starts right at the tool bar\'s bottom, with a title and '
-      'an X', (
-    tester,
-  ) async {
+      'an X', (tester) async {
     await pumpAndOpen(tester);
 
     expect(find.text('Sheet'), findsOneWidget);
@@ -67,17 +66,15 @@ void main() {
     expect(sheet.bottom, 844);
   });
 
-  testWidgets('the X disc sits 16 from the top and 16 from the right, with '
-      'the title level with it and centred on the sheet', (
-    tester,
-  ) async {
+  testWidgets('the X disc sits 20 from the top and 20 from the right, with '
+      'the title level with it and centred on the sheet', (tester) async {
     await pumpAndOpen(tester);
 
     // The glyph is centred on its 36px disc.
     final sheet = tester.getRect(find.byType(BottomSheet));
     final close = tester.getCenter(find.byIcon(Icons.close));
-    expect(close.dx, sheet.right - 16 - 18);
-    expect(close.dy, sheet.top + 16 + 18);
+    expect(close.dx, sheet.right - 20 - 18);
+    expect(close.dy, sheet.top + 20 + 18);
     final title = tester.getCenter(find.text('Sheet'));
     expect(title.dy, close.dy);
     expect(title.dx, sheet.center.dx);
@@ -87,12 +84,10 @@ void main() {
     await pumpAndOpen(tester, width: 800);
 
     expect(tester.getSize(find.byType(BottomSheet)).width, 800);
-    expect(tester.getCenter(find.byIcon(Icons.close)).dx, 800 - 16 - 18);
+    expect(tester.getCenter(find.byIcon(Icons.close)).dx, 800 - 20 - 18);
   });
 
-  testWidgets('a leading action mirrors the X at the top left', (
-    tester,
-  ) async {
+  testWidgets('a leading action mirrors the X at the top left', (tester) async {
     var taps = 0;
     await pumpAndOpen(
       tester,
@@ -105,16 +100,14 @@ void main() {
 
     final sheet = tester.getRect(find.byType(BottomSheet));
     final leading = tester.getCenter(find.byIcon(Icons.refresh));
-    expect(leading.dx, sheet.left + 16 + 18);
+    expect(leading.dx, sheet.left + 20 + 18);
     expect(leading.dy, tester.getCenter(find.byIcon(Icons.close)).dy);
 
     await tester.tap(find.byIcon(Icons.refresh));
     expect(taps, 1);
   });
 
-  testWidgets('a busy action shows a spinner and ignores taps', (
-    tester,
-  ) async {
+  testWidgets('a busy action shows a spinner and ignores taps', (tester) async {
     var taps = 0;
     // pumpAndOpen settles the open animation; the busy spinner never settles,
     // so open with a plain action and only then swap in the busy one.
@@ -136,7 +129,10 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.refresh), warnIfMissed: false);
+    await tester.tap(
+      find.byType(CircularProgressIndicator),
+      warnIfMissed: false,
+    );
     expect(taps, 0);
   });
 
@@ -149,6 +145,9 @@ void main() {
       tester.widget<BottomSheet>(find.byType(BottomSheet)).backgroundColor,
       AppColors.pageBackground,
     );
+    // The header actions' ActionDisc carries its own gradient fill; only
+    // the sheet's own surface must be flat.
+    final discs = find.byType(ActionDisc);
     final gradients = tester
         .widgetList<DecoratedBox>(
           find.descendant(
@@ -156,7 +155,19 @@ void main() {
             matching: find.byType(DecoratedBox),
           ),
         )
-        .where((d) => (d.decoration as BoxDecoration?)?.gradient != null);
+        .where(
+          (d) =>
+              (d.decoration as BoxDecoration?)?.gradient != null &&
+              !discs.evaluate().any(
+                (disc) => find
+                    .descendant(
+                      of: find.byWidget(disc.widget),
+                      matching: find.byWidget(d),
+                    )
+                    .evaluate()
+                    .isNotEmpty,
+              ),
+        );
     expect(gradients, isEmpty);
   });
 

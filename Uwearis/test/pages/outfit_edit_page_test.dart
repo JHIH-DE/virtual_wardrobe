@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/data/garment.dart';
+import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/pages/outfit_edit_page.dart';
 import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
 import 'package:uwearis/features/widgets/garment/garment_image.dart';
@@ -337,11 +338,19 @@ void main() {
       await tester.pump();
 
       expect(find.text('BACKGROUND'), findsOneWidget);
-      // Header summary + the (crossfaded-out) card itself.
-      expect(find.text('Tokyo Street'), findsNWidgets(2));
-      // Only the preselected card carries the checkmark.
-      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.text('Tokyo Street'), findsOneWidget);
       expect(find.text('Confirm'), findsNothing);
+      // Sits below the outfit items, behind a divider.
+      expect(
+        tester.getTopLeft(find.text('BACKGROUND')).dy,
+        greaterThan(tester.getTopLeft(find.text('OUTFIT ITEMS')).dy),
+      );
+      expect(find.byType(AppDivider), findsWidgets);
+
+      // Only the preselected card in the sheet carries the checkmark.
+      await tester.tap(find.text('Tokyo Street'));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.check), findsOneWidget);
     });
 
     testWidgets(
@@ -352,7 +361,7 @@ void main() {
           tester,
           initialBackgroundId: 7,
           interact: () async {
-            await tester.tap(find.text('BACKGROUND'));
+            await tester.tap(find.text('Tokyo Street'));
             await tester.pumpAndSettle();
             expect(find.text('Confirm'), findsNothing);
             await tester.tap(find.text('Paris Street'));

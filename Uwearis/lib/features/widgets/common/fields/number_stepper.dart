@@ -6,7 +6,16 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-enum NumberStepperVariant { card, row, pill }
+enum NumberStepperVariant {
+  card,
+  row,
+  pill,
+
+  /// Just "− value +" spread across the available width — no label or
+  /// chrome of its own, for a host tile that already shows the label above
+  /// it (Add Outfit's Auto-Complete temperature tile).
+  tile,
+}
 
 class NumberStepper extends StatefulWidget {
   final String? label;
@@ -27,7 +36,9 @@ class NumberStepper extends StatefulWidget {
     this.startRevealed = false,
     this.onRevealConsumed,
   }) : assert(
-         label != null || variant == NumberStepperVariant.pill,
+         label != null ||
+             variant == NumberStepperVariant.pill ||
+             variant == NumberStepperVariant.tile,
          'label is required for the card/row variants',
        );
 
@@ -85,10 +96,14 @@ class _NumberStepperState extends State<NumberStepper> {
 
   @override
   Widget build(BuildContext context) {
+    final isTile = widget.variant == NumberStepperVariant.tile;
     final row = Row(
       mainAxisSize: _isPill ? MainAxisSize.min : MainAxisSize.max,
+      mainAxisAlignment: isTile
+          ? MainAxisAlignment.spaceBetween
+          : MainAxisAlignment.start,
       children: [
-        if (!_isPill)
+        if (!_isPill && !isTile)
           Expanded(
             child: Text(
               widget.label!,
@@ -116,7 +131,7 @@ class _NumberStepperState extends State<NumberStepper> {
         _buildStepButton(
           icon: Icons.add_circle_outline,
           onPressed: widget.onIncrement,
-          trailing: !_isPill,
+          trailing: !_isPill && !isTile,
         ),
       ],
     );
@@ -137,6 +152,7 @@ class _NumberStepperState extends State<NumberStepper> {
         ),
         child: row,
       ),
+      NumberStepperVariant.tile => row,
       NumberStepperVariant.card => Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 12),
@@ -159,7 +175,9 @@ class _NumberStepperState extends State<NumberStepper> {
 
   double get _glyphSize => 28;
   TextStyle get _valueTextStyle =>
-      _isPill ? AppTextStyle.bold16 : AppTextStyle.regular16;
+      _isPill || widget.variant == NumberStepperVariant.tile
+      ? AppTextStyle.bold16
+      : AppTextStyle.regular16;
   double get _buttonBoxSize => _isPill ? 36 : AppDimens.minTouchTarget;
   double get _hitPad => (_buttonBoxSize - _glyphSize) / 2;
 

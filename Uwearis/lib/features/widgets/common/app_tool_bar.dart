@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import 'buttons/action_disc_button.dart';
 import 'cards/count_pill.dart';
 
 class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
@@ -33,6 +34,13 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     this.bottom,
     this.centerTitle = true,
   });
+
+  // Puts the outermost discs (back button / last action) 20 from the screen
+  // edge, as on iOS — each disc sits centred in a toolbarHeight tap box.
+  static const double _edgeInset = 14;
+  static const double _backArrowSize = 22;
+
+  bool get _usesBackButton => leading == null && showBackButton;
 
   @override
   Size get preferredSize => Size.fromHeight(
@@ -77,41 +85,40 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         backgroundColor: AppColors.toolbarBackground,
         foregroundColor: AppColors.textPrimary,
         toolbarHeight: AppDimens.toolbarHeight,
-        // Action glyphs default to 24 (and inherit foregroundColor); size
-        // them up a touch and match the "⋮" menu's icon colour so the
-        // action slot doesn't read as small next to the back arrow.
         actionsIconTheme: const IconThemeData(
-          size: AppDimens.toolbarActionIconSize,
+          size: ActionDisc.iconSize,
           color: AppColors.icon,
         ),
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: centerTitle,
-        leadingWidth: leadingWidth,
+        leadingWidth:
+            leadingWidth ??
+            (_usesBackButton ? _edgeInset + AppDimens.toolbarHeight : null),
         title: titleWidget != null
             ? Semantics(header: true, label: title, child: titleWidget)
             : _buildTitle(),
         leading:
             leading ??
             (showBackButton
-                ? IconButton(
-                    // Zero padding + a bar-height box so the touch target
-                    // fills the full 48x48 slot with the 26px glyph centred
-                    // in it.
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: AppDimens.toolbarHeight,
-                      minHeight: AppDimens.toolbarHeight,
+                ? Padding(
+                    padding: const EdgeInsets.only(left: _edgeInset),
+                    child: ActionDiscButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: _backArrowSize,
+                        color: AppColors.icon,
+                      ),
+                      onPressed: onBack ?? () => Navigator.pop(context),
                     ),
-                    icon: Image.asset(
-                      'assets/images/page_arrow_left.png',
-                      height: AppDimens.backArrowIconSize,
-                    ),
-                    onPressed: onBack ?? () => Navigator.pop(context),
                   )
                 : null),
         actions: actions,
+        actionsPadding: const EdgeInsets.only(right: _edgeInset),
         bottom: bottom,
       ),
     );

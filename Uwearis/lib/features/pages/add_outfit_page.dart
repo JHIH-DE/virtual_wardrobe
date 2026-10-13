@@ -15,31 +15,32 @@ import '../../core/utils/debug_log.dart';
 import '../../core/utils/try_on_mixin.dart';
 import '../../data/garment.dart';
 import '../../data/match_a_look.dart';
-import '../../data/occasion_type.dart';
 import '../../data/outfit.dart';
+import '../../data/style_type.dart';
 import '../../data/background_option.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../l10n/occasion_type_localization.dart';
+import '../../l10n/style_type_localization.dart';
+import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
-import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
-import '../widgets/common/overlays/occasion_picker_sheet.dart';
 import '../widgets/common/overlays/photo_source_dialog.dart';
+import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_image.dart';
-import '../widgets/outfit/outfit_background_section.dart';
+import '../widgets/outfit/outfit_background_field.dart';
 import 'camera_capture_page.dart' show CameraFrameRatio;
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
@@ -171,25 +172,25 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   // "Complete with AI" state — garment ids the user has locked (AI must keep
   // them), ids the AI has already recommended and the user then moved past
   // (a fresh run should try something else instead of repeating them — see
-  // `_applyCompletedOutfit`), the occasion this outfit is for, and whether
-  // a completion request is in flight.
+  // `_applyCompletedOutfit`), the style to ask for (null = let the backend
+  // infer it from Style Taste), and whether a completion request is in
+  // flight.
   final Set<int> _lockedGarmentIds = {};
   final Set<int> _excludedGarmentIds = {};
-  OccasionType _completeWithAiOccasion = OccasionType.casual;
+  StyleType? _completeWithAiStyle;
   // Absolute temperature (°C) Finish Outfit should dress for. null = follow
-  // the live weather reading (the stepper still shows that reading as its
-  // starting value); set once the user nudges the stepper, then it wins for
+  // today's mean temperature (`WeatherData.todayMeanTemp`, which the stepper
+  // still shows as its starting value); set once the user nudges the stepper, then it wins for
   // this outfit only (not persisted).
   double? _weatherTempOverrideC;
   bool _isCompletingWithAi = false;
-  // Synchronous re-entrancy guards for the two costly AI actions on this
-  // page — set before the first `await` in their handlers and cleared in a
-  // `finally`, so a double-tap during a pre-flight `await` (a delete
-  // round-trip, the Finish Outfit dialog) can't start a second AI render.
-  // See CLAUDE.md "Guarding costly / mutating actions against
-  // double-invocation".
+  // Synchronous re-entrancy guard for Create Outfit — set before the first
+  // `await` in [_startTryOn] and cleared in a `finally`, so a double-tap
+  // during a pre-flight `await` (a delete round-trip) can't start a second
+  // AI render. Finish Outfit needs no separate one: [_completeWithAi] raises
+  // [_isCompletingWithAi] before its own first `await`. See CLAUDE.md
+  // "Guarding costly / mutating actions against double-invocation".
   bool _tryOnRequested = false;
-  bool _completeWithAiInFlight = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -318,8 +319,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       .toSet();
 
   /// The Top/Bottom/Shoes core categories a complete try-on needs — only
-  /// the ones the closet actually has, in that order. Drives whether
-  /// [_startTryOn] runs Finish Outfit first to fill the gaps.
+  /// the ones the closet actually has, in that order. Create Outfit only
+  /// shows once every one of them is picked (see [_createFlowReady]).
   List<GarmentCategory> get _coreChecklist => const [
     GarmentCategory.top,
     GarmentCategory.bottom,
@@ -619,23 +620,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     if (_tryOnRequested || isOutfitLoading || _isCompletingWithAi) return;
     setState(() => _tryOnRequested = true);
     try {
-      // If any core slot (Top / Bottom / Shoes) is still empty, ask before
-      // letting AI fill the gaps — "No" leaves the user to pick them. A
-      // closet with none of those three categories skips this (AI can't
-      // help there).
-      if (_coreChecklist.isNotEmpty && !_coreComplete) {
-        final missing = _coreChecklist.where((c) => !_coreSlotMet(c)).toList();
-        final proceed = await _showOutfitIncompleteDialog(missing);
-        if (proceed != true || !mounted) return;
-        // Only the missing slots get filled — everything already picked
-        // stays, locked or not (Match a Look's picks are unlocked).
-        await _completeWithAi(keepGarmentIds: _selectedGarmentIds().toSet());
-        if (!mounted) return;
-        // Finish Outfit couldn't complete the core slots — it already
-        // surfaced the failure, so just stop here.
-        if (!_coreComplete) return;
-      }
-
       final ids = _selectedGarmentIds();
       if (ids.isEmpty) return;
 
@@ -689,17 +673,12 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       title: _l10n.quickActionAddOutfit,
       onBack: widget.onBack,
       actions: [
-        IconButton(
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(
-            minWidth: AppDimens.toolbarHeight,
-            minHeight: AppDimens.toolbarHeight,
-          ),
+        ActionDiscButton(
           tooltip: _l10n.matchALookTitle,
           icon: Image.asset(
             'assets/images/camera.png',
-            width: AppDimens.toolbarActionIconSize,
-            height: AppDimens.toolbarActionIconSize,
+            width: ActionDisc.iconSize,
+            height: ActionDisc.iconSize,
           ),
           // With a reference already matched this swaps it out, same as
           // the reference card's "Change".
@@ -707,7 +686,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
               ? _changeReferenceLook
               : _startMatchALookFlow,
         ),
-        const SizedBox(width: 8),
       ],
     );
   }
@@ -725,16 +703,13 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           appBar: _buildAppBar(),
           body: ListView(
             physics: const ClampingScrollPhysics(),
-            // Edge-to-edge so the horizontal card rows can scroll flush to
-            // the screen edges; non-scrolling children re-apply the inset
-            // via [_hInset]. Create Outfit is always present (it just
-            // toggles enabled — see _buildBottomBar), so this clearance is
-            // unconditional.
-            padding: const EdgeInsets.fromLTRB(
+            // Edge-to-edge; non-scrolling children re-apply the inset via
+            // [_hInset].
+            padding: EdgeInsets.fromLTRB(
               0,
               24,
               0,
-              AppDimens.bottomActionBtnClearance,
+              _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 0,
             ),
             children: _buildCreateFlowBody(),
           ),
@@ -759,10 +734,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 
   /// The default "New Outfit" layout: the Match a Look reference card (once
-  /// matched), the collapsible BACKGROUND section, then the "Outfit Items"
-  /// header (with the Auto-Complete action) and a vertical list of the
-  /// picked garments (+ an "Add garment" row). Occasion/temperature live in
-  /// the Auto-Complete dialog.
+  /// matched), the Finish Outfit card, the "Outfit Items" header and a
+  /// vertical list of the picked garments (+ an "Add garment" row), then a
+  /// divider and the BACKGROUND field.
   List<Widget> _buildCreateFlowBody() {
     return [
       // The app bar's Match a Look icon is the entry point; this card only
@@ -778,39 +752,23 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         ),
         const SizedBox(height: AppDimens.sectionSpacing),
       ],
-      OutfitBackgroundSection(
-        selected: _background,
-        horizontalInset: _createFlowInset,
-        onSelected: isOutfitLoading
-            ? null
-            : (background) => setState(() {
-                _background = background;
-                _backgroundCustomized = true;
-              }),
-      ),
+      _hInset(_buildFinishOutfitCard()),
       const SizedBox(height: AppDimens.sectionSpacing),
-      _hInset(
-        Row(
-          children: [
-            FieldLabel(_l10n.outfitItemsLabel.toUpperCase()),
-            const Spacer(),
-            AccentPillButton(
-              label: _l10n.finishOutfit,
-              icon: Icons.auto_awesome,
-              // Finish Outfit works with 0, 1, or many locked garments —
-              // it never requires a selection first.
-              enabled:
-                  !isOutfitLoading &&
-                  !_isCompletingWithAi &&
-                  !_completeWithAiInFlight &&
-                  !_garmentPoolLoading,
-              onPressed: _handleCompleteWithAiTap,
-            ),
-          ],
-        ),
-      ),
+      _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
       const SizedBox(height: AppDimens.cardHeaderGap),
       _hInset(_buildYourOutfitRow()),
+      _hInset(const AppDivider(spacing: AppDimens.sectionSpacing)),
+      _hInset(
+        OutfitBackgroundField(
+          selected: _background,
+          onSelected: isOutfitLoading
+              ? null
+              : (background) => setState(() {
+                  _background = background;
+                  _backgroundCustomized = true;
+                }),
+        ),
+      ),
     ];
   }
 
@@ -1234,8 +1192,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   /// [_excludedGarmentIds], so a later "Complete with AI" tap asks for
   /// something different instead of risking the same suggestion again.
   ///
-  /// [keepGarmentIds] overrides which ids count as "locked" for this one
-  /// application (see [_completeWithAi]).
+  /// [keepGarmentIds] is the locked set as it was when the request went
+  /// out (see [_completeWithAi]), so a lock toggled mid-request doesn't
+  /// change what this application keeps.
   void _applyCompletedOutfit(
     List<int> garmentIds, {
     required Set<int> keepGarmentIds,
@@ -1287,55 +1246,137 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   static const double _defaultTemperatureC = 20;
 
-  /// "Occasion   [icon] Casual  ›" row shown in the Auto-Complete dialog;
-  /// tapping it opens [showOccasionPickerSheet]. [onChanged] rebuilds the host dialog after a
-  /// pick (page `setState` alone doesn't reach the dialog route).
-  Widget _buildOccasionPickerRow({VoidCallback? onChanged}) {
-    return InkWell(
-      onTap: () async {
-        final selected = await showOccasionPickerSheet(
-          context,
-          current: _completeWithAiOccasion,
-          title: _l10n.occasionFieldLabel,
-        );
-        if (selected == null || !mounted) return;
-        setState(() => _completeWithAiOccasion = selected);
-        onChanged?.call();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                _l10n.occasionFieldLabel,
-                style: AppTextStyle.semibold16,
+  /// Finish Outfit's knobs and trigger: the "Finish with AI" button beside
+  /// the title, then two side-by-side tiles — today's temperature (seeded
+  /// from today's forecast high/low average, adjustable for this outfit
+  /// only) and the style to ask for. Works with 0, 1, or many locked
+  /// garments — it never requires a selection first.
+  Widget _buildFinishOutfitCard() {
+    final liveTemp = ref
+        .watch(weatherProvider)
+        .maybeWhen(data: (w) => w.todayMeanTemp, orElse: () => null);
+    final tempC = _weatherTempOverrideC ?? liveTemp ?? _defaultTemperatureC;
+    final enabled =
+        !isOutfitLoading && !_isCompletingWithAi && !_garmentPoolLoading;
+    return AppCardShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: SectionTitle(_l10n.finishOutfit)),
+              AccentPillButton(
+                label: _l10n.finishWithAi,
+                icon: Icons.auto_awesome,
+                enabled: enabled,
+                onPressed: _completeWithAi,
               ),
-            ),
-            Icon(_completeWithAiOccasion.icon, size: 18, color: AppColors.icon),
-            const SizedBox(width: 6),
-            Text(
-              _completeWithAiOccasion.localizedLabel(context),
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
+            ],
+          ),
+          const SizedBox(height: AppDimens.cardHeaderGap),
+          Row(
+            children: [
+              Expanded(
+                child: _buildFinishOutfitTile(
+                  label: _l10n.temperatureFieldLabel,
+                  child: NumberStepper(
+                    variant: NumberStepperVariant.tile,
+                    valueLabel: '${tempC.round()}°C',
+                    onDecrement: () =>
+                        setState(() => _weatherTempOverrideC = tempC - 1),
+                    onIncrement: () =>
+                        setState(() => _weatherTempOverrideC = tempC + 1),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 2),
-            Image.asset(
-              'assets/images/page_arrow_right.png',
-              width: 20,
-              height: 20,
-              color: AppColors.textSecondary,
-              colorBlendMode: BlendMode.srcIn,
-            ),
-          ],
+              const SizedBox(width: AppDimens.cardSpacing),
+              Expanded(
+                child: _buildFinishOutfitTile(
+                  label: _l10n.styleLabel,
+                  onTap: _openStylePicker,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _completeWithAiStyle?.localizedName(context) ??
+                              _l10n.styleAuto,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyle.bold16,
+                        ),
+                      ),
+                      Image.asset(
+                        'assets/images/page_arrow_right.png',
+                        width: 20,
+                        height: 20,
+                        color: AppColors.textSecondary,
+                        colorBlendMode: BlendMode.srcIn,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One of the Auto-Complete card's two knob tiles: a small-caps [label]
+  /// above a fixed-height [child], so both tiles line up regardless of
+  /// what they hold.
+  Widget _buildFinishOutfitTile({
+    required String label,
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+        side: const BorderSide(color: AppColors.borderSubtle),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FieldLabel(label.toUpperCase()),
+              SizedBox(
+                height: AppDimens.minTouchTarget,
+                child: Align(alignment: Alignment.centerLeft, child: child),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// Best-effort current weather — used both to seed the temperature
-  /// stepper and, unless the user has overridden it, as the value sent to
+  /// Single-choice sheet of "Auto" (let the backend infer the style from
+  /// Style Taste) plus every [StyleType]. Options are wrapped in a record so
+  /// "Auto" (a null style) stays distinguishable from a dismissed sheet.
+  Future<void> _openStylePicker() async {
+    final picked = await showSingleChoiceSheet<({StyleType? style})>(
+      context,
+      title: _l10n.styleLabel,
+      options: [
+        (style: null),
+        for (final style in StyleType.values) (style: style),
+      ],
+      selected: (style: _completeWithAiStyle),
+      labelOf: (o) => o.style?.localizedName(context) ?? _l10n.styleAuto,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _completeWithAiStyle = picked.style);
+  }
+
+  /// Best-effort weather — unless the user has overridden the temperature,
+  /// its [WeatherData.todayMeanTemp] is what's sent to
   /// [GarmentRecommendationService.completeOutfit]. Never throws.
   Future<WeatherData?> _fetchWeatherBestEffort() async {
     try {
@@ -1347,122 +1388,25 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  Future<void> _handleCompleteWithAiTap() async {
-    // Re-entrancy guard — the dialog and `_completeWithAi` both run before
-    // `_isCompletingWithAi` is raised, so a double-tap could otherwise stack
-    // two dialogs / fire two recommendation requests.
-    if (_isCompletingWithAi || _completeWithAiInFlight) return;
-    setState(() => _completeWithAiInFlight = true);
-    try {
-      final proceed = await _showFinishOutfitDialog();
-      if (proceed == true && mounted) await _completeWithAi();
-    } finally {
-      if (mounted) setState(() => _completeWithAiInFlight = false);
-    }
-  }
-
-  /// The "Finish Outfit" dialog opened from the header pill — a short
-  /// explainer plus the Occasion / Weather knobs, confirmed with "Finish
-  /// with AI". Shown every time (no first-use gating). Wrapped in a
-  /// [Consumer] so the stepper seeds from the live weather reading, and a
-  /// [StatefulBuilder] so occasion/temperature edits rebuild it. Returns
-  /// `true` when the user confirms.
-  Future<bool?> _showFinishOutfitDialog() {
-    return showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => Consumer(
-          builder: (context, ref, _) {
-            final liveTemp = ref
-                .watch(weatherProvider)
-                .maybeWhen(data: (w) => w.temp, orElse: () => null);
-            final tempC =
-                _weatherTempOverrideC ?? liveTemp ?? _defaultTemperatureC;
-            return AppDialog(
-              title: _l10n.finishOutfit,
-              contentToPrimarySpacing: 8,
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _l10n.finishOutfitPromptBody,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyle.medium16,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildOccasionPickerRow(
-                    onChanged: () => setDialogState(() {}),
-                  ),
-                  const AppDivider(topSpacing: 0, bottomSpacing: 0),
-                  NumberStepper(
-                    variant: NumberStepperVariant.row,
-                    label: _l10n.temperatureFieldLabel,
-                    valueLabel: '${tempC.round()}°C',
-                    onDecrement: () {
-                      setState(() => _weatherTempOverrideC = tempC - 1);
-                      setDialogState(() {});
-                    },
-                    onIncrement: () {
-                      setState(() => _weatherTempOverrideC = tempC + 1);
-                      setDialogState(() {});
-                    },
-                  ),
-                ],
-              ),
-              primaryLabel: _l10n.finishWithAi,
-              primaryIcon: Icons.auto_awesome,
-              onPrimary: () => Navigator.pop(dialogContext, true),
-              secondaryLabel: _l10n.cancel,
-              onSecondary: () => Navigator.pop(dialogContext),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  /// Shown when Create Outfit is tapped with core slots ([missing]) still
-  /// empty: explains why it can't render yet and asks whether AI should
-  /// fill them in. `true` = Yes; "No" / dismiss leaves the user to edit.
-  Future<bool?> _showOutfitIncompleteDialog(List<GarmentCategory> missing) {
-    final parts = missing
-        .map((c) => c.localizedLabel(context))
-        .join(_l10n.listSeparator);
-    return showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AppDialog(
-        title: _l10n.outfitIncompleteTitle,
-        body: _l10n.outfitIncompleteBody(parts),
-        primaryLabel: _l10n.yes,
-        onPrimary: () => Navigator.pop(dialogContext, true),
-        secondaryLabel: _l10n.no,
-        onSecondary: () => Navigator.pop(dialogContext, false),
-      ),
-    );
-  }
-
   /// Calls [GarmentRecommendationService.completeOutfit] with the currently
-  /// locked garments + occasion + weather (best-effort). Style comes from
-  /// the user's own Style Taste analysis, resolved silently on the backend
-  /// — nothing to fetch or send from here. Text-only: no Try-On image is
+  /// locked garments + the Finish Outfit card's style and temperature
+  /// (best-effort weather unless overridden). Text-only: no Try-On image is
   /// generated here, only [_startTryOn] (behind "Create Outfit") does that.
-  ///
-  /// [keepGarmentIds] defaults to the locked garments (the Finish Outfit
-  /// pill: unlocked picks may be swapped). Create Outfit passes every
-  /// selected id so the AI only fills what's missing.
-  Future<void> _completeWithAi({Set<int>? keepGarmentIds}) async {
+  /// Locked garments are kept; unlocked picks may be swapped.
+  Future<void> _completeWithAi() async {
     if (_isCompletingWithAi) return;
     setState(() => _isCompletingWithAi = true);
     try {
-      // The user's explicit override wins; otherwise the live reading (or
-      // null when there's neither — the backend then decides on its own).
+      // The user's explicit override wins; otherwise today's mean temperature
+      // (or null when there's neither — the backend then decides on its own).
       final temperatureC =
-          _weatherTempOverrideC ?? (await _fetchWeatherBestEffort())?.temp;
-      final keep = keepGarmentIds ?? {..._lockedGarmentIds};
+          _weatherTempOverrideC ??
+          (await _fetchWeatherBestEffort())?.todayMeanTemp;
+      final keep = {..._lockedGarmentIds};
       final ids = await GarmentRecommendationService().completeOutfit(
         garmentIds: keep.toList(),
         excludeGarmentIds: _excludedGarmentIds.toList(),
-        occasion: _completeWithAiOccasion,
+        style: _completeWithAiStyle,
         temperatureC: temperatureC,
       );
       if (!mounted) return;
@@ -1479,22 +1423,23 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  /// Create Outfit is always shown in the create flow now — if Top/Bottom/
-  /// Shoes aren't all picked, [_startTryOn] runs Finish Outfit to fill the
-  /// gaps before rendering. It's only *disabled* while a costly AI action is
-  /// already running, or — for a closet with none of those three categories,
-  /// where Finish Outfit can't help — until at least 2 garments are picked.
+  /// Create Outfit only shows once the picks make a complete outfit on
+  /// their own — Top + Bottom (or a one-piece) + Shoes — and renders exactly
+  /// what's picked, with no AI fill-in. A closet with none of those three
+  /// categories falls back to "at least 2 garments". Also hidden while a
+  /// costly AI action is already running.
   bool get _createFlowReady {
     if (isOutfitLoading ||
         _garmentPoolLoading ||
         _tryOnRequested ||
-        _isCompletingWithAi ||
-        _completeWithAiInFlight) {
+        _isCompletingWithAi) {
       return false;
     }
     if (_coreChecklist.isEmpty) return _selectedGarmentIds().length >= 2;
-    return true;
+    return _coreComplete;
   }
+
+  bool get _showsBottomActionButton => _createFlowReady;
 
   Widget _buildBottomBar() {
     return BottomActionButton(

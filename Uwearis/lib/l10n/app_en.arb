@@ -199,19 +199,12 @@
   "exploreNavBag": "Bag",
   "exploreNavSaved": "Saved",
   "finishOutfit": "Auto-Complete",
-  "finishOutfitPromptBody": "Let AI complete your selected pieces.",
   "finishWithAi": "Finish with AI",
-  "outfitIncompleteTitle": "Outfit Incomplete",
-  "outfitIncompleteBody": "Your outfit is missing {parts}, so it can't be created yet. Let AI fill in the missing pieces?",
   "@outfitIncompleteBody": {
     "placeholders": {
       "parts": {"type": "String", "example": "Bottom, Shoes"}
     }
   },
-  "yes": "Yes",
-  "no": "No",
-  "listSeparator": ", ",
-  "occasionFieldLabel": "Occasion",
   "temperatureFieldLabel": "Temperature",
   "completeWithAiUnavailable": "Couldn't complete your outfit with AI — please try again.",
   "navCloset": "Closet",
@@ -458,6 +451,7 @@
   "usedInOutfits": "Used in Outfits",
   "selectAColor": "Select Color",
   "chooseColorTitle": "Choose a color",
+  "chooseBackgroundTitle": "Choose a background",
   "clear": "Clear",
   "close": "Close",
   "brand": "Brand",
@@ -487,6 +481,7 @@
 
   "seasonLabel": "Season",
   "styleLabel": "Style",
+  "styleAuto": "Auto",
   "noOutfitsYet": "No outfits yet",
   "outfitsEmptyHint": "Combine pieces from your closet into a complete look.",
   "itemNotUsedInOutfitsYet": "This item has not been used in any outfits yet.",
@@ -570,12 +565,6 @@
   "startPackingTripHint": "Choose clothes from your closet to build your trip outfits.",
   "addGarmentsButton": "Add Garments",
 
-  "occasionWork": "Work",
-  "occasionCasual": "Casual",
-  "occasionWorkout": "Workout",
-  "occasionDate": "Date",
-  "occasionTravel": "Travel",
-  "occasionParty": "Party",
   "perceivedTempOffset": "Perceived Temperature Offset",
 
   "todaysOutfit": "Today's Outfit",

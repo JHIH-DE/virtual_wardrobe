@@ -11,6 +11,7 @@ import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart'
 import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
 import 'package:uwearis/features/widgets/common/images/refreshable_network_image.dart';
+import 'package:uwearis/features/widgets/common/labeled_divider.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -300,6 +301,50 @@ void main() {
 
         expect(find.byWidgetPredicate(isBlackScaffold), findsNothing);
       }, stubClient);
+    },
+  );
+
+  testWidgets(
+    'without "+ New Version" or a counter, a gap still separates the photo '
+    'from the garments divider',
+    (tester) async {
+      useTallSurface(tester);
+      const groupId = 791;
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/$groupId')) {
+          return jsonResponse(
+            envelope({
+              'outfits': [
+                {
+                  'outfit_id': 1,
+                  'group_id': groupId,
+                  'result_image_url': 'https://img.example/1.png',
+                  'garment_ids': [1],
+                },
+              ],
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        // An entry point that doesn't offer "+ New Version", single version.
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: _outfit(groupId: groupId, garmentIds: [1]),
+            showEditOutfitWhenSaved: false,
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byType(AccentPillButton), findsNothing);
+        final photoBottom = tester.getBottomLeft(find.byType(PageView)).dy;
+        final dividerTop = tester.getTopLeft(find.byType(LabeledDivider)).dy;
+        expect(dividerTop - photoBottom, greaterThanOrEqualTo(16));
+      }, () => client);
     },
   );
 

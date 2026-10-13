@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/app_tool_bar.dart';
 import 'package:uwearis/features/widgets/common/cards/count_pill.dart';
 
@@ -41,12 +42,9 @@ void main() {
   testWidgets('shows a back button by default, hidden when showBackButton is '
       'false', (tester) async {
     await pumpBar(tester, const AppToolBar(title: 'A'));
-    expect(find.byType(IconButton), findsOneWidget);
+    expect(find.byType(ActionDiscButton), findsOneWidget);
 
-    await pumpBar(
-      tester,
-      const AppToolBar(title: 'A', showBackButton: false),
-    );
-    expect(find.byType(IconButton), findsNothing);
+    await pumpBar(tester, const AppToolBar(title: 'A', showBackButton: false));
+    expect(find.byType(ActionDiscButton), findsNothing);
   });
 }

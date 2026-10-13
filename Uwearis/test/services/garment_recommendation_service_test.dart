@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/garment_recommendation_service.dart';
-import 'package:uwearis/data/occasion_type.dart';
+import 'package:uwearis/data/style_type.dart';
 
 import '../helpers/fake_auth.dart';
 
@@ -31,46 +31,44 @@ void main() {
   setUp(setUpFakeAuth);
 
   group('completeOutfit', () {
-    test(
-      'POSTs occasion/temperature/garment_ids/exclude_garment_ids and '
-      'parses the result',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return _jsonResponse(
-            _envelope({
-              'outfit_name': 'Sharp Weekday Look',
-              'selected_garment_ids': [101, 205, 88],
-              'items': [
-                {'garment_id': 101, 'role': 'top', 'order': 0, 'reason': 'r'},
-              ],
-              'styling_tips': null,
-              'reasoning': null,
-            }),
-          );
-        });
-
-        final ids = await http.runWithClient(
-          () => GarmentRecommendationService().completeOutfit(
-            garmentIds: const [101],
-            excludeGarmentIds: const [9, 10],
-            occasion: OccasionType.casual,
-            temperatureC: 22.5,
-          ),
-          () => client,
+    test('POSTs style/temperature/garment_ids/exclude_garment_ids and '
+        'parses the result', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope({
+            'outfit_name': 'Sharp Weekday Look',
+            'selected_garment_ids': [101, 205, 88],
+            'items': [
+              {'garment_id': 101, 'role': 'top', 'order': 0, 'reason': 'r'},
+            ],
+            'styling_tips': null,
+            'reasoning': null,
+          }),
         );
+      });
 
-        expect(captured.method, 'POST');
-        expect(captured.url.toString(), _base);
-        final body = jsonDecode(captured.body) as Map<String, dynamic>;
-        expect(body['occasion'], 'casual_daily');
-        expect(body['temperature_c'], 22.5);
-        expect(body['garment_ids'], [101]);
-        expect(body['exclude_garment_ids'], [9, 10]);
-        expect(ids, [101, 205, 88]);
-      },
-    );
+      final ids = await http.runWithClient(
+        () => GarmentRecommendationService().completeOutfit(
+          garmentIds: const [101],
+          excludeGarmentIds: const [9, 10],
+          style: StyleType.smartCasual,
+          temperatureC: 22.5,
+        ),
+        () => client,
+      );
+
+      expect(captured.method, 'POST');
+      expect(captured.url.toString(), _base);
+      final body = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(body['style'], 'smart_casual');
+      expect(body.containsKey('occasion'), isFalse);
+      expect(body['temperature_c'], 22.5);
+      expect(body['garment_ids'], [101]);
+      expect(body['exclude_garment_ids'], [9, 10]);
+      expect(ids, [101, 205, 88]);
+    });
 
     test('defaults exclude_garment_ids to an empty list', () async {
       late http.Request captured;
@@ -82,15 +80,32 @@ void main() {
       });
 
       await http.runWithClient(
-        () => GarmentRecommendationService().completeOutfit(
-          garmentIds: const [],
-          occasion: OccasionType.casual,
-        ),
+        () =>
+            GarmentRecommendationService().completeOutfit(garmentIds: const []),
         () => client,
       );
 
       final body = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(body['exclude_garment_ids'], <int>[]);
+    });
+
+    test('leaves style out when none is picked (backend infers it)', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope({'selected_garment_ids': <int>[], 'items': <dynamic>[]}),
+        );
+      });
+
+      await http.runWithClient(
+        () =>
+            GarmentRecommendationService().completeOutfit(garmentIds: const []),
+        () => client,
+      );
+
+      final body = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(body.containsKey('style'), isFalse);
     });
 
     test('sends a null temperature_c when the weather is unknown', () async {
@@ -103,10 +118,8 @@ void main() {
       });
 
       await http.runWithClient(
-        () => GarmentRecommendationService().completeOutfit(
-          garmentIds: const [],
-          occasion: OccasionType.work,
-        ),
+        () =>
+            GarmentRecommendationService().completeOutfit(garmentIds: const []),
         () => client,
       );
 
@@ -124,7 +137,6 @@ void main() {
         http.runWithClient(
           () => GarmentRecommendationService().completeOutfit(
             garmentIds: const [1],
-            occasion: OccasionType.casual,
           ),
           () => client,
         ),
@@ -139,7 +151,6 @@ void main() {
         http.runWithClient(
           () => GarmentRecommendationService().completeOutfit(
             garmentIds: const [1],
-            occasion: OccasionType.casual,
           ),
           () => MockClient((request) async {
             throw TimeoutException('simulated slow request');
