@@ -635,12 +635,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get changeGarments => '更換單品';
 
   @override
-  String get noOutfitPlannedYetTitle => '尚未安排穿搭';
-
-  @override
-  String get noOutfitPlannedYetHint => '產生行程穿搭計畫，為這一天安排服裝。';
-
-  @override
   String missingFromSuitcaseCount(int count) {
     return '還有 $count 件尚未打包。';
   }
@@ -1225,18 +1219,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dailyOutfitPlan => '每日穿搭規劃';
 
   @override
-  String outfitForDate(String date) {
-    return '$date 的穿搭';
-  }
-
-  @override
   String get noItemsPlanned => '尚無規劃項目';
 
   @override
   String get thinkingEllipsis => '思考中…';
-
-  @override
-  String get packingAdviceLabel => '打包建議';
 
   @override
   String get suitcaseLabel => '行李箱';
@@ -1257,7 +1243,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addFromOutfit => '從穿搭新增';
 
   @override
+  String get addFromOutfitHint => '一次打包已儲存穿搭裡的所有衣物。';
+
+  @override
   String get selectAnOutfitTitle => '選擇穿搭';
+
+  @override
+  String get selectVersionTitle => '選擇版本';
 
   @override
   String addedItemsFromOutfitCount(int count) {
@@ -1299,9 +1291,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get failedToRemoveItem => '移除項目失敗';
-
-  @override
-  String get loadingSuitcaseEllipsis => '載入行李箱中…';
 
   @override
   String get updatingSuitcaseEllipsis => '更新行李箱中…';
@@ -2135,12 +2124,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get changeGarments => '更換單品';
 
   @override
-  String get noOutfitPlannedYetTitle => '尚未安排穿搭';
-
-  @override
-  String get noOutfitPlannedYetHint => '產生行程穿搭計畫，為這一天安排服裝。';
-
-  @override
   String missingFromSuitcaseCount(int count) {
     return '還有 $count 件尚未打包。';
   }
@@ -2725,18 +2708,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get dailyOutfitPlan => '每日穿搭規劃';
 
   @override
-  String outfitForDate(String date) {
-    return '$date 的穿搭';
-  }
-
-  @override
   String get noItemsPlanned => '尚無規劃項目';
 
   @override
   String get thinkingEllipsis => '思考中…';
-
-  @override
-  String get packingAdviceLabel => '打包建議';
 
   @override
   String get suitcaseLabel => '行李箱';
@@ -2757,7 +2732,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addFromOutfit => '從穿搭新增';
 
   @override
+  String get addFromOutfitHint => '一次打包已儲存穿搭裡的所有衣物。';
+
+  @override
   String get selectAnOutfitTitle => '選擇穿搭';
+
+  @override
+  String get selectVersionTitle => '選擇版本';
 
   @override
   String addedItemsFromOutfitCount(int count) {
@@ -2799,9 +2780,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get failedToRemoveItem => '移除項目失敗';
-
-  @override
-  String get loadingSuitcaseEllipsis => '載入行李箱中…';
 
   @override
   String get updatingSuitcaseEllipsis => '更新行李箱中…';

@@ -7,11 +7,9 @@ import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
-import '../../data/outfit.dart';
 import '../../data/packing_analysis.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/garment_color_type_filter.dart';
 import '../widgets/common/cards/uwearis_insight_card.dart';
@@ -20,7 +18,6 @@ import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
-import 'trip_outfit_selection_page.dart';
 
 class TripGarmentSelectionPage extends ConsumerStatefulWidget {
   final int tripId;
@@ -106,37 +103,6 @@ class _TripGarmentSelectionPageState
     });
   }
 
-  /// Lets the user pick a saved outfit, then selects whichever of its
-  /// garments are still in the current closet, the same way tapping each
-  /// one individually would.
-  Future<void> _pickFromOutfit() async {
-    final outfit = await Navigator.push<Outfit>(
-      context,
-      MaterialPageRoute(builder: (_) => const TripOutfitSelectionPage()),
-    );
-    if (outfit == null || !mounted) return;
-
-    final availableIds = widget.garments
-        .map((g) => g.id)
-        .whereType<int>()
-        .toSet();
-    final matchedIds = outfit.garmentIds.where(availableIds.contains).toSet();
-    final newIds = matchedIds.difference(_selectedIds);
-
-    final l10n = AppLocalizations.of(context);
-    if (newIds.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.noNewItemsFromOutfit)));
-      return;
-    }
-
-    setState(() => _selectedIds.addAll(newIds));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.addedItemsFromOutfitCount(newIds.length))),
-    );
-  }
-
   List<Garment> get _byCategory =>
       widget.garments.where((g) => g.category == _selectedCategory).toList();
 
@@ -146,15 +112,6 @@ class _TripGarmentSelectionPageState
       title: l10n.selectGarmentsTitle,
       onBack: _returnSelection,
       actions: [
-        ActionDiscButton(
-          tooltip: l10n.addFromOutfit,
-          icon: const Icon(
-            Icons.style_outlined,
-            size: ActionDisc.iconSize,
-            color: AppColors.icon,
-          ),
-          onPressed: _pickFromOutfit,
-        ),
         _filter.buildButton(
           l10n,
           _byCategory,

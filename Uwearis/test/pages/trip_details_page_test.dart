@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/core/providers/trip_detail_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/trip_plan.dart';
 import 'package:uwearis/features/pages/trip_details_page.dart';
 import 'package:uwearis/features/pages/trip_suitcase_page.dart';
+import 'package:uwearis/features/widgets/common/buttons/circle_icon_button.dart';
+import 'package:uwearis/features/widgets/common/cards/generated_image_card.dart';
 import 'package:uwearis/features/widgets/trip/trip_day_card.dart';
 
 import '../helpers/fake_auth.dart';
@@ -36,6 +39,28 @@ Trip _trip() => Trip(
   ],
 );
 
+TripDetail _detail({
+  Set<int> suitcaseIds = const {},
+  List<TripDayOutfit> days = const [],
+}) => TripDetail(
+  days: days,
+  suitcase: [for (final id in suitcaseIds) _garment(id)],
+);
+
+/// Pumps [TripDetailsPage] with [tripDetailProvider] already holding
+/// [detail] — what `openTripDetails` guarantees before pushing it.
+Future<void> pumpDetails(
+  WidgetTester tester, {
+  Trip? trip,
+  TripDetail detail = const TripDetail(),
+}) {
+  return pumpApp(
+    tester,
+    TripDetailsPage(trip: trip ?? _trip()),
+    overrides: [tripDetailProvider.overrideWithBuild((_, _) => detail)],
+  );
+}
+
 Garment _garment(int id, {GarmentCategory category = GarmentCategory.top}) =>
     Garment(
       id: id,
@@ -58,9 +83,8 @@ void main() {
   }
 
   // getTripSuggestion (packing-analysis) is the only initState call as long
-  // as the preloaded plan carries no stale image URLs and no push/pop
-  // touches _fetchSuitcaseGarments/_refreshTripPlan (see the dedicated
-  // regression test below for that pair).
+  // as the seeded detail carries no stale image URLs (which would trigger a
+  // background reload).
   http.Client packingAdviceClient({int recommendedTotal = 6}) {
     return MockClient((request) async {
       if (request.url.path.endsWith('/packing-analysis')) {
@@ -80,10 +104,7 @@ void main() {
   testWidgets('renders the trip header and suitcase section', (tester) async {
     await http.runWithClient(() async {
       useTallSurface(tester);
-      await pumpApp(
-        tester,
-        TripDetailsPage(trip: _trip(), initialData: const TripPlan()),
-      );
+      await pumpDetails(tester, trip: _trip(), detail: const TripDetail());
       await tester.pump(); // let _loadPackingAnalysis resolve
       await tester.pump();
 
@@ -105,10 +126,7 @@ void main() {
     (tester) async {
       await http.runWithClient(() async {
         useTallSurface(tester);
-        await pumpApp(
-          tester,
-          TripDetailsPage(trip: _trip(), initialData: const TripPlan()),
-        );
+        await pumpDetails(tester, trip: _trip(), detail: const TripDetail());
         await tester.pump();
         await tester.pump();
 
@@ -127,7 +145,7 @@ void main() {
   ) async {
     await http.runWithClient(() async {
       useTallSurface(tester);
-      final plan = TripPlan(
+      final plan = _detail(
         suitcaseIds: {1},
         days: [
           TripDayOutfit(
@@ -137,7 +155,7 @@ void main() {
           ),
         ],
       );
-      await pumpApp(tester, TripDetailsPage(trip: _trip(), initialData: plan));
+      await pumpDetails(tester, trip: _trip(), detail: plan);
       await tester.pump();
       await tester.pump();
 
@@ -145,15 +163,54 @@ void main() {
     }, packingAdviceClient);
   });
 
+  testWidgets(
+    'Change Garments sits beside OUTFIT ITEMS, and stays reachable for a '
+    'planned day with no items yet',
+    (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: _detail(
+            suitcaseIds: {1},
+            days: [TripDayOutfit(date: DateTime(2026, 11, 1), optionId: 10)],
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('OUTFIT ITEMS'), findsOneWidget);
+        expect(find.text('No items planned'), findsOneWidget);
+        final row = find.ancestor(
+          of: find.text('OUTFIT ITEMS'),
+          matching: find.byType(Row),
+        );
+        expect(
+          find.descendant(of: row, matching: find.byIcon(Icons.edit_outlined)),
+          findsOneWidget,
+        );
+        // The pencil's disc lines up with the row's (content's) right edge
+        // rather than sitting inset inside its larger tap box.
+        final disc = tester.getRect(
+          find
+              .descendant(
+                of: find.widgetWithIcon(CircleIconButton, Icons.edit_outlined),
+                matching: find.byType(DecoratedBox),
+              )
+              .first,
+        );
+        expect(disc.right, tester.getRect(row.first).right);
+      }, packingAdviceClient);
+    },
+  );
+
   testWidgets('with no plan the outfit image card is hidden', (tester) async {
     await http.runWithClient(() async {
       useTallSurface(tester);
-      await pumpApp(
+      await pumpDetails(
         tester,
-        TripDetailsPage(
-          trip: _trip(),
-          initialData: TripPlan(suitcaseIds: {1, 2, 3, 4, 5, 6}),
-        ),
+        trip: _trip(),
+        detail: _detail(suitcaseIds: {1, 2, 3, 4, 5, 6}),
       );
       await tester.pump();
       await tester.pump();
@@ -176,7 +233,7 @@ void main() {
     (tester) async {
       await http.runWithClient(() async {
         useTallSurface(tester);
-        final plan = TripPlan(
+        final plan = _detail(
           suitcaseIds: {1},
           days: [
             TripDayOutfit(
@@ -187,10 +244,7 @@ void main() {
             TripDayOutfit(date: DateTime(2026, 11, 2)),
           ],
         );
-        await pumpApp(
-          tester,
-          TripDetailsPage(trip: _trip(), initialData: plan),
-        );
+        await pumpDetails(tester, trip: _trip(), detail: plan);
         await tester.pump();
         await tester.pump();
 
@@ -211,7 +265,7 @@ void main() {
   ) async {
     await http.runWithClient(() async {
       useTallSurface(tester);
-      final plan = TripPlan(
+      final plan = _detail(
         suitcaseIds: {1},
         days: [
           TripDayOutfit(
@@ -221,13 +275,80 @@ void main() {
           ),
         ],
       );
-      await pumpApp(tester, TripDetailsPage(trip: _trip(), initialData: plan));
+      await pumpDetails(tester, trip: _trip(), detail: plan);
       await tester.pump();
       await tester.pump();
 
       // The per-day action is a button on the card, not on a bottom bar.
       expect(find.text('Generate Outfit'), findsOneWidget);
       expect(find.text('No outfit image yet'), findsNothing);
+    }, packingAdviceClient);
+  });
+
+  testWidgets(
+    'an unrendered day has no image card and no date/city header — its '
+    'Generate Outfit button sits under the garment thumbnails',
+    (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: _detail(
+            suitcaseIds: {1},
+            days: [
+              TripDayOutfit(
+                date: DateTime(2026, 11, 1),
+                optionId: 10,
+                garments: [_garment(1)],
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byType(GeneratedImageCard), findsNothing);
+        expect(find.textContaining('Outfit for'), findsNothing);
+        expect(find.byIcon(Icons.location_on_outlined), findsNothing);
+        expect(
+          tester.getTopLeft(find.text('Generate Outfit')).dy,
+          greaterThan(tester.getBottomLeft(find.text('OUTFIT ITEMS')).dy),
+        );
+      }, packingAdviceClient);
+    },
+  );
+
+  testWidgets('a rendered day shows its image card under the garments and no '
+      'Generate button', (tester) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpDetails(
+        tester,
+        detail: _detail(
+          suitcaseIds: {1},
+          days: [
+            TripDayOutfit(
+              date: DateTime(2026, 11, 1),
+              optionId: 10,
+              garments: [_garment(1)],
+              outfitId: 5,
+              resultImageUrl: 'https://example.com/outfit.jpg',
+              everHadOutfit: true,
+            ),
+          ],
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(GeneratedImageCard), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byType(GeneratedImageCard)).dy,
+        greaterThan(tester.getBottomLeft(find.text('OUTFIT ITEMS')).dy),
+        reason: 'the image sits under the garment thumbnails',
+      );
+      expect(find.text('Generate Outfit'), findsNothing);
+      expect(find.text('Regenerate Outfit'), findsNothing);
     }, packingAdviceClient);
   });
 
@@ -254,7 +375,7 @@ void main() {
 
       await http.runWithClient(() async {
         useTallSurface(tester);
-        final plan = TripPlan(
+        final plan = _detail(
           suitcaseIds: {1},
           days: [
             TripDayOutfit(
@@ -264,10 +385,7 @@ void main() {
             ),
           ],
         );
-        await pumpApp(
-          tester,
-          TripDetailsPage(trip: _trip(), initialData: plan),
-        );
+        await pumpDetails(tester, trip: _trip(), detail: plan);
         await tester.pump();
         await tester.pump();
 
@@ -297,7 +415,7 @@ void main() {
     (tester) async {
       await http.runWithClient(() async {
         useTallSurface(tester);
-        final plan = TripPlan(
+        final plan = _detail(
           suitcaseIds: {1, 2, 3},
           days: [
             TripDayOutfit(
@@ -311,10 +429,7 @@ void main() {
             ),
           ],
         );
-        await pumpApp(
-          tester,
-          TripDetailsPage(trip: _trip(), initialData: plan),
-        );
+        await pumpDetails(tester, trip: _trip(), detail: plan);
         await tester.pump();
         await tester.pump();
 
@@ -336,7 +451,7 @@ void main() {
     (tester) async {
       await http.runWithClient(() async {
         useTallSurface(tester);
-        final plan = TripPlan(
+        final plan = _detail(
           suitcaseIds: {1, 2},
           days: [
             TripDayOutfit(
@@ -349,10 +464,7 @@ void main() {
             ),
           ],
         );
-        await pumpApp(
-          tester,
-          TripDetailsPage(trip: _trip(), initialData: plan),
-        );
+        await pumpDetails(tester, trip: _trip(), detail: plan);
         await tester.pump();
         await tester.pump();
 
@@ -420,10 +532,7 @@ void main() {
           ),
         ],
       );
-      await pumpApp(
-        tester,
-        TripDetailsPage(trip: trip, initialData: const TripPlan()),
-      );
+      await pumpDetails(tester, trip: trip, detail: const TripDetail());
       await tester.pump();
       await tester.pump();
 
@@ -464,30 +573,26 @@ void main() {
     }, () => client);
   });
 
-  // Regression test for the just-created-trip flow: TripsPage.handleCreateTrip
-  // pushes TripSuitcasePage directly on top of this (already-pushed,
-  // background) page — never through _openSuitcase — so only [didPopNext]
-  // can catch the return. Plan generation itself now happens on that page,
-  // so this exercises _refreshTripPlan (not just _fetchSuitcaseGarments,
-  // covered by [_TripDetailsPageState._fetchSuitcaseGarments]'s own doc
-  // comment / the suitcase-ids it feeds elsewhere).
+  // TripsPage.handleCreateTrip pushes TripSuitcasePage directly on top of
+  // this page — never through _openSuitcase. The plan generated there is
+  // written into tripDetailProvider, which this page watches, so it shows on
+  // return without this page re-fetching anything itself.
   testWidgets(
-    'popping back from a Suitcase page pushed directly on top of this page '
-    '(the just-created-trip flow) refreshes the trip plan',
+    'a plan generated on a Suitcase page pushed directly on top of this page '
+    '(the just-created-trip flow) shows up on return',
     (tester) async {
-      // Toggled to simulate the plan having been generated while the user
-      // was on the (directly-pushed) Suitcase page.
-      var planGenerated = false;
+      var tripRequests = 0;
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/packing-analysis')) {
           return jsonResponse(
             envelope({'overall_advice': null, 'categories': []}),
           );
         }
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/generate')) {
+          return jsonResponse(envelope({'days': [], 'suitcase_items': []}));
+        }
         if (request.method == 'GET' && request.url.path.endsWith('/plan')) {
-          if (!planGenerated) {
-            return jsonResponse(envelope({'days': [], 'suitcase_items': []}));
-          }
           return jsonResponse(
             envelope({
               'days': [
@@ -504,30 +609,29 @@ void main() {
                   ],
                 },
               ],
-              'suitcase_items': [
-                {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
-              ],
+              'suitcase_items': [],
             }),
           );
         }
         if (request.method == 'GET' &&
             request.url.path.endsWith('/trip_plans/7')) {
-          return jsonResponse(
-            envelope({
-              'suitcase_items': [
-                {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
-              ],
-            }),
-          );
+          tripRequests++;
+          return jsonResponse(envelope({'suitcase_items': []}));
         }
         return jsonResponse(envelope({}), status: 404);
       });
 
       await http.runWithClient(() async {
         useTallSurface(tester);
-        await pumpApp(
+        await pumpDetails(
           tester,
-          TripDetailsPage(trip: _trip(), initialData: const TripPlan()),
+          detail: TripDetail(
+            suitcase: [
+              _garment(1, category: GarmentCategory.top),
+              _garment(2, category: GarmentCategory.bottom),
+              _garment(3, category: GarmentCategory.shoes),
+            ],
+          ),
         );
         await tester.pump();
         await tester.pump();
@@ -543,31 +647,31 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // As if TripSuitcasePage's own "Plan Trip Outfits" button just
-        // generated the plan and popped back.
-        planGenerated = true;
-        navigator.pop();
-        await tester.pump();
-        await tester.pump();
+        await tester.tap(find.text('Plan Trip Outfits'));
+        await tester.pumpAndSettle();
 
+        expect(find.byType(TripSuitcasePage), findsNothing);
         expect(find.text('Generate Outfit'), findsOneWidget);
         expect(find.text('Let Uwearis Plan Your Trip'), findsNothing);
+        expect(
+          tripRequests,
+          0,
+          reason: 'the Suitcase page renders the cached suitcase',
+        );
       }, () => client);
     },
   );
 
-  // Regression: didPopNext used to unconditionally call _refreshTripPlan on
-  // *every* pop, including popping back from the day outfit editor —
-  // exactly when _openDayOutfitEditor was about to send its own
-  // updateOptionItems PATCH. Whichever response landed last won, so the
-  // stale GET /plan could overwrite the just-applied edit; the edit only
-  // "stuck" after leaving and re-entering the page. _skipPlanRefreshOnNextPop
-  // suppresses that one refetch for this specific round trip.
+  // Regression: popping back from the day outfit editor used to re-fetch
+  // the plan right as _openDayOutfitEditor sent its own updateOptionItems
+  // PATCH, and a stale GET /plan landing last overwrote the edit. The editor
+  // now opens from the cached suitcase and nothing is re-fetched on return.
   testWidgets(
-    'changing a day\'s garments sends the update and does not race a stale '
-    'trip-plan refetch',
+    'changing a day\'s garments sends the update without re-fetching the plan '
+    'or the suitcase',
     (tester) async {
       var planRequests = 0;
+      var tripRequests = 0;
       late http.Request capturedPatch;
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/packing-analysis')) {
@@ -581,14 +685,8 @@ void main() {
         }
         if (request.method == 'GET' &&
             request.url.path.endsWith('/trip_plans/7')) {
-          return jsonResponse(
-            envelope({
-              'suitcase_items': [
-                {'garment_id': 1, 'name': 'Item 1', 'category': 'Top'},
-                {'garment_id': 2, 'name': 'Item 2', 'category': 'Top'},
-              ],
-            }),
-          );
+          tripRequests++;
+          return jsonResponse(envelope({'suitcase_items': []}));
         }
         if (request.method == 'PATCH' && request.url.path.endsWith('/items')) {
           capturedPatch = request;
@@ -605,7 +703,7 @@ void main() {
 
       await http.runWithClient(() async {
         useTallSurface(tester);
-        final plan = TripPlan(
+        final plan = _detail(
           suitcaseIds: {1, 2},
           days: [
             TripDayOutfit(
@@ -615,10 +713,7 @@ void main() {
             ),
           ],
         );
-        await pumpApp(
-          tester,
-          TripDetailsPage(trip: _trip(), initialData: plan),
-        );
+        await pumpDetails(tester, trip: _trip(), detail: plan);
         await tester.pump();
         await tester.pump();
 
@@ -646,11 +741,8 @@ void main() {
         });
         // ...and nothing raced it: the day editor round trip must not have
         // triggered the stale-plan refetch that used to overwrite this.
-        expect(
-          planRequests,
-          0,
-          reason: 'the day editor round trip should skip _refreshTripPlan',
-        );
+        expect(planRequests, 0);
+        expect(tripRequests, 0);
       }, () => client);
     },
   );
@@ -664,10 +756,7 @@ void main() {
     testWidgets('only shows once a trip plan actually exists', (tester) async {
       await http.runWithClient(() async {
         useTallSurface(tester);
-        await pumpApp(
-          tester,
-          TripDetailsPage(trip: _trip(), initialData: const TripPlan()),
-        );
+        await pumpDetails(tester, trip: _trip(), detail: const TripDetail());
         await tester.pump();
         await tester.pump();
 
@@ -740,7 +829,7 @@ void main() {
 
         await http.runWithClient(() async {
           useTallSurface(tester);
-          final plan = TripPlan(
+          final plan = _detail(
             suitcaseIds: {1, 2},
             days: [
               // Manually edited, garment still packed -> keep.
@@ -758,10 +847,7 @@ void main() {
               ),
             ],
           );
-          await pumpApp(
-            tester,
-            TripDetailsPage(trip: _trip(), initialData: plan),
-          );
+          await pumpDetails(tester, trip: _trip(), detail: plan);
           await tester.pump();
           await tester.pump();
 
@@ -805,7 +891,7 @@ void main() {
 
         await http.runWithClient(() async {
           useTallSurface(tester);
-          final plan = TripPlan(
+          final plan = _detail(
             suitcaseIds: {1},
             days: [
               // Manually edited, garment still packed -> keep.
@@ -817,10 +903,7 @@ void main() {
               ),
             ],
           );
-          await pumpApp(
-            tester,
-            TripDetailsPage(trip: _trip(), initialData: plan),
-          );
+          await pumpDetails(tester, trip: _trip(), detail: plan);
           await tester.pump();
           await tester.pump();
 

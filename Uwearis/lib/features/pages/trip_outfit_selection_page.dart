@@ -5,14 +5,17 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
+import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/outfit/outfit_grid.dart';
+import 'trip_outfit_version_page.dart';
 
-/// Lets the user pick one of their saved outfits, so its garments can be
-/// added to a trip's suitcase in one go — pops with the chosen [Outfit], or
+/// Lets the user pick one of their saved outfits, then one of its versions
+/// ([TripOutfitVersionPage]), so that version's garments can be added to a
+/// trip's suitcase in one go — pops with the chosen version's [Outfit], or
 /// null if dismissed without picking one.
 ///
 /// The list is the same "standalone try-ons" the Outfits tab shows, so this
@@ -40,6 +43,14 @@ class _TripOutfitSelectionPageState
     });
   }
 
+  Future<void> _pickVersion(Outfit outfit) async {
+    final version = await Navigator.push<Outfit>(
+      context,
+      MaterialPageRoute(builder: (_) => TripOutfitVersionPage(outfit: outfit)),
+    );
+    if (version != null && mounted) Navigator.pop(context, version);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -58,7 +69,7 @@ class _TripOutfitSelectionPageState
           onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
           emptyMessage: l10n.noOutfitsYet,
           padding: AppDimens.pageGridPadding,
-          onOutfitTap: (outfit) => Navigator.pop(context, outfit),
+          onOutfitTap: _pickVersion,
         ),
       ),
     );

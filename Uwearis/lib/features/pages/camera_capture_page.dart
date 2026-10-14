@@ -265,11 +265,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                     minWidth: AppDimens.toolbarHeight,
                     minHeight: AppDimens.toolbarHeight,
                   ),
-                  icon: Image.asset(
-                    'assets/images/page_arrow_left.png',
-                    height: AppDimens.backArrowIconSize,
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: AppDimens.backArrowIconSize,
                     color: AppColors.textOnPrimary,
-                    colorBlendMode: BlendMode.srcIn,
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),

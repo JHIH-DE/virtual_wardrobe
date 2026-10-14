@@ -209,29 +209,12 @@ class GeneratedImageCard extends StatelessWidget {
               ),
             );
     }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (!generateEnabled && generateDisabledMessage != null) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              generateDisabledMessage!,
-              textAlign: TextAlign.center,
-              style: AppTextStyle.regular13.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        AccentPillButton(
-          label: generateLabel!,
-          icon: Icons.auto_awesome,
-          enabled: generateEnabled,
-          onPressed: onGenerate,
-        ),
-      ],
+    return AccentPillButton(
+      label: generateLabel!,
+      icon: Icons.auto_awesome,
+      enabled: generateEnabled,
+      disabledMessage: generateDisabledMessage,
+      onPressed: onGenerate,
     );
   }
 

@@ -7,11 +7,12 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
-import '../../core/providers/trip_suggestion_provider.dart';
+import '../../core/providers/trip_detail_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
+import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../data/trip_plan.dart';
 import '../../l10n/garment_localization.dart';
@@ -19,42 +20,23 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/removable_card.dart';
-import '../widgets/common/cards/uwearis_insight_card.dart';
-import '../widgets/common/expandable_insight_body.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_dialog.dart';
+import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
 import '../widgets/trip/replan_confirm_dialog.dart';
 import 'trip_garment_selection_page.dart';
+import 'trip_outfit_selection_page.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
   final Trip trip;
 
-  /// True only on the navigation that lands here straight after creating the
-  /// trip (this page is now the first stop, with Trip Details pushed
-  /// underneath it) — the Uwearis outfit-advice card then opens expanded,
-  /// since the advice is fresh and unread. Reopening the suitcase later
-  /// keeps it collapsed.
-  final bool justCreated;
-
-  /// Whether this trip already has a generated plan — flips the bottom
-  /// button's label between "Plan Trip Outfits" (first time) and "Replan
-  /// Trip Outfits" (a plan already exists — see [_generatePlan]'s doc for
-  /// what that does differently). Passed in from [TripDetailsPage], which
-  /// already knows this; defaults to false since the other entry point
-  /// (straight after trip creation) never has one yet.
-  final bool initialHasTripPlan;
-
-  const TripSuitcasePage({
-    super.key,
-    required this.trip,
-    this.justCreated = false,
-    this.initialHasTripPlan = false,
-  });
+  const TripSuitcasePage({super.key, required this.trip});
 
   @override
   ConsumerState<TripSuitcasePage> createState() => _TripSuitcasePageState();
@@ -71,7 +53,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     GarmentCategory.accessory,
   ];
 
-  bool _loading = true;
+  late bool _loading = !_hasCachedDetail;
   // The staged/visible list. Add-picker changes land here without hitting
   // the server; per-card removals still commit immediately (they carry their
   // own confirm). [_committedIds] tracks what the server actually holds.
@@ -82,9 +64,6 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   // changes again, so [_garmentsChangedSinceOpen] has a fixed baseline to
   // compare "what's packed right now" against.
   Set<int> _initialPackedIds = {};
-  // Opens expanded straight after trip creation (see
-  // [TripSuitcasePage.justCreated]).
-  late bool _adviceExpanded = widget.justCreated;
   bool _committing = false;
   final Set<int> _pendingIds = {};
   final _deleteGroup = RemovableCardGroup();
@@ -92,7 +71,6 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   // Whole-trip plan generation — moved here from Trip Details, since packing
   // the suitcase is the step right before it and the two used to require
   // bouncing between pages.
-  late bool _hasTripPlan = widget.initialHasTripPlan;
   bool _generatingPlan = false;
   // Guards the whole action (including the commit-staged-changes step and
   // the regenerate confirm dialog), not just the AI call itself — see
@@ -116,6 +94,20 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       !setEquals(_packedIds, _initialPackedIds);
 
   int get _tripId => int.parse(widget.trip.id);
+
+  AsyncValue<TripDetail> get _detailState =>
+      ref.read(tripDetailProvider(_tripId));
+
+  bool get _hasCachedDetail => _detailState.hasValue && !_detailState.hasError;
+
+  TripDetailNotifier get _detailNotifier =>
+      ref.read(tripDetailProvider(_tripId).notifier);
+
+  /// Whether this trip already has a generated plan — flips the bottom
+  /// button's label between "Plan Trip Outfits" (first time) and "Replan
+  /// Trip Outfits" (a plan already exists — see [_generatePlan]'s doc for
+  /// what that does differently).
+  bool get _hasTripPlan => _detailState.value?.hasTripPlan ?? false;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   /// Mirrors the backend's own minimum-suitcase rule for `/generate`
@@ -156,16 +148,18 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _watchAuthExpiry(garmentsProvider);
-      // tripSuggestionProvider is only otherwise read via `.watch(...)
-      // .when(...)` below (_buildPackingAdviceCard) — that path alone never
-      // routes an AuthExpiredException anywhere (ErrorStateWidget-style
-      // widgets deliberately render nothing for it, expecting a listener
-      // like this one to own the redirect), so without this a session that
-      // expires while this card is showing would just go blank.
-      _watchAuthExpiry(tripSuggestionProvider(_tripId));
+      // Also keeps the detail provider listened to while a first load
+      // below may still be retrying.
+      _watchAuthExpiry(tripDetailProvider(_tripId));
       ref.read(garmentsProvider.notifier).refreshIfNeeded();
     });
-    _loadPackedItems();
+    // Trip Details has normally loaded the suitcase already — render it
+    // at once instead of fetching it again.
+    if (_hasCachedDetail) {
+      _applySuitcase(_detailState.requireValue.suitcase);
+    } else {
+      _loadPackedItems();
+    }
   }
 
   void _watchAuthExpiry<T>(ProviderListenable<AsyncValue<T>> provider) {
@@ -176,27 +170,24 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     });
   }
 
-  Future<void> _loadPackedItems() async {
+  void _applySuitcase(List<Garment> garments) {
+    _packedGarments = List.of(garments);
+    _committedIds = {
+      for (final g in garments)
+        if (g.id != null) g.id!,
+    };
+    _initialPackedIds = {..._committedIds};
+  }
+
+  /// Without [reload], waits on [tripDetailProvider]'s own first load (this
+  /// page was reached before Trip Details had loaded it); with it — pull to
+  /// refresh — re-fetches the suitcase.
+  Future<void> _loadPackedItems({bool reload = false}) async {
     try {
-      final data = await TripService().getTrip(_tripId);
-      final rawItems = (data['suitcase_items'] as List?) ?? [];
-      // Each item now embeds its own image/category/name
-      // (TripSuitcaseItemResponse), so garments are built straight from
-      // the trip response — no closet fetch needed to resolve them.
-      final garments = rawItems
-          .whereType<Map<String, dynamic>>()
-          .map(Garment.fromTripItemJson)
-          .toList();
-      if (mounted) {
-        setState(() {
-          _packedGarments = garments;
-          _committedIds = {
-            for (final g in garments)
-              if (g.id != null) g.id!,
-          };
-          _initialPackedIds = {..._committedIds};
-        });
-      }
+      final garments = reload
+          ? await _detailNotifier.reloadSuitcase()
+          : (await ref.read(tripDetailProvider(_tripId).future)).suitcase;
+      if (mounted) setState(() => _applySuitcase(garments));
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
       return;
@@ -241,6 +232,42 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     });
   }
 
+  /// Lets the user pick a saved outfit's version, then stages whichever of
+  /// its garments are still in the closet and not packed yet — the same way
+  /// the "+" picker stages its picks (committed on Confirm / leaving).
+  Future<void> _addFromOutfit() async {
+    await ref.read(garmentsProvider.notifier).refreshIfNeeded();
+    if (!mounted) return;
+    final outfit = await Navigator.push<Outfit>(
+      context,
+      MaterialPageRoute(builder: (_) => const TripOutfitSelectionPage()),
+    );
+    if (outfit == null || !mounted) return;
+
+    // .active: a soft-deleted garment can't be packed.
+    final closetById = _indexGarmentsById(
+      (ref.read(garmentsProvider).value ?? const <Garment>[]).active,
+    );
+    final packedIds = _packedIds;
+    final newGarments = [
+      for (final id in outfit.garmentIds.toSet())
+        if (!packedIds.contains(id) && closetById[id] != null) closetById[id]!,
+    ];
+
+    if (newGarments.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_l10n.noNewItemsFromOutfit)));
+      return;
+    }
+    setState(() => _packedGarments = [..._packedGarments, ...newGarments]);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_l10n.addedItemsFromOutfitCount(newGarments.length)),
+      ),
+    );
+  }
+
   /// Pushes the staged difference between [_packedIds] and [_committedIds] to
   /// the server. Returns whether it succeeded (a failing commit keeps the
   /// user on the page with the changes still staged).
@@ -248,6 +275,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     if (_committing || !_isDirty) return true;
     final toAdd = _packedIds.difference(_committedIds);
     final toRemove = _committedIds.difference(_packedIds);
+    final committed = List.of(_packedGarments);
+    final detailNotifier = _detailNotifier;
     setState(() => _committing = true);
     try {
       for (final id in toAdd) {
@@ -256,6 +285,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       for (final id in toRemove) {
         await TripService().removeSuitcaseItem(_tripId, garmentId: id);
       }
+      detailNotifier.setSuitcase(committed);
       if (mounted) setState(() => _committedIds = {..._packedIds});
       return true;
     } on AuthExpiredException {
@@ -290,8 +320,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   /// Daily Outfit Plan refresh icon is the other, for "I didn't touch the
   /// suitcase but want a different result"), confirms first via the shared
   /// [showReplanConfirmDialog], then commits any staged suitcase changes,
-  /// then reads the full day-by-day plan ([TripService.getTripPlan]) to
-  /// decide which days actually need regenerating via the shared
+  /// then reads the day-by-day plan from [tripDetailProvider] to decide
+  /// which days actually need regenerating via the shared
   /// [daysToReplan] (both entry points build the request the same way —
   /// see its own doc for the underlying [TripDayOutfit.needsReplan] policy).
   /// A day the user manually adjusted or already rendered is left untouched
@@ -301,9 +331,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   /// The confirm dialog runs *before* [_commitChanges] (not after) so a
   /// Cancel here never leaves staged suitcase edits pushed to the server —
   /// only a confirmed replan is allowed to have any side effect at all.
-  /// On success, pops back to Trip Details so the result is right there —
-  /// its own `didPopNext` refreshes the day plan regardless of how this page
-  /// was reached, so nothing needs to be threaded back through the pop.
+  /// On success, re-fetches the plan into [tripDetailProvider] (still under
+  /// the generating overlay) and pops back to Trip Details, which watches
+  /// it — so the result is already there on arrival.
   Future<void> _generatePlan() async {
     if (_planActionInFlight) return;
     setState(() => _planActionInFlight = true);
@@ -323,8 +353,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       try {
         List<Map<String, dynamic>>? days;
         if (_hasTripPlan) {
-          final plan = await TripService().getTripPlan(_tripId);
-          days = daysToReplan(plan.days, _committedIds);
+          days = daysToReplan(_detailState.requireValue.days, _committedIds);
           if (days == null) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -334,13 +363,22 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             return;
           }
         }
+        final detailNotifier = _detailNotifier;
         await TripService().generateTripPlan(
           _tripId,
           days: days,
           alternativesPerDay: 0,
         );
+        try {
+          await detailNotifier.reloadPlan();
+        } on AuthExpiredException {
+          rethrow;
+        } catch (e) {
+          // The plan was generated; Trip Details just shows the old one
+          // until it's next re-fetched.
+          debugLog('Failed to refresh trip plan after generating: $e');
+        }
         if (!mounted) return;
-        _hasTripPlan = true;
         Navigator.pop(context);
       } on AuthExpiredException {
         if (mounted) await AuthExpiredHandler.handle(context);
@@ -378,10 +416,12 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     });
 
     try {
+      final detailNotifier = _detailNotifier;
       final affected = await TripService().removeSuitcaseItem(
         _tripId,
         garmentId: id,
       );
+      detailNotifier.removeSuitcaseGarment(id);
       if (mounted) setState(() => _committedIds.remove(id));
       // Purely informational — see TripAffectedOption's doc. No Fix/Replan
       // offered yet; the removal above has already succeeded either way.
@@ -417,7 +457,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             'assets/images/plus.png',
             height: ActionDisc.iconSize,
           ),
-          onPressed: () => _handleAddGarment(closetGarments),
+          // Packing before the suitcase has loaded would be overwritten
+          // by the load.
+          onPressed: _loading ? null : () => _handleAddGarment(closetGarments),
         ),
       ],
     );
@@ -444,6 +486,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     // from the trip response), so it isn't gated on this loading/erroring.
     // .active: a soft-deleted garment can't be packed into a new trip item.
     final closetGarments = (ref.watch(garmentsProvider).value ?? []).active;
+    // For [_hasTripPlan] (the bottom button's label).
+    ref.watch(tripDetailProvider(_tripId));
 
     return PopScope(
       canPop: !_isDirty && !_committing,
@@ -459,10 +503,6 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             bottomNavigationBar: _buildBottomBar(),
             body: _buildBody(closetGarments),
           ),
-          if (_loading)
-            Positioned.fill(
-              child: LoadingOverlay(label: _l10n.loadingSuitcaseEllipsis),
-            ),
           if (_committing)
             Positioned.fill(
               child: LoadingOverlay(label: _l10n.updatingSuitcaseEllipsis),
@@ -476,60 +516,37 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
-  /// Uwearis's outfit-advice card for this trip — moved here from Trip
-  /// Details, since packing the suitcase is exactly what the advice informs.
-  /// Watches [tripSuggestionProvider] directly (shared/cached with Trip
-  /// Details' own use of it for the packing-count gate) rather than the
-  /// text being passed down as a page param.
-  Widget _buildOutfitAdviceCard() {
-    final advice = ref.watch(tripSuggestionProvider(_tripId));
-    return advice.when(
-      data: (analysis) {
-        final text = analysis.overallAdvice;
-        if (text == null || text.isEmpty) return const SizedBox.shrink();
-        return UwearisInsightCard(
-          margin: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-          child: ExpandableInsightBody(
-            title: Text(
-              _l10n.packingAdviceLabel,
-              style: AppTextStyle.insightCardTitle,
-            ),
-            detail: text,
-            expanded: _adviceExpanded,
-            onToggle: () => setState(() => _adviceExpanded = !_adviceExpanded),
+  Widget _buildBody(List<Garment> closetGarments) {
+    // A brief page read — an in-place spinner rather than a full-screen
+    // LoadingOverlay, which would also blur the toolbar's back button.
+    if (_loading) return const Center(child: AppSpinner());
+    // Packs every garment of a saved outfit in one go — the same entry
+    // point style as Trip Details' Suitcase card. Shown above both the
+    // packed list and the empty state.
+    final addFromOutfitCard = Padding(
+      padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
+      child: AppListCard(
+        title: _l10n.addFromOutfit,
+        leading: const Icon(Icons.style_outlined, color: AppColors.icon),
+        showArrow: true,
+        onTap: _addFromOutfit,
+        child: Text(
+          _l10n.addFromOutfitHint,
+          style: AppTextStyle.regular14.copyWith(
+            color: AppColors.textSecondary,
           ),
-        );
-      },
-      loading: () => UwearisInsightCard(
-        margin: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-        child: Row(
-          children: [
-            const SizedBox(
-              height: 14,
-              width: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 8),
-            Text(_l10n.thinkingEllipsis, style: AppTextStyle.insightCardBody),
-          ],
         ),
       ),
-      // The packed-items list below is the page's real content; a failed
-      // advice fetch just means no card, not a page-level error state.
-      error: (_, _) => const SizedBox.shrink(),
     );
-  }
-
-  Widget _buildBody(List<Garment> closetGarments) {
     return RefreshIndicator(
-      onRefresh: _loadPackedItems,
+      onRefresh: () => _loadPackedItems(reload: true),
       child: _packedGarments.isEmpty
-          ? _buildEmptyPackingState(closetGarments)
+          ? _buildEmptyPackingState(closetGarments, addFromOutfitCard)
           : CustomScrollView(
               slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  sliver: SliverToBoxAdapter(child: _buildOutfitAdviceCard()),
+                  sliver: SliverToBoxAdapter(child: addFromOutfitCard),
                 ),
                 SliverPadding(
                   // Bottom clearance lives here, inside the scrollable
@@ -564,10 +581,12 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   /// Empty-suitcase state — the shared icon+title+hint+action treatment
   /// (see [EmptyStatePlaceholder]), same mechanism Closet/Outfits/Trips'
-  /// empty tabs use ([fillAvailableSpace]). [pinnedTop] carries the
-  /// collapsible packing-advice card: its own layer keeps expanding/
-  /// collapsing it from ever shifting the centered content below.
-  Widget _buildEmptyPackingState(List<Garment> closetGarments) {
+  /// empty tabs use ([fillAvailableSpace]). [pinnedTop] carries
+  /// [addFromOutfitCard] above the centered content.
+  Widget _buildEmptyPackingState(
+    List<Garment> closetGarments,
+    Widget addFromOutfitCard,
+  ) {
     return EmptyStatePlaceholder(
       icon: Icons.luggage_outlined,
       title: _l10n.startPackingTripTitle,
@@ -578,7 +597,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       fillAvailableSpace: true,
       pinnedTop: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-        child: _buildOutfitAdviceCard(),
+        child: addFromOutfitCard,
       ),
     );
   }

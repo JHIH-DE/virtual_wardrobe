@@ -402,10 +402,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(
-      title: widget.title,
-      onBack: () => Navigator.pop(context),
-    );
+    return AppToolBar(title: widget.title);
   }
 
   @override

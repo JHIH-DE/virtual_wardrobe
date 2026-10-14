@@ -39,7 +39,7 @@ Future<void> pumpApp(
         ],
         supportedLocales: AppLocalizations.supportedLocales,
         // Mirrors app.dart's MaterialApp — needed for any RouteAware page
-        // under test (e.g. TripDetailsPage's didPopNext) to actually
+        // under test (e.g. RemovableCard's didPopNext) to actually
         // receive push/pop notifications.
         navigatorObservers: [routeObserver],
         home: child,

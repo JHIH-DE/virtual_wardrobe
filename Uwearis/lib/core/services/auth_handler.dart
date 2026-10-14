@@ -10,6 +10,8 @@ import '../providers/outfits_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/style_profile_provider.dart';
 import '../providers/style_taste_provider.dart';
+import '../providers/trip_detail_provider.dart';
+import '../providers/trip_suggestion_provider.dart';
 import '../providers/trips_provider.dart';
 import 'auth_storage.dart';
 import 'garment_service.dart';
@@ -72,7 +74,7 @@ Future<void> clearSignedInSession() async {
 /// `Navigator` route stack gets reset to `LoginPage` — they live for the
 /// whole process, one level above the `Navigator`. Left alone, every
 /// already-resolved provider (profile, closet, outfits, trips, daily
-/// outfit, style profile/taste) would keep showing the previous account's
+/// outfit, style profile/taste, per-trip detail/packing analysis) would keep showing the previous account's
 /// data after a fresh sign-in. This app has no stable local user id to
 /// scope a per-user cache key by instead (see [AuthStorage]'s own doc
 /// comment) — invalidating everything on sign-in is what actually
@@ -91,6 +93,8 @@ void invalidateSignedInProviders(BuildContext context) {
   container.invalidate(garmentsProvider);
   container.invalidate(outfitsProvider);
   container.invalidate(tripsProvider);
+  container.invalidate(tripDetailProvider);
+  container.invalidate(tripSuggestionProvider);
   container.invalidate(dailyOutfitProvider);
   container.invalidate(styleProfileProvider);
   container.invalidate(styleTasteProfileProvider);

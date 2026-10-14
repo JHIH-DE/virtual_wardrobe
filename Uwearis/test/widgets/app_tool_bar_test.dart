@@ -47,4 +47,47 @@ void main() {
     await pumpBar(tester, const AppToolBar(title: 'A', showBackButton: false));
     expect(find.byType(ActionDiscButton), findsNothing);
   });
+
+  testWidgets('pushing between two pages with back buttons keeps the back '
+      'button still while the new page slides in', (tester) async {
+    await pumpApp(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          appBar: const AppToolBar(title: 'First'),
+          body: TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => const Scaffold(
+                  appBar: AppToolBar(title: 'Second'),
+                  body: SizedBox(),
+                ),
+              ),
+            ),
+            child: const Text('next'),
+          ),
+        ),
+      ),
+    );
+    final back = find.byIcon(Icons.arrow_back_ios_new_rounded);
+    final restingCenter = tester.getCenter(back);
+
+    await tester.tap(find.text('next'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    // Mid-transition: the new page's title is still sliding in…
+    final secondTitle = tester.getCenter(find.text('Second')).dx;
+    // …but every on-screen back button is exactly where it rests.
+    expect(back, findsWidgets);
+    for (final e in back.evaluate()) {
+      expect(tester.getCenter(find.byWidget(e.widget)), restingCenter);
+    }
+
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(find.text('Second')).dx, lessThan(secondTitle));
+    expect(tester.getCenter(back), restingCenter);
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 }

@@ -1317,18 +1317,6 @@ abstract class AppLocalizations {
   /// **'Change Garments'**
   String get changeGarments;
 
-  /// No description provided for @noOutfitPlannedYetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'No outfit planned yet'**
-  String get noOutfitPlannedYetTitle;
-
-  /// No description provided for @noOutfitPlannedYetHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Generate your trip plan to assign clothes for this day.'**
-  String get noOutfitPlannedYetHint;
-
   /// No description provided for @missingFromSuitcaseCount.
   ///
   /// In en, this message translates to:
@@ -2481,12 +2469,6 @@ abstract class AppLocalizations {
   /// **'Daily Outfit Plan'**
   String get dailyOutfitPlan;
 
-  /// No description provided for @outfitForDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Outfit for {date}'**
-  String outfitForDate(String date);
-
   /// No description provided for @noItemsPlanned.
   ///
   /// In en, this message translates to:
@@ -2498,12 +2480,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Thinking…'**
   String get thinkingEllipsis;
-
-  /// No description provided for @packingAdviceLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Packing Advice'**
-  String get packingAdviceLabel;
 
   /// No description provided for @suitcaseLabel.
   ///
@@ -2541,11 +2517,23 @@ abstract class AppLocalizations {
   /// **'Add from an Outfit'**
   String get addFromOutfit;
 
+  /// No description provided for @addFromOutfitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pack the garments of a saved outfit in one go.'**
+  String get addFromOutfitHint;
+
   /// No description provided for @selectAnOutfitTitle.
   ///
   /// In en, this message translates to:
   /// **'Select an Outfit'**
   String get selectAnOutfitTitle;
+
+  /// No description provided for @selectVersionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a Version'**
+  String get selectVersionTitle;
 
   /// No description provided for @addedItemsFromOutfitCount.
   ///
@@ -2612,12 +2600,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to remove item'**
   String get failedToRemoveItem;
-
-  /// No description provided for @loadingSuitcaseEllipsis.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading Suitcase…'**
-  String get loadingSuitcaseEllipsis;
 
   /// No description provided for @updatingSuitcaseEllipsis.
   ///

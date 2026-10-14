@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/outfit_details_page.dart';
-import 'package:uwearis/features/widgets/common/buttons/accent_icon_button.dart';
+import 'package:uwearis/features/widgets/common/buttons/circle_icon_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
@@ -438,7 +438,7 @@ void main() {
         find.widgetWithText(AccentPillButton, 'New Version'),
         findsOneWidget,
       );
-      expect(find.widgetWithIcon(AccentIconButton, Icons.add), findsNothing);
+      expect(find.widgetWithIcon(CircleIconButton, Icons.add), findsNothing);
       expect(find.text('1 / 2'), findsOneWidget);
       expect(find.byType(CarouselDotsIndicator), findsNothing);
       expect(
@@ -657,10 +657,10 @@ void main() {
         expect(find.text('Retry'), findsNothing);
         expect(find.byType(CategoryTag), findsNWidgets(2));
         // The tag button is usable again after the retry settles.
-        final button = tester.widget<AccentIconButton>(
+        final button = tester.widget<CircleIconButton>(
           find.ancestor(
             of: find.byIcon(Icons.sell_outlined),
-            matching: find.byType(AccentIconButton),
+            matching: find.byType(CircleIconButton),
           ),
         );
         expect(button.onPressed, isNotNull);

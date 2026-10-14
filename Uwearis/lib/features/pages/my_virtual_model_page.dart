@@ -615,12 +615,10 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
           label,
           style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
         ),
-        Image.asset(
-          'assets/images/page_arrow_right.png',
-          width: 18,
-          height: 18,
+        const Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: 18,
           color: AppColors.accent,
-          colorBlendMode: BlendMode.srcIn,
         ),
       ],
     );

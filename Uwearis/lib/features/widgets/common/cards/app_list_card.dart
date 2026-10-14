@@ -82,10 +82,10 @@ class AppListCard extends StatelessWidget {
         ],
         if (showArrow && onTap != null) ...[
           const SizedBox(width: 4),
-          Image.asset(
-            'assets/images/page_arrow_right.png',
-            width: AppDimens.iconSmallSize,
-            height: AppDimens.iconSmallSize,
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: AppDimens.iconSmallSize,
+            color: AppColors.icon,
           ),
         ],
         if (trailing != null) ...[const SizedBox(width: 8), trailing!],

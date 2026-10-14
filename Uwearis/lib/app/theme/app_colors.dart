@@ -14,6 +14,13 @@ class AppColors {
   ); // empty photo/avatar wells
   static const Color toolbarBackground = Color(0xFFEFECEB);
   static const Color interactiveArea = Color(0xFFF8F7F4);
+  // CircleIconButton's glass disc. It must read on both the cream page and a
+  // white card, so it carries both a lighter part (the centre) and a darker
+  // part (the edge) — a lighten-only fill vanishes on white.
+  static const Color iconButtonFillCenter = Color(0x99FFFFFF); // white @60%
+  static const Color iconButtonFillEdge = Color(0x143C3C43); // grey @8%
+  static const Color iconButtonRim = Color(0x383C3C43); // grey @22%
+  static const Color iconButtonSheen = Color(0xB3FFFFFF); // white @70%
 
   // Pressed / "clicked" state fill for a tappable surface (e.g. the
   // add-clothing dialog's Camera / Photo Album rows). #C6C0AB @ 36%.

@@ -23,7 +23,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/accent_icon_button.dart';
+import '../widgets/common/buttons/circle_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/filter_button.dart';
@@ -490,11 +490,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          AccentIconButton(
+          CircleIconButton(
             icon: Icons.sell_outlined,
             onPressed: _isSavingTags ? null : _openEditTagsSheet,
           ),
-          // Small — AccentIconButton already carries ~6px of transparent
+          // Small — CircleIconButton already carries ~6px of transparent
           // padding around its disc on this side.
           const SizedBox(width: 2),
           Expanded(

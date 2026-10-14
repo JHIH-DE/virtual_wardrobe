@@ -1,18 +1,25 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uwearis/core/providers/trip_suggestion_provider.dart';
-import 'package:uwearis/core/services/auth_handler.dart';
+import 'package:uwearis/core/providers/garments_provider.dart';
+import 'package:uwearis/core/providers/outfits_provider.dart';
+import 'package:uwearis/core/providers/trip_detail_provider.dart';
+import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
+import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/data/trip.dart';
+import 'package:uwearis/features/pages/trip_outfit_selection_page.dart';
+import 'package:uwearis/features/pages/trip_outfit_version_page.dart';
 import 'package:uwearis/features/pages/trip_suitcase_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
-import 'package:uwearis/features/widgets/common/expandable_insight_body.dart';
-import 'package:uwearis/l10n/generated/app_localizations_en.dart';
+import 'package:uwearis/features/widgets/common/images/app_spinner.dart';
+import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
+import 'package:uwearis/features/widgets/outfit/outfit_card.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -38,15 +45,30 @@ Trip _trip() => Trip(
   ],
 );
 
+class _FakeOutfits extends OutfitsNotifier {
+  _FakeOutfits(this._items);
+  final List<Outfit> _items;
+
+  @override
+  Future<List<Outfit>> build() async => _items;
+
+  @override
+  Future<void> refresh() async => state = AsyncData(_items);
+}
+
+class _FakeGarments extends GarmentsNotifier {
+  _FakeGarments(this._items);
+  final List<Garment> _items;
+
+  @override
+  Future<List<Garment>> build() async => _items;
+
+  @override
+  Future<void> refresh() async => state = AsyncData(_items);
+}
+
 void main() {
-  setUp(() {
-    setUpFakeAuth();
-    // Needed for the AuthExpiredException test below — AuthExpiredHandler
-    // .handle's clearSignedInSession() reads/writes SharedPreferences
-    // (GarmentService's closet-analysis cache), which otherwise never
-    // resolves in a test binding with no platform channel to answer it.
-    SharedPreferences.setMockInitialValues({});
-  });
+  setUp(setUpFakeAuth);
 
   void useTallSurface(WidgetTester tester) {
     tester.view.physicalSize = const Size(1000, 4000);
@@ -56,23 +78,30 @@ void main() {
   }
 
   http.Client suitcaseClient({
-    String? overallAdvice,
     List<Map<String, dynamic>> suitcaseItems = const [
       {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
       {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
     ],
     List<Map<String, dynamic>> closetGarments = const [],
+    List<Map<String, dynamic>> planDays = const [],
     void Function()? onGenerate,
+    Future<void>? tripLoaded,
   }) {
     return MockClient((request) async {
+      if (request.method == 'GET' && request.url.path.endsWith('/plan')) {
+        return jsonResponse(
+          envelope({'days': planDays, 'suitcase_items': suitcaseItems}),
+        );
+      }
       if (request.method == 'GET' &&
           request.url.path.endsWith('/trip_plans/7')) {
+        await tripLoaded;
         return jsonResponse(envelope({'suitcase_items': suitcaseItems}));
       }
       if (request.method == 'GET' &&
           request.url.path.endsWith('/packing-analysis')) {
         return jsonResponse(
-          envelope({'overall_advice': overallAdvice, 'categories': []}),
+          envelope({'overall_advice': null, 'categories': []}),
         );
       }
       if (request.method == 'GET' && request.url.path.endsWith('/garments')) {
@@ -111,89 +140,122 @@ void main() {
     }, () => suitcaseClient());
   });
 
-  // The outfit-advice card moved here from Trip Details — this page now
-  // watches tripSuggestionProvider directly (see trip_suggestion_provider.dart).
-  testWidgets('renders the outfit-advice card, collapsed by default', (
-    tester,
-  ) async {
+  testWidgets('while the suitcase loads it shows an in-place spinner, not a '
+      'full-screen blur over the toolbar\'s back button', (tester) async {
+    final tripLoaded = Completer<void>();
     await http.runWithClient(() async {
       useTallSurface(tester);
-      await pumpApp(tester, TripSuitcasePage(trip: _trip()));
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('Layer up for the evenings.'), findsOneWidget);
-      expect(
-        tester
-            .widget<ExpandableInsightBody>(find.byType(ExpandableInsightBody))
-            .expanded,
-        isFalse,
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => TripSuitcasePage(trip: _trip()),
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
       );
-    }, () => suitcaseClient(overallAdvice: 'Layer up for the evenings.'));
+      await tester.tap(find.text('open'));
+      // Plain pumps past the push transition, not pumpAndSettle: the
+      // spinner animates forever, and settling would run the fake clock
+      // into getTrip's 15s timeout.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(AppSpinner), findsOneWidget);
+      expect(find.byType(LoadingOverlay), findsNothing);
+      expect(
+        find.ancestor(
+          of: find.byIcon(Icons.arrow_back_ios_new_rounded),
+          matching: find.byType(BackdropFilter),
+        ),
+        findsNothing,
+      );
+
+      tripLoaded.complete();
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(find.byType(AppSpinner), findsNothing);
+      expect(find.text('Tee'), findsOneWidget);
+    }, () => suitcaseClient(tripLoaded: tripLoaded.future));
   });
 
-  // Regression: tripSuggestionProvider used to only be read via
-  // `.watch(...).when(...)` here (see _buildPackingAdviceCard) — with no
-  // listener of its own, an AuthExpiredException on it would just render
-  // ErrorStateWidget-style nothing (that widget deliberately renders
-  // nothing for AuthExpiredException, expecting some listener elsewhere to
-  // own the redirect) instead of ever prompting the user to log back in.
   testWidgets(
-    'an AuthExpiredException on tripSuggestionProvider shows the '
-    'session-expired dialog',
+    'with the trip detail already cached (opened from Trip Details) it '
+    'renders at once without fetching the trip, and writes a removal back '
+    'to the cache',
     (tester) async {
+      var tripRequests = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'GET' &&
+            (request.url.path.endsWith('/trip_plans/7') ||
+                request.url.path.endsWith('/plan'))) {
+          tripRequests++;
+          return jsonResponse(envelope({'days': [], 'suitcase_items': []}));
+        }
+        if (request.url.path.endsWith('/packing-analysis')) {
+          return jsonResponse(
+            envelope({'overall_advice': null, 'categories': []}),
+          );
+        }
+        if (request.method == 'DELETE' &&
+            request.url.path.endsWith('/suitcase-items/2')) {
+          return jsonResponse(envelope({'affected_options': []}));
+        }
+        return jsonResponse(envelope({}), status: 404);
+      });
+      Garment garment(int id, String name, GarmentCategory category) => Garment(
+        id: id,
+        garmentId: id,
+        name: name,
+        category: category,
+        subCategory: '',
+        uploadUrl: '',
+        objectName: '',
+      );
+
       await http.runWithClient(() async {
         useTallSurface(tester);
         await pumpApp(
           tester,
           TripSuitcasePage(trip: _trip()),
           overrides: [
-            // A small delay before throwing, not an immediate one — the
-            // page's AuthExpired listener is only attached inside
-            // initState's addPostFrameCallback (after the first frame);
-            // a real network failure always arrives well after that point,
-            // but an override that throws on the very first microtask can
-            // race ahead of it, which would make this test pass or fail on
-            // an artifact of test timing rather than the actual page logic.
-            tripSuggestionProvider(7).overrideWith((ref) async {
-              await Future<void>.delayed(const Duration(milliseconds: 50));
-              throw AuthExpiredException();
-            }),
+            tripDetailProvider.overrideWithBuild(
+              (_, _) => TripDetail(
+                suitcase: [
+                  garment(1, 'Tee', GarmentCategory.top),
+                  garment(2, 'Jeans', GarmentCategory.bottom),
+                ],
+              ),
+            ),
           ],
         );
         await tester.pump();
-        // Real time past the override's 50ms delay, plus AuthExpiredHandler's
-        // own async chain (clearSignedInSession) before it calls showDialog —
-        // pumpAndSettle alone can return between two of those async gaps
-        // with nothing yet scheduled, before the dialog actually goes up.
-        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(AppSpinner), findsNothing);
+        expect(find.text('Tee'), findsOneWidget);
+        expect(find.text('Jeans'), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.close).last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('REMOVE'));
         await tester.pumpAndSettle();
 
-        expect(
-          find.text(AppLocalizationsEn().sessionExpiredTitle),
-          findsOneWidget,
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(TripSuitcasePage)),
         );
-      }, () => suitcaseClient());
+        expect(container.read(tripDetailProvider(7)).value!.suitcaseIds, {1});
+        expect(tripRequests, 0);
+      }, () => client);
     },
   );
-
-  testWidgets('justCreated opens the outfit-advice card expanded', (
-    tester,
-  ) async {
-    await http.runWithClient(() async {
-      useTallSurface(tester);
-      await pumpApp(tester, TripSuitcasePage(trip: _trip(), justCreated: true));
-      await tester.pump();
-      await tester.pump();
-
-      expect(
-        tester
-            .widget<ExpandableInsightBody>(find.byType(ExpandableInsightBody))
-            .expanded,
-        isTrue,
-      );
-    }, () => suitcaseClient(overallAdvice: 'Layer up for the evenings.'));
-  });
 
   testWidgets('an empty suitcase shows the "start packing" state, and its Add '
       'Garments button opens the garment picker', (tester) async {
@@ -219,37 +281,110 @@ void main() {
     }, () => suitcaseClient(suitcaseItems: const []));
   });
 
-  testWidgets(
-    'the empty-suitcase content stays put on screen whether the advice '
-    'card above it is collapsed or expanded',
-    (tester) async {
+  group('Add from an Outfit card', () {
+    Garment closetGarment(int id, String name, GarmentCategory category) =>
+        Garment(
+          id: id,
+          garmentId: id,
+          name: name,
+          category: category,
+          subCategory: '',
+          uploadUrl: '',
+          objectName: '',
+        );
+    final closet = [
+      closetGarment(1, 'Tee', GarmentCategory.top),
+      closetGarment(3, 'Sneakers', GarmentCategory.shoes),
+    ];
+
+    Future<void> pumpWithOutfit(WidgetTester tester, Outfit outfit) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        TripSuitcasePage(trip: _trip()),
+        overrides: [
+          outfitsProvider.overrideWith(() => _FakeOutfits([outfit])),
+          garmentsProvider.overrideWith(() => _FakeGarments(closet)),
+        ],
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    testWidgets(
+      'picking an outfit version stages its garments that are in the closet '
+      'and not packed yet',
+      (tester) async {
+        await http.runWithClient(
+          () async {
+            // 1 is already packed, 99 isn't in the closet — only 3 is new.
+            await pumpWithOutfit(
+              tester,
+              Outfit(id: 50, imageUrl: '', garmentIds: const [1, 3, 99]),
+            );
+            expect(find.text('Add from an Outfit'), findsOneWidget);
+            expect(
+              find.text('Pack the garments of a saved outfit in one go.'),
+              findsOneWidget,
+            );
+            expect(find.text('Sneakers'), findsNothing);
+
+            await tester.tap(find.text('Add from an Outfit'));
+            await tester.pumpAndSettle();
+            expect(find.byType(TripOutfitSelectionPage), findsOneWidget);
+
+            await tester.tap(find.byType(OutfitCard));
+            await tester.pumpAndSettle();
+            expect(find.byType(TripOutfitVersionPage), findsOneWidget);
+
+            await tester.tap(find.text('Add to Suitcase'));
+            await tester.pumpAndSettle();
+
+            expect(find.byType(TripOutfitVersionPage), findsNothing);
+            expect(find.byType(TripOutfitSelectionPage), findsNothing);
+            expect(find.text('Sneakers'), findsOneWidget);
+            expect(
+              find.text('Added 1 items from this outfit.'),
+              findsOneWidget,
+            );
+          },
+          () => suitcaseClient(
+            suitcaseItems: const [
+              {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+            ],
+          ),
+        );
+      },
+    );
+
+    testWidgets('an outfit with nothing new to pack says so', (tester) async {
       await http.runWithClient(
         () async {
-          useTallSurface(tester);
-          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
-          await tester.pump();
-          await tester.pump();
-
-          final collapsedCenter = tester.getCenter(
-            find.text('Start packing your trip'),
+          await pumpWithOutfit(
+            tester,
+            Outfit(id: 51, imageUrl: '', garmentIds: const [1]),
           );
 
-          await tester.tap(find.byType(ExpandableInsightBody));
+          await tester.tap(find.text('Add from an Outfit'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byType(OutfitCard));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Add to Suitcase'));
           await tester.pumpAndSettle();
 
-          final expandedCenter = tester.getCenter(
-            find.text('Start packing your trip'),
+          expect(
+            find.text('No new items to add from this outfit.'),
+            findsOneWidget,
           );
-
-          expect(expandedCenter, collapsedCenter);
         },
         () => suitcaseClient(
-          suitcaseItems: const [],
-          overallAdvice: 'Layer up for the evenings.',
+          suitcaseItems: const [
+            {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+          ],
         ),
       );
-    },
-  );
+    });
+  });
 
   // Plan-generation moved here from Trip Details — see trip_details_page.dart
   // and its own test's "the wardrobe section offers a CTA" case.
@@ -265,6 +400,21 @@ void main() {
     final viableSuitcaseWithExtra = [
       ...viableSuitcase,
       {'garment_id': 4, 'name': 'Cap', 'category': 'accessory'},
+    ];
+    // A plan with one AI-generated day already exists for this trip.
+    final existingPlanDays = [
+      {
+        'date': '2026-11-01',
+        'options': [
+          {
+            'id': 101,
+            'order_index': 0,
+            'items': [
+              {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+            ],
+          },
+        ],
+      },
     ];
 
     /// Removes the last packed card (Accessory sorts last in
@@ -318,40 +468,46 @@ void main() {
       'a plan already existing is not enough on its own — the button stays '
       'hidden until the suitcase actually changes since opening',
       (tester) async {
-        await http.runWithClient(() async {
-          useTallSurface(tester);
-          await pumpApp(
-            tester,
-            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
-          );
-          await tester.pump();
-          await tester.pump();
+        await http.runWithClient(
+          () async {
+            useTallSurface(tester);
+            await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+            await tester.pump();
+            await tester.pump();
 
-          expect(
-            find.byKey(const ValueKey('bottomActionButton-hidden')),
-            findsOneWidget,
-          );
-          expect(find.text('Replan Trip Outfits'), findsNothing);
-        }, () => suitcaseClient(suitcaseItems: viableSuitcase));
+            expect(
+              find.byKey(const ValueKey('bottomActionButton-hidden')),
+              findsOneWidget,
+            );
+            expect(find.text('Replan Trip Outfits'), findsNothing);
+          },
+          () => suitcaseClient(
+            suitcaseItems: viableSuitcase,
+            planDays: existingPlanDays,
+          ),
+        );
       },
     );
 
     testWidgets('shows "Replan Trip Outfits" once the packed set changes '
         'since opening (e.g. removing a packed item)', (tester) async {
-      await http.runWithClient(() async {
-        useTallSurface(tester);
-        await pumpApp(
-          tester,
-          TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
-        );
-        await tester.pump();
-        await tester.pump();
-        expect(find.text('Replan Trip Outfits'), findsNothing);
+      await http.runWithClient(
+        () async {
+          useTallSurface(tester);
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+          await tester.pump();
+          await tester.pump();
+          expect(find.text('Replan Trip Outfits'), findsNothing);
 
-        await removeLastPackedCard(tester);
+          await removeLastPackedCard(tester);
 
-        expect(find.text('Replan Trip Outfits'), findsOneWidget);
-      }, () => suitcaseClient(suitcaseItems: viableSuitcaseWithExtra));
+          expect(find.text('Replan Trip Outfits'), findsOneWidget);
+        },
+        () => suitcaseClient(
+          suitcaseItems: viableSuitcaseWithExtra,
+          planDays: existingPlanDays,
+        ),
+      );
     });
 
     testWidgets(
@@ -396,10 +552,7 @@ void main() {
       await http.runWithClient(
         () async {
           useTallSurface(tester);
-          await pumpApp(
-            tester,
-            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
-          );
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
           await tester.pump();
           await tester.pump();
           await removeLastPackedCard(tester); // put it in a "changed" state
@@ -417,14 +570,15 @@ void main() {
         },
         () => suitcaseClient(
           suitcaseItems: viableSuitcaseWithExtra,
+          planDays: existingPlanDays,
           onGenerate: () => generateCalls++,
         ),
       );
     });
   });
 
-  // Replan reads the full day-by-day plan (GET /plan) after a confirmed
-  // replan + committed suitcase, and only sends the backend the dates that
+  // Replan reads the day-by-day plan (loaded with the page from GET /plan)
+  // after a confirmed replan + committed suitcase, and only sends the backend the dates that
   // actually need regenerating (TripDayOutfit.needsReplan) — everything
   // else (manually edited, or already rendered and still fully packed)
   // stays out of the `days` filter untouched.
@@ -538,10 +692,7 @@ void main() {
 
         await http.runWithClient(() async {
           useTallSurface(tester);
-          await pumpApp(
-            tester,
-            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
-          );
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
           await tester.pump();
           await tester.pump();
 
@@ -627,10 +778,7 @@ void main() {
 
         await http.runWithClient(() async {
           useTallSurface(tester);
-          await pumpApp(
-            tester,
-            TripSuitcasePage(trip: _trip(), initialHasTripPlan: true),
-          );
+          await pumpApp(tester, TripSuitcasePage(trip: _trip()));
           await tester.pump();
           await tester.pump();
 
@@ -669,6 +817,9 @@ void main() {
       'notice',
       (tester) async {
         final client = MockClient((request) async {
+          if (request.url.path.endsWith('/plan')) {
+            return jsonResponse(envelope({'days': [], 'suitcase_items': []}));
+          }
           if (request.url.path.endsWith('/trip_plans/7')) {
             return jsonResponse(
               envelope({
@@ -714,6 +865,9 @@ void main() {
       'SnackBar explains it is still used elsewhere in the trip',
       (tester) async {
         final client = MockClient((request) async {
+          if (request.url.path.endsWith('/plan')) {
+            return jsonResponse(envelope({'days': [], 'suitcase_items': []}));
+          }
           if (request.url.path.endsWith('/trip_plans/7')) {
             return jsonResponse(
               envelope({

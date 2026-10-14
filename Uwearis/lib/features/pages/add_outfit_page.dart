@@ -1305,12 +1305,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                           style: AppTextStyle.bold16,
                         ),
                       ),
-                      Image.asset(
-                        'assets/images/page_arrow_right.png',
-                        width: 20,
-                        height: 20,
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 20,
                         color: AppColors.textSecondary,
-                        colorBlendMode: BlendMode.srcIn,
                       ),
                     ],
                   ),

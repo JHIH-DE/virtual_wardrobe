@@ -17,7 +17,10 @@ import '../../../../app/theme/app_text_styles.dart';
 /// (transparently) to [AppDimens.minTouchTarget] so a near-miss above/below
 /// the pill still registers — several call sites are AI-render triggers.
 ///
-/// When [enabled] is false the whole pill greys out and taps are ignored.
+/// When [enabled] is false the whole pill greys out and taps are ignored,
+/// and [disabledMessage] (if any) shows centered above it explaining why —
+/// e.g. an AI "Generate …" trigger that's missing an input. Inline only:
+/// the message makes the button taller than a toolbar slot allows.
 /// [onPressed] may be null while a feature is still visual-only — the pill
 /// then looks active but does nothing.
 class AccentPillButton extends StatelessWidget {
@@ -26,6 +29,7 @@ class AccentPillButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool enabled;
   final AccentPillButtonVariant variant;
+  final String? disabledMessage;
 
   const AccentPillButton({
     super.key,
@@ -34,7 +38,10 @@ class AccentPillButton extends StatelessWidget {
     this.onPressed,
     this.enabled = true,
     this.variant = AccentPillButtonVariant.inline,
-  });
+    this.disabledMessage,
+  }) : assert(
+         disabledMessage == null || variant == AccentPillButtonVariant.inline,
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +78,7 @@ class AccentPillButton extends StatelessWidget {
       ),
     );
 
-    return Opacity(
+    final button = Opacity(
       opacity: enabled ? 1 : 0.6,
       child: GestureDetector(
         // Catches near-misses in the transparent band above/below the
@@ -89,6 +96,26 @@ class AccentPillButton extends StatelessWidget {
           child: Center(widthFactor: 1, child: pill),
         ),
       ),
+    );
+
+    final message = disabledMessage;
+    if (enabled || message == null) return button;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTextStyle.regular13.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        button,
+      ],
     );
   }
 }

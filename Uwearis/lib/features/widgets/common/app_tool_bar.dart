@@ -35,6 +35,8 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     this.centerTitle = true,
   });
 
+  static const Object _backButtonHeroTag = 'appToolBarBackButton';
+
   bool get _usesBackButton => leading == null && showBackButton;
 
   @override
@@ -106,16 +108,31 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
             (showBackButton
                 ? Padding(
                     padding: const EdgeInsets.only(left: ActionDisc.edgeInset),
-                    child: ActionDiscButton(
-                      tooltip: MaterialLocalizations.of(
-                        context,
-                      ).backButtonTooltip,
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: ActionDisc.iconSize,
-                        color: AppColors.icon,
+                    // As on iOS, the back button holds still while the new
+                    // page slides in under it: both pages' back buttons
+                    // share one hero tag at the same spot, so the flight
+                    // between them doesn't move. A page pushed from one
+                    // without a back button (a main tab) has nothing to fly
+                    // from and slides in with its page as before.
+                    child: Hero(
+                      tag: _backButtonHeroTag,
+                      transitionOnUserGestures: true,
+                      // The flight renders in the Navigator's overlay, which
+                      // has no Material for the button's InkWell.
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: ActionDiscButton(
+                          tooltip: MaterialLocalizations.of(
+                            context,
+                          ).backButtonTooltip,
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: ActionDisc.iconSize,
+                            color: AppColors.icon,
+                          ),
+                          onPressed: onBack ?? () => Navigator.pop(context),
+                        ),
                       ),
-                      onPressed: onBack ?? () => Navigator.pop(context),
                     ),
                   )
                 : null),

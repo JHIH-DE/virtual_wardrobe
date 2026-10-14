@@ -51,4 +51,41 @@ void main() {
     await tester.tap(find.byType(AccentPillButton));
     expect(taps, 0);
   });
+
+  testWidgets('disabled with a disabledMessage: explains why above the pill', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        AccentPillButton(
+          label: 'Generate Outfit',
+          icon: Icons.auto_awesome,
+          enabled: false,
+          disabledMessage: 'Missing a core item',
+          onPressed: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('Missing a core item'), findsOneWidget);
+    expect(
+      tester.getBottomLeft(find.text('Missing a core item')).dy,
+      lessThan(tester.getTopLeft(find.text('Generate Outfit')).dy),
+    );
+  });
+
+  testWidgets('enabled: a disabledMessage is not shown', (tester) async {
+    await tester.pumpWidget(
+      host(
+        AccentPillButton(
+          label: 'Generate Outfit',
+          icon: Icons.auto_awesome,
+          disabledMessage: 'Missing a core item',
+          onPressed: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('Missing a core item'), findsNothing);
+  });
 }

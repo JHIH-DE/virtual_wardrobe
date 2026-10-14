@@ -675,13 +675,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changeGarments => 'Change Garments';
 
   @override
-  String get noOutfitPlannedYetTitle => 'No outfit planned yet';
-
-  @override
-  String get noOutfitPlannedYetHint =>
-      'Generate your trip plan to assign clothes for this day.';
-
-  @override
   String missingFromSuitcaseCount(int count) {
     return '$count items aren\'t packed yet.';
   }
@@ -1277,18 +1270,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dailyOutfitPlan => 'Daily Outfit Plan';
 
   @override
-  String outfitForDate(String date) {
-    return 'Outfit for $date';
-  }
-
-  @override
   String get noItemsPlanned => 'No items planned';
 
   @override
   String get thinkingEllipsis => 'Thinking…';
-
-  @override
-  String get packingAdviceLabel => 'Packing Advice';
 
   @override
   String get suitcaseLabel => 'Suitcase';
@@ -1309,7 +1294,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addFromOutfit => 'Add from an Outfit';
 
   @override
+  String get addFromOutfitHint =>
+      'Pack the garments of a saved outfit in one go.';
+
+  @override
   String get selectAnOutfitTitle => 'Select an Outfit';
+
+  @override
+  String get selectVersionTitle => 'Select a Version';
 
   @override
   String addedItemsFromOutfitCount(int count) {
@@ -1352,9 +1344,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToRemoveItem => 'Failed to remove item';
-
-  @override
-  String get loadingSuitcaseEllipsis => 'Loading Suitcase…';
 
   @override
   String get updatingSuitcaseEllipsis => 'Updating Suitcase…';

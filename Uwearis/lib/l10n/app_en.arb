@@ -283,8 +283,6 @@
   "failedToGenerateOutfit": "Failed to generate outfit",
   "regenerateOutfit": "Regenerate Outfit",
   "changeGarments": "Change Garments",
-  "noOutfitPlannedYetTitle": "No outfit planned yet",
-  "noOutfitPlannedYetHint": "Generate your trip plan to assign clothes for this day.",
   "missingFromSuitcaseCount": "{count} items aren't packed yet.",
   "@missingFromSuitcaseCount": {
     "placeholders": { "count": { "type": "int" } }
@@ -511,13 +509,8 @@
   "creatingEllipsis": "Creating…",
   "generatingEllipsis": "Generating…",
   "dailyOutfitPlan": "Daily Outfit Plan",
-  "outfitForDate": "Outfit for {date}",
-  "@outfitForDate": {
-    "placeholders": { "date": { "type": "String" } }
-  },
   "noItemsPlanned": "No items planned",
   "thinkingEllipsis": "Thinking…",
-  "packingAdviceLabel": "Packing Advice",
   "suitcaseLabel": "Suitcase",
   "packClothingHint": "Pack clothing for this trip",
 
@@ -525,7 +518,9 @@
   "editOutfitTitle": "Edit Outfit",
   "editGarmentTitle": "Edit Garment",
   "addFromOutfit": "Add from an Outfit",
+  "addFromOutfitHint": "Pack the garments of a saved outfit in one go.",
   "selectAnOutfitTitle": "Select an Outfit",
+  "selectVersionTitle": "Select a Version",
   "addedItemsFromOutfitCount": "Added {count} items from this outfit.",
   "@addedItemsFromOutfitCount": {
     "placeholders": { "count": { "type": "int" } }
@@ -556,7 +551,6 @@
 
   "failedToUpdateSuitcase": "Failed to update suitcase",
   "failedToRemoveItem": "Failed to remove item",
-  "loadingSuitcaseEllipsis": "Loading Suitcase…",
   "updatingSuitcaseEllipsis": "Updating Suitcase…",
   "addGarment": "Add Garment",
   "browseYourClosetHint": "Browse your closet",

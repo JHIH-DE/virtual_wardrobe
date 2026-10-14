@@ -100,7 +100,9 @@ class GarmentListCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildCategoryTag(context),
+                    CategoryTag(
+                      label: garment.category.localizedLabel(context),
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       garment.name,
@@ -126,7 +128,4 @@ class GarmentListCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildCategoryTag(BuildContext context) =>
-      CategoryTag(label: garment.category.localizedLabel(context));
 }

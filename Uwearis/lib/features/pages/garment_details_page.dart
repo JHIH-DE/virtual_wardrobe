@@ -644,7 +644,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           const SizedBox(height: 20),
           _buildPriceField(),
           const SizedBox(height: 20),
-          _buildPurchaseDateSection(),
+          _buildPurchaseDateField(),
         ],
       ),
     );
@@ -752,7 +752,39 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   Widget _buildColorField() {
-    return LabeledField(label: _l10n.color, child: _colorPicker());
+    final selected = _selectedColor;
+    return LabeledField(
+      label: _l10n.color,
+      child: TappableFieldDecorator(
+        onTap: _openColorPickerSheet,
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: selected?.color ?? Colors.transparent,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.borderSubtle, width: 1.2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              selected?.localizedLabel(context) ?? _l10n.selectAColor,
+              style: AppTextStyle.regular16.copyWith(
+                color: selected == null
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Image.asset(
+            'assets/images/arrow_down.png',
+            height: AppDimens.iconSmallSize,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildFitField() {
@@ -833,10 +865,39 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  Widget _buildPurchaseDateSection() {
+  Widget _buildPurchaseDateField() {
     return LabeledField(
       label: _l10n.purchaseDateLabel,
-      child: _purchaseDateField(),
+      child: TappableFieldDecorator(
+        onTap: () async {
+          final now = DateTime.now();
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: _purchaseDate ?? now,
+            firstDate: DateTime(2000),
+            lastDate: DateTime(now.year + 2),
+          );
+          if (picked != null && picked != _purchaseDate && mounted) {
+            setState(() => _purchaseDate = picked);
+            _onEdited();
+          }
+        },
+        children: [
+          Expanded(
+            child: Text(
+              _purchaseDate == null
+                  ? _l10n.selectDate
+                  : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
+              style: AppTextStyle.regular16.copyWith(
+                color: _purchaseDate == null
+                    ? AppColors.textSecondary
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ),
+          const Icon(Icons.calendar_today, size: 18, color: AppColors.icon),
+        ],
+      ),
     );
   }
 
@@ -1216,10 +1277,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
                   color: AppColors.textSecondary,
                 ),
               ),
-              Image.asset(
-                'assets/images/page_arrow_right.png',
-                width: AppDimens.iconSmallSize,
-                height: AppDimens.iconSmallSize,
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: AppDimens.iconSmallSize,
+                color: AppColors.icon,
               ),
             ],
           ],
@@ -1237,39 +1298,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => GarmentOutfitsPage(garmentId: gid)),
-    );
-  }
-
-  Widget _colorPicker() {
-    final selected = _selectedColor;
-    return TappableFieldDecorator(
-      onTap: _openColorPickerSheet,
-      children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            color: selected?.color ?? Colors.transparent,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.borderSubtle, width: 1.2),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            selected?.localizedLabel(context) ?? _l10n.selectAColor,
-            style: AppTextStyle.regular16.copyWith(
-              color: selected == null
-                  ? AppColors.textSecondary
-                  : AppColors.textPrimary,
-            ),
-          ),
-        ),
-        Image.asset(
-          'assets/images/arrow_down.png',
-          height: AppDimens.iconSmallSize,
-        ),
-      ],
     );
   }
 
@@ -1354,39 +1382,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             ? Icon(Icons.check, size: 20, color: c.preferredCheckColor)
             : null,
       ),
-    );
-  }
-
-  Widget _purchaseDateField() {
-    return TappableFieldDecorator(
-      onTap: () async {
-        final now = DateTime.now();
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: _purchaseDate ?? now,
-          firstDate: DateTime(2000),
-          lastDate: DateTime(now.year + 2),
-        );
-        if (picked != null && picked != _purchaseDate && mounted) {
-          setState(() => _purchaseDate = picked);
-          _onEdited();
-        }
-      },
-      children: [
-        Expanded(
-          child: Text(
-            _purchaseDate == null
-                ? _l10n.selectDate
-                : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
-            style: AppTextStyle.regular16.copyWith(
-              color: _purchaseDate == null
-                  ? AppColors.textSecondary
-                  : AppColors.textPrimary,
-            ),
-          ),
-        ),
-        const Icon(Icons.calendar_today, size: 18, color: AppColors.icon),
-      ],
     );
   }
 

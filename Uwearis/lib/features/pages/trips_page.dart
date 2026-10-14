@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
+import '../../core/providers/trip_detail_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
@@ -72,7 +73,15 @@ Future<void> handleCreateTrip(
   try {
     final newTrip = await _createTrip(input);
     ref.read(tripsProvider.notifier).addTrip(newTrip);
-    final initialData = await TripDetailsPage.preload(newTrip);
+    try {
+      await _loadTripDetail(ref, newTrip);
+    } on AuthExpiredException {
+      rethrow;
+    } catch (e) {
+      // The trip itself was created — open it regardless; its pages render
+      // empty until the next visit retries the load.
+      debugLog('Failed to load new trip detail: $e');
+    }
 
     navigator.pop(); // close loading indicator
     // Switch the shell to the Trips tab first, so popping back off Trip
@@ -83,15 +92,10 @@ Future<void> handleCreateTrip(
     // the Suitcase page pushed on top of it via its app-bar back button
     // lands on Trip Details, not wherever trip creation was started from.
     navigator.push(
-      MaterialPageRoute(
-        builder: (_) =>
-            TripDetailsPage(trip: newTrip, initialData: initialData),
-      ),
+      MaterialPageRoute(builder: (_) => TripDetailsPage(trip: newTrip)),
     );
     navigator.push(
-      MaterialPageRoute(
-        builder: (_) => TripSuitcasePage(trip: newTrip, justCreated: true),
-      ),
+      MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: newTrip)),
     );
   } on AuthExpiredException {
     navigator.pop(); // close loading indicator
@@ -175,9 +179,26 @@ Future<void> handleDeleteTrip(
   }
 }
 
-/// Opens [TripDetailsPage] with a shell loading overlay covering the preload.
-/// Shared between [TripsPage]'s own cards and the Home page's trip card —
-/// [tab] just picks which `MainTab`'s overlay to drive.
+/// Waits for [trip]'s [tripDetailProvider] to finish its first load (a
+/// no-op once cached). A previous failed load is retried from scratch.
+Future<void> _loadTripDetail(WidgetRef ref, Trip trip) async {
+  final provider = tripDetailProvider(int.parse(trip.id));
+  if (ref.read(provider).hasError) ref.invalidate(provider);
+  // A real listener for the duration of the load, so appRetryPolicy's
+  // scheduled retries actually run.
+  final subscription = ref.listenManual(provider, (_, _) {});
+  try {
+    await ref.read(provider.future);
+  } finally {
+    subscription.close();
+  }
+}
+
+/// Opens [TripDetailsPage]. Only a trip's first visit this session shows the
+/// shell loading overlay while [tripDetailProvider] loads; later visits
+/// open at once from the cache. Shared between [TripsPage]'s own cards and
+/// the Home page's trip card — [tab] just picks which `MainTab`'s overlay to
+/// drive.
 Future<void> openTripDetails(
   BuildContext context,
   WidgetRef ref,
@@ -185,18 +206,20 @@ Future<void> openTripDetails(
   required MainTab tab,
 }) async {
   final l10n = AppLocalizations.of(context);
-  MainShellScope.of(
-    context,
-  )?.setLoading(true, label: l10n.loadingTripEllipsis, tab: tab);
+  final cached = ref.read(tripDetailProvider(int.parse(trip.id)));
+  final needsLoad = !cached.hasValue || cached.hasError;
+  if (needsLoad) {
+    MainShellScope.of(
+      context,
+    )?.setLoading(true, label: l10n.loadingTripEllipsis, tab: tab);
+  }
   try {
-    final data = await TripDetailsPage.preload(trip);
+    if (needsLoad) await _loadTripDetail(ref, trip);
     if (!context.mounted) return;
     MainShellScope.of(context)?.setLoading(false, tab: tab);
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => TripDetailsPage(trip: trip, initialData: data),
-      ),
+      MaterialPageRoute(builder: (_) => TripDetailsPage(trip: trip)),
     );
   } on AuthExpiredException {
     if (!context.mounted) return;
