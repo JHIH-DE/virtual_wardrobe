@@ -22,11 +22,25 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
+  /// [brandTitle] at AppToolBar size (Home / Explore). The share card keeps
+  /// the base 22.
+  static TextStyle get brandTitleToolbar => brandTitle.copyWith(fontSize: 24);
+
   // ── Bold (w700) ────────────────────────────────────────────────────────
 
   static const TextStyle bold24 = TextStyle(
     fontFamily: 'NotoSansTC',
     fontSize: 24,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle bold22 = TextStyle(
+    fontFamily: 'NotoSansTC',
+    fontSize: 22,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
     leadingDistribution: TextLeadingDistribution.even,
@@ -57,6 +71,16 @@ class AppTextStyle {
   static const TextStyle bold16 = TextStyle(
     fontFamily: 'NotoSansTC',
     fontSize: 16,
+    fontWeight: FontWeight.w700,
+    fontVariations: [FontVariation('wght', 700)],
+    leadingDistribution: TextLeadingDistribution.even,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle bold15 = TextStyle(
+    fontFamily: 'NotoSansTC',
+    fontSize: 15,
     fontWeight: FontWeight.w700,
     fontVariations: [FontVariation('wght', 700)],
     leadingDistribution: TextLeadingDistribution.even,
@@ -114,6 +138,16 @@ class AppTextStyle {
   static const TextStyle medium16 = TextStyle(
     fontFamily: 'NotoSansTC',
     fontSize: 16,
+    fontWeight: FontWeight.w500,
+    fontVariations: [FontVariation('wght', 500)],
+    leadingDistribution: TextLeadingDistribution.even,
+    letterSpacing: 0,
+    color: AppColors.textPrimary,
+  );
+
+  static const TextStyle medium14 = TextStyle(
+    fontFamily: 'NotoSansTC',
+    fontSize: 14,
     fontWeight: FontWeight.w500,
     fontVariations: [FontVariation('wght', 500)],
     leadingDistribution: TextLeadingDistribution.even,

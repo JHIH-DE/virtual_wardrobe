@@ -42,13 +42,13 @@ class _ExplorePageState extends State<ExplorePage> {
         titleWidget: Text(
           'Uwearis',
           textScaler: TextScaler.noScaling,
-          style: AppTextStyle.brandTitle,
+          style: AppTextStyle.brandTitleToolbar,
         ),
         showBackButton: false,
-        leadingWidth: 128,
+        leadingWidth: 136,
         leading: Padding(
           // Matches Home's leading pill inset.
-          padding: const EdgeInsets.only(left: 16),
+          padding: const EdgeInsets.only(left: 20),
           // centerLeft, not Center: the leading slot is wider than the pill,
           // so a plain Center would float a shorter label ("Home") further
           // right than a longer one — anchor the left edge instead so it
@@ -58,6 +58,7 @@ class _ExplorePageState extends State<ExplorePage> {
             child: AccentPillButton(
               label: l10n.navHome,
               icon: Icons.home_outlined,
+              variant: AccentPillButtonVariant.toolbar,
               onPressed: () => Navigator.pop(context),
             ),
           ),

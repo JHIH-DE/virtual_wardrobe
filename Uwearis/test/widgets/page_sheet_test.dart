@@ -16,8 +16,8 @@ void main() {
     double width = 390,
     Widget? leading,
   }) async {
-    // A phone-like screen with a status bar, so the sheet's top edge (kept
-    // below it) and the toolbar's both sit under a non-zero inset.
+    // A phone-like screen with a status bar, so the toolbar (and the sheet
+    // lined up with it) sits under a non-zero inset.
     tester.view.physicalSize = Size(width, 844);
     tester.view.devicePixelRatio = 1.0;
     tester.view.padding = const FakeViewPadding(top: 47);
@@ -30,6 +30,7 @@ void main() {
           title: 'Page',
           actions: [
             AppPopupMenu<int>(
+              variant: AppPopupMenuVariant.toolbar,
               onSelected: (_) {},
               items: [AppPopupMenu.item(value: 1, label: 'One')],
             ),
@@ -52,8 +53,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('sheet starts right at the tool bar\'s bottom, with a title and '
-      'an X', (tester) async {
+  testWidgets('sheet\'s top is level with the top of the toolbar\'s action '
+      'discs, with a title and an X', (tester) async {
     await pumpAndOpen(tester);
 
     expect(find.text('Sheet'), findsOneWidget);
@@ -62,7 +63,19 @@ void main() {
     expect(find.byType(PickerSheetHeader), findsNothing);
     expect(find.byType(AppDivider), findsNothing);
     final sheet = tester.getRect(find.byType(BottomSheet));
-    expect(sheet.top, tester.getBottomLeft(find.byType(AppToolBar)).dy);
+    expect(
+      sheet.top,
+      tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(AppToolBar),
+                  matching: find.byType(ActionDisc),
+                )
+                .last,
+          )
+          .top,
+    );
     expect(sheet.bottom, 844);
   });
 
@@ -70,11 +83,11 @@ void main() {
       'the title level with it and centred on the sheet', (tester) async {
     await pumpAndOpen(tester);
 
-    // The glyph is centred on its 36px disc.
+    // The glyph is centred on its disc.
     final sheet = tester.getRect(find.byType(BottomSheet));
     final close = tester.getCenter(find.byIcon(Icons.close));
-    expect(close.dx, sheet.right - 20 - 18);
-    expect(close.dy, sheet.top + 20 + 18);
+    expect(close.dx, sheet.right - 20 - ActionDisc.size / 2);
+    expect(close.dy, sheet.top + 20 + ActionDisc.size / 2);
     final title = tester.getCenter(find.text('Sheet'));
     expect(title.dy, close.dy);
     expect(title.dx, sheet.center.dx);
@@ -84,7 +97,10 @@ void main() {
     await pumpAndOpen(tester, width: 800);
 
     expect(tester.getSize(find.byType(BottomSheet)).width, 800);
-    expect(tester.getCenter(find.byIcon(Icons.close)).dx, 800 - 20 - 18);
+    expect(
+      tester.getCenter(find.byIcon(Icons.close)).dx,
+      800 - 20 - ActionDisc.size / 2,
+    );
   });
 
   testWidgets('a leading action mirrors the X at the top left', (tester) async {
@@ -100,7 +116,7 @@ void main() {
 
     final sheet = tester.getRect(find.byType(BottomSheet));
     final leading = tester.getCenter(find.byIcon(Icons.refresh));
-    expect(leading.dx, sheet.left + 20 + 18);
+    expect(leading.dx, sheet.left + 20 + ActionDisc.size / 2);
     expect(leading.dy, tester.getCenter(find.byIcon(Icons.close)).dy);
 
     await tester.tap(find.byIcon(Icons.refresh));

@@ -10,9 +10,9 @@ import '../buttons/action_disc_button.dart';
 /// self-contained view (e.g. Garment Details' Closet Match analysis) that
 /// slides up over the current page instead of being pushed as a route.
 ///
-/// Its top edge lines up with the bottom of the page's `AppToolBar` — the
-/// toolbar stays visible (under the modal barrier) and the sheet fills
-/// everything below it. Its chrome is just a top row with [title] centred,
+/// Its top edge sits level with the top of the page's `AppToolBar` action
+/// discs, so it just covers them (the toolbar's title row shows above it,
+/// under the modal barrier). Its chrome is just a top row with [title] centred,
 /// a close (X) button on a translucent disc at the right, and an optional
 /// [leading] action at the left (pass a [PageSheetAction] so it matches the
 /// X) — no drag handle or divider; [builder]'s content fills the rest of the height
@@ -33,7 +33,9 @@ Future<T?> pageSheet<T>(
   // strips the status-bar inset from its body's MediaQuery, which is where
   // callers usually open this from.
   final media = MediaQueryData.fromView(View.of(context));
-  final toolBarBottom = media.padding.top + AppDimens.toolbarHeight;
+  // The top of AppToolBar's action discs, centred in its toolbar-height row.
+  final sheetTop =
+      media.padding.top + (AppDimens.toolbarHeight - ActionDisc.size) / 2;
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
@@ -46,16 +48,16 @@ Future<T?> pageSheet<T>(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (sheetContext) => SizedBox(
-      height: media.size.height - toolBarBottom,
+      height: media.size.height - sheetTop,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // A [PageSheetAction]'s 36px disc is centred in its 48px tap target,
-          // so this puts each disc 20 below the sheet's top and 20 in from
-          // its side (AppToolBar's edge inset). The title keeps the same inset on both sides so it
-          // stays centred on the whole sheet without running under either.
+          // ActionDisc.edgeInset puts each disc 20 below the sheet's top and
+          // 20 in from its side, matching AppToolBar. The title keeps the
+          // same inset on both sides so it stays centred on the whole sheet
+          // without running under either.
           Padding(
-            padding: const EdgeInsets.only(top: 14),
+            padding: const EdgeInsets.only(top: ActionDisc.edgeInset),
             child: SizedBox(
               height: AppDimens.toolbarHeight,
               child: Stack(
@@ -63,19 +65,21 @@ Future<T?> pageSheet<T>(
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimens.toolbarHeight + 14,
+                      horizontal:
+                          AppDimens.toolbarHeight + ActionDisc.edgeInset,
                     ),
                     child: Text(
                       title,
-                      style: AppTextStyle.bold20,
+                      style: AppTextStyle.bold22,
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (leading != null) Positioned(left: 14, child: leading),
+                  if (leading != null)
+                    Positioned(left: ActionDisc.edgeInset, child: leading),
                   Positioned(
-                    right: 14,
+                    right: ActionDisc.edgeInset,
                     child: PageSheetAction(
                       icon: Icons.close,
                       label: AppLocalizations.of(sheetContext).close,

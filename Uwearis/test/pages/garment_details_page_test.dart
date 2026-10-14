@@ -1196,7 +1196,7 @@ void main() {
           tester.getCenter(find.byIcon(Icons.refresh)),
           tester
               .getCenter(find.byIcon(Icons.close))
-              .translate(-(sheet.width - 2 * (20 + 18)), 0),
+              .translate(-(sheet.width - 2 * (20 + ActionDisc.size / 2)), 0),
         );
 
         await tester.tap(find.byIcon(Icons.refresh));

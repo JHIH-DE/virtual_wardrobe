@@ -453,11 +453,11 @@ class _HomePageState extends ConsumerState<HomePage>
       titleWidget: Text(
         'Uwearis',
         textScaler: TextScaler.noScaling,
-        style: AppTextStyle.brandTitle,
+        style: AppTextStyle.brandTitleToolbar,
       ),
       showBackButton: false,
       leading: _buildExploreButton(),
-      leadingWidth: 128,
+      leadingWidth: 136,
       actions: [
         ActionDiscButton(
           icon: Image.asset(
@@ -477,9 +477,8 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Widget _buildExploreButton() {
     return Padding(
-      // Matches the default back-arrow's effective left inset (IconButton's
-      // own 8px Material padding + its 2px inner glyph padding).
-      padding: const EdgeInsets.only(left: 16),
+      // Lines up with the other pages' back-button disc, 20 from the edge.
+      padding: const EdgeInsets.only(left: 20),
       // centerLeft anchors flush to the 16px inset — matches Explore's
       // "Home" pill.
       child: Align(
@@ -487,6 +486,7 @@ class _HomePageState extends ConsumerState<HomePage>
         child: AccentPillButton(
           label: AppLocalizations.of(context).explore,
           icon: Icons.explore_outlined,
+          variant: AccentPillButtonVariant.toolbar,
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const ExplorePage()),

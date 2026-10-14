@@ -35,11 +35,6 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     this.centerTitle = true,
   });
 
-  // Puts the outermost discs (back button / last action) 20 from the screen
-  // edge, as on iOS — each disc sits centred in a toolbarHeight tap box.
-  static const double _edgeInset = 14;
-  static const double _backArrowSize = 22;
-
   bool get _usesBackButton => leading == null && showBackButton;
 
   @override
@@ -51,7 +46,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     final text = Text(
       title,
       textScaler: TextScaler.noScaling,
-      style: AppTextStyle.bold20,
+      style: AppTextStyle.bold22,
     );
     if (titleCount == null) return text;
     return Row(
@@ -93,9 +88,16 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: centerTitle,
+        // With nothing leading, the title's own inset lines it up with the
+        // discs' 20 from the edge.
+        titleSpacing: leading == null && !showBackButton
+            ? 20
+            : NavigationToolbar.kMiddleSpacing,
         leadingWidth:
             leadingWidth ??
-            (_usesBackButton ? _edgeInset + AppDimens.toolbarHeight : null),
+            (_usesBackButton
+                ? ActionDisc.edgeInset + AppDimens.toolbarHeight
+                : null),
         title: titleWidget != null
             ? Semantics(header: true, label: title, child: titleWidget)
             : _buildTitle(),
@@ -103,14 +105,14 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
             leading ??
             (showBackButton
                 ? Padding(
-                    padding: const EdgeInsets.only(left: _edgeInset),
+                    padding: const EdgeInsets.only(left: ActionDisc.edgeInset),
                     child: ActionDiscButton(
                       tooltip: MaterialLocalizations.of(
                         context,
                       ).backButtonTooltip,
                       icon: const Icon(
                         Icons.arrow_back_ios_new_rounded,
-                        size: _backArrowSize,
+                        size: ActionDisc.iconSize,
                         color: AppColors.icon,
                       ),
                       onPressed: onBack ?? () => Navigator.pop(context),
@@ -118,7 +120,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
                   )
                 : null),
         actions: actions,
-        actionsPadding: const EdgeInsets.only(right: _edgeInset),
+        actionsPadding: const EdgeInsets.only(right: ActionDisc.edgeInset),
         bottom: bottom,
       ),
     );

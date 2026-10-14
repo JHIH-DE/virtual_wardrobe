@@ -65,14 +65,14 @@ void main() {
 
       await pumpApp(tester, Scaffold(body: Center(child: btn(false))));
       final unfilteredDots = find.byWidgetPredicate(
-        (w) => w is Container && w.constraints?.maxWidth == 8,
+        (w) => w is Container && w.constraints?.maxWidth == 6,
       );
       expect(unfilteredDots, findsNothing);
 
       await pumpApp(tester, Scaffold(body: Center(child: btn(true))));
       expect(
         find.byWidgetPredicate(
-          (w) => w is Container && w.constraints?.maxWidth == 8,
+          (w) => w is Container && w.constraints?.maxWidth == 6,
         ),
         findsOneWidget,
       );

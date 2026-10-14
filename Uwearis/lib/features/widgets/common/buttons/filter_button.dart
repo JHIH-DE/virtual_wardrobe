@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../app_divider.dart';
@@ -88,13 +89,19 @@ class FilterButton extends StatelessWidget {
     return next;
   }
 
+  static const double _dotSize = 6;
+
+  // Centres the "filtered" dot just off the glyph's top-left corner, inside
+  // the disc — the glyph's inset in the tap box, whatever the dot's size.
+  static const double _dotOffset =
+      (AppDimens.toolbarHeight - ActionDisc.iconSize) / 2 + 0.5 - _dotSize / 2;
+
   void _openFilterSheet(BuildContext context) =>
       showChipGroupsSheet(context, groups: groups);
 
   @override
   Widget build(BuildContext context) {
     return Stack(
-      clipBehavior: Clip.none,
       children: [
         ActionDiscButton(
           icon: const Icon(
@@ -106,11 +113,11 @@ class FilterButton extends StatelessWidget {
         ),
         if (isFiltered)
           Positioned(
-            left: 6,
-            top: 6,
+            left: _dotOffset,
+            top: _dotOffset,
             child: Container(
-              width: 8,
-              height: 8,
+              width: _dotSize,
+              height: _dotSize,
               decoration: const BoxDecoration(
                 color: AppColors.accent,
                 shape: BoxShape.circle,

@@ -8,8 +8,12 @@ import '../../../../app/theme/app_dimens.dart';
 /// [pageSheet]'s header actions. Visual only; [ActionDiscButton] wraps it in
 /// the toolbar-height tap target. Size the [child] glyph to [iconSize].
 class ActionDisc extends StatelessWidget {
-  static const double size = 36;
-  static const double iconSize = AppDimens.iconSmallSize;
+  static const double size = 40;
+  static const double iconSize = 22;
+
+  /// How far a [AppDimens.toolbarHeight] tap box sits from the screen /
+  /// sheet edge so its disc lands 20 from that edge, as on iOS.
+  static const double edgeInset = 20 - (AppDimens.toolbarHeight - size) / 2;
 
   final Widget child;
 
