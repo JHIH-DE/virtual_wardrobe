@@ -21,8 +21,7 @@ import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
 
-/// garmentsProvider seeded with a fixed closet — the page reads it directly,
-/// so every test overrides it instead of hitting the network.
+/// Fixed closet so tests don't hit the network.
 class _FakeGarments extends GarmentsNotifier {
   _FakeGarments(this._items);
   final List<Garment> _items;
@@ -63,8 +62,6 @@ void main() {
     _garment(id: 3, category: GarmentCategory.shoes, name: 'Sneakers'),
   ];
 
-  /// Overrides garmentsProvider with [pool] (default [closet]) — pass to
-  /// `pumpApp`'s `overrides:`.
   List<Override> closetOverride([List<Garment>? pool]) => [
     garmentsProvider.overrideWith(() => _FakeGarments(pool ?? closet)),
   ];
@@ -86,13 +83,10 @@ void main() {
       await tester.pump();
 
       expect(find.byTooltip('Match a Look'), findsOneWidget);
-      // No reference matched yet, so no reference card.
       expect(find.text('Reference Look'), findsNothing);
       expect(find.text('OUTFIT ITEMS'), findsOneWidget);
-      // Nothing picked yet — only the "Add Garment" row is in the list.
       expect(find.text('Add Garment'), findsOneWidget);
 
-      // Nothing picked, so Create Outfit isn't offered yet.
       expect(
         find.widgetWithText(BottomActionButton, 'Create Outfit'),
         findsNothing,
@@ -259,14 +253,12 @@ void main() {
       expect(find.text('20°C'), findsOneWidget); // fallback default
       expect(find.text('STYLE'), findsOneWidget);
       expect(find.text('Auto'), findsOneWidget);
-      // "Finish with AI" sits on the title row, beside "Auto-Complete".
       final finish = find.widgetWithText(AccentPillButton, 'Finish with AI');
       expect(finish, findsOneWidget);
       expect(
         tester.getCenter(finish).dy,
         closeTo(tester.getCenter(find.text('Auto-Complete')).dy, 4),
       );
-      // The two knob tiles sit side by side.
       expect(
         tester.getCenter(find.text('STYLE')).dy,
         closeTo(tester.getCenter(find.text('TEMPERATURE')).dy, 1),
@@ -329,8 +321,6 @@ void main() {
 
         await runFinishWithAi();
 
-        // The recommended garments are now in place, unlocked, and the
-        // Create Outfit gate is satisfied.
         expect(
           find.widgetWithText(BottomActionButton, 'Create Outfit'),
           findsOneWidget,
@@ -340,7 +330,7 @@ void main() {
         final firstBody =
             jsonDecode(requests.single.body) as Map<String, dynamic>;
         expect(firstBody['exclude_garment_ids'], <int>[]);
-        // "Auto" style leaves it to the backend; occasion is gone entirely.
+        // "Auto" style leaves it to the backend.
         expect(firstBody.containsKey('style'), isFalse);
         expect(firstBody.containsKey('occasion'), isFalse);
 
@@ -535,7 +525,6 @@ void main() {
       await tester.pump();
       expect(find.text('BACKGROUND'), findsOneWidget);
       expect(find.text('(OPTIONAL)'), findsNothing);
-      // Sits below the outfit items, behind a divider.
       expect(
         tester.getTopLeft(find.text('BACKGROUND')).dy,
         greaterThan(tester.getTopLeft(find.text('OUTFIT ITEMS')).dy),
@@ -627,10 +616,8 @@ void main() {
         await tester.pump(const Duration(seconds: 1));
         await tester.pump(const Duration(seconds: 1));
 
-        // Now on OutfitDetailsPage — back out and choose Save, same as the
-        // reported repro (create → save → return to Add Outfit). Plain
-        // pumps, not pumpAndSettle: the page's own loading spinner (while
-        // it resolves garments/saved-status) animates forever.
+        // Now on OutfitDetailsPage — back out and choose Save. Plain pumps:
+        // the page's loading spinner animates forever.
         expect(find.byType(OutfitDetailsPage), findsOneWidget);
         await tester.tap(find.byType(ActionDiscButton).first);
         await tester.pump();
@@ -643,18 +630,15 @@ void main() {
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        // Unrelated to this test: the post-save "Outfit saved" toast
-        // (showFeedbackOverlay) overflows its fixed-width box under the
-        // test font's wider metrics — not something this fix touches.
+        // Unrelated: the "Outfit saved" toast overflows under the test
+        // font's wider metrics.
         tester.takeException();
 
-        // Back on Add Outfit — the accessory picked before "Create Outfit"
-        // must still be there, exactly like the core Top/Bottom/Shoes slots.
+        // The accessory picked before "Create Outfit" must survive.
         expect(find.byType(AddOutfitPage), findsOneWidget);
         expect(find.text('Ray-Bans'), findsOneWidget);
 
-        // Drain showFeedbackOverlay's auto-dismiss timer so it doesn't trip
-        // the "pending timer after dispose" check at test teardown.
+        // Drain the toast's auto-dismiss timer before teardown.
         await tester.pump(const Duration(seconds: 3));
       }, () => client);
     },

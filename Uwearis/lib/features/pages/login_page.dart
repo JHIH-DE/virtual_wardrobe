@@ -30,9 +30,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _googleSignInInitialized = false;
   bool _isLoading = false;
 
-  /// `GoogleSignIn.instance.initialize()` must be called exactly once and
-  /// awaited before any other GoogleSignIn method — unlike the old
-  /// constructor-configured instance, this is a process-wide singleton.
+  /// `GoogleSignIn.instance.initialize()` must be awaited exactly once,
+  /// before any other GoogleSignIn call (process-wide singleton).
   Future<void> _ensureGoogleSignInInitialized() async {
     if (_googleSignInInitialized) return;
     await GoogleSignIn.instance.initialize(
@@ -48,10 +47,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _goHome() async {
     if (!mounted) return;
-    // Before building a fresh MainShell: make sure none of its tabs read a
-    // previous account's already-resolved provider state — see
-    // invalidateSignedInProviders's own doc comment for why this has to
-    // happen here rather than at logout time.
+    // Here, not at logout — see invalidateSignedInProviders.
     invalidateSignedInProviders(context);
     Navigator.pushReplacement(
       context,
@@ -63,11 +59,6 @@ class _LoginPageState extends State<LoginPage> {
       showErrorDialog(context, message: msg);
 
   Future<void> _loginWithGoogle() async {
-    // Synchronous re-entrancy guard — before any await. Disabling the button
-    // on `_isLoading` isn't enough: `setState` only takes effect next frame,
-    // and there are two awaits (init, signOut) before the account picker, so
-    // a fast double-tap otherwise launches two concurrent sign-in flows that
-    // race on the token exchange and AuthStorage.
     if (_isLoading) return;
     if (Platform.isIOS && Env.googleIosClientId.isEmpty) {
       _showErrorDialog(_l10n.googleLoginNotConfiguredIOS);
@@ -91,7 +82,6 @@ class _LoginPageState extends State<LoginPage> {
       Fluttertoast.showToast(msg: _l10n.googleLoginSuccess);
       await _goHome();
     } on GoogleSignInException catch (e) {
-      // User dismissed the account picker — not an error worth showing.
       if (e.code == GoogleSignInExceptionCode.canceled) return;
       debugLog('Google sign-in failed: ${e.code} ${e.description}');
       _showErrorDialog(_l10n.loginFailed);
@@ -104,7 +94,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithApple() async {
-    // synchronous re-entrancy guard — see _loginWithGoogle
     if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
@@ -121,8 +110,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // Apple only ever sends the name on the very first authorization for
-      // a given Apple ID — nothing to join if this is a repeat login.
+      // Apple sends the name only on the first authorization.
       final name = [
         credential.givenName,
         credential.familyName,
@@ -150,7 +138,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loginWithFacebook() async {
-    // synchronous re-entrancy guard — see _loginWithGoogle
     if (_isLoading) return;
     setState(() => _isLoading = true);
     try {
@@ -190,19 +177,13 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: AppColors.pageBackground,
       body: SafeArea(
         top: false,
-        // Anchor the content to the bottom so the login card + copyright sit
-        // flush against the bottom edge (any slack goes above the header
-        // image); still scrolls when the content is taller than the screen.
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _buildHeaderImage(),
-                  _buildLoginCard(),
-                ],
+                children: [_buildHeaderImage(), _buildLoginCard()],
               ),
             ),
           ),
@@ -231,8 +212,6 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLoginCard() {
     return Container(
       width: double.infinity,
-      // Tight bottom inset — the card is bottom-anchored, so anything more
-      // just reads as dead space under the copyright line.
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
       decoration: BoxDecoration(
         color: AppColors.pageBackground,

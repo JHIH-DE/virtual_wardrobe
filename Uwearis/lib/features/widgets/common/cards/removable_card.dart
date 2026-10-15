@@ -7,9 +7,8 @@ import '../../../../core/utils/route_observer.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'card_corner_badge.dart';
 
-/// Coordinates a group of [RemovableCard]s (e.g. all cards in one grid) so
-/// opening one card's delete confirmation closes any other that's open.
-/// Create one instance per list/grid and pass it to every card in it.
+/// One per list/grid: opening one card's delete confirmation closes any
+/// other that's open.
 class RemovableCardGroup {
   VoidCallback? _openClose;
 
@@ -24,9 +23,7 @@ class RemovableCardGroup {
 }
 
 /// Wraps [child] with a corner delete badge; tapping it shows a full-card
-/// black overlay with DELETE / cancel actions before invoking [onDelete].
-/// The badge's chrome (translucent disc, hairline border, no shadow) matches
-/// [FavoriteCard]'s — both sit on the same plain [GarmentCard] surface.
+/// REMOVE / cancel overlay before invoking [onDelete].
 class RemovableCard extends StatefulWidget {
   final Widget child;
   final VoidCallback onDelete;
@@ -74,9 +71,7 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
     super.dispose();
   }
 
-  // Reset the confirmation state when this route becomes visible again
-  // (e.g. navigated away mid-confirmation via a route pushed on top, then
-  // popped back), so a stale DELETE overlay doesn't reappear silently.
+  // Don't leave a stale confirmation overlay up after returning to this route.
   @override
   void didPopNext() => _close();
 
@@ -92,8 +87,6 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
           child: CardCornerBadge(
             icon: Icons.close,
             backgroundColor: AppColors.surfaceTranslucent,
-            // Photo-overlay badge family, neutral state — see CLAUDE.md's
-            // "Corner badges" section.
             iconColor: AppColors.hintText,
             border: Border.all(color: AppColors.borderSubtle),
             boxShadow: const [],
@@ -117,9 +110,6 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         GestureDetector(
-                          // opaque so the whole pill (its 24/14 padding
-                          // included) confirms the delete, not just the
-                          // "REMOVE" text.
                           behavior: HitTestBehavior.opaque,
                           onTap: () {
                             _close();

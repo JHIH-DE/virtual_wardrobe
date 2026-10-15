@@ -1,9 +1,7 @@
 class Env {
-  /// The backend base URL. The `defaultValue` (staging) is the single source
-  /// of truth — it isn't a secret and rarely changes, so it lives here
-  /// rather than in `dart_defines/*.json` (which carry only the Google
-  /// OAuth client ids). Point at another backend with
-  /// `--dart-define=BASE_URL=https://…` or a per-env `*.json`.
+  /// `defaultValue` (staging) is the single source of truth; the
+  /// `dart_defines` JSON only carries OAuth client ids. Override with
+  /// `--dart-define=BASE_URL=…`.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
     defaultValue: 'https://vw-backend-staging-662955046370.asia-east1.run.app',

@@ -1,9 +1,7 @@
 import 'garment.dart';
 
-/// The five fixed bands `POST /garments/{id}/closet-analysis` derives from
-/// its 1–10 `level` — the backend computes this deterministically from the
-/// number, so Flutter never sees a value outside this set (see
-/// garments-api.md §8).
+/// The five bands the backend derives deterministically from the 1–10
+/// `level`.
 enum VersatilityLabel {
   veryLimited,
   limited,
@@ -37,11 +35,6 @@ extension VersatilityLabelX on VersatilityLabel {
   }
 }
 
-/// A garment's closet-fit assessment — a 1–10 [level] plus the
-/// backend-derived [label] band. Recomputed fresh on every
-/// `closet-analysis` call; not a stored/permanent garment property (see
-/// [ClosetAnalysis]'s own doc comment). The backend dropped the explanatory
-/// `summary` string this used to carry — there is no replacement field.
 class ClosetAnalysisVersatility {
   final int level;
   final VersatilityLabel label;
@@ -55,19 +48,12 @@ class ClosetAnalysisVersatility {
     );
   }
 
-  /// Mirrors the API's own field shape, so a persisted cache entry
-  /// round-trips through [fromJson] unchanged — see
-  /// `GarmentService`'s closet-analysis cache.
+  /// API shape, so `GarmentService`'s persisted cache round-trips.
   Map<String, dynamic> toJson() => {'level': level, 'label': label.apiValue};
 }
 
-/// One garment as it appears inside an [ClosetAnalysisOutfitIdea] or
-/// [ClosetAnalysis.similarGarments] — a lightweight projection embedded
-/// straight in the closet-analysis response (not the full [Garment]
-/// shape), so callers don't need to cross-reference the closet just to
-/// render a thumbnail. [isTarget] only ever appears set inside an outfit
-/// idea's own garment list (the analyzed garment itself); it's always
-/// false for a `similar_garments` entry.
+/// Lightweight garment projection embedded in the response (not a full
+/// [Garment]). [isTarget] marks the analyzed garment in an outfit idea.
 class ClosetAnalysisGarment {
   final int garmentId;
   final GarmentCategory category;
@@ -102,10 +88,8 @@ class ClosetAnalysisGarment {
   };
 }
 
-/// One suggested outfit built from the user's own closet around the
-/// analyzed garment — up to 3 of these ride along on a closet-analysis
-/// response. Display-only in this app: nothing here creates an `Outfit` or
-/// triggers a try-on render.
+/// A suggested outfit around the analyzed garment. Display-only — never
+/// creates an `Outfit` or a try-on render.
 class ClosetAnalysisOutfitIdea {
   final String title;
   final List<ClosetAnalysisGarment> garments;
@@ -130,15 +114,9 @@ class ClosetAnalysisOutfitIdea {
   };
 }
 
-/// `POST /garments/{id}/closet-analysis`'s result — how well an
-/// already-in-the-closet garment pairs with the user's *current* full
-/// closet: a [versatility] rating, up to 3 [outfitIdeas] built around it,
-/// and up to 3 [similarGarments] already owned. Not written to the DB and
-/// not a permanent garment property — the backend recomputes it fresh on
-/// every call, so it can change as the closet changes (see
-/// garments-api.md §8). Superseded the old, now-removed
-/// `POST /garments/versatility-score` (a 1–100 score for a not-yet-created
-/// garment); this replaces that model entirely — no field maps 1:1.
+/// `POST /garments/closet-analysis` result: how well a garment (saved or
+/// not) pairs with the current closet. Recomputed on every call, never
+/// stored by the backend.
 class ClosetAnalysis {
   final ClosetAnalysisVersatility versatility;
   final List<ClosetAnalysisOutfitIdea> outfitIdeas;

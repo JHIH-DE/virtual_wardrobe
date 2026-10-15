@@ -8,35 +8,11 @@ import '../../../../l10n/generated/app_localizations.dart';
 import 'error_dialog.dart';
 import 'save_changes_dialog.dart';
 
-// The UI half of [AutoSaveController] — every auto-saving page wires these
-// two the same way, so a failure looks identical everywhere:
-//
-// ```dart
-// _autoSave = AutoSaveController(
-//   onSave: _persist,
-//   onError: (e) => showAutoSaveErrorDialog(context, _autoSave, e,
-//       fallback: _l10n.profileSaveFailed),
-// );
-// ...
-// ListenableBuilder(
-//   listenable: _autoSave,
-//   builder: (context, child) => PopScope(
-//     canPop: !_autoSave.hasPendingChanges,
-//     onPopInvokedWithResult: (didPop, _) { if (!didPop) _leave(); },
-//     child: child!,
-//   ),
-//   child: ...,
-// )
-// ```
-//
-// The `is AuthExpiredException` checks below inspect an error *value*
-// handed over by the controller, not a `catch` clause — the page's own
-// `onSave` lets every exception propagate so the controller can track the
-// failure.
+// The UI half of [AutoSaveController]. The `is AuthExpiredException` checks
+// inspect an error value from the controller, not a `catch` clause.
 
-/// [AutoSaveController.onError] handler: session expiry goes to
-/// [AuthExpiredHandler]; anything else shows the standard error dialog with
-/// a Retry that re-requests the save. Success stays silent by design.
+/// [AutoSaveController.onError] handler: an error dialog whose Retry
+/// re-requests the save.
 Future<void> showAutoSaveErrorDialog(
   BuildContext context,
   AutoSaveController controller,
@@ -57,15 +33,11 @@ Future<void> showAutoSaveErrorDialog(
   );
 }
 
-/// Back-arrow / system-back handler for an auto-saving page: pushes any
-/// pending change first and only then lets the page pop. If that save
-/// fails, asks via the shared [showSaveChangesDialog] — Save retries,
-/// Don't Save leaves without it, Cancel stays. Returns whether the page
-/// should pop now.
+/// Flushes pending changes before leaving; on failure asks via
+/// [showSaveChangesDialog]. Returns whether the page should pop.
 ///
-/// [onFlushingChanged] brackets each wait that actually has a save to push
-/// (never the dialog, never a no-op flush), so the page can show its
-/// loading overlay only while the user is really waiting on the network.
+/// [onFlushingChanged] brackets only waits with a real save to push (never
+/// the dialog), for the page's saving overlay.
 Future<bool> confirmLeaveAfterAutoSave(
   BuildContext context,
   AutoSaveController controller, {

@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 
-/// A hairline divider with its vertical spacing baked in, so the gap above
-/// and below is always defined by one value and can't drift apart the way
-/// bare `Divider(height: ...)` + ad hoc `SizedBox`/`Padding` combinations
-/// tend to (see e.g. garment_details_page.dart's Used in Outfits tile,
-/// which used to double up on spacing this way).
+/// A hairline divider with its vertical spacing built in.
 class AppDivider extends StatelessWidget {
   final double spacing;
   final double? topSpacing;

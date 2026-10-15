@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// White rounded pill with a shadow, label and icon. Matches the large
-/// bottom-toolbar action look (fixed height, bordered, spaced-apart
-/// label/icon — e.g. Retake / Album).
+/// White bordered pill with a label and icon (Image Editor's Retake /
+/// Album).
 class PillButton extends StatelessWidget {
   final Widget label;
   final Widget icon;

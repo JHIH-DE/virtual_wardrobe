@@ -87,7 +87,6 @@ void main() {
       expect(detail.suitcaseIds, {1, 2});
       expect(detail.hasTripPlan, isTrue);
 
-      // A second read is served from the cache.
       await container.read(tripDetailProvider(7).future);
       expect(mock.planCalls(), 1);
       expect(mock.tripCalls(), 1);

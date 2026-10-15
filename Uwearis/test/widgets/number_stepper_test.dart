@@ -44,7 +44,6 @@ void main() {
     );
 
     expect(find.text('15°C'), findsOneWidget);
-    // Spread across the host's width rather than shrink-wrapped.
     expect(tester.getSize(find.byType(NumberStepper)).width, 200);
     await tester.tap(find.byIcon(Icons.add_circle_outline));
     expect(incremented, 1);
@@ -110,18 +109,14 @@ void main() {
       ),
     );
 
-    // Just appeared because the caller says this is a fresh selection —
-    // fully visible.
     expect(opacityOf(tester), 1);
 
-    // Not yet 3s — still fully revealed.
     await tester.pump(const Duration(seconds: 2));
     expect(opacityOf(tester), 1);
 
     await tester.pump(const Duration(seconds: 2));
     expect(opacityOf(tester), 0.6);
 
-    // A tap revives it for another 3s.
     await tester.tap(find.byIcon(Icons.add_circle_outline));
     await tester.pump();
     expect(opacityOf(tester), 1);
@@ -147,7 +142,6 @@ void main() {
 
       expect(opacityOf(tester), 0.6);
 
-      // A +/- tap still reveals it like normal.
       await tester.tap(find.byIcon(Icons.add_circle_outline));
       await tester.pump();
       expect(opacityOf(tester), 1);
@@ -198,11 +192,10 @@ void main() {
     await tester.tap(find.byIcon(Icons.add_circle_outline));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
-    // Tap again before the first countdown would have fired.
     await tester.tap(find.byIcon(Icons.add_circle_outline));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
-    // Only 2s since the second tap — still revealed, not the stale 4s mark.
+    // 2s since the second tap: the first tap's countdown must not apply.
     expect(opacityOf(tester), 1);
 
     await tester.pump(const Duration(seconds: 1));

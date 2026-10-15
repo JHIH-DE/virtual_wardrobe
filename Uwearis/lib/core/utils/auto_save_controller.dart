@@ -2,35 +2,18 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-/// Drives auto-save for a page that edits an *existing* record (Garment
-/// Details in edit mode, Account) — creating a new record keeps
-/// an explicit Save/Add button instead.
+/// Decides *when* to call [onSave], which persists the page's whole current
+/// state (see CLAUDE.md #auto-save).
 ///
-/// The page stays the single source of truth: [onSave] reads the page's
-/// current state and persists all of it, so whichever save runs last always
-/// carries the latest values. The controller only decides *when* to call it:
+/// - At most one save in flight; changes meanwhile coalesce into a single
+///   follow-up, so an older PATCH can't land after a newer one.
+/// - [requestSave] saves now; [scheduleSave] waits for [debounce] of quiet.
+/// - A failure isn't retried: [hasFailed] turns true and [onError] fires
+///   once. The next request clears it.
+/// - [flush] (on leave) reports failure via its result and [lastError], not
+///   [onError], so the leave prompt doesn't stack on an error dialog.
 ///
-/// - At most one save is in flight. A change that arrives meanwhile marks
-///   the controller dirty, and exactly one follow-up save runs once the
-///   current one finishes — however many changes piled up — so a slow older
-///   PATCH can never land after (and overwrite) a newer one.
-/// - [requestSave] saves as soon as possible (pickers, chips, dates — a
-///   discrete choice is already final). [scheduleSave] waits for [debounce]
-///   of quiet first (a text field mid-typing); the page should also call
-///   [requestSave] on blur/submit so leaving the field never waits.
-/// - A failed save is not retried automatically: [hasFailed] turns true and
-///   [onError] is called once so the page can offer a retry. The next
-///   [requestSave] / [scheduleSave] (including a retry) clears it.
-/// - [flush] is for leaving the page: it pushes any pending change
-///   immediately and resolves once nothing is left in flight. A failure
-///   during a flush is reported through its result and [lastError] instead
-///   of [onError], so the leave prompt doesn't stack on an error dialog.
-///
-/// Listeners are notified whenever [hasPendingChanges] flips, which is what
-/// a `PopScope.canPop` needs to rebuild on.
-///
-/// Validation is the page's job — an invalid field should simply not reach
-/// [onSave]'s payload (or the page shouldn't request a save for it).
+/// Notifies when [hasPendingChanges] flips (for `PopScope.canPop`).
 class AutoSaveController extends ChangeNotifier {
   AutoSaveController({
     required this.onSave,

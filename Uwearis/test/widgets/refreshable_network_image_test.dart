@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
@@ -44,12 +45,14 @@ void main() {
   Future<void> pumpFailingImage(
     WidgetTester tester, {
     required Future<String?> Function() onRefreshUrl,
+    VoidCallback? onLoadError,
   }) async {
     await pumpApp(
       tester,
       RefreshableNetworkImage(
         imageUrl: 'https://example.com/expired.jpg',
         onRefreshUrl: onRefreshUrl,
+        onLoadError: onLoadError,
       ),
     );
     await tester.pump();
@@ -104,5 +107,42 @@ void main() {
 
     expect(refreshCalls, 1);
     expect(find.text(AppLocalizationsEn().sessionExpiredTitle), findsNothing);
+  });
+
+  testWidgets('onLoadError fires once when the refresh yields no new URL', (
+    tester,
+  ) async {
+    var loadErrors = 0;
+    await pumpFailingImage(
+      tester,
+      onRefreshUrl: () async => null,
+      onLoadError: () => loadErrors++,
+    );
+
+    expect(loadErrors, 1);
+  });
+
+  testWidgets('onLoadError fires once when the refresh itself fails', (
+    tester,
+  ) async {
+    var loadErrors = 0;
+    await pumpFailingImage(
+      tester,
+      onRefreshUrl: () async => throw Exception('network down'),
+      onLoadError: () => loadErrors++,
+    );
+
+    expect(loadErrors, 1);
+  });
+
+  testWidgets('onLoadError is not called on auth expiry', (tester) async {
+    var loadErrors = 0;
+    await pumpFailingImage(
+      tester,
+      onRefreshUrl: () async => throw AuthExpiredException(),
+      onLoadError: () => loadErrors++,
+    );
+
+    expect(loadErrors, 0);
   });
 }

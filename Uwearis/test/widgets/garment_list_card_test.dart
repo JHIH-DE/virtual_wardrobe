@@ -47,9 +47,7 @@ void main() {
 
       expect(find.byIcon(Icons.error), findsOneWidget);
 
-      // The icon itself is IgnorePointer-wrapped (a bare glyph, no disc to
-      // hang a hit target on) — the tap falls through to the card
-      // underneath, so it never registers as a hit on the icon itself.
+      // The icon is IgnorePointer-wrapped; the tap falls through to the card.
       await tester.tap(find.byIcon(Icons.error), warnIfMissed: false);
       expect(taps, 1);
     },

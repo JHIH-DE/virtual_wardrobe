@@ -5,23 +5,11 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 
-/// Small circular icon badge (with shadow) meant to sit in the corner of a
-/// card via [Positioned] — e.g. a remove / favorite / lock marker.
-///
-/// The visible disc stays [size] wide, but the tap target is padded out
-/// (transparently). [discAlignment] places the disc inside that larger box:
-/// pass the corner a `Positioned` badge is anchored to (`Alignment.topRight`
-/// for a `top` + `right` badge) so the disc doesn't move and the extra
-/// tappable band just grows inward.
-///
-/// [hitTargetSize] overrides the default square of
-/// `max(size, AppDimens.minTouchTarget)` — pass a tall-but-narrow size for a
-/// badge packed tightly beside another in a row, where there's vertical room
-/// to grow but no horizontal room.
-///
-/// By default the disc carries a soft drop shadow (it usually sits on a
-/// photo). Pass [border] + `boxShadow: const []` for a flatter badge on a
-/// plain card, where a hairline edge reads better than a shadow.
+/// Circular icon badge for a card corner. The tap target is padded out to
+/// [hitTargetSize] (default: `max(size, AppDimens.minTouchTarget)` square);
+/// set [discAlignment] to the anchored corner so the padding grows inward.
+/// The default drop shadow suits photos; pass [border] and
+/// `boxShadow: const []` for a flat badge on a plain card.
 class CardCornerBadge extends StatelessWidget {
   final IconData icon;
   final Color backgroundColor;
@@ -53,7 +41,6 @@ class CardCornerBadge extends StatelessWidget {
     final target =
         hitTargetSize ?? Size.square(math.max(size, AppDimens.minTouchTarget));
     return GestureDetector(
-      // opaque so the transparent band around the disc is tappable too.
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox.fromSize(

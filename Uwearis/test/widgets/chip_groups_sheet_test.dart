@@ -69,17 +69,15 @@ void main() {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
 
-        // one "All" chip (a real SelectableChip pill), and the option chips
         expect(chipWithText('All'), findsOneWidget);
         expect(chipWithText('Summer'), findsOneWidget);
         expect(chipWithText('Winter'), findsOneWidget);
 
-        // the "All" pill is on the title's row...
+        // "All" sits on the title's row, the options below it.
         final titleY = tester.getCenter(find.text('Season')).dy;
         final allY = tester.getCenter(chipWithText('All')).dy;
         expect((allY - titleY).abs(), lessThan(30));
 
-        // ...and the option chips are below it
         expect(
           tester.getTopLeft(chipWithText('Summer')).dy,
           greaterThan(tester.getBottomLeft(chipWithText('All')).dy),

@@ -42,9 +42,8 @@ class WeatherData {
   bool get hasWeeklyData =>
       weeklyCodes.isNotEmpty && weeklyHighs.isNotEmpty && weeklyLows.isNotEmpty;
 
-  /// The average of today's forecast high and low — the same "dress for
-  /// the day" temperature the backend's daily outfits use. Falls back to
-  /// the current reading when today's forecast is missing.
+  /// Mean of today's forecast high and low (what the backend's daily
+  /// outfits use); the current reading if there's no forecast.
   double get todayMeanTemp => weeklyHighs.isNotEmpty && weeklyLows.isNotEmpty
       ? (weeklyHighs.first + weeklyLows.first) / 2
       : temp;
@@ -107,8 +106,7 @@ final weatherProvider = AsyncNotifierProvider<WeatherNotifier, WeatherData>(
 class WeatherNotifier extends AsyncNotifier<WeatherData> {
   static const String _cacheKey = 'cached_weather';
 
-  // No BuildContext here (this runs outside the widget tree) — resolve the
-  // user's explicit language override if set, else the device locale.
+  // No BuildContext here: the language override, else the device locale.
   AppLocalizations _l10n() {
     final locale =
         ref.read(localeProvider) ?? PlatformDispatcher.instance.locale;
@@ -125,7 +123,6 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
 
     if (cached != null && cached.hasWeeklyData) {
       if (cached.isStale) {
-        // Background refresh, doesn't block the UI
         Future.microtask(() async {
           try {
             final fresh = await _fetchFromNetwork();

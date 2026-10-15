@@ -30,8 +30,7 @@ class _FakeGarments extends GarmentsNotifier {
 void main() {
   setUp(setUpFakeAuth);
 
-  /// Captures both the [BuildContext] and [WidgetRef] `SharedMediaHandler`
-  /// needs — `pumpApp` alone only gives a context.
+  /// `pumpApp` alone only gives a context; the handler also needs a ref.
   Future<({BuildContext context, WidgetRef ref})> pumpHarness(
     WidgetTester tester,
   ) async {
@@ -98,11 +97,7 @@ void main() {
   testWidgets(
     'choosing "Add Clothing" sends that exact photo to analyze-instant',
     (tester) async {
-      // A real file — GarmentService.analyzeGarment reads it via
-      // http.MultipartFile.fromPath, which needs an actual path on disk;
-      // ImageEditorPage (and its manual crop step) no longer sits between
-      // the shared photo and this call — the backend crops to the subject
-      // itself now (see GarmentUploadHelper.analyzePhoto's doc).
+      // A real file: analyzeGarment uses MultipartFile.fromPath.
       final sharedFile = File(
         '${Directory.systemTemp.path}/shared_media_handler_test_'
         '${DateTime.now().microsecondsSinceEpoch}.jpg',
@@ -125,10 +120,7 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        // analyzeGarment does real file IO (MultipartFile.fromPath reading
-        // sharedFile) before it ever reaches the mocked client — real async
-        // work that tester.pump()'s fake-async zone can't service on its
-        // own (same reason image_editor_page_test.dart needs this).
+        // Real file IO, which the fake-async zone can't service.
         await tester.runAsync(() async {
           final harness = await pumpHarness(tester);
           SharedMediaHandler.listen(harness.context, harness.ref);
@@ -145,10 +137,7 @@ void main() {
 
           expect(requests, hasLength(1));
           expect(requests.single.url.path, endsWith('/analyze-instant'));
-          // Sanity-checks the *right* file's bytes made it into the
-          // request (not just that some request fired) without depending
-          // on MultipartRequest-specific fields — MockClient rebuilds the
-          // sent stream into a plain http.Request, losing those.
+          // MockClient flattens the multipart request, so check raw bytes.
           expect(
             requests.single.bodyBytes,
             containsAllInOrder(sharedFile.readAsBytesSync()),

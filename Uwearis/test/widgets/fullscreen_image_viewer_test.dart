@@ -7,13 +7,8 @@ void main() {
   bool isBlackScaffold(Widget w) =>
       w is Scaffold && w.backgroundColor == Colors.black;
 
-  // Not pumpAndSettle anywhere in this file — CachedNetworkImage's
-  // placeholder spinner animates indefinitely while the (blocked-in-tests)
-  // network fetch never resolves, so pumpAndSettle would time out waiting
-  // for it to stop. Two plain pumps (one to start the push/pop transition,
-  // one past its 200ms duration, with a little slack so the route's own
-  // post-animation teardown — which lands a frame after the animation
-  // controller itself reports complete — has also run) settles it instead.
+  // Not pumpAndSettle: the image placeholder spinner never stops in tests.
+  // 250ms clears the 200ms transition plus the route's teardown frame.
   Future<void> pumpTransition(WidgetTester tester) async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));

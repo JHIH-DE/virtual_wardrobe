@@ -1,15 +1,10 @@
-/// A background choice for the Create Outfit flow, backed by a
-/// bundled preview image (see `assets/images/`). Add another entry here to
-/// offer a new background — no other code needs to change.
+/// A Create Outfit background with a bundled preview image.
 class BackgroundOption {
   final String id;
   final String label;
   final String assetPath;
 
-  /// The backend's `background_id` for outfit generate/regenerate —
-  /// matched against the backend's background lookup table by name
-  /// (`fitting_room` maps to its "Default Fitting Room" entry; the rest
-  /// match by name exactly).
+  /// Must match the backend's background table (`0` = Default Fitting Room).
   final int backgroundId;
 
   const BackgroundOption({

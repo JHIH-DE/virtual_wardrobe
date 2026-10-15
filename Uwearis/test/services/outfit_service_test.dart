@@ -29,8 +29,7 @@ Map<String, dynamic> _envelope(Object? data) => {
   'error_code': null,
 };
 
-/// Builds a minimal, valid OutfitOut JSON map (see §3 of outfits-api.md),
-/// overridable per test.
+/// A minimal, valid OutfitOut JSON map, overridable per test.
 Map<String, dynamic> _outfitJson({
   int outfitId = 1,
   int groupId = 1,
@@ -88,8 +87,7 @@ void main() {
       );
     });
 
-    // A JSON encoder can emit an integer id as a float; the `num`-based parse
-    // must accept it rather than a raw `as int` cast blowing up.
+    // A JSON encoder can emit an integer id as a float.
     test('accepts a group_id returned as a float', () async {
       final client = MockClient(
         (request) async => _jsonResponse(_envelope({'group_id': 12.0})),
@@ -257,9 +255,8 @@ void main() {
       },
     );
 
-    // OutfitService is a singleton with a per-group cache (mirrors
-    // GarmentService) — every test below uses its own group id so cache
-    // entries from earlier tests can't leak into these assertions.
+    // OutfitService is a singleton with a per-group cache, so each test uses
+    // its own group id.
     test('a second call is served from the cache, not the network', () async {
       var requests = 0;
       final client = MockClient((request) async {
@@ -290,7 +287,7 @@ void main() {
         final client = MockClient((request) async {
           requests++;
           final imageUrl = requests == 1
-              // Expired: signed over 20 years ago, 60s validity.
+              // Expired: signed in 2020, 60s validity.
               ? 'https://img.example/1.jpg'
                     '?X-Goog-Date=20200101T000000Z&X-Goog-Expires=60'
               : 'https://img.example/1-fresh.jpg';
@@ -507,9 +504,7 @@ void main() {
       await http.runWithClient(() async {
         await OutfitService().getGroupOutfits(607);
         await OutfitService().deleteGroup(607);
-        // The group is gone server-side in reality; this test only cares
-        // that the cache entry was evicted, so re-hitting the (still-mocked)
-        // endpoint is enough proof.
+        // Re-hitting the mocked endpoint proves the cache entry was evicted.
         await OutfitService().getGroupOutfits(607);
       }, () => client);
 
@@ -579,10 +574,8 @@ void main() {
       },
     );
 
-    // The render POST carries a .timeout(); a stalled request must surface a
-    // TimeoutException instead of hanging the caller forever. (A MockClient
-    // throwing TimeoutException reproduces what .timeout() does when it fires,
-    // without a real wall-clock wait.)
+    // Throwing TimeoutException from the MockClient stands in for .timeout()
+    // firing, without a real wall-clock wait.
     test('surfaces a TimeoutException from a stalled render', () async {
       await expectLater(
         http.runWithClient(
@@ -794,9 +787,8 @@ void main() {
 
     test('a 401 with no stored refresh token throws AuthExpiredException '
         'without attempting a refresh call', () async {
-      // No refresh_token key at all — AuthStorage.getRefreshToken() must
-      // come back null, not empty string, to hit withAuth's early-throw
-      // branch rather than actually attempting POST /auth/refresh.
+      // No refresh_token key at all: getRefreshToken() must return null (not
+      // '') to hit _doRefresh's early throw before POST /auth/refresh.
       FlutterSecureStorage.setMockInitialValues({
         'access_token': 'fake-access-token',
       });

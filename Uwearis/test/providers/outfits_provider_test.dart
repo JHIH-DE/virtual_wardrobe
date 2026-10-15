@@ -19,9 +19,8 @@ Map<String, dynamic> _outfit(int id, int groupId, {String imageUrl = ''}) => {
   'is_favorite': false,
 };
 
-/// One OutfitGroup wrapper holding a single outfit — [getAllOutfits] flattens
-/// each group to its representative, so `id == outfitId` and `groupId` come
-/// straight through.
+/// A group holding a single outfit; `getAllOutfits` flattens each group to
+/// its representative.
 Map<String, dynamic> _group(int outfitId, int groupId, {String? name}) => {
   'group_id': groupId,
   'name': name,

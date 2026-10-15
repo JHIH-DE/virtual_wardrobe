@@ -70,7 +70,6 @@ void main() {
     ]) {
       expect(style.elevation!.resolve(states), 0);
     }
-    // Enabled label is the full accent.
     expect(
       tester.widget<Text>(find.text('View Closet Match')).style!.color,
       AppColors.accent,

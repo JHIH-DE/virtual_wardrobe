@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 
-/// Page dots for an image/version carousel — the active dot stretched wide,
-/// with an "n / total" counter trailing them. Used by Home's today-outfit
-/// carousel. Renders nothing when there's only one page.
+/// Page dots plus an "n / total" counter. Renders nothing for one page.
 class CarouselDotsIndicator extends StatelessWidget {
   final int count;
   final int currentIndex;

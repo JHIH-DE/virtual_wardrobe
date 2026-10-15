@@ -1089,10 +1089,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get purchaseDateLabel => 'Purchase date (optional)';
 
   @override
-  String get notUsedInOutfitsYet => 'Not used in any outfits yet';
+  String get usedInOutfits => 'Used in Outfits';
 
   @override
-  String get usedInOutfits => 'Used in Outfits';
+  String usedInOutfitsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Outfits',
+      one: '1 Outfit',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get selectAColor => 'Select Color';
@@ -1294,8 +1302,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addFromOutfit => 'Add from an Outfit';
 
   @override
-  String get addFromOutfitHint =>
-      'Pack the garments of a saved outfit in one go.';
+  String get addFromOutfitHint => 'Pack the garments from your outfit.';
 
   @override
   String get selectAnOutfitTitle => 'Select an Outfit';
@@ -1381,6 +1388,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewDetails => 'View Details';
+
+  @override
+  String get viewFullOutfit => 'View Full Outfit';
 
   @override
   String get gettingStartedSectionLabel => 'Getting Started';

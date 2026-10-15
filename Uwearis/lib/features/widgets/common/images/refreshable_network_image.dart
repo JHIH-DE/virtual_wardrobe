@@ -8,10 +8,8 @@ import '../../../../core/services/auth_storage.dart';
 import '../../../../core/utils/debug_log.dart';
 import 'app_spinner.dart';
 
-/// A [CachedNetworkImage] that self-heals once when [imageUrl] fails to load
-/// (e.g. an expired signed URL) by asking [onRefreshUrl] for a fresh one and
-/// retrying with it. Retries at most once per URL so a genuinely broken
-/// image doesn't hammer the backend on every rebuild.
+/// A [CachedNetworkImage] that, on a load failure (e.g. an expired signed
+/// URL), asks [onRefreshUrl] for a fresh URL — at most once per URL.
 class RefreshableNetworkImage extends StatefulWidget {
   final String imageUrl;
   final BoxFit fit;
@@ -19,63 +17,34 @@ class RefreshableNetworkImage extends StatefulWidget {
   final double? width;
   final double? height;
 
-  /// Decode target size in physical pixels — keeps the in-memory bitmap
-  /// close to what's actually shown instead of the source photo's full
-  /// resolution, so Flutter's (size-capped) image cache can hold many more
-  /// thumbnails before evicting anything. Leave null for full-resolution
-  /// decoding (e.g. a hero/full-screen image).
+  /// Decode size in physical pixels, so the size-capped image cache holds
+  /// more thumbnails. Null decodes at full resolution.
   final int? memCacheWidth;
   final int? memCacheHeight;
 
-  /// Leave null to use the default placeholder — a centered [AppSpinner]
-  /// — Uwearis's one loading indicator for every image in the app. Only
-  /// override this for a genuinely different treatment, not just a
-  /// different spinner.
+  /// Defaults to a centered [AppSpinner], the app's one image loading
+  /// indicator — don't override just for a different spinner.
   final Widget Function(BuildContext context)? placeholderBuilder;
 
-  /// How long the loaded image cross-fades in over its placeholder.
-  /// [CachedNetworkImage]'s own default (500ms) unless overridden.
   final Duration fadeInDuration;
   final IconData errorIcon;
   final double errorIconSize;
   final String? errorLabel;
 
-  /// Called at most once per [imageUrl] when the image fails to load.
-  /// Return a fresh URL to retry with, or null/empty to give up. If null,
-  /// the image just shows the error state with no retry attempt.
+  /// Returns a fresh URL to retry with, or null/empty to give up.
   final Future<String?> Function()? onRefreshUrl;
 
-  /// Called once [onRefreshUrl] hands back a working replacement URL and
-  /// this widget has switched to rendering it — with the URL this refresh
-  /// started from (`oldUrl`) and the fresh one (`newUrl`). The refreshed URL
-  /// otherwise only ever lives in this widget's own private State — a
-  /// caller holding a longer-lived copy of the same URL elsewhere (a page's
-  /// own field, a provider) must use this to stay in sync, or it keeps
-  /// handing out the now-stale one it started with. `oldUrl` is included so
-  /// that caller can do a compare-and-set — a refresh started against an
-  /// old URL that a separate, newer flow has since superseded (e.g. a fresh
-  /// upload just committed a different URL for the same photo) must not
-  /// clobber that newer value once this stale refresh finally resolves; see
-  /// `ProfileNotifier.setBodyRefUrlIfCurrent`/`setFaceRefUrlIfCurrent` for
-  /// the compare-and-set half of this contract.
+  /// Lets a caller holding its own copy of the URL stay in sync. `oldUrl`
+  /// allows a compare-and-set, so a late refresh can't clobber a newer URL
+  /// (see `ProfileNotifier.setBodyRefUrlIfCurrent`).
   final void Function(String oldUrl, String newUrl)? onUrlRefreshed;
 
-  /// Called at most once per [imageUrl], only once this widget has given up
-  /// (no [onRefreshUrl] was provided, or the one-shot refresh it already
-  /// tried didn't fix it) — i.e. once the built-in error state below is
-  /// final, not before a self-heal attempt has had its chance. A caller that
-  /// wants a richer, actionable failure state than the icon/label this
-  /// widget renders (e.g. a "re-upload" prompt) should use this to drive its
-  /// own UI around this widget, rather than this widget growing a
-  /// caller-supplied error-content builder.
+  /// Called at most once per [imageUrl], only after the refresh attempt (if
+  /// any) has failed too — for a caller's own failure UI.
   final VoidCallback? onLoadError;
 
-  /// Overrides what [CachedNetworkImage] keys its disk/memory cache entry
-  /// by. Leave null to key by [imageUrl] itself (the default) — pass a
-  /// stable id instead when the same underlying image is re-fetched under
-  /// a *different* URL each time (e.g. a freshly re-signed cloud storage
-  /// link), so re-signing doesn't show up as a cache miss and trigger a
-  /// redundant download of bytes already on disk.
+  /// A stable cache key, so a re-signed URL for the same image isn't a
+  /// cache miss. Null keys by the URL.
   final String? cacheKey;
 
   const RefreshableNetworkImage({
@@ -131,28 +100,29 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
     }
     _refreshing = true;
     _refreshedThisUrl = true;
+    var replaced = false;
     try {
       final fresh = await widget.onRefreshUrl!();
       if (mounted && fresh != null && fresh.isNotEmpty && fresh != _url) {
         final oldUrl = _url;
         setState(() => _url = fresh);
         widget.onUrlRefreshed?.call(oldUrl, fresh);
+        replaced = true;
       }
     } on AuthExpiredException {
-      // The session itself is gone (the refresh token was rejected too) —
-      // route to login instead of leaving a broken image that retries again
-      // on every remount. Empty storage means the session was already ended
-      // on purpose (logout, or another image's handler already cleared it):
-      // the old screen can still be mounted for a moment after a logout,
-      // and that must not raise a "Session Expired" dialog.
+      // No stored token = the session was already ended (logout, or another
+      // handler cleared it); a briefly-mounted old screen mustn't raise
+      // "Session Expired".
       if (await AuthStorage.getRefreshToken() == null) return;
       if (mounted) await AuthExpiredHandler.handle(context);
+      return;
     } catch (e) {
-      // Leave the existing (broken) URL — the error state below covers it.
       debugLog('RefreshableNetworkImage: onRefreshUrl failed: $e');
     } finally {
       _refreshing = false;
     }
+    // No new URL means no rebuild, so errorWidget won't get to report it.
+    if (!replaced && mounted) _reportLoadError();
   }
 
   void _reportLoadError() {
@@ -164,12 +134,8 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
   @override
   Widget build(BuildContext context) {
     return CachedNetworkImage(
-      // Keyed by the actual URL (on top of widget.cacheKey, which stays
-      // fixed across a self-heal so the retry logic above keeps working) —
-      // without this, Flutter's ImageProvider/ImageCache can treat a post-
-      // refresh CachedNetworkImage as "the same image" as the one that just
-      // failed (same cacheKey) and replay its cached error instead of
-      // actually fetching the new URL.
+      // Without the URL in the key, a refreshed image with the same
+      // cacheKey can replay the cached error instead of fetching.
       key: ValueKey('${widget.cacheKey}::$_url'),
       imageUrl: _url,
       cacheKey: widget.cacheKey,
@@ -187,8 +153,6 @@ class _RefreshableNetworkImageState extends State<RefreshableNetworkImage> {
         if (widget.onRefreshUrl != null && !_refreshedThisUrl) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
         } else {
-          // No self-heal in flight and none left to try — this is the final
-          // failure for this URL.
           WidgetsBinding.instance.addPostFrameCallback(
             (_) => _reportLoadError(),
           );

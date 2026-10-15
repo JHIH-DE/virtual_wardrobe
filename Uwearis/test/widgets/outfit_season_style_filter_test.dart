@@ -2,14 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/widgets/common/buttons/outfit_season_style_filter.dart';
 
-Outfit _o(int id, {List<String> season = const [], List<String> style = const []}) =>
-    Outfit.fromJson({
-      'outfit_id': id,
-      'group_id': id * 10,
-      'result_image_url': '',
-      'season': season,
-      'style': style,
-    });
+Outfit _o(
+  int id, {
+  List<String> season = const [],
+  List<String> style = const [],
+}) => Outfit.fromJson({
+  'outfit_id': id,
+  'group_id': id * 10,
+  'result_image_url': '',
+  'season': season,
+  'style': style,
+});
 
 void main() {
   final all = [
@@ -30,10 +33,13 @@ void main() {
     expect(f.apply(all).map((o) => o.id), [1, 3]);
   });
 
-  test('style filter normalizes separators/case ("Smart Casual" == "smart_casual")', () {
-    final f = OutfitSeasonStyleFilter()..styles = {'Smart Casual'};
-    expect(f.apply(all).map((o) => o.id), [1]);
-  });
+  test(
+    'style filter normalizes separators/case ("Smart Casual" == "smart_casual")',
+    () {
+      final f = OutfitSeasonStyleFilter()..styles = {'Smart Casual'};
+      expect(f.apply(all).map((o) => o.id), [1]);
+    },
+  );
 
   test('season and style combine (AND)', () {
     final f = OutfitSeasonStyleFilter()
@@ -53,15 +59,15 @@ void main() {
 
     test('matches style tags regardless of separator/case', () {
       final f = OutfitSeasonStyleFilter();
-      final outfits = [_o(1, style: ['STREET_WEAR'])];
+      final outfits = [
+        _o(1, style: ['STREET_WEAR']),
+      ];
       expect(f.visibleStyleOptions(outfits), ['Streetwear']);
     });
 
     test('keeps a selected value even once it is no longer present', () {
       final f = OutfitSeasonStyleFilter()..styles = {'Vintage'};
-      // No outfit is tagged Vintage, but the active selection must stay
-      // visible (alongside the tags actually in use) so the user can clear
-      // it. Order still follows styleOptions.
+      // Unused but selected Vintage stays visible so it can be cleared.
       expect(f.visibleStyleOptions(all), ['Smart Casual', 'Vintage']);
     });
 

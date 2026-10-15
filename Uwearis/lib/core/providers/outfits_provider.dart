@@ -11,10 +11,8 @@ final outfitsProvider = AsyncNotifierProvider<OutfitsNotifier, List<Outfit>>(
   retry: appRetryPolicy,
 );
 
-/// A save/delete that just happened on [OutfitDetailsPage], to be shown as a
-/// [showFeedbackOverlay] on [OutfitsPage] once navigation lands back there —
-/// set here rather than shown directly, since the details page pops (or
-/// pops-to-root) itself away before the message would matter.
+/// Feedback for OutfitsPage to show once navigation lands back there — the
+/// details page that caused it has already popped itself away.
 enum OutfitFeedbackKind { saved, deleted }
 
 final outfitFeedbackProvider = StateProvider<OutfitFeedbackKind?>(
@@ -22,28 +20,18 @@ final outfitFeedbackProvider = StateProvider<OutfitFeedbackKind?>(
 );
 
 class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
-  // The Outfits tab is the user's own (`general`) outfits only — 'trip'
-  // outfits are managed from Trip Details instead, so they're filtered out
-  // server-side rather than fetched and discarded. Home's daily outfits are
-  // picked from these same outfits (see dailyOutfitProvider).
-  //
-  // sort: 'created_at_desc' is pinned explicitly rather than left to the
-  // backend's own default (which happens to already be created_at_desc) —
-  // Home's _latestOwnOutfit reads state.first as "the newest outfit" (see
-  // its own doc comment), so that ordering needs to be this provider's own
-  // guaranteed contract, not an incidental default that could change
-  // server-side without this call site noticing.
+  // `general` outfits only (getAllOutfits' default type). The sort is pinned
+  // rather than left to the backend default: Home's _latestOwnOutfit relies
+  // on state.first being the newest.
   @override
   Future<List<Outfit>> build() =>
       OutfitService().getAllOutfits(sort: 'created_at_desc');
 
-  /// True if any cached outfit's signed image URL has expired (or is about
-  /// to), meaning the cached list should be re-fetched before display.
+  /// True if any cached signed image URL has expired (or is about to).
   bool get isStale =>
       (state.value?.isNotEmpty ?? false) &&
       anySignedUrlExpired(state.value!.map((o) => o.imageUrl));
 
-  /// Refreshes the list only if it's empty or its image URLs are stale.
   Future<void> refreshIfNeeded() async {
     if (state.isLoading) return;
     if (!state.hasValue || state.value!.isEmpty || isStale) {
@@ -70,9 +58,7 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
     );
   }
 
-  /// [name] is a group-level property (see `Outfit.groupName`) — matches by
-  /// [groupId] rather than a specific outfit id, since every version in the
-  /// group shares the same name.
+  /// The name is group-level, shared by every version in the group.
   void updateGroupName(int groupId, {required String name}) {
     final current = state.value ?? [];
     state = AsyncData(

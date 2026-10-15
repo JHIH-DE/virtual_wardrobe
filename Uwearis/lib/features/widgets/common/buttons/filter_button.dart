@@ -9,10 +9,8 @@ import '../fields/selectable_chip.dart';
 import '../overlays/picker_sheet.dart';
 import 'action_disc_button.dart';
 
-/// One labeled row of selectable chips inside a [FilterButton]'s sheet.
-/// The group owns its own selection state and toggle logic, so callers
-/// with different selection semantics (e.g. an 'All' sentinel vs plain
-/// multi-select) can reuse the same sheet chrome.
+/// One labeled row of chips in [showChipGroupsSheet]. Owns its selection
+/// logic, so an 'All'-sentinel group and a plain multi-select share the sheet.
 class FilterGroup {
   final String label;
   final List<String> options;
@@ -20,10 +18,8 @@ class FilterGroup {
   final void Function(String option) onToggle;
   final String? emptyMessage;
 
-  /// When true, [FilterButton.allOption] is pulled out of the chip row and
-  /// rendered as a compact toggle beside the group's title (`Season (All)`).
-  /// Set by [FilterGroup.toggleAll]; a plain multi-select group (e.g. an
-  /// outfit's tag editor) leaves it false and just lists every option.
+  /// Renders [FilterButton.allOption] beside the title instead of in the
+  /// chip row. Set by [FilterGroup.toggleAll].
   final bool headerAll;
 
   FilterGroup({
@@ -35,11 +31,8 @@ class FilterGroup {
     this.headerAll = false,
   });
 
-  /// The common case: an 'All'-sentinel multi-select group. [selected] reads
-  /// the current set, [onChanged] receives the next set (call `setState`
-  /// there) — the [FilterButton.toggleWithAll] plumbing is handled here so
-  /// each call site doesn't repeat it (and can't mismatch the set it reads
-  /// vs. the set it writes).
+  /// An 'All'-sentinel multi-select group; [onChanged] receives the next set
+  /// computed by [FilterButton.toggleWithAll].
   factory FilterGroup.toggleAll({
     required String label,
     required List<String> options,
@@ -70,13 +63,11 @@ class FilterButton extends StatelessWidget {
     required this.groups,
   });
 
-  /// The 'show everything / no filter' sentinel value carried in a
-  /// [FilterGroup.toggleAll] group's selected set and option list.
+  /// The "no filter" sentinel in a [FilterGroup.toggleAll] group.
   static const String allOption = 'All';
 
-  /// Toggle helper for the common 'All' sentinel pattern: selecting 'All'
-  /// clears the rest, selecting anything else clears 'All', and clearing
-  /// the last non-'All' selection falls back to 'All'.
+  /// Selecting 'All' clears the rest, selecting anything else clears 'All',
+  /// and clearing the last selection falls back to 'All'.
   static Set<String> toggleWithAll(Set<String> current, String value) {
     if (value == allOption) return {allOption};
     final next = Set<String>.from(current)..remove(allOption);
@@ -91,8 +82,6 @@ class FilterButton extends StatelessWidget {
 
   static const double _dotSize = 6;
 
-  // Centres the "filtered" dot just off the glyph's top-left corner, inside
-  // the disc — the glyph's inset in the tap box, whatever the dot's size.
   static const double _dotOffset =
       (AppDimens.toolbarHeight - ActionDisc.iconSize) / 2 + 0.5 - _dotSize / 2;
 
@@ -129,14 +118,8 @@ class FilterButton extends StatelessWidget {
   }
 }
 
-/// Opens the app's standard "pick multiple values from grouped chips" bottom
-/// sheet — a drag handle, then per [FilterGroup] a title (with the "All"
-/// chip beside it when [FilterGroup.headerAll]), a divider, and a justified
-/// row of option chips.
-///
-/// Has no button: selection applies through the [FilterGroup]s' own
-/// `onToggle` as the user taps. [FilterButton] filters live; the outfit tag
-/// editor reads the final selection once the sheet closes and auto-saves it.
+/// Grouped-chip multi-select sheet. No confirm button: selection applies
+/// through each [FilterGroup.onToggle] as the user taps.
 Future<void> showChipGroupsSheet(
   BuildContext context, {
   required List<FilterGroup> groups,
@@ -165,9 +148,6 @@ Future<void> showChipGroupsSheet(
   );
 }
 
-/// One group inside [showChipGroupsSheet]: `label` (+ the "All" chip beside
-/// it for a [FilterGroup.headerAll] group) → divider → justified chips (or
-/// the empty-state text).
 class _ChipGroup extends StatelessWidget {
   final FilterGroup group;
   final AppLocalizations l10n;
@@ -196,8 +176,6 @@ class _ChipGroup extends StatelessWidget {
             Text(group.label, style: AppTextStyle.bold16),
             if (showAllChip) ...[
               const SizedBox(width: 10),
-              // The same pill as the option chips, just lifted up beside the
-              // title — "All" reads as this group's reset, not a peer option.
               SelectableChip(
                 label: l10n.filterAll,
                 selected: group.selected().contains(FilterButton.allOption),
@@ -239,26 +217,11 @@ class _ChipGroup extends StatelessWidget {
   }
 }
 
-/// Lays out chip options left-to-right, justifying a row edge-to-edge
-/// (`spaceBetween`) once its chips already fill most of the width, and
-/// leaving a sparser row (or a lone chip) left-aligned with normal fixed
-/// spacing — so a single near-full row (e.g. `Color: White Black Navy Grey
-/// Blue`) spreads out the same way a wrapped row does, and a trailing
-/// `T-shirt` on its own line doesn't get stretched across the sheet.
-///
-/// Real chip sizes vary with font rendering in ways a predicted width can't
-/// match exactly, so this measures for real: pass 1 renders a plain [Wrap]
-/// with a [GlobalKey] per chip and lets Flutter's own layout decide
-/// wrapping; a post-frame callback reads back each chip's real position to
-/// group them into rows, then pass 2 re-renders each row as a `spaceBetween`
-/// or a left-aligned [Row] per the fill rule above. A row [_measure] grouped
-/// together is by definition <= the available width, so `spaceBetween` on it
-/// can never overflow.
-///
-/// Options are also reordered widest-first so wide chips settle earlier and
-/// rows pack more evenly — this uses a [TextPainter] width estimate, which
-/// is only reliable for relative ordering / a rough fill ratio, not for
-/// exact layout decisions.
+/// Justifies a row edge-to-edge once it's mostly full; sparser rows stay
+/// left-aligned. Row breaks come from a real [Wrap] layout pass (measured
+/// post-frame), not predicted widths, so a justified row can't overflow.
+/// The [TextPainter] estimate is only used for widest-first ordering and the
+/// rough fill ratio.
 class _JustifiedChips extends StatefulWidget {
   final List<String> options;
   final Set<String> Function() selected;
@@ -280,19 +243,12 @@ class _JustifiedChipsState extends State<_JustifiedChips> {
   static const _spacing = 10.0;
   static const _runSpacing = 8.0;
 
-  /// A row whose chips' natural width is at least this fraction of the
-  /// available width gets justified edge-to-edge; below it the row stays
-  /// left-aligned (stretching just 2–3 short chips across the sheet looks
-  /// worse than a small right-hand gap).
   static const _justifyFillRatio = 0.62;
 
   late List<String> _orderedOptions;
   final Map<String, GlobalKey> _keys = {};
   List<List<String>>? _rows;
 
-  /// The width handed to this widget by its parent (the sheet content
-  /// width), captured from the [LayoutBuilder] in [build] and read when
-  /// deciding whether to justify each row.
   double _availableWidth = 0;
 
   @override
@@ -381,9 +337,6 @@ class _JustifiedChipsState extends State<_JustifiedChips> {
     );
   }
 
-  /// Whether [rowOptions] fill enough of [_availableWidth] to be justified
-  /// edge-to-edge rather than left-aligned. Uses the [_estimateWidth]
-  /// estimate — fine for a rough ratio.
   bool _shouldJustify(List<String> rowOptions) {
     if (rowOptions.length < 2 || _availableWidth <= 0) return false;
     final natural =

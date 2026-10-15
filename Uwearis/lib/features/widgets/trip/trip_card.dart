@@ -7,6 +7,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/app_popup_menu.dart';
+import '../common/buttons/circle_icon_button.dart';
 import '../common/overlays/app_dialog.dart';
 import '../common/overlays/text_input_dialog.dart';
 import '../common/section_title.dart';
@@ -51,9 +52,6 @@ class TripCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            // Trimmed from the original 16/12 top/bottom now that
-            // SectionTitle's default (bold16) renders shorter than it used
-            // to — keeps the header block proportional to the title.
             padding: const EdgeInsets.fromLTRB(20, 5, 20, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,31 +60,44 @@ class TripCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(child: SectionTitle(trip.name)),
+                    // Lands the disc 17 from the card edge, like Trip
+                    // Details' discs (16 padding + 1px border).
                     Transform.translate(
-                      offset: const Offset(18, 0),
-                      child: AppPopupMenu<_TripCardAction>(
-                        onSelected: (action) => _handleAction(context, action),
-                        items: [
-                          AppPopupMenu.item(
-                            value: _TripCardAction.editName,
-                            icon: Image.asset(
-                              'assets/images/edit.png',
-                              width: 20,
-                              height: 20,
+                      offset: const Offset(3, 0),
+                      child: SizedBox(
+                        height: AppDimens.toolbarHeight,
+                        child: Center(
+                          child: AppPopupMenu<_TripCardAction>(
+                            onSelected: (action) =>
+                                _handleAction(context, action),
+                            // AppPopupMenu handles the tap.
+                            trigger: const CircleIconButton(
+                              icon: Icons.more_vert,
+                              discAlignment: Alignment.centerRight,
                             ),
-                            label: l10n.editTripName,
+                            items: [
+                              AppPopupMenu.item(
+                                value: _TripCardAction.editName,
+                                icon: Image.asset(
+                                  'assets/images/edit.png',
+                                  width: 20,
+                                  height: 20,
+                                ),
+                                label: l10n.editTripName,
+                              ),
+                              AppPopupMenu.item(
+                                value: _TripCardAction.delete,
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: AppColors.icon,
+                                ),
+                                label: l10n.deleteTrip,
+                                isDestructive: true,
+                              ),
+                            ],
                           ),
-                          AppPopupMenu.item(
-                            value: _TripCardAction.delete,
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              size: 20,
-                              color: AppColors.icon,
-                            ),
-                            label: l10n.deleteTrip,
-                            isDestructive: true,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ],
@@ -137,7 +148,6 @@ class TripCard extends StatelessWidget {
             color: AppColors.dividerSubtle,
           ),
 
-          // Full-width "View Plan" area
           GestureDetector(
             onTap: onTap,
             child: Container(
@@ -152,12 +162,13 @@ class TripCard extends StatelessWidget {
                     style: AppTextStyle.regular12.copyWith(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
+                      fontVariations: const [FontVariation('wght', 500)],
                     ),
                   ),
                   const SizedBox(width: 6),
                   const Icon(
                     Icons.arrow_forward_ios,
-                    color: AppColors.icon,
+                    color: AppColors.hintText,
                     size: 12,
                   ),
                 ],

@@ -445,8 +445,15 @@
   "priceOptionalLabel": "Price (optional)",
   "priceHint": "How much is this clothing?",
   "purchaseDateLabel": "Purchase date (optional)",
-  "notUsedInOutfitsYet": "Not used in any outfits yet",
   "usedInOutfits": "Used in Outfits",
+  "usedInOutfitsCount": "{count, plural, =1{1 Outfit} other{{count} Outfits}}",
+  "@usedInOutfitsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "selectAColor": "Select Color",
   "chooseColorTitle": "Choose a color",
   "chooseBackgroundTitle": "Choose a background",
@@ -518,7 +525,7 @@
   "editOutfitTitle": "Edit Outfit",
   "editGarmentTitle": "Edit Garment",
   "addFromOutfit": "Add from an Outfit",
-  "addFromOutfitHint": "Pack the garments of a saved outfit in one go.",
+  "addFromOutfitHint": "Pack the garments from your outfit.",
   "selectAnOutfitTitle": "Select an Outfit",
   "selectVersionTitle": "Select a Version",
   "addedItemsFromOutfitCount": "Added {count} items from this outfit.",
@@ -565,6 +572,7 @@
   "latestOutfitTitle": "Your Latest Outfit",
   "loadingWeatherEllipsis": "Loading weather…",
   "viewDetails": "View Details",
+  "viewFullOutfit": "View Full Outfit",
 
   "gettingStartedSectionLabel": "Getting Started",
   "gettingStartedWelcomeTitle": "Welcome to Uwearis",

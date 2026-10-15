@@ -29,27 +29,13 @@ import '../widgets/common/section_title.dart';
 import 'camera_capture_page.dart';
 import 'image_editor_page.dart';
 
-/// Face and body reference photos go through the exact same
-/// prepare-original → edit → upload → verify → commit flow (see
-/// [_MyVirtualModelPageState._changePhoto]/[_MyVirtualModelPageState
-/// ._uploadPhoto]) — this and [_PhotoSlot] let the page implement that
-/// flow once, parameterized by which photo, instead of two near-identical
-/// copies.
+/// Which reference photo a shared prepare → edit → upload → verify → commit
+/// flow is acting on.
 enum ReferencePhotoKind { face, body }
 
-// ---- Injectable seams for the prepare → upload → verify pipeline ----
-//
-// Every real network/decoding step this page depends on — downloading the
-// committed photo, re-fetching a fresh signed URL, uploading, and verifying
-// a newly-uploaded URL actually loads — is exposed as a plain Riverpod
-// `Provider` rather than being called directly (`ProfileService()`,
-// `precacheImage(CachedNetworkImageProvider(...))`, ...). Production wiring
-// (the default below) is unchanged; widget tests override these with fakes
-// via `ProviderScope(overrides: [...])` so they can exercise the upload
-// commit/rollback logic without a real network round trip and without a
-// real `CachedNetworkImage` fetch ever running (that goes through
-// flutter_cache_manager, which needs a sqflite database factory this test
-// suite doesn't set up — see my_virtual_model_page_test.dart's own notes).
+// Test seams: each network/decode step is a Provider so widget tests can
+// override it. A real CachedNetworkImage fetch needs a sqflite database
+// factory the test suite doesn't set up.
 
 typedef DownloadReferencePhotoOriginal =
     Future<String?> Function({
@@ -59,19 +45,17 @@ typedef DownloadReferencePhotoOriginal =
       required void Function(String freshUrl) onUrlRefreshed,
     });
 
-/// Defaults to the real [downloadReferencePhotoOriginal] (plain
-/// `package:http`, already fakeable via `http.runWithClient` on its own —
-/// exposed as a provider too so every step of this pipeline is overridden
-/// the same way in tests).
 final downloadReferencePhotoOriginalProvider =
     Provider<DownloadReferencePhotoOriginal>(
       (ref) => downloadReferencePhotoOriginal,
     );
 
-typedef FetchFreshReferenceUrl = Future<String?> Function(ReferencePhotoKind kind);
+typedef FetchFreshReferenceUrl =
+    Future<String?> Function(ReferencePhotoKind kind);
 
 final fetchFreshReferenceUrlProvider = Provider<FetchFreshReferenceUrl>(
-  (ref) => (kind) => kind == ReferencePhotoKind.face
+  (ref) =>
+      (kind) => kind == ReferencePhotoKind.face
       ? ProfileService().getFaceReference()
       : ProfileService().getBodyRef(),
 );
@@ -80,50 +64,40 @@ typedef UploadReferencePhoto =
     Future<String> Function(ReferencePhotoKind kind, String localPath);
 
 final uploadReferencePhotoProvider = Provider<UploadReferencePhoto>(
-  (ref) => (kind, localPath) => kind == ReferencePhotoKind.face
+  (ref) =>
+      (kind, localPath) => kind == ReferencePhotoKind.face
       ? ProfileService().uploadFaceRef(localPath)
       : ProfileService().uploadBodyRef(localPath),
 );
 
-/// Confirms a freshly-uploaded signed URL is actually fetchable/decodable
-/// before the page commits to it — production does this via Flutter's real
-/// image cache; a test fake can just check the URL against whatever it
-/// mocked, with no real image decode involved.
+/// Confirms a freshly-uploaded signed URL actually loads before the page
+/// commits to it.
 typedef VerifyReferencePhotoLoads =
     Future<void> Function(BuildContext context, String url);
 
 final verifyReferencePhotoLoadsProvider = Provider<VerifyReferencePhotoLoads>(
-  (ref) => (context, url) => precacheImage(CachedNetworkImageProvider(url), context),
+  (ref) =>
+      (context, url) => precacheImage(CachedNetworkImageProvider(url), context),
 );
 
 typedef GenerateBaseModel = Future<String> Function();
 
 final generateBaseModelProvider = Provider<GenerateBaseModel>(
-  (ref) => () => ProfileService().generateBaseModel(),
+  (ref) =>
+      () => ProfileService().generateBaseModel(),
 );
 
-/// Per-photo UI-only state, kept separate from [profileProvider] (the sole
-/// authority for the *committed*, backend-confirmed signed URL) and from
-/// any pending local file, which is never stored in State at all — a
-/// picked/cropped photo lives only as a local variable for the duration of
-/// its own upload attempt (see [_MyVirtualModelPageState._uploadPhoto]), so
-/// there's nothing here for a failed/abandoned upload to leave behind.
+/// Per-photo UI-only state. The committed URL lives only in
+/// [profileProvider]; a pending upload file is never stored in State.
 class _PhotoSlot {
-  /// True for the whole prepare-original → edit → upload round trip for
-  /// this photo — guards re-entry (see [_MyVirtualModelPageState._changePhoto])
-  /// and disables this card's own tap target while true.
+  /// The whole prepare → edit → upload round trip; guards re-entry.
   bool busy = false;
 
-  /// True only while the actual upload (init-upload → PUT → complete →
-  /// load-verify) is in flight — drives this card's uploading overlay.
+  /// Only the upload + load-verify step; drives the uploading overlay.
   bool uploading = false;
 
-  /// Set when the *image widget* couldn't load the current signed URL (its
-  /// GCS object is gone — see [AppImage.onLoadError]/
-  /// [RefreshableNetworkImage.onLoadError]) — a per-photo UI concern, not an
-  /// API/provider error. Never set from a `catch` block; never affects
-  /// `profileProvider`/the other reference photo. Cleared whenever a fresh
-  /// URL is loaded (profile reload) or a new photo is uploaded.
+  /// The image widget couldn't load the current URL (GCS object gone).
+  /// Card-local only — never fails [profileProvider] or the other photo.
   bool loadFailed = false;
 }
 
@@ -135,23 +109,14 @@ class MyVirtualModelPage extends ConsumerStatefulWidget {
 }
 
 class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
-  // There's only one base model per user (unlike outfitImageCacheKey, no
-  // per-entity id needed) — see ImageCacheBust.bump's own call site below
-  // for why a regenerate must change this key, not just the URL.
+  // One base model per user, so no per-entity id.
   static const _baseModelCacheKey = 'base_model';
 
-  // Loading state for the initial profile fetch — gates the reference-photo
-  // cards' and the base-model action's own tap targets while in flight.
   bool _loading = false;
 
-  // profileProvider is the sole authority for each photo's *committed*
-  // signed URL (read via ref.watch in build) — these are the only
-  // page-local fields, one per photo, and hold nothing that duplicates it.
   final _faceSlot = _PhotoSlot();
   final _bodySlot = _PhotoSlot();
 
-  // Re-entrancy guard for _generateBaseModel — kept separate from _loading
-  // and the photo slots' own flags since it guards a distinct backend call.
   bool _generatingBaseModel = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -165,7 +130,6 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
   Future<void> _loadProfile() async {
     setState(() => _loading = true);
     try {
-      // Shared with Account / Settings via profileProvider.
       await ref.read(profileProvider.future);
       if (!mounted) return;
       setState(() {
@@ -190,8 +154,9 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
   _PhotoSlot _slotFor(ReferencePhotoKind kind) =>
       kind == ReferencePhotoKind.face ? _faceSlot : _bodySlot;
 
-  String _titleFor(ReferencePhotoKind kind) =>
-      kind == ReferencePhotoKind.face ? _l10n.facePhotoLabel : _l10n.fullBodyPhotoLabel;
+  String _titleFor(ReferencePhotoKind kind) => kind == ReferencePhotoKind.face
+      ? _l10n.facePhotoLabel
+      : _l10n.fullBodyPhotoLabel;
 
   String? _committedUrlOf(ReferencePhotoKind kind, ProfileData? data) {
     if (data == null) return null;
@@ -206,13 +171,9 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     }
   }
 
-  /// Applies a self-healed signed URL (from [RefreshableNetworkImage]'s own
-  /// self-heal, or from [downloadReferencePhotoOriginal]'s refresh-and-retry)
-  /// only if [profileProvider]'s committed URL is still [expectedCurrent] —
-  /// the value that refresh believed was stale. A refresh that was already
-  /// in flight when a separate, newer upload committed its own URL must not
-  /// clobber that newer commit once the stale refresh finally resolves (see
-  /// [ProfileNotifier.setBodyRefUrlIfCurrent]/[setFaceRefUrlIfCurrent]).
+  /// Compare-and-set for a refreshed signed URL: applies only if the
+  /// committed URL is still [expectedCurrent], so a slow refresh can't
+  /// clobber a newer upload's commit.
   void _commitUrlIfCurrent(
     ReferencePhotoKind kind,
     String expectedCurrent,
@@ -229,11 +190,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     }
   }
 
-  /// Best-effort delete of a local temp file this page created (a
-  /// downloaded original, or a cropped pending-upload output) once it's no
-  /// longer needed — regardless of whether the flow it belonged to
-  /// succeeded or failed. Never lets a cleanup failure surface to the user;
-  /// this is housekeeping, not part of the actual result.
+  /// Best-effort temp-file cleanup; failures are only logged.
   Future<void> _deleteTempFileQuietly(String? path) async {
     if (path == null) return;
     try {
@@ -244,30 +201,17 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     }
   }
 
-  /// Downloads the *committed* photo (from [profileProvider], via
-  /// [_committedUrlOf]) to a local file — refreshing and re-syncing the
-  /// signed URL through [downloadReferencePhotoOriginalProvider] if it's
-  /// already expired — so [ImageEditorPage] only ever receives a
-  /// definitely-valid local source, never a signed URL that might already
-  /// be stale.
+  /// Downloads the committed photo to a local file (refreshing an expired
+  /// signed URL) so [ImageEditorPage] never gets a stale URL.
   Future<String?> _prepareLocalOriginal(ReferencePhotoKind kind, String url) {
     return ref.read(downloadReferencePhotoOriginalProvider)(
       url: url,
       fileNamePrefix: '${kind.name}_ref_original',
       onRefreshUrl: () => ref.read(fetchFreshReferenceUrlProvider)(kind),
-      // Compare-and-set: only applies if `url` (what this refresh started
-      // from) is still profileProvider's committed URL — see
-      // _commitUrlIfCurrent's own doc.
       onUrlRefreshed: (fresh) => _commitUrlIfCurrent(kind, url, fresh),
     );
   }
 
-  /// The one change-photo flow shared by face and body reference photos —
-  /// see [ReferencePhotoKind]'s own doc for why this replaces two near-identical
-  /// copies. [_PhotoSlot.busy] is set synchronously before the first
-  /// `await` and only cleared in `finally`, covering prepare → edit →
-  /// upload as one re-entrancy-guarded unit (see CLAUDE.md's "Guarding
-  /// costly / mutating actions against double-invocation").
   Future<void> _changePhoto(ReferencePhotoKind kind) async {
     final slot = _slotFor(kind);
     if (slot.busy) return;
@@ -287,10 +231,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
           debugLog('MyVirtualModelPage._changePhoto($kind) prepare failed: $e');
         }
         if (localOriginalPath == null) {
-          // Neither the committed URL nor a refreshed one could be
-          // downloaded — stay on this page rather than open an editor with
-          // nothing to show (see my_virtual_model_page's design brief: "原圖準備
-          // 失敗時，不要進入空白的編輯頁，留在原頁顯示錯誤").
+          // Stay here rather than open an editor with nothing to show.
           if (mounted) {
             showErrorDialog(context, message: _l10n.photoProcessingFailed);
           }
@@ -307,8 +248,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
             initialPath: localOriginalPath,
             aspectRatio: 3 / 4,
             cameraFrameRatio: CameraFrameRatio.portrait,
-            // This reopens the already-saved photo — confirming with zero
-            // changes would just re-upload an identical copy.
+            // Confirming with zero changes would re-upload an identical copy.
             requireChangeToConfirm: true,
           ),
         ),
@@ -316,33 +256,20 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
       if (result == null || !mounted) return;
       await _uploadPhoto(kind, result.imagePath);
     } finally {
-      // The downloaded original (if any) has served its purpose the moment
-      // ImageEditorPage has popped — confirmed (its own crop output is a
-      // separate file, cleaned up in _uploadPhoto), cancelled, or replaced
-      // via Retake/Album — nothing downstream ever reads it again.
+      // The editor's crop output is a separate file, cleaned up in _uploadPhoto.
       await _deleteTempFileQuietly(localOriginalPath);
       if (mounted) setState(() => slot.busy = false);
     }
   }
 
-  /// The cropped local file from [ImageEditorPage] is only ever a *pending*
-  /// upload candidate — it's never written to any [_PhotoSlot]/State field,
-  /// so there is nothing for the card to optimistically show before this
-  /// finishes. [_PhotoSlot.uploading] drives the card's uploading overlay;
-  /// [profileProvider] (the committed photo) is only updated once every
-  /// step below — upload, then load-verification of the new URL — has
-  /// actually succeeded. Any failure leaves the committed photo, and
-  /// [profileProvider], exactly as they were.
+  /// Commits to [profileProvider] only after the upload and a load-check of
+  /// the new URL both succeed; any failure leaves the committed photo as is.
   Future<void> _uploadPhoto(ReferencePhotoKind kind, String localPath) async {
     final slot = _slotFor(kind);
     setState(() => slot.uploading = true);
     try {
       final url = await ref.read(uploadReferencePhotoProvider)(kind, localPath);
       if (!mounted) return;
-      // Confirms the new photo is actually fetchable before committing the
-      // UI to it — an upload whose signed URL doesn't load is treated the
-      // same as any other upload failure (see the `catch` below), not
-      // silently committed anyway.
       await ref.read(verifyReferencePhotoLoadsProvider)(context, url);
       if (!mounted) return;
       _commitUrl(kind, url);
@@ -360,19 +287,12 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
         );
       }
     } finally {
-      // The pending file has served its purpose regardless of outcome —
-      // see the class-level doc on _PhotoSlot for why nothing else ever
-      // holds a reference to it.
       await _deleteTempFileQuietly(localPath);
       if (mounted) setState(() => slot.uploading = false);
     }
   }
 
-  /// Manually (re-)triggers [ProfileService.generateBaseModel] — a
-  /// destructive replace on the backend (it clears the previous base-model
-  /// file), so this confirms first, same as [outfit_details_page]'s
-  /// _regenerateImage. Guarded synchronously before the confirm dialog's
-  /// own `await` so a double-tap can't queue two confirms.
+  /// Confirms first: a successful run replaces the existing base model.
   Future<void> _generateBaseModel() async {
     if (_generatingBaseModel) return;
 
@@ -395,11 +315,8 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
       final url = await ref.read(generateBaseModelProvider)();
       if (!mounted) return;
       ref.read(profileProvider.notifier).setBaseModelUrl(url);
-      // A regenerate can return a freshly re-signed URL for the *same*
-      // underlying GCS object flutter_cache_manager already has a disk
-      // entry for under _baseModelCacheKey — without bumping, it serves
-      // those stale cached bytes instead of the new render (same fix as
-      // OutfitDetailsPage._regenerateImage's ImageCacheBust.bump call).
+      // A regenerate can overwrite the same GCS object; without a bump the
+      // disk cache under _baseModelCacheKey serves the old render.
       ImageCacheBust.bump(_baseModelCacheKey);
       succeeded = true;
     } on AuthExpiredException {
@@ -411,14 +328,17 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
       debugLog('MyVirtualModelPage._generateBaseModel failed: $e');
       showErrorDialog(
         context,
-        message: apiErrorMessage(_l10n, e, fallback: _l10n.virtualModelGenerateFailed),
+        message: apiErrorMessage(
+          _l10n,
+          e,
+          fallback: _l10n.virtualModelGenerateFailed,
+        ),
       );
     } finally {
       if (mounted) setState(() => _generatingBaseModel = false);
     }
 
-    // Shown only after the loading overlay above is already gone — the
-    // overlay and this confirmation must never be on screen together.
+    // Only after the loading overlay is gone — never both on screen.
     if (succeeded && mounted) {
       await showDialog<void>(
         context: context,
@@ -438,8 +358,6 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
 
   @override
   Widget build(BuildContext context) {
-    // The one ref.watch for both cards' committed photos — profileProvider
-    // is the sole authority for them, so neither card keeps its own copy.
     final profileData = ref.watch(profileProvider).value;
     return Stack(
       children: [
@@ -491,14 +409,8 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     );
   }
 
-  /// Body-reference is required by the backend; face-reference is only used
-  /// as an optional face-identity input (see
-  /// [ProfileService.generateBaseModel]'s own doc) — so the trigger is
-  /// gated on the body photo alone, not both. Reuses [GeneratedImageCard]
-  /// (the same "image, or a Generate button in an empty bordered box" shape
-  /// Trip Details uses for a day's outfit) rather than a page-local
-  /// look-alike — the corner regenerate badge doubles as this endpoint's own
-  /// generate-or-regenerate action once a base model already exists.
+  /// Gated on the body photo only: the backend requires it, while the face
+  /// photo is an optional identity input.
   Widget _buildBaseModelCard(ProfileData? data) {
     final hasBodyRef = _resolvedUrl(data?.bodyRefUrl) != null;
     final baseModelUrl = _resolvedUrl(data?.baseModelUrl);
@@ -520,16 +432,9 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
           GeneratedImageCard(
             imageUrl: baseModelUrl,
             hasAssignment: true,
-            // The full-screen LoadingOverlay in build() already covers this
-            // card while generating — this widget's own internal loading
-            // treatment on top of the image would be redundant (and hidden
-            // underneath that overlay anyway).
+            // No isLoading: build()'s full-screen LoadingOverlay covers it.
             cacheKey:
                 '$_baseModelCacheKey-v${ImageCacheBust.versionOf(_baseModelCacheKey)}',
-            // contain (instead of the default cover+topCenter) keeps the
-            // whole photo visible rather than cropping it — the default 3:4
-            // frame already matches it closely enough that contain leaves no
-            // visible letterboxing.
             imageFit: BoxFit.contain,
             imageAlignment: Alignment.center,
             onGenerate: _generateBaseModel,
@@ -545,13 +450,8 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     );
   }
 
-  /// One card shape for both Face and Body reference tiles, placed
-  /// side-by-side by [build]. [photo] sits on top (dominant); [title] and
-  /// [action] stack below it. [subtitle] is only passed for the load-failed
-  /// state's actionable copy — the normal state has no descriptive subtitle.
-  /// [onTap] only makes [action] itself tappable — the rest of the card
-  /// (title, photo) is inert, so a stray tap elsewhere doesn't accidentally
-  /// open the photo picker.
+  /// [onTap] makes only [action] tappable, so a stray tap on the photo
+  /// doesn't open the picker. [subtitle] is only used in the load-failed state.
   Widget _buildReferenceCard({
     required String title,
     required Widget photo,
@@ -567,9 +467,6 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          // Pads the ~20px-tall "Add/Update photo" row out to a
-          // minTouchTarget hit area — the photo it opens feeds a paid AI
-          // render.
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: tappableAction,
         ),
@@ -594,8 +491,6 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
               ),
             ),
           ],
-          // tappableAction carries its own vertical padding when
-          // interactive (see above), so no fixed gap here.
           const SizedBox(height: 2),
           tappableAction,
         ],
@@ -635,10 +530,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          // Backs the letterboxed edges BoxFit.contain leaves when the
-          // photo's own aspect ratio doesn't match this tile's 3:4 — cover
-          // used to crop those edges away instead, which was cutting real
-          // content off a full-body photo.
+          // Fills the letterbox edges: contain, so a full-body photo isn't cropped.
           color: AppColors.placeholderSurface,
           child: Stack(
             fit: StackFit.expand,
@@ -648,7 +540,6 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
                       url: url,
                       onRefreshUrl: () =>
                           ref.read(fetchFreshReferenceUrlProvider)(kind),
-                      // Compare-and-set — see _commitUrlIfCurrent's own doc.
                       onUrlRefreshed: (oldUrl, freshUrl) =>
                           _commitUrlIfCurrent(kind, oldUrl, freshUrl),
                       onLoadError: () {
@@ -671,9 +562,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     );
   }
 
-  /// Shown over the tile in place of switching it to the pending local
-  /// photo (see [_uploadPhoto]'s own doc) — the card keeps showing the
-  /// committed photo/placeholder underneath for the whole upload.
+  /// The committed photo stays visible underneath during the upload.
   Widget _buildUploadingOverlay() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -713,9 +602,8 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     );
   }
 
-  /// The backend's OpenAPI schema example ("string") occasionally leaks
-  /// through as a literal placeholder value instead of a real URL/null —
-  /// treat it the same as "no photo set".
+  /// The backend's OpenAPI example value "string" sometimes leaks through as
+  /// a URL; treat it as "no photo".
   String? _resolvedUrl(String? url) =>
       (url == null || url.isEmpty || url == 'string') ? null : url;
 }

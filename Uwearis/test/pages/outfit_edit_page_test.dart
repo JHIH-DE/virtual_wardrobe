@@ -32,8 +32,7 @@ void main() {
     _garment(id: 3, category: GarmentCategory.shoes, name: 'Sneakers'),
   ];
 
-  // A viewport tall enough that the whole ListView is laid out at once, so
-  // every row is in the tree.
+  // Tall enough that every ListView row is built.
   void useTallSurface(WidgetTester tester) {
     tester.view.physicalSize = const Size(1000, 4000);
     tester.view.devicePixelRatio = 1.0;
@@ -114,15 +113,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Confirm'), findsNothing);
 
-      // AppListCard is only used for the pinned "Add Garment" row now (every
-      // picked garment renders as a plain card instead) — Top/Bottom are
-      // already picked, so it opens straight to whatever category still has
-      // room (Shoes, since Outer/One-piece/Accessory aren't in this
-      // fixture's pool).
+      // The only AppListCard is the "Add Garment" row; it opens Shoes, the
+      // only category in this pool with room left.
       await tester.tap(find.byType(AppListCard));
       await tester.pumpAndSettle();
-      // The pinned add row's own picker keeps the plain "Add Garment"
-      // title — "Edit Garment" is reserved for swapping an existing card.
       expect(find.text('Edit Garment'), findsNothing);
       await tester.tap(find.text('Sneakers'));
       await tester.pumpAndSettle();
@@ -154,12 +148,9 @@ void main() {
       );
       await tester.pump();
 
-      // Tap the Tee row itself (not the pinned Add Garment row).
       await tester.tap(find.text('Tee'));
       await tester.pumpAndSettle();
 
-      // Swapping an existing card reads as "Edit Garment", not "Add
-      // Garment" — that title is reserved for the pinned add row.
       expect(find.text('Edit Garment'), findsOneWidget);
       expect(find.text('Polo'), findsOneWidget);
       await tester.tap(find.text('Polo'));
@@ -276,13 +267,11 @@ void main() {
     await tester.pump();
 
     expect(find.text('Tee'), findsOneWidget);
-    // Two ✕ badges (Tee + Jeans) — remove the first one.
     await tester.tap(find.byIcon(Icons.close).first);
     await tester.pumpAndSettle();
 
     expect(find.text('Tee'), findsNothing);
     expect(find.text('Jeans'), findsOneWidget);
-    // Still has Jeans selected, so Confirm shows now that the set changed.
     expect(find.text('Confirm'), findsOneWidget);
   });
 
@@ -347,7 +336,6 @@ void main() {
       );
       expect(find.byType(AppDivider), findsWidgets);
 
-      // Only the preselected card in the sheet carries the checkmark.
       await tester.tap(find.text('Tokyo Street'));
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.check), findsOneWidget);

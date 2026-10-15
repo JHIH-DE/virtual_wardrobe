@@ -1,7 +1,5 @@
-/// Returns true if [url] is a GCS V4 signed URL (has `X-Goog-Date` /
-/// `X-Goog-Expires` query params) whose expiry has passed, or is about to
-/// pass within [buffer]. Non-signed URLs (missing those params) are treated
-/// as never expiring.
+/// Whether a GCS V4 signed [url] expires within [buffer]. URLs without
+/// `X-Goog-Date` / `X-Goog-Expires` never expire.
 bool isSignedUrlExpired(
   String url, {
   Duration buffer = const Duration(seconds: 30),
@@ -34,8 +32,6 @@ bool isSignedUrlExpired(
   }
 }
 
-/// True if any of [urls] is a signed URL that's expired (or about to) —
-/// null / empty entries are skipped. The "does this cached list need a
-/// re-fetch before display" check every image-backed provider / page runs.
+/// Null / empty entries are skipped.
 bool anySignedUrlExpired(Iterable<String?> urls) =>
     urls.any((u) => u != null && u.isNotEmpty && isSignedUrlExpired(u));

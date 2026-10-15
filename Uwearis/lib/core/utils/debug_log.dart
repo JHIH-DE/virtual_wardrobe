@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-/// Usage: debugLog('message');
-/// Output: [AuthService.logout] message
+/// Debug-only; prefixes the caller's name, e.g. `[AuthService.logout] msg`.
 void debugLog(String message, {Object? error, StackTrace? stackTrace}) {
   if (!kDebugMode) return;
   final frames = StackTrace.current.toString().split('\n');

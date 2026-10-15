@@ -26,22 +26,14 @@ mixin BaseService {
     return token;
   }
 
-  /// Makes an authenticated request. On 401, silently refreshes tokens and
-  /// retries the original request once.
+  /// On 401, refreshes tokens and retries once.
   ///
-  /// [retryOnTimeout] retries the request one more time (after a short pause)
-  /// if it throws [TimeoutException] — pass it only for idempotent reads. It
-  /// covers the staging backend's Cloud Run cold start: the request that
-  /// times out has usually already woken the container, so the retry lands
-  /// on a warm one.
+  /// [retryOnTimeout]: retry once on [TimeoutException] — idempotent reads
+  /// only (the timed-out request has often already woken a cold backend).
   ///
-  /// Throws [AuthExpiredException] when the session genuinely can't be
-  /// recovered: no stored refresh token, or the refresh endpoint answers
-  /// non-200 or without a fresh token pair. A transport-level failure on the
-  /// refresh call itself — including a `TimeoutException` from its 15s cap —
-  /// propagates unchanged rather than being masked as [AuthExpiredException],
-  /// so callers can tell "logged out" apart from "network/server unavailable".
-  /// The refresh itself is single-flight — see [_refreshTokens].
+  /// Throws [AuthExpiredException] only when the session can't be
+  /// recovered; a network failure on the refresh call propagates as-is, so
+  /// callers can tell "logged out" from "server unavailable".
   Future<http.Response> withAuth(
     Future<http.Response> Function(String token) request, {
     bool retryOnTimeout = false,
@@ -54,17 +46,9 @@ mixin BaseService {
     return _send(request, refreshed.accessToken, retryOnTimeout);
   }
 
-  /// One in-flight `/auth/refresh` call shared by every concurrent 401 —
-  /// e.g. every request a screen fires in parallel at app launch, all still
-  /// carrying the same now-expired access token. Without this, each would
-  /// independently POST the same stored refresh token; if the backend
-  /// rotates (single-use) refresh tokens, only the first of those parallel
-  /// posts succeeds and every other one is rejected, each throwing
-  /// [AuthExpiredException] and clearing storage (see [AuthExpiredHandler])
-  /// — wiping out the fresh tokens the winner just saved and showing
-  /// "Session Expired" even though the session was actually still good.
-  /// Every caller that arrives while a refresh is already in flight instead
-  /// awaits that same attempt and retries with its result.
+  /// Single-flight `/auth/refresh` shared by concurrent 401s: with rotating
+  /// (single-use) refresh tokens, parallel refreshes would all but one fail
+  /// and log the user out of a still-valid session.
   static Future<({String accessToken, String refreshToken})>? _refreshInFlight;
 
   Future<({String accessToken, String refreshToken})> _refreshTokens() {
@@ -108,8 +92,6 @@ mixin BaseService {
     return (accessToken: newAccessToken, refreshToken: newRefreshToken);
   }
 
-  /// Runs [request], retrying once after a 1s pause on [TimeoutException]
-  /// when [retryOnTimeout] is set.
   Future<http.Response> _send(
     Future<http.Response> Function(String token) request,
     String token,
@@ -125,13 +107,8 @@ mixin BaseService {
     }
   }
 
-  /// Wraps a single HTTP send with a one-line timing log — method, path,
-  /// status and elapsed ms — so a slow response (typically the staging
-  /// backend's Cloud Run cold start: the first request after the container
-  /// scaled to zero) is obvious in the logs. No token, header, or query
-  /// string is logged, only the URL path. Debug builds only, like every
-  /// other [debugLog] line. [withAuth] uses it for authenticated calls;
-  /// unauthenticated callers (login, token refresh) wrap their own POST.
+  /// Debug-logs method, path, status and elapsed ms for one HTTP send.
+  /// Only the URL path is logged — never tokens, headers or query strings.
   Future<http.Response> sendTimed(Future<http.Response> Function() send) async {
     final sw = Stopwatch()..start();
     try {
@@ -150,16 +127,9 @@ mixin BaseService {
     }
   }
 
-  /// Decodes a JSON object response, or throws for anything that isn't one.
-  /// [op] identifies the call for `debugLog` only — a technical detail, not
-  /// something that reaches the thrown exception (see [ApiException]).
-  ///
-  /// The raw response body is only ever logged (debug builds), never carried
-  /// on the exception itself: a non-2xx becomes an [ApiException] built from
-  /// whatever of the backend's envelope (`error_code`/`message`) the body
-  /// parses as, and a 2xx body that isn't valid JSON / isn't a JSON object
-  /// becomes a generic-message [ApiException] too — this never throws a
-  /// second, different exception type for a malformed body.
+  /// Decodes a JSON object response. Every failure (non-2xx, malformed
+  /// body) is an [ApiException]; the raw body is only debug-logged, under
+  /// [op].
   Map<String, dynamic> decodeMap(http.Response res, {required String op}) {
     throwIfAuthExpired(res);
     if (res.statusCode < 200 || res.statusCode >= 300) {
@@ -190,12 +160,8 @@ mixin BaseService {
     if (res.statusCode == 401) throw AuthExpiredException();
   }
 
-  /// Sends an idempotent authenticated `DELETE` to [uri]: a `404` means the
-  /// resource is already gone, which for a delete is success, not an error;
-  /// any `2xx` (with or without a body) is likewise success. Anything else
-  /// is routed through [errorDecode] — [decodeMap] by default — so the
-  /// failure message is still built in exactly one place. A `401` that
-  /// survived [withAuth]'s refresh/retry becomes [AuthExpiredException].
+  /// Idempotent DELETE: `404` (already gone) counts as success. Other
+  /// failures go through [errorDecode] ([decodeMap] by default).
   Future<void> deleteIdempotent(
     Uri uri, {
     required String op,
@@ -212,9 +178,7 @@ mixin BaseService {
     (errorDecode ?? decodeMap)(res, op: op);
   }
 
-  /// PUTs a local JPEG straight to a signed GCS upload URL (step 2 of every
-  /// init-upload → PUT → complete flow). [timeout] guards against a stalled
-  /// upload hanging the caller forever.
+  /// Step 2 of the init-upload → PUT → complete flow.
   Future<void> putJpegToSignedUrl(
     String uploadUrl,
     String localPath, {

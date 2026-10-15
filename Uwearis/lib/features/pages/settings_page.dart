@@ -32,9 +32,8 @@ import 'login_page.dart';
 import 'my_virtual_model_page.dart';
 import 'style_taste_page.dart';
 
-/// Wraps the bottom sheet's chosen locale so a `null` result (System
-/// Default, itself a valid choice) can be told apart from the sheet being
-/// dismissed without a choice (which also pops `null`).
+/// Tells a chosen `null` locale (System Default) apart from a dismissed
+/// sheet, which also pops `null`.
 class _LanguageChoice {
   final Locale? locale;
   const _LanguageChoice(this.locale);
@@ -50,15 +49,13 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _deletingAccount = false;
 
-  // Perceived temperature offset (°C, -5..+5). The backend field is
-  // write-only (not in the /users/me response), so the last saved value is
-  // cached locally under this key.
+  // The backend field is write-only (not in /users/me), so the last saved
+  // value is cached locally.
   static const _temperatureOffsetKey = 'temperature_offset';
   static const _temperatureOffsetOptions = [
     -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, //
   ];
   int _temperatureOffset = 0;
-  // Disables the row while its PATCH is in flight so two saves can't race.
   bool _savingTemperatureOffset = false;
 
   @override
@@ -75,8 +72,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
-  // Everything below reads garmentsProvider-style from the shared
-  // profileProvider — this screen is display-only for the profile.
   ProfileData? get _data => ref.watch(profileProvider).value;
   bool get _loading => ref.watch(profileProvider).isLoading && _data == null;
 
@@ -123,8 +118,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await _saveTemperatureOffset(selected);
   }
 
-  /// One-shot edit: shows [offset] right away, PATCHes it, and rolls back
-  /// with a Retry offer if the save fails.
+  /// Optimistic; rolls back with a Retry offer on failure.
   Future<void> _saveTemperatureOffset(int offset) async {
     if (_savingTemperatureOffset) return;
     final previous = _temperatureOffset;
@@ -156,8 +150,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   void _openAccount() {
-    // Account / My Virtual Model update profileProvider themselves on save, so
-    // this screen (watching it) reflects the change on return — no reload.
+    // Those pages update profileProvider themselves — no reload on return.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AccountPage()),
@@ -195,8 +188,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (!mounted) return;
     await clearSignedInSession();
     if (!mounted) return;
-    // Provider invalidation happens on the next successful login instead —
-    // see invalidateSignedInProviders's own doc comment for why.
+    // Providers are invalidated on the next successful login instead.
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (route) => false,
@@ -321,7 +313,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       padding: const EdgeInsets.only(top: 24),
       child: Column(
         children: [
-          // Read-only — see AccountPage for the editable version.
           ProfileAvatar(
             url: url,
             onRefreshUrl: () => ProfileService().getMyAvatar(),

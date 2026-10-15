@@ -26,9 +26,6 @@ import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 
-/// "How Uwearis thinks you like outfits put together" — every learned
-/// preference dimension plotted together on one radar chart, so the shape
-/// itself reads as "this is your taste" rather than five separate bars.
 class StyleTastePage extends ConsumerStatefulWidget {
   const StyleTastePage({super.key});
 
@@ -37,20 +34,13 @@ class StyleTastePage extends ConsumerStatefulWidget {
 }
 
 class _StyleTastePageState extends ConsumerState<StyleTastePage> {
-  // Collapsed by default — the radar chart above already gives the at-a-
-  // glance read; this is the per-dimension detail for anyone who wants it.
   bool _detailsExpanded = false;
 
   @override
   void initState() {
     super.initState();
-    // Neither provider uses .autoDispose, so without this a return visit
-    // would just keep showing whatever was fetched the first time this
-    // page was ever opened — invalidate on mount so every visit reflects
-    // outfits favorited/created/deleted since. Deferred to after the first
-    // frame: invalidating synchronously inside initState reaches for the
-    // ProviderScope's InheritedWidget before this element has finished
-    // mounting, which Flutter rejects.
+    // Not autoDispose, so refresh on every visit. Post-frame: invalidating
+    // inside initState touches ProviderScope before this element is mounted.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.invalidate(styleTasteProfileProvider);
@@ -60,14 +50,8 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     });
   }
 
-  /// Routes an unrecoverable auth expiry on [provider] to
-  /// [AuthExpiredHandler] — same `listenManual` + `hasError` shape as
-  /// `settings_page.dart`/`main_tab_async.dart`'s `mainTabReporter`. Needed
-  /// here because this page only otherwise reads these two providers via
-  /// `.watch(...).when(...)`, and `ErrorStateWidget` deliberately renders
-  /// nothing for an `AuthExpiredException` (it expects a listener like this
-  /// one to own the redirect) — without this, a session that expires while
-  /// on this page would just go blank instead of prompting to log in again.
+  /// `ErrorStateWidget` renders nothing for auth expiry, so without this the
+  /// page would go blank instead of prompting to log in again.
   void _watchAuthExpiry<T>(ProviderListenable<AsyncValue<T>> provider) {
     ref.listenManual<AsyncValue<T>>(provider, (_, next) {
       if (next.hasError && next.error is AuthExpiredException && mounted) {
@@ -247,18 +231,12 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     );
   }
 
-  /// How many outfits carry each style tag, as a donut chart — part-to-
-  /// whole at a glance, with the exact counts in the legend beside it (see
-  /// [StyleProfilePieChart]). Independent fetch from [styleProfileProvider],
-  /// same as [_buildAnalysisCard]'s outfit stats, so a slow/failed request
-  /// here doesn't block the rest of the page.
+  /// Separate fetch, so a slow/failed request doesn't block the page.
   Widget _buildStyleProfileCard() {
     final l10n = AppLocalizations.of(context);
     final styleProfileAsync = ref.watch(styleProfileProvider);
-    // A single outfit can carry multiple style tags, so summing per-tag
-    // counts (below) over-counts actual outfits — the donut's center
-    // shows the real general-outfit total instead, same source/definition
-    // as _buildAnalysisCard's "N outfits analyzed" stat.
+    // An outfit can have several style tags, so the per-tag sum
+    // over-counts; the center shows the real outfit total instead.
     final generalOutfitCount =
         ref
             .watch(outfitsProvider)
@@ -285,10 +263,8 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
           );
         }
 
-        // Part-to-whole only reads at a glance up to ~6 segments — past
-        // that, adjacent slices blur together. Anything beyond the top 5
-        // folds into one neutral "Other" bucket instead of adding a 6th+
-        // categorical hue.
+        // Past ~6 slices a donut stops reading at a glance; fold the rest
+        // into "Other".
         const maxDirectSlices = 5;
         final top = items.take(maxDirectSlices).toList();
         final otherCount = items
@@ -432,11 +408,8 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     );
   }
 
-  /// A fixed glossary of what every dimension measures — unlike the radar
-  /// card's per-dimension insight rows (Uwearis's personalized read on this
-  /// user), this is the same reference text for everyone, so it always
-  /// covers every dimension regardless of which ones the API happened to
-  /// return data for.
+  /// Static glossary covering every dimension, even ones the API didn't
+  /// return.
   void _showAllDescriptionsDialog() {
     final l10n = AppLocalizations.of(context);
     const dimensions = StyleTasteDimension.values;

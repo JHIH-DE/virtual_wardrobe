@@ -37,11 +37,8 @@ class LocaleNotifier extends Notifier<Locale?> {
     } else {
       await prefs.setString(_prefsKey, _codeFor(locale));
     }
-    // Best-effort: the backend uses this to decide what language to
-    // generate AI outfit text (name/style/season/reasoning), packing
-    // advice, etc. in. A failure here shouldn't undo the local switch —
-    // it just means AI content stays in whatever language the backend
-    // last had until the next successful sync.
+    // Best-effort: sets the language of AI-generated text. A failure
+    // doesn't undo the local switch.
     try {
       await ProfileService().updateMyProfile(
         locale: _apiCodeFor(locale ?? _systemLocale()),
@@ -62,16 +59,13 @@ class LocaleNotifier extends Notifier<Locale?> {
     return parts.length > 1 ? Locale(parts[0], parts[1]) : Locale(parts[0]);
   }
 
-  /// BCP-47-style code for the backend (`"zh-TW"`, not this class's own
-  /// underscore-joined storage format).
+  /// BCP-47 (`"zh-TW"`), unlike the underscore storage format.
   static String _apiCodeFor(Locale locale) => locale.countryCode == null
       ? locale.languageCode
       : '${locale.languageCode}-${locale.countryCode}';
 
-  /// Resolves what locale the app is actually displaying when the user
-  /// follows the system default (this class's own `null` state) — only
-  /// 'zh'/non-'zh' matters since zh-TW and en are the only supported
-  /// locales (see AppLocalizations.supportedLocales).
+  /// The displayed locale when following the system: any zh device locale
+  /// maps to zh-TW, everything else to en.
   static Locale _systemLocale() {
     final deviceLocale = PlatformDispatcher.instance.locale;
     return deviceLocale.languageCode == 'zh'

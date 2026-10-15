@@ -6,9 +6,7 @@ import '../services/trip_service.dart';
 import '../utils/signed_url.dart';
 import 'retry_policy.dart';
 
-/// Everything Trip Details and the pages it opens (Suitcase, the day outfit
-/// editor) render for one trip: the day-by-day plan plus the packed suitcase
-/// as full [Garment]s.
+/// One trip's day-by-day plan plus its packed suitcase.
 class TripDetail {
   final List<TripDayOutfit> days;
   final List<Garment> suitcase;
@@ -20,10 +18,8 @@ class TripDetail {
       if (g.id != null) g.id!,
   };
 
-  /// A plan has been generated if any day carries an option at all.
   bool get hasTripPlan => days.any((d) => d.optionId != null);
 
-  /// Whether any signed image URL held here has expired (or is about to).
   bool get hasStaleImages => anySignedUrlExpired([
     for (final day in days) ...[
       day.resultImageUrl,
@@ -36,11 +32,9 @@ class TripDetail {
       TripDetail(days: days ?? this.days, suitcase: suitcase ?? this.suitcase);
 }
 
-/// One trip's [TripDetail], keyed by trip id and kept for the whole app
-/// session — only the first visit to a trip waits on the network; every
-/// later visit (and the Suitcase / day editor pages under it) renders from
-/// here at once. Pages that change the trip write the result back through
-/// the mutation methods below instead of re-fetching on return.
+/// Kept for the whole session, so only a trip's first visit waits on the
+/// network. Pages write changes back through the mutation methods instead of
+/// re-fetching on return.
 final tripDetailProvider =
     AsyncNotifierProvider.family<TripDetailNotifier, TripDetail, int>(
       TripDetailNotifier.new,
@@ -59,10 +53,8 @@ class TripDetailNotifier extends AsyncNotifier<TripDetail> {
   @override
   Future<TripDetail> build() => _fetchTripDetail();
 
-  // `GET /plan` carries every day's options (including ones never rendered)
-  // but only the suitcase's ids; `GET /{id}` carries the suitcase items'
-  // embedded image/name/category. Fetched in parallel, so a first visit
-  // waits on the slower of the two rather than both back to back.
+  // `GET /plan` has the options but only suitcase ids; `GET /{id}` has the
+  // suitcase garments' details.
   Future<TripDetail> _fetchTripDetail() async {
     final (plan, suitcase) = await (
       TripService().getTripPlan(tripId),
@@ -132,9 +124,8 @@ class TripDetailNotifier extends AsyncNotifier<TripDetail> {
     setSuitcase(_current.suitcase.where((g) => g.id != garmentId).toList());
   }
 
-  /// Replaces the day whose option is [optionId] with [update]'s result —
-  /// matched by option, not index, so a result landing after the days were
-  /// reloaded can't patch the wrong day. No-op if no day holds it anymore.
+  /// Matched by option, not index, so a late result can't patch the wrong
+  /// day. No-op if no day holds [optionId] anymore.
   void updateDayOutfit(
     int optionId,
     TripDayOutfit Function(TripDayOutfit current) update,

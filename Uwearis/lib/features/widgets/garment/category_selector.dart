@@ -11,9 +11,8 @@ class CategorySelector extends StatelessWidget implements PreferredSizeWidget {
   final GarmentCategory selectedCategory;
   final ValueChanged<GarmentCategory> onSelected;
 
-  // 64 − 2×8 padding = 48px tall rows, so each SelectableChip's tap target
-  // clears AppDimens.minTouchTarget even though the visible pill stays
-  // ~38px.
+  // 52 − 8 bottom padding = 44px rows, so each chip's tap target reaches
+  // AppDimens.minTouchTarget around the ~38px pill.
   static const double _height = 52;
 
   const CategorySelector({
@@ -23,9 +22,8 @@ class CategorySelector extends StatelessWidget implements PreferredSizeWidget {
     required this.onSelected,
   });
 
-  /// Lets a caller pass this directly as an [AppToolBar]'s `bottom:` — the
-  /// combined app bar + selector then share one Material surface/shadow, so
-  /// the toolbar's drop shadow lands below the selector instead of across it.
+  /// Usable as an AppToolBar's `bottom:`, so the toolbar's shadow lands
+  /// below the selector instead of across it.
   @override
   Size get preferredSize => const Size.fromHeight(_height);
 

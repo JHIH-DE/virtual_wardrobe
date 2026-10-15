@@ -54,7 +54,7 @@ class AppListCard extends StatelessWidget {
             children: [
               if (title != null) ...[
                 SectionTitle(title!),
-                const SizedBox(height: AppDimens.cardHeaderGap),
+                const SizedBox(height: 4),
               ],
               child,
               if (summary != null) ...[
@@ -85,7 +85,7 @@ class AppListCard extends StatelessWidget {
           const Icon(
             Icons.arrow_forward_ios_rounded,
             size: AppDimens.iconSmallSize,
-            color: AppColors.icon,
+            color: AppColors.hintText,
           ),
         ],
         if (trailing != null) ...[const SizedBox(width: 8), trailing!],

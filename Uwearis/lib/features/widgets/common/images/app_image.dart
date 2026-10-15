@@ -5,37 +5,23 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import 'refreshable_network_image.dart';
 
-/// Canonical "one photo, from whichever source the app actually has it in"
-/// widget — a local file path, a `file://` URI, or an http(s) URL — with
-/// disk caching and signed-URL-refresh-on-expiry for the network case (via
-/// [RefreshableNetworkImage]). This is the shared rendering behind
-/// [GarmentImage] (garment photos) and My Virtual Model's face/body reference
-/// photos; reach for this directly for a new "one photo from a mixed
-/// local/remote source" case rather than copying the branching here a
-/// second time. [cacheKey]/[onRefreshUrl] are plain pass-throughs to
-/// [RefreshableNetworkImage] — a caller with a stable per-entity identity
-/// (a garment id, a fixed "this user's face reference" key, ...) should
-/// build those the same way [GarmentImage] does, so a re-signed URL for the
-/// same underlying photo doesn't read as a disk-cache miss.
+/// One photo from a local path, `file://` URI or http(s) URL; the network
+/// case goes through [RefreshableNetworkImage]. Pass a stable [cacheKey]
+/// so a re-signed URL for the same photo still hits the disk cache.
 class AppImage extends StatelessWidget {
   final String? url;
   final String? cacheKey;
   final Future<String?> Function()? onRefreshUrl;
 
-  /// See [RefreshableNetworkImage.onUrlRefreshed] — only fires for the
-  /// network-URL case below.
+  /// Network URLs only.
   final void Function(String oldUrl, String newUrl)? onUrlRefreshed;
 
-  /// See [RefreshableNetworkImage.onLoadError] — only fires for the
-  /// network-URL case below; a local file source has no equivalent failure
-  /// signal today.
+  /// Network URLs only.
   final VoidCallback? onLoadError;
   final double? width;
   final double? height;
 
-  /// Decode target size in physical pixels — see
-  /// [RefreshableNetworkImage.memCacheWidth]. Leave null for full-resolution
-  /// decoding.
+  /// Decode size in physical pixels; null decodes at full resolution.
   final int? memCacheWidth;
   final int? memCacheHeight;
   final BoxFit fit;
@@ -56,13 +42,8 @@ class AppImage extends StatelessWidget {
     this.borderRadius = 0,
   });
 
-  // Both Image.file's cacheWidth/cacheHeight and cached_network_image's
-  // memCacheWidth/memCacheHeight (a ResizeImage with ResizePolicy.exact)
-  // decode to an EXACT width x height when both are given, silently
-  // squishing any source whose aspect ratio doesn't already match that box.
-  // Passing only one dimension lets Flutter derive the other proportionally
-  // instead; `fit` still crops the (correctly-proportioned) result into the
-  // target box.
+  // Only one decode dimension: given both, the image is decoded to that
+  // exact box and squished if the aspect ratio differs.
   int? get _decodeWidth => memCacheWidth;
   int? get _decodeHeight => memCacheWidth == null ? memCacheHeight : null;
 
@@ -86,9 +67,6 @@ class AppImage extends StatelessWidget {
         memCacheWidth: _decodeWidth,
         memCacheHeight: _decodeHeight,
         fit: fit,
-        // Plain white background instead of a per-tile loading spinner —
-        // quieter for dense grids/lists — with a quick cross-fade once the
-        // image actually loads.
         placeholderBuilder: (_) => Container(color: AppColors.surface),
         fadeInDuration: const Duration(milliseconds: 200),
         errorIcon: Icons.broken_image,

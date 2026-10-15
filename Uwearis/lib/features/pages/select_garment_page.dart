@@ -9,33 +9,19 @@ import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
 
-/// Full-page grid picker for a single outfit slot (Top/Bottom/Shoes/etc) or
-/// for an accessory slot. Tapping an item immediately pops back with the
-/// result; there's no separate confirm step.
-///
-/// Two modes:
-/// - **Slot mode** (default): the caller passes a single [category] (or null
-///   for a pre-filtered candidate list) and the grid shows just that slot's
-///   garments.
-/// - **Tab mode**: the caller passes [categoryTabs] and the page shows a
-///   [CategorySelector] so the user can browse every category and pick any
-///   one garment — used by Add Outfit's "Add garment" flow. Still single
-///   select, still pops on tap.
+/// Single-garment grid picker; tapping an item pops with it (no confirm).
+/// With [categoryTabs] it shows a [CategorySelector]; otherwise it lists
+/// [garments] filtered to [category].
 class SelectGarmentPage extends StatefulWidget {
   final String title;
 
-  /// The slot's category. Null = don't pre-filter by category (the caller
-  /// already passed the exact candidate list — e.g. the Add Outfit accessory
-  /// picker, which mixes accessories and socks). In [categoryTabs] mode this
-  /// is instead the tab to open on (falls back to the first tab).
+  /// Null = no category filter. With [categoryTabs], the tab to open on
+  /// (falls back to the first).
   final GarmentCategory? category;
 
   final List<Garment> garments;
   final Garment? selected;
 
-  /// When non-null, the page runs in tab mode: a [CategorySelector] over
-  /// these categories replaces the fixed [category] filter, letting the user
-  /// pick any garment from any category in one visit.
   final List<GarmentCategory>? categoryTabs;
 
   const SelectGarmentPage({
@@ -86,9 +72,6 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
           onChanged: () => setState(() {}),
         ),
       ],
-      // Sharing the app bar's own Material/shadow with the tab strip (rather
-      // than stacking it below in the body) keeps the two reading as one
-      // continuous surface — see CategorySelector's preferredSize doc.
       bottom: _tabMode
           ? CategorySelector(
               categories: widget.categoryTabs!,

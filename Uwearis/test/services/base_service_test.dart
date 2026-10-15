@@ -12,11 +12,8 @@ import 'package:uwearis/core/services/base_service.dart';
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 
-/// Minimal concrete host for the [BaseService] mixin so `withAuth` can be
-/// exercised in isolation.
 class _TestService with BaseService {}
 
-/// A refresh-endpoint response carrying a fresh token pair.
 http.Response _refreshOk() => jsonResponse(
   envelope({'access_token': 'new-access', 'refresh_token': 'new-refresh'}),
 );
@@ -82,7 +79,7 @@ void main() {
 
     test('no stored refresh token throws AuthExpiredException without '
         'calling refresh or retrying', () async {
-      // Only an access token on hand — AuthStorage.getRefreshToken() is null.
+      // No refresh token stored.
       FlutterSecureStorage.setMockInitialValues({
         'access_token': 'fake-access-token',
       });
@@ -154,13 +151,8 @@ void main() {
       expect(tokens.length, 1);
     });
 
-    // The refresh POST is wrapped in `.timeout(const Duration(seconds: 15))`.
-    // Verifying the literal 15s window would need real elapsed time or
-    // `fake_async` (only a transitive dependency here — not added). These
-    // tests instead pin the behaviour that matters: whatever `.timeout()`
-    // raises (a TimeoutException) must travel straight up, never be
-    // swallowed or rewritten as AuthExpiredException, and must not trigger
-    // a retry of the original request.
+    // The 15s refresh timeout itself isn't tested (needs fake_async); these
+    // pin that a refresh failure propagates unchanged, without a retry.
     test('a TimeoutException from the refresh call propagates unchanged and '
         'does not retry', () async {
       final tokens = <String>[];

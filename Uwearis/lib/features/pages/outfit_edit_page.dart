@@ -19,14 +19,12 @@ import '../widgets/garment/garment_image.dart';
 import '../widgets/outfit/outfit_background_field.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
-/// The page's own identity for each garment slot — distinct from
-/// [GarmentCategory] because Top and Mid Layer share [GarmentCategory.top]
-/// but are two different slots.
+/// Garment slots — not [GarmentCategory], since Top and Mid Layer are two
+/// slots sharing [GarmentCategory.top].
 enum _Slot { top, middle, outer, bottom, onePiece, shoes }
 
-/// One garment shown in the "Your Outfit" list — either a core slot pick
-/// ([slot] set) or an accessory ([accessoryIndex] set). [category] is the
-/// label shown in the row's subtitle.
+/// One garment row: a core slot pick ([slot] set) or an accessory
+/// ([accessoryIndex] set).
 typedef _OutfitEntry = ({
   Garment garment,
   GarmentCategory category,
@@ -34,9 +32,7 @@ typedef _OutfitEntry = ({
   int? accessoryIndex,
 });
 
-/// The user's in-progress slot-by-slot garment picks. Purely local UI state
-/// (no fromJson/toJson) — not a synced domain model, so it lives here
-/// rather than in lib/data/.
+/// In-progress slot picks — local UI state, not a domain model.
 class _OutfitSelection {
   final Garment? top;
   final Garment? middle;
@@ -79,51 +75,30 @@ class _OutfitSelection {
   }
 }
 
-/// What [OutfitEditPage] pops on Confirm. [backgroundId] is only set when
-/// the page was opened with `showBackgroundPicker` and there's a background
-/// worth sending (see [_OutfitEditPageState._resultBackgroundId]); `null`
-/// leaves it to the backend's default.
+/// Popped on Confirm. A null [backgroundId] leaves it to the backend.
 typedef OutfitEditResult = ({Set<int> garmentIds, int? backgroundId});
 
-/// Lets the user pick which garments from a fixed pool (e.g. a trip's
-/// suitcase, or the whole closet) make up an outfit — the "Change Garments"
-/// flow off [TripDetailsPage]'s day header, and Outfit Details' "Create
-/// Another Version" picker. Pops an [OutfitEditResult] on Confirm; `null` if
-/// the user backs out without confirming.
-///
-/// Same "Add garment" vertical-list UI as `AddOutfitPage`'s create flow — a
-/// pinned "Add garment" row plus one card per current pick, tapping any card
-/// reopens the picker to swap it — this page just has no AI/try-on/
-/// Match-a-Look concepts, and draws from a fixed [preloadedGarments] pool
-/// instead of the app-wide closet. The BACKGROUND field is opt-in via
-/// [showBackgroundPicker], since only the new-version flow renders an image.
+/// Picks an outfit's garments from a fixed pool (a trip's suitcase, or the
+/// closet) for Trip Details' outfit edit and Outfit Details' new version.
+/// Pops an [OutfitEditResult], or null if the user backs out.
 class OutfitEditPage extends StatefulWidget {
   final List<Garment> initialGarments;
 
-  /// The fixed garment pool the picker draws from (a trip's suitcase, or the
-  /// whole closet) — unlike AddOutfitPage's create flow, there's no
-  /// app-wide closet fetch here.
   final List<Garment> preloadedGarments;
   final VoidCallback? onBack;
 
-  /// Garment ids NOT in this set get a warning badge on their card — e.g.
-  /// an outfit item that's since been removed from the trip's suitcase.
+  /// Ids not in this set get a warning badge (e.g. removed from the
+  /// suitcase).
   final Set<int>? validGarmentIds;
 
-  /// App bar title override — defaults to [AppLocalizations.selectGarmentsTitle].
-  /// Outfit Details' "+ New Version" entry point passes
-  /// [AppLocalizations.addVersionTitle] instead, since this same picker
-  /// reads as a different flow from there.
+  /// Defaults to [AppLocalizations.selectGarmentsTitle].
   final String? title;
 
-  /// Shows Create Outfit's BACKGROUND field — Outfit Details' "+ New
-  /// Version" flow, whose result is AI-rendered. Trip's "Change Garments"
-  /// only swaps garment ids and leaves it off.
+  /// Shows the BACKGROUND field — only the new-version flow renders an
+  /// image.
   final bool showBackgroundPicker;
 
-  /// The background preselected when [showBackgroundPicker] is on — the
-  /// version being branched from, so a new version keeps its scene unless
-  /// the user changes it.
+  /// The source version's background, kept unless the user changes it.
   final int? initialBackgroundId;
 
   const OutfitEditPage({
@@ -151,20 +126,15 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
 
-  // The preset matching [OutfitEditPage.initialBackgroundId], or null when
-  // there's none (no id, or one outside [BackgroundOption.all]).
+  // Null when the initial id is missing or not in [BackgroundOption.all].
   BackgroundOption? _initialBackground;
   late BackgroundOption _background;
   bool _backgroundCustomized = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
-  /// The fixed pool this picker draws from — no app-wide closet fetch, no
-  /// loading state: the caller already has it in hand.
   List<Garment> get _garmentPool => widget.preloadedGarments;
 
-  /// Ids of whichever accessory slots are actually filled — [_accessories]
-  /// always keeps one trailing `null` "+" slot, which this excludes.
   Set<int> get _accessoryIds => _accessories
       .whereType<Garment>()
       .map((g) => g.id)
@@ -235,9 +205,8 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     );
   }
 
-  /// Mirrors [_buildInitialOutfit] for the accessory slots — preserves the
-  /// "one trailing null add-slot until [_maxAccessories]" invariant that
-  /// [_pickGarmentForOutfit] otherwise maintains.
+  /// Keeps the "one trailing null add-slot until [_maxAccessories]"
+  /// invariant.
   List<Garment?> _buildInitialAccessories(List<Garment> garments) {
     final picked = garments
         .where(
@@ -250,7 +219,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     return [...picked, if (picked.length < _maxAccessories) null];
   }
 
-  /// Stable display order for the "Add garment" picker's category tabs.
   static const List<GarmentCategory> _addCategoryOrder = [
     GarmentCategory.top,
     GarmentCategory.bottom,
@@ -294,16 +262,9 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     }
   }
 
-  /// Garments the "Add garment" picker should offer, given what the outfit
-  /// already has: a category with no free slot drops out entirely (you
-  /// can't wear a second pair of trousers), and an accessory type already
-  /// worn drops out (no second pair of sunglasses), and a base-layer top
-  /// already worn drops out its alternatives the same way (wearing a T-shirt
-  /// hides Polo shirt too — see [baseTopSlotKey]; a genuine mid-layer piece
-  /// like a cardigan is a different key and still offered). Core garments
-  /// already in the outfit don't reappear either. [keepCategory] /
-  /// [keepSlot] / [keepAccessoryIndex] re-admit whatever the user is
-  /// currently swapping.
+  /// Drops full categories, accessory types already worn, base-layer tops
+  /// interchangeable with one already worn ([baseTopSlotKey]) and garments
+  /// already picked. The `keep*` args re-admit whatever is being swapped.
   List<Garment> _addGarmentCandidates({
     GarmentCategory? keepCategory,
     _Slot? keepSlot,
@@ -391,8 +352,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     return tabs.isEmpty ? const [GarmentCategory.top] : tabs;
   }
 
-  /// Every selected garment id — core slots and accessories together as one
-  /// flat list, since the caller (Confirm) treats them the same way.
   List<int> _selectedGarmentIds() {
     final coreIds = [
       _outfit.top,
@@ -409,9 +368,8 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     return {...coreIds, ...accessoryIds}.toList();
   }
 
-  /// Mirrors Create Outfit: an untouched default (no matching initial
-  /// background) sends nothing, so the backend picks its own default rather
-  /// than us asserting Fitting Room.
+  /// An untouched default (no matching initial background) sends nothing,
+  /// so the backend picks its own default.
   int? get _resultBackgroundId {
     if (!widget.showBackgroundPicker) return null;
     if (!_backgroundCustomized && _initialBackground == null) return null;
@@ -481,16 +439,10 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     );
   }
 
-  // Shared row sizing so the "Add garment" row and every garment row line up.
   static const double _outfitRowHeight = 84;
-  // The "Add garment" row's dashed placeholder icon — unrelated to the real
-  // garment thumbnail width below, which bleeds edge-to-edge instead.
   static const double _addGarmentIconSize = 56;
   static const double _outfitThumbnailWidth = 78;
 
-  /// Vertical list: a pinned "Add garment" row on top, then one row per
-  /// current pick (core slots first, then accessories — see
-  /// [_outfitEntries]).
   Widget _buildYourOutfitRow() {
     final entries = _outfitEntries();
     return Column(
@@ -505,7 +457,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   }
 
   Widget _buildAddGarmentRow() {
-    // Every category/type is already covered — nothing left worth adding.
     final exhausted =
         _garmentPool.isNotEmpty && _addGarmentCandidates().isEmpty;
     final iconColor = exhausted ? AppColors.hintText : AppColors.icon;
@@ -540,10 +491,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     );
   }
 
-  /// Unlike [_buildAddGarmentRow] (built on the padded [AppListCard] shell),
-  /// this hand-rolls its container so the thumbnail can bleed edge-to-edge
-  /// with the row's top/bottom — [AppListCard]'s uniform padding wraps its
-  /// `leading` slot too, which would leave a gap around the image.
   Widget _buildOutfitGarmentRow(_OutfitEntry entry) {
     final g = entry.garment;
     final categoryLabel = entry.category.localizedLabel(context);
@@ -556,10 +503,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         !widget.validGarmentIds!.contains(g.id);
 
     return GestureDetector(
-      // opaque so the whole row opens the picker — the Container has a
-      // `decoration`, not a `color`, and the contained thumbnail leaves a
-      // lot of transparent padding. The ✕ badge is deeper and still wins
-      // its own area.
       behavior: HitTestBehavior.opaque,
       onTap: () => _pickGarmentForOutfit(
         initial: entry.category,
@@ -666,9 +609,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     );
   }
 
-  /// Flat, ordered view of the current picks (core slots first, then
-  /// accessories) that the "Your Outfit" row renders. Middle layer keeps the
-  /// [GarmentCategory.top] label since a mid layer *is* a top.
+  /// Core slots first, then accessories. Mid layer is labelled as a top.
   List<_OutfitEntry> _outfitEntries() {
     final list = <_OutfitEntry>[];
     void addSlot(Garment? g, _Slot slot, GarmentCategory category) {
@@ -722,15 +663,8 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     });
   }
 
-  /// Opens the tab-mode [SelectGarmentPage] and files whatever the user picks
-  /// into the matching slot (or accessory list). [replaceSlot] /
-  /// [replaceAccessoryIndex] pin the result to that exact slot when swapping
-  /// an existing card, and keep that slot's category/type available in the
-  /// otherwise smart-filtered picker. [current] is the garment being
-  /// swapped — it shows up marked as selected so the user can see what's
-  /// already in that slot, and its non-null-ness is also what picks the
-  /// picker's own title ("Edit Garment" swapping a card vs. "Add Garment"
-  /// from the pinned add row, where [current] is always null).
+  /// [replaceSlot] / [replaceAccessoryIndex] pin the pick to the row being
+  /// swapped; [current] shows as selected in the picker.
   Future<void> _pickGarmentForOutfit({
     GarmentCategory? initial,
     _Slot? replaceSlot,
@@ -791,14 +725,9 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     });
   }
 
-  /// Auto-places [g] into whichever slot its category maps to — an empty
-  /// top before middle, single-slot categories overwrite outright, and
-  /// accessory categories append respecting `_maxAccessories` and
-  /// no-duplicate-id. A second top that's just another base-layer
-  /// alternative to the one already worn (see [baseTopSlotKey] — e.g. a
-  /// Polo shirt picked while a T-shirt is already the top) replaces it
-  /// instead of stacking into mid layer; only a genuinely different piece
-  /// (a sweater/cardigan) is a real mid layer. Call inside `setState`.
+  /// Call inside `setState`. A top interchangeable with the current one
+  /// ([baseTopSlotKey], e.g. Polo over T-shirt) replaces it instead of
+  /// becoming the mid layer.
   void _placeGarment(Garment g) {
     switch (g.category) {
       case GarmentCategory.top:

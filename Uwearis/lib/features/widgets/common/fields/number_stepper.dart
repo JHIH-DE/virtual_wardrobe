@@ -11,9 +11,8 @@ enum NumberStepperVariant {
   row,
   pill,
 
-  /// Just "− value +" spread across the available width — no label or
-  /// chrome of its own, for a host tile that already shows the label above
-  /// it (Add Outfit's Auto-Complete temperature tile).
+  /// Bare "− value +" across the width, for a host tile that shows its own
+  /// label.
   tile,
 }
 

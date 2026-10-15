@@ -5,17 +5,16 @@ import '../../data/outfit.dart';
 import '../services/api_exception.dart';
 import '../services/auth_handler.dart';
 import '../services/daily_outfit_service.dart';
+import '../services/outfit_service.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
 import 'outfits_provider.dart';
 import 'retry_policy.dart';
 
-/// Today's daily outfit options — a primary plus up to
-/// [DailyOutfitNotifier.alternativesPerDay] alternatives, each one of the
-/// user's own outfits. Nothing picks a plan in the background any more, so
-/// a day with no plan yet gets one generated here on first read; empty
-/// means the backend couldn't find enough suitable outfits (or the user has
-/// none yet).
+/// Today's daily outfit options: a primary plus up to
+/// [DailyOutfitNotifier.alternativesPerDay] of the user's own outfits.
+/// A day with no plan gets one generated on first read; empty means too few
+/// suitable outfits.
 final dailyOutfitProvider =
     AsyncNotifierProvider<DailyOutfitNotifier, List<Outfit>>(
       DailyOutfitNotifier.new,
@@ -25,10 +24,8 @@ final dailyOutfitProvider =
 class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
   static const alternativesPerDay = 2;
 
-  /// The day + candidate outfit set the last generate came up short for
-  /// (`INSUFFICIENT_OUTFIT_DATA`). Retrying with the same inputs can't
-  /// succeed, so [_fetch] skips generating until the day or the user's
-  /// outfits change.
+  /// Day + candidate set the last generate got `INSUFFICIENT_OUTFIT_DATA`
+  /// for; retrying the same inputs can't succeed, so [_fetch] skips it.
   String? _insufficientFor;
   bool _syncing = false;
 
@@ -71,9 +68,7 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
     }
   }
 
-  /// Asks for a primary plus [alternativesPerDay] alternatives, settling
-  /// for a primary alone when today's weather leaves too few suitable
-  /// outfits for that.
+  /// Falls back to a primary alone when too few outfits suit today.
   Future<List<Outfit>> _generate(
     DailyOutfitService service,
     DateTime date,
@@ -92,11 +87,8 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
   static bool _isInsufficientOutfitData(Object e) =>
       e is ApiException && e.errorCode == 'INSUFFICIENT_OUTFIT_DATA';
 
-  /// Today's options are the user's own outfits, so any change to
-  /// [outfitsProvider] (a delete, re-render, favorite, a new outfit that
-  /// makes a plan possible) re-reads them. Done in place rather than via
-  /// [refresh] — most changes don't affect today's plan, and flipping to
-  /// loading would swap Home's carousel out for its fallback meanwhile.
+  /// Re-reads in place on any [outfitsProvider] change. Not via [refresh]:
+  /// flipping to loading would swap Home's carousel for its fallback.
   Future<void> _syncWithOutfits() async {
     if (state.isLoading || _syncing) return;
     _syncing = true;
@@ -111,8 +103,7 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
       (state.value?.isNotEmpty ?? false) &&
       anySignedUrlExpired(state.value!.map((o) => o.imageUrl));
 
-  /// Re-fetches only if the list is empty or its image URLs have expired
-  /// (also covers "the app was left open past midnight").
+  /// Re-fetches only if the list is empty or its image URLs have expired.
   Future<void> refreshIfNeeded() async {
     if (state.isLoading) return;
     if (!state.hasValue || state.value!.isEmpty || _isStale) {
@@ -130,5 +121,24 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
     state = AsyncData(
       current.map((o) => o.id == outfit.id ? outfit : o).toList(),
     );
+  }
+
+  /// Optimistic favorite toggle shared by Home and Today's Outfit. Rolls
+  /// back and rethrows on failure; the caller owns the error UI.
+  Future<void> toggleOutfitFavorite(Outfit target) async {
+    final next = target.copyWith(isFavorite: !target.isFavorite);
+    final outfits = ref.read(outfitsProvider.notifier);
+    updateOutfit(next);
+    try {
+      await OutfitService().updateOutfit(
+        target.groupId,
+        target.id,
+        isFavorite: next.isFavorite,
+      );
+      outfits.updateOutfit(next);
+    } catch (_) {
+      updateOutfit(target);
+      rethrow;
+    }
   }
 }

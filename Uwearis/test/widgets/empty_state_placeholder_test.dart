@@ -3,9 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/features/widgets/common/overlays/empty_state_placeholder.dart';
 
 void main() {
-  // The default flutter_test surface is 800x600 — smaller than the 800px
-  // SizedBox heights these tests use, which would otherwise get silently
-  // clamped down and throw the expected-center math off.
+  // The default 800x600 surface would clamp the tests' 800px-tall boxes.
   void useTallSurface(WidgetTester tester) {
     tester.view.physicalSize = const Size(1000, 1200);
     tester.view.devicePixelRatio = 1.0;
@@ -90,29 +88,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    'pinnedTop and bottomInset combine correctly (top pin ignores '
-    'bottomInset, centered content excludes both)',
-    (tester) async {
-      useTallSurface(tester);
-      const height = 800.0;
-      const inset = 100.0;
-      await tester.pumpWidget(
-        host(
-          height: height,
-          bottomInset: inset,
-          pinnedTop: const SizedBox(key: ValueKey('pinned'), height: 40),
-        ),
-      );
-      await tester.pump();
+  testWidgets('pinnedTop and bottomInset combine correctly (top pin ignores '
+      'bottomInset, centered content excludes both)', (tester) async {
+    useTallSurface(tester);
+    const height = 800.0;
+    const inset = 100.0;
+    await tester.pumpWidget(
+      host(
+        height: height,
+        bottomInset: inset,
+        pinnedTop: const SizedBox(key: ValueKey('pinned'), height: 40),
+      ),
+    );
+    await tester.pump();
 
-      final center = tester.getCenter(find.text('Nothing here'));
-      expect(center.dy, closeTo((height - inset) / 2, 1));
+    final center = tester.getCenter(find.text('Nothing here'));
+    expect(center.dy, closeTo((height - inset) / 2, 1));
 
-      final pinnedTopWidget = tester.getTopLeft(
-        find.byKey(const ValueKey('pinned')),
-      );
-      expect(pinnedTopWidget.dy, closeTo(0, 1));
-    },
-  );
+    final pinnedTopWidget = tester.getTopLeft(
+      find.byKey(const ValueKey('pinned')),
+    );
+    expect(pinnedTopWidget.dy, closeTo(0, 1));
+  });
 }

@@ -7,12 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:uwearis/core/providers/retry_policy.dart';
 import 'package:uwearis/core/services/api_exception.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
-import 'package:uwearis/core/services/garment_service.dart' show ClosetAnalysisException;
+import 'package:uwearis/core/services/garment_service.dart'
+    show ClosetAnalysisException;
 
-/// A notifier whose `build()` outcome on each attempt is driven by
-/// [attemptFn] — throw to simulate a failed attempt, return a value to
-/// simulate success. [attempts] counts how many times `build()` actually
-/// ran (incremented *before* calling [attemptFn], so a throw still counts).
+/// `build()` delegates to [attemptFn]; [attempts] counts failed runs too.
 class _FlakyNotifier extends AsyncNotifier<int> {
   _FlakyNotifier(this.attemptFn);
   final int Function(int attempt) attemptFn;
@@ -31,14 +29,8 @@ final _testProvider = AsyncNotifierProvider<_FlakyNotifier, int>(
   retry: appRetryPolicy,
 );
 
-/// Builds a container wired with [appRetryPolicy] on [_testProvider], with
-/// an active `listen` kept open for the container's lifetime — Riverpod's
-/// scheduled retry (a delayed re-run of `build()`) is only actually flushed
-/// while the provider has at least one subscriber, exactly like a widget's
-/// `ref.watch(...)` keeps it alive in the real app (e.g. Home's
-/// `ref.watch(profileProvider)`, kept mounted via `MainShell`'s
-/// `IndexedStack`). A bare `container.read(provider.future)` with no
-/// listener never observes a scheduled retry actually happening.
+/// Keeps an active `listen` open: Riverpod only runs a scheduled retry
+/// while the provider has a subscriber.
 ({ProviderContainer container, _FlakyNotifier notifier}) _wireUp(
   int Function(int attempt) attemptFn,
 ) {
@@ -48,8 +40,6 @@ final _testProvider = AsyncNotifierProvider<_FlakyNotifier, int>(
       _testProvider.overrideWith(() => notifier = _FlakyNotifier(attemptFn)),
     ],
   );
-  // Not closed explicitly — the container's own `dispose()` (each test's
-  // `addTearDown`) tears this down along with everything else.
   container.listen(_testProvider, (_, _) {});
   return (container: container, notifier: notifier);
 }
@@ -81,7 +71,7 @@ void main() {
       expect(appRetryPolicy(0, error), isNotNull);
       expect(appRetryPolicy(1, error), isNotNull);
       expect(appRetryPolicy(2, error), isNotNull);
-      // A 4th retry (retryCount == 3) is refused — 3 retries is the cap.
+      // 3 retries is the cap.
       expect(appRetryPolicy(3, error), isNull);
     });
 
@@ -159,49 +149,40 @@ void main() {
       timeout: const Timeout(Duration(seconds: 10)),
     );
 
-    test(
-      'a persistent transient error settles into AsyncError within a few '
-      'seconds, not tens of seconds',
-      () async {
-        final w = _wireUp(
-          (_) => throw const ApiException(statusCode: 500, message: 'boom'),
-        );
-        addTearDown(w.container.dispose);
+    test('a persistent transient error settles into AsyncError within a few '
+        'seconds, not tens of seconds', () async {
+      final w = _wireUp(
+        (_) => throw const ApiException(statusCode: 500, message: 'boom'),
+      );
+      addTearDown(w.container.dispose);
 
-        final stopwatch = Stopwatch()..start();
-        await expectLater(
-          w.container.read(_testProvider.future),
-          throwsA(isA<ApiException>()),
-        );
-        stopwatch.stop();
+      final stopwatch = Stopwatch()..start();
+      await expectLater(
+        w.container.read(_testProvider.future),
+        throwsA(isA<ApiException>()),
+      );
+      stopwatch.stop();
 
-        expect(stopwatch.elapsed, lessThan(const Duration(seconds: 8)));
-        // Initial attempt + 3 retries = 4 total.
-        expect(w.notifier.attempts, 4);
-      },
-      timeout: const Timeout(Duration(seconds: 15)),
-    );
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 8)));
+      expect(w.notifier.attempts, 4);
+    }, timeout: const Timeout(Duration(seconds: 15)));
 
-    test(
-      'AuthExpiredException makes provider.future reject immediately — no '
-      'retry wait at all',
-      () async {
-        final w = _wireUp((_) => throw AuthExpiredException());
-        addTearDown(w.container.dispose);
+    test('AuthExpiredException makes provider.future reject immediately — no '
+        'retry wait at all', () async {
+      final w = _wireUp((_) => throw AuthExpiredException());
+      addTearDown(w.container.dispose);
 
-        final stopwatch = Stopwatch()..start();
-        await expectLater(
-          w.container.read(_testProvider.future),
-          throwsA(isA<AuthExpiredException>()),
-        );
-        stopwatch.stop();
+      final stopwatch = Stopwatch()..start();
+      await expectLater(
+        w.container.read(_testProvider.future),
+        throwsA(isA<AuthExpiredException>()),
+      );
+      stopwatch.stop();
 
-        // No retry at all — should settle almost instantly, nowhere near
-        // the seconds-long backoff a transient error would go through.
-        expect(stopwatch.elapsed, lessThan(const Duration(milliseconds: 500)));
-        expect(w.notifier.attempts, 1);
-      },
-    );
+      // No retry, so no backoff delay.
+      expect(stopwatch.elapsed, lessThan(const Duration(milliseconds: 500)));
+      expect(w.notifier.attempts, 1);
+    });
 
     test('a 4xx ApiException also rejects immediately, no retry', () async {
       final w = _wireUp(

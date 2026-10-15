@@ -13,16 +13,13 @@ class AppTheme {
             seedColor: AppColors.primary,
             surfaceTint: Colors.transparent,
           ).copyWith(
-            // fromSeed() derives a purple-hued palette from this near-black,
-            // near-zero-chroma seed; pin the interactive colors so cursors,
-            // focus rings, and progress indicators match the app's ink/accent
-            // palette instead of that derived hue.
+            // fromSeed() derives a purple hue from this near-black seed; pin
+            // the interactive colors to the app palette.
             primary: AppColors.primary,
             secondary: AppColors.accent,
             surface: AppColors.surface,
           ),
-      // Matches AppTextField's focused-border colour so the caret + drag
-      // handle read as one with the active field, not a hard black mark.
+      // Matches AppTextField's focused border.
       textSelectionTheme: const TextSelectionThemeData(
         cursorColor: AppColors.textSecondary,
         selectionHandleColor: AppColors.textSecondary,
@@ -35,12 +32,11 @@ class AppTheme {
       ),
     );
 
-    // Two NotoSansTC quirks fixed here for every Material default (SnackBars,
-    // dialogs, fields, buttons…) — AppTextStyle carries the same two itself:
-    //  1. It's a variable font; iOS renders every style at the heaviest
-    //     master without an explicit `wght` FontVariation.
-    //  2. Its CJK line metrics are tall and top-heavy, so Latin text sits
-    //     above centre in a button/chip; `even` leading splits the slack.
+    // NotoSansTC quirks, fixed for Material defaults as AppTextStyle does:
+    //  1. Variable font: iOS renders the heaviest master without an
+    //     explicit `wght` FontVariation.
+    //  2. Tall CJK metrics push Latin text above centre; `even` leading
+    //     splits the slack.
     return base.copyWith(
       textTheme: _normalizeFontMetrics(base.textTheme),
       primaryTextTheme: _normalizeFontMetrics(base.primaryTextTheme),

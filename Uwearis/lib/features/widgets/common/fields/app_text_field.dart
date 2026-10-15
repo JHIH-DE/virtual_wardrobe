@@ -4,10 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// Shared "input field chrome" — filled, rounded, bordered — used by
-/// [AppTextField] as well as the dropdown/date-picker fields in
-/// `picker_field.dart`. The border radius/color and focused-border
-/// color/width are overridable so callers can match their own field style.
+/// Shared input chrome for [AppTextField] and `picker_field.dart`.
 InputDecoration appInputDecoration({
   String? hint,
   String? label,
@@ -16,10 +13,8 @@ InputDecoration appInputDecoration({
   Widget? suffix,
   double borderRadius = 14,
   Color borderColor = AppColors.borderStrong,
-  // Just a deeper shade of the resting border (same warm-neutral family) —
-  // a near-black or accent focus ring both read as harsh here.
-  // picker_field.dart overrides this back to borderStrong (its fields open a
-  // sheet, not a keyboard, so they want no focus emphasis at all).
+  // A near-black or accent focus ring reads as harsh. picker_field.dart
+  // uses borderStrong: its fields open a sheet, so no focus emphasis.
   Color focusedBorderColor = AppColors.textSecondary,
   double focusedBorderWidth = 1.5,
 }) {
@@ -29,10 +24,7 @@ InputDecoration appInputDecoration({
     hintStyle: AppTextStyle.regular16.copyWith(color: AppColors.textSecondary),
     labelStyle: AppTextStyle.regular16.copyWith(color: AppColors.textSecondary),
     suffixText: suffixText,
-    suffixStyle: AppTextStyle.regular14.copyWith(
-      color: AppColors.textSecondary,
-      fontWeight: FontWeight.w500,
-    ),
+    suffixStyle: AppTextStyle.medium14.copyWith(color: AppColors.textSecondary),
     suffix: suffix,
     prefixIcon: prefixIcon,
     filled: true,

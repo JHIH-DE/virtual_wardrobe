@@ -5,15 +5,10 @@ import '../../../core/services/auth_handler.dart';
 import 'main_nav_bar.dart';
 import 'overlays/error_state_widget.dart';
 
-/// Shared main-tab (Home / My Closet / Outfits / Trips) async-list plumbing.
-///
-/// The list tabs all: mirror their provider's loading flag up to the shell
-/// overlay via [MainShellScope.setLoading], route an unrecoverable
-/// `AuthExpiredException` to [AuthExpiredHandler], and render nothing while
-/// loading / [ErrorStateWidget] on error / their content otherwise.
-
-/// Returns the report callback for a main-tab list provider. Wire it in
-/// `initState`'s post-frame callback:
+/// Returns the report callback for a main-tab list provider (My Closet /
+/// Outfits / Trips): mirrors loading to the shell overlay and routes auth
+/// expiry to [AuthExpiredHandler]. Wire it in `initState`'s post-frame
+/// callback:
 /// ```dart
 /// final report = mainTabReporter(context,
 ///     loadingLabel: l10n.loadingXEllipsis, tab: MainTab.x);
@@ -36,9 +31,7 @@ void Function(AsyncValue<Object?>) mainTabReporter(
 }
 
 extension MainTabAsyncBody<T> on AsyncValue<T> {
-  /// The standard main-tab body: an empty box while loading (the shell
-  /// overlay covers the screen), [ErrorStateWidget] on error, [data]
-  /// otherwise.
+  /// Empty while loading — the shell overlay covers the screen.
   Widget mainTabBody({
     required Widget Function(T value) data,
     required VoidCallback onRetry,

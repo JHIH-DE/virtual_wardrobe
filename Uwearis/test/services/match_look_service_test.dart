@@ -164,10 +164,7 @@ void main() {
       // No exception means the 404-tolerance path was taken.
     });
 
-    // The shared BaseService.deleteIdempotent helper routes a real failure
-    // through MatchLookService's own _decode, so it keeps surfacing a
-    // MatchLookException (with the backend error_code) rather than a plain
-    // Exception.
+    // deleteIdempotent routes failures through MatchLookService's _decode.
     test('a 500 still surfaces a MatchLookException', () async {
       final client = MockClient(
         (request) async => _jsonResponse(

@@ -56,9 +56,8 @@ class DateDropdownField extends StatelessWidget {
   }
 }
 
-/// Tap-to-open field (e.g. to show a bottom sheet picker) — shows [text] (or
-/// [hint] when [text] is empty) with a trailing arrow, and calls [onTap]
-/// (e.g. to open a bottom sheet picker) instead of an inline menu.
+/// Tap-to-open field (e.g. for a bottom sheet picker): [text] or [hint]
+/// with a trailing arrow.
 class PickerField extends StatelessWidget {
   final String text;
   final String? hint;
@@ -88,8 +87,6 @@ class _TapToPickField extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasValue = text.isNotEmpty;
     return GestureDetector(
-      // opaque so the whole 48px field is tappable, not just the label text
-      // and the trailing arrow (the gap between them otherwise isn't).
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: InputDecorator(
@@ -97,9 +94,7 @@ class _TapToPickField extends StatelessWidget {
         child: SizedBox(
           height: AppDimens.tappableFieldHeight,
           child: Padding(
-            // Measured empirically against AppTextField (this Row/Text/Image
-            // layout has a few px of its own inherent offset, so the values
-            // here aren't the raw target insets).
+            // Tuned by eye to line up with AppTextField's text.
             padding: const EdgeInsets.only(left: 10, right: 10),
             child: Row(
               children: [

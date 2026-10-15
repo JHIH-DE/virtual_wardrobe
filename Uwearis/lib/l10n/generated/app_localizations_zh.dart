@@ -1042,10 +1042,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get purchaseDateLabel => '購買日期（選填）';
 
   @override
-  String get notUsedInOutfitsYet => '尚未用於任何穿搭';
+  String get usedInOutfits => '已用於穿搭';
 
   @override
-  String get usedInOutfits => '已用於穿搭';
+  String usedInOutfitsCount(int count) {
+    return '$count 套穿搭';
+  }
 
   @override
   String get selectAColor => '選擇顏色';
@@ -1327,6 +1329,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewDetails => '查看詳情';
+
+  @override
+  String get viewFullOutfit => '查看完整穿搭';
 
   @override
   String get gettingStartedSectionLabel => '開始使用';
@@ -2531,10 +2536,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get purchaseDateLabel => '購買日期（選填）';
 
   @override
-  String get notUsedInOutfitsYet => '尚未用於任何穿搭';
+  String get usedInOutfits => '已用於穿搭';
 
   @override
-  String get usedInOutfits => '已用於穿搭';
+  String usedInOutfitsCount(int count) {
+    return '$count 套穿搭';
+  }
 
   @override
   String get selectAColor => '選擇顏色';
@@ -2816,6 +2823,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get viewDetails => '查看詳情';
+
+  @override
+  String get viewFullOutfit => '查看完整穿搭';
 
   @override
   String get gettingStartedSectionLabel => '開始使用';

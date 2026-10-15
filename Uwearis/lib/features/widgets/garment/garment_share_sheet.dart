@@ -6,8 +6,6 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../common/overlays/share_image_sheet.dart';
 import 'garment_share_card.dart';
 
-/// Opens the share sheet for [garment] — assembles the card's category /
-/// detail lines and renders a [GarmentShareCard].
 Future<void> showGarmentShareSheet(
   BuildContext context, {
   required Garment garment,

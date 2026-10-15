@@ -17,8 +17,7 @@ import '../helpers/widget_harness.dart';
 
 final _l10n = AppLocalizationsEn();
 
-/// A fully filled-in profile (name/gender/birthday/location + height/weight
-/// in metric) — mirrors my_virtual_model_page_test.dart's own fake.
+/// A fully filled-in profile, height/weight in metric.
 class _FakeProfileNotifier extends ProfileNotifier {
   _FakeProfileNotifier({ProfileData? data}) : data = data ?? _complete;
 
@@ -99,7 +98,7 @@ void main() {
     await tester.pump();
   }
 
-  /// Pushes AccountPage over a placeholder home so popping is observable.
+  /// Over a placeholder home so popping is observable.
   Future<void> pushAccount(WidgetTester tester) async {
     useTallSurface(tester);
     await pumpApp(

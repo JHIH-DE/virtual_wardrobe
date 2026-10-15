@@ -7,9 +7,8 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/utils/debug_log.dart';
 import '../../l10n/generated/app_localizations.dart';
 
-/// The camera cutout's two shapes: a 1:1 square or a 2:3 (portrait) frame.
-/// Purely a framing guide — the capture itself is always full-frame and gets
-/// cropped later in the image editor.
+/// The cutout shape. Only a framing guide — the capture is always
+/// full-frame and gets cropped later in the image editor.
 enum CameraFrameRatio {
   square(1, 1, '1:1'),
   portrait(2, 3, '2:3');
@@ -24,9 +23,6 @@ enum CameraFrameRatio {
 }
 
 class CameraCapturePage extends StatefulWidget {
-  /// Which cutout shape the framing guide uses. Portrait callers (e.g. the
-  /// My Virtual Model's full-body / face photos) pass
-  /// [CameraFrameRatio.portrait]; garment shots keep the [square] default.
   final CameraFrameRatio initialRatio;
 
   const CameraCapturePage({
@@ -43,8 +39,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   List<CameraDescription> _cameras = const [];
   int _cameraIndex = 0;
   bool _isInitialized = false;
-  // Re-entrancy guard for _switchCamera — a second tap mid-swap would race
-  // two CameraControllers onto the same texture.
+  // A second tap mid-swap would race two CameraControllers onto one texture.
   bool _switching = false;
 
   @override
@@ -59,14 +54,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     await _startController(_cameras[_cameraIndex]);
   }
 
-  /// Spins up a controller for [description]. Shared by the initial open and
-  /// [_switchCamera].
   Future<void> _startController(CameraDescription description) async {
-    // Tear the old capture session down *before* creating the new one: on
-    // iOS, AVFoundation won't run two sessions at once, so initialising the
-    // new controller while the old one is still alive leaves the preview
-    // black. (Android tolerates the opposite order; disposing first is safe
-    // on both.)
+    // Dispose first: iOS AVFoundation won't run two sessions at once, and
+    // the new preview stays black.
     final previous = _controller;
     _controller = null;
     await previous?.dispose();
@@ -94,8 +84,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     });
   }
 
-  /// Cycles to the next available camera (front ↔ back). No-op on devices
-  /// with a single camera.
   Future<void> _switchCamera() async {
     if (_switching || _cameras.length < 2) return;
     _switching = true;
@@ -140,9 +128,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
 
     final size = MediaQuery.of(context).size;
-    // Cutout: up to 85% of the screen width, but never so tall it crowds the
-    // header or bottom controls — clamp the height and back-solve the width
-    // so the caller's chosen ratio always holds.
+    // Clamp the height and back-solve the width so the ratio always holds.
     final ratio = widget.initialRatio;
     final maxBoxW = size.width * 0.85;
     final maxBoxH = size.height * 0.60;
@@ -172,7 +158,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     return Positioned.fill(child: CameraPreview(_controller!));
   }
 
-  // Dark mask with the cutout knocked out of it.
   Widget _buildMaskWithHole(Size box) {
     return ColorFiltered(
       colorFilter: ColorFilter.mode(AppColors.scrimStrong, BlendMode.srcOut),
@@ -199,8 +184,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     );
   }
 
-  // Corner brackets (no full edge) + center crosshair — a viewfinder look
-  // rather than a boxed-in frame.
   Widget _buildHighlightBorder(Size box) {
     return Center(
       child: SizedBox(
@@ -219,8 +202,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
                 ),
               ),
             ),
-            // Center crosshair — a chunky "+" so it reads as a clear
-            // alignment marker over the busy camera feed.
             _crosshairBar(width: 48, height: 5),
             _crosshairBar(width: 5, height: 48),
           ],
@@ -247,12 +228,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       right: 0,
       child: Container(
         color: AppColors.scrimMedium,
-        // SafeArea for the status-bar inset + a toolbarHeight row = the exact
-        // on-screen footprint of the real AppToolBar. Back arrow, title and
-        // switch-camera action are sized to match it too (this immersive
-        // header is deliberately not an AppToolBar, but reads as one):
-        // toolbarHeight hit boxes, a backArrowIconSize / toolbarActionIconSize
-        // (26) glyph each side, a bold20 title — only tinted white here.
+        // Deliberately not an AppToolBar (immersive, white-tinted), but
+        // sized to match one.
         child: SafeArea(
           bottom: false,
           child: SizedBox(
@@ -293,9 +270,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     );
   }
 
-  /// Front ↔ back camera toggle in the header's trailing slot — matches
-  /// AppToolBar's action-icon sizing. Only shown when the device has a
-  /// second camera.
   Widget _buildSwitchCameraAction() {
     return Semantics(
       button: true,
@@ -323,9 +297,6 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       right: 0,
       child: Center(
         child: GestureDetector(
-          // opaque so the whole 84px button responds — the ring/disc
-          // Containers use `decoration`, not `color`, so they absorb nothing
-          // on their own.
           behavior: HitTestBehavior.opaque,
           onTap: _takePicture,
           child: Container(
@@ -352,9 +323,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 }
 
-/// Draws only the four rounded corner brackets of a viewfinder frame — a
-/// short arc plus two straight stubs at each corner, nothing along the
-/// edges. The arc radius matches the cutout's own [BorderRadius].
+/// The four rounded corner brackets of a viewfinder frame; the arc radius
+/// matches the cutout's.
 class _ViewfinderCornersPainter extends CustomPainter {
   const _ViewfinderCornersPainter({
     required this.color,
@@ -366,8 +336,7 @@ class _ViewfinderCornersPainter extends CustomPainter {
   final Color color;
   final double cornerRadius;
 
-  /// How far each straight stub runs along the edge from where the corner
-  /// arc ends.
+  /// Straight-stub length past the end of each corner arc.
   final double armLength;
   final double strokeWidth;
 
@@ -380,10 +349,8 @@ class _ViewfinderCornersPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..color = color;
 
-    // Sit the brackets on the *outer* side of the cutout: push the geometry
-    // out by half the stroke and grow the arc radius to match, so the arc
-    // stays concentric with the cutout's own rounded corner and the whole
-    // thick line lands just outside the clear area.
+    // Offset by half the stroke so the thick line sits just outside the
+    // cutout, concentric with its rounded corner.
     final o = strokeWidth / 2;
     final l = -o;
     final t = -o;

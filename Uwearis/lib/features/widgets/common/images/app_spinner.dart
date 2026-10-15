@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// Lightweight, generic loading indicator for brief network reads (list
-/// fetches, page loads under a few seconds). Distinct from the branded
-/// "blooming flower" animation reserved for [LoadingOverlay]'s
-/// long-running AI/generation waits — using that everywhere made short
-/// reads feel slower than they actually are.
+/// Loading indicator for brief reads. Long AI waits use `LoadingOverlay`
+/// instead, which makes short waits feel slower.
 class AppSpinner extends StatelessWidget {
   final double size;
   final double strokeWidth;

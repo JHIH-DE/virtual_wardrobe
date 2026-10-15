@@ -1,32 +1,25 @@
 import 'user_tier.dart';
 
-/// The signed-in user's profile (`GET /users/me`, `PATCH /users/me` —
-/// `ProfileService.getMyProfile` / `updateMyProfile`). Only the fields the
-/// app actually reads back are modelled here; write-only fields
-/// (`temperature_offset_c`, `locale`) stay as plain
-/// arguments on `updateMyProfile` since nothing consumes them from the
-/// response. Read-only, never patched in place — no `copyWith`.
+/// The signed-in user's profile (`/users/me`). Write-only fields
+/// (`temperature_offset_c`, `locale`) are only `updateMyProfile` arguments.
 class UserProfile {
   final String name;
   final String? gender;
   final String? location;
   final String? email;
 
-  /// `avatar_object_url` — a signed GCS URL, may be null before the user
-  /// sets an avatar.
+  /// Signed GCS URL; null until the user sets an avatar.
   final String? avatarObjectUrl;
 
-  /// Parsed from the wire's `birthday` (`yyyy-MM-dd`); null if absent or
-  /// unparseable.
+  /// The wire's `birthday` (`yyyy-MM-dd`); null if absent or unparseable.
   final DateTime? birthDate;
 
-  /// `height` / `weight` — the backend stores these in metric; the unit the
-  /// user edits in is [unitSystem].
+  /// Always metric; [unitSystem] is only the user's display unit.
   final double? height;
   final double? weight;
   final String? unitSystem;
 
-  /// `tier` — read-only on the backend, defaults to bronze (`tier_3`).
+  /// Read-only on the backend; defaults to bronze.
   final UserTier tier;
 
   const UserProfile({

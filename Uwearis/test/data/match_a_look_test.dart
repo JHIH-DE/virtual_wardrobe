@@ -22,9 +22,15 @@ void main() {
 
   group('MatchStatusX.fromApiValue', () {
     test('parses every known status', () {
-      expect(MatchStatusX.fromApiValue('strong_match'), MatchStatus.strongMatch);
+      expect(
+        MatchStatusX.fromApiValue('strong_match'),
+        MatchStatus.strongMatch,
+      );
       expect(MatchStatusX.fromApiValue('close_match'), MatchStatus.closeMatch);
-      expect(MatchStatusX.fromApiValue('no_close_match'), MatchStatus.noCloseMatch);
+      expect(
+        MatchStatusX.fromApiValue('no_close_match'),
+        MatchStatus.noCloseMatch,
+      );
     });
 
     test('falls back to notInReference for an unrecognized/missing value', () {
@@ -46,8 +52,7 @@ void main() {
       expect(alt.rank, 1);
     });
 
-    // A malformed entry must default rather than throw — one bad alternative
-    // would otherwise blow up the whole match-result parse.
+    // One bad alternative mustn't fail the whole match-result parse.
     test('defaults to 0 when garment_id / rank are missing', () {
       final alt = RoleAlternative.fromJson({});
       expect(alt.garmentId, 0);
@@ -101,7 +106,12 @@ void main() {
       expect(none.matched, isFalse);
       expect(absent.matched, isFalse);
       // Sanity check the fixtures actually exercise distinct statuses.
-      expect({statusOf(strong), statusOf(close), statusOf(none), statusOf(absent)}, hasLength(4));
+      expect({
+        statusOf(strong),
+        statusOf(close),
+        statusOf(none),
+        statusOf(absent),
+      }, hasLength(4));
     });
   });
 
@@ -130,10 +140,18 @@ void main() {
       final result = MatchALookResult.fromJson({
         'reference_id': 100,
         'roles': [
-          {'role': 'top', 'match_status': 'strong_match', 'selected_garment_id': 1},
+          {
+            'role': 'top',
+            'match_status': 'strong_match',
+            'selected_garment_id': 1,
+          },
           {'role': 'bottom', 'match_status': 'no_close_match'},
         ],
-        'summary': {'matched_roles': 1, 'unmatched_roles': 1, 'missing_required_roles': []},
+        'summary': {
+          'matched_roles': 1,
+          'unmatched_roles': 1,
+          'missing_required_roles': [],
+        },
         'garments': [
           {'id': 1, 'name': 'White Tee', 'category': 'Top'},
           {'id': 2, 'name': 'Blue Jeans', 'category': 'Bottom'},

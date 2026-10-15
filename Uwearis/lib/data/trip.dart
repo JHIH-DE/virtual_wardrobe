@@ -83,11 +83,8 @@ class Trip {
       })
       .join(' • ');
 
-  /// Every date actually covered by some leg — skips any gap between legs
-  /// in a multi-leg trip that [dateRange]'s min-max span would otherwise
-  /// include. Used when sending `days` to the backend (e.g. after a legs
-  /// edit changes which dates the trip covers), since it rejects `days`
-  /// entries for dates no leg covers.
+  /// Dates covered by some leg, skipping gaps between legs — the backend
+  /// rejects `days` entries for uncovered dates.
   List<DateTime> get coveredDates {
     final totalDays = dateRange.duration.inDays + 1;
     return List.generate(
@@ -150,8 +147,7 @@ class Trip {
   }
 }
 
-/// Stable trip-activity identifiers, matching the snake_case values sent to
-/// the API — a trip can have any number of these at once.
+/// A trip can have any number of these.
 enum TripActivity { outdoor, business, formalOccasion, waterActivities }
 
 extension TripActivityApi on TripActivity {

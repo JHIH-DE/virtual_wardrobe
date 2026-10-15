@@ -12,9 +12,8 @@ import '../common/buttons/accent_pill_button.dart';
 import '../common/cards/card_corner_badge.dart';
 import 'trip_leg_date_range_picker.dart';
 
-/// Lets the user build up the list of legs (location + date range) for a
-/// trip. Reads/writes through [legsNotifier] so the dialog that hosts this
-/// widget can read the latest value when its own Save button is pressed.
+/// Edits a trip's legs through [legsNotifier], which the hosting dialog
+/// reads on submit.
 class TripLegsEditor extends StatefulWidget {
   final ValueNotifier<List<TripLeg>> legsNotifier;
 
@@ -79,11 +78,6 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Fixed to the full available width regardless of content — otherwise
-    // this Column shrink-wraps to its widest child, and the leg rows (each
-    // full-width via their own Expanded content) would end up narrower than
-    // the Center below actually needs to center within. Same fix regardless
-    // of which dialog embeds this (see trip_create_dialog.dart, trip_card.dart).
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -94,9 +88,6 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
             if (i != 0) const SizedBox(height: 12),
             _buildLegRow(i),
           ],
-          // Only when a leg row precedes it — with none yet, this button is
-          // the section's only content and should sit at LabeledField's
-          // plain 8px gap instead of an extra 12px on top of it.
           if (_legs.isNotEmpty) const SizedBox(height: 12),
           Center(
             child: AccentPillButton(
@@ -144,7 +135,6 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
               ],
             ),
           ),
-          // List-row action-badge family — see CLAUDE.md's "Corner badges".
           CardCornerBadge(
             icon: Icons.close,
             backgroundColor: AppColors.placeholderSurface,

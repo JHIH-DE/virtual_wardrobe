@@ -24,46 +24,25 @@ import '../widgets/common/overlays/error_dialog.dart';
 import 'camera_capture_page.dart';
 
 class ImageEditorPage extends StatefulWidget {
-  /// App bar title — describes which photo is being edited (e.g. "Body
-  /// Reference", "Profile Photo"), since this page is shared across several
-  /// unrelated photo flows and has no other on-screen label for that.
+  /// Which photo is being edited (e.g. "Profile Photo") — the page has no
+  /// other label for it.
   final String title;
 
   final String? initialPath;
 
-  /// width/height of the crop preview and the final exported image.
-  /// Garment photos default to 1:1 (square product shots); portrait
-  /// reference photos (avatar, AI Model's face/body) pass 3/4 instead.
+  /// Width/height of the crop preview and the exported image.
   final double aspectRatio;
 
-  /// Which cutout shape the "Retake" camera opens with. Follows the same
-  /// split as [aspectRatio] — portrait reference-photo callers pass
-  /// [CameraFrameRatio.portrait], garment callers keep the square default.
+  /// Cutout shape the Retake camera opens with.
   final CameraFrameRatio cameraFrameRatio;
 
-  /// Confirm stays unavailable until the user has actually changed
-  /// something (swapped the source photo via Retake/Album, or adjusted the
-  /// pinch-zoom/pan framing) — set this for callers that reopen an
-  /// *already-saved* photo to tweak it (avatar/body/face reference photos),
-  /// where confirming with zero changes would just re-upload an identical
-  /// copy for no reason. Leave false (default) for a
-  /// freshly-picked photo with no "unmodified" baseline to compare against
-  /// (the New Clothing / Match a Look flows) — there, confirming as-is with
-  /// the default framing is the normal, expected action.
+  /// Keeps Confirm unavailable until the photo or framing changes — for
+  /// reopening an already-saved photo, where an unchanged confirm would just
+  /// re-upload an identical copy.
   final bool requireChangeToConfirm;
 
-  /// Called at most once, only when [initialPath] is a URL and fails to
-  /// precache/load — mirrors [RefreshableNetworkImage]'s "self-heal a
-  /// stale signed URL" contract. Return a fresh URL to retry with, or
-  /// null/empty to give up. Only relevant to a caller that hands this page
-  /// a signed URL directly (account_page.dart's avatar flow does) rather
-  /// than pre-downloading it to a local file first — a caller that
-  /// pre-downloads (my_virtual_model_page.dart's face/body reference photos,
-  /// via `downloadReferencePhotoOriginal`) always passes a local path here
-  /// instead, so this branch never runs for it; that pre-download is what
-  /// keeps the refreshed URL in sync with the page's own longer-lived state
-  /// (e.g. `profileProvider`) instead of it living only inside whichever
-  /// widget happened to trigger the refresh.
+  /// Called at most once when [initialPath] is a URL that fails to load
+  /// (likely a stale signed URL). Return a fresh URL, or null/empty to give up.
   final Future<String?> Function()? onRefreshUrl;
 
   const ImageEditorPage({
@@ -85,36 +64,16 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   final TransformationController _transformationController =
       TransformationController();
   final GlobalKey _previewBoundaryKey = GlobalKey();
-  // Synchronous re-entrancy guard covering the whole confirm flow — set
-  // before _captureFramedImage()'s await, so a double-tap during that
-  // framing capture can't fire two Navigator.pop()s. See CLAUDE.md
-  // "Guarding costly / mutating actions against double-invocation".
   bool _confirming = false;
-  // True once Retake/Album has swapped in a different photo than
-  // widget.initialPath — the other half of widget.requireChangeToConfirm's
-  // "did anything actually change" check (see _hasChanges).
   bool _sourceReplaced = false;
-  // True once the pinch-zoom/pan framing differs from identity — the other
-  // half of widget.requireChangeToConfirm's "did anything actually change"
-  // check (see _hasChanges). Tracked via a listener since InteractiveViewer
-  // updates _transformationController directly, outside any handler here.
+  // Tracked via a listener: InteractiveViewer updates the controller
+  // directly, outside any handler here.
   bool _transformChanged = false;
 
-  // True only while the user's fingers are actually on the InteractiveViewer
-  // (pinch/pan in progress) — gates the rule-of-thirds grid (see
-  // _buildImagePreview) so it only appears as a framing aid during zoom
-  // mode, not sitting on the photo the rest of the time.
+  // Pinch/pan in progress — shows the rule-of-thirds grid.
   bool _interacting = false;
 
-  // True once _currentPath's bytes are decoded enough to actually paint the
-  // preview — gates Confirm (see _canConfirm) purely so the user can't tap
-  // it while still staring at the loading spinner over a photo they
-  // haven't actually seen framed yet. _captureFramedImage itself now
-  // re-decodes the source fresh and doesn't depend on this — see its own
-  // doc for why (it used to, via a screenshot of this preview, which is
-  // also what this flag's staleness protection below was originally
-  // guarding). Reset to false whenever _currentPath changes (initState,
-  // Retake, Album).
+  // Gates Confirm so it can't be tapped before the user has seen the photo.
   bool _imageReady = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -135,9 +94,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     await _tryPrecache(path, allowRefresh: true);
   }
 
-  /// [allowRefresh] caps the self-heal below to one attempt per call to
-  /// [_precacheCurrentImage] — the retry itself passes false, so a
-  /// [widget.onRefreshUrl] that keeps handing back a still-broken URL can't
+  /// [allowRefresh] caps the URL refresh to one attempt, so an
+  /// [ImageEditorPage.onRefreshUrl] that keeps returning a broken URL can't
   /// loop forever.
   Future<void> _tryPrecache(String path, {required bool allowRefresh}) async {
     final isHttp = path.startsWith('http');
@@ -147,14 +105,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     try {
       await precacheImage(provider, context);
     } catch (e) {
-      // A genuinely broken file still shows via _buildImageContent's own
-      // error state — this is only about decode-ahead timing, not
-      // validating the file, so a failure here isn't itself an error case.
+      // Not an error case by itself — a broken file still shows
+      // _buildImageContent's error state.
       debugLog('Failed to precache image: $e');
-      // Likely a stale signed URL: whatever screen linked here already
-      // self-heals the same URL via RefreshableNetworkImage, but that
-      // refresh lives in that widget's own state and never reaches
-      // widget.initialPath — see onRefreshUrl's own doc.
       if (isHttp &&
           allowRefresh &&
           widget.onRefreshUrl != null &&
@@ -168,10 +121,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           return;
         } catch (e2) {
           debugLog('Failed to refresh image URL: $e2');
-          // The underlying reference photo is genuinely gone (not just a
-          // stale signed URL) — surface this instead of silently leaving
-          // the user staring at _buildImageContent's broken-image icon with
-          // no explanation of what to do next (retake/pick a new photo).
+          // The photo itself is gone, not just a stale URL — explain rather
+          // than leave a bare broken-image icon.
           if (mounted) {
             showErrorDialog(
               context,
@@ -194,8 +145,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         }
       }
     }
-    // path == _currentPath: a Retake/Album swap mid-precache must not let
-    // this stale completion mark the *new* current path ready.
+    // A Retake/Album swap mid-precache must not mark the new path ready.
     if (mounted && path == _currentPath) setState(() => _imageReady = true);
   }
 
@@ -213,8 +163,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     }
   }
 
-  /// Whether [widget.requireChangeToConfirm] should currently block confirm
-  /// — the source photo was swapped, or the crop framing was adjusted.
   bool get _hasChanges => _sourceReplaced || _transformChanged;
 
   void _resetImage() {
@@ -257,24 +205,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     }
   }
 
-  /// Crops exactly what's currently visible in the crop preview — i.e.
-  /// respects whatever pinch-zoom/pan framing the user applied via
-  /// [_transformationController] — directly out of the *original* source
-  /// bytes, not a screenshot of the on-screen preview.
-  ///
-  /// An earlier version used `RenderRepaintBoundary.toImage()` to rasterize
-  /// the live preview widget instead. That's simpler, but reads back
-  /// whatever the GPU has actually composited for the *on-screen* preview
-  /// box — for a source photo much higher-resolution than that box (a
-  /// shared/downloaded product shot easily 1000px+ taller than the
-  /// preview), minifying it down for display is lossy in a way that shows
-  /// up as visible moiré/artifacting on fine repeating patterns (e.g.
-  /// plaid) in the *saved* photo, not just the live preview — and doesn't
-  /// go away by waiting longer or asking for a higher-quality on-screen
-  /// filter (tried both; see git history). Reading the original bytes and
-  /// cropping+resampling them directly, once, off-screen, sidesteps both:
-  /// there's no render-timing race to lose to, and the resample only ever
-  /// has to happen once at whatever quality we ask for, not every frame.
+  /// Crops the user's current framing out of the original source bytes.
+  /// Not a screenshot of the preview: minifying a large photo for display
+  /// produces moiré on fine patterns (e.g. plaid) in the saved image.
   Future<String> _captureFramedImage() async {
     final path = _currentPath!;
     final Uint8List sourceBytes = path.startsWith('http')
@@ -282,35 +215,20 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               .bodyBytes
         : await File(path).readAsBytes();
 
-    // Decoded, cropped, and resized entirely off the GPU, via package:image
-    // (plain CPU pixel buffers) rather than dart:ui's Canvas/
-    // PictureRecorder/Image.toImage(). An earlier version used the latter,
-    // which — despite not touching the live preview widget at all — still
-    // ultimately rasterizes through the engine's real GPU pipeline
-    // (Impeller) on a real device, the same class of "read back before the
-    // raster thread actually finished" race this whole rewrite was meant
-    // to close; a plain `flutter test` run can't catch that gap since its
-    // software Skia backend never races. package:image never touches a
-    // GPU at all, so there's no such window to lose to.
-    // package:image has no HEIF/HEIC decoder — iPhone's default camera
-    // format since iOS 11, which Android never transcodes when a
-    // shared/synced photo keeps its original container, so this is a real
-    // gallery pick, not just an edge case. Fall back to dart:ui's own
-    // codec, which defers to the OS's native image decoder (both Android
-    // and iOS can decode HEIF at the platform level) before giving up.
+    // package:image (CPU only): dart:ui's Canvas/toImage rasterizes on the
+    // GPU and can read back before the raster thread finishes on a device
+    // (flutter test's software backend never shows it).
+    // package:image can't decode HEIF/HEIC, so fall back to the platform
+    // codec, which can.
     final decoded =
         img.decodeImage(sourceBytes) ??
         await _decodeViaPlatformCodec(sourceBytes);
     if (decoded == null) {
       throw StateError('Could not decode image at $path');
     }
-    // _handleConfirmed already re-checks mounted with whatever this
-    // returns before touching it — an empty path here is never read.
+    // _handleConfirmed re-checks mounted, so this empty path is never read.
     if (!mounted) return '';
 
-    // The preview box's own on-screen size — needed to reverse the same
-    // BoxFit.contain fit + InteractiveViewer pan/zoom the box itself uses,
-    // so the crop matches what the user actually framed.
     final boxSize =
         (_previewBoundaryKey.currentContext!.findRenderObject() as RenderBox)
             .size;
@@ -330,9 +248,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       width: cropRect.width.round(),
       height: cropRect.height.round(),
     );
-    // Only actually resizes when outputSize is smaller (computeOutputSize
-    // never upscales) — copyResize with the crop's own size would be a
-    // needless full re-sample of an already-correctly-sized image.
     final resized = outputSize.width.round() == cropped.width
         ? cropped
         : img.copyResize(
@@ -348,11 +263,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     return outPath;
   }
 
-  /// Fallback for [_captureFramedImage] when `package:image` can't decode
-  /// the source (see that call site's comment) — decodes via dart:ui's own
-  /// codec instead, then hands the raw pixels back as a `package:image`
-  /// [img.Image] so the crop/resize/encode pipeline above stays unchanged.
-  /// Returns null on failure, same as `img.decodeImage`.
+  /// Decodes via the platform codec into an [img.Image]; null on failure,
+  /// like `img.decodeImage`.
   Future<img.Image?> _decodeViaPlatformCodec(Uint8List bytes) async {
     ui.Codec codec;
     try {
@@ -388,11 +300,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       if (!mounted) return;
       Navigator.of(context).pop(ImageEditResult(imagePath: processPath));
     } catch (e) {
-      // Reachable if _captureFramedImage's decode fails even after the
-      // platform-codec fallback (a genuinely corrupt file, or a format
-      // neither decoder supports) — was an uncaught StateError before this,
-      // crashing the whole app instead of letting the user just pick a
-      // different photo.
+      // E.g. a file neither decoder can read — let the user pick another.
       if (!mounted) return;
       debugLog('_handleConfirmed: could not process image: $e');
       showErrorDialog(context, message: _l10n.photoProcessingFailed);
@@ -475,8 +383,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-              // Inside the clip, so capturing this boundary doesn't bake in
-              // the rounded corners — just the framed photo content.
+              // Keyed only to read the preview box's size for the crop.
               child: RepaintBoundary(
                 key: _previewBoundaryKey,
                 child: _buildImageContent(),
@@ -486,20 +393,11 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         ),
         if (_hasImage && _imageReady && _interacting)
           Positioned.fill(
-            // Rule-of-thirds framing guide, fixed to the preview box rather
-            // than the pinch-zoomed image underneath — outside the
-            // RepaintBoundary above, so it never ends up baked into the
-            // captured/cropped photo. Only shown while actively
-            // pinching/panning (see _interacting), like a camera's zoom grid.
-            // The dark scrim behind the grid lines is what's being framed —
-            // dimming it makes the white lines read clearly against any
-            // photo, bright or dark.
+            // The scrim keeps the white grid lines readable on any photo.
             child: IgnorePointer(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppDimens.cardRadius),
                 child: const Stack(
-                  // Both layers need to fill the framed box exactly — a
-                  // plain Stack would shrink-wrap the sizeless CustomPaint.
                   fit: StackFit.expand,
                   children: [
                     ColoredBox(color: AppColors.scrimMedium),
@@ -511,10 +409,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           ),
         if (_hasImage && !_imageReady)
           Positioned.fill(
-            // Opaque, not just an overlaid spinner — masks the image
-            // underneath until precache confirms it's fully decoded, so the
-            // user (and _captureFramedImage, once Confirm unlocks) never
-            // sees/captures a still-loading frame.
+            // Opaque: hides a half-decoded frame until precache finishes.
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppDimens.cardRadius),
               child: ColoredBox(
@@ -558,8 +453,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       top: 16,
       right: 16,
       child: GestureDetector(
-        // opaque so the whole pill (padding + the gap between label and
-        // icon) is tappable, not just the glyphs.
         behavior: HitTestBehavior.opaque,
         onTap: _resetImage,
         child: Container(
@@ -627,12 +520,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 }
 
-/// Static rule-of-thirds crop-guide grid drawn over the preview box —
-/// evenly-spaced vertical and horizontal lines, purely a framing aid
-/// (never baked into the captured photo — see its call site). Always 3
-/// columns; the row count is derived from the box's own aspect ratio so
-/// every cell stays square (3×3 for a square preview, 3×4 for a 3:4
-/// portrait one) instead of stretching into rectangles.
+/// Rule-of-thirds grid: 3 columns, rows derived from the aspect ratio so
+/// cells stay square (3×3 for 1:1, 3×4 for 3:4).
 class _RuleOfThirdsGridPainter extends CustomPainter {
   const _RuleOfThirdsGridPainter();
 
@@ -658,14 +547,9 @@ class _RuleOfThirdsGridPainter extends CustomPainter {
   bool shouldRepaint(_RuleOfThirdsGridPainter oldDelegate) => false;
 }
 
-/// The source-image pixel rect [_ImageEditorPageState._captureFramedImage]
-/// crops — a pure function (no BuildContext/State) so this geometry is
-/// unit-testable on its own, since getting it wrong is easy and silent
-/// (the app would just save the wrong region, not crash). Reverses, in
-/// order: [transform] ([InteractiveViewer]'s own — it maps its child, which
-/// fills [boxSize], to the viewport, also [boxSize]), then the
-/// [BoxFit.contain] fit of [imageSize] within that same [boxSize] the
-/// preview's `Image` widget applies. Clamped to the image's own bounds.
+/// Source-image pixel rect for the visible preview: reverses the
+/// [InteractiveViewer] [transform], then the [BoxFit.contain] fit of
+/// [imageSize] in [boxSize]. Clamped to the image bounds.
 @visibleForTesting
 Rect computeCropRect({
   required Size boxSize,
@@ -696,10 +580,7 @@ Rect computeCropRect({
   ).intersect(Rect.fromLTWH(0, 0, imageSize.width, imageSize.height));
 }
 
-/// Scales [cropSize] down (never up) so neither side exceeds
-/// [maxDimension] — a barely-zoomed crop of a large shared photo can still
-/// be close to its full source resolution, and nothing downstream
-/// (display, AI analysis) needs more than this.
+/// Scales [cropSize] down (never up) so neither side exceeds [maxDimension].
 @visibleForTesting
 Size computeOutputSize(Size cropSize, {double maxDimension = 1600}) {
   final scale = math.min(

@@ -4,11 +4,8 @@ import '../../data/packing_analysis.dart';
 import '../services/trip_service.dart';
 import 'retry_policy.dart';
 
-/// A trip's packing analysis (`GET /{trip_id}/suggestion`), keyed by trip id.
-/// Shared by Trip Details' packing-advice card and the suitcase garment
-/// picker two screens deeper — the picker no longer re-fetches what the
-/// details page already has. Force a re-fetch with
-/// `ref.invalidate(tripSuggestionProvider(tripId))`.
+/// A trip's packing analysis, shared by Trip Details and the suitcase
+/// garment picker so the picker doesn't re-fetch.
 final tripSuggestionProvider = FutureProvider.family<PackingAnalysis, int>(
   (ref, tripId) => TripService().getTripSuggestion(tripId),
   retry: appRetryPolicy,

@@ -4,25 +4,14 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// Compact outlined pill — transparent fill, fully-rounded [AppColors.accent]
-/// border with a matching leading icon and label. The outlined-accent
-/// sibling of [PillButton] (which is the filled white-with-shadow style).
+/// Outlined accent pill for secondary call-outs; the outlined sibling of
+/// [PillButton].
 ///
-/// Used for lightweight, secondary call-outs that sit inside a toolbar or
-/// beside a section header (Home's "Explore", Add Outfit's "Complete with
-/// AI").
+/// The tap target is padded to [AppDimens.minTouchTarget] beyond the
+/// 28px (toolbar: 32px) pill, since several call sites are AI triggers.
 ///
-/// The visible pill stays 28px tall ([AccentPillButtonVariant.toolbar]: 32,
-/// with a larger icon and label to match the AppToolBar's scale), but the tap target is padded out
-/// (transparently) to [AppDimens.minTouchTarget] so a near-miss above/below
-/// the pill still registers — several call sites are AI-render triggers.
-///
-/// When [enabled] is false the whole pill greys out and taps are ignored,
-/// and [disabledMessage] (if any) shows centered above it explaining why —
-/// e.g. an AI "Generate …" trigger that's missing an input. Inline only:
-/// the message makes the button taller than a toolbar slot allows.
-/// [onPressed] may be null while a feature is still visual-only — the pill
-/// then looks active but does nothing.
+/// [disabledMessage] shows above a disabled pill; inline variant only, as
+/// it's taller than a toolbar slot.
 class AccentPillButton extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -47,9 +36,6 @@ class AccentPillButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = enabled ? AppColors.accent : AppColors.hintText;
     final onToolbar = variant == AccentPillButtonVariant.toolbar;
-    // A TextButton, so the press feedback is the same Material state-layer
-    // overlay as AppDialog's "Cancel" / "Don't Save" — a soft tint on tap,
-    // not an InkWell ripple.
     final pill = TextButton(
       onPressed: enabled ? onPressed : null,
       style: TextButton.styleFrom(
@@ -81,18 +67,13 @@ class AccentPillButton extends StatelessWidget {
     final button = Opacity(
       opacity: enabled ? 1 : 0.6,
       child: GestureDetector(
-        // Catches near-misses in the transparent band above/below the
-        // pill; the inner InkWell still owns direct hits and the ripple, and
-        // the gesture arena resolves a tap on the pill to it, not to this.
+        // Near-misses around the pill; direct hits still go to the button.
         behavior: HitTestBehavior.opaque,
         onTap: enabled ? onPressed : null,
         child: ConstrainedBox(
           constraints: const BoxConstraints(
             minHeight: AppDimens.minTouchTarget,
           ),
-          // widthFactor keeps a Row/Wrap seeing the pill's real width (so
-          // surrounding spacing is unchanged); the Center only grows
-          // vertically to fill the min-height band.
           child: Center(widthFactor: 1, child: pill),
         ),
       ),

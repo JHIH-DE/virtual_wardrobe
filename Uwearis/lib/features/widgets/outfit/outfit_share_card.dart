@@ -4,14 +4,8 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../common/cards/share_card_scaffold.dart';
 
-/// A fixed-size editorial "outfit card" for rasterizing into a shareable
-/// image (see `showOutfitShareSheet`): a large edge-to-edge photo, then the
-/// outfit name, a compact style / season line, a clean strip of garment
-/// thumbnails, and a small Uwearis signature.
-///
-/// Not a page component — rendered inside a `RepaintBoundary` and captured to
-/// PNG at a fixed size, so different outfits always produce the same
-/// dimensions.
+/// Fixed-size outfit card rasterized to a PNG for sharing, so every outfit
+/// produces the same dimensions.
 class OutfitShareCard extends StatelessWidget {
   final ImageProvider image;
   final List<ImageProvider> garmentImages;
@@ -48,8 +42,6 @@ class OutfitShareCard extends StatelessWidget {
     return ShareCardScaffold(
       width: width,
       height: height,
-      // A try-on render is a lifestyle photo — bleed it to the edges,
-      // BoxFit.cover so its own aspect never matters.
       image: Image(
         image: image,
         fit: BoxFit.cover,

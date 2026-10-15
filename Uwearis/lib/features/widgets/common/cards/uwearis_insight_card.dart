@@ -6,11 +6,7 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../section_title.dart';
 
-/// Call-out reserved for Uwearis's AI-generated text output (packing advice,
-/// styling tips, etc.) so users can tell "the AI said this" at a glance: a
-/// soft gradient card, a circular sparkle badge, and an "AI" tag next to
-/// the Uwearis wordmark. [child] is the body content below that header — a
-/// plain [Text], a loading row, a collapsible section, etc.
+/// Reserved for AI-generated text, so users can tell it's from the AI.
 class UwearisInsightCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? margin;

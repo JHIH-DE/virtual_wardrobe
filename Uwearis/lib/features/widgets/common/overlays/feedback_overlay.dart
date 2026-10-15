@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// The app's standard status confirmation — an icon + [message] in a
-/// centered card, shown over whatever page is current and auto-dismissing
-/// itself after [duration]. Meant to be shown on the page the user lands on
-/// after a save flow pops back to it, not on the page being popped (whose
-/// context is gone by the time it would matter).
+/// Auto-dismissing status confirmation. Show it on the page a flow pops back
+/// to, not the page being popped.
 Future<void> showFeedbackOverlay(
   BuildContext context, {
   required String message,
@@ -18,9 +15,7 @@ Future<void> showFeedbackOverlay(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => Center(
-      // Without a Material ancestor, Text falls back to
-      // DefaultTextStyle.fallback()'s debug style — a bright yellow
-      // underline meant to flag exactly this kind of missing ancestor.
+      // Without a Material ancestor, Text gets the yellow-underline debug style.
       child: Material(
         type: MaterialType.transparency,
         child: Container(

@@ -15,11 +15,8 @@ import '../helpers/widget_harness.dart';
 
 final _l10n = AppLocalizationsEn();
 
-/// Throws after a short real delay, not immediately — the page's
-/// AuthExpired listeners only attach inside initState's
-/// addPostFrameCallback (after the first frame); a real network failure
-/// always arrives well after that point, but a provider override that
-/// throws on the very first microtask can race ahead of it.
+/// Throws after a short delay: the page's AuthExpired listeners attach
+/// post-frame, and an immediate throw would race ahead of them.
 class _FailingStyleTasteNotifier extends StyleTasteProfileNotifier {
   @override
   Future<StyleTasteProfile> build() async {
@@ -41,42 +38,29 @@ class _EmptyOutfitsNotifier extends OutfitsNotifier {
 void main() {
   setUp(() {
     setUpFakeAuth();
-    // AuthExpiredHandler.handle's clearSignedInSession() touches
-    // SharedPreferences (GarmentService's closet-analysis cache) — without
-    // this it never resolves in a test binding with no platform channel to
-    // answer it.
+    // clearSignedInSession() touches SharedPreferences, which never
+    // resolves in a test binding without this.
     SharedPreferences.setMockInitialValues({});
   });
 
-  // Regression: styleTasteProfileProvider/styleProfileProvider were only
-  // ever read here via `.watch(...).when(...)`, with no AuthExpired
-  // listener of their own. ErrorStateWidget deliberately renders nothing
-  // for an AuthExpiredException (it expects a listener elsewhere to own the
-  // redirect), so a session expiring while on this page used to just go
-  // blank instead of prompting to log back in.
-  testWidgets(
-    'an AuthExpiredException on styleTasteProfileProvider shows the '
-    'session-expired dialog instead of going blank',
-    (tester) async {
-      await pumpApp(
-        tester,
-        const StyleTastePage(),
-        overrides: [
-          styleTasteProfileProvider.overrideWith(
-            _FailingStyleTasteNotifier.new,
-          ),
-          styleProfileProvider.overrideWith(_EmptyStyleProfileNotifier.new),
-          outfitsProvider.overrideWith(_EmptyOutfitsNotifier.new),
-        ],
-      );
-      await tester.pump();
-      // Real time past the override's 50ms delay, plus
-      // AuthExpiredHandler's own async chain (clearSignedInSession) before
-      // it calls showDialog.
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pumpAndSettle();
+  // ErrorStateWidget renders nothing for AuthExpiredException, so the page
+  // needs its own listener to prompt re-login.
+  testWidgets('an AuthExpiredException on styleTasteProfileProvider shows the '
+      'session-expired dialog instead of going blank', (tester) async {
+    await pumpApp(
+      tester,
+      const StyleTastePage(),
+      overrides: [
+        styleTasteProfileProvider.overrideWith(_FailingStyleTasteNotifier.new),
+        styleProfileProvider.overrideWith(_EmptyStyleProfileNotifier.new),
+        outfitsProvider.overrideWith(_EmptyOutfitsNotifier.new),
+      ],
+    );
+    await tester.pump();
+    // Past the override's delay plus AuthExpiredHandler's async chain.
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
-      expect(find.text(_l10n.sessionExpiredTitle), findsOneWidget);
-    },
-  );
+    expect(find.text(_l10n.sessionExpiredTitle), findsOneWidget);
+  });
 }

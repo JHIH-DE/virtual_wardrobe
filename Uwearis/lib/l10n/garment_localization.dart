@@ -43,10 +43,7 @@ extension GarmentCategoryLocalization on GarmentCategory {
     }
   }
 
-  /// Plural form used when a category is paired with a count, e.g. "15
-  /// Tops" — falls back to the singular [localizedLabel] for categories
-  /// that never actually appear pluralized in that context (Socks,
-  /// Accessory).
+  /// For counts ("15 Tops"). Socks/Accessory have no plural string.
   String pluralLabel(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     switch (this) {

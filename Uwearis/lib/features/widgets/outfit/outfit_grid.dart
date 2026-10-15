@@ -6,9 +6,7 @@ import '../../../data/outfit.dart';
 import '../common/overlays/empty_state_placeholder.dart';
 import 'outfit_card.dart';
 
-/// The pull-to-refresh 2-column [OutfitCard] grid shared by the Outfits tab,
-/// the "used in outfits" list, and the outfit pickers — same delegate, same
-/// empty state, only the refresh callback / tap target / empty copy differ.
+/// Pull-to-refresh 2-column [OutfitCard] grid.
 class OutfitGrid extends StatelessWidget {
   final List<Outfit> outfits;
   final Future<void> Function() onRefresh;
@@ -16,20 +14,14 @@ class OutfitGrid extends StatelessWidget {
   final String emptyMessage;
   final EdgeInsets padding;
 
-  // The full icon+title+action empty-state treatment (see
-  // [EmptyStatePlaceholder]) — all optional and additive. Left unset (as
-  // every caller but the Outfits tab does), the empty state renders exactly
-  // as it always has: a plain centered [emptyMessage].
+  // Optional [EmptyStatePlaceholder] extras; unset shows just [emptyMessage].
   final IconData? emptyIcon;
   final String? emptyTitle;
   final String? emptyActionLabel;
   final IconData emptyActionIcon;
   final VoidCallback? onEmptyAction;
 
-  // Only the Outfits tab (a main tab, whose MainNavBar floats over its
-  // Scaffold.body — see EmptyStatePlaceholder.bottomInset's doc) passes
-  // this; the picker/"used in..." callers leave it at 0 (their own pushed
-  // Scaffold has no such overlay to clear).
+  // Clears the floating MainNavBar on a main tab.
   final double emptyBottomInset;
 
   const OutfitGrid({

@@ -63,10 +63,6 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    // No Material `elevation` here — that casts a diffuse, all-around shadow
-    // that reads as distinctly "Material". A hand-tuned, near-black,
-    // bottom-only shadow instead gives just enough depth for the bar to
-    // read as floating above the page, without a hard dividing line.
     return Container(
       decoration: BoxDecoration(
         color: AppColors.toolbarBackground,
@@ -108,12 +104,8 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
             (showBackButton
                 ? Padding(
                     padding: const EdgeInsets.only(left: ActionDisc.edgeInset),
-                    // As on iOS, the back button holds still while the new
-                    // page slides in under it: both pages' back buttons
-                    // share one hero tag at the same spot, so the flight
-                    // between them doesn't move. A page pushed from one
-                    // without a back button (a main tab) has nothing to fly
-                    // from and slides in with its page as before.
+                    // Shared hero tag keeps the back button still during a
+                    // push, as on iOS.
                     child: Hero(
                       tag: _backButtonHeroTag,
                       transitionOnUserGestures: true,

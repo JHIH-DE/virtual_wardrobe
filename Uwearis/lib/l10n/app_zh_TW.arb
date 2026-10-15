@@ -372,8 +372,8 @@
   "priceOptionalLabel": "價格（選填）",
   "priceHint": "這件衣物的價格是？",
   "purchaseDateLabel": "購買日期（選填）",
-  "notUsedInOutfitsYet": "尚未用於任何穿搭",
   "usedInOutfits": "已用於穿搭",
+  "usedInOutfitsCount": "{count} 套穿搭",
   "selectAColor": "選擇顏色",
   "chooseColorTitle": "選擇顏色",
   "chooseBackgroundTitle": "選擇背景",
@@ -474,6 +474,7 @@
   "latestOutfitTitle": "你的最新穿搭",
   "loadingWeatherEllipsis": "載入天氣中…",
   "viewDetails": "查看詳情",
+  "viewFullOutfit": "查看完整穿搭",
 
   "gettingStartedSectionLabel": "開始使用",
   "gettingStartedWelcomeTitle": "歡迎使用 Uwearis",

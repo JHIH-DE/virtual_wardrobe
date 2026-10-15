@@ -6,10 +6,8 @@ import '../services/outfit_service.dart';
 import 'api_error_text.dart';
 import 'debug_log.dart';
 
-/// `generate`/`regenerate` on the new OutfitGroup + Outfit API are
-/// synchronous (the AI render finishes before the call returns), so unlike
-/// the old job-polling version of this mixin there's no `Timer`/`Completer`
-/// here anymore — a single `await` is enough.
+/// The render finishes before `generate` returns — a single `await`, no
+/// polling.
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   bool isOutfitLoading = false;
   String? tryOnErrorMessage;
@@ -17,9 +15,8 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   int tryOnGroupId = 0;
   int tryOnOutfitId = 0;
 
-  /// Creates a new outfit from [garmentIds] and renders it in one call.
-  /// Pass [groupId] to add this as another version alongside an existing
-  /// outfit instead of starting a fresh group.
+  /// Pass [groupId] to add another version to an existing group instead of
+  /// starting a new one.
   Future<int?> performTryOn(
     List<int> garmentIds, {
     int? groupId,

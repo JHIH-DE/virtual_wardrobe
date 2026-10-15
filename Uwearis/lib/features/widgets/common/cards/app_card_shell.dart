@@ -3,22 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 
-/// Shared white-card chrome — radius, padding, resting shadow — used by
-/// page-level cards across the app (e.g. AI Model's reference/
-/// body-measurements cards, Style Taste's cards) so they read as
-/// one family even though their contents differ.
+/// Shared white-card chrome (radius, padding, resting shadow).
 class AppCardShell extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
-  /// Resting-shadow blur. Defaults to the app-wide 8; a few larger content
-  /// cards (Style Taste) use a softer 16 — pass it explicitly there rather
-  /// than hand-rolling the whole `BoxDecoration`.
   final double blurRadius;
 
-  /// Pass [Clip.antiAlias] when [child] paints its own background up to the
-  /// card's edge (e.g. GarmentOutfitIdeasCard's tinted header band), so the
-  /// rounded corners clip it.
+  /// [Clip.antiAlias] when [child] paints its own background to the edge.
   final Clip clipBehavior;
 
   const AppCardShell({

@@ -22,10 +22,8 @@ class AnalyzeGarmentResult {
   const AnalyzeGarmentResult({required this.metadata, this.processedImagePath});
 }
 
-/// Thrown for a non-2xx `closet-analysis` response that isn't a 401 —
-/// carries the backend's own `error_code` (see garments-api.md §8) so the
-/// page can show a specific message for `GARMENT_NOT_FOUND` instead of the
-/// generic AI-failure fallback.
+/// Non-2xx, non-401 `closet-analysis` response, carrying the backend's
+/// `error_code` (e.g. `GARMENT_NOT_FOUND`).
 class ClosetAnalysisException implements Exception {
   final String? errorCode;
   final String message;
@@ -43,8 +41,6 @@ class GarmentService with BaseService {
 
   final Map<int, Garment> _cache = {};
 
-  /// SharedPreferences key prefix for a persisted [closetAnalysis] result —
-  /// see [cachedClosetAnalysis]'s own doc comment for the caching policy.
   static const String _closetAnalysisKeyPrefix = 'closet_analysis_';
   static String _closetAnalysisKey(int garmentId) =>
       '$_closetAnalysisKeyPrefix$garmentId';
@@ -79,11 +75,8 @@ class GarmentService with BaseService {
     debugLog('--- completeUpload ---');
     final uri = Uri.parse('$_baseUrl/complete');
 
-    // Per the garments API: category / sub_category / name / color are the
-    // top-level body fields; thickness / formality / material / style / fit /
-    // silhouette / sleeve_length / crop_length / description ride inside
-    // `metadata` — send analyze-instant's whole metadata map (user-edited),
-    // since any field left out is stored as null.
+    // Send analyze-instant's whole (user-edited) metadata map: any field
+    // left out of `metadata` is stored as null.
     final payload = <String, dynamic>{
       'name': garment.name,
       'category': garment.category.apiValue,
@@ -113,19 +106,9 @@ class GarmentService with BaseService {
     return Garment.fromJson(data);
   }
 
-  /// Fetches the caller's whole closet — including soft-deleted garments
-  /// (`include_deleted=true`), so a saved outfit that references one can
-  /// still resolve it from this same cache-warming list instead of every
-  /// such lookup needing its own network round trip (see
-  /// `OutfitDetailsPage._loadGarments`). Every "browse/pick a garment"
-  /// screen must filter the result through [ActiveGarmentsX.active] itself
-  /// — this method deliberately does not, since the one place that *wants*
-  /// deleted entries needs the raw list. The backend paginates this
-  /// endpoint (`data: {items, total, page, size}` instead of a bare array),
-  /// so this walks every page at the largest allowed `size` and returns one
-  /// flat list — every existing caller (`garmentsProvider`,
-  /// `trip_details_page`) expects "the whole closet" as a `List<Garment>`,
-  /// not a page at a time.
+  /// The whole closet, walking every page. Includes soft-deleted garments
+  /// so an outfit referencing one can still resolve it; browse/pick screens
+  /// must filter through [ActiveGarmentsX.active] themselves.
   Future<List<Garment>> getGarments() async {
     debugLog('--- getGarments ---');
     const pageSize = 100; // backend's documented max `size`
@@ -168,13 +151,8 @@ class GarmentService with BaseService {
     return garments;
   }
 
-  /// [includeDeleted] must be true to resolve a garment id that's been
-  /// soft-deleted — otherwise this 404s exactly like a nonexistent one. A
-  /// cache hit short-circuits before this matters (whatever's cached,
-  /// deleted or not, already reflects reality), so pass it whenever the
-  /// caller can't guarantee the id is still active — e.g. an outfit's own
-  /// `garment_ids`, which can reference one after it's since been removed
-  /// from the closet.
+  /// Without [includeDeleted], a soft-deleted id 404s like a nonexistent
+  /// one — pass it when the id may be stale (e.g. an outfit's garment_ids).
   Future<Garment> getGarment(
     int garmentId, {
     bool includeDeleted = false,
@@ -215,8 +193,6 @@ class GarmentService with BaseService {
       op: 'deleteGarment',
     );
     _cache.remove(garmentId);
-    // Only this garment's own analysis — a deleted garment can't be
-    // re-analyzed, but every other garment's cached result is unaffected.
     await _removeClosetAnalysisCache(garmentId);
   }
 
@@ -243,15 +219,13 @@ class GarmentService with BaseService {
     return updated;
   }
 
-  /// Only the PATCH-editable fields. `Garment.toJson` also carries
-  /// `object_name` / `image_url`, which the backend rejects with
-  /// `FIELD_NOT_EDITABLE`.
+  /// Only PATCH-editable fields (`object_name` / `image_url` are rejected
+  /// with `FIELD_NOT_EDITABLE`).
   ///
-  /// fit / silhouette / sleeve_length / crop_length are only sent for a
-  /// category they apply to — left out otherwise, so the backend sets them
-  /// to `""` itself on a category change. PATCH validates them strictly
-  /// (400 `INVALID_GARMENT_ATTRIBUTE`), so `""` is sent as `null` (= clear).
-  /// `crop_length` isn't nullable on PATCH, so it's only sent with a value.
+  /// fit / silhouette / sleeve_length / crop_length are sent only for a
+  /// category they apply to (the backend clears them on a category change).
+  /// PATCH validates them strictly (400 `INVALID_GARMENT_ATTRIBUTE`), so `""`
+  /// goes as `null`; `crop_length` isn't nullable, so it's sent only with a value.
   static Map<String, dynamic> _patchPayload(Garment garment) {
     String? valueOrNull(String? v) => (v == null || v.isEmpty) ? null : v;
     final category = garment.category;
@@ -291,19 +265,13 @@ class GarmentService with BaseService {
     );
     decodeMap(res, op: 'setFavorite');
 
-    // Keep the in-memory cache coherent with the state the server just
-    // accepted. Runs only after decodeMap: a non-2xx, a 401 (AuthExpired),
-    // or a malformed body all throw above and leave the cache untouched.
     final cached = _cache[garmentId];
     if (cached != null) {
       _cache[garmentId] = cached.copyWith(isFavorite: isFavorite);
     }
   }
 
-  /// Un-deletes a soft-deleted garment (`PATCH {is_deleted: false}`) — the
-  /// only way to reverse [deleteGarment]'s soft-delete path. Returns the
-  /// refreshed [Garment] so a caller showing it (e.g. a "restore" action on
-  /// an outfit's deleted-garment card) can swap straight to the live card.
+  /// Un-deletes a soft-deleted garment.
   Future<Garment> restoreGarment(int garmentId) async {
     debugLog('--- restoreGarment: $garmentId ---');
     final uri = Uri.parse('$_baseUrl/$garmentId');
@@ -339,9 +307,8 @@ class GarmentService with BaseService {
           contentType: MediaType.parse(mimeType),
         ),
       );
-      // Backend caps AI analysis + background removal at 100s
-      // (AI_ANALYSIS_TIMEOUT); leave headroom for upload and cold start so
-      // the server's own error reaches us instead of a client timeout.
+      // Backend caps analysis at 100s (AI_ANALYSIS_TIMEOUT); the headroom
+      // lets the server's own error arrive before a client timeout.
       final streamedRes = await request.send().timeout(
         const Duration(seconds: 110),
       );
@@ -390,32 +357,12 @@ class GarmentService with BaseService {
     return body;
   }
 
-  /// Runs the AI closet analysis via the unified `POST
-  /// /garments/closet-analysis` endpoint — a versatility level, up to 3
-  /// outfit ideas, and up to 3 similar garments (see [ClosetAnalysis]'s own
-  /// doc comment). Two modes, matching the backend's `ClosetAnalysisRequest`:
-  /// - [garmentId] set: analyzes that already-in-the-closet garment against
-  ///   the user's current full closet (Garment Details' "Analyze with AI" /
-  ///   "Analyze Again" / refresh). [fields] is ignored by the backend in
-  ///   this mode.
-  /// - [garmentId] null: [fields] carries the same category/sub_category/
-  ///   name/brand/color/thickness/formality/material/style/fit the backend
-  ///   expects for a garment that hasn't been added to the closet yet — Add
-  ///   Clothing's own "Analyze with AI" (try before deciding whether to
-  ///   actually save it). See `GarmentDetailsPage._closetAnalysisPreviewFields`.
-  ///   `category` is required in this mode (422 otherwise); fit /
-  ///   silhouette / sleeve_length / crop_length / description are all
-  ///   accepted, so the fuller the metadata the better the result. The
-  ///   target garment comes back as `garment_id: 0`, `image_url: ""` and is
-  ///   never persisted or cached (there is no [garmentId] to cache it under).
+  /// AI closet analysis. With [garmentId], analyzes a saved garment and
+  /// caches the result. Without it, [fields] describes an unsaved garment
+  /// (`category` required, else 422); the target comes back as
+  /// `garment_id: 0`, `image_url: ""` and isn't cached.
   ///
-  /// Doesn't write DB — the backend recomputes it fresh on every call.
-  /// Always hits the network (an explicit action should never silently serve
-  /// a stale result) and persists the result to [cachedClosetAnalysis]'s
-  /// cache only when [garmentId] is set and the call actually succeeds — a
-  /// failed refresh leaves whatever was cached before untouched. Replaced
-  /// the now-removed `POST /garments/{id}/closet-analysis` and `POST
-  /// /garments/closet-analysis-preview` endpoints.
+  /// Always hits the network; a failure leaves the cache untouched.
   Future<ClosetAnalysis> closetAnalysis(
     int? garmentId, [
     Map<String, dynamic>? fields,
@@ -447,16 +394,9 @@ class GarmentService with BaseService {
     return result;
   }
 
-  /// Promotes an Add-mode preview result (see [closetAnalysis]'s null-
-  /// [garmentId] mode) into the normal per-garment cache once the garment is
-  /// actually saved, so reopening it right after Add to Closet shows the
-  /// same result instead of requiring the user to run "Analyze with AI" all
-  /// over again — the same cache [closetAnalysis]/[cachedClosetAnalysis]
-  /// read/write, just seeded from a result the caller already has rather
-  /// than a fresh network call. [analysis] must already have its target
-  /// entries re-pointed at [garmentId]'s real data (see
-  /// `GarmentDetailsPage._retargetClosetAnalysis`) — the preview response's
-  /// own sentinel id/empty image would otherwise get cached verbatim.
+  /// Writes a result the caller already has (a promoted Add-mode preview,
+  /// or one with refreshed image URLs). A preview's sentinel target entries
+  /// must be re-pointed at [garmentId] first.
   Future<void> cacheClosetAnalysis(int garmentId, ClosetAnalysis analysis) {
     return _saveClosetAnalysisCache(garmentId, analysis);
   }
@@ -475,29 +415,14 @@ class GarmentService with BaseService {
         }),
       );
     } catch (e) {
-      // Not fatal — the caller already has the fresh result in hand; this
-      // only means the next page visit won't find it cached.
+      // Not fatal — the caller already has the result.
       debugLog('closetAnalysis: failed to persist cache for $garmentId: $e');
     }
   }
 
-  /// The persisted [closetAnalysis] result for [garmentId], if this garment
-  /// has ever been analyzed — lets Garment Details show what it showed last
-  /// time instead of the "Analyze with AI" prompt on every fresh visit,
-  /// including after an app restart. Backed by `SharedPreferences`
-  /// (`shared_preferences` is already a project dependency; nothing new was
-  /// introduced for this).
-  ///
-  /// Deliberately **not** time-boxed: unlike the short-lived caches
-  /// elsewhere in this service ([getGarment]'s, keyed off signed-URL
-  /// expiry), a closet-analysis result has no natural expiry of its own —
-  /// the backend always recomputes fresh when asked (see [ClosetAnalysis]'s
-  /// own doc comment), but nothing here decides *when* to ask again. That's
-  /// the user's call, via the "Analyze Again" / refresh action — this cache
-  /// just remembers whatever the last successful call returned until they
-  /// do. Not cleared by reopening the page, an app restart, or another
-  /// garment being added/edited/removed — only by [deleteGarment] for this
-  /// garment specifically, or [clearClosetAnalysisCache] at logout.
+  /// Last persisted [closetAnalysis] result for [garmentId]. Deliberately no
+  /// TTL — re-analyzing is the user's call; cleared only by [deleteGarment]
+  /// or [clearClosetAnalysisCache].
   Future<ClosetAnalysis?> cachedClosetAnalysis(int garmentId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -522,15 +447,8 @@ class GarmentService with BaseService {
     }
   }
 
-  /// Clears every persisted closet-analysis result. This app has no stable
-  /// local user id to scope a cache key by (see `AuthStorage`'s own doc
-  /// comment — it stores only the access/refresh token pair, nothing
-  /// identifying), so per-garment keys alone can't tell one signed-in
-  /// user's cached analyses apart from another's on a shared device.
-  /// Wiping the whole cache at the session boundary is what actually
-  /// prevents that leak — called from `clearSignedInSession`
-  /// (`auth_handler.dart`), this app's one shared session-boundary cleanup
-  /// routine.
+  /// Called at session end: keys aren't scoped by user (there's no local
+  /// user id), so another user on the device would otherwise see these.
   Future<void> clearClosetAnalysisCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -545,11 +463,7 @@ class GarmentService with BaseService {
     }
   }
 
-  /// Drops every cached [Garment] — call this at a session boundary
-  /// (logout / session expiry) alongside every other per-user cache, so
-  /// the next signed-in user on this device doesn't see a garment id that
-  /// happens to also exist in their own closet resolve to the previous
-  /// user's cached copy. Not called anywhere in normal use — every
-  /// mutation method above already keeps just the affected entry coherent.
+  /// Session-end only, so the next user can't hit the previous user's
+  /// cached copies.
   void clearGarmentCache() => _cache.clear();
 }

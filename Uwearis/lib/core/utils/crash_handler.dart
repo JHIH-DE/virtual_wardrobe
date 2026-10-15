@@ -19,7 +19,6 @@ class GlobalErrorHandler {
     }
   }
 
-  // Flutter framework errors (widget build, layout, etc.)
   static void _onFlutterError(FlutterErrorDetails details) {
     if (kDebugMode) {
       FlutterError.presentError(details);
@@ -28,13 +27,12 @@ class GlobalErrorHandler {
     }
   }
 
-  // Uncaught async / platform errors
   static bool _onPlatformError(Object error, StackTrace stack) {
     _log('Platform', error, stack);
     return true;
   }
 
-  // Zone-level catch-all (called from runZonedGuarded in main.dart)
+  // Called from runZonedGuarded in main.dart.
   static void onZoneError(Object error, StackTrace stack) {
     _log('Zone', error, stack);
   }
@@ -43,11 +41,8 @@ class GlobalErrorHandler {
     debugLog('[$source] $error', error: error, stackTrace: stack);
   }
 
-  // ErrorWidget.builder gives no BuildContext, so this can't use
-  // AppLocalizations.of(context) — look the strings up directly from the
-  // device locale instead, falling back to the hardcoded Chinese default if
-  // that locale isn't one gen-l10n knows about (this screen must never
-  // throw itself).
+  // ErrorWidget.builder has no BuildContext; look up by device locale and
+  // fall back to zh for an unsupported one (this screen must never throw).
   static AppLocalizations _errorScreenL10n() {
     try {
       return lookupAppLocalizations(PlatformDispatcher.instance.locale);
@@ -56,7 +51,7 @@ class GlobalErrorHandler {
     }
   }
 
-  // Clean error screen shown in release mode instead of red screen
+  // Release-mode replacement for the red error screen.
   static Widget _buildErrorWidget(FlutterErrorDetails details) {
     final l10n = _errorScreenL10n();
     return Scaffold(

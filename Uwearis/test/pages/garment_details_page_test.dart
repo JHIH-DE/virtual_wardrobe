@@ -25,10 +25,8 @@ import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
 
-// Matches the shape GarmentUploadHelper.startAddClothingFlow actually
-// constructs for a not-yet-saved garment (no id) — GarmentDetailsPage now
-// requires initialGarment, so add-mode tests need a stand-in for "nothing
-// has been picked/entered yet" rather than the page's own default.
+// What GarmentUploadHelper.startAddClothingFlow builds for an unsaved
+// garment (no id).
 const _draftGarment = Garment(
   name: '',
   category: GarmentCategory.top,
@@ -41,15 +39,12 @@ const _draftGarment = Garment(
 void main() {
   setUp(() {
     setUpFakeAuth();
-    // GarmentService's closet-analysis cache is SharedPreferences-backed
-    // and process-wide — without this, a garment id reused across tests
-    // could inherit another test's cached result.
+    // The closet-analysis cache is persisted and process-wide.
     SharedPreferences.setMockInitialValues({});
   });
 
-  // Add mode (no initialGarment => no id) never fetches in initState, but
-  // the outfit-potential card watches garmentsProvider, so give that an
-  // empty closet rather than letting it hit a real socket.
+  // Add mode doesn't fetch in initState, but garmentsProvider is still
+  // watched; serve an empty closet instead of hitting a real socket.
   Future<void> runWithEmptyCloset(Future<void> Function() body) {
     return http.runWithClient(
       body,
@@ -64,9 +59,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  // The closet analysis lives in a page sheet opened from the page's
-  // Closet Match button. Fixed-duration pumps rather than pumpAndSettle() — the
-  // sheet's loading state is an indeterminate spinner that never settles.
+  // Fixed pumps, not pumpAndSettle(): the sheet's loading spinner never
+  // settles.
   Future<void> openAnalysisSheet(
     WidgetTester tester, {
     String label = 'View Closet Match',
@@ -310,10 +304,8 @@ void main() {
     });
   });
 
-  // Add mode shows the same Closet Match button as edit mode — tapping it
-  // before the garment is ever saved runs a preview analysis
-  // against the current form fields instead of a real garment id (see
-  // GarmentService.closetAnalysis's null-garmentId mode).
+  // Before the garment exists, the analysis runs against the form fields
+  // (GarmentService.closetAnalysis with a null garmentId).
   testWidgets('add mode: Uwearis AI analysis card runs a preview analysis', (
     tester,
   ) async {
@@ -431,8 +423,7 @@ void main() {
               envelope({
                 'versatility': {'level': 8, 'label': 'Versatile'},
                 // Includes a target entry (sentinel id 0, no image) so the
-                // save flow's retargeting is actually exercised, not just
-                // the no-outfit-ideas easy case.
+                // save flow's retargeting is exercised.
                 'outfit_ideas': [
                   {
                     'title': 'Preview Idea',
@@ -529,24 +520,18 @@ void main() {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
 
-        // Run the preview analysis before ever saving, then close the sheet
-        // to get back to the form.
         await openAnalysisSheet(tester);
         expect(find.text('8/10'), findsOneWidget);
         expect(previewCalls, 1);
         await closeAnalysisSheet(tester);
 
-        // Make sure Add to Closet is actually enabled, then save.
         await tester.enterText(
           find.byType(TextField).first,
           'Preview Cache Tee',
         );
         await tester.pump();
-        // Same reasoning as above — the bottom button shows its own
-        // indeterminate spinner (isLoading: _uploading) while the
-        // init-upload/PUT/complete/cache chain runs.
-        // The upload reads the photo with real file I/O, so give it real
-        // time between pumps.
+        // The upload spinner never settles, and the upload does real file
+        // I/O, so give it real time between pumps.
         await tester.tap(find.text('Add to Closet'));
         for (var i = 0; i < 6; i++) {
           await tester.runAsync(
@@ -559,8 +544,7 @@ void main() {
         expect(find.byType(GarmentDetailsPage), findsNothing);
         expect(saved?.id, 700501);
 
-        // Reopen the now-real garment — the preview result must already be
-        // cached under its real id, with no fresh per-garment analysis call.
+        // The preview result must already be cached under the real id.
         await pumpApp(tester, GarmentDetailsPage(initialGarment: saved!));
         await tester.pump();
         await tester.pump();
@@ -603,9 +587,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // No analysis until the user asks for it — just the View Closet
-      // Match button under the photo (primary: in edit mode there's no Add
-      // to Closet to defer to), no Uwearis AI card or result.
+      // No analysis until asked; the button is primary in edit mode.
       expect(find.text('View Closet Match'), findsOneWidget);
       expect(
         tester.widget<ActionButton>(find.byType(ActionButton)).variant,
@@ -619,7 +601,6 @@ void main() {
 
       await openAnalysisSheet(tester);
 
-      // The sheet itself is titled just "Closet Match".
       expect(
         find.descendant(
           of: find.byType(BottomSheet),
@@ -1046,9 +1027,7 @@ void main() {
 
     await http.runWithClient(() async {
       useTallSurface(tester);
-      // A garment id unique to this test, so it can't collide with a
-      // cache entry another test happened to leave behind on the
-      // GarmentService singleton.
+      // Unique id so it can't hit another test's cache entry.
       final garment = Garment(
         id: 900109,
         name: 'Cache Restore Test Jacket',
@@ -1069,9 +1048,7 @@ void main() {
       expect(closetAnalysisCalls, 1);
       await closeAnalysisSheet(tester);
 
-      // Simulate leaving and coming back: `pumpApp` mounts a brand new
-      // widget tree, so this is a fresh GarmentDetailsPage State for the
-      // same garment — GarmentService's cache lives outside that State.
+      // A fresh page State; the cache lives in GarmentService.
       await pumpApp(tester, GarmentDetailsPage(initialGarment: garment));
       await tester.pump();
       await tester.pump();
@@ -1081,9 +1058,7 @@ void main() {
       expect(closetAnalysisCalls, 1);
       await closeAnalysisSheet(tester);
 
-      // No TTL: rewrite the persisted entry's own analyzed_at far into
-      // the past and confirm a third visit still reads it from cache
-      // rather than treating it as stale.
+      // No TTL: a 30-day-old entry is still served from cache.
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString('closet_analysis_900109')!;
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -1152,9 +1127,7 @@ void main() {
             request.url.path.endsWith('/closet-analysis')) {
           call++;
           if (call == 2) {
-            // A beat so the test can observe the old result still showing
-            // while the refresh is in flight, rather than it resolving
-            // within the same pump as the tap.
+            // Lets the test see the old result while the refresh is in flight.
             await Future.delayed(const Duration(milliseconds: 50));
           }
           return jsonResponse(
@@ -1188,8 +1161,7 @@ void main() {
 
         await openAnalysisSheet(tester);
         expect(find.text('8/10'), findsOneWidget);
-        // Re-analyze is the sheet's top-left action now, mirroring the X —
-        // no separate button below the result.
+        // Re-analyze is the sheet's top-left action, mirroring the X.
         expect(find.text('Analyze Again'), findsNothing);
         final sheet = tester.getRect(find.byType(BottomSheet));
         expect(
@@ -1200,8 +1172,7 @@ void main() {
         );
 
         await tester.tap(find.byIcon(Icons.refresh));
-        // Mid-flight: the old result is still there, under the sheet's
-        // LoadingOverlay — refresh regenerates, it never deletes first.
+        // Mid-flight the old result stays under the LoadingOverlay.
         await tester.pump();
         expect(find.text('8/10'), findsOneWidget);
         expect(
@@ -1277,15 +1248,13 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        // The old result is still the whole card — not replaced by the
-        // full-body error state that a first-run failure would show.
+        // The old result stays, not the first-run error state.
         expect(find.text('8/10'), findsOneWidget);
         expect(find.text('Versatile'), findsOneWidget);
         expect(
           find.text("Couldn't analyze — please try again."),
           findsOneWidget,
         );
-        // Still available to try again.
         expect(find.byIcon(Icons.refresh), findsOneWidget);
 
         final cached = await GarmentService().cachedClosetAnalysis(503);

@@ -16,8 +16,7 @@ class _FakeGarments extends GarmentsNotifier {
   @override
   Future<List<Garment>> build() async => _items;
 
-  // Overridden too — the base refreshIfNeeded() would otherwise fire a real
-  // (unmocked) HTTP refresh() whenever _items is empty.
+  // refreshIfNeeded() would otherwise fire a real HTTP refresh() when empty.
   @override
   Future<void> refresh() async => state = AsyncData(_items);
 }
@@ -29,8 +28,7 @@ class _FakeOutfits extends OutfitsNotifier {
   @override
   Future<List<Outfit>> build() async => _items;
 
-  // Overridden too — the base refreshIfNeeded() would otherwise fire a real
-  // (unmocked) HTTP refresh() whenever _items is empty.
+  // refreshIfNeeded() would otherwise fire a real HTTP refresh() when empty.
   @override
   Future<void> refresh() async => state = AsyncData(_items);
 }
@@ -38,33 +36,29 @@ class _FakeOutfits extends OutfitsNotifier {
 void main() {
   setUp(setUpFakeAuth);
 
-  testWidgets(
-    'no outfits shows the "no outfits" empty state, centered, with a '
-    'Create Outfit action that opens the create-outfit flow',
-    (tester) async {
-      await pumpApp(
-        tester,
-        const OutfitsPage(),
-        overrides: [
-          outfitsProvider.overrideWith(() => _FakeOutfits([])),
-          garmentsProvider.overrideWith(() => _FakeGarments([])),
-        ],
-      );
-      await tester.pump();
-      await tester.pump();
+  testWidgets('no outfits shows the "no outfits" empty state, centered, with a '
+      'Create Outfit action that opens the create-outfit flow', (tester) async {
+    await pumpApp(
+      tester,
+      const OutfitsPage(),
+      overrides: [
+        outfitsProvider.overrideWith(() => _FakeOutfits([])),
+        garmentsProvider.overrideWith(() => _FakeGarments([])),
+      ],
+    );
+    await tester.pump();
+    await tester.pump();
 
-      expect(find.text('No outfits yet'), findsOneWidget);
-      expect(
-        find.text('Combine pieces from your closet into a complete look.'),
-        findsOneWidget,
-      );
-      expect(find.text('Create Outfit'), findsOneWidget);
+    expect(find.text('No outfits yet'), findsOneWidget);
+    expect(
+      find.text('Combine pieces from your closet into a complete look.'),
+      findsOneWidget,
+    );
+    expect(find.text('Create Outfit'), findsOneWidget);
 
-      await tester.tap(find.text('Create Outfit'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Create Outfit'));
+    await tester.pumpAndSettle();
 
-      // AddOutfitPage's own create-mode content.
-      expect(find.byTooltip('Match a Look'), findsOneWidget);
-    },
-  );
+    expect(find.byTooltip('Match a Look'), findsOneWidget);
+  });
 }

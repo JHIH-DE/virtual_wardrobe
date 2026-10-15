@@ -1,7 +1,5 @@
-/// The user's plan (`tier` on `GET /users/me`, read-only). Shown to users as
-/// Gold / Silver / Bronze. The tier only names the plan — the actual daily
-/// try-on limit for each tier is server config, so never derive a count from
-/// it; read `GET /outfit/generation-quota` for that.
+/// `tier` on `GET /users/me`. Only names the plan: daily limits are server
+/// config, so read `GET /outfit/generation-quota`, never derive them here.
 enum UserTier {
   /// `tier_1` — unlimited try-on generation.
   gold,
@@ -26,8 +24,7 @@ extension UserTierApi on UserTier {
   }
 }
 
-/// Unknown or missing values fall back to [UserTier.bronze], the backend's
-/// default tier, rather than showing no plan at all.
+/// Unknown or missing values fall back to the backend default, bronze.
 UserTier userTierFromApiValue(String? value) {
   for (final tier in UserTier.values) {
     if (tier.apiValue == value) return tier;

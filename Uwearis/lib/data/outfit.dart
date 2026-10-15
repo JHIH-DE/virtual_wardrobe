@@ -1,22 +1,16 @@
 import '../core/utils/image_cache_bust.dart';
 
-/// Stable per-outfit cache-key identity for [ImageCacheBust]/image widgets —
-/// pass the same key everywhere a given outfit's rendered image is cached
-/// or bumped so a regenerate in one place busts the cache everywhere else.
+/// Base key for [ImageCacheBust]; widgets use [outfitImageVersionedCacheKey].
 String outfitImageCacheKey(int outfitId) => 'outfit-job-$outfitId';
 
-/// [outfitImageCacheKey] plus its live [ImageCacheBust] version — the actual
-/// cache key every widget rendering an outfit's image should use (Home,
-/// Outfit Details, `OutfitImage`), so a regenerate bump in one place is seen
-/// by all of them instead of some staying on a stale/mismatched key.
+/// The cache key every outfit image widget should use, so a regenerate bump
+/// anywhere is seen everywhere.
 String outfitImageVersionedCacheKey(int outfitId) {
   final baseKey = outfitImageCacheKey(outfitId);
   return '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
 }
 
-/// The kind of `OutfitGroup` an outfit belongs to (backend `OutfitGroupType`).
-/// Every outfit under a group shares its group's type; it's only ever a
-/// filter/tag, never per-outfit state.
+/// Backend `OutfitGroupType`; shared by every outfit in a group.
 enum OutfitGroupType { general, trip }
 
 extension OutfitGroupTypeApi on OutfitGroupType {
@@ -25,18 +19,14 @@ extension OutfitGroupTypeApi on OutfitGroupType {
     OutfitGroupType.trip => 'trip',
   };
 
-  /// Anything unrecognized (or null) falls back to [OutfitGroupType.general],
-  /// the default group type.
   static OutfitGroupType fromApiValue(String? value) => switch (value) {
     'trip' => OutfitGroupType.trip,
     _ => OutfitGroupType.general,
   };
 }
 
-/// One outfit from the OutfitGroup + Outfit API (`/api/v1/outfit`). The
-/// render result lives directly on the outfit itself (`result_image_url`/
-/// `error_message`/`status`) — `regenerate` overwrites this same outfit's
-/// image in place rather than creating a new version.
+/// One outfit from `/api/v1/outfit`. `regenerate` overwrites its image in
+/// place rather than creating a new version.
 class Outfit {
   final int id;
   final int groupId;
@@ -51,28 +41,17 @@ class Outfit {
   final int? backgroundId;
   final bool isFavorite;
 
-  /// How many versions this outfit's group actually has — only meaningful
-  /// on the representative [Outfit] a flattened list like
-  /// [OutfitService.getAllOutfits] returns (one card per group); every
-  /// other source (e.g. [OutfitService.getOutfit]) has no sibling count to
-  /// report, so it defaults to 1.
+  /// Versions in this outfit's group — only set on the per-group
+  /// representatives `OutfitService.getAllOutfits` returns; 1 elsewhere.
   final int versionCount;
 
-  /// The group's chosen cover outfit id (see `PATCH /outfit/{group_id}`) —
-  /// the same value on every [Outfit] in a group, not a per-outfit
-  /// property. Null means "no explicit choice yet, use the backend's
-  /// default (lowest `outfit_id` in the group)". Not part of `OutfitOut`
-  /// itself — [OutfitService] attaches it from the group wrapper after
-  /// parsing (see [getAllOutfits]/[getGroupOutfits]).
+  /// Group-level cover choice, attached by `OutfitService` from the group
+  /// wrapper (not in `OutfitOut`). Null = backend default (lowest id).
   final int? coverOutfitId;
 
-  /// The group's own name (see `PATCH /outfit/{group_id}`) — same value on
-  /// every [Outfit] in a group, distinct from [name] (this specific
-  /// outfit's own name). Null until either the user sets one explicitly or
-  /// the group's first rendered outfit auto-seeds it (backend behavior,
-  /// one-time only). Not part of `OutfitOut` itself — [OutfitService]
-  /// attaches it from the group wrapper after parsing (see
-  /// [getAllOutfits]/[getGroupOutfits]).
+  /// Group-level name (distinct from [name]), attached by `OutfitService`
+  /// from the group wrapper. The backend seeds it once from the first
+  /// rendered outfit.
   final String? groupName;
 
   Outfit({
@@ -134,14 +113,8 @@ class Outfit {
       return 0;
     }
 
-    // `garment_ids` entries are normally bare ids, but some backend
-    // endpoints (e.g. trip suitcase items — see parseSuitcaseItemIds in
-    // trip_plan.dart) instead embed a `{garment_id: ...}` (or `{id: ...}`)
-    // object per entry. Accept both shapes and silently drop anything that
-    // parses to neither, rather than defaulting to a fake id 0 — a 0
-    // doesn't exist as a real garment, so resolving it against the closet
-    // 404s and (since the caller resolves every id with one Future.wait)
-    // silently blanks out every garment on the outfit, not just the bad one.
+    // Entries may be bare ids or `{garment_id|id: ...}` objects. Unparseable
+    // ones are dropped rather than defaulted to a nonexistent id 0.
     int? parseGarmentId(dynamic v) {
       if (v is int) return v;
       if (v is num) return v.toInt();

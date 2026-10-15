@@ -15,6 +15,8 @@ import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/user_profile.dart';
 import 'package:uwearis/features/pages/home_page.dart';
+import 'package:uwearis/features/pages/today_outfit_page.dart';
+import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 
 import '../helpers/widget_harness.dart';
 
@@ -74,11 +76,8 @@ const _shoesGarment = Garment(
   objectName: '',
 );
 
-
-/// A closet covering Top/Bottom/Shoes by default — Getting Started's closet
-/// step requires one active garment in each of those three categories (see
-/// home_page.dart's `_isGettingStarted`/`_hasRequiredCloset`), and most of
-/// this file's tests exercise the normal-home path, not Getting Started.
+/// Defaults to a Top/Bottom/Shoes closet, so tests land on normal Home
+/// rather than Getting Started.
 class _FakeGarmentsNotifier extends GarmentsNotifier {
   _FakeGarmentsNotifier({this.garments = _fullCloset});
 
@@ -90,10 +89,8 @@ class _FakeGarmentsNotifier extends GarmentsNotifier {
   Future<List<Garment>> build() async => garments;
 }
 
-/// Same contract as [_FakeGarmentsNotifier], but `build()` doesn't resolve
-/// until [delay] has elapsed — lets a test observe the in-between state of
-/// a `ref.invalidate`-triggered refetch (see the regression test below)
-/// rather than it settling within a single `pump()`.
+/// Resolves only after [delay], so a test can observe an in-flight
+/// `ref.invalidate` refetch.
 class _DelayedGarmentsNotifier extends GarmentsNotifier {
   _DelayedGarmentsNotifier(
     this.garments, {
@@ -110,8 +107,7 @@ class _DelayedGarmentsNotifier extends GarmentsNotifier {
   }
 }
 
-/// A fully set-up profile (both AI Try-On reference photos present) by
-/// default — see [_FakeGarmentsNotifier]'s own doc.
+/// Defaults to a fully set-up profile.
 class _FakeProfileNotifier extends ProfileNotifier {
   _FakeProfileNotifier({ProfileData? data}) : data = data ?? _complete;
 
@@ -132,9 +128,7 @@ class _FakeProfileNotifier extends ProfileNotifier {
   Future<ProfileData> build() async => data;
 }
 
-/// One already-created outfit by default ("My Outfits" is non-empty — see
-/// [_FakeGarmentsNotifier]'s own doc; this is the 4th, final Getting
-/// Started condition alongside profile photos + closet).
+/// Defaults to one created outfit.
 class _FakeOutfitsNotifier extends OutfitsNotifier {
   _FakeOutfitsNotifier({List<Outfit>? outfits})
     : outfits = outfits ?? _oneOutfit;
@@ -155,11 +149,7 @@ class _FakeOutfitsNotifier extends OutfitsNotifier {
   }
 }
 
-/// No trips by default — most of this file's tests don't care about trip
-/// data, and it isn't needed for a "fully set up" account (see
-/// [_FakeGarmentsNotifier]'s own doc; closet + a created outfit already
-/// cover the "established user" signal — see home_page.dart's
-/// `_isEstablishedUser`).
+/// Defaults to no trips.
 class _FakeTripsNotifier extends TripsNotifier {
   _FakeTripsNotifier({this.trips = const []});
 
@@ -188,6 +178,13 @@ final _testTrip = Trip(
     ),
   ],
 );
+
+/// Lets a route push/pop transition run to completion — Home keeps an
+/// animation running, so pumpAndSettle never settles.
+Future<void> _pumpRoute(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+}
 
 void main() {
   List<Override> overridesWith(
@@ -225,8 +222,6 @@ void main() {
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
       expect(dailyOutfit.refreshCount, 0);
 
-      // The calendar day rolls over while the app is still running, then
-      // the OS brings it back to the foreground.
       now = DateTime(2026, 9, 18, 0, 5);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
@@ -258,10 +253,8 @@ void main() {
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
       expect(dailyOutfit.refreshCount, 0);
 
-      // The poll ticks every minute (see _dateCheckInterval) — advance past
-      // one tick, with the wall clock (widget._now) already past midnight
-      // by then, exactly like a device whose date was changed by hand
-      // rather than by real elapsed time.
+      // Wall clock jumps past midnight (like a manual date change), then
+      // one poll tick elapses.
       now = DateTime(2026, 9, 18, 0, 0, 5);
       await tester.pump(const Duration(minutes: 1));
       await tester.pump();
@@ -287,8 +280,6 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    // Still resumed, still the same day — e.g. an unrelated lifecycle
-    // ping, or briefly switching to another app and straight back.
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
@@ -315,8 +306,6 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // The date/weather header is hidden during Getting Started — nothing
-      // there is relevant before setup is done.
       expect(find.text('Thursday, Sep 17'), findsNothing);
       expect(find.text('Welcome to Uwearis'), findsOneWidget);
       expect(find.text('My Virtual Model'), findsOneWidget);
@@ -389,7 +378,6 @@ void main() {
       expect(find.text('Thursday, Sep 17'), findsNothing);
       expect(find.text('Welcome to Uwearis'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
-      // "Create Outfit" only labels the checklist row now.
       expect(find.text('Create Outfit'), findsOneWidget);
       expect(find.text("Today's Outfit"), findsNothing);
       expect(find.text('Recently Added'), findsNothing);
@@ -465,10 +453,8 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // A planned trip alone isn't enough to skip straight past the photo
-      // step (see home_page.dart's _isEstablishedUser — trip data only
-      // matters once closet/outfit are also both done); still Getting
-      // Started, from the top.
+      // A trip alone doesn't satisfy the closet requirement, so Getting
+      // Started still shows, from the top.
       expect(find.text('Welcome to Uwearis'), findsOneWidget);
       expect(find.text('My Virtual Model'), findsOneWidget);
     },
@@ -520,9 +506,6 @@ void main() {
 
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
       expect(find.text('No outfit image yet'), findsNothing);
-      // The "Today's Outfit" divider is reserved for when the backend has
-      // actually returned an outfit for today — this is the fallback
-      // divider instead.
       expect(find.text("Today's Outfit"), findsNothing);
       expect(find.text('Your Latest Outfit'), findsOneWidget);
     },
@@ -572,17 +555,13 @@ void main() {
       await tester.pump();
       expect(find.text('Next'), findsOneWidget);
 
-      // Simulates GarmentUploadHelper's onAdded callback (the same
-      // optimistic update closet_page.dart / main_shell.dart use) after the
-      // user completes the existing Add Clothing flow.
+      // Simulates GarmentUploadHelper's onAdded callback.
       final container = ProviderScope.containerOf(
         tester.element(find.byType(HomePage)),
       );
       container.read(garmentsProvider.notifier).addGarment(_shoesGarment);
       await tester.pump();
 
-      // outfitsProvider's default fake already has a created outfit, so
-      // adding the last missing piece (Shoes) completes Getting Started.
       expect(find.text('Next'), findsNothing);
       expect(find.text('Welcome to Uwearis'), findsNothing);
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
@@ -603,13 +582,10 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      // "Create Outfit" labels the checklist row; the CTA itself reads
-      // "Next".
       expect(find.text('Create Outfit'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
 
-      // Simulates OutfitDetailsPage's post-save outfitsProvider.refresh()
-      // picking up the newly created outfit.
+      // Simulates the post-save outfitsProvider refresh.
       outfits.outfits = [
         Outfit(id: 200, imageUrl: 'https://example.com/new-outfit.jpg'),
       ];
@@ -628,7 +604,6 @@ void main() {
       'stale Home content while the new account\'s fetch is still in flight', (
     tester,
   ) async {
-    // Account A: fully set up (normal Home, no Getting Started).
     final dailyOutfit = _FakeDailyOutfitNotifier([
       Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
     ]);
@@ -646,35 +621,73 @@ void main() {
       ),
     );
     await tester.pump();
-    // Advances the fake clock past the initial fetch's delay — a plain
-    // zero-duration pump() never fires a Future.delayed.
+    // A zero-duration pump() never fires a Future.delayed.
     await tester.pump(delay);
     expect(find.text('Thursday, Sep 17'), findsOneWidget);
     expect(find.text('Welcome to Uwearis'), findsNothing);
 
-    // Login for account B calls invalidateSignedInProviders right before
-    // swapping in a fresh MainShell — here, HomePage stays the same
-    // widget (this test isn't re-simulating the MainShell swap), but
-    // container.invalidate is the exact same call that function makes.
-    // Riverpod's own AsyncLoading after an invalidate still carries
-    // account A's already-resolved value via copyWithPrevious, which is
-    // the whole point of this regression test.
+    // What invalidateSignedInProviders does on login: the AsyncLoading
+    // still carries account A's value via copyWithPrevious.
     final container = ProviderScope.containerOf(
       tester.element(find.byType(HomePage)),
     );
     container.invalidate(garmentsProvider);
     await tester.pump();
 
-    // Still mid-refetch (the delayed notifier hasn't resolved yet — the
-    // clock hasn't been advanced past `delay` since the invalidate) —
-    // must show neither account's content, not fall through to A's
-    // still-attached stale value.
+    // Mid-refetch: must not fall through to A's stale value.
     expect(find.text('Thursday, Sep 17'), findsNothing);
     expect(find.text('Welcome to Uwearis'), findsNothing);
 
-    // The refetch resolves (same data here — this test is about the
-    // loading window itself, not about B seeing different data).
     await tester.pump(delay);
     expect(find.text('Thursday, Sep 17'), findsOneWidget);
   });
+
+  testWidgets(
+    "tapping today's outfit opens Today's Outfit on that option, and Home's "
+    'carousel follows the swipes made there',
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final dailyOutfit = _FakeDailyOutfitNotifier([
+        Outfit(id: 1, name: 'Office', imageUrl: 'https://example.com/1.jpg'),
+        Outfit(id: 2, name: 'Weekend', imageUrl: 'https://example.com/2.jpg'),
+      ]);
+      await pumpApp(
+        tester,
+        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        overrides: overridesWith(dailyOutfit),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byType(PageView));
+      await _pumpRoute(tester);
+
+      expect(find.byType(TodayOutfitPage), findsOneWidget);
+      expect(find.text('Office'), findsOneWidget);
+
+      await tester.drag(
+        find.descendant(
+          of: find.byType(TodayOutfitPage),
+          matching: find.byType(PageView),
+        ),
+        const Offset(-800, 0),
+      );
+      await _pumpRoute(tester);
+      expect(find.text('Weekend'), findsOneWidget);
+
+      await tester.pageBack();
+      await _pumpRoute(tester);
+
+      expect(find.byType(TodayOutfitPage), findsNothing);
+      expect(
+        tester
+            .widget<CarouselDotsIndicator>(find.byType(CarouselDotsIndicator))
+            .currentIndex,
+        1,
+      );
+    },
+  );
 }

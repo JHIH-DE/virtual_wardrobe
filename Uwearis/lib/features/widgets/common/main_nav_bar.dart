@@ -9,27 +9,16 @@ import 'pressed_state_mixin.dart';
 
 enum MainTab { home, closet, outfits, tripPlanner }
 
-/// The three actions behind the nav bar's raised center button.
 enum QuickAction { addClothing, addOutfit, newTrip }
 
-/// Lets any descendant page switch the active tab in the persistent
-/// `MainShell` above it — e.g. after creating a trip, jump to the Trip
-/// Planner tab so "back" lands there instead of wherever the creation flow
-/// was started from.
+/// Lets a descendant page switch `MainShell`'s tab or show its loading
+/// overlay.
 class MainShellScope extends InheritedWidget {
   final ValueChanged<MainTab> selectTab;
 
-  /// Shows/hides a full-screen [LoadingOverlay] at the shell level, above
-  /// [MainNavBar] — a tab page's own body sits *below* the nav bar in
-  /// the shell's Stack, so a loading mask built inline into that body can
-  /// never visually cover the nav bar. Routing it through here instead
-  /// lets any tab page's loading state actually mask the whole screen.
-  ///
-  /// [tab] identifies which tab's loading state this call is for — every
-  /// tab is kept mounted at once in the shell's `IndexedStack`, so a
-  /// background fetch for a tab the user isn't even looking at (e.g. Trips
-  /// prefetching while Home is showing) must never show this overlay; it's
-  /// only displayed when [tab] is the currently active one.
+  /// A shell-level overlay, since a tab body sits below [MainNavBar] and
+  /// can't cover it. Shown only while [tab] is active — every tab stays
+  /// mounted, so a background tab's fetch must not mask the screen.
   final void Function(bool loading, {String? label, required MainTab tab})
   setLoading;
 
@@ -47,12 +36,8 @@ class MainShellScope extends InheritedWidget {
       selectTab != oldWidget.selectTab || setLoading != oldWidget.setLoading;
 }
 
-/// Floating bottom nav bar shown on the app's main tabs (Home, My Closet,
-/// Outfits, Trips), with a raised center button for the add-clothing /
-/// manual-try-on / new-trip quick actions. Highlights [current] so the user
-/// always knows which page they're on. Purely presentational — [onSelect]
-/// and [onQuickAction] are called with the tapped tab/action and the host
-/// (e.g. a persistent IndexedStack shell) decides what to do with them.
+/// Floating bottom nav bar with a raised center quick-action button.
+/// Presentational only; the host handles [onSelect] / [onQuickAction].
 class MainNavBar extends StatefulWidget {
   final MainTab current;
   final ValueChanged<MainTab> onSelect;
@@ -74,9 +59,7 @@ class _MainNavBarState extends State<MainNavBar> {
   static const double _notchRadius = 34;
   static const double _cornerRadius = 28;
 
-  /// Only ever true while the Home tab's quick-action menu is open — the
-  /// other tabs fire their quick action directly with no menu, so the "+"
-  /// button's icon only needs to reflect open/closed state on Home.
+  /// Only Home opens a menu; other tabs fire their action directly.
   bool _menuOpen = false;
 
   @override
@@ -89,12 +72,8 @@ class _MainNavBarState extends State<MainNavBar> {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-          // The bar sits below a blank spacer reserving room for the
-          // center button's top half, so the Stack's own bounds fully
-          // contain the button — a plain negative `top` offset here would
-          // let the button paint outside the Stack via Clip.none, but
-          // hit-testing always stops at a RenderBox's own `size`, so the
-          // portion poking out above would silently be untappable.
+          // The spacer keeps the button inside the Stack's bounds — a
+          // negative offset would leave its top half untappable.
           child: Stack(
             alignment: Alignment.topCenter,
             children: [
@@ -110,14 +89,9 @@ class _MainNavBarState extends State<MainNavBar> {
                     color: Colors.transparent,
                     elevation: 8,
                     shadowColor: AppColors.trueBlack,
-                    // Frosted glass: blur whatever's scrolling underneath,
-                    // then lay the translucent scrim tint on top of the
-                    // blur. PhysicalShape's own clip doesn't reliably
-                    // confine a BackdropFilter descendant (a known Flutter
-                    // gotcha — PhysicalShapeLayer clips differently from a
-                    // plain clip layer), so an explicit ClipPath with the
-                    // same clipper wraps it here to actually bound the blur
-                    // to the notched bar shape instead of the whole screen.
+                    // PhysicalShape's clip doesn't confine a
+                    // BackdropFilter; without this ClipPath the blur covers
+                    // the whole screen.
                     child: ClipPath(
                       clipper: const _NotchedBarClipper(
                         cornerRadius: _cornerRadius,
@@ -220,17 +194,13 @@ class _MainNavBarState extends State<MainNavBar> {
     return _QuickActionButton(
       size: _centerButtonSize,
       icon: showClose ? Icons.close : Icons.add,
-      // Icons.close draws much closer to its glyph bounds than Icons.add,
-      // so the same nominal size reads visibly bigger — shrink it to match.
+      // Icons.close fills its bounds more than Icons.add, so it reads bigger.
       iconSize: showClose ? 24 : 28,
       onTap: () => _handleQuickActionTap(context),
     );
   }
 
-  /// On My Closet/Outfits/Trips, the "+" button's own tab already implies
-  /// which quick action the user wants, so skip the menu and fire it
-  /// directly. Home has no single implied action, so it still shows the
-  /// full menu.
+  /// Non-Home tabs imply their action; only Home shows the menu.
   void _handleQuickActionTap(BuildContext context) {
     final directAction = switch (widget.current) {
       MainTab.closet => QuickAction.addClothing,
@@ -245,10 +215,6 @@ class _MainNavBarState extends State<MainNavBar> {
     }
   }
 
-  /// Shows the quick-action menu centered horizontally on screen (not
-  /// anchored to the button), directly above the nav bar. Only reachable
-  /// from the Home tab (see [_handleQuickActionTap]), so the "+" button
-  /// swaps to a close "X" for its duration.
   Future<void> _showQuickActionMenu(BuildContext context) async {
     setState(() => _menuOpen = true);
     final l10n = AppLocalizations.of(context);
@@ -262,8 +228,6 @@ class _MainNavBarState extends State<MainNavBar> {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            // Sits just above the raised "+" button — small gap, not floating
-            // well clear of the nav bar.
             padding: const EdgeInsets.only(bottom: 100),
             child: Material(
               color: AppColors.scrimBackdrop,
@@ -353,8 +317,6 @@ class _MainNavBarState extends State<MainNavBar> {
   }
 }
 
-/// The nav bar's raised center "+" button — shrinks on press and springs
-/// back past full size on release for a tactile, bouncy tap response.
 class _QuickActionButton extends StatefulWidget {
   final double size;
   final IconData icon;
@@ -377,9 +339,6 @@ class _QuickActionButtonState extends State<_QuickActionButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // opaque so the whole 56px button (tap + press-bounce) responds, not
-      // just the centered "+" glyph — the Container has a `decoration`, not
-      // a `color`.
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => setPressed(true),
       onTapUp: (_) => setPressed(false),
@@ -415,17 +374,9 @@ class _QuickActionButtonState extends State<_QuickActionButton>
   }
 }
 
-/// A rounded rectangle with a circular notch bitten out of the top edge,
-/// centered horizontally, so the raised center button sits nested into the
-/// bar rather than simply stacked on top of it.
-///
-/// Built from [CircularNotchedRectangle] (the same smooth-notch curve
-/// Scaffold/BottomAppBar use for a docked FAB) rather than a plain
-/// rect-minus-circle boolean difference — a straight difference leaves two
-/// sharp cusps where the circle meets the flat top edge; the smooth-notch
-/// path blends the two with a curve instead. The outer corners are then
-/// rounded by intersecting with a rounded-rect covering the same bounds —
-/// safe because the notch sits at top-center and never reaches the corners.
+/// Rounded rect with a top-center notch for the raised button.
+/// [CircularNotchedRectangle] avoids the sharp cusps a plain
+/// rect-minus-circle would leave.
 class _NotchedBarClipper extends CustomClipper<Path> {
   final double cornerRadius;
   final double notchRadius;

@@ -97,10 +97,7 @@ void main() {
     }, stubClient);
   });
 
-  // Regression: _loadGarments used to await every garment id in one
-  // Future.wait, so a single 404 (e.g. a deleted garment) rejected the
-  // whole batch and silently blanked out every *other* garment on the
-  // outfit too. Each id now resolves independently.
+  // One 404 (e.g. a deleted garment) must not reject the whole batch.
   testWidgets('one garment failing to load does not blank out the rest', (
     tester,
   ) async {
@@ -205,24 +202,14 @@ void main() {
     },
   );
 
-  // Regression: initState and _loadGroupOutfits (once it resolves) each
-  // called _loadGarments independently, with no coordination — for the
-  // common case where _loadGroupOutfits resolves to the same version
-  // that's already showing, this re-fetched the same garments a second
-  // time, flipping the garment section back to a spinner in between
-  // (visible as a flash) for no reason.
+  // initState and _loadGroupOutfits both call _loadGarments; a second fetch
+  // of the same set would flash the spinner.
   testWidgets(
     "_loadGroupOutfits resolving to the outfit's already-loaded version "
     "does not re-fetch its garments",
     (tester) async {
-      // A garment id not used by any other test in this file — GarmentService
-      // is a process-wide singleton with its own cache, so reusing an id
-      // another test already fetched would hide a real double-fetch behind
-      // that cache hit instead of exercising the network. OutfitService is
-      // now the same kind of singleton for getGroupOutfits, so this test
-      // also uses a group id (701) no other test's outfits mock a real
-      // response for — otherwise a later test could be served this test's
-      // cached group instead of hitting its own mock.
+      // Garment and group (701) ids unique to this test: GarmentService and
+      // OutfitService are caching singletons shared across tests.
       var garmentRequests = 0;
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/701')) {
@@ -285,9 +272,7 @@ void main() {
         expect(find.byWidgetPredicate(isBlackScaffold), findsNothing);
 
         await tester.tap(find.byType(RefreshableNetworkImage).first);
-        // Not pumpAndSettle — CachedNetworkImage's placeholder spinner
-        // animates indefinitely while the (blocked-in-tests) network fetch
-        // never resolves.
+        // Not pumpAndSettle — the image placeholder spinner never stops.
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
 
@@ -295,8 +280,7 @@ void main() {
 
         await tester.tapAt(const Offset(50, 50));
         await tester.pump();
-        // A little past the 200ms transition — the route's post-animation
-        // teardown lands a frame after the animation itself completes.
+        // Route teardown lands a frame after the 200ms transition.
         await tester.pump(const Duration(milliseconds: 250));
 
         expect(find.byWidgetPredicate(isBlackScaffold), findsNothing);
@@ -400,9 +384,7 @@ void main() {
     tester,
   ) async {
     useTallSurface(tester);
-    // A group id no other test's outfits mock a real getGroupOutfits
-    // response for — see the "does not re-fetch its garments" test above on
-    // why that matters now that OutfitService caches per group id.
+    // Unique group id: OutfitService caches per group.
     const groupId = 702;
     final client = MockClient((request) async {
       if (request.url.path.endsWith('/$groupId')) {
@@ -496,19 +478,14 @@ void main() {
     },
   );
 
-  // Regression: tapping "+ New Version" once the group already has
-  // _maxVersions versions used to just open OutfitEditPage like any other
-  // tap — the cap is enforced client-side, so nothing stopped one more.
+  // The version cap is enforced client-side only.
   testWidgets(
     '"+ New Version" past the version cap explains the limit instead of '
     'opening the picker',
     (tester) async {
-      // A group id no other test's outfits mock a real getGroupOutfits
-      // response for — see the "does not re-fetch its garments" test above
-      // on why that matters now that OutfitService caches per group id.
+      // Unique group id: OutfitService caches per group.
       const groupId = 703;
-      // Matches _maxVersions in outfit_details_page.dart — keep in sync if
-      // that constant changes.
+      // Must match _maxVersions in outfit_details_page.dart.
       const maxVersions = 10;
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/$groupId')) {

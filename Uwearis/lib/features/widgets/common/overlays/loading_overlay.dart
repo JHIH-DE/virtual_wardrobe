@@ -7,14 +7,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// Full-screen blocking overlay for long-running AI/generation waits (a
-/// few seconds or more) — a blurred scrim with the accent spoke spinner
-/// and a label whose trailing "…" animates. Brief network reads (list
-/// fetches, page loads) should use `AppSpinner` instead; using this
-/// everywhere made short reads feel slower than they actually are. The
-/// spinner animation itself is private to this file on purpose, so it
-/// can't be reused standalone elsewhere and drift back into that same
-/// overuse.
+/// Full-screen blocking overlay for long AI/generation waits. Brief reads
+/// should use `AppSpinner`: this one makes short waits feel slower.
 class LoadingOverlay extends StatefulWidget {
   final String label;
 
@@ -45,8 +39,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     super.dispose();
   }
 
-  /// l10n labels already end in "…" (or a stray "..."); strip it so the
-  /// trailing dots below can be re-added, animated.
+  /// Strips the label's own "…"/"..." so the dots can be animated.
   String get _baseLabel {
     final text = widget.label.trimRight();
     if (text.endsWith('…')) return text.substring(0, text.length - 1);
@@ -63,8 +56,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
       child: Container(
-        // Blur only, no tint — but still an opaque hit target so taps
-        // can't reach the blocked screen underneath.
+        // Non-null color makes it a hit target, blocking taps underneath.
         color: Colors.transparent,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -73,10 +65,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
           children: [
             const _SpokeSpinner(size: 90),
             const SizedBox(height: 4),
-            // Base label plus the animated trailing dots — the not-yet-shown
-            // dots stay in the string but painted transparent, so the visible
-            // text width never jitters as they cycle and nothing gets clipped
-            // in a narrow container.
+            // Hidden dots are painted transparent so the width never jitters.
             Text.rich(
               TextSpan(
                 style: textStyle,
@@ -100,10 +89,8 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
   }
 }
 
-/// Uwearis's loading animation: the classic ring of 12 rounded spokes in
-/// the accent colour, the bright one stepping clockwise around the ring
-/// while the rest trail off in opacity. Private to [LoadingOverlay], the
-/// only place it's meant to appear.
+/// Private to [LoadingOverlay] on purpose, so it isn't reused for brief
+/// loads.
 class _SpokeSpinner extends StatefulWidget {
   final double size;
 
@@ -115,7 +102,6 @@ class _SpokeSpinner extends StatefulWidget {
 
 class _SpokeSpinnerState extends State<_SpokeSpinner>
     with SingleTickerProviderStateMixin {
-  // One full revolution per cycle.
   static const _duration = Duration(milliseconds: 1000);
 
   late final AnimationController _controller;
@@ -167,8 +153,7 @@ class _SpokeSpinnerPainter extends CustomPainter {
     final outerRadius = unit * 0.3;
     final strokeWidth = unit * 0.075;
 
-    // The bright spoke steps (doesn't glide) clockwise, one slot per
-    // 1/12 of the cycle — the look the reference image has.
+    // The bright spoke steps (doesn't glide) one slot per 1/12 cycle.
     final active = (progress * _spokeCount).floor() % _spokeCount;
 
     final paint = Paint()

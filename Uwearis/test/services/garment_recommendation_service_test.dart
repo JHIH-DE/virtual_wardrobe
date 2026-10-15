@@ -144,8 +144,6 @@ void main() {
       );
     });
 
-    // The POST carries a .timeout(); a stalled request must surface a
-    // TimeoutException rather than hang the caller forever.
     test('surfaces a TimeoutException from a stalled request', () async {
       await expectLater(
         http.runWithClient(

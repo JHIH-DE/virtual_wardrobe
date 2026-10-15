@@ -8,90 +8,57 @@ import '../images/refreshable_network_image.dart';
 import '../overlays/loading_overlay.dart';
 import 'card_corner_badge.dart';
 
-/// Purely presentational — an AI-generated image, or an informational empty
-/// state (with a Generate action) when there's nothing to show yet. Never
-/// triggers generation itself: the caller owns the actual generate/regenerate
-/// call, this just surfaces the triggers — a corner badge on the image once
-/// one exists ([onRegenerate]), a pill button in the empty state
-/// ([onGenerate]). Originally Trip Details' own day-outfit card
-/// (`TodayOutfitIdea`); generalized into `common/cards/` once My Virtual
-/// Model's generated base model needed the same "image, or a Generate
-/// button in a bordered box" shape.
+/// An AI-generated image, or an empty state with a Generate action.
+/// Presentational only — the caller owns the generate/regenerate calls.
 class GeneratedImageCard extends StatelessWidget {
   final String? imageUrl;
 
-  /// Whether there's an assignment/subject to generate from at all — distinct
-  /// from [imageUrl] being empty: no assignment means there's nothing to
-  /// render yet (e.g. a trip day with no outfit option), whereas an
-  /// assignment with no image just hasn't been rendered yet. Each gets its
-  /// own empty-state message.
+  /// Whether there's anything to generate from (e.g. a trip day with an
+  /// outfit). Without it there's nothing to render; with it but no
+  /// [imageUrl], it just hasn't been rendered yet.
   final bool hasAssignment;
 
   final bool isLoading;
   final String? jobStatus;
 
-  /// Shown as a corner badge on top of the image once it exists — styled
-  /// like OutfitDetailsPage's own on-image icons (translucent disc, hairline
-  /// border, no shadow). Null hides the badge.
+  /// Corner badge on the image; null hides it.
   final VoidCallback? onRegenerate;
 
-  /// Kicks off a (first or repeat) render for a subject that's ready but has
-  /// no image yet — shown as a button in place of the plain "no image yet"
-  /// text. Null keeps the informational text.
+  /// Button shown when [hasAssignment] but no image yet; null shows
+  /// [noImageMessage] instead.
   final VoidCallback? onGenerate;
 
-  /// Label for the [onGenerate] button (e.g. "Generate Outfit" / "Generate").
-  /// Required whenever [onGenerate] is non-null — there is no generic
-  /// fallback copy, since "what this generates" is caller-specific.
+  /// Required whenever [onGenerate] is non-null.
   final String? generateLabel;
 
-  /// Whether the [onGenerate] button is enabled — the button itself always
-  /// shows once [onGenerate] is non-null; this only greys it out (and shows
-  /// [generateDisabledMessage] above it) rather than hiding it. Ignored when
-  /// [onGenerate] is null.
+  /// False greys the [onGenerate] button out rather than hiding it.
   final bool generateEnabled;
 
-  /// Shown above the [onGenerate] button, centered, while [generateEnabled]
-  /// is false — explains why generating isn't offered right now. Null shows
-  /// no explanation.
+  /// Shown above the button while [generateEnabled] is false.
   final String? generateDisabledMessage;
 
-  /// Shown under the broken-image icon if [imageUrl] fails to load and gives
-  /// up (see [RefreshableNetworkImage.errorLabel]). Null shows just the icon.
+  /// Shown under the broken-image icon if [imageUrl] fails to load.
   final String? errorLabel;
 
-  /// Shown in place of the plain "no image yet" text is never offered
-  /// (i.e. [onGenerate] is null while [hasAssignment] is true). Null falls
-  /// back to showing nothing.
+  /// Shown when [hasAssignment] is true but [onGenerate] is null.
   final String? noImageMessage;
 
-  /// Shown when [hasAssignment] is false — title + subtitle explaining there
-  /// is nothing to generate from yet. Both null render nothing.
+  /// Shown when [hasAssignment] is false.
   final String? noAssignmentTitle;
   final String? noAssignmentHint;
 
-  /// Called at most once if [imageUrl] fails to load (e.g. an expired
-  /// signed URL) — return a fresh URL to retry with. See
-  /// [RefreshableNetworkImage.onRefreshUrl].
+  /// See [RefreshableNetworkImage.onRefreshUrl].
   final Future<String?> Function()? onRefreshUrl;
 
-  /// Stable cache key (e.g. the try-on job id) — see
-  /// [RefreshableNetworkImage.cacheKey]. [imageUrl] is a freshly re-signed
-  /// URL on every fetch even for an already-generated image, so without
-  /// this the disk cache would never actually hit.
+  /// Stable cache key (e.g. the try-on job id): [imageUrl] is re-signed on
+  /// every fetch, so the disk cache would never hit without it.
   final String? cacheKey;
 
-  /// How [imageUrl] fills its [aspectRatio] frame. Defaults to
-  /// [BoxFit.cover] + top-aligned, matching a trip outfit render (always
-  /// produced at a consistent portrait ratio, so cropping never loses real
-  /// content). A source photo with a genuinely different aspect ratio should
-  /// pass [BoxFit.contain] instead so the whole photo stays visible rather
-  /// than having its top or bottom cropped away.
+  /// Cover suits trip outfit renders (fixed portrait ratio); pass
+  /// [BoxFit.contain] for photos of arbitrary ratio so nothing is cropped.
   final BoxFit imageFit;
   final Alignment imageAlignment;
 
-  /// The image frame's width:height ratio. Defaults to 3:4, matching a trip
-  /// outfit render.
   final double aspectRatio;
 
   const GeneratedImageCard({
@@ -134,9 +101,8 @@ class GeneratedImageCard extends StatelessWidget {
     );
   }
 
-  /// Keeps the existing image visible — with a [LoadingOverlay] on top
-  /// while regenerating — rather than blanking it out, so a regenerate
-  /// that fails leaves the previously valid image exactly where it was.
+  /// Keeps the old image under the overlay while regenerating, so a failed
+  /// regenerate leaves it in place.
   Widget _buildImage() {
     return AspectRatio(
       aspectRatio: aspectRatio,
@@ -158,9 +124,6 @@ class GeneratedImageCard extends StatelessWidget {
               top: 12,
               right: 12,
               child: CardCornerBadge(
-                // Same treatment as OutfitDetailsPage's own on-image icons
-                // (its "⋮" trigger / favourite badge): translucent disc,
-                // hairline border, no drop shadow.
                 icon: Icons.refresh,
                 backgroundColor: AppColors.surfaceTranslucent,
                 iconColor: AppColors.hintText,
@@ -168,10 +131,6 @@ class GeneratedImageCard extends StatelessWidget {
                 boxShadow: const [],
                 size: 36,
                 iconSize: 20,
-                // Without this the disc centers inside its (larger,
-                // touch-target-padded) hit box, sitting ~4px further in
-                // from the top/right edge than OutfitDetailsPage's own
-                // plain-Container icons at the same Positioned offset.
                 discAlignment: Alignment.topRight,
                 onTap: onRegenerate,
               ),
@@ -182,12 +141,6 @@ class GeneratedImageCard extends StatelessWidget {
     );
   }
 
-  /// No image yet — one of two informational states depending on
-  /// [hasAssignment]. When ready but not yet rendered, [onGenerate] (if
-  /// given) turns that state into a Generate button — [generateEnabled]
-  /// false greys it out and shows [generateDisabledMessage] above it, rather
-  /// than hiding the button. While a render is running, the caller's own
-  /// full-screen overlay typically covers this card.
   Widget _buildEmptyState() {
     return SizedBox(
       height: 140,

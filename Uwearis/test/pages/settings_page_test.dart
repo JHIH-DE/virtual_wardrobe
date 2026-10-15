@@ -19,9 +19,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  // getMyProfile / getBodyRef / getFaceReference all hit GET /users/me and
-  // read fields off the same profile map, so one handler covers initState's
-  // load.
+  // Answers profileProvider's GET /users/me.
   Future<void> runWithProfile(Future<void> Function() body) {
     return http.runWithClient(
       body,
@@ -50,7 +48,6 @@ void main() {
       await tester.tap(find.text('Logout'));
       await tester.pumpAndSettle();
 
-      // The confirm dialog is up; nothing has navigated away yet.
       expect(find.text('Log out?'), findsOneWidget);
       expect(find.byType(LoginPage), findsNothing);
       expect(find.byType(SettingsPage), findsOneWidget);
@@ -82,8 +79,6 @@ void main() {
     'session ends is what stops the next signed-in user on this device '
     'from seeing it',
     (tester) async {
-      // A garment analysis already on local storage, as if the outgoing
-      // user had run "Analyze with AI" on it earlier this session.
       SharedPreferences.setMockInitialValues({
         'closet_analysis_4242': jsonEncode({
           'analysis': {
@@ -105,13 +100,8 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Logout').last);
         await tester.pump();
-        // Landing on LoginPage surfaces two pre-existing, unrelated
-        // failures in this test environment — its Google-button network
-        // image 404s (no real HttpClient in flutter_test), which then
-        // leaves an unconstrained icon that overflows the button's Row.
-        // Neither has anything to do with the cache-clearing this test is
-        // actually checking, so drain them rather than chase a LoginPage
-        // layout bug out of scope here.
+        // LoginPage's Google-button network image fails in flutter_test and
+        // its fallback overflows; unrelated to this test, so drain them.
         while (tester.takeException() != null) {}
       });
 
@@ -120,8 +110,6 @@ void main() {
   );
 
   group('perceived temperature offset', () {
-    // GET /users/me answers the profile load; PATCH /users/me is the save,
-    // answered with [patchStatus].
     http.Client client(List<http.Request> patches, {int patchStatus = 200}) =>
         MockClient((request) async {
           if (request.method == 'PATCH') {

@@ -119,9 +119,7 @@ void main() {
       });
     });
 
-    // Facebook Login hands the client an access token, not an id token
-    // (unlike Google/Apple) — the request body key must be `access_token`
-    // to match what the backend actually validates against the Graph API.
+    // Facebook issues an access token, not an id token like Google/Apple.
     test(
       'Facebook login POSTs access_token to the facebook endpoint',
       () async {
@@ -142,8 +140,6 @@ void main() {
       },
     );
 
-    // The three social logins share one token-pair validator — Apple and
-    // Facebook must reject a missing token just like Google does.
     test('Apple and Facebook also throw on a missing token', () async {
       final client = MockClient(
         (request) async => _jsonResponse(_envelope({'access_token': 'a'})),

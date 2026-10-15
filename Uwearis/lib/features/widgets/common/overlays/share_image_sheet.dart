@@ -13,15 +13,10 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/utils/debug_log.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-/// Bottom sheet that previews a share card and, on tap, rasterizes it to a
-/// PNG and hands it to the system share sheet. The one share-a-card flow
-/// behind Garment Details / Outfit Details — callers supply the [title], the
-/// image URLs to precache, a [cardBuilder] (given the decoded providers, in
-/// the same order), and the share [text].
-///
-/// URLs may be remote (http) signed URLs or local file paths. The card is
-/// only captured once every image has decoded, so no blank frames land in
-/// the PNG.
+/// Previews a share card and, on tap, rasterizes it to a PNG for the
+/// system share sheet. [cardBuilder] gets the decoded image providers in
+/// URL order; capture waits until all have decoded so no blank frames land
+/// in the PNG.
 Future<void> showShareImageSheet(
   BuildContext context, {
   required String title,
@@ -168,10 +163,8 @@ class _ShareImageSheetState extends State<_ShareImageSheet> {
                 ),
               )
             else
-              // Flexible + scaleDown: the fixed-size card shrinks to fit a
-              // narrow or short sheet, but the capture is always taken at
-              // the card's own logical size (RepaintBoundary ignores the
-              // FittedBox transform).
+              // The capture is taken at the card's own size — the
+              // RepaintBoundary is inside the FittedBox transform.
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,

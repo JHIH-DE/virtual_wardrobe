@@ -7,32 +7,17 @@ import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
-/// Text-only outfit advice for Add Outfit's "Complete with AI" — given
-/// whichever garments the user has already picked, the backend's AI fills
-/// in the rest from the user's own wardrobe. Locking is purely a frontend
-/// bookkeeping concept (which cards show a lock icon, which survive a
-/// re-run); the backend has no notion of it, it just treats [garmentIds] as
-/// a starting point to build the outfit around. Never generates a Try-On
-/// image or creates any OutfitGroup/Outfit; that stays behind
-/// `OutfitService.generateOutfit` / `TryOnMixin` only (see CLAUDE.md's
-/// virtual try-on section).
-///
-/// Plain per-call service — holds no state, so no singleton (see the
-/// service-layer rules in CLAUDE.md).
+/// Add Outfit's "Complete with AI": the backend fills in the rest of an
+/// outfit around the picked garments. Text-only — no try-on image, no
+/// OutfitGroup created. Locking is frontend-only; the backend never sees it.
 class GarmentRecommendationService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/outfit/advice';
 
-  /// [excludeGarmentIds] force-excludes ids from the AI's pick — used to ask
-  /// for a different suggestion than a previous call returned (accumulate
-  /// ids across every re-run in the session, not just the last one, so a
-  /// rejected suggestion doesn't resurface a few taps later). If an id
-  /// appears in both [garmentIds] and [excludeGarmentIds], [garmentIds]
-  /// wins — a forced-in item is never dropped by the exclude list.
+  /// Accumulate [excludeGarmentIds] across re-runs so a rejected suggestion
+  /// doesn't resurface. [garmentIds] wins over the exclude list.
   ///
-  /// [style] null leaves the style to the backend, which infers it from
-  /// the user's Style Taste analysis. The backend doesn't accept a `style`
-  /// field yet (it's ignored until it does), so for now every call still
-  /// gets the inferred style.
+  /// The backend ignores `style` for now and always infers it from the
+  /// user's Style Taste analysis.
   Future<List<int>> completeOutfit({
     required List<int> garmentIds,
     StyleType? style,

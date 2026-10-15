@@ -49,7 +49,6 @@ void main() {
     );
     await tester.pump();
 
-    // Opens on the first tab.
     expect(find.text('Tee'), findsOneWidget);
     expect(find.text('Jeans'), findsNothing);
 

@@ -18,8 +18,6 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
   final TextEditingController _tripNameController = TextEditingController();
   final ValueNotifier<List<TripLeg>> _legsNotifier = ValueNotifier([]);
 
-  /// Gates the "Create" button (see [AppDialog.onPrimary]'s disabled state)
-  /// — greyed out until both a name and at least one location are in.
   bool get _canCreate =>
       _tripNameController.text.trim().isNotEmpty &&
       _legsNotifier.value.isNotEmpty;
@@ -27,9 +25,6 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
   @override
   void initState() {
     super.initState();
-    // Neither controller/notifier rebuilds this State on its own —
-    // _canCreate needs to be re-evaluated (and the Create button's
-    // enabled/disabled look updated) whenever either changes.
     _tripNameController.addListener(_onFormChanged);
     _legsNotifier.addListener(_onFormChanged);
   }

@@ -5,9 +5,8 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
-/// A date-range picker that greys out and disables any day already covered
-/// by [occupiedRanges] (e.g. another trip leg), so the user can see at a
-/// glance which dates are already taken before picking a new range.
+/// Date-range picker that disables days covered by [occupiedRanges]
+/// (e.g. another trip leg).
 Future<DateTimeRange?> showTripLegDateRangePicker({
   required BuildContext context,
   required List<DateTimeRange> occupiedRanges,
@@ -195,9 +194,8 @@ class _TripLegDateRangePickerDialogState
               ),
               child: Text(
                 l10n.confirm,
-                style: AppTextStyle.regular14.copyWith(
+                style: AppTextStyle.medium14.copyWith(
                   color: AppColors.textOnPrimary,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -210,9 +208,8 @@ class _TripLegDateRangePickerDialogState
               ),
               child: Text(
                 l10n.cancel,
-                style: AppTextStyle.regular14.copyWith(
+                style: AppTextStyle.medium14.copyWith(
                   color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -300,9 +297,6 @@ class _TripLegDateRangePickerDialogState
     return Padding(
       padding: const EdgeInsets.all(2),
       child: GestureDetector(
-        // opaque so the whole cell is tappable — an unselected day's
-        // Container has only a (null) `decoration`, so without this only the
-        // centered digit glyph registers a tap.
         behavior: HitTestBehavior.opaque,
         onTap: disabled ? null : () => _onDayTap(day),
         child: Container(

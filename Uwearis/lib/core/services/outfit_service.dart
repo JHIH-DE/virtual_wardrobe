@@ -9,21 +9,11 @@ import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
 import 'base_service.dart';
 
-/// Client for the OutfitGroup + Outfit API (`/api/v1/outfit`). Every outfit
-/// lives inside a group (general/trip) and carries its own render
-/// result inline, and `generate` does creation + AI render in one
-/// synchronous call. Only `type=general` has a full, actively-used path
-/// today — a general-flow outfit gets its own dedicated group, so
-/// [getAllOutfits] and [getOutfitsByGarments] flatten the group nesting away
-/// and the rest of the app keeps treating outfits as a flat list.
+/// OutfitGroup + Outfit API. Every outfit lives in a group; `generate`
+/// creates and renders in one synchronous call. [getAllOutfits] and
+/// [getOutfitsByGarments] return flat lists.
 ///
-/// A singleton (like [GarmentService]) purely for [_groupCache]: every
-/// mutation method below (`generate`/`regenerate`/`update`/`delete`,
-/// on either an outfit or its group) invalidates the mutated group's entry,
-/// so [getGroupOutfits] only actually re-hits the backend when that group's
-/// data could genuinely have changed since the last fetch — e.g. reopening
-/// the same [OutfitDetailsPage] outfit repeatedly no longer re-fetches its
-/// whole version list every single time.
+/// Singleton only for [_groupCache]; every mutation invalidates its group.
 class OutfitService with BaseService {
   static final OutfitService _instance = OutfitService._internal();
   static final String _baseUrl = '${AppConfig.fullApiUrl}/outfit';
@@ -84,13 +74,8 @@ class OutfitService with BaseService {
     if (items is! List) {
       throw Exception('getAllOutfits: response missing items list');
     }
-    // One card per group, not per outfit — a group can hold multiple
-    // versions (Outfit Details' "Create Another Version"), but the flat
-    // list only shows one as that group's representative; every version is
-    // browsable from Outfit Details' own carousel. The representative
-    // still carries the group's real version count (see
-    // Outfit.versionCount) for callers that need the true total, like
-    // Style Taste's "N outfits analyzed" stat.
+    // One representative per group; it carries the group's real version
+    // count (Outfit.versionCount) for totals like Style Taste's stat.
     final outfits = <Outfit>[];
     for (final group in items.whereType<Map<String, dynamic>>()) {
       final groupOutfits = group['outfits'];
@@ -124,11 +109,9 @@ class OutfitService with BaseService {
     return outfits;
   }
 
-  /// Creates a new outfit and renders it in one call (~10-15s for the AI
-  /// render) — there is no separate save step. Pass [groupId] to add this
-  /// as another version alongside an existing outfit (e.g. Outfit Details'
-  /// "Create Another Version"); omit it to start a fresh [type] group (the
-  /// normal create-outfit flow).
+  /// Creates and renders in one call (no separate save step). Pass
+  /// [groupId] to add a version to an existing group; omit it to create a
+  /// new [type] group.
   Future<Outfit> generateOutfit({
     required List<int> garmentIds,
     int? groupId,
@@ -150,8 +133,7 @@ class OutfitService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
-          // AI render — synchronous on the backend (~10-15s), but retries on
-          // rate limits can stack; generous ceiling just bounds a wedged call.
+          // Synchronous AI render; backend rate-limit retries can stack.
           .timeout(const Duration(seconds: 90)),
     );
     final envelope = decodeMap(res, op: 'generateOutfit');
@@ -163,10 +145,8 @@ class OutfitService with BaseService {
     return Outfit.fromJson(data);
   }
 
-  /// Re-renders [outfitId] in place with the same garment combo — overwrites
-  /// the existing image, `outfit_id`/`name`/`style`/`season`/`garment_ids`
-  /// stay unchanged, no new outfit is created. Omit [backgroundId] to reuse
-  /// the outfit's current background.
+  /// Re-renders in place (same id and metadata, new image). Omit
+  /// [backgroundId] to reuse the current background.
   Future<Outfit> regenerateOutfit(
     int groupId,
     int outfitId, {
@@ -181,8 +161,7 @@ class OutfitService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
-          // AI render — synchronous on the backend (~10-15s), but retries on
-          // rate limits can stack; generous ceiling just bounds a wedged call.
+          // Synchronous AI render; backend rate-limit retries can stack.
           .timeout(const Duration(seconds: 90)),
     );
     final envelope = decodeMap(res, op: 'regenerateOutfit');
@@ -211,8 +190,7 @@ class OutfitService with BaseService {
     return Outfit.fromJson(data);
   }
 
-  /// Partial update — only pass the fields that changed, the rest are left
-  /// untouched server-side.
+  /// Partial update — null fields are left untouched.
   Future<Outfit> updateOutfit(
     int groupId,
     int outfitId, {
@@ -257,15 +235,8 @@ class OutfitService with BaseService {
     _groupCache.remove(groupId);
   }
 
-  /// Every outfit inside [groupId] — used to check whether an outfit has
-  /// siblings before deciding whether deleting it should take the
-  /// now-empty group with it.
-  ///
-  /// Served from [_groupCache] when a cached entry exists and none of its
-  /// image URLs have gone stale — every mutation method in this class
-  /// invalidates a group's entry the moment it could have changed, so a
-  /// cache hit here means genuinely nothing has changed since the last
-  /// fetch, not just "nothing this app instance knows about."
+  /// Every version in [groupId]. Served from [_groupCache] unless an image
+  /// URL has expired.
   Future<List<Outfit>> getGroupOutfits(int groupId) async {
     final cached = _groupCache[groupId];
     if (cached != null && !anySignedUrlExpired(cached.map((o) => o.imageUrl))) {
@@ -308,11 +279,8 @@ class OutfitService with BaseService {
     return result;
   }
 
-  /// Partial update to [groupId] itself — [name] and/or [coverOutfitId].
-  /// Only pass what changed; everything else is left untouched server-side.
-  /// [coverOutfitId] is the version shown as the group's representative in
-  /// the flat Outfits list (see [getAllOutfits]) and must already be fully
-  /// rendered.
+  /// Partial update. [coverOutfitId] is the group's representative in
+  /// [getAllOutfits] and must already be rendered.
   Future<void> updateGroup(
     int groupId, {
     String? name,
@@ -333,13 +301,11 @@ class OutfitService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'updateGroup');
-    // name/coverOutfitId are overlaid onto every Outfit in a cached list
-    // (see getGroupOutfits), so any change here invalidates the whole entry.
+    // name/coverOutfitId are copied onto every cached Outfit.
     _groupCache.remove(groupId);
   }
 
-  /// Deletes the whole group, cascading to every outfit (and their GCS
-  /// images) inside it.
+  /// Cascades to every outfit (and its images) in the group.
   Future<void> deleteGroup(int groupId) async {
     debugLog('--- deleteGroup: groupId=$groupId ---');
     final uri = Uri.parse('$_baseUrl/$groupId');
@@ -352,8 +318,7 @@ class OutfitService with BaseService {
     _groupCache.remove(groupId);
   }
 
-  /// Flat list (not group-nested) of every outfit that contains all of
-  /// [garmentIds].
+  /// Every outfit that contains all of [garmentIds].
   Future<List<Outfit>> getOutfitsByGarments(List<int> garmentIds) async {
     debugLog('--- getOutfitsByGarments: garmentIds=$garmentIds ---');
     final uri = Uri.parse('$_baseUrl/by-garments');
@@ -374,12 +339,7 @@ class OutfitService with BaseService {
     return data.whereType<Map<String, dynamic>>().map(Outfit.fromJson).toList();
   }
 
-  /// Drops every cached group's outfit list — call this at a session
-  /// boundary (logout / session expiry), alongside clearing every other
-  /// per-user cache, so the next signed-in user on this device doesn't see
-  /// a group id that happens to also exist in their own closet resolve to
-  /// the previous user's outfits. Not called anywhere in normal use — every
-  /// mutation method above already invalidates just the one group it
-  /// changed.
+  /// Session boundary only (logout / session expiry), so the next user
+  /// can't see the previous user's cached groups.
   void clearGroupCache() => _groupCache.clear();
 }

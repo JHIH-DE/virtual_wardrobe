@@ -7,8 +7,7 @@ import 'section_title.dart';
 class LabeledDivider extends StatelessWidget {
   final String label;
 
-  /// When set, shows a small colored dot before [label] (e.g. a status
-  /// indicator like Ongoing/Upcoming/Past).
+  /// Optional status dot before [label].
   final Color? dotColor;
 
   const LabeledDivider({super.key, required this.label, this.dotColor});

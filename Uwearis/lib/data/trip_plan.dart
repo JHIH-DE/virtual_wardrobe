@@ -2,17 +2,11 @@ import 'package:intl/intl.dart';
 
 import 'garment.dart';
 
-/// One trip day's primary outfit — either an *already tried-on* result
-/// (from `TripService.getTrip`'s `days[].outfits[]`, resolved against the
-/// closet by [TripPlan.fromRenderedResponse]) or an AI-suggested option
-/// nobody's rendered yet (from `getTripPlan` / `generateTripPlan`'s
-/// `days[].options[]`, self-contained). Both parse into this same shape so
-/// the page doesn't need to care which one a given day came from.
+/// One trip day's primary outfit, parsed from either the plan view
+/// (`days[].options[]`) or the rendered view (`days[].outfits[]`).
 class TripDayOutfit {
-  /// This day's own date, straight from `day['date']` — the day selector and
-  /// header label read this instead of computing a date from the trip's
-  /// overall span + list index, since the backend's `days[]` isn't
-  /// guaranteed to tile that span with zero gaps.
+  /// Read instead of deriving from the trip span + index: the backend's
+  /// `days[]` may have gaps.
   final DateTime? date;
   final int? optionId;
   final List<Garment> garments;
@@ -21,17 +15,12 @@ class TripDayOutfit {
   final double? temperatureMaxC;
   final double? temperatureMinC;
 
-  /// Sticky across garment edits — unlike [outfitId] (which the backend
-  /// clears the moment this day's garments change), this never resets once
-  /// true. Its only job is telling "Generate Outfit" (never rendered
-  /// before) apart from "Regenerate Outfit" (this slot had an image once).
+  /// Picks "Generate" vs "Regenerate". Unlike [outfitId] (cleared by the
+  /// backend when the garments change), the page carries this over.
   final bool everHadOutfit;
 
-  /// Whether the user has manually swapped this option's garments (via
-  /// [TripService.updateOptionItems]) at some point — permanent on the
-  /// backend once set, never reset by a render. Gates [needsReplan]: a
-  /// manual edit is preserved by an explicit Replan unless [garments] now
-  /// references something no longer packed.
+  /// Set by the backend once the user swaps this option's garments; never
+  /// reset by a render.
   final bool isManuallyEdited;
 
   const TripDayOutfit({
@@ -46,21 +35,11 @@ class TripDayOutfit {
     this.isManuallyEdited = false,
   });
 
-  /// Whether "Replan Trip Outfits" should regenerate this day, given the
-  /// suitcase's current contents ([suitcaseIds]) — the one Replan policy
-  /// shared by both entry points (TripSuitcasePage's bottom button and
-  /// TripDetailsPage's Daily Outfit Plan refresh icon — see [daysToReplan]).
-  /// In priority order:
-  ///
-  /// 1. Any of [garments] is no longer in [suitcaseIds] → regenerate. This
-  ///    overrides both rules below, even for a manually-edited or
-  ///    already-rendered day — an outfit referencing a garment that's been
-  ///    taken out of the suitcase can't be trusted to stay as-is.
-  /// 2. [isManuallyEdited] → keep (the user chose these garments on
-  ///    purpose).
-  /// 3. [outfitId] already set (a Try-On image exists) → keep.
-  /// 4. Otherwise — AI-generated, never rendered, never touched by hand —
-  ///    regenerate; there's nothing to lose by refreshing it.
+  /// The Replan policy, in priority order:
+  /// 1. A garment no longer in [suitcaseIds] → regenerate (overrides 2–3).
+  /// 2. [isManuallyEdited] → keep.
+  /// 3. Already rendered ([outfitId] set) → keep.
+  /// 4. Otherwise → regenerate.
   bool needsReplan(Set<int> suitcaseIds) {
     final hasOrphanedGarment = garments.any(
       (g) => g.id != null && !suitcaseIds.contains(g.id),
@@ -78,8 +57,7 @@ class TripDayOutfit {
     temperatureMinC: (day['temperature_min_c'] as num?)?.toDouble(),
   );
 
-  /// From `getTrip`'s `days[].outfits[]` — an entry here only carries
-  /// `garment_ids`, so [closetById] (the user's full closet) resolves them.
+  /// `days[].outfits[]` only carries `garment_ids`, resolved via [closetById].
   factory TripDayOutfit.fromRenderedDay(
     Map<String, dynamic> day,
     Map<int, Garment> closetById,
@@ -113,9 +91,7 @@ class TripDayOutfit {
     );
   }
 
-  /// From `getTripPlan` / `generateTripPlan`'s `days[].options[]` — the
-  /// primary (lowest `order_index`) option, whose items embed their own
-  /// image/name/category so no closet lookup is needed.
+  /// Uses the lowest-`order_index` option; its items are self-contained.
   factory TripDayOutfit.fromPlanDay(Map<String, dynamic> day) {
     final options =
         ((day['options'] as List?) ?? [])
@@ -149,18 +125,12 @@ class TripDayOutfit {
   }
 }
 
-/// The parts of a trip plan Trip Details actually renders: one
-/// [TripDayOutfit] per day plus the suitcase's garment ids. Built from
-/// either the plan view (`getTripPlan` / `generateTripPlan`) or the
-/// rendered view (`getTrip`).
 class TripPlan {
   final List<TripDayOutfit> days;
   final Set<int> suitcaseIds;
 
   const TripPlan({this.days = const [], this.suitcaseIds = const {}});
 
-  /// `getTripPlan` / `generateTripPlan` — every day's suggested options,
-  /// self-contained.
   factory TripPlan.fromPlanResponse(Map<String, dynamic> data) {
     return TripPlan(
       days: ((data['days'] as List?) ?? [])
@@ -171,8 +141,6 @@ class TripPlan {
     );
   }
 
-  /// `getTrip` — only already-rendered outfits, whose garments are ids that
-  /// need resolving against [closetGarments].
   factory TripPlan.fromRenderedResponse(
     Map<String, dynamic> data,
     List<Garment> closetGarments,
@@ -191,9 +159,7 @@ class TripPlan {
   }
 }
 
-/// What a `generate` / `regenerate` option-outfit render returns — just
-/// the freshly-rendered `outfit_id` and its (15-minute) signed
-/// `result_image_url`.
+/// Result of a `generate` / `regenerate` option-outfit render.
 class TripOptionRender {
   final int? outfitId;
   final String? resultImageUrl;
@@ -208,12 +174,8 @@ class TripOptionRender {
   }
 }
 
-/// One [TripOutfitOption] (a specific day's plan slot) still referencing a
-/// garment that was just removed from the suitcase — from
-/// `DELETE /suitcase-items/{garment_id}`'s `affected_options`. Purely
-/// informational: the removal itself already succeeded regardless of this
-/// list, and nothing about the day's outfit, its render, or the option
-/// itself is changed automatically — no Fix/Replan action is offered yet.
+/// A plan option still using a garment just removed from the suitcase
+/// (`affected_options`). Informational only — nothing is changed for it.
 class TripAffectedOption {
   final int dayId;
   final DateTime? date;
@@ -240,13 +202,8 @@ class TripAffectedOption {
   }
 }
 
-/// Builds the `days` filter for `TripService.generateTripPlan` from whichever
-/// of [days] actually need it ([TripDayOutfit.needsReplan] against
-/// [suitcaseIds]) — the one place both Replan entry points (TripSuitcasePage
-/// and TripDetailsPage) turn "what needs replanning" into the request body,
-/// so they can't drift into different rules. Returns `null` when nothing
-/// needs it — the caller's cue to skip calling `generate` entirely rather
-/// than sending a `days` list with nothing in it.
+/// The `days` filter for `generateTripPlan`, shared by both Replan entry
+/// points. Null when nothing needs replanning — skip the call.
 List<Map<String, dynamic>>? daysToReplan(
   List<TripDayOutfit> days,
   Set<int> suitcaseIds,

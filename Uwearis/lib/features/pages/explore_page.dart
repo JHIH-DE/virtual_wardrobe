@@ -10,14 +10,8 @@ import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/explore_nav_bar.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 
-/// Discovery feed reached from Home's "Explore" pill. Pushed on top of the
-/// tab shell (not a tab itself), so its toolbar mirrors Home's — brand title
-/// centred, a leading pill and a trailing action — but the pill points back
-/// *to* Home and the trailing action is a notifications bell rather than the
-/// settings gear. Carries its own [ExploreNavBar] (five tabs, no center
-/// button) instead of the main [MainNavBar].
-///
-/// Content is a placeholder for now; only the chrome is wired up.
+/// Discovery feed pushed from Home's "Explore" pill, with its own
+/// [ExploreNavBar]. Content is a placeholder; only the chrome is wired up.
 class ExplorePage extends StatefulWidget {
   const ExplorePage({super.key});
 
@@ -47,12 +41,7 @@ class _ExplorePageState extends State<ExplorePage> {
         showBackButton: false,
         leadingWidth: 136,
         leading: Padding(
-          // Matches Home's leading pill inset.
           padding: const EdgeInsets.only(left: 20),
-          // centerLeft, not Center: the leading slot is wider than the pill,
-          // so a plain Center would float a shorter label ("Home") further
-          // right than a longer one — anchor the left edge instead so it
-          // lines up with Home's pill regardless of label width.
           child: Align(
             alignment: Alignment.centerLeft,
             child: AccentPillButton(
@@ -86,9 +75,7 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 }
 
-/// Trailing bell in the Explore toolbar — same touch-target/slot treatment as
-/// Home's settings gear. Visual only for now: there's no notifications screen
-/// to open yet.
+/// Visual only — there's no notifications screen yet.
 class _NotificationsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

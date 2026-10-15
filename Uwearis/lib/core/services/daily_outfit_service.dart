@@ -9,13 +9,9 @@ import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
-/// Client for the `/daily_outfits` API — a day's plan whose options each
-/// point at one of the user's own `general` outfits, picked server-side by
-/// rules (weather, occasion, recent wear) rather than AI-generated, so no
-/// try-on render or daily quota is involved. Nothing generates a plan in
-/// the background: [generate] (called by `DailyOutfitNotifier` when today
-/// has none) is the only way a date gets one; both it and [getDailyOutfit]
-/// return the day's picked outfits.
+/// `/daily_outfits`: a day's options point at the user's own `general`
+/// outfits, picked server-side by rules (no AI render, no quota). Only
+/// [generate] creates a plan; nothing does it in the background.
 class DailyOutfitService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/daily_outfits';
 
@@ -42,8 +38,7 @@ class DailyOutfitService with BaseService {
     return _parseOutfits(data, op: 'getDailyOutfit');
   }
 
-  /// The `outfits` list both [getDailyOutfit] and [generate] return — the
-  /// day's picked outfits in option order, as plain `OutfitOut`s.
+  /// The day's outfits in option order.
   List<Outfit> _parseOutfits(Map<String, dynamic> data, {required String op}) {
     final outfits = data['outfits'];
     if (outfits is! List) {
@@ -57,20 +52,12 @@ class DailyOutfitService with BaseService {
     return result;
   }
 
-  /// Picks (or, for a date that already has one, entirely overwrites)
-  /// [date]'s outfit plan from the user's own outfits and returns the picked
-  /// outfits — the same list a [getDailyOutfit] right after would return,
-  /// so there's no need to read it back separately. Overwriting only
-  /// drops the old option rows; the outfits they pointed at are untouched.
-  /// Picking is randomized, so calling again usually returns a different
-  /// set.
+  /// Picks (or overwrites) [date]'s plan; randomized, so a repeat call
+  /// usually differs. Overwriting leaves the outfits themselves untouched.
   ///
-  /// [occasion] left null reuses whatever occasion is already stored for
-  /// [date], falling back to `casual_daily` server-side.
-  /// [alternativesPerDay] (0-3) is how many alternatives to pick alongside
-  /// the primary option — the call fails with a 422
-  /// `INSUFFICIENT_OUTFIT_DATA` `ApiException` if fewer than
-  /// `1 + alternativesPerDay` outfits suit the day.
+  /// Null [occasion] reuses the stored one (server default `casual_daily`).
+  /// [alternativesPerDay] is 0-3; fewer than `1 + alternativesPerDay`
+  /// suitable outfits is a 422 `INSUFFICIENT_OUTFIT_DATA`.
   Future<List<Outfit>> generate({
     required DateTime date,
     String? occasion,

@@ -16,16 +16,8 @@ import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
 import '../l10n/generated/app_localizations.dart';
 
-/// Persistent shell hosting the app's 4 main tabs (Home, My Closet, Outfits,
-/// Trips) in an [IndexedStack]. Unlike pushing each tab as its own
-/// route, this keeps every tab's widget state (scroll position, in-progress
-/// filters, etc.) alive across switches, and the main nav bar is built
-/// once here rather than per-page — so switching tabs is a plain `setState`
-/// with no route transition to animate, and the bar never flickers.
-///
-/// Also owns the nav bar's raised center button (add clothing / add outfit /
-/// new trip) — it lives here rather than on a single page since it needs
-/// to work the same regardless of which tab is active.
+/// Keeps the 4 main tabs alive in an [IndexedStack] (scroll position and
+/// filters survive tab switches) and owns the nav bar and its quick actions.
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
 
@@ -35,20 +27,14 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   MainTab _current = MainTab.home;
-  // Every tab stays mounted in the IndexedStack below, so each one's own
-  // background fetch (garments, outfits, trips) reports its loading state
-  // independently — keyed by tab here so a hidden tab's fetch never shows
-  // the shell-level overlay over whichever tab the user is actually
-  // looking at (see MainShellScope.setLoading).
+  // Keyed by tab so a hidden tab's background fetch never shows the overlay
+  // over the visible tab.
   final Map<MainTab, String?> _loadingLabelByTab = {};
 
   @override
   void initState() {
     super.initState();
-    // Deferred to after the first frame — same reason every other
-    // context-needing initState hook in this app is (e.g. HomePage's
-    // mainTabReporter): MainShellScope/AppLocalizations lookups aren't
-    // safe to run during initState itself.
+    // Post-frame: inherited-widget lookups aren't safe during initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) SharedMediaHandler.listen(context, ref);
     });
@@ -70,15 +56,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     });
   }
 
-  /// A left/right swipe *anywhere* on the page cycles to the next/previous
-  /// tab in [MainTab.values] order, wrapping around. Handled once here
-  /// (rather than per-page) so every tab gets the gesture for free.
-  ///
-  /// The [GestureDetector] is [HitTestBehavior.translucent] and sits above
-  /// the tab pages, so Flutter's gesture arena naturally resolves a drag
-  /// that starts on an in-page horizontal scroller (Home's outfit carousel /
-  /// "recently added" row, My Closet's category strip) to that deeper
-  /// scroller — it wins, and this only fires for drags that start elsewhere.
+  /// Swipe left/right anywhere to cycle tabs (wrapping). An in-page
+  /// horizontal scroller wins the gesture arena for drags that start on it.
   void _handleSwipe(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     const threshold = 200.0;
@@ -98,8 +77,6 @@ class _MainShellState extends ConsumerState<MainShell> {
           context,
           onAdded: (g) {
             ref.read(garmentsProvider.notifier).addGarment(g);
-            // Land on My Closet regardless of which tab the quick action
-            // was triggered from.
             _select(MainTab.closet);
           },
         );
@@ -139,10 +116,7 @@ class _MainShellState extends ConsumerState<MainShell> {
             onSelect: _select,
             onQuickAction: _handleQuickAction,
           ),
-          // Painted last so it sits above MainNavBar and truly covers
-          // the whole screen — see MainShellScope.setLoading. Only the
-          // *currently active* tab's loading state can trigger this, even
-          // though every tab reports its own independently.
+          // Painted last so it also covers MainNavBar.
           if (_loadingLabelByTab[_current] != null)
             LoadingOverlay(label: _loadingLabelByTab[_current]!),
         ],
@@ -151,12 +125,8 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 }
 
-/// Warms [garmentsProvider] behind a modal [LoadingOverlay] (see CLAUDE.md's
-/// "Loading/empty/error state" on why a cross-tab helper like this uses a
-/// modal instead of `MainShellScope.setLoading`), then pushes
-/// [AddOutfitPage]. Shared between [MainShell]'s own "+ Add Outfit" quick
-/// action and `SharedMediaHandler` (which also passes
-/// [initialMatchALookImagePath] for a photo shared in from another app).
+/// Warms [garmentsProvider] behind a modal [LoadingOverlay], then pushes
+/// [AddOutfitPage]. Also used by `SharedMediaHandler` for a shared-in photo.
 Future<void> openAddOutfit(
   BuildContext context,
   WidgetRef ref, {
@@ -171,8 +141,7 @@ Future<void> openAddOutfit(
         LoadingOverlay(label: AppLocalizations.of(context).loadingGarments),
   );
   try {
-    // Warm garmentsProvider before opening the page (it reads the provider
-    // directly now); also lets an expired session surface here.
+    // Also lets an expired session surface here.
     await ref.read(garmentsProvider.future);
     if (!context.mounted) return;
     Navigator.pop(context); // close loading indicator

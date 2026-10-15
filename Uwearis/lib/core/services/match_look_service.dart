@@ -8,11 +8,8 @@ import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
-/// Thrown for a non-2xx Match a Look response that isn't a 401 — carries
-/// the backend's own `error_code` (see match-look-api.md) so callers can
-/// show a specific message for the handful of codes worth distinguishing
-/// (no person detected, multiple people, closet too small, ...) instead of
-/// one generic failure string.
+/// Non-2xx, non-401 Match a Look response, carrying the backend's
+/// `error_code` (no person detected, multiple people, closet too small, ...).
 class MatchLookException implements Exception {
   final String? errorCode;
   final String message;
@@ -22,8 +19,6 @@ class MatchLookException implements Exception {
   String toString() => 'MatchLookException($errorCode, $message)';
 }
 
-/// Plain per-call service — it holds no state, so there is nothing to make it
-/// a singleton for (see the service-layer rules in CLAUDE.md).
 class MatchLookService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/match_look';
 
@@ -44,8 +39,6 @@ class MatchLookService with BaseService {
     return body;
   }
 
-  /// Steps 1+2 of match-look-api.md's flow: request a signed upload slot,
-  /// then PUT the reference photo straight to it.
   Future<InitUploadResult> _initUpload() async {
     debugLog('--- _initUpload ---');
     final uri = Uri.parse('$_baseUrl/reference/init-upload');
@@ -65,11 +58,8 @@ class MatchLookService with BaseService {
     return InitUploadResult.fromJson(data);
   }
 
-  /// Uploads [localImagePath] as the single active reference look and has
-  /// the backend analyze it (step 3, `POST /reference`) — this is the
-  /// expensive "AI reads the photo" call, not the closet search
-  /// ([matchLook] is separate). Overwrites whatever reference the user had
-  /// active before; the backend only ever keeps one per user.
+  /// Uploads and AI-analyzes the reference look, replacing the user's
+  /// previous one (the backend keeps one per user).
   Future<void> uploadReference(String localImagePath) async {
     debugLog('--- uploadReference: $localImagePath ---');
     final init = await _initUpload();
@@ -88,10 +78,8 @@ class MatchLookService with BaseService {
     _decode(res, op: 'matchLookReference');
   }
 
-  /// Step 5: matches the closet against whichever reference
-  /// [uploadReference] most recently analyzed. Takes no body — the
-  /// backend re-runs against its stored reference, so this alone is
-  /// enough to refresh recommendations after the closet changes.
+  /// Matches the closet against the stored reference — enough on its own to
+  /// refresh results after the closet changes.
   Future<MatchALookResult> matchLook() async {
     debugLog('--- matchLook ---');
     final uri = Uri.parse('$_baseUrl/match');
@@ -107,9 +95,7 @@ class MatchLookService with BaseService {
     return MatchALookResult.fromJson(data);
   }
 
-  /// Clears the user's active reference look server-side. A 404 (nothing
-  /// to remove) is treated as success — same "already gone" tolerance as
-  /// [GarmentService.deleteGarment].
+  /// 404 (nothing to remove) counts as success.
   Future<void> removeReference() async {
     debugLog('--- removeReference ---');
     await deleteIdempotent(

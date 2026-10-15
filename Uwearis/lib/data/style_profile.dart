@@ -1,11 +1,8 @@
 import 'style_type.dart';
 
-/// One entry from `GET /users/me/style_profile` (`ProfileService
-/// .getMyStyleProfile`) — how many of the user's outfits are tagged with
-/// [style]. The backend already sorts these high to low by [count]. [style]
-/// is null when the backend returns a style string this app doesn't
-/// recognize yet — [rawStyle] is kept so callers can still show *something*
-/// rather than silently dropping the entry.
+/// How many of the user's outfits are tagged with [style]; the backend sorts
+/// by [count], high to low. [style] is null for an unrecognized value —
+/// [rawStyle] keeps it showable.
 class StyleProfileItem {
   final StyleType? style;
   final String rawStyle;

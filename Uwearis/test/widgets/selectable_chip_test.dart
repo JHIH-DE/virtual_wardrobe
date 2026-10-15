@@ -139,8 +139,7 @@ void main() {
         );
       }
 
-      // Tap the top edge of the 2nd tab (would miss a ~38px pill centred in
-      // the row) and confirm it still registers.
+      // The top edge is outside the pill but inside the hit box.
       final secondTab = tester.getRect(find.byType(SelectableChip).at(1));
       await tester.tapAt(Offset(secondTab.center.dx, secondTab.top + 2));
       await tester.pump();

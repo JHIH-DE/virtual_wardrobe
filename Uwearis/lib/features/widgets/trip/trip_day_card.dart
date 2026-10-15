@@ -5,9 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 
-/// One day's tile in [TripDetailsPage]'s horizontal day selector — date
-/// badge + weekday label, plus the day's temperature range (from the trip
-/// plan itself) when available. Selection only changes on tap.
+/// One day's tile in Trip Details' horizontal day selector.
 class TripDayCard extends StatelessWidget {
   final DateTime date;
   final bool isSelected;
@@ -62,9 +60,6 @@ class TripDayCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // scaleDown so a wide weekday abbreviation (or a wider glyph set
-          // under a different locale/font) shrinks to fit the fixed card
-          // width instead of overflowing the row.
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(

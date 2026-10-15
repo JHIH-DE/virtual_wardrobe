@@ -60,18 +60,21 @@ void main() {
       expect(outfits!.single.id, 1);
     });
 
-    test('returns null when data is null (no plan for that date yet)', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(_envelope(null)),
-      );
+    test(
+      'returns null when data is null (no plan for that date yet)',
+      () async {
+        final client = MockClient(
+          (request) async => _jsonResponse(_envelope(null)),
+        );
 
-      final outfits = await http.runWithClient(
-        () => DailyOutfitService().getDailyOutfit('2026-09-02'),
-        () => client,
-      );
+        final outfits = await http.runWithClient(
+          () => DailyOutfitService().getDailyOutfit('2026-09-02'),
+          () => client,
+        );
 
-      expect(outfits, isNull);
-    });
+        expect(outfits, isNull);
+      },
+    );
 
     test('throws when data is present but has no outfits list', () async {
       final client = MockClient(
@@ -87,18 +90,28 @@ void main() {
       );
     });
 
-    // The GET carries a .timeout(); a stalled request must surface a
-    // TimeoutException rather than hang the caller forever.
-    test('surfaces a TimeoutException from a stalled request', () async {
-      await expectLater(
-        http.runWithClient(
-          () => DailyOutfitService().getDailyOutfit('2026-09-02'),
-          () => MockClient((request) async {
-            throw TimeoutException('simulated slow request');
-          }),
-        ),
-        throwsA(isA<TimeoutException>()),
+    // testWidgets for its fake clock, so the 15s timeouts elapse instantly.
+    testWidgets('times out a stalled request after one retry', (tester) async {
+      var calls = 0;
+      Object? error;
+      http.runWithClient(
+        () => DailyOutfitService()
+            .getDailyOutfit('2026-09-02')
+            .then<void>((_) {}, onError: (Object e) => error = e),
+        () => MockClient((request) {
+          calls++;
+          return Completer<http.Response>().future;
+        }),
       );
+
+      await tester.pump(const Duration(seconds: 15));
+      expect(calls, 1);
+      expect(error, isNull);
+
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 15));
+      expect(calls, 2);
+      expect(error, isA<TimeoutException>());
     });
   });
 

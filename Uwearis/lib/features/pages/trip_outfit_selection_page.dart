@@ -13,13 +13,8 @@ import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/outfit/outfit_grid.dart';
 import 'trip_outfit_version_page.dart';
 
-/// Lets the user pick one of their saved outfits, then one of its versions
-/// ([TripOutfitVersionPage]), so that version's garments can be added to a
-/// trip's suitcase in one go — pops with the chosen version's [Outfit], or
-/// null if dismissed without picking one.
-///
-/// The list is the same "standalone try-ons" the Outfits tab shows, so this
-/// reads [outfitsProvider] rather than fetching its own copy.
+/// Pick an outfit, then a version ([TripOutfitVersionPage]), to pack its
+/// garments; pops with the chosen [Outfit] or null.
 class TripOutfitSelectionPage extends ConsumerStatefulWidget {
   const TripOutfitSelectionPage({super.key});
 

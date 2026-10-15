@@ -2,24 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
-/// [DialogOptionCard]'s two visual treatments — see the class doc for when
-/// each applies. Add a new variant here rather than a second widget if a
-/// third shape is ever needed for the same "pick one of a few actions"
-/// concept.
 enum DialogOptionCardVariant {
-  /// Icon-left, label-right pill row — the original/default shape.
+  /// Icon-left, label-right pill row.
   row,
 
-  /// Icon-in-a-circle above a centered label, meant to sit side by side
-  /// with another square card (e.g. Camera / Album) rather than stacked.
+  /// Icon circle above a centered label, for side-by-side cards.
   square,
 }
 
-/// A tappable icon+label option inside an [AppDialog]'s custom `content` —
-/// the shared shape behind every "pick one of a few actions" dialog
-/// (`GarmentUploadHelper`'s Take Photo/Choose from Album, `SharedMediaHandler`'s
-/// Add Clothing/Match a Look). Reuse this — with [variant] for a different
-/// layout — rather than a second copy.
+/// A tappable icon+label option for "pick one of a few actions" dialogs.
 class DialogOptionCard extends StatelessWidget {
   final Widget icon;
   final Widget label;
@@ -64,9 +55,7 @@ class _RowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Shadow on a plain container; the fill + ink on a Material inside it,
-    // so InkWell's pressed highlight actually shows (an opaque Container on
-    // top of the ink would hide it).
+    // Fill lives on the inner Material so it doesn't hide InkWell's ink.
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -99,9 +88,6 @@ class _RowCard extends StatelessWidget {
                 children: [
                   icon,
                   const SizedBox(width: 14),
-                  // scaleDown so a longer label (or wider glyph metrics on
-                  // iOS's bundled font) shrinks to fit rather than
-                  // overflowing the row.
                   Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
@@ -145,10 +131,6 @@ class _SquareCard extends StatelessWidget {
         highlightColor: AppColors.pressedOverlay,
         child: AspectRatio(
           aspectRatio: 1,
-          // The icon circle is sized off the card's own (LayoutBuilder)
-          // width rather than a fixed constant, so this never overflows a
-          // narrower card — a dialog width the caller controls, and two of
-          // these sit side by side.
           child: LayoutBuilder(
             builder: (context, constraints) {
               final circleSize = constraints.maxWidth * 0.5;

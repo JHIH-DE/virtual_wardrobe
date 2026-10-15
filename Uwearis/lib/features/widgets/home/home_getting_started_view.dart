@@ -8,55 +8,28 @@ import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/cards/app_card_shell.dart';
 
-/// The Getting Started content [HomePage] shows in place of Today's
-/// Outfit/Upcoming Trip/Recently Added for a user who hasn't finished the
-/// minimum setup yet — see `home_page.dart`'s `_isGettingStarted` for the
-/// completion rule this reflects. A complete initial flow is About You +
-/// Profile Photo + Full-Body Photo + Closet + creating the first outfit —
-/// this view shows all five as one checklist card, with a single CTA below
-/// it that always targets whichever step is next (see
-/// [_buildChecklistCard]/[_buildCtaButton]), rather than swapping between
-/// separate step screens. [HomePage] omits its date/weather header for this
-/// state (nothing there
-/// is relevant before setup is done) and renders this as one section of its
-/// existing scroll body, not a full-screen replacement, so it owns no
-/// scroll container, outer page padding, or bottom nav-bar clearance of its
-/// own — the main nav bar stays exactly as it is in normal Home.
-///
-/// Purely presentational — [HomePage] owns every provider read and
-/// navigation call and passes down plain booleans + callbacks, so this
-/// widget never touches a service/provider directly (see CLAUDE.md's
-/// "Widget reuse and extraction" on keeping business logic out of
-/// presentational widgets).
+/// Home's setup checklist for a user who hasn't finished onboarding (see
+/// `HomePage._isGettingStarted`). Rendered inside Home's scroll body, so it
+/// owns no scroll container, page padding or nav-bar clearance.
 class HomeGettingStartedView extends StatelessWidget {
-  /// Whether Account's four required fields (name/gender/birthday/home
-  /// location) are all filled in — see `AccountPage`'s own
-  /// `_hasRequiredAboutYouFields`.
+  /// Name, gender, birthday and home location are all filled in.
   final bool hasAboutYou;
   final bool hasProfilePhoto;
   final bool hasFullBodyPhoto;
 
-  /// Whether the closet already has at least one active garment in each of
-  /// these three categories — the closet step's completion rule, needed
-  /// individually (rather than one aggregate bool) so its checklist can show
-  /// per-category progress the same way the profile step does for its two
-  /// reference photos.
+  /// At least one active garment in each category.
   final bool hasTop;
   final bool hasBottom;
   final bool hasShoes;
 
-  /// Opens `AccountPage` (in its onboarding mode) — the first sub-step of
-  /// this profile step. `AccountPage` itself continues on to the existing
-  /// My Virtual Model flow (`MyVirtualModelPage`, which owns both
-  /// reference-photo upload flows) once its own required fields are filled
-  /// in, so this view never re-implements either of those flows.
+  /// An established user can land here (incomplete closet) with outfits.
+  final bool hasCreatedOutfit;
+
+  /// Opens Account in onboarding mode, which continues on to My Virtual
+  /// Model for the two reference photos.
   final VoidCallback onGetStarted;
 
-  /// Opens the existing Add Clothing flow (`GarmentUploadHelper`).
   final VoidCallback onAddClothing;
-
-  /// Opens the existing Add Outfit flow — same action as normal Home's own
-  /// "Create Outfit" trigger (`HomePage._openAddOutfit`).
   final VoidCallback onCreateOutfit;
 
   const HomeGettingStartedView({
@@ -67,6 +40,7 @@ class HomeGettingStartedView extends StatelessWidget {
     required this.hasTop,
     required this.hasBottom,
     required this.hasShoes,
+    required this.hasCreatedOutfit,
     required this.onGetStarted,
     required this.onAddClothing,
     required this.onCreateOutfit,
@@ -100,16 +74,6 @@ class HomeGettingStartedView extends StatelessWidget {
     );
   }
 
-  /// One checklist covering the whole initial flow — About You, My Virtual
-  /// Model, Top, Bottom, Shoes, then creating the first outfit — instead of
-  /// swapping between three separate step screens. [onCreateOutfit]'s row
-  /// has no "done" state of its own to show as checked: [HomePage] only
-  /// renders this whole view while [_isGettingStarted] is true, and that
-  /// stays true until the outfit is actually created, so this row is always
-  /// the last one pending whenever it's reachable (i.e. once every row
-  /// above it is done). The CTA lives inside the same card, right-aligned
-  /// below the checklist, rather than as a separate full-width element
-  /// beneath it.
   Widget _buildChecklistCard(BuildContext context, AppLocalizations l10n) {
     return AppCardShell(
       child: Column(
@@ -139,7 +103,7 @@ class HomeGettingStartedView extends StatelessWidget {
             done: hasShoes,
           ),
           const SizedBox(height: 14),
-          _ChecklistRow(label: l10n.createOutfit, done: false),
+          _ChecklistRow(label: l10n.createOutfit, done: hasCreatedOutfit),
           const SizedBox(height: AppDimens.sectionSpacing),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -150,21 +114,7 @@ class HomeGettingStartedView extends StatelessWidget {
     );
   }
 
-  /// One CTA that always targets whichever step is next, rather than a
-  /// separate button per step screen. Styled like [AppDialog]'s filled
-  /// accent primary button (same fill/radius/elevation/border/text
-  /// treatment) rather than [AccentPillButton] — this sits at the bottom of
-  /// a content card as the checklist's one call to action, the same role
-  /// that button plays at the bottom of a dialog, not a lightweight
-  /// secondary affordance next to a section header. It hugs its label
-  /// instead of stretching full-width, since it's right-aligned beside the
-  /// checklist rather than stacked alone.
-  ///
-  /// The label only ever says "Get Started" (before [hasAboutYou] — the
-  /// checklist's first row — is done) or "Next" (every step after); it
-  /// doesn't spell out which specific action comes next the way the
-  /// checklist rows themselves already do. [onPressed] still targets the
-  /// right callback for whichever step is actually next.
+  /// One CTA that targets whichever step is next.
   Widget _buildCtaButton(AppLocalizations l10n) {
     final VoidCallback onPressed;
     if (!_profileReady) {
@@ -183,11 +133,7 @@ class HomeGettingStartedView extends StatelessWidget {
   }
 }
 
-/// The filled accent button from [AppDialog]'s own `_buildPrimaryButton`,
-/// re-shaped to hug its label instead of stretching full-width — that
-/// version is a private build method on a `StatefulWidget`, not a shared
-/// component, so this reproduces its exact fill/radius/elevation/border/
-/// text recipe rather than importing it.
+/// [AppDialog]'s private primary-button style, sized to hug its label.
 class _AccentActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
@@ -200,9 +146,6 @@ class _AccentActionButton extends StatelessWidget {
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.accent,
-        // Matches BottomActionButton's/AppDialog's primary button height —
-        // width hugs the label since this button sits right-aligned, not
-        // stretched full-width like AppDialog's own.
         minimumSize: const Size(0, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -211,20 +154,12 @@ class _AccentActionButton extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTextStyle.regular16.copyWith(
-          color: AppColors.textOnPrimary,
-          fontWeight: FontWeight.w500,
-        ),
+        style: AppTextStyle.medium16.copyWith(color: AppColors.textOnPrimary),
       ),
     );
   }
 }
 
-/// A single "○ / ✓" checklist line — deliberately not [CardCornerBadge]
-/// (that's a photo-overlay/list-row action badge, a different product
-/// concept; see CLAUDE.md's "Corner badges") — but it follows the same
-/// resting-state color convention: neutral/incomplete is
-/// [AppColors.hintText], done switches to [AppColors.accent].
 class _ChecklistRow extends StatelessWidget {
   final String label;
   final bool done;

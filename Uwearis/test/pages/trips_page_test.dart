@@ -49,7 +49,7 @@ void main() {
       await tester.tap(find.text('Plan a Trip'));
       await tester.pumpAndSettle();
 
-      // TripCreateDialog's own field — FieldLabel renders it upper-cased.
+      // FieldLabel upper-cases it.
       expect(find.text('TRIP NAME'), findsOneWidget);
     },
   );
@@ -124,8 +124,7 @@ void main() {
 
         await tester.tap(find.text('open'));
         await tester.pump();
-        // Already in the tree on the very next frame (the route's first
-        // frame is laid out offstage) — nothing was awaited first.
+        // Pushed on the very next frame, with nothing awaited first.
         expect(
           find.byType(TripDetailsPage, skipOffstage: false),
           findsOneWidget,

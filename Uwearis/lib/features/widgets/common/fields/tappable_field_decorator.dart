@@ -27,7 +27,7 @@ class TappableFieldDecorator extends StatelessWidget {
         child: SizedBox(
           height: AppDimens.tappableFieldHeight,
           child: Padding(
-            // Matches PickerField/AppTextField's measured 14px text inset.
+            // Matches AppTextField's 10px horizontal content padding.
             padding: const EdgeInsets.only(left: 10, right: 10),
             child: Row(children: children),
           ),

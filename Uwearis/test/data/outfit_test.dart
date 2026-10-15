@@ -46,8 +46,7 @@ void main() {
       expect(outfit.style, isEmpty);
       expect(outfit.backgroundId, isNull);
       expect(outfit.isFavorite, isFalse);
-      // Attached separately by OutfitService from the group wrapper, never
-      // present on a bare OutfitOut payload.
+      // Set by OutfitService from the group wrapper, not the outfit payload.
       expect(outfit.coverOutfitId, isNull);
       expect(outfit.groupName, isNull);
     });
@@ -69,8 +68,6 @@ void main() {
       expect(outfit.id, 0);
     });
 
-    // An external API can serialize an integer id as a float (e.g. 101.0);
-    // that must parse to 101, not silently collapse to 0.
     test('parses ids given as a float, same as ints', () {
       final outfit = Outfit.fromJson({
         'outfit_id': 101.0,
@@ -83,23 +80,21 @@ void main() {
       expect(outfit.garmentIds, [12, 55, 88]);
     });
 
-    // Regression: some backend responses embed each garment as an object
-    // (`{garment_id: ...}` or `{id: ...}`) instead of a bare id — mirrors
-    // trip suitcase items' own dual shape (see parseSuitcaseItemIds in
-    // trip_plan.dart). Before this, an embedded object silently parsed to a
-    // fake id 0, and OutfitDetailsPage._loadGarments resolving that single
-    // bad id 404s and (via one Future.wait covering every garment) blanks
-    // out the *entire* garment list for the outfit, not just the bad entry.
-    test('accepts garment_ids entries embedded as {garment_id: ...} objects', () {
-      final outfit = Outfit.fromJson({
-        'outfit_id': 1,
-        'garment_ids': [
-          {'garment_id': 12, 'name': 'Denim Jacket'},
-          {'garment_id': 55, 'name': 'Cargo Pants'},
-        ],
-      });
-      expect(outfit.garmentIds, [12, 55]);
-    });
+    // Some responses embed each garment as `{garment_id: ...}` / `{id: ...}`
+    // instead of a bare id.
+    test(
+      'accepts garment_ids entries embedded as {garment_id: ...} objects',
+      () {
+        final outfit = Outfit.fromJson({
+          'outfit_id': 1,
+          'garment_ids': [
+            {'garment_id': 12, 'name': 'Denim Jacket'},
+            {'garment_id': 55, 'name': 'Cargo Pants'},
+          ],
+        });
+        expect(outfit.garmentIds, [12, 55]);
+      },
+    );
 
     test('accepts garment_ids entries embedded as {id: ...} objects', () {
       final outfit = Outfit.fromJson({
@@ -116,7 +111,11 @@ void main() {
         'fake 0', () {
       final outfit = Outfit.fromJson({
         'outfit_id': 1,
-        'garment_ids': [12, {'name': 'no id here'}, 55],
+        'garment_ids': [
+          12,
+          {'name': 'no id here'},
+          55,
+        ],
       });
       expect(outfit.garmentIds, [12, 55]);
     });
@@ -132,11 +131,18 @@ void main() {
       expect(outfit.style, ['minimal']);
     });
 
-    test('treats an empty season/style string as no tags, not one blank tag', () {
-      final outfit = Outfit.fromJson({'outfit_id': 1, 'season': '', 'style': ''});
-      expect(outfit.seasons, isEmpty);
-      expect(outfit.style, isEmpty);
-    });
+    test(
+      'treats an empty season/style string as no tags, not one blank tag',
+      () {
+        final outfit = Outfit.fromJson({
+          'outfit_id': 1,
+          'season': '',
+          'style': '',
+        });
+        expect(outfit.seasons, isEmpty);
+        expect(outfit.style, isEmpty);
+      },
+    );
 
     test('treats is_favorite of 1 the same as true (loose backend typing)', () {
       final outfit = Outfit.fromJson({'outfit_id': 1, 'is_favorite': 1});
@@ -167,11 +173,14 @@ void main() {
       expect(untouched.coverOutfitId, 55);
     });
 
-    test('clearCoverOutfitId nulls it out even though coverOutfitId itself is omitted', () {
-      final withCover = build().copyWith(coverOutfitId: 55);
-      final cleared = withCover.copyWith(clearCoverOutfitId: true);
-      expect(cleared.coverOutfitId, isNull);
-    });
+    test(
+      'clearCoverOutfitId nulls it out even though coverOutfitId itself is omitted',
+      () {
+        final withCover = build().copyWith(coverOutfitId: 55);
+        final cleared = withCover.copyWith(clearCoverOutfitId: true);
+        expect(cleared.coverOutfitId, isNull);
+      },
+    );
 
     test('groupName is left untouched when omitted', () {
       final withName = build().copyWith(groupName: 'Weekend Look');
@@ -179,11 +188,14 @@ void main() {
       expect(untouched.groupName, 'Weekend Look');
     });
 
-    test('clearGroupName nulls it out even though groupName itself is omitted', () {
-      final withName = build().copyWith(groupName: 'Weekend Look');
-      final cleared = withName.copyWith(clearGroupName: true);
-      expect(cleared.groupName, isNull);
-    });
+    test(
+      'clearGroupName nulls it out even though groupName itself is omitted',
+      () {
+        final withName = build().copyWith(groupName: 'Weekend Look');
+        final cleared = withName.copyWith(clearGroupName: true);
+        expect(cleared.groupName, isNull);
+      },
+    );
   });
 
   group('Outfit.toJson', () {

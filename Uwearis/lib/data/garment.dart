@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Stable per-garment cache-key identity for [ImageCacheBust]/image widgets
-/// — pass the same key everywhere a given garment's photo is cached or
-/// bumped so replacing it (Edit image) busts the cache everywhere else.
-/// Mirrors `outfitImageCacheKey` (`lib/data/outfit.dart`).
+/// Stable cache key for a garment's photo; use it everywhere it's cached so
+/// replacing the image busts every copy.
 String garmentImageCacheKey(int garmentId) => 'garment-job-$garmentId';
 
 enum GarmentCategory { top, bottom, outer, onePiece, socks, shoes, accessory }
@@ -123,7 +121,7 @@ extension GarmentColorX on GarmentColor {
   }
 }
 
-/// Ordered tight → loose; the details page fit slider relies on this order.
+/// Ordered tight → loose; the details page's Fit picker lists it in order.
 enum GarmentFit { skinny, slim, regular, relaxed, oversized }
 
 extension GarmentFitX on GarmentFit {
@@ -193,8 +191,8 @@ extension GarmentSilhouetteX on GarmentSilhouette {
       _attrFromApiValue(value, GarmentSilhouette.values, (v) => v.apiValue);
 }
 
-/// Silhouettes the backend accepts per category (garments-api.md 附錄 C).
-/// Bottom covers both the trouser and skirt groups (`Flared` is shared).
+/// Silhouettes the backend accepts per category. Bottom covers both the
+/// trouser and skirt groups (`Flared` is shared).
 const Map<GarmentCategory, List<GarmentSilhouette>>
 garmentSilhouettesByCategory = {
   GarmentCategory.top: [
@@ -286,9 +284,7 @@ const Set<GarmentCategory> garmentCropLengthCategories = {
   GarmentCategory.onePiece,
 };
 
-/// Categories a garment's [GarmentFit] applies to — cut/silhouette is a
-/// meaningful choice for clothing with a body shape, not for shoes or
-/// accessories.
+/// Categories [GarmentFit] applies to (not shoes, socks or accessories).
 const Set<GarmentCategory> garmentFitCategories = {
   GarmentCategory.top,
   GarmentCategory.bottom,
@@ -296,14 +292,8 @@ const Set<GarmentCategory> garmentFitCategories = {
   GarmentCategory.onePiece,
 };
 
-/// Normalizes an accessory's AI-assigned `subCategory` into the slot it
-/// occupies for exclusivity purposes — "Hat" and "Cap" are both headwear,
-/// so picking one in one slot should rule out the other in every other slot
-/// even though the raw strings differ. `subCategory` has no fixed enum
-/// (it's freeform per garment), so this only merges pairs known to collide;
-/// extend the set here if more turn up. Shared by every outfit-composing
-/// picker that excludes already-worn accessory types (AddOutfitPage's own
-/// "Add garment" candidates, OutfitEditPage's accessory slots).
+/// Exclusivity slot for an accessory's freeform `subCategory` ("Hat" and
+/// "Cap" are both headwear). Only merges pairs known to collide.
 String accessorySlotKey(String subCategory) {
   final normalized = subCategory.toLowerCase();
   const headwear = {'hat', 'cap'};
@@ -311,15 +301,9 @@ String accessorySlotKey(String subCategory) {
   return normalized;
 }
 
-/// Normalizes a top's AI-assigned `subCategory` into its base-layer slot for
-/// exclusivity purposes — "T-shirt" and "Polo shirt" are both a base top, so
-/// picking one should replace the other rather than stack as a second,
-/// simultaneous [GarmentCategory.top] pick (unlike a genuine Mid Layer piece
-/// — a sweater/cardigan worn *over* a base top). Same shape as
-/// [accessorySlotKey]: only merges pairs known to collide; extend the set
-/// here if more turn up. Used by both outfit-composing pickers
-/// (AddOutfitPage, OutfitEditPage) to hide a worn top's base-layer
-/// alternatives and to decide top vs. mid-layer placement.
+/// Base-layer slot for a top's `subCategory` ("T-shirt" and "Polo shirt"
+/// replace each other instead of stacking like a mid layer would). Only
+/// merges pairs known to collide.
 String baseTopSlotKey(String subCategory) {
   final normalized = subCategory.toLowerCase();
   const baseTop = {'t-shirt', 'polo shirt'};
@@ -346,8 +330,8 @@ class Garment {
   final GarmentCategory category;
   final String subCategory;
 
-  /// Backend-side these are integer scales (0–5); the model matches. Not
-  /// read by any UI today — parsed and echoed straight back on upload.
+  /// Backend scales are 1–5; 0 means unset and is omitted from PATCH. Not
+  /// shown in the UI.
   final int thickness;
   final int formality;
   final String uploadUrl;
@@ -355,11 +339,8 @@ class Garment {
   final Map<String, dynamic>? metadata;
   final bool isFavorite;
 
-  /// Soft-deleted from the user's closet (backend keeps the row + image
-  /// because an outfit/trip item still references it) — see
-  /// [ActiveGarmentsX.active]. Never true for a garment `complete`d or
-  /// `PATCH`ed through the normal edit flow; only the backend's own delete
-  /// logic and `PATCH {is_deleted: false}` (restore) change it.
+  /// Soft-deleted: the backend keeps the row because an outfit/trip item
+  /// still references it. See [ActiveGarmentsX.active].
   final bool isDeleted;
 
   const Garment({
@@ -449,15 +430,9 @@ class Garment {
     );
   }
 
-  /// Parses a nullable API identifier (`id` / `garment_id`).
-  ///
-  /// These arrive as whole JSON numbers. Unlike the general numeric fields
-  /// ([parseIntField] in [fromJson]) this deliberately does **not** accept a
-  /// numeric string, and it rejects a fractional / `NaN` / `Infinity` value
-  /// by throwing rather than silently truncating it — a rounded id would
-  /// point at a different row. `null` / absent stays `null`; a non-number
-  /// (string, bool, …) throws a `TypeError` from the `as num` cast, matching
-  /// the previous `as int?` behaviour.
+  /// Unlike other numeric fields, an id is never parsed from a string or
+  /// rounded: a fractional id throws, since a rounded one would point at a
+  /// different row.
   static int? _parseNullableId(dynamic value) {
     if (value == null) return null;
     final n = value as num;
@@ -507,17 +482,8 @@ class Garment {
     );
   }
 
-  /// Builds a display-only Garment straight from a trip-plan item's own
-  /// embedded fields (`TripSuitcaseItemResponse`/`TripOutfitItemResponse`,
-  /// which return `image_url`/`category`/`name`/`color` inline) — trip pages
-  /// no longer need to fetch the whole closet and cross-reference
-  /// `garment_id` against it just to show a suitcase/day-outfit thumbnail.
-  /// Note [json]'s own `id` is the trip item's row id, not the garment's —
-  /// [id] here is deliberately set from `garment_id` instead, since that's
-  /// what every other call site treats as "the garment's id". Fields the
-  /// trip item response still doesn't carry (brand/fit/price/subCategory/...)
-  /// stay at their defaults; nothing in the trip UI reads them for these
-  /// garments.
+  /// Display-only Garment from a trip-plan item's embedded fields. The
+  /// item's own `id` is its row id, so [id] comes from `garment_id`.
   factory Garment.fromTripItemJson(Map<String, dynamic> json) {
     final garmentId = _parseNullableId(json['garment_id']);
     return Garment(
@@ -533,11 +499,8 @@ class Garment {
     );
   }
 
-  /// `purchase_date` as the API expects it: a date-only `yyyy-MM-dd` string.
-  /// The backend field is a Pydantic `date` and rejects a datetime carrying a
-  /// non-zero time component, so every request path must send date-only —
-  /// [toJson] (the PATCH payload) and `GarmentService.completeUpload` both
-  /// serialize through this so the two can't drift apart.
+  /// Date-only `yyyy-MM-dd`: the backend's Pydantic `date` rejects a
+  /// datetime with a non-zero time. Every request path must use this.
   String? get purchaseDateApiValue =>
       purchaseDate?.toIso8601String().split('T').first;
 
@@ -566,27 +529,16 @@ class Garment {
   }
 }
 
-/// Wraps the picker's chosen garment (or explicit "None") so a `null` pop
-/// result — the sheet dismissed without a choice — can be told apart from
-/// [garment] itself being `null` (the user explicitly picked "None").
+/// Tells a dismissed picker (`null` pop) apart from an explicit "None"
+/// ([garment] == null).
 class SelectGarmentResult {
   final Garment? garment;
   const SelectGarmentResult(this.garment);
 }
 
-/// `GarmentService.getGarments()` now fetches with `include_deleted=true`
-/// (so an outfit that references a since-deleted garment can still resolve
-/// it — see `OutfitDetailsPage._loadGarments`), which means every other
-/// "browse/pick a garment" screen reading from `garmentsProvider` gets
-/// soft-deleted entries mixed in unless it filters them out itself. Use
-/// `.active` wherever a list of garments is being *offered for selection*
-/// or *browsed as the closet* (My Closet's grid, Add Outfit's candidate
-/// pool, Home's "Recently Added", the trip suitcase "Add" picker, the
-/// versatility "compatible garments" lookups, …) — a deleted garment can't
-/// be used in a new outfit and shouldn't clutter those views. Don't apply
-/// it to a lookup keyed by an *already-known* garment id from an existing
-/// outfit's `garment_ids` — that's the one place a deleted garment must
-/// still resolve.
+/// `garmentsProvider` includes soft-deleted garments. Use `.active` wherever
+/// garments are browsed or offered for selection; not for resolving an
+/// existing outfit's `garment_ids`, where deleted ones must still resolve.
 extension ActiveGarmentsX on List<Garment> {
   List<Garment> get active => where((g) => !g.isDeleted).toList();
 }

@@ -2,17 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 
-/// Overlays a short same-color scrim on each edge of [child] (a
-/// horizontally-scrolling row) so content sliding past doesn't end
-/// abruptly at the row's border. Uses a same-color gradient rather than a
-/// ShaderMask blend — blending against the row's own colors made the fade
-/// look washed out / flash white during scroll.
-///
-/// [leftVisible]/[rightVisible] let a scroll-position listener hide
-/// whichever edge scrim has nothing left to fade (e.g. already scrolled all
-/// the way to that edge) — both default to always-visible. [leftIcon]/
-/// [rightIcon] optionally overlay a directional hint (e.g. a chevron)
-/// centered in that edge's scrim.
+/// Edge fades for a horizontal scroll row. A same-color gradient, not a
+/// ShaderMask: blending made the fade look washed out and flash white.
+/// [leftVisible]/[rightVisible] hide an edge with nothing left to scroll.
 class EdgeFadeScrim extends StatelessWidget {
   final Widget child;
   final double edgeWidth;

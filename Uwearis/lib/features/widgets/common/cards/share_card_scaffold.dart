@@ -4,36 +4,20 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// Shared frame for the share cards (garment / outfit): a fixed-size,
-/// bordered card with a flexible photo on top and a [AppColors.pageBackground]
-/// info block below, closed by a hairline and a small Uwearis signature. The
-/// `borderStrong` edge is what keeps the rasterized PNG from bleeding
-/// invisibly into a light chat/share-sheet background — this card has no
-/// drop shadow of its own (it's captured flat, not rendered on a page) to
-/// lean on instead, and `borderSubtle` (used for hairlines elsewhere) reads
-/// as barely-there against a white product-shot photo, so this needs the
-/// stronger token to actually trace the rounded corner over white.
+/// Fixed-size frame for the garment / outfit share cards: photo on top,
+/// [info] text stack and a Uwearis signature below.
 ///
-/// [image] is supplied by the caller so each card decides its own photo
-/// treatment (a lifestyle render bleeds edge-to-edge with `cover`; a garment
-/// product shot sits `contain` on white). [info] is the editorial text
-/// stack — name, meta lines — above the signature.
+/// `borderStrong`, not `borderSubtle`: the rasterized PNG has no shadow, so
+/// the edge alone must separate it from a light share-sheet background.
 class ShareCardScaffold extends StatelessWidget {
   final double width;
   final double height;
   final Widget image;
   final List<Widget> info;
 
-  /// Corner radius of the card. Defaults to [AppDimens.cardRadius]; pass 0
-  /// for a hard-edged card.
   final double borderRadius;
 
-  /// 1.5px, not the 1px default — over a garment card's white product shot
-  /// (`BoxFit.contain` on `AppColors.surface`) a hairline-width curve is
-  /// nearly imperceptible against the equally-white sheet behind it; the
-  /// outfit card's photo never has this problem (a lifestyle photo is
-  /// rarely plain white to the edges), but one shared scaffold means one
-  /// width that has to read clearly on both.
+  /// 1.5, not 1: a hairline curve vanishes over a garment's white product shot.
   static const double _borderWidth = 1.5;
 
   const ShareCardScaffold({
@@ -47,15 +31,8 @@ class ShareCardScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The border and the content clip are deliberately two separate
-    // `Radius`-bearing layers, inset from each other by exactly the
-    // border's own width (see `Padding` below) — relying on a single
-    // Container's clipBehavior to also bound an edge-to-edge opaque child
-    // (the photo) leaves the border's rounded corner painted *underneath*
-    // that child, since it's clipped to the same outer curve; Skia's
-    // anti-aliasing then doesn't perfectly reconcile the two independently
-    // drawn curves right at the arc, showing as a small notch at each
-    // corner instead of a clean edge — a straight edge has no such seam.
+    // Clip inset by the border width rather than clipping to the border's
+    // own curve: two anti-aliased curves at the same arc leave a notch.
     final innerRadius = (borderRadius - _borderWidth).clamp(
       0.0,
       double.infinity,
@@ -75,8 +52,6 @@ class ShareCardScaffold extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // The photo flexes to fill whatever the info block doesn't
-              // take, so the card stays a fixed size with no dead space.
               Expanded(child: image),
               Container(
                 color: AppColors.pageBackground,

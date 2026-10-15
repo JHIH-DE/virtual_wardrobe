@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// One axis of a [StyleTasteRadarChart] — an icon, the dimension's title,
-/// the label for whichever pole [score] currently leans toward, and the
-/// score itself (0.0-1.0).
+/// [valueLabel] names the pole [score] (0.0-1.0) leans toward.
 class StyleTasteRadarAxis {
   final IconData icon;
   final String title;
@@ -22,17 +20,13 @@ class StyleTasteRadarAxis {
   });
 }
 
-/// Read-only radar/spider chart plotting every learned preference dimension
-/// at once (rather than five disconnected bars), so the shape itself reads
-/// as "this is your style taste" at a glance. Each axis gets an icon,
-/// title, and current-pole label positioned just outside its vertex.
+/// Read-only radar chart of the learned style-taste dimensions, with each
+/// axis's label just outside its vertex.
 class StyleTasteRadarChart extends StatelessWidget {
   final List<StyleTasteRadarAxis> axes;
   final double size;
 
-  /// Chart radius as a fraction of [size] — deliberately sized so the plot
-  /// itself reads as the focal point, with just enough margin left over for
-  /// the axis labels to sit outside it without crowding.
+  /// Leaves enough margin for the axis labels outside the plot.
   static const double _radiusFraction = 0.30;
   static const double _labelBlockWidth = 78;
   static const double _labelBlockHeight = 56;
@@ -77,12 +71,8 @@ class StyleTasteRadarChart extends StatelessWidget {
     );
   }
 
-  /// Anchors the label so it grows *away* from the vertex instead of being
-  /// centered on it — a block centered on a mostly-horizontal vertex would
-  /// otherwise hang half over the chart itself (the bug this fixes).
-  /// [align] is the axis direction's component (-1..1) for one dimension;
-  /// at +1 the block starts exactly at the anchor and grows outward, at -1
-  /// it ends there and grows the other way, at 0 it's centered on it.
+  /// Grows the label away from the vertex so it never overlaps the chart.
+  /// [align] (-1..1): +1 starts at the anchor, -1 ends there, 0 centers.
   double _outwardOffset(double anchor, double align, double blockExtent) {
     return anchor - (blockExtent / 2) * (1 - align);
   }

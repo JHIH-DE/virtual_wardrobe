@@ -5,15 +5,8 @@ import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
 /// Rounded pill: filled [selectedColor] when [selected], outlined otherwise.
-/// Colors/text style default to the standard filter-chip look; pass overrides
-/// (as `CategorySelector` does) for other pill styles, e.g. a tab selector.
-///
-/// The visible pill stays as small as its [padding] + [textStyle] make it,
-/// but the tap target is padded out (transparently) to
-/// [AppDimens.minTouchTarget] tall so a near-miss above/below the pill still
-/// registers. In a layout that hands the chip a tight height smaller than
-/// that (a short horizontal strip), give the strip enough room — see
-/// [CategorySelector].
+/// The tap target is padded to [AppDimens.minTouchTarget] tall, so a
+/// horizontal strip hosting it needs that much height.
 class SelectableChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -61,15 +54,10 @@ class SelectableChip extends StatelessWidget {
     );
 
     return GestureDetector(
-      // opaque so the transparent band the ConstrainedBox adds above/below
-      // the visible pill is still part of the tap target.
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
-        // widthFactor keeps the row/Wrap seeing the pill's real width (so
-        // chip spacing is unchanged); the Center only grows vertically to
-        // fill the min-height band.
         child: Center(widthFactor: 1, child: pill),
       ),
     );

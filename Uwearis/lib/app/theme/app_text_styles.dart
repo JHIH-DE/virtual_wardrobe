@@ -3,17 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Every style below carries two `NotoSansTC` fixes (mirrored in
-/// [AppTheme]'s `textTheme` for Material defaults):
-///  - `fontWeight` + a matching `FontVariation('wght', …)`: it's a variable
-///    font and iOS CoreText renders it at the heaviest master without the
-///    explicit axis value.
-///  - `leadingDistribution: even`: its CJK line box is tall and top-heavy,
-///    so Latin text sits above centre in a button/chip unless the extra
-///    leading is split evenly above and below.
+/// Every `NotoSansTC` style (mirrored in [AppTheme]'s `textTheme`) carries:
+///  - a `FontVariation('wght', …)` matching `fontWeight`: iOS CoreText
+///    renders the variable font at its heaviest master without it.
+///  - `leadingDistribution: even`: the tall CJK line box otherwise pushes
+///    Latin text above centre.
 class AppTextStyle {
-  /// Home App Bar's "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads/
-  /// caches the font at call time rather than being a const constructor.
+  /// The "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads the font
+  /// at call time.
   static TextStyle get brandTitle => GoogleFonts.sora(
     fontSize: 22,
     fontWeight: FontWeight.w700,
@@ -22,8 +19,7 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
-  /// [brandTitle] at AppToolBar size (Home / Explore). The share card keeps
-  /// the base 22.
+  /// [brandTitle] at AppToolBar size (Home / Explore).
   static TextStyle get brandTitleToolbar => brandTitle.copyWith(fontSize: 24);
 
   // ── Bold (w700) ────────────────────────────────────────────────────────
@@ -132,9 +128,7 @@ class AppTextStyle {
 
   // ── Medium (w500) ─────────────────────────────────────────────────────
 
-  /// Matches AppDialog's primary button label and body copy (`regular16` +
-  /// `w500`) — use for other primary call-to-action buttons or dialog-style
-  /// paragraphs that should read the same, e.g. [BottomActionButton].
+  /// AppDialog body copy and [BottomActionButton]'s label.
   static const TextStyle medium16 = TextStyle(
     fontFamily: 'NotoSansTC',
     fontSize: 16,
@@ -209,9 +203,7 @@ class AppTextStyle {
 
   // ── Role-specific ─────────────────────────────────────────────────────
 
-  /// Small-caps label above a form field or card — e.g. Add Outfit's
-  /// per-slot category label, Garment Details' field titles. Pair with
-  /// `.toUpperCase()` on the text itself.
+  /// Small-caps field label; pair with `.toUpperCase()` on the text.
   static const TextStyle overline12 = TextStyle(
     fontFamily: 'NotoSansTC',
     fontSize: 12,
@@ -222,19 +214,12 @@ class AppTextStyle {
     color: AppColors.textSecondary,
   );
 
-  /// Body/description text inside a `UwearisInsightCard` — the AI-generated
-  /// copy itself, or a short status/loading line. Every call site (Style
-  /// Taste, Garment Details, Home, and `ExpandableInsightBody`'s own detail
-  /// paragraph — Trip Suitcase / Trip garment selection) should use this
-  /// rather than re-deriving its own `regular14`/`textSecondary` combo, so
-  /// plain body content reads identically everywhere the card appears.
+  /// Body text inside a `UwearisInsightCard`.
   static final TextStyle insightCardBody = regular14.copyWith(
     color: AppColors.textSecondary,
   );
 
-  /// Title row inside a `UwearisInsightCard` when paired with
-  /// `ExpandableInsightBody`'s `title` slot (Trip Suitcase / Trip garment
-  /// selection) — one step lighter than [bold18], which reads too heavy
-  /// directly under the card's own bold18 "Uwearis" header.
+  /// `ExpandableInsightBody`'s title — lighter than [bold18], which reads too
+  /// heavy under the card's own bold18 header.
   static const TextStyle insightCardTitle = regular16;
 }

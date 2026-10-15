@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Stable "learned preference" dimension identifiers. New dimensions can be
-/// added here without touching any Style Taste UI — pages render whatever
-/// list of dimensions `ProfileService.getMyStyleTaste` returns, data-driven.
+/// The UI renders whichever of these the API returned.
 enum StyleTasteDimension {
   styleBalance,
   colorPairing,
@@ -21,9 +19,7 @@ extension StyleTasteDimensionApi on StyleTasteDimension {
   };
 }
 
-/// Glyph shown next to this dimension's axis on [StyleTasteRadarChart] and
-/// in its "Key Insights" row — same icon in both spots so the two are
-/// visually tied together.
+/// Shared by the radar chart axis and the "Key Insights" row.
 extension StyleTasteDimensionIcon on StyleTasteDimension {
   IconData get icon => switch (this) {
     StyleTasteDimension.styleBalance => Icons.join_inner,
@@ -41,18 +37,14 @@ StyleTasteDimension? styleTasteDimensionFromApiValue(String value) {
   return null;
 }
 
-/// One learned preference bar — Uwearis's current read on where the user sits
-/// between a dimension's two poles (e.g. Style Balance's Consistent/Mixed).
-/// Purely a visualization of what's been learned; never user-editable.
+/// Where the user sits between a dimension's two poles. Read-only.
 class StyleTastePreference {
   final StyleTasteDimension dimension;
 
   /// 0.0 = the dimension's low pole, 1.0 = the high pole.
   final double score;
 
-  /// 0.0-1.0, how confident Uwearis is in [score]. Not surfaced in the UI yet —
-  /// carried through so a future version can show it (e.g. fade bars with
-  /// low confidence) without a model change.
+  /// 0.0-1.0. Not shown in the UI yet.
   final double confidence;
 
   final String? description;
@@ -96,12 +88,8 @@ class StyleTastePreference {
   }
 }
 
-/// The full `GET /users/me/style_taste` response (`ProfileService
-/// .getMyStyleTaste`) — [summary] is Uwearis's one-paragraph read on the
-/// user's overall style personality (shown in the Style Taste page's
-/// insight card), alongside the per-dimension [preferences] powering the
-/// radar chart. Bundled together since both come from the same fetch —
-/// there's no separate summary endpoint.
+/// `GET /users/me/style_taste`: the [summary] paragraph plus the radar
+/// chart's [preferences].
 class StyleTasteProfile {
   final String status;
   final String summary;
@@ -113,12 +101,9 @@ class StyleTasteProfile {
     required this.preferences,
   });
 
-  /// One object per dimension keyed by its `apiValue` (e.g.
-  /// `data['style_balance']`), each with `score`/`confidence`/`insight`,
-  /// rather than the flat `dimension`-tagged list
-  /// [StyleTastePreference.fromJson] expects. Missing dimensions are
-  /// skipped rather than defaulted, since a `status: "learning"` response
-  /// may not include every dimension yet.
+  /// The API keys each dimension by `apiValue` (unlike
+  /// [StyleTastePreference.fromJson]'s flat list). Missing dimensions are
+  /// skipped: a `"learning"` response may omit some.
   factory StyleTasteProfile.fromApi(Map<String, dynamic> data) {
     final preferences = <StyleTastePreference>[];
     for (final dimension in StyleTasteDimension.values) {

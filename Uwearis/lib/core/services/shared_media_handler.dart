@@ -16,36 +16,21 @@ import '../../l10n/generated/app_localizations.dart';
 import '../providers/garments_provider.dart';
 import 'auth_storage.dart';
 
-/// Lets a photo shared into Uwearis from another app's system "Share" sheet
-/// land on the same Add Clothing / Match a Look flows [MainShell]'s own
-/// quick-action button opens — the user picks which one via a small
-/// dialog. Android only for now: `AndroidManifest.xml`'s `SEND`/
-/// `SEND_MULTIPLE` `image/*` intent-filters are what actually register
-/// Uwearis in the OS share sheet. iOS needs a separate Share Extension
-/// Xcode target (App Group entitlement, its own provisioning profile) this
-/// repo doesn't have yet — [listen] is harmless to call on iOS too, it
-/// just never receives anything until that native work exists.
-///
-/// [listen] is called once from [MainShell]'s `initState` and covers both
-/// ways a share can reach the app: already cold-started by it
-/// ([ReceiveSharingIntent.getInitialMedia]) and received while already
-/// running ([ReceiveSharingIntent.getMediaStream]).
+/// Routes a photo shared from another app (Android `SEND` intent-filters,
+/// iOS `ShareExtension` target) into Add Clothing or Match a Look. [listen]
+/// covers both a cold start and a share while running.
 class SharedMediaHandler {
   static StreamSubscription<List<SharedMediaFile>>? _subscription;
 
   static void listen(BuildContext context, WidgetRef ref) {
     ReceiveSharingIntent.instance.getInitialMedia().then((media) {
       if (media.isEmpty || !context.mounted) return;
-      // Read the path before reset() — some implementations (including the
-      // package's own test mock) clear the very list this callback holds a
-      // reference to, not a separate copy.
+      // Read before reset(): some implementations clear this same list.
       final path = media.first.path;
       ReceiveSharingIntent.instance.reset();
       _handle(context, ref, path);
     });
 
-    // Re-listening (MainShell only ever builds once, but cheap insurance
-    // against ever double-registering) replaces rather than stacks.
     unawaited(_subscription?.cancel());
     _subscription = ReceiveSharingIntent.instance.getMediaStream().listen((
       media,
@@ -56,18 +41,13 @@ class SharedMediaHandler {
     });
   }
 
-  /// Only the first photo of a multi-share is used — both destination
-  /// flows (Add Clothing, Match a Look) take one photo at a time; batching
-  /// a `SEND_MULTIPLE` share is future scope, not v1.
+  /// Only the first photo of a multi-share is used — both flows take one.
   static Future<void> _handle(
     BuildContext context,
     WidgetRef ref,
     String imagePath,
   ) async {
-    // Nothing useful to do with a shared photo while logged out — both
-    // destination flows need an authenticated user, and there's no
-    // "resume after login" state kept here; the user can just re-share
-    // once they're in.
+    // Logged out: dropped, with no resume-after-login.
     final token = await AuthStorage.getAccessToken();
     if (token == null || token.isEmpty || !context.mounted) return;
 
@@ -106,9 +86,6 @@ class SharedMediaHandler {
                         imagePath: imagePath,
                         onAdded: (g) {
                           ref.read(garmentsProvider.notifier).addGarment(g);
-                          // Land on My Closet regardless of which tab was
-                          // active when the share arrived — matches the
-                          // quick-action's own "+ Add Clothing" behavior.
                           MainShellScope.of(context)?.selectTab(MainTab.closet);
                         },
                       );

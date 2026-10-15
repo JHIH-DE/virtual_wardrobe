@@ -14,13 +14,11 @@ class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
   @override
   Future<List<Garment>> build() => GarmentService().getGarments();
 
-  /// True if any cached garment's signed image URL has expired (or is about
-  /// to), meaning the cached list should be re-fetched before display.
+  /// True if any cached signed image URL has expired (or is about to).
   bool get isStale =>
       (state.value?.isNotEmpty ?? false) &&
       anySignedUrlExpired(state.value!.map((g) => g.imageUrl));
 
-  /// Refreshes the list only if it's empty or its image URLs are stale.
   Future<void> refreshIfNeeded() async {
     if (state.isLoading) return;
     if (!state.hasValue || state.value!.isEmpty || isStale) {

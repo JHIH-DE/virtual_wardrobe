@@ -1,59 +1,42 @@
 import 'package:flutter/widgets.dart';
 
 abstract class AppDimens {
-  // Standard page-level grid padding — a plain content grid's outer
-  // padding (Select Garment/Accessory, Trip Outfit Selection, ...). Kept
-  // as one constant so every full-page grid in the app uses the same
-  // inset instead of each screen repeating the same literal.
+  // Outer padding of a full-page content grid.
   static const EdgeInsets pageGridPadding = EdgeInsets.fromLTRB(16, 16, 16, 24);
 
-  // Standard gap between cards — grid cross/main axis spacing, the space
-  // between successive cards in a vertical list, and horizontal-scroller
-  // separators (GarmentCard, OutfitCard, TripCard, GarmentListCard,
-  // background cards, style cards, ...). Kept as one constant so every card grid/list
-  // in the app stays visually consistent instead of each screen picking
-  // its own value.
-  static const double cardSpacing = 12;
-
-  // Gap between a card's header block (title, or title+subtitle) and the
-  // body content below it — AppListCard, UwearisInsightCard, and every
-  // page-level card with its own title (Style Taste's radar/profile cards,
-  // Daily Outfit Plan, my_virtual_model_page's reference sections, ...). Distinct
-  // from [cardSpacing]'s "between separate cards" role.
+  // Gap between a card's header (title, or title+subtitle) and its body.
   static const double cardHeaderGap = 12;
 
   // Vertical gap between separate cards/major sections stacked on a page
-  // (as opposed to [cardSpacing], which is for same-type items in a
-  // grid/list). Used between e.g. a page's insight card, suitcase card,
-  // and day-plan card.
+  // (vs. [cardSpacing], for same-type items in a grid/list).
   static const double sectionSpacing = 16;
 
-  // Standard corner radius for cards (GarmentCard, OutfitCard, TripCard,
-  // GarmentListCard, AppListCard, UwearisInsightCard, TripDayCard, ...) — kept
-  // as one constant so every card in the app reads as the same shape
-  // instead of each one picking its own radius.
+  // Gap between a details page's name heading and the first section below.
+  static const double titleGap = 24;
+
+  // Spacing between same-type cards in a grid, list or horizontal scroller.
+  static const double cardSpacing = 12;
+
   static const double cardRadius = 16;
 
   // Outfit Card
   static const double outfitCardHeight = 235;
+
+  // Corner radius of the full-width outfit photo on Outfit Details and
+  // Today's Outfit.
+  static const double outfitPhotoRadius = 20;
 
   // Garment Card
   static const double garmentCardWidth = 165;
   static const double garmentCardHeight = 230;
   static const double garmentCardInfoHeight = 70;
 
-  // GarmentListCard (Outfit Details' "Garments" row) — fixed so every row
-  // is the same height regardless of the garment photo's own aspect ratio.
-  // 108, not 100: NotoSansTC's CJK line box is tall (see AppTextStyle's own
-  // class doc) — 100 fit the category tag + name + color text stack on
-  // Android but clipped ~4px short on iOS, where CoreText renders that same
-  // line box taller.
+  // GarmentListCard. 108, not 100: iOS CoreText renders NotoSansTC's CJK
+  // line box taller, and 100 clipped the text stack ~4px on iOS.
   static const double garmentListCardHeight = 108;
 
-  // Shorter than Material's default kToolbarHeight (56) for a more compact
-  // AppToolBar, but 48 rather than [minTouchTarget]'s 44: an AppBar caps
-  // its leading and every `actions` child at this height, and the back
-  // button / "⋮" menu should each clear a full 48x48 touch target.
+  // An AppBar caps its leading and every `actions` child at this height —
+  // also the tap-box size of an ActionDiscButton.
   static const double toolbarHeight = 56;
 
   // Measured height of a tappable form field (PickerField, DateDropdownField,
@@ -63,31 +46,22 @@ abstract class AppDimens {
   static const double iconSmallSize = 20;
   static const double iconMediumSize = 24;
 
-  // A bare (disc-less) header-action glyph — the camera page's own header
-  // and an inline "⋮" menu on a card. AppToolBar's actions sit on an
-  // ActionDisc and use its smaller ActionDisc.iconSize instead.
+  // A bare (disc-less) header-action glyph. AppToolBar's actions sit on an
+  // ActionDisc and use ActionDisc.iconSize instead.
   static const double toolbarActionIconSize = 26;
 
-  // Minimum comfortable hit-target edge (logical px) for an interactive
-  // element. A small glyph / chip / badge keeps its smaller *visual* size
-  // but should expand its tappable area (transparent padding / a
-  // constraint) to at least this. 44 is the iOS HIG floor; 48 is the
-  // cross-platform target where layout allows.
+  // Minimum hit-target edge; small glyphs keep their visual size but pad
+  // their tappable area to this. 44 is the iOS HIG floor.
   static const double minTouchTarget = 44;
 
-  // The camera page's bare back-arrow glyph. Matches
-  // [toolbarActionIconSize] so both sides of its header render at one size.
+  // Matches [toolbarActionIconSize] so both sides of the camera header match.
   static const double backArrowIconSize = 26;
 
-  // Extra bottom padding for scrollable lists/grids on the main tabs, so the
-  // last row can scroll clear of the main nav bar overlay instead of
-  // being hidden behind it.
+  // Bottom padding so a main tab's last row scrolls clear of the nav bar overlay.
   static const double mainNavBarClearance = 95;
   static const double bottomActionBtnClearance = 85;
 
-  // ActionButton — the full-width pill CTA, primary (BottomActionButton's own
-  // button) or secondary. Height was an overridable 56 once; the
-  // one shorter call site's 48 is now the fixed height everywhere.
+  // ActionButton — the full-width pill CTA.
   static const double actionButtonHeight = 48;
   static const double actionButtonRadius = 100;
   static const double actionButtonBorderWidth = 1.5;

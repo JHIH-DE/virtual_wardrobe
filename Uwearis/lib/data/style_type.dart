@@ -1,13 +1,7 @@
-/// Season filter/tag catalog shared by outfits_page.dart,
-/// garment_outfits_page.dart (as filter options, with an extra leading
-/// 'All' sentinel), and outfit_details_page.dart (as the Edit Tags sheet's
-/// catalog) — kept as one list so the three stay in sync.
+/// Season catalog shared by the outfit filters and the Edit Tags sheet.
 const List<String> seasonOptions = ['Spring', 'Summer', 'Autumn', 'Winter'];
 
-/// Style filter/tag catalog shared by outfits_page.dart,
-/// garment_outfits_page.dart (as filter options, with an extra leading
-/// 'All' sentinel), and outfit_details_page.dart (as the Edit Tags sheet's
-/// catalog) — kept as one list so the three stay in sync.
+/// Style catalog shared by the outfit filters and the Edit Tags sheet.
 const List<String> styleOptions = [
   'Minimal',
   'Classic',
@@ -20,9 +14,7 @@ const List<String> styleOptions = [
   'Vintage',
 ];
 
-/// Stable style identifiers. These are the only values that should be
-/// persisted in the database or sent/received via the API — never a
-/// localized display label.
+/// Only these (never a localized label) go over the API.
 enum StyleType {
   minimal,
   classic,
@@ -35,8 +27,7 @@ enum StyleType {
   vintage,
 }
 
-/// Wire-format (de)serialization — the backend's outfit-style category
-/// list, snake_case (e.g. `smart_casual`).
+/// snake_case wire format (e.g. `smart_casual`).
 extension StyleTypeApi on StyleType {
   String get apiValue {
     switch (this) {

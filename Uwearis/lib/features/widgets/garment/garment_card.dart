@@ -41,9 +41,7 @@ class GarmentCard extends StatelessWidget {
               ),
             ],
           ),
-          // Painted after the child (unlike `decoration`), so this stays
-          // visible over the card's opaque image/text fills instead of
-          // being covered by them.
+          // Foreground, so the opaque fills inside don't cover it.
           foregroundDecoration: isSelected
               ? BoxDecoration(
                   borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -55,15 +53,8 @@ class GarmentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Upper — image
                 Expanded(
                   child: Stack(
-                    // GarmentImage is given a width but no height, so it
-                    // sizes to the photo's own aspect ratio rather than
-                    // filling this slot — Stack's default topStart
-                    // alignment would then pin a short/wide photo (e.g.
-                    // shoes) to the top with the leftover space stranded
-                    // below it, instead of centering it.
                     alignment: Alignment.center,
                     children: [
                       Container(
@@ -114,9 +105,7 @@ class GarmentCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Divider
                 Container(height: 1, color: AppColors.borderSubtle),
-                // Lower — text
                 Container(
                   height: AppDimens.garmentCardInfoHeight,
                   color: cardColor,

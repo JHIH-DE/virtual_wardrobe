@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 
-/// The chevron next to a collapsible section's title (trip's outfit advice,
-/// Accessories & Background, Style Taste details, per-category advice) —
-/// the back button's `<` glyph turned to point up or down, so every one of
-/// these sections shows the same pair of arrows. Material has no up/down
-/// version of that glyph, hence the rotation.
+/// A collapsible section's chevron: the back button's `<` glyph rotated,
+/// since Material has no up/down version of it.
 class ExpandArrowIcon extends StatelessWidget {
   final bool expanded;
   final double size;

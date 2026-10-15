@@ -10,17 +10,15 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
-import '../../core/services/garment_service.dart';
 import '../../core/services/outfit_service.dart';
 import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/image_cache_bust.dart';
-import '../../core/utils/signed_url.dart';
+import '../../core/utils/outfit_garments.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/circle_icon_button.dart';
@@ -29,10 +27,8 @@ import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/cards/category_tag.dart';
-import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/images/fullscreen_image_viewer.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
-import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
@@ -40,9 +36,10 @@ import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/save_changes_dialog.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
-import '../widgets/garment/garment_list_card.dart';
+import '../widgets/outfit/outfit_garment_section.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/outfit/outfit_share_sheet.dart';
+import '../widgets/outfit/outfit_title.dart';
 import 'outfit_edit_page.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
@@ -52,17 +49,12 @@ enum _VersionMenuAction { setCover, regenerate, delete }
 class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
 
-  /// True right after this outfit's try-on was rendered (the Add Outfit
-  /// flow). The page shows a "Save" bottom action; tapping it stays on the
-  /// page and shows the "Outfit Saved" confirmation ([_save]). Leaving
-  /// before that (back arrow / system back) prompts "Save this outfit?" —
-  /// "Save" pops back with `true` so Add Outfit shows the confirmation,
-  /// "Don't Save" deletes the whole group. See [_leaveNewOutfit].
+  /// Freshly rendered from Add Outfit: shows a "Save" action, and leaving
+  /// before saving prompts (Don't Save deletes the whole group).
   final bool isNew;
 
-  /// Whether to offer the "Edit Outfit" entry card. Set this to false for
-  /// entry points (e.g. Trip Details) where an outfit shouldn't offer to be
-  /// edited from here — the card is hidden entirely in that case instead.
+  /// False for entry points (e.g. Trip Details) that shouldn't offer
+  /// "+ New Version".
   final bool showEditOutfitWhenSaved;
 
   const OutfitDetailsPage({
@@ -78,68 +70,42 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
 
 class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isDeleting = false;
-  // True while leaving a freshly-rendered outfit refreshes the outfits
-  // list before jumping to the Outfits tab — see _leaveNewOutfit.
+  // Discarding a new outfit (deleting its group) on leave.
   bool _isLeaving = false;
-  // True while we're waiting on _fetchOutfitDetails for entry points that
-  // hide the action bar once saved — avoids flashing the "Save Outfit"
-  // button before the rest of the outfit's details have loaded.
+  // Hides the Save button until _fetchOutfitDetails resolves, so it doesn't
+  // flash on entry points that hide it.
   bool _isResolvingSavedStatus = false;
   List<Garment>? _garments;
   bool _isLoadingGarments = false;
-  // The garment ids [_garments] was last loaded for — lets [_loadGarments]
-  // skip a redundant re-fetch (and the loading-flicker it'd cause) when
-  // it's asked to load the same set it already has.
+  // Lets [_loadGarments] skip re-fetching the set it already has.
   Set<int>? _loadedGarmentIds;
-  // True while "Create Another Version" is resolving the closet / has
-  // OutfitEditPage pushed on top — also the re-entrancy guard for its
-  // handler.
+  // Also guards against re-entering _openCreateAnotherVersion.
   bool _isOpeningTryOn = false;
-  // True while _openCreateAnotherVersion's post-pick AI render is in flight.
   bool _isCreatingVersion = false;
-  // [isNew] only — set once the user taps "Save": the page stays put and
-  // just shows the "Outfit Saved" confirmation, and leaving afterward no
-  // longer prompts.
+  // [isNew] only: Save was tapped, so leaving no longer prompts.
   bool _saved = false;
-  // True while regenerateOutfit's AI render is in flight.
   bool _isRegenerating = false;
-  // True while _setCover's request is in flight.
   bool _isSettingCover = false;
-  // True while _saveTags's request is in flight — the tag button stays
-  // disabled meanwhile so two saves can never race each other.
+  // Keeps the tag button disabled so two tag saves can't race.
   bool _isSavingTags = false;
 
-  // Every outfit in this group, swipeable via [_pageController] — starts
-  // with just the seed outfit and gets replaced with the full set once
-  // [_loadGroupOutfits] resolves (an existing outfit may already have
-  // siblings from earlier "Create Another Version" calls).
+  // Seeded with widget.outfit, replaced by [_loadGroupOutfits].
   late final List<Outfit> _versions = [widget.outfit];
 
-  // Max versions per group this page will create — see
-  // _openCreateAnotherVersion.
   static const int _maxVersions = 10;
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
-  // False until [_loadGroupOutfits] has resolved (or isn't run at all). The
-  // version action row stays hidden until then, so it doesn't first render
-  // as the single-version "+ New Version" pill and then snap to the compact
-  // "+" once sibling versions load in.
+  // False until [_loadGroupOutfits] resolves, so the counter / version-only
+  // menu items don't pop in after a single-version first render.
   bool _versionsResolved = false;
 
-  /// The version currently shown in the carousel — photo, favorite,
-  /// garments, and the Regenerate/Delete actions all apply to this one.
+  /// The version shown in the carousel; photo, favorite, garments and the
+  /// version actions apply to it.
   Outfit get _current => _versions[_currentIndex];
 
-  /// The group's actual cover version — the app bar title/tags always
-  /// reflect this one regardless of which version is currently swiped to,
-  /// so the header reads as this outfit *group*'s identity rather than
-  /// flickering per-version as the user swipes. Resolved by
-  /// `coverOutfitId` (every entry in [_versions] carries the same one —
-  /// see [_loadGroupOutfits]/[_setCover]), falling back to the lowest id
-  /// when unset, exactly mirroring [OutfitService.getAllOutfits]'s own
-  /// "representative" pick for the grid card this page was opened from —
-  /// [_versions]' array order doesn't necessarily put that version first.
+  /// The group's cover version (lowest id when unset, same pick as
+  /// [OutfitService.getAllOutfits]), so the title doesn't change per swipe.
   Outfit get _primary {
     final coverId = _current.coverOutfitId;
     if (coverId == null) {
@@ -154,11 +120,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   List<String> get _effectiveSeasons => _current.seasons;
   List<String> get _effectiveStyle => _current.style;
 
-  /// The group has a second version loaded. The photo menu's "Set as Cover"
-  /// and "Delete This Version" items only make sense then: with a single
-  /// version "set cover" is meaningless, and "delete" would just remove the
-  /// whole group — which the app-bar menu's own Delete already covers. Also
-  /// false in the not-yet-saved isNew state (siblings are never loaded there).
+  /// Gates "Set as Cover" / "Delete This Version"; with one version the
+  /// app-bar Delete already covers deleting the group.
   bool get _hasMultipleVersions => _versionsResolved && _versions.length >= 2;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -182,9 +145,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     super.dispose();
   }
 
-  /// Replaces [_versions] (initially just [widget.outfit]) with every
-  /// outfit actually in the group — otherwise the carousel would only ever
-  /// show versions created in *this* page instance.
   Future<void> _loadGroupOutfits() async {
     try {
       final outfits = await OutfitService().getGroupOutfits(
@@ -195,11 +155,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         setState(() => _versionsResolved = true);
         return;
       }
-      // getGroupOutfits doesn't necessarily return the cover version
-      // first — the grid card that opened this page shows whichever
-      // version is the group's cover, so re-select that same one here by
-      // id rather than assuming index 0, or the photo/name would flash to
-      // a different version the instant this resolves.
+      // Order isn't guaranteed; stay on the version the page opened with.
       final matchedIndex = outfits.indexWhere((o) => o.id == widget.outfit.id);
       setState(() {
         _versions
@@ -243,9 +199,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
               ),
               children: [
                 Text(_title, style: AppTextStyle.bold20),
-                const AppDivider(topSpacing: 12, bottomSpacing: 4),
+                const SizedBox(height: 8),
                 _buildInfoCard(),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppDimens.cardHeaderGap),
                 _buildOutfitImage(),
                 if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
               ],
@@ -266,8 +222,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   AppToolBar _buildAppBar() {
-    // A brand-new outfit only gets Rename/Delete once the user has tapped
-    // "Save" — before that, leaving with "Don't Save" is how it's discarded.
+    // Until Save, a new outfit is discarded via "Don't Save" on leave.
     final isSaved = !widget.isNew || _saved;
     final items = [
       if (isSaved)
@@ -280,10 +235,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
           label: _l10n.rename,
         ),
-      // Same availability Share had as a photo-overlay action: not mid
-      // regenerate (the image is changing). Unlike Rename/Delete, Share
-      // makes sense on a brand-new unsaved outfit too, so it isn't gated on
-      // isSaved.
       if (!_isRegenerating)
         AppPopupMenu.item(
           value: _OutfitMenuAction.share,
@@ -338,10 +289,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   Widget _buildBottomBar() {
     if (_isResolvingSavedStatus) return const SizedBox.shrink();
 
-    // Straight from the Add Outfit flow: tapping "Save" keeps the user here
-    // and just shows the "Outfit Saved" confirmation (the outfit is already
-    // persisted server-side). The button hides once used. (A version
-    // rendered here via "Create Another Version" keeps its title pill.)
     if (widget.isNew) {
       return BottomActionButton(
         label: _l10n.save,
@@ -357,14 +304,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool get _showsBottomActionButton =>
       !_isResolvingSavedStatus && widget.isNew && !_saved;
 
-  /// Opens [OutfitEditPage] so the user can pick this version's garments,
-  /// then renders the pick into this outfit's *same* group instead of a
-  /// fresh one (see [OutfitService.generateOutfit]'s `groupId`), so the
-  /// result is a brand new [Outfit] alongside this one, appended to
-  /// [_versions] and swiped into view. Stops at [_maxVersions]: the "+ New
-  /// Version" pill stays put rather than disappearing (see
-  /// [_buildVersionActionRow]) — tapping it past the cap explains the limit
-  /// instead of silently doing nothing.
+  /// Picks garments and renders them as a new version in this same group.
+  /// At [_maxVersions] the pill stays and explains the limit instead.
   Future<void> _openCreateAnotherVersion() async {
     if (_isOpeningTryOn) return;
     if (_versions.length >= _maxVersions) {
@@ -373,10 +314,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
     setState(() => _isOpeningTryOn = true);
     try {
-      // Warm garmentsProvider before opening the page (it reads the pool
-      // directly rather than fetching its own). .active: a deleted garment
-      // can't be picked for a new version, even if it's still shown on the
-      // version being copied from.
+      // OutfitEditPage doesn't fetch its own pool. .active: a deleted
+      // garment can't go into a new version.
       final closet = (await ref.read(garmentsProvider.future)).active;
       if (!mounted) return;
       setState(() => _isOpeningTryOn = false);
@@ -411,11 +350,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// Renders [garmentIds] into this outfit's group (see
-  /// [_openCreateAnotherVersion], its sole caller) and appends the
-  /// resulting [Outfit] to [_versions]. Re-entrancy is already covered by
-  /// the caller's [_isOpeningTryOn] guard; [_isCreatingVersion] here is
-  /// purely the visual "generating" flag.
   Future<void> _createVersionFromGarmentIds(
     List<int> garmentIds, {
     int? backgroundId,
@@ -452,11 +386,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// Explains the [_maxVersions] cap — shown instead of opening
-  /// [OutfitEditPage] once the group is full (see
-  /// [_openCreateAnotherVersion]). Purely informational: a single dismiss
-  /// button, no destructive action offered here (the user deletes a version
-  /// via the photo's own overflow menu, not from this dialog).
   Future<void> _showVersionLimitDialog() {
     return showDialog<void>(
       context: context,
@@ -470,9 +399,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  // Styles come back from the backend snake_case (`smart_casual`); seasons
-  // are single lowercase words either way, so the underscore swap is a
-  // no-op for them.
+  // Styles arrive snake_case (`smart_casual`).
   String _titleCase(String s) => s
       .replaceAll('_', ' ')
       .split(' ')
@@ -494,8 +421,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             icon: Icons.sell_outlined,
             onPressed: _isSavingTags ? null : _openEditTagsSheet,
           ),
-          // Small — CircleIconButton already carries ~6px of transparent
-          // padding around its disc on this side.
           const SizedBox(width: 2),
           Expanded(
             child: tags.isEmpty
@@ -507,12 +432,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// Opens a bottom sheet to multi-select Season/Style tags and auto-saves
-  /// on close (however it's dismissed) if the selection changed — same
-  /// [showChipGroupsSheet] chrome as the filter sheets, plain multi-select
-  /// (no "All"). Applies to whichever version was current when the sheet
-  /// was opened — captured up front so a swipe while the sheet is still
-  /// open can't retarget the save.
+  /// Auto-saves on close if the selection changed. The target version is
+  /// captured up front so a swipe while the sheet is open can't retarget it.
   Future<void> _openEditTagsSheet() async {
     if (_isSavingTags) return;
     final target = _current;
@@ -550,17 +471,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       index,
       target,
       seasons: selectedSeasons.map((s) => s.toLowerCase()).toList(),
-      // Reverses _titleCase's underscore-to-space swap so multi-word styles
-      // round-trip back to the backend's snake_case wire format.
+      // Back to the backend's snake_case.
       styles: selectedStyles
           .map((s) => s.toLowerCase().replaceAll(' ', '_'))
           .toList(),
     );
   }
 
-  /// Shows the new tags right away and PATCHes them; a failure rolls the
-  /// version back to [target] and offers Retry (success stays silent — see
-  /// the auto-save convention in [AutoSaveController]'s doc).
+  /// Optimistic; a failure rolls back to [target] and offers Retry.
   Future<void> _saveTags(
     int index,
     Outfit target, {
@@ -604,16 +522,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     } finally {
       if (mounted) setState(() => _isSavingTags = false);
     }
-    // Only after this attempt's finally — retrying from inside the catch
-    // would let that finally clear _isSavingTags under the retry.
+    // After the finally, or it would clear _isSavingTags under the retry.
     if (retry && mounted) {
       await _saveTags(index, target, seasons: seasons, styles: styles);
     }
   }
 
-  /// Opens the share sheet — a small card preview of the current version
-  /// (photo + style/season/pieces) that rasterizes to a PNG for the system
-  /// share sheet. Mirrors GarmentDetailsPage's share flow.
   void _shareOutfit() {
     showOutfitShareSheet(
       context,
@@ -628,9 +542,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// Refreshes the signed image URL for the version at [index] — every
-  /// version can self-heal independently, since each carries its own
-  /// outfit id.
   Future<String?> _refreshImageUrlFor(int index) async {
     if (index >= _versions.length) return null;
     final outfit = _versions[index];
@@ -663,11 +574,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// Sets [_current] as this group's cover outfit (`PATCH
-  /// /outfit/{group_id}`) — a group-level choice, so it's applied to every
-  /// entry in [_versions] at once rather than just [_current]. No "unset"
-  /// path: picking a different version as cover already replaces whichever
-  /// one held it before.
+  /// Group-level, so it's applied to every entry in [_versions].
   Future<void> _setCover() async {
     if (_isSettingCover) return;
     final target = _current;
@@ -709,10 +616,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// Re-runs the AI render for the currently shown version in place (see
-  /// [OutfitService.regenerateOutfit]) — same garment combo/background, new
-  /// image, no new version created. Confirms first: it's a paid AI call and
-  /// its menu entry sits right next to "Delete this version".
+  /// Re-renders the current version in place. Confirms first: it's a paid
+  /// AI call.
   Future<void> _regenerateImage() async {
     if (_isRegenerating) return;
 
@@ -739,12 +644,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       );
       if (!mounted) return;
       setState(() => _versions[index] = outfit);
-      // regenerateOutfit overwrites the image at its existing URL in place,
-      // so the URL never changes — bump the base key every consumer of
-      // this outfit's image reads (OutfitImage in the Outfits list, Home,
-      // Trip pages) so they all move to a cache key that's never been seen
-      // before instead of keep serving pre-regenerate bytes from a
-      // stable key's cache entry.
+      // The image is overwritten at the same URL, so bump the cache key
+      // every consumer reads or they keep serving the old bytes.
       ImageCacheBust.bump(outfitImageCacheKey(target.id));
       await ref.read(outfitsProvider.notifier).refresh();
     } on AuthExpiredException {
@@ -771,7 +672,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppDimens.outfitPhotoRadius),
           child: AspectRatio(
             aspectRatio: 3 / 4,
             child: Stack(
@@ -781,20 +682,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                   controller: _pageController,
                   onPageChanged: (index) {
                     setState(() => _currentIndex = index);
-                    // Different versions can have different garments — keep
-                    // the Garment list in sync with whichever is shown now.
                     _loadGarments();
                   },
                   itemCount: _versions.length,
                   itemBuilder: (_, index) {
                     final outfit = _versions[index];
-                    // Stable base id (survives signed-URL re-signing) plus
-                    // ImageCacheBust's live version — bumped by
-                    // _regenerateImage/_openCreateAnotherVersion, and read
-                    // fresh by every widget that shows this outfit's image
-                    // (OutfitImage, Home elsewhere included), so nothing
-                    // keeps serving pre-regenerate bytes from a stable key's
-                    // cache entry.
+                    // Survives URL re-signing; versioned by _regenerateImage.
                     final cacheKey = outfitImageVersionedCacheKey(outfit.id);
                     return GestureDetector(
                       onTap: () => showFullscreenImage(
@@ -818,11 +711,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                   Positioned(
                     top: 12,
                     right: 12,
-                    // The "..." menu only earns its keep once it actually
-                    // holds more than one action (Set Cover / Delete This
-                    // Version only show with multiple versions — see
-                    // _buildVersionMenuButton) — with just Regenerate left,
-                    // show that directly instead of a menu with one entry.
+                    // One version: Regenerate is the only action, no menu.
                     child: _hasMultipleVersions
                         ? _buildVersionMenuButton()
                         : _buildRegenerateBadge(),
@@ -832,8 +721,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     bottom: 12,
                     right: 12,
                     child: CardCornerBadge(
-                      // Same treatment as the garment card's favourite badge
-                      // (see FavoriteCard).
                       icon: _current.isFavorite
                           ? Icons.favorite
                           : Icons.favorite_border,
@@ -852,7 +739,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                 if (_isRegenerating)
                   Positioned.fill(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(
+                        AppDimens.outfitPhotoRadius,
+                      ),
                       child: LoadingOverlay(label: _l10n.generatingEllipsis),
                     ),
                   ),
@@ -866,26 +755,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// The row under the carousel: the "+ New Version" pill on the left and,
-  /// once the group's sibling versions have loaded and there's more than
-  /// one, an "n / total" counter on the right. The pill isn't offered
-  /// everywhere (see [_openCreateAnotherVersion]: the Add Outfit flow,
-  /// edit-hidden entry points); with neither it nor the counter, the row
-  /// shrinks to a plain gap.
   Widget _buildVersionActionRow() {
     final canAddVersion = !widget.isNew && widget.showEditOutfitWhenSaved;
 
     final showsCounter = _versionsResolved && _versions.length >= 2;
     final enabled = !_isOpeningTryOn && !_isCreatingVersion;
 
-    // Nothing to show — keep a gap so the photo doesn't butt up against the
-    // garments divider below.
     if (!canAddVersion && !showsCounter) {
       return const SizedBox(height: AppDimens.sectionSpacing);
     }
 
-    // Pinned to the pill's own min touch-target height, so a counter-only
-    // row (no pill offered) keeps the same spacing below the photo.
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
       child: Row(
@@ -910,8 +789,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// Single-version stand-in for [_buildVersionMenuButton] — same disc, but
-  /// Regenerate directly rather than behind a menu with only one entry.
   Widget _buildRegenerateBadge() {
     return CardCornerBadge(
       icon: Icons.refresh,
@@ -925,10 +802,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  /// The photo's own "..." corner menu — Regenerate and Delete this
-  /// version for whichever version is currently shown (see
-  /// [_deleteThisOutfit] for what "delete" actually does depending on
-  /// whether this outfit has siblings in its group).
   Widget _buildVersionMenuButton() {
     return AppPopupMenu<_VersionMenuAction>(
       onSelected: _handleVersionMenuAction,
@@ -949,10 +822,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           icon: const Icon(Icons.refresh, size: 20, color: AppColors.icon),
           label: _l10n.regenerate,
         ),
-        // "Delete This Version" only when there's more than one version —
-        // otherwise it's a whole-group delete (the app-bar menu's Delete
-        // covers that) and it's redundant next to the "Save" flow's own
-        // discard-on-leave.
         if (_hasMultipleVersions)
           AppPopupMenu.item(
             value: _VersionMenuAction.delete,
@@ -971,8 +840,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         height: 36,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          // Same treatment as the favourite badge below (see FavoriteCard):
-          // near-opaque with a hairline edge, no drop shadow.
           color: AppColors.surfaceTranslucent,
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.borderSubtle),
@@ -1001,34 +868,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   Widget _buildGarmentSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        LabeledDivider(
-          label: _l10n.garmentsCount(
-            _garments?.length ?? _current.garmentIds.length,
-          ),
-        ),
-        const SizedBox(height: AppDimens.cardHeaderGap),
-        if (_isLoadingGarments && !_isRegenerating)
-          const Center(child: AppSpinner())
-        else if (_garments != null)
-          ..._garments!.map(_buildGarmentCard),
-      ],
+    return OutfitGarmentSection(
+      garments: _garments,
+      garmentCount: _current.garmentIds.length,
+      isLoading: _isLoadingGarments && !_isRegenerating,
+      onGarmentTap: _openGarmentDetail,
     );
   }
 
-  Widget _buildGarmentCard(Garment g) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-      child: GarmentListCard(garment: g, onTap: () => _openGarmentDetail(g)),
-    );
-  }
-
-  /// Opens [GarmentDetailDialog] for [g] — if it comes back with a restored
-  /// [Garment] (the user tapped "Add Back to Closet" on a soft-deleted
-  /// one), swap it into both [_garments] and [garmentsProvider] so the
-  /// warning badge disappears immediately without a full re-fetch.
+  /// A garment restored from the dialog ("Add Back to Closet") is swapped
+  /// in locally so its warning badge clears without a re-fetch.
   Future<void> _openGarmentDetail(Garment g) async {
     final restored = await GarmentDetailDialog.show(context, g);
     if (restored == null || !mounted) return;
@@ -1047,8 +896,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         widget.outfit.id,
       );
       if (!mounted) return;
-      // isNew mode never has other versions loaded yet, so this is always
-      // the only entry in _versions.
+      // isNew never loads sibling versions.
       setState(() => _versions[0] = outfit);
     } catch (_) {
     } finally {
@@ -1056,92 +904,22 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  Map<int, Garment> _indexGarmentsById(List<Garment> garments) {
-    return {
-      for (final g in garments)
-        if (g.id != null) g.id!: g,
-    };
-  }
-
-  /// Fixed display order for the garment list: categories not in this list
-  /// (e.g. one-piece, socks) sort after the ones that are, keeping their
-  /// relative order stable.
-  static const List<GarmentCategory> _garmentCategoryDisplayOrder = [
-    GarmentCategory.top,
-    GarmentCategory.bottom,
-    GarmentCategory.outer,
-    GarmentCategory.shoes,
-    GarmentCategory.accessory,
-  ];
-
-  List<Garment> _sortGarmentsByCategory(Iterable<Garment> garments) {
-    int rank(Garment g) {
-      final index = _garmentCategoryDisplayOrder.indexOf(g.category);
-      return index == -1 ? _garmentCategoryDisplayOrder.length : index;
-    }
-
-    // Indexed sort (rather than List.sort directly) keeps garments with the
-    // same category in their original order — List.sort isn't stable.
-    final indexed = garments.toList();
-    final order = List<int>.generate(indexed.length, (i) => i)
-      ..sort((a, b) {
-        final cmp = rank(indexed[a]).compareTo(rank(indexed[b]));
-        return cmp != 0 ? cmp : a.compareTo(b);
-      });
-    return [for (final i in order) indexed[i]];
-  }
-
-  /// Loads [_current]'s garments. Called from several places that don't
-  /// coordinate with each other (`initState`, [_loadGroupOutfits] once it
-  /// resolves, version swipe/create/delete) — most of them end up wanting
-  /// the same version's garments the page already has, so this skips the
-  /// re-fetch (and the loading-flicker flipping [_isLoadingGarments] back
-  /// on would cause) whenever the requested id set matches what's already
-  /// loaded.
+  /// Called from several uncoordinated places; skips the fetch (and its
+  /// loading flicker) when the id set is already loaded.
   Future<void> _loadGarments() async {
     final idsToLoad = _current.garmentIds.toSet();
     if (_garments != null && setEquals(_loadedGarmentIds, idsToLoad)) return;
 
     setState(() => _isLoadingGarments = true);
     try {
-      // Reuse whatever My Closet has already loaded into garmentsProvider
-      // instead of always hitting the network per garment — but skip stale
-      // cache entries whose signed image URL has expired, so photos don't
-      // render as broken images. Deliberately the raw (unfiltered) list, not
-      // .active: this outfit's own garment_ids can reference a garment
-      // that's since been soft-deleted, and it should still resolve here.
-      final cached = ref.read(garmentsProvider).value ?? const [];
-      final cachedById = _indexGarmentsById(cached);
-
-      // Each id resolves independently — one garment that 404s (e.g. it's
-      // since been deleted) shouldn't blank out every *other* garment on
-      // this outfit just because they were all awaited together.
-      final results = await Future.wait(
-        idsToLoad.map((id) async {
-          final cachedGarment = cachedById[id];
-          final imageUrl = cachedGarment?.imageUrl;
-          final isFresh =
-              cachedGarment != null &&
-              (imageUrl == null ||
-                  imageUrl.isEmpty ||
-                  !isSignedUrlExpired(imageUrl));
-          if (isFresh) return cachedGarment;
-          try {
-            // includeDeleted: this outfit's own garment_ids can reference a
-            // garment that's since been soft-deleted from the closet — it
-            // should still resolve and show here.
-            return await GarmentService().getGarment(id, includeDeleted: true);
-          } catch (e) {
-            debugLog(
-              'Failed to load garment $id for outfit ${_current.id}: $e',
-            );
-            return null;
-          }
-        }),
+      final garments = await loadOutfitGarments(
+        idsToLoad,
+        cached: ref.read(garmentsProvider).value ?? const [],
+        outfitId: _current.id,
       );
       if (mounted) {
         setState(() {
-          _garments = _sortGarmentsByCategory(results.whereType<Garment>());
+          _garments = garments;
           _loadedGarmentIds = idsToLoad;
         });
       }
@@ -1152,10 +930,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// "Save" button — the outfit is already persisted server-side, so this
-  /// just keeps the outfits list fresh and shows the "Outfit Saved"
-  /// confirmation *without leaving the page*. The button then hides and
-  /// leaving no longer prompts.
+  /// The outfit is already persisted; this only confirms, without leaving.
   void _save() {
     if (_saved) return;
     setState(() => _saved = true);
@@ -1163,11 +938,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     showFeedbackOverlay(context, message: _l10n.outfitSaved);
   }
 
-  /// Leaving a freshly-rendered outfit's page (back arrow, system back
-  /// gesture) — see [OutfitDetailsPage.isNew]. If the user already tapped
-  /// "Save", this just pops. Otherwise it asks: "Save" pops back with `true`
-  /// so Add Outfit shows the confirmation, "Don't Save" deletes the whole
-  /// group first, "Cancel" stays on the page.
+  /// Pops `true` on Save so Add Outfit shows its confirmation; Don't Save
+  /// deletes the whole group first.
   Future<void> _leaveNewOutfit() async {
     if (_saved) {
       Navigator.pop(context);
@@ -1187,7 +959,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       return;
     }
 
-    // discard — delete the whole group, then leave.
     setState(() => _isLeaving = true);
     try {
       await OutfitService().deleteGroup(widget.outfit.groupId);
@@ -1211,11 +982,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// The app bar's "..." menu action — always deletes the whole group (and
-  /// every version in it), regardless of how many it holds.
+  /// App-bar Delete: always the whole group.
   Future<void> _deleteOutfit() => _confirmThenDeleteGroup();
 
-  /// Deletes every version and the group itself, then closes the page.
   Future<void> _confirmThenDeleteGroup() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -1254,11 +1023,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// The action bar's delete button under the photo — surgical by default:
-  /// if there are other versions left, only the currently shown one is
-  /// deleted and the carousel moves on; if it's the last version, the
-  /// now-empty group goes with it and the page closes (see
-  /// [_confirmThenDeleteGroup]).
+  /// Deletes only the shown version; the last one takes the group with it.
   Future<void> _deleteThisOutfit() async {
     if (_isDeleting) return;
     if (_versions.length <= 1) {
@@ -1292,10 +1057,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         _pageController.jumpToPage(_currentIndex);
       }
       _loadGarments();
-      // Not removeById: the flat outfits list shows one card per group (the
-      // group's first version stands in for it), so if [target] was that
-      // representative the card needs to be replaced with whichever version
-      // is now first, not removed outright while the group still exists.
+      // Not removeOutfit: if [target] was the group's card representative,
+      // the card must switch to another version, not disappear.
       await ref.read(outfitsProvider.notifier).refresh();
     } on AuthExpiredException {
       if (!mounted) return;
@@ -1312,27 +1075,19 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  String get _title {
-    final groupName = _primary.groupName;
-    if (groupName != null && groupName.isNotEmpty) return groupName;
-    final name = _primary.name;
-    if (name != null && name.isNotEmpty) return name;
-    final parts = [..._effectiveSeasons, ..._effectiveStyle];
-    if (parts.isEmpty) return _l10n.myOutfit;
-    final word = parts.first;
-    final capitalized = word.isEmpty
-        ? word
-        : '${word[0].toUpperCase()}${word.substring(1)}';
-    return _l10n.outfitTitle(capitalized);
-  }
+  String get _title => outfitDisplayTitle(
+    _l10n,
+    groupName: _primary.groupName,
+    name: _primary.name,
+    seasons: _effectiveSeasons,
+    style: _effectiveStyle,
+  );
 
   Future<void> _showRenameDialog() async {
     final result = await showTextInputDialog(
       context,
       title: _l10n.renameOutfit,
       hint: _l10n.outfitNameLabel,
-      // Seed with the name currently shown in the title — the group's own
-      // name if set, otherwise the cover version's auto-generated one.
       initialValue: _title,
     );
 
@@ -1340,8 +1095,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     try {
       await OutfitService().updateGroup(_primary.groupId, name: result);
       if (!mounted) return;
-      // The name is a group-level property — every version shares it, not
-      // just the one currently shown.
+      // Group-level: every version shares it.
       setState(() {
         for (var i = 0; i < _versions.length; i++) {
           _versions[i] = _versions[i].copyWith(groupName: result);
@@ -1375,13 +1129,10 @@ class _CollapsingTagsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     const tagSpacing = 8.0;
     const tagHPadding = 20.0; // CategoryTag's horizontal padding (10 * 2).
-    // Per-tag slack: the measured width can trail the rendered width by a
-    // sub-pixel or two (font hinting, the DefaultTextStyle merge that the
-    // real CategoryTag goes through). Reserve a little so a near-miss
-    // collapses into "+N" instead of tripping a RenderFlex overflow.
+    // Measured width can trail the rendered one by a sub-pixel; reserve a
+    // little so a near-miss collapses into "+N" instead of overflowing.
     const tagSlack = 3.0;
-    // Match what CategoryTag's Text actually resolves to: its own style
-    // merged onto the inherited DefaultTextStyle, at the current textScaler.
+    // What CategoryTag's Text actually resolves to.
     final tagTextStyle = DefaultTextStyle.of(
       context,
     ).style.merge(AppTextStyle.bold12);
@@ -1415,9 +1166,8 @@ class _CollapsingTagsRow extends StatelessWidget {
           usedWidth += width;
         }
 
-        // Wrapped so that if a width estimate still trails the real render
-        // by a hair, the extra is clipped by the (non-scrolling) viewport
-        // rather than throwing a RenderFlex overflow.
+        // A non-scrolling viewport clips any remaining estimate error
+        // instead of throwing a RenderFlex overflow.
         Widget oneLine(List<Widget> children) => SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const NeverScrollableScrollPhysics(),

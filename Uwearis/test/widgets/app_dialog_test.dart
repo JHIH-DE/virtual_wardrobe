@@ -23,10 +23,7 @@ void main() {
       ),
     );
 
-    expect(
-      style(tester).backgroundColor?.resolve({}),
-      AppColors.accent,
-    );
+    expect(style(tester).backgroundColor?.resolve({}), AppColors.accent);
 
     await tester.tap(find.byType(ElevatedButton));
     expect(taps, 1);
@@ -53,10 +50,6 @@ void main() {
         button.style!.backgroundColor?.resolve({WidgetState.disabled}),
         AppColors.borderSubtle,
       );
-
-      // A disabled ElevatedButton simply has no onPressed — tapping it is a
-      // no-op at the framework level, nothing further to assert here beyond
-      // onPressed being null (already checked above).
     },
   );
 }

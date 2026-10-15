@@ -24,27 +24,52 @@ class _FakeOutfitsNotifier extends OutfitsNotifier {
 Outfit _outfit(int id) =>
     Outfit(id: id, groupId: id, imageUrl: 'https://example.com/$id.jpg');
 
-Map<String, dynamic> _outfitJson(int id) => {
+Map<String, dynamic> _outfitJson(int id, {bool isFavorite = false}) => {
   'outfit_id': id,
   'group_id': id,
   'group_type': 'general',
   'status': 'completed',
   'result_image_url': 'https://example.com/$id.jpg',
+  'is_favorite': isFavorite,
 };
 
 /// A stand-in `/daily_outfits` backend: [plan] is today's picked outfit ids
 /// (empty = no plan), and [onGenerate] decides each POST's outcome from its
 /// `alternatives_per_day` — returning the ids to pick, or null for a 422
-/// `INSUFFICIENT_OUTFIT_DATA`.
+/// `INSUFFICIENT_OUTFIT_DATA`. A PATCH to `/outfit/{group}/{outfit}` sets
+/// that outfit's [favorites] membership, or answers [patchStatus] if set.
 class _Backend {
   _Backend({this.plan = const [], this.onGenerate});
 
   List<int> plan;
   List<int>? Function(int alternatives)? onGenerate;
   final generateAlternatives = <int>[];
+  final favorites = <int>{};
+  int? patchStatus;
   var getCount = 0;
 
+  Map<String, dynamic> _planJson(int id) =>
+      _outfitJson(id, isFavorite: favorites.contains(id));
+
   MockClient get client => MockClient((request) async {
+    if (request.method == 'PATCH') {
+      if (patchStatus != null) {
+        return jsonResponse({
+          'success': false,
+          'message': 'boom',
+          'data': null,
+          'error_code': null,
+        }, status: patchStatus!);
+      }
+      final id = int.parse(request.url.pathSegments.last);
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      if (body['is_favorite'] == true) {
+        favorites.add(id);
+      } else {
+        favorites.remove(id);
+      }
+      return jsonResponse(envelope(_planJson(id)));
+    }
     if (request.method == 'POST') {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       final alternatives = body['alternatives_per_day'] as int;
@@ -60,14 +85,12 @@ class _Backend {
       }
       plan = picked;
       return jsonResponse(
-        envelope({'id': 1, 'outfits': plan.map(_outfitJson).toList()}),
+        envelope({'id': 1, 'outfits': plan.map(_planJson).toList()}),
       );
     }
     getCount++;
     return jsonResponse(
-      envelope(
-        plan.isEmpty ? null : {'outfits': plan.map(_outfitJson).toList()},
-      ),
+      envelope(plan.isEmpty ? null : {'outfits': plan.map(_planJson).toList()}),
     );
   });
 }
@@ -110,8 +133,7 @@ void main() {
         DailyOutfitNotifier.alternativesPerDay,
       ]);
       expect(_ids(c), [3, 1, 2]);
-      // The generate response already carries the picked outfits — no
-      // second GET to read them back.
+      // The generate response carries the outfits; no second GET.
       expect(backend.getCount, 1);
     });
   });
@@ -165,6 +187,39 @@ void main() {
 
       expect(_ids(c), [1]);
       expect(states.any((s) => s.isLoading), isFalse);
+    });
+  });
+
+  test('toggleOutfitFavorite flips the heart in both today and My Outfits', () {
+    final backend = _Backend(plan: [1, 2]);
+    return _withDaily(backend, [_outfit(1), _outfit(2)], (c, _) async {
+      final target = c.read(dailyOutfitProvider).value![1];
+      await c.read(dailyOutfitProvider.notifier).toggleOutfitFavorite(target);
+      await pumpEventQueue();
+
+      expect(backend.favorites, {2});
+      expect(c.read(dailyOutfitProvider).value![1].isFavorite, isTrue);
+      expect(
+        c.read(outfitsProvider).value!.firstWhere((o) => o.id == 2).isFavorite,
+        isTrue,
+      );
+    });
+  });
+
+  test('toggleOutfitFavorite rolls back and rethrows when the PATCH fails', () {
+    final backend = _Backend(plan: [1, 2])..patchStatus = 400;
+    return _withDaily(backend, [_outfit(1), _outfit(2)], (c, _) async {
+      final target = c.read(dailyOutfitProvider).value![0];
+      await expectLater(
+        c.read(dailyOutfitProvider.notifier).toggleOutfitFavorite(target),
+        throwsA(anything),
+      );
+
+      expect(c.read(dailyOutfitProvider).value![0].isFavorite, isFalse);
+      expect(
+        c.read(outfitsProvider).value!.firstWhere((o) => o.id == 1).isFavorite,
+        isFalse,
+      );
     });
   });
 }

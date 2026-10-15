@@ -44,22 +44,17 @@ class GarmentUploadHelper {
     );
   }
 
-  /// The analyze → add-garment continuation shared by every source of a new
-  /// clothing photo — camera/album (via [showAddClothingDialog] above) and
-  /// a photo shared in from another app (`SharedMediaHandler`).
+  /// Shared by camera/album ([showAddClothingDialog]) and photos shared in
+  /// from another app (`SharedMediaHandler`).
   static Future<void> startAddClothingFlow(
     BuildContext context, {
     required String imagePath,
     VoidCallback? onComplete,
     void Function(Garment)? onAdded,
   }) async {
-    // 1. Analyze the photo (background removal + metadata) — the backend
-    // crops to the subject itself now, so there's no manual crop step here
-    // any more; see analyzePhoto's own doc for why.
     final result = await analyzePhoto(context, imagePath);
     if (result == null || !context.mounted) return;
 
-    // 2. Navigate to the add page
     final newGarment = await Navigator.push<Garment>(
       context,
       MaterialPageRoute(
@@ -88,22 +83,16 @@ class GarmentUploadHelper {
     onComplete?.call();
   }
 
-  /// Runs [GarmentService.analyzeGarment] on [imagePath] (background
-  /// removal + AI metadata) behind a modal loading overlay, offering
-  /// retry-or-cancel on failure. Called by [startAddClothingFlow] above — a
-  /// manual crop step used to run before this call (`ImageEditorPage`), but
-  /// the backend's own auto-crop-to-subject (`_finalize_garment_image` in
-  /// virtual-wardrobe-backend) makes that unnecessary now. Returns null if
-  /// the user cancels the retry prompt, or on an unrecoverable auth expiry
-  /// (already handled here).
+  /// Background removal + AI metadata, with retry-or-cancel on failure. No
+  /// manual crop step: the backend crops to the subject itself. Returns null
+  /// on cancel or auth expiry (already handled here).
   static Future<ImageEditResult?> analyzePhoto(
     BuildContext context,
     String imagePath,
   ) async {
     final l10n = AppLocalizations.of(context);
-    // Captured up front: `context` can't be trusted for navigation after
-    // the network round-trip below, and the loading overlay must be popped
-    // from the same navigator that showDialog pushes it onto.
+    // Captured up front: the overlay must be popped from the navigator
+    // showDialog pushed it onto, and `context` may be stale after the await.
     final navigator = Navigator.of(context, rootNavigator: true);
 
     while (true) {
@@ -117,17 +106,17 @@ class GarmentUploadHelper {
       );
       try {
         final result = await GarmentService().analyzeGarment(imagePath);
-        navigator.pop(); // close loading indicator
+        navigator.pop();
         return ImageEditResult(
           imagePath: result.processedImagePath ?? imagePath,
           analysisData: result.metadata,
         );
       } on AuthExpiredException {
-        navigator.pop(); // close loading indicator
+        navigator.pop();
         if (context.mounted) await AuthExpiredHandler.handle(context);
         return null;
       } catch (e) {
-        navigator.pop(); // close loading indicator
+        navigator.pop();
         debugLog('GarmentUploadHelper.analyzePhoto: $e');
         if (!context.mounted) return null;
         final retry = await showDialog<bool>(
@@ -142,7 +131,6 @@ class GarmentUploadHelper {
           ),
         );
         if (retry != true || !context.mounted) return null;
-        // loop and retry
       }
     }
   }

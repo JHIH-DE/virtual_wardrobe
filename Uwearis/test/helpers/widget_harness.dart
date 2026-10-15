@@ -6,20 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/core/utils/route_observer.dart';
 import 'package:uwearis/l10n/generated/app_localizations.dart';
 
-/// Pumps [child] as the app's `home`, wrapped in a ProviderScope and a
-/// MaterialApp carrying the real l10n delegates — enough for any widget that
-/// calls `AppLocalizations.of(context)` or Material localizations.
+/// Pumps [child] as `home` in a ProviderScope + MaterialApp with the real
+/// l10n delegates.
 ///
-/// Pass a `Scaffold` as [child] when the widget under test needs one
-/// (an `appBar:` slot, a `RefreshIndicator`, `ScaffoldMessenger`, …).
-///
-/// [retry] is a plain pass-through to [ProviderScope.retry] — typed as the
-/// raw function shape rather than Riverpod's own `Retry` typedef, which
-/// isn't part of its public export surface. Riverpod's `AsyncNotifier`s
-/// retry a failed `build()` with backoff by default, which means a test
-/// simulating a provider-level failure can otherwise hang waiting for
-/// `.future` to settle — pass `(_, _) => null` to make the first failure
-/// terminal.
+/// [retry] passes through to [ProviderScope.retry] (raw function type:
+/// Riverpod doesn't export its `Retry` typedef). Pass `(_, _) => null` so a
+/// simulated provider failure is terminal instead of retrying.
 Future<void> pumpApp(
   WidgetTester tester,
   Widget child, {
@@ -38,9 +30,7 @@ Future<void> pumpApp(
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        // Mirrors app.dart's MaterialApp — needed for any RouteAware page
-        // under test (e.g. RemovableCard's didPopNext) to actually
-        // receive push/pop notifications.
+        // As in app.dart — RouteAware widgets (e.g. RemovableCard) need it.
         navigatorObservers: [routeObserver],
         home: child,
       ),

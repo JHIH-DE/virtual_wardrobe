@@ -5,28 +5,15 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import 'buttons/action_disc_button.dart';
 
-/// The app's one "⋮" overflow-menu look — same shape, elevation, sizing,
-/// and item layout everywhere it shows up (trip/outfit/garment detail app
-/// bars, trip cards, image overlays). Deliberately never groups items with
-/// a divider — a destructive action is told apart by color (see
-/// [AppPopupMenu.item]'s [isDestructive]) rather than a rule.
+/// The app's shared "⋮" overflow menu. No dividers: destructive items are
+/// told apart by color ([AppPopupMenuItem.isDestructive]).
 ///
-/// Positions itself with a plain [CompositedTransformFollower] rather than
-/// [PopupMenuButton] or [MenuAnchor]: both frameworks widgets round their
-/// menu width up to a fixed step/cap, and — for [MenuAnchor] specifically —
-/// its screen-edge collision handling only flips to the far side of a
-/// horizontal *sibling* menu; a standalone anchor like this one always
-/// falls through to clamping flush against the physical screen edge
-/// instead of the trigger, which visibly detaches the menu from a trigger
-/// that (as ours always is) sits near a corner. Anchoring manually keeps
-/// the menu's top-right corner pinned to the trigger's bottom-right corner
-/// regardless of screen position.
+/// Not [PopupMenuButton]/[MenuAnchor]: both round the menu width up to a
+/// fixed step, and [MenuAnchor] clamps a standalone menu to the screen edge
+/// rather than the trigger. A [CompositedTransformFollower] keeps the menu's
+/// top-right pinned to the trigger's bottom-right.
 ///
-/// The trigger defaults to a plain "⋮" glyph in a [AppDimens.toolbarHeight]
-/// square; [AppPopupMenuVariant.toolbar] puts it on an [ActionDisc] to match
-/// the rest of an AppToolBar's actions. Pass [trigger] for a fully custom
-/// widget instead — for menus that sit on top of a photo and need their own
-/// contrasting backdrop.
+/// Pass [trigger] for a custom trigger (e.g. over a photo).
 class AppPopupMenu<T> extends StatefulWidget {
   final List<AppPopupMenuItem<T>> items;
   final ValueChanged<T> onSelected;
@@ -41,11 +28,7 @@ class AppPopupMenu<T> extends StatefulWidget {
     this.variant = AppPopupMenuVariant.inline,
   });
 
-  /// One row: an optional [icon] + [label], sized/spaced the same in every
-  /// menu that uses [AppPopupMenu]. [isDestructive] tints the label (never
-  /// the icon) red instead of relying on a divider to set a delete/remove
-  /// action apart from the rest. Omit [icon] for a text-only item (e.g. a
-  /// single-action menu with nothing to differentiate via icon).
+  /// [isDestructive] tints the label (not the icon) red.
   static AppPopupMenuItem<T> item<T>({
     required T value,
     Widget? icon,
@@ -68,10 +51,10 @@ class AppPopupMenu<T> extends StatefulWidget {
 
 /// Where an [AppPopupMenu]'s default "⋮" trigger sits.
 enum AppPopupMenuVariant {
-  /// On a card or row — a bare glyph.
+  /// A bare glyph, for cards and rows.
   inline,
 
-  /// In an AppToolBar's actions — on an [ActionDisc].
+  /// On an [ActionDisc], for AppToolBar actions.
   toolbar,
 }
 
@@ -91,11 +74,8 @@ class _AppPopupMenuState<T> extends State<AppPopupMenu<T>>
     super.dispose();
   }
 
-  // The app navigates with a plain Navigator (see CLAUDE.md's Navigation
-  // section) rather than the Router API, so BackButtonListener — which
-  // requires a Router ancestor — isn't available here. didPopRoute is the
-  // Router-independent hook for the same job: close the menu on Android's
-  // back gesture instead of letting it pop the whole page underneath.
+  // Closes the menu on Android back instead of popping the page.
+  // BackButtonListener needs a Router, and the app uses a plain Navigator.
   @override
   Future<bool> didPopRoute() async {
     if (_overlayEntry != null) {
@@ -258,8 +238,7 @@ class _PopupMenuOverlay<T> extends StatelessWidget {
                                     ],
                                     Text(
                                       entry.label,
-                                      style: AppTextStyle.regular14.copyWith(
-                                        fontWeight: FontWeight.w500,
+                                      style: AppTextStyle.medium14.copyWith(
                                         color: entry.isDestructive
                                             ? AppColors.error
                                             : null,
@@ -283,9 +262,8 @@ class _PopupMenuOverlay<T> extends StatelessWidget {
   }
 }
 
-/// One [AppPopupMenu] entry, built via [AppPopupMenu.item] — a plain data
-/// description, not a widget itself; [AppPopupMenu] turns each one into the
-/// actual tappable row wired to its [ValueChanged] callback.
+/// One [AppPopupMenu] entry (data, not a widget); build via
+/// [AppPopupMenu.item].
 class AppPopupMenuItem<T> {
   final T value;
   final Widget? icon;

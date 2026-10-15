@@ -20,8 +20,7 @@ extension StyleTasteDimensionLocalization on StyleTasteDimension {
     }
   }
 
-  /// The pole label to show for a given [score] (0.0-1.0) — the low pole's
-  /// name below the midpoint, the high pole's name at/above it.
+  /// Low pole below 0.5, high pole at/above it.
   String poleLabel(BuildContext context, double score) =>
       score >= 0.5 ? highLabel(context) : lowLabel(context);
 
@@ -57,10 +56,8 @@ extension StyleTasteDimensionLocalization on StyleTasteDimension {
     }
   }
 
-  /// Fixed, general explanation of what this dimension measures — shown in
-  /// the "What these mean" dialog. Unlike [StyleTastePreference.description]
-  /// (Uwearis's personalized read on where *this user* sits), this text is the
-  /// same for everyone and never comes from the API.
+  /// Static, same-for-everyone explanation for the "What these mean" dialog
+  /// (unlike the API's per-user [StyleTastePreference.description]).
   String explanation(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     switch (this) {

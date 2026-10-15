@@ -15,7 +15,6 @@ import '../../data/garment.dart';
 import '../../data/trip.dart';
 import '../../data/trip_plan.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/circle_icon_button.dart';
@@ -38,15 +37,10 @@ import '../widgets/trip/trip_legs_editor.dart';
 import 'outfit_edit_page.dart';
 import 'trip_suitcase_page.dart';
 
-/// Actions in [TripDetailsPage]'s app bar "⋮" menu — moved here from
-/// [TripCard] (the Trips-tab list item) so a trip's own metadata edits live
-/// on its detail page instead of duplicated across every card that links
-/// to it.
 enum _TripMenuAction { editName, editLegs, delete }
 
-/// Renders from [tripDetailProvider] — the caller loads it before pushing
-/// (see `openTripDetails`), so only a trip's first visit waits on the
-/// network.
+/// Renders from [tripDetailProvider]; `openTripDetails` loads it before
+/// pushing, so only a trip's first visit waits on the network.
 class TripDetailsPage extends ConsumerStatefulWidget {
   final Trip trip;
 
@@ -57,31 +51,25 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
-  // TripDayCard's own width plus the gap between cards — used to compute
-  // how far to scroll the day selector to bring a tapped card into view.
+  // Must match TripDayCard's width (used for scroll-into-view math).
   static const double _dayCardWidth = 95;
   static const double _dayCardGap = 8;
-  // Snug around TripDayCard's tallest state (date row + temperature line);
-  // the cards stretch to this so temp / no-temp days stay the same height.
+  // Fits TripDayCard's tallest state so days with/without a temperature
+  // line stay the same height.
   static const double _dayCardHeight = 78;
 
   int _selectedDayIndex = 0;
   final ScrollController _dayScrollController = ScrollController();
 
-  // Which EdgeFadeScrim edges still have something to fade — start
-  // fully-visible (matching EdgeFadeScrim's own always-visible default) and
-  // get corrected by the first ScrollMetricsNotification each row's
-  // NotificationListener sees, which fires on initial layout as well as on
-  // every real scroll/content-size change (see _applyEdgeFadeVisibility).
+  // Corrected by the first ScrollMetricsNotification, which also fires on
+  // initial layout.
   bool _daySelectorFadeLeftVisible = true;
   bool _daySelectorFadeRightVisible = true;
   bool _wardrobeFadeLeftVisible = true;
   bool _wardrobeFadeRightVisible = true;
 
-  // Mutable local copy — the app bar's edit menu (name/itinerary/
-  // activities) needs to update what's on screen immediately, and
-  // [widget.trip] is otherwise a fixed snapshot from whoever pushed this
-  // page. Kept in sync with [tripsProvider] by [_updateTrip].
+  // Local copy so name/itinerary edits show immediately; [_updateTrip]
+  // keeps [tripsProvider] in sync.
   late Trip _trip = widget.trip;
 
   int get _tripId => int.parse(_trip.id);
@@ -95,28 +83,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   List<TripDayOutfit> get _dayOutfits => _detail.days;
   Set<int> get _suitcaseIds => _detail.suitcaseIds;
 
-  // Display-only — feeds the "Recommended N · Selected M" summary on the
-  // Suitcase card (see [_buildSuitcaseSection]). Packing guidance, never a
-  // plan-generation gate — that lives on TripSuitcasePage now.
+  // Display-only ("Recommended N · Selected M" on the Suitcase card), not a
+  // plan-generation gate.
   int? _recommendedTotal;
   bool _generatingOutfit = false;
-  // Re-entrancy guard for the *whole* generate/regenerate-day-outfit flow,
-  // including the regenerate confirm dialog — see [_generateSelectedDayOutfit].
   bool _dayOutfitActionInFlight = false;
-  // Same shape as [_dayOutfitActionInFlight], for the whole-trip Replan
-  // triggered from the Daily Outfit Plan refresh icon — see [_replanPlan].
   bool _replanActionInFlight = false;
   bool _replanningPlan = false;
-  // Guards the whole itinerary-edit flow (the edit dialog plus the
-  // save-and-reanalyze work that follows a legs change) — see
-  // [_editTripLegs]. [_updatingTripLegs] is the narrower flag that only
-  // covers that save-and-reanalyze work, for the loading overlay: it starts
-  // the instant Save is tapped (dialog closed) and spans the PATCH, the plan
-  // refetch, and the AI reanalysis together, since all three are awaited
-  // back-to-back with nothing else to show progress in between — flipping it
-  // on only around the last (AI) step left a multi-second gap after Save
-  // with no visible feedback at all.
   bool _editLegsActionInFlight = false;
+  // Overlay spans the PATCH, plan refetch and AI reanalysis together, so
+  // there's no feedback gap after Save.
   bool _updatingTripLegs = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
@@ -127,27 +103,18 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   List<Garment> get _todayGarments => _currentDayOutfit?.garments ?? const [];
 
-  /// True if any of today's outfit garments have since been removed from
-  /// the trip's suitcase — e.g. the user unpacked something after Uwearis (or
-  /// the user themself) already assigned it to this day.
+  /// Some of the selected day's garments are no longer in the suitcase.
   bool get _hasMissingSuitcaseItems =>
       _todayGarments.any((g) => g.id != null && !_suitcaseIds.contains(g.id));
 
   bool get _hasTripPlan => _detail.hasTripPlan;
 
-  /// Whether the *selected* day specifically has an option assigned — unlike
-  /// [_hasTripPlan] (any day at all), this gates [_buildWardrobeSection]'s
-  /// Generate button and its "let Uwearis plan" CTA for the day currently
-  /// on screen (e.g. a leg added after the plan was first generated still
-  /// has no option of its own even though other days do).
+  /// Per day, unlike [_hasTripPlan]: a leg added after planning has no
+  /// option even though other days do.
   bool get _selectedDayHasOption => _currentDayOutfit?.optionId != null;
 
-  /// Whether today's assigned garments cover Top, Bottom, and Shoes — a
-  /// one-piece counts for both Top and Bottom, mirroring AddOutfitPage's own
-  /// core-completeness rule. Gates the "Generate Outfit" button's *enabled*
-  /// state ([_buildGenerateOutfitButton]): the button itself always shows once a
-  /// day has an option and no render yet, but generating from an incomplete
-  /// core selection isn't offered.
+  /// Top + Bottom + Shoes (a one-piece covers Top and Bottom). Gates whether
+  /// the Generate Outfit button is enabled.
   bool get _hasCoreOutfit {
     bool hasCategory(GarmentCategory c) =>
         _todayGarments.any((g) => g.category == c);
@@ -181,9 +148,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     super.dispose();
   }
 
-  /// A revisit renders the cached [tripDetailProvider] as-is; once its
-  /// signed image URLs have expired (15 minutes), re-fetch it in the
-  /// background so images don't each have to re-sign themselves one by one.
+  /// Once the cached detail's signed image URLs expire, re-fetch it in the
+  /// background so images don't each re-sign one by one.
   Future<void> _revalidateIfStale() async {
     if (!_detail.hasStaleImages) return;
     try {
@@ -197,16 +163,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// Loads the trip's packing analysis for [_recommendedTotal] — the
-  /// packing-gate / "Generate Trip Plan" threshold. The advice text itself
-  /// (`analysis.overallAdvice`) now renders on [TripSuitcasePage], which
-  /// watches the same cached [tripSuggestionProvider] directly rather than
-  /// this page passing the text through.
   Future<void> _loadPackingAnalysis() async {
     try {
-      // Shared with the suitcase page/garment picker (see
-      // tripSuggestionProvider) so opening either doesn't re-request the
-      // same analysis.
+      // Cached provider, shared with the suitcase page and garment picker.
       final analysis = await ref.read(
         tripSuggestionProvider(int.parse(_trip.id)).future,
       );
@@ -227,15 +186,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// Force-reruns the AI packing analysis (`POST .../packing-analysis`) after
-  /// an itinerary edit changes the trip's legs/dates — called from
-  /// [_updateTrip]'s `legsChanged` branch. Unlike [_loadPackingAnalysis],
-  /// which only re-reads whatever [tripSuggestionProvider] already has
-  /// cached, this asks the backend to actually recompute the analysis for
-  /// the new legs, since [_updateTrip] already invalidated that cache and a
-  /// plain re-read would otherwise still return the pre-edit result. Doesn't
-  /// own [_updatingTripLegs] itself — [_editTripLegs] holds that flag for
-  /// this call and the awaits before it, see its doc comment.
+  /// Asks the backend to recompute the packing analysis after a legs edit;
+  /// a plain re-read would return the pre-edit result.
   Future<void> _analyzeTrip() async {
     try {
       final analysis = await TripService().analyzeTrip(int.parse(_trip.id));
@@ -267,17 +219,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// This page's own Replan entry point — the Daily Outfit Plan title's
-  /// refresh icon (see [_buildDayPlanCard]). Unlike TripSuitcasePage's
-  /// bottom button (which only shows once the suitcase has changed since it
-  /// was opened), this doesn't require the suitcase to have changed at all:
-  /// it's for "I didn't touch the suitcase, I just don't like what Uwearis
-  /// picked." Shares the same confirm dialog ([showReplanConfirmDialog]) and
-  /// the same day-selection policy ([daysToReplan] /
-  /// [TripDayOutfit.needsReplan]) as TripSuitcasePage, straight off this
-  /// page's own already-loaded [_dayOutfits]/[_suitcaseIds] — no extra
-  /// `getTripPlan` round trip needed. On success this refreshes in place
-  /// ([_reloadPlan]) rather than popping anywhere.
+  /// Replan without a suitcase change ("I just don't like what Uwearis
+  /// picked"); TripSuitcasePage's Replan only shows after a suitcase change.
   Future<void> _replanPlan() async {
     if (_replanActionInFlight ||
         _dayOutfitActionInFlight ||
@@ -332,30 +275,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// Synchronously renders the *currently selected* day's option into a
-  /// try-on image — reachable from the "Generate"/"Regenerate Outfit" button
-  /// under the day's garments ([_buildGenerateOutfitButton]) or the corner
-  /// regenerate badge on the image itself once one already exists
-  /// ([_buildOutfitSection]'s `onRegenerate`). Branches on whether this option already has an
-  /// `outfit_id` —
-  /// the backend now splits first render ([TripService.generateOptionOutfit],
-  /// 409s if already rendered) from re-rendering an existing one
-  /// ([TripService.regenerateOptionOutfit], 400s if never rendered) into two
-  /// endpoints, so calling the wrong one for the option's current state
-  /// fails outright. The result is applied to whichever day still holds the
-  /// same option ([TripDetailNotifier.updateDayOutfit]), so a slow request
-  /// landing after the user has switched days can't clobber a different
-  /// day's state.
+  /// First render vs. re-render are separate endpoints (generate 409s if
+  /// already rendered, regenerate 400s if never rendered), so branch on
+  /// `outfitId`. The result is applied by option id, so a slow response
+  /// after a day switch can't clobber another day.
   Future<void> _generateSelectedDayOutfit() async {
-    // Guards the whole flow (the regenerate confirm dialog included), not
-    // just the AI call — the regenerate path used to be reachable only
-    // through a single-shot "⋮" menu item, which couldn't itself re-fire
-    // during that dialog's await; now it's a plain always-visible icon
-    // button, so this flag has to cover that window too. Distinct from
-    // [_generatingOutfit] (the visual loading overlay), which should only
-    // show once the AI call itself starts, not over the confirm dialog. See
-    // CLAUDE.md "Guarding costly / mutating actions against
-    // double-invocation".
     if (_dayOutfitActionInFlight || _editLegsActionInFlight) return;
     setState(() => _dayOutfitActionInFlight = true);
     try {
@@ -364,10 +288,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       if (optionId == null) return;
       final isRegenerate = before.outfitId != null;
 
-      // Regenerating throws away the current render for a fresh *paid* AI
-      // one. Confirm first, mirroring OutfitDetailsPage._regenerateImage. A
-      // first render ("Generate Outfit") has nothing to discard, so that
-      // path skips the prompt.
+      // Regenerating discards the current render for a new paid one.
       if (isRegenerate) {
         final ok = await showDialog<bool>(
           context: context,
@@ -427,10 +348,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// Lets the user manually swap which suitcase garments make up the
-  /// selected day's outfit, via [OutfitEditPage]'s per-category
-  /// slot picker. Only reachable once Uwearis has generated a plan (there has
-  /// to be an existing option to PATCH).
+  /// Needs an existing option to PATCH.
   Future<void> _openDayOutfitEditor() async {
     final optionId = _currentDayOutfit?.optionId;
     if (optionId == null) return;
@@ -455,11 +373,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         optionId: optionId,
         garmentIds: result.garmentIds.toList(),
       );
-      // updateOptionItems clears this option's already-tried-on outfit
-      // server-side (see its doc comment) — outfitId/resultImageUrl drop to
-      // null here to match, rather than keeping the now-stale values around.
-      // everHadOutfit stays sticky so the CTA reads "Regenerate" rather than
-      // "Generate" once the user does render this slot again.
+      // The backend clears the option's rendered outfit, so drop
+      // outfitId/resultImageUrl; everHadOutfit stays so the CTA reads
+      // "Regenerate".
       detailNotifier.updateDayOutfit(
         optionId,
         (current) => TripDayOutfit(
@@ -483,9 +399,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// "Fix" action for the missing-items warning: re-adds whatever's
-  /// currently in this day's outfit but missing from the suitcase back into
-  /// it, rather than making the user go re-pick the outfit.
+  /// Re-packs the day's garments that are missing from the suitcase.
   Future<void> _fixMissingSuitcaseItems() async {
     final missing = _todayGarments
         .where((g) => g.id != null && !_suitcaseIds.contains(g.id))
@@ -573,14 +487,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     await _updateTrip(_trip.copyWith(name: result));
   }
 
-  /// Guarded the same way as [_replanPlan]/[_generateSelectedDayOutfit]:
-  /// [_editLegsActionInFlight] covers the whole flow (dialog included), not
-  /// just the save-and-reanalyze work [_updateTrip] does afterward when legs
-  /// actually change — see CLAUDE.md "Guarding costly / mutating actions
-  /// against double-invocation". [_updatingTripLegs] is the narrower visible-
-  /// loading flag for that save-and-reanalyze work specifically (see its own
-  /// doc comment for why it starts here rather than deeper inside
-  /// [_analyzeTrip]).
   Future<void> _editTripLegs() async {
     if (_editLegsActionInFlight ||
         _replanActionInFlight ||
@@ -622,9 +528,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// Field-by-field comparison — [TripLeg]/[LocationResult] don't override
-  /// `==`, and identity comparison would miss a "removed then re-added the
-  /// same destination" round trip that nets out to no real change.
+  /// [TripLeg]/[LocationResult] don't override `==`.
   bool _legsEqual(List<TripLeg> a, List<TripLeg> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
@@ -642,27 +546,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     return true;
   }
 
-  /// Persists a trip metadata edit (name/legs) and reflects it
-  /// both locally and in [tripsProvider] — mirrors the optimistic-then-
-  /// rollback pattern `TripsPage`'s equivalent used to follow before this
-  /// menu moved here. A legs edit also reshuffles which dates the trip
-  /// covers, so the plan gets re-fetched afterward rather than patched in
-  /// place.
+  /// Optimistic update with rollback. A legs edit changes the covered dates,
+  /// so the plan is re-fetched rather than patched.
   Future<void> _updateTrip(Trip updated) async {
     final previous = _trip;
     final legsChanged = !identical(updated.legs, previous.legs);
     setState(() => _trip = updated);
     ref.read(tripsProvider.notifier).updateTrip(updated);
-    // The packing analysis is derived from legs/dates/activities — drop the
-    // cached one so it's re-fetched (here and by the suitcase picker).
+    // The packing analysis is derived from legs/dates/activities.
     ref.invalidate(tripSuggestionProvider(int.parse(previous.id)));
     try {
-      // `legs` and `days` are independent on the backend — changing the leg
-      // date range doesn't implicitly resize the day records, so a leg edit
-      // has to resend `days` for the new range or added/removed days
-      // silently don't take effect. Just the dates — the backend fills in
-      // temperature on its own, and omitting `activity` keeps each
-      // existing day's current value.
+      // The backend doesn't resize `days` from `legs`, so resend the dates.
+      // Omitting `activity` keeps each day's value; temperature is filled in
+      // server-side.
       final days = legsChanged
           ? updated.coveredDates
                 .map((d) => {'date': DateFormat('yyyy-MM-dd').format(d)})
@@ -718,7 +614,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       if (!mounted) return;
       ref.read(tripsProvider.notifier).removeTrip(_trip.id);
       Navigator.pop(context); // close loading indicator
-      Navigator.pop(context); // back out of Trip Details — the trip is gone
+      Navigator.pop(context); // the trip is gone
     } on AuthExpiredException {
       if (!mounted) return;
       Navigator.pop(context); // close loading indicator
@@ -733,31 +629,21 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Subscribes this page to the shared detail; the helpers read it through
-    // [_detail].
+    // Helpers read the detail through [_detail].
     ref.watch(tripDetailProvider(_tripId));
     return Stack(
       children: [
         Scaffold(
           backgroundColor: AppColors.pageBackground,
           appBar: _buildAppBar(),
-          // A single scrollable list (rather than a fixed header Column with
-          // only the bottom section scrolling) so dragging from anywhere on
-          // screen — including the trip header/suitcase/day-selector area —
-          // scrolls the whole page, not just the section below them.
           body: ListView(
             padding: const EdgeInsets.only(bottom: 32),
             children: [
               const SizedBox(height: 20),
               _paddedSection(Text(_trip.name, style: AppTextStyle.bold20)),
-              _paddedSection(
-                const AppDivider(
-                  topSpacing: 12,
-                  bottomSpacing: AppDimens.sectionSpacing,
-                ),
-              ),
+              const SizedBox(height: AppDimens.titleGap),
               _paddedSection(_TripItineraryHeader(trip: _trip)),
-              const SizedBox(height: AppDimens.sectionSpacing),
+              const SizedBox(height: 24),
               _paddedSection(_buildSuitcaseSection()),
               const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildDayPlanCard()),
@@ -807,10 +693,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                 alignment: Alignment.centerLeft,
                 children: [
                   SectionTitle(_l10n.dailyOutfitPlan),
-                  // Only once there's an actual plan to replan — "I didn't
-                  // touch the suitcase, I just want a different result" (see
-                  // [_replanPlan]'s doc for how this differs from Suitcase's
-                  // own "Replan Trip Outfits" button).
                   if (_hasTripPlan)
                     Positioned(
                       right: 0,
@@ -834,8 +716,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           _buildTripDaySelector(),
           const SizedBox(height: AppDimens.sectionSpacing),
           _buildWardrobeSection(),
-          // Takes the Generate button's place under the garments once the
-          // day is rendered.
           if (_hasOutfitImage) ...[
             const SizedBox(height: AppDimens.sectionSpacing),
             _paddedSection(_buildOutfitSection()),
@@ -848,10 +728,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   bool get _hasOutfitImage =>
       _currentDayOutfit?.resultImageUrl?.isNotEmpty ?? false;
 
-  /// The selected day's rendered outfit image, with a corner badge on the
-  /// image itself (styled like OutfitDetailsPage's own on-image icons — see
-  /// [GeneratedImageCard]) for regenerating. Only built once
-  /// [_hasOutfitImage].
   Widget _buildOutfitSection() {
     final outfitId = _currentDayOutfit?.outfitId;
     return GeneratedImageCard(
@@ -870,11 +746,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// The selected day's first (or, after a garment edit cleared the old
-  /// render, repeat) render trigger — shown under its garments once the day
-  /// has an option but no image. Stays visible but disabled, with an
-  /// explanation, while [_hasCoreOutfit] is false, since rendering an
-  /// incomplete core selection isn't offered.
+  /// Shown once the day has an option but no render; disabled with an
+  /// explanation while [_hasCoreOutfit] is false.
   Widget _buildGenerateOutfitButton() {
     final hasCoreOutfit = _hasCoreOutfit;
     return AccentPillButton(
@@ -892,9 +765,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// Re-fetches the trip to get a freshly signed `result_image_url` for the
-  /// currently selected day's outfit — the URL expires after 15 minutes,
-  /// so a stale one can't just be reused.
+  /// Re-fetches the trip for a freshly signed `result_image_url`.
   Future<String?> _refreshOutfitImageUrl() async {
     final outfitId = _currentDayOutfit?.outfitId;
     if (outfitId == null) return null;
@@ -917,18 +788,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     }
   }
 
-  /// A freely-scrolling day list — selection only changes when a card is
-  /// tapped (no more "whichever page is centered" from swiping). Tapping a
-  /// card scrolls it fully into view if it's partially cut off at an edge,
-  /// but otherwise leaves the scroll position alone instead of forcing the
-  /// selected card to the center.
   Widget _buildTripDaySelector() {
-    // Trusts the trip's actual day count/order over the theoretical span
-    // (dateRange.start..end) — the backend's days[] isn't guaranteed to
-    // tile that span with zero gaps (e.g. multi-leg trips with a stretch
-    // between legs covered by no leg at all), so computing a card count
-    // from the span can drift out of sync with what _dayOutfits[index]
-    // actually holds.
+    // Uses the actual days[], not the dateRange span: multi-leg trips can
+    // have gaps between legs.
     final int totalDays = _dayOutfits.length;
     return EdgeFadeScrim(
       leftVisible: _daySelectorFadeLeftVisible,
@@ -980,9 +842,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     _scrollDayIntoView(index);
   }
 
-  /// Scrolls the day selector by the minimum amount needed to bring [index]
-  /// fully on screen — unlike centering, a card already visible (even at an
-  /// edge) is left where it is.
+  /// Scrolls the minimum needed to bring [index] fully on screen; a fully
+  /// visible card doesn't move.
   void _scrollDayIntoView(int index) {
     if (!_dayScrollController.hasClients) return;
     final position = _dayScrollController.position;
@@ -1007,14 +868,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// Recomputes which edge(s) of an [EdgeFadeScrim] row still have content
-  /// to fade from [metrics] — [currentLeft]/[currentRight] are that row's
-  /// own current flags, [apply] writes the new ones back into its two
-  /// fields. Shared by the day selector's and wardrobe row's
-  /// `NotificationListener<ScrollNotification>` (both real scroll updates
-  /// and content-size changes deliver a ScrollMetricsNotification here, so
-  /// this covers initial layout too — no separate post-frame callback
-  /// needed).
+  /// Updates an [EdgeFadeScrim] row's edge flags from [metrics] via [apply].
   void _applyEdgeFadeVisibility(
     ScrollMetrics metrics,
     bool currentLeft,
@@ -1104,8 +958,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// Change Garments PATCHes the day's option, so it's only offered once
-  /// the selected day has one.
   Widget _buildOutfitItemsHeader() {
     return Row(
       children: [
@@ -1179,8 +1031,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   }
 }
 
-/// The trip's itinerary + date ranges, one row per leg — a static readout
-/// of [trip]'s own metadata with no interaction of its own.
 class _TripItineraryHeader extends StatelessWidget {
   final Trip trip;
 
@@ -1192,7 +1042,7 @@ class _TripItineraryHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (int i = 0; i < trip.legs.length; i++) ...[
-          if (i > 0) const SizedBox(height: 10),
+          if (i > 0) const SizedBox(height: 14),
           Row(
             children: [
               const Icon(Icons.location_on, color: AppColors.icon, size: 18),
@@ -1219,9 +1069,8 @@ class _TripItineraryHeader extends StatelessWidget {
   }
 }
 
-/// The "let Uwearis plan your outfits" call-to-action card shown while a trip
-/// still has no plan — the [AccentPillButton] opens [TripSuitcasePage], which
-/// owns plan generation now (see [_TripDetailsPageState._openSuitcase]).
+/// Shown while the day has no plan; opens [TripSuitcasePage], where plans
+/// are generated.
 class _GeneratePlanCta extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -1261,8 +1110,7 @@ class _GeneratePlanCta extends StatelessWidget {
   }
 }
 
-/// One 80px-wide thumbnail in a trip day's horizontal garment strip, with an
-/// error badge when [isMissing] (the garment is no longer in the suitcase).
+/// [isMissing]: the garment is no longer in the suitcase.
 class _TripGarmentThumb extends StatelessWidget {
   final Garment garment;
   final bool isMissing;
@@ -1277,8 +1125,6 @@ class _TripGarmentThumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // opaque so the whole thumb is tappable even when the garment image
-      // falls back to a small centered placeholder icon.
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -1293,13 +1139,7 @@ class _TripGarmentThumb extends StatelessWidget {
           children: [
             Positioned.fill(
               child: Padding(
-                // contain, not cover — this box is portrait-ish (80x100)
-                // while a garment photo isn't necessarily; cover would crop
-                // a wide/short photo (e.g. shoes) down to an unrecognizable
-                // sliver instead of showing the whole garment. Matches
-                // GarmentCard/GarmentListCard's own thumbnails. A little
-                // inset so a contained image doesn't touch the card's own
-                // rounded border.
+                // contain: cover would crop wide photos (e.g. shoes).
                 padding: const EdgeInsets.all(6),
                 child: GarmentImage(
                   url: garment.imageUrl,

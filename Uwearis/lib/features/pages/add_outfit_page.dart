@@ -45,23 +45,17 @@ import 'camera_capture_page.dart' show CameraFrameRatio;
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
-/// The page's own identity for each garment slot — distinct from
-/// [GarmentCategory] because Top and Mid Layer share [GarmentCategory.top]
-/// but are two different slots. Used to key Match a Look's per-slot state
-/// ([_AddOutfitPageState._aiPopulatedSlots]).
+/// Garment slots — not [GarmentCategory], since Top and Mid Layer are two
+/// slots sharing [GarmentCategory.top].
 enum _Slot { top, middle, outer, bottom, onePiece, shoes }
 
-/// Where the Match a Look flow currently stands. There's no persisted
-/// "error" state — a failed match just reports itself via a dialog and
-/// drops back to [idle] so the card stays usable (see
-/// [_AddOutfitPageState._runMatchALook]).
+/// No error state: a failed match shows a dialog and drops back to [idle].
 enum _MatchALookStatus { idle, analyzing, matched }
 
 enum _ReferenceLookCardAction { remove }
 
-/// One garment shown in the create flow's "Your Outfit" list — either a
-/// core slot pick ([slot] set) or an accessory ([accessoryIndex] set).
-/// [category] is the label shown in the row's subtitle.
+/// One "Outfit Items" row: a core slot pick ([slot] set) or an accessory
+/// ([accessoryIndex] set).
 typedef _OutfitEntry = ({
   Garment garment,
   GarmentCategory category,
@@ -69,9 +63,7 @@ typedef _OutfitEntry = ({
   int? accessoryIndex,
 });
 
-/// The user's in-progress slot-by-slot garment picks for this page's manual
-/// try-on flow. Purely local UI state (no fromJson/toJson) — not a synced
-/// domain model, so it lives here rather than in lib/data/.
+/// In-progress slot picks — local UI state, not a domain model.
 class _OutfitSelection {
   final Garment? top;
   final Garment? middle;
@@ -118,11 +110,8 @@ class AddOutfitPage extends ConsumerStatefulWidget {
   final List<Garment> initialGarments;
   final VoidCallback? onBack;
 
-  /// Set by `SharedMediaHandler` when this page was opened from a photo
-  /// shared in from another app — runs the Match a Look flow with that
-  /// photo automatically on open, the same continuation
-  /// [_AddOutfitPageState._startMatchALookFlow] otherwise only reaches once
-  /// the user taps the Match a Look card and picks a photo themselves.
+  /// A photo shared in from another app (via `SharedMediaHandler`); Match a
+  /// Look runs on it automatically on open.
   final String? initialMatchALookImagePath;
 
   const AddOutfitPage({
@@ -139,24 +128,16 @@ class AddOutfitPage extends ConsumerStatefulWidget {
 class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   late _OutfitSelection _outfit;
 
-  /// The garment pool the picker draws from — the app-wide closet straight
-  /// from [garmentsProvider], same source every other garment-picking
-  /// screen uses, no local copy. `build` watches the provider so this stays
-  /// current; callers read it via `ref.read`. `.active`: a soft-deleted
-  /// garment can't be picked for a new outfit.
+  /// `.active`: a soft-deleted garment can't be picked for a new outfit.
   List<Garment> get _garmentPool =>
       (ref.read(garmentsProvider).value ?? const []).active;
 
   bool get _garmentPoolLoading => ref.read(garmentsProvider).isLoading;
 
-  // Match a Look session state — see clearMatchALookSession-equivalent
-  // _clearMatchALookSession below for what "clearing" actually resets.
   _MatchALookStatus _matchALookStatus = _MatchALookStatus.idle;
   String? _referenceImagePath;
-  // Slots currently filled by Match a Look's #1 pick rather than a manual
-  // choice — this is this page's selectionSource tracking: a slot in this
-  // set is "referenceMatch", everything else (including slots the user
-  // manually cleared or replaced) is implicitly "manual".
+  // Slots still holding Match a Look's pick; a manual pick or clear removes
+  // the slot from this set.
   final Set<_Slot> _aiPopulatedSlots = {};
 
   static const int _maxAccessories = 4;
@@ -164,37 +145,25 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
   BackgroundOption _background = BackgroundOption.all.first;
-  // Whether the user actually touched the background picker — [_background] always
-  // has a concrete default, so this is the only way to tell "picked
-  // Fitting Room on purpose" apart from "never opened the picker".
+  // [_background] always has a default; this tells an explicit pick apart
+  // from "never touched" (only an explicit pick is sent).
   bool _backgroundCustomized = false;
 
-  // "Complete with AI" state — garment ids the user has locked (AI must keep
-  // them), ids the AI has already recommended and the user then moved past
-  // (a fresh run should try something else instead of repeating them — see
-  // `_applyCompletedOutfit`), the style to ask for (null = let the backend
-  // infer it from Style Taste), and whether a completion request is in
-  // flight.
+  // Finish Outfit: locked ids are kept; excluded ids are past AI picks so a
+  // re-run suggests something else. A null style lets the backend infer it.
   final Set<int> _lockedGarmentIds = {};
   final Set<int> _excludedGarmentIds = {};
   StyleType? _completeWithAiStyle;
-  // Absolute temperature (°C) Finish Outfit should dress for. null = follow
-  // today's mean temperature (`WeatherData.todayMeanTemp`, which the stepper
-  // still shows as its starting value); set once the user nudges the stepper, then it wins for
-  // this outfit only (not persisted).
+  // null = follow `WeatherData.todayMeanTemp`; set once the user nudges the
+  // stepper (this outfit only, not persisted).
   double? _weatherTempOverrideC;
   bool _isCompletingWithAi = false;
-  // Synchronous re-entrancy guard for Create Outfit — set before the first
-  // `await` in [_startTryOn] and cleared in a `finally`, so a double-tap
-  // during a pre-flight `await` (a delete round-trip) can't start a second
-  // AI render. Finish Outfit needs no separate one: [_completeWithAi] raises
-  // [_isCompletingWithAi] before its own first `await`. See CLAUDE.md
-  // "Guarding costly / mutating actions against double-invocation".
+  // Create Outfit's re-entrancy guard; Finish Outfit's is
+  // [_isCompletingWithAi].
   bool _tryOnRequested = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
-  /// Stable display order for the "Add garment" picker's category tabs.
   static const List<GarmentCategory> _addCategoryOrder = [
     GarmentCategory.top,
     GarmentCategory.bottom,
@@ -205,15 +174,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     GarmentCategory.accessory,
   ];
 
-  /// Garments the "Add garment" picker should offer, given what the outfit
-  /// already has: a category with no free slot drops out entirely (you can't
-  /// wear a second pair of trousers), an accessory type already worn drops
-  /// out (no second pair of sunglasses), and a base-layer top already worn
-  /// drops out its alternatives the same way (wearing a T-shirt hides Polo
-  /// shirt too — see [baseTopSlotKey]; a genuine mid-layer piece like a
-  /// cardigan is a different key and still offered). Core garments already
-  /// in the outfit don't reappear either. [keepCategory] / [keepSlot] /
-  /// [keepAccessoryIndex] re-admit whatever the user is currently swapping.
+  /// Drops full categories, accessory types already worn, base-layer tops
+  /// interchangeable with one already worn ([baseTopSlotKey]) and garments
+  /// already picked. The `keep*` args re-admit whatever is being swapped.
   List<Garment> _addGarmentCandidates({
     GarmentCategory? keepCategory,
     _Slot? keepSlot,
@@ -304,31 +267,24 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   bool _hasCategory(GarmentCategory category) =>
       _garmentPool.any((g) => g.category == category);
 
-  /// Called before opening the picker: nudge [garmentsProvider] to re-fetch
-  /// if its list is empty or its image URLs are stale (a no-op otherwise).
   Future<void> _ensureFreshGarments() async {
     await ref.read(garmentsProvider.notifier).refreshIfNeeded();
   }
 
-  /// Ids of whichever accessory slots are actually filled — [_accessories]
-  /// always keeps one trailing `null` "+" slot, which this excludes.
   Set<int> get _accessoryIds => _accessories
       .whereType<Garment>()
       .map((g) => g.id)
       .whereType<int>()
       .toSet();
 
-  /// The Top/Bottom/Shoes core categories a complete try-on needs — only
-  /// the ones the closet actually has, in that order. Create Outfit only
-  /// shows once every one of them is picked (see [_createFlowReady]).
+  /// Top/Bottom/Shoes, limited to the categories the closet actually has.
   List<GarmentCategory> get _coreChecklist => const [
     GarmentCategory.top,
     GarmentCategory.bottom,
     GarmentCategory.shoes,
   ].where(_hasCategory).toList();
 
-  /// Whether a core checklist slot is satisfied. A one-piece counts for both
-  /// Top and Bottom.
+  /// A one-piece counts for both Top and Bottom.
   bool _coreSlotMet(GarmentCategory c) {
     switch (c) {
       case GarmentCategory.top:
@@ -356,12 +312,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         ..clear()
         ..addAll(_buildInitialAccessories(widget.initialGarments));
     }
-    // Same as every other garment screen: lean on garmentsProvider and let
-    // it re-fetch only when its own list is empty or its image URLs are
-    // stale (a no-op if My Closet just refreshed). Deferred to post-frame —
-    // `refreshIfNeeded` synchronously flips the provider to AsyncLoading,
-    // which Riverpod forbids during a build/initState (matches how
-    // closet_page / outfits_page / trip_suitcase_page schedule it).
+    // Post-frame: refreshIfNeeded synchronously sets AsyncLoading, which
+    // Riverpod forbids during initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(garmentsProvider.notifier).refreshIfNeeded();
       final sharedPath = widget.initialMatchALookImagePath;
@@ -393,9 +345,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// Mirrors [_buildInitialOutfit] for the accessory slots — preserves the
-  /// "one trailing null add-slot until [_maxAccessories]" invariant that
-  /// [_pickAccessoryAt] otherwise maintains.
+  /// Keeps the "one trailing null add-slot until [_maxAccessories]"
+  /// invariant.
   List<Garment?> _buildInitialAccessories(List<Garment> garments) {
     final picked = garments
         .where(
@@ -408,9 +359,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     return [...picked, if (picked.length < _maxAccessories) null];
   }
 
-  // Match a Look's `accessory` role has no corresponding _Slot — Accessories
-  // & Background stay out of scope per the feature spec, so that role's match is
-  // simply never applied.
+  // Accessories are out of Match a Look's scope, so that role is never
+  // applied.
   _Slot? _slotFor(MatchALookRole role) {
     switch (role) {
       case MatchALookRole.top:
@@ -464,14 +414,11 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  /// A manual pick (or clear) always wins over Match a Look — the slot
-  /// drops out of the tracking set regardless of what's now in it.
   void _markSlotManual(_Slot slot) {
     _aiPopulatedSlots.remove(slot);
   }
 
-  /// [initialImagePath] uses a photo already in hand (from
-  /// `SharedMediaHandler`) instead of opening the camera/album picker.
+  /// [initialImagePath] skips the camera/album picker.
   Future<void> _startMatchALookFlow({String? initialImagePath}) async {
     final imagePath =
         initialImagePath ??
@@ -488,9 +435,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   Future<void> _runMatchALook(String imagePath) async {
     setState(() => _matchALookStatus = _MatchALookStatus.analyzing);
     try {
-      // Two backend calls: analyze the reference photo, then separately
-      // search the closet against whatever it just stored — see
-      // match-look-api.md's numbered flow.
+      // Two calls: upload/analyze the reference, then match the closet
+      // against what the backend stored.
       await MatchLookService().uploadReference(imagePath);
       final result = await MatchLookService().matchLook();
       if (!mounted) return;
@@ -512,10 +458,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  /// Most backend error codes (upload/AI-pipeline failures) are system
-  /// noise the user can't act on — those fall back to the generic message.
-  /// Only the handful describing something about the *photo itself* get a
-  /// specific string worth showing.
+  /// Only codes about the photo itself get specific copy; the rest are
+  /// pipeline failures the user can't act on.
   String _matchLookErrorMessage(MatchLookException e) {
     switch (e.errorCode) {
       case 'MATCH_LOOK_NO_PERSON':
@@ -540,9 +484,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       if (slot == null) continue;
       if (match.matched) {
         final garment = result.garments[match.selectedGarmentId];
-        // A matched role with a stale/unknown garment id is treated the
-        // same as no match — nothing to fill the slot with, so it isn't
-        // counted as AI-populated either.
+        // An unknown garment id counts as no match.
         if (garment != null) {
           next = _applyToSlot(next, slot, garment);
           newAiSlots.add(slot);
@@ -560,12 +502,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     });
   }
 
-  /// Clears the whole Match a Look session — not just the reference image.
-  /// Every slot Match a Look filled reverts to unselected; slots the user
-  /// manually replaced afterward are untouched. Best-effort on the backend
-  /// side: if the DELETE fails, the local state still clears so the page
-  /// stays usable — the next upload/match overwrites whatever's left
-  /// server-side anyway.
+  /// Also clears the slots Match a Look still holds (manual picks stay).
+  /// The backend DELETE is best-effort: the next upload overwrites it.
   Future<void> _clearMatchALookSession() async {
     var next = _outfit;
     for (final slot in _aiPopulatedSlots) {
@@ -580,7 +518,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     try {
       await MatchLookService().removeReference();
     } catch (_) {
-      // Ignored — see doc comment above.
+      // Best-effort.
     }
   }
 
@@ -590,11 +528,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     await _startMatchALookFlow();
   }
 
-  /// Every selected garment id — core slots (top/middle/outer/bottom/
-  /// onePiece/shoes) and accessories together as one flat list. The backend
-  /// has no separate accessory concept, just one `garment_ids` list, so
-  /// there's no reason to keep them apart client-side either — this is what
-  /// Create Outfit's generate call reads from.
+  /// Core slots and accessories as one list — the backend takes a single
+  /// `garment_ids`.
   List<int> _selectedGarmentIds() {
     final coreIds = [
       _outfit.top,
@@ -612,11 +547,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 
   Future<void> _startTryOn() async {
-    // Synchronous re-entrancy guard — set before any `await`. The
-    // `deleteOutfitJob` path below yields before `performTryOn` raises
-    // `isOutfitLoading` (and `BottomActionButton`'s hide animation keeps the
-    // old button tappable for ~200ms), so a double-tap could otherwise fire
-    // two AI renders.
     if (_tryOnRequested || isOutfitLoading || _isCompletingWithAi) return;
     setState(() => _tryOnRequested = true);
     try {
@@ -645,8 +575,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 
   Future<void> _showTryOnResult(List<int> garmentIds) async {
-    // OutfitDetailsPage pops `true` when the user keeps the outfit ("Save"),
-    // `false`/null when they discard it or back out.
+    // OutfitDetailsPage pops `true` only when the user saves the outfit.
     final saved = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -680,8 +609,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
             width: ActionDisc.iconSize,
             height: ActionDisc.iconSize,
           ),
-          // With a reference already matched this swaps it out, same as
-          // the reference card's "Change".
           onPressed: _referenceImagePath != null
               ? _changeReferenceLook
               : _startMatchALookFlow,
@@ -692,8 +619,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   @override
   Widget build(BuildContext context) {
-    // Rebuild when the closet changes (loads, or a garment is added/edited
-    // elsewhere). _garmentPool / _garmentPoolLoading read it via ref.read.
+    // _garmentPool / _garmentPoolLoading read it via ref.read.
     ref.watch(garmentsProvider);
     return Stack(
       children: [
@@ -703,8 +629,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           appBar: _buildAppBar(),
           body: ListView(
             physics: const ClampingScrollPhysics(),
-            // Edge-to-edge; non-scrolling children re-apply the inset via
-            // [_hInset].
             padding: EdgeInsets.fromLTRB(
               0,
               24,
@@ -733,14 +657,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// The default "New Outfit" layout: the Match a Look reference card (once
-  /// matched), the Finish Outfit card, the "Outfit Items" header and a
-  /// vertical list of the picked garments (+ an "Add garment" row), then a
-  /// divider and the BACKGROUND field.
   List<Widget> _buildCreateFlowBody() {
     return [
-      // The app bar's Match a Look icon is the entry point; this card only
-      // appears once a reference photo has been matched.
       if (_referenceImagePath != null) ...[
         _hInset(
           _ReferenceLookCard(
@@ -779,19 +697,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     child: child,
   );
 
-  // Fixed row height so the "Add garment" row and every garment row are
-  // always exactly the same height — a garment row's name can wrap to 2
-  // lines (long product names), which would otherwise make that row taller
-  // than "Add garment"'s fixed 2-line (title + hint) content.
   static const double _outfitRowHeight = 84;
-  // The "Add garment" row's dashed placeholder icon — unrelated to the real
-  // garment thumbnail width below, which bleeds edge-to-edge instead.
   static const double _addGarmentIconSize = 56;
   static const double _outfitThumbnailWidth = 78;
 
-  /// Vertical list: a pinned "Add garment" row on top, then one row per
-  /// current pick (core slots first, then accessories — see
-  /// [_outfitEntries]).
   Widget _buildYourOutfitRow() {
     final entries = _outfitEntries();
     return Column(
@@ -806,7 +715,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 
   Widget _buildAddGarmentRow() {
-    // Every category/type is already covered — nothing left worth adding.
     final exhausted =
         _garmentPool.isNotEmpty && _addGarmentCandidates().isEmpty;
     final enabled = !isOutfitLoading && !_garmentPoolLoading && !exhausted;
@@ -842,10 +750,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// Unlike [_buildAddGarmentRow] (built on the padded [AppListCard] shell),
-  /// this hand-rolls its container so the thumbnail can bleed edge-to-edge
-  /// with the row's top/bottom — [AppListCard]'s uniform padding wraps its
-  /// `leading` slot too, which would leave a gap around the image.
   Widget _buildOutfitGarmentRow(_OutfitEntry entry) {
     final g = entry.garment;
     final locked = _isLocked(g);
@@ -855,10 +759,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         : categoryLabel;
 
     return GestureDetector(
-      // opaque so the whole row opens the picker — the Container has a
-      // `decoration`, not a `color`, and the contained thumbnail leaves a
-      // lot of transparent padding. The Lock/✕ badges are deeper and still
-      // win their own area.
       behavior: HitTestBehavior.opaque,
       onTap: (isOutfitLoading || _garmentPoolLoading)
           ? null
@@ -930,11 +830,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Discs stay exactly where they were (24px, 8px apart,
-                      // hard against the row's right edge); the hit target
-                      // only grows vertically — there's no horizontal room
-                      // between two tightly-packed badges, but the row is a
-                      // fixed _outfitRowHeight tall.
                       CardCornerBadge(
                         icon: locked ? Icons.lock : Icons.lock_open,
                         backgroundColor: locked
@@ -970,9 +865,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// Flat, ordered view of the current picks (core slots first, then
-  /// accessories) that the "Your Outfit" row renders. Middle layer keeps the
-  /// [GarmentCategory.top] label since a mid layer *is* a top.
+  /// Core slots first, then accessories. Mid layer is labelled as a top.
   List<_OutfitEntry> _outfitEntries() {
     final list = <_OutfitEntry>[];
     void addSlot(Garment? g, _Slot slot, GarmentCategory category) {
@@ -1054,13 +947,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  /// Opens the tab-mode [SelectGarmentPage] and files whatever the user picks
-  /// into the matching slot (or accessory list). [replaceSlot] /
-  /// [replaceAccessoryIndex] pin the result to that exact slot when swapping
-  /// an existing card, and keep that slot's category/type available in the
-  /// otherwise smart-filtered picker. [current] is the garment being
-  /// swapped — it shows up marked as selected so the user can see what's
-  /// already in that slot.
+  /// [replaceSlot] / [replaceAccessoryIndex] pin the pick to the row being
+  /// swapped; [current] shows as selected in the picker.
   Future<void> _pickGarmentForOutfit({
     GarmentCategory? initial,
     _Slot? replaceSlot,
@@ -1098,8 +986,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// Manual "Add garment" pick — always locked (the user chose it on
-  /// purpose, so "Complete with AI" must keep it; see [_placeGarment]).
+  /// Manual picks are always locked so Finish Outfit keeps them.
   void _assignGarment(
     Garment g, {
     _Slot? replaceSlot,
@@ -1128,17 +1015,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     });
   }
 
-  /// Auto-places [g] into whichever slot its category maps to — an empty
-  /// top before middle, single-slot categories overwrite outright, and
-  /// accessory categories append respecting `_maxAccessories` and
-  /// no-duplicate-id. A second top that's just another base-layer
-  /// alternative to the one already worn (see [baseTopSlotKey] — e.g. a
-  /// Polo shirt picked while a T-shirt is already the top) replaces it
-  /// instead of stacking into mid layer; only a genuinely different piece
-  /// (a sweater/cardigan) is a real mid layer. Shared by the manual "Add
-  /// garment" flow ([_assignGarment], `lock: true`) and applying a
-  /// Complete-with-AI result ([_applyCompletedOutfit], `lock: false`) —
-  /// call inside `setState`.
+  /// Call inside `setState`. A top interchangeable with the current one
+  /// ([baseTopSlotKey], e.g. Polo over T-shirt) replaces it instead of
+  /// becoming the mid layer.
   void _placeGarment(Garment g, {required bool lock}) {
     switch (g.category) {
       case GarmentCategory.top:
@@ -1180,21 +1059,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     if (lock) _lockGarment(g);
   }
 
-  /// Applies [GarmentRecommendationService.completeOutfit]'s result — the
-  /// full desired outfit, locked ids included verbatim. Locked
-  /// slots/accessories are left untouched; everything unlocked is cleared
-  /// first (so a completion that changes its mind about an unlocked slot
-  /// actually removes what was there), then the recommended garments are
-  /// placed, unlocked, so the user can still adjust or lock them further.
-  ///
-  /// The ids the AI actually chose (i.e. everything returned that wasn't
-  /// already locked in by the user) are remembered in
-  /// [_excludedGarmentIds], so a later "Complete with AI" tap asks for
-  /// something different instead of risking the same suggestion again.
-  ///
-  /// [keepGarmentIds] is the locked set as it was when the request went
-  /// out (see [_completeWithAi]), so a lock toggled mid-request doesn't
-  /// change what this application keeps.
+  /// The result is the full outfit (locked ids included). Unlocked picks are
+  /// cleared first so a dropped slot really empties. [keepGarmentIds] is the
+  /// locked set at request time, so a lock toggled mid-request is ignored.
   void _applyCompletedOutfit(
     List<int> garmentIds, {
     required Set<int> keepGarmentIds,
@@ -1246,11 +1113,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   static const double _defaultTemperatureC = 20;
 
-  /// Finish Outfit's knobs and trigger: the "Finish with AI" button beside
-  /// the title, then two side-by-side tiles — today's temperature (seeded
-  /// from today's forecast high/low average, adjustable for this outfit
-  /// only) and the style to ask for. Works with 0, 1, or many locked
-  /// garments — it never requires a selection first.
   Widget _buildFinishOutfitCard() {
     final liveTemp = ref
         .watch(weatherProvider)
@@ -1321,9 +1183,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// One of the Auto-Complete card's two knob tiles: a small-caps [label]
-  /// above a fixed-height [child], so both tiles line up regardless of
-  /// what they hold.
   Widget _buildFinishOutfitTile({
     required String label,
     required Widget child,
@@ -1355,9 +1214,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// Single-choice sheet of "Auto" (let the backend infer the style from
-  /// Style Taste) plus every [StyleType]. Options are wrapped in a record so
-  /// "Auto" (a null style) stays distinguishable from a dismissed sheet.
+  /// Options are records so "Auto" (null style) differs from a dismissed
+  /// sheet.
   Future<void> _openStylePicker() async {
     final picked = await showSingleChoiceSheet<({StyleType? style})>(
       context,
@@ -1373,9 +1231,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     setState(() => _completeWithAiStyle = picked.style);
   }
 
-  /// Best-effort weather — unless the user has overridden the temperature,
-  /// its [WeatherData.todayMeanTemp] is what's sent to
-  /// [GarmentRecommendationService.completeOutfit]. Never throws.
+  /// Never throws.
   Future<WeatherData?> _fetchWeatherBestEffort() async {
     try {
       return await ref
@@ -1386,17 +1242,12 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  /// Calls [GarmentRecommendationService.completeOutfit] with the currently
-  /// locked garments + the Finish Outfit card's style and temperature
-  /// (best-effort weather unless overridden). Text-only: no Try-On image is
-  /// generated here, only [_startTryOn] (behind "Create Outfit") does that.
-  /// Locked garments are kept; unlocked picks may be swapped.
+  /// Picks garments only — no try-on image (that's [_startTryOn]).
   Future<void> _completeWithAi() async {
     if (_isCompletingWithAi) return;
     setState(() => _isCompletingWithAi = true);
     try {
-      // The user's explicit override wins; otherwise today's mean temperature
-      // (or null when there's neither — the backend then decides on its own).
+      // null lets the backend decide.
       final temperatureC =
           _weatherTempOverrideC ??
           (await _fetchWeatherBestEffort())?.todayMeanTemp;
@@ -1421,11 +1272,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  /// Create Outfit only shows once the picks make a complete outfit on
-  /// their own — Top + Bottom (or a one-piece) + Shoes — and renders exactly
-  /// what's picked, with no AI fill-in. A closet with none of those three
-  /// categories falls back to "at least 2 garments". Also hidden while a
-  /// costly AI action is already running.
+  /// Needs every core category the closet has; a closet with none of them
+  /// falls back to "at least 2 garments".
   bool get _createFlowReady {
     if (isOutfitLoading ||
         _garmentPoolLoading ||
@@ -1453,11 +1301,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   }
 }
 
-/// The active Match a Look reference readout — the reference thumbnail and
-/// how many slots it filled, plus Change/Remove. Same AI call-out treatment
-/// as [UwearisInsightCard] (gradient tint, sparkle). No destructive-looking
-/// button: "Remove Reference Look" lives in the overflow menu per the
-/// design brief.
+/// Remove lives in the overflow menu by design, not as a visible button.
 class _ReferenceLookCard extends StatelessWidget {
   final String referenceImagePath;
   final int matchedSlotCount;

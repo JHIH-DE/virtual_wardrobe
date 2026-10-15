@@ -19,15 +19,9 @@ class GarmentListCard extends StatelessWidget {
     return Stack(
       children: [
         _buildCard(context),
-        // Soft-deleted: the garment still shows here (this outfit's own
-        // garment_ids still references it), but it's gone from the closet
-        // — GarmentDetailDialog is where the user restores it. A bare glyph
-        // (no disc/border) — deliberately outside both CardCornerBadge
-        // families, see CLAUDE.md's "Corner badges" section. IgnorePointer:
-        // a Stack's hit test otherwise stops at this icon's own rectangular
-        // bounds (it has no gesture handling of its own to claim the tap),
-        // leaving a small dead zone over what should still be the card's
-        // one tap target underneath.
+        // Soft-deleted but still referenced by the outfit; restorable from
+        // GarmentDetailDialog. IgnorePointer so the icon isn't a dead zone
+        // over the card's tap target.
         if (garment.isDeleted)
           const Positioned(
             top: 6,
@@ -42,9 +36,6 @@ class GarmentListCard extends StatelessWidget {
 
   Widget _buildCard(BuildContext context) {
     return GestureDetector(
-      // opaque so the whole card is tappable — the Container has a
-      // `decoration`, not a `color`, and the contained image + text leave
-      // dead padding/gaps otherwise.
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
@@ -71,11 +62,8 @@ class GarmentListCard extends StatelessWidget {
                 width: 80,
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  // contain, not fitHeight — this slot is much narrower
-                  // than it is tall, so filling the height would crop a
-                  // wide/short photo (e.g. shoes) down to an unrecognizable
-                  // sliver instead of showing the whole garment. Matches
-                  // GarmentCard/add_outfit_page's own garment thumbnails.
+                  // contain: filling this narrow slot's height would crop a
+                  // wide photo (e.g. shoes) to a sliver.
                   child: GarmentImage(
                     url: garment.imageUrl,
                     garmentId: garment.id,

@@ -41,19 +41,16 @@ _TripStatus _tripStatus(Trip trip, DateTime today) {
   return _TripStatus.ongoing;
 }
 
-/// Shows the "New Trip" creation flow (location/date form, then weather
-/// prefetch + create call) and adds the result to [tripsProvider]. Shared
-/// between [TripsPage]'s own "+" and any other entry point (e.g. the
-/// Home page's quick-actions menu).
+/// The "New Trip" flow: create dialog, create call, then opens the new
+/// trip. Shared by Trips' empty state and the shell's quick actions.
 Future<void> handleCreateTrip(
   BuildContext context,
   WidgetRef ref, {
   VoidCallback? onCreated,
 }) async {
   final l10n = AppLocalizations.of(context);
-  // Captured up front: `context` can't be trusted for navigation after the
-  // create dialog + the network round-trips below, and the loading overlay
-  // must be popped from the same navigator that showDialog pushes it onto.
+  // Captured up front: `context` may be gone after the awaits, and the
+  // loading overlay must be popped from the navigator showDialog used.
   final navigator = Navigator.of(context, rootNavigator: true);
 
   final input = await showDialog<Trip>(
@@ -78,19 +75,14 @@ Future<void> handleCreateTrip(
     } on AuthExpiredException {
       rethrow;
     } catch (e) {
-      // The trip itself was created — open it regardless; its pages render
-      // empty until the next visit retries the load.
+      // The trip was created — open it anyway; the next visit retries.
       debugLog('Failed to load new trip detail: $e');
     }
 
     navigator.pop(); // close loading indicator
-    // Switch the shell to the Trips tab first, so popping back off Trip
-    // Details lands there regardless of where creation was started from.
     onCreated?.call();
-    // Trip Details goes on the stack first (unseen — no await between the
-    // two pushes, so only one transition actually animates) so that leaving
-    // the Suitcase page pushed on top of it via its app-bar back button
-    // lands on Trip Details, not wherever trip creation was started from.
+    // Trip Details goes under Suitcase so backing out of Suitcase lands
+    // there; only the second push visibly animates.
     navigator.push(
       MaterialPageRoute(builder: (_) => TripDetailsPage(trip: newTrip)),
     );
@@ -109,11 +101,7 @@ Future<void> handleCreateTrip(
   }
 }
 
-/// Renames a trip in place and reflects it in [tripsProvider]. Shared
-/// between [TripsPage]'s own card and any other list-style trip card (e.g.
-/// the Home page's). Itinerary/activity edits and deletion-with-
-/// navigation live on [TripDetailsPage]'s own app bar menu instead — a
-/// list card only ever needs the lightweight rename+delete pair.
+/// Optimistic rename for a trip list card (Trips and Home).
 Future<void> handleRenameTrip(
   BuildContext context,
   WidgetRef ref,
@@ -139,11 +127,7 @@ Future<void> handleRenameTrip(
   }
 }
 
-/// Deletes a trip (with a loading overlay for the round trip) and removes
-/// it from [tripsProvider]. Shared between [TripsPage] and any other list
-/// entry point that can delete a trip (e.g. the Home page's trip card) —
-/// unlike [TripDetailsPage]'s own delete action, there's no page to pop out
-/// of here, just a card to drop from the list.
+/// Deletes a trip from a list card (Trips and Home).
 Future<void> handleDeleteTrip(
   BuildContext context,
   WidgetRef ref,
@@ -194,11 +178,8 @@ Future<void> _loadTripDetail(WidgetRef ref, Trip trip) async {
   }
 }
 
-/// Opens [TripDetailsPage]. Only a trip's first visit this session shows the
-/// shell loading overlay while [tripDetailProvider] loads; later visits
-/// open at once from the cache. Shared between [TripsPage]'s own cards and
-/// the Home page's trip card — [tab] just picks which `MainTab`'s overlay to
-/// drive.
+/// Opens [TripDetailsPage]. Only the first visit this session shows [tab]'s
+/// loading overlay; later visits open at once from [tripDetailProvider].
 Future<void> openTripDetails(
   BuildContext context,
   WidgetRef ref,
@@ -233,10 +214,7 @@ Future<void> openTripDetails(
   }
 }
 
-/// Creates the trip plan record and returns it as a [Trip] — per-day
-/// temperature isn't sent; the backend derives every day from [legs] and
-/// fills it in on its own (forecast within its window, historical average
-/// otherwise).
+/// Per-day temperatures aren't sent; the backend derives them from the legs.
 Future<Trip> _createTrip(Trip input) async {
   final id = await TripService().createTrip(
     name: input.name,
@@ -305,10 +283,8 @@ class _TripsPageState extends ConsumerState<TripsPage> {
     );
   }
 
-  /// Splits [trips] into Ongoing / Upcoming / Past sections (each ordered
-  /// by how soon they happen — Ongoing/Upcoming ascending by start date,
-  /// Past descending so the most recently finished trip shows first), and
-  /// interleaves a [LabeledDivider] header before each non-empty section.
+  /// Ongoing / Upcoming (by start date) and Past (most recently ended first)
+  /// sections, each under a [LabeledDivider].
   List<Widget> _buildGroupedTripItems(List<Trip> trips) {
     final l10n = AppLocalizations.of(context);
     final today = _dateOnly(DateTime.now());
@@ -333,9 +309,6 @@ class _TripsPageState extends ConsumerState<TripsPage> {
     final items = <Widget>[];
     void addSection(String label, List<Trip> group, Color dotColor) {
       if (group.isEmpty) return;
-      // No extra gap needed here even between sections — every card
-      // (including each section's last) already ends in its own
-      // AppDimens.sectionSpacing via _buildTripCard's bottom padding.
       items.add(LabeledDivider(label: label, dotColor: dotColor));
       items.add(const SizedBox(height: AppDimens.cardHeaderGap));
       for (final trip in group) {
@@ -359,12 +332,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
       actionLabel: l10n.newTrip,
       onAction: () => handleCreateTrip(context, ref),
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      // Dead-centered in the whole body area (not just its own natural
-      // size) — same treatment as Trip Suitcase's own empty state; not the
-      // old "60% of screen height" guess.
       fillAvailableSpace: true,
-      // Trips is a main tab — MainNavBar floats over the bottom of its
-      // Scaffold.body rather than shrinking it (see bottomInset's doc).
       bottomInset: AppDimens.mainNavBarClearance,
     );
   }

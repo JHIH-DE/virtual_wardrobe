@@ -153,10 +153,6 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
       centerTitle: false,
       showBackButton: false,
       actions: [_buildFilterButton(all)],
-      // Nothing to switch between when the closet is completely empty — see
-      // _buildBody's matching `if (available.isNotEmpty)` note for why this
-      // is still shown whenever at least one category has garments, even if
-      // the *currently selected* one doesn't.
       bottom: available.isEmpty
           ? null
           : CategorySelector(
@@ -173,9 +169,8 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
 
   @override
   Widget build(BuildContext context) {
-    // .active: getGarments() now fetches soft-deleted garments too (so an
-    // outfit that references one can still show it), so My Closet's own
-    // grid/filters/counts must exclude them itself.
+    // getGarments() includes soft-deleted garments (outfits may reference
+    // them); My Closet must exclude them itself.
     final garmentsAsync = ref.watch(garmentsProvider).whenData((g) => g.active);
 
     return Scaffold(
@@ -192,9 +187,6 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     final available = _availableCategories(all);
     final effectiveCategory = _effectiveCategory(available);
     _scheduleCategoryFix(effectiveCategory);
-    // CategorySelector now renders via the app bar's `bottom:` slot (see
-    // _buildAppBar), so the body is just the grid section — Scaffold already
-    // sizes it to the remaining space below the combined app bar.
     return _buildGarmentGridSection(
       all,
       effectiveCategory,
@@ -202,9 +194,8 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     );
   }
 
-  /// If the previously-selected category has no garments left (e.g. after a
-  /// delete), the effective category silently falls back to another one —
-  /// this syncs `_selectedCategory` to match after the current frame.
+  /// Syncs `_selectedCategory` after it fell back (e.g. its last garment was
+  /// deleted).
   void _scheduleCategoryFix(GarmentCategory effectiveCategory) {
     if (effectiveCategory == _selectedCategory) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -237,10 +228,6 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
       final l10n = AppLocalizations.of(context);
       return EmptyStatePlaceholder(
         icon: Icons.inventory_2_outlined,
-        // The whole closet has nothing in it (no category to even name) vs.
-        // just this category/filter combo coming up empty while others
-        // have stock — same condition [_buildBody] uses to hide
-        // CategorySelector.
         title: closetIsEmpty
             ? l10n.noGarmentsInCloset
             : l10n.noGarmentsInCategory(category.localizedLabel(context)),
@@ -248,11 +235,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
         actionLabel: l10n.addGarment,
         onAction: _addGarment,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        // Dead-centered in the grid's whole Expanded area (not just its own
-        // natural size) — same treatment as Trip Suitcase's own empty state.
         fillAvailableSpace: true,
-        // Closet is a main tab — MainNavBar floats over the bottom of its
-        // Scaffold.body rather than shrinking it (see bottomInset's doc).
         bottomInset: AppDimens.mainNavBarClearance,
       );
     }
@@ -269,10 +252,6 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     );
   }
 
-  /// Triggered by the empty-category state's "Add Garment" CTA — same
-  /// dialog the main shell's own quick action opens (see
-  /// [main_shell.dart]'s `QuickAction.addClothing`), just without the
-  /// tab-switch step since we're already on Closet.
   void _addGarment() {
     GarmentUploadHelper.showAddClothingDialog(
       context,
@@ -331,7 +310,6 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
         );
       }
     }
-    // Edits auto-save from inside GarmentDetailsPage, which keeps
-    // garmentsProvider in sync itself — nothing to apply here.
+    // Edits sync garmentsProvider from inside GarmentDetailsPage.
   }
 }

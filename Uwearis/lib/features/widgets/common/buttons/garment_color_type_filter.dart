@@ -4,14 +4,11 @@ import '../../../../data/garment.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'filter_button.dart';
 
-/// Colour + product-type filter state shared by the full garment grids
-/// (Add Outfit slot pickers, Trip garment selection). Holds the two
-/// selected-value sets, derives the option lists from the current pool, and
-/// applies the filter — the page owns one instance and rebuilds on change.
+/// Colour + product-type filter state for a garment grid; the page owns one
+/// instance and rebuilds on change.
 ///
-/// (My Closet keeps its own copy for now: it orders colours by the
-/// `GarmentColor` enum rather than alphabetically and pre-filters by
-/// category first — a deliberate difference, not duplication.)
+/// My Closet deliberately keeps its own: it orders colours by the
+/// `GarmentColor` enum and pre-filters by category.
 class GarmentColorTypeFilter {
   Set<String> colors = {'All'};
   Set<String> types = {'All'};

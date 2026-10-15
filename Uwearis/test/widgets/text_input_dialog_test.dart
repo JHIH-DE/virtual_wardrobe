@@ -5,9 +5,6 @@ import 'package:uwearis/features/widgets/common/overlays/text_input_dialog.dart'
 import '../helpers/widget_harness.dart';
 
 void main() {
-  // Every test below opens the dialog against 'Kyoto Trip' as the initial
-  // value and stashes the eventual result in [resultFuture] — the caller
-  // resolves it after interacting, exactly like each real call site does.
   late Future<String?> resultFuture;
 
   Future<void> pumpAndOpen(WidgetTester tester) async {

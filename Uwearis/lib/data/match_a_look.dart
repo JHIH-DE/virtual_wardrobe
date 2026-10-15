@@ -1,9 +1,7 @@
 import 'garment.dart';
 
-/// A garment role the Match a Look backend can detect in a reference photo
-/// and try to match against the user's closet. Fixed set of 7, always
-/// returned in this order by `POST /match_look/match` regardless of what
-/// the reference photo actually contained.
+/// A garment role Match a Look can detect. `POST /match_look/match` always
+/// returns all 7, in this order, whatever the photo contained.
 enum MatchALookRole { top, midLayer, outer, bottom, onePiece, shoes, accessory }
 
 extension MatchALookRoleX on MatchALookRole {
@@ -48,23 +46,13 @@ extension MatchALookRoleX on MatchALookRole {
   }
 }
 
-/// How good a role's closet match is, per the backend's own confidence
-/// judgment — the frontend never computes or displays a percentage, just
-/// reflects this tier.
+/// The backend's confidence tier; the app never computes a percentage.
 enum MatchStatus {
-  /// Selected garment fits the role closely on every axis.
   strongMatch,
-
-  /// Selected garment fits, but with some visible difference (color/
-  /// silhouette/material).
   closeMatch,
 
-  /// Reference shows this role, but nothing in the closet was close
-  /// enough — [RoleMatch.selectedGarmentId] is null, but
-  /// [RoleMatch.alternatives] may still be populated for manual browsing.
+  /// No selected garment, but [RoleMatch.alternatives] may still be set.
   noCloseMatch,
-
-  /// Reference photo doesn't show this role at all.
   notInReference,
 }
 
@@ -92,8 +80,7 @@ class RoleAlternative {
 
   factory RoleAlternative.fromJson(Map<String, dynamic> json) {
     return RoleAlternative(
-      // Defensive, like every other parse in this file: one malformed
-      // alternative must not throw and kill the whole match result.
+      // One malformed alternative must not kill the whole result.
       garmentId: (json['garment_id'] as num?)?.toInt() ?? 0,
       rank: (json['rank'] as num?)?.toInt() ?? 0,
     );
@@ -109,10 +96,7 @@ class RoleMatch {
   final MatchStatus matchStatus;
   final int? selectedGarmentId;
 
-  /// Ranked closet candidates, #1 first (already includes
-  /// [selectedGarmentId] at rank 1 when one exists) — up to 4. Populated
-  /// even for [MatchStatus.noCloseMatch] so the user can still browse the
-  /// closest-available options manually.
+  /// Up to 4, #1 first (includes [selectedGarmentId] at rank 1 when set).
   final List<RoleAlternative> alternatives;
 
   const RoleMatch({
@@ -183,10 +167,8 @@ class MatchALookSummary {
   }
 }
 
-/// `POST /match_look/match`'s full response — every role's outcome plus
-/// the complete [Garment] objects for every id mentioned anywhere in
-/// [roles] (already carrying fresh signed image URLs), so callers never
-/// need to cross-reference the user's full closet fetch.
+/// [garments] holds every id mentioned in [roles], with fresh signed URLs,
+/// so callers don't need the closet fetch.
 class MatchALookResult {
   final int referenceId;
   final List<RoleMatch> roles;

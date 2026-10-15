@@ -2,17 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../field_label.dart';
 
-/// A form field with its small-caps label stacked above it — the standard
-/// "label + 8px gap + input" shape used across the garment / account /
-/// AI-model forms. [label] is passed in normal case; this uppercases it for
-/// the [FieldLabel] itself (every current call site was already doing
-/// `.toUpperCase()` inline).
+/// A form field with its label above. Pass [label] in normal case; it's
+/// uppercased here.
 class LabeledField extends StatelessWidget {
   final String label;
   final Widget child;
 
-  /// Optional inline extra shown right after the label — e.g. an
-  /// "(OPTIONAL)" marker.
+  /// Shown right after the label, e.g. an "(OPTIONAL)" marker.
   final Widget? labelTrailing;
 
   const LabeledField({

@@ -14,8 +14,7 @@ import 'base_service.dart';
 class TripService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/trip_plans';
 
-  /// `decodeMap` + the `data` key, asserting it's a JSON object — the shape
-  /// every non-void trip endpoint returns.
+  /// `decodeMap` + `data`, asserting it's a JSON object.
   Map<String, dynamic> _dataObject(http.Response res, {required String op}) {
     final data = decodeMap(res, op: op)['data'];
     if (data is! Map<String, dynamic>) {
@@ -24,14 +23,10 @@ class TripService with BaseService {
     return data;
   }
 
-  /// [days] can be omitted entirely — the backend derives one day per date
-  /// in [legs]'s span on its own. [activities] is only a creation-time
-  /// default (fanned out to whichever days don't specify their own
-  /// `activity`); it isn't persisted on the trip itself and won't come back
-  /// from any GET. Note [days]' own `TripPlanDayCreateInput` shape only
-  /// accepts `date`/`activity` — any temperature fields included here are
-  /// silently ignored, since the backend always fetches/estimates that
-  /// itself (forecast within 15 days, historical average otherwise).
+  /// [days] is optional (the backend derives one day per date in [legs]) and
+  /// only accepts `date`/`activity`; temperature is always filled in
+  /// server-side. [activities] is a creation-time default for days without
+  /// their own `activity` and is not returned by any GET.
   Future<int> createTrip({
     required String name,
     required List<TripLeg> legs,
@@ -51,9 +46,7 @@ class TripService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token), body: jsonEncode(body))
-          // Create fans out a per-day weather lookup (geocode + Open-Meteo
-          // forecast/archive) server-side, so it runs past the 15s the quick
-          // calls use.
+          // Server-side per-day weather lookups take longer than 15s.
           .timeout(const Duration(seconds: 45)),
     );
 
@@ -68,19 +61,10 @@ class TripService with BaseService {
     return id;
   }
 
-  /// [days] is non-destructive for dates that still exist — it derives the
-  /// full set of dates from [legs]' span same as [createTrip], but an
-  /// existing date only has its `activity`/temperature touched (options,
-  /// `group_id`, and any already-tried-on outfits are left alone). Only a
-  /// date that drops out of [legs]' span entirely gets torn down (that
-  /// day's plan and its `OutfitGroup`/rendered outfits/GCS objects are
-  /// deleted with it); a date newly covered by [legs] comes back as a
-  /// fresh empty day. Per day: omitting `activity` keeps its current
-  /// value, omitting both temperature fields makes the backend refetch
-  /// them (forecast within 15 days, historical average otherwise) rather
-  /// than leaving them stale. Per-day activity edits go through [days]
-  /// (each entry's own `activity` key) — there is no trip-level activity
-  /// field.
+  /// [days] keeps existing dates' plans and outfits; a date dropped from
+  /// [legs]' span is deleted with its plan/outfits, a new date comes back
+  /// empty. Per day, omitting `activity` keeps it and omitting temperature
+  /// makes the backend refetch it. There is no trip-level activity field.
   Future<void> updateTrip(
     int tripId, {
     String? name,
@@ -99,8 +83,7 @@ class TripService with BaseService {
     final res = await withAuth(
       (token) => http
           .patch(uri, headers: authHeaders(token), body: jsonEncode(body))
-          // Editing legs/days re-resolves those days' weather server-side
-          // (see createTrip).
+          // Re-resolves weather server-side, like createTrip.
           .timeout(const Duration(seconds: 45)),
     );
 
@@ -133,16 +116,8 @@ class TripService with BaseService {
         .toList();
   }
 
-  /// Full trip structure with each day's already-tried-on outfits
-  /// (`days[].outfits[]`, same shape as `/api/v1/outfit`'s `Outfit` plus the
-  /// option it came from — `trip_option_id`/`order_index`/`option_type`) —
-  /// days with nothing tried on yet are `{group_id: null, outfits: []}`.
-  ///
-  /// Has no representation at all for an AI-suggested option nobody's tried
-  /// on yet — a day whose plan was generated but never rendered comes back
-  /// exactly like a day with no plan. [getTripPlan] is the one that can see
-  /// those; use this instead only when all that's needed is what's already
-  /// been rendered (e.g. a read-only day-plan summary).
+  /// Each day's rendered outfits only (`days[].outfits[]`); an unrendered
+  /// planned day looks like a day with no plan. Use [getTripPlan] for options.
   Future<Map<String, dynamic>> getTrip(int tripId) async {
     debugLog('--- getTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId');
@@ -158,14 +133,8 @@ class TripService with BaseService {
     return data;
   }
 
-  /// Full AI plan content, unlike [getTrip] — every day's `options[]`
-  /// (`reasoning`/`display_name`/`items`), including ones nobody's tried on
-  /// yet, plus whichever option is currently rendered for that day
-  /// (`outfit_id`/`result_image_url`, `null` if none). This is what
-  /// survives leaving and reopening the trip: [generateTripPlan]'s own
-  /// response is the only other place this content appears, and that's
-  /// only for the instant right after generating — refetch this instead of
-  /// trying to keep that response around across navigation.
+  /// Every day's `options[]`, including unrendered ones, plus the rendered
+  /// `outfit_id`/`result_image_url` (null if none).
   Future<TripPlan> getTripPlan(int tripId) async {
     debugLog('--- getTripPlan id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/plan');
@@ -180,12 +149,9 @@ class TripService with BaseService {
     return TripPlan.fromPlanResponse(_dataObject(res, op: 'getTripPlan'));
   }
 
-  /// Packs the suitcase into a per-day outfit plan (AI-suggested options,
-  /// not yet rendered as images). [days] narrows this to specific dates —
-  /// every day untouched keeps its existing options/group/rendered outfits
-  /// exactly as-is, but each date in [days] must already exist on the trip
-  /// (`TRIP_TARGET_DATES_NOT_FOUND` otherwise); omit it to regenerate every
-  /// day instead, which does tear down each rendered day's outfit group.
+  /// AI per-day options (not rendered). [days] limits it to existing dates
+  /// (`TRIP_TARGET_DATES_NOT_FOUND` otherwise) and leaves other days as-is;
+  /// omitting it regenerates every day, deleting rendered outfit groups.
   Future<TripPlan> generateTripPlan(
     int tripId, {
     List<Map<String, dynamic>>? days,
@@ -202,7 +168,7 @@ class TripService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token), body: jsonEncode(body))
-          // AI plan generation (Gemini, per day) — generous ceiling.
+          // AI generation — generous ceiling.
           .timeout(const Duration(seconds: 90)),
     );
 
@@ -226,11 +192,8 @@ class TripService with BaseService {
     decodeMap(res, op: 'addSuitcaseItem');
   }
 
-  /// Removal always succeeds regardless of the returned list — it's the
-  /// `TripOutfitOption`s (if any) that still reference [garmentId] at the
-  /// moment of removal, purely so the caller can tell the user "this is
-  /// still used elsewhere in the trip"; nothing about those days/options is
-  /// changed by this call itself (see [TripAffectedOption]'s own doc).
+  /// Returns the options that still reference [garmentId], for an
+  /// informational warning; they aren't changed.
   Future<List<TripAffectedOption>> removeSuitcaseItem(
     int tripId, {
     required int garmentId,
@@ -265,8 +228,7 @@ class TripService with BaseService {
     decodeMap(res, op: 'deleteTrip');
   }
 
-  /// Runs the AI packing analysis (`POST .../packing-analysis`). Use
-  /// [getTripSuggestion] to just re-read the last result without re-running it.
+  /// Re-runs the AI packing analysis; [getTripSuggestion] reads the last one.
   Future<PackingAnalysis> analyzeTrip(int tripId) async {
     debugLog('--- analyzeTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
@@ -274,7 +236,7 @@ class TripService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token))
-          // AI call (Gemini) — generous ceiling, just bounds a wedged request.
+          // AI call — generous ceiling.
           .timeout(const Duration(seconds: 90)),
     );
 
@@ -295,19 +257,10 @@ class TripService with BaseService {
     return PackingAnalysis.fromJson(_dataObject(res, op: 'getTripSuggestion'));
   }
 
-  /// Synchronously renders [optionId] (one of the options a prior
-  /// [generateTripPlan] call put on that day) into a try-on image for the
-  /// *first* time — background is whichever location that day's `TripLeg`
-  /// covers, not a user-picked scene. The first option tried on for a
-  /// given day creates that day's shared `OutfitGroup`; every other option
-  /// tried on that same day (whether picking a different alternative or
-  /// this same one) joins that same group instead of starting a new one.
-  /// Only valid while [optionId]'s `outfit_id` is still `null` — call this
-  /// again on an option that's already rendered and the backend rejects it
-  /// with `409 OPTION_ALREADY_RENDERED` rather than re-rendering; use
-  /// [regenerateOptionOutfit] for that instead. `result_image_url` is a GCS
-  /// signed URL good for 15 minutes; re-fetch via [getTrip]/[getTripPlan]
-  /// rather than caching it past that.
+  /// First render of [optionId] (background = the day's leg location). An
+  /// already-rendered option gets `409 OPTION_ALREADY_RENDERED`; use
+  /// [regenerateOptionOutfit]. All renders of a day share one `OutfitGroup`.
+  /// `result_image_url` is a short-lived signed URL.
   Future<TripOptionRender> generateOptionOutfit(
     int tripId, {
     required int optionId,
@@ -318,7 +271,7 @@ class TripService with BaseService {
     final res = await withAuth(
       (token) => http
           .post(uri, headers: authHeaders(token))
-          // AI call (Gemini) — generous ceiling, just bounds a wedged request.
+          // AI call — generous ceiling.
           .timeout(const Duration(seconds: 90)),
     );
 
@@ -327,15 +280,8 @@ class TripService with BaseService {
     );
   }
 
-  /// Re-renders [optionId]'s *already-rendered* outfit in place — same
-  /// garments, same `outfit_id` (never a new one), just a fresh render;
-  /// only [backgroundId] (from `GET /api/v1/backgrounds`) can change what
-  /// comes out, defaulting to whatever scene the existing render already
-  /// used. Only valid once [optionId] actually has an `outfit_id` — call
-  /// this on an option that's never been rendered and the backend rejects
-  /// it with `400 OPTION_NOT_RENDERED`; use [generateOptionOutfit] for
-  /// that instead. Same 15-minute signed-URL caveat as
-  /// [generateOptionOutfit] applies to the returned `result_image_url`.
+  /// Re-renders in place (same `outfit_id`); [backgroundId] defaults to the
+  /// existing scene. A never-rendered option gets `400 OPTION_NOT_RENDERED`.
   Future<TripOptionRender> regenerateOptionOutfit(
     int tripId, {
     required int optionId,
@@ -355,7 +301,7 @@ class TripService with BaseService {
             headers: authHeaders(token),
             body: jsonEncode({'background_id': ?backgroundId}),
           )
-          // AI render — generous ceiling, just bounds a wedged request.
+          // AI call — generous ceiling.
           .timeout(const Duration(seconds: 90)),
     );
 
@@ -364,13 +310,8 @@ class TripService with BaseService {
     );
   }
 
-  /// Manually replaces the garments in a trip outfit option (e.g. the user
-  /// swapping out what Uwearis picked for a given day) — does not call AI
-  /// again. Clears that option's already-tried-on outfit, if any (see
-  /// [generateOptionOutfit] to try it on again with the new garments).
-  /// Returns the option's garments *after* the swap, parsed from the
-  /// response's embedded `items[]` (each carries its own image/name/
-  /// category, so no closet lookup).
+  /// Replaces an option's garments (no AI) and clears its rendered outfit.
+  /// Returns the new garments from the response's `items[]`.
   Future<List<Garment>> updateOptionItems(
     int tripId, {
     required int optionId,

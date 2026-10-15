@@ -6,14 +6,10 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
-/// The Explore section's own bottom tabs.
 enum ExploreTab { forYou, search, bag, saved, account }
 
-/// Floating bottom nav for [ExplorePage] — the same frosted-glass pill as the
-/// main [MainNavBar], but with five evenly-spaced tabs and **no raised
-/// center button** (so no notch either). Highlights [current]; purely
-/// presentational — [onSelect] is called with the tapped tab and the host
-/// decides what to do.
+/// [ExplorePage]'s bottom nav: [MainNavBar]'s frosted pill with five equal
+/// tabs and no raised center button. Purely presentational.
 class ExploreNavBar extends StatelessWidget {
   final ExploreTab current;
   final ValueChanged<ExploreTab> onSelect;
@@ -42,11 +38,8 @@ class ExploreNavBar extends StatelessWidget {
             shadowColor: AppColors.trueBlack,
             borderRadius: BorderRadius.circular(_cornerRadius),
             clipBehavior: Clip.antiAlias,
-            // Frosted glass: blur what's scrolling underneath, then lay the
-            // translucent scrim tint over the blur. The inner ClipRRect
-            // repeats the rounded-rect clip because a BackdropFilter
-            // descendant isn't reliably confined by PhysicalModel's own clip
-            // (same Flutter gotcha MainNavBar works around).
+            // PhysicalModel's clip doesn't reliably confine a BackdropFilter
+            // descendant, so clip again.
             child: ClipRRect(
               borderRadius: BorderRadius.circular(_cornerRadius),
               child: BackdropFilter(
@@ -67,9 +60,6 @@ class ExploreNavBar extends StatelessWidget {
                           ),
                           _tab(
                             ExploreTab.search,
-                            // No filled/outline pair for search — the same
-                            // magnifier in both states, colour carries the
-                            // active cue.
                             activeIcon: Icons.search,
                             inactiveIcon: Icons.search,
                             label: l10n.exploreNavSearch,
@@ -113,9 +103,6 @@ class ExploreNavBar extends StatelessWidget {
   }) {
     final isActive = tab == current;
     final color = isActive ? AppColors.accent : AppColors.textOnPrimary;
-    // Expanded (not spaceEvenly): five tabs share the width equally, so a
-    // two-word label ("For you") gets the same slot as the rest and can
-    // centre in it rather than shove its neighbours.
     return Expanded(
       child: InkWell(
         onTap: () => onSelect(tab),

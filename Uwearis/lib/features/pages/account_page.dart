@@ -33,11 +33,7 @@ import 'image_editor_page.dart';
 import 'location_picker_page.dart';
 import 'my_virtual_model_page.dart';
 
-/// Height/weight are always stored and saved as cm/kg (see
-/// [ProfileService.updateMyProfile]) — this only controls which unit the
-/// page displays and accepts input in. Not shared outside this page; promote
-/// to a provider if another screen needs to display height/weight in the
-/// user's preferred unit too.
+/// Display/input unit only — height/weight are always saved as cm/kg.
 enum _UnitSystem {
   metric,
   imperial;
@@ -49,13 +45,8 @@ enum _UnitSystem {
 }
 
 class AccountPage extends ConsumerStatefulWidget {
-  /// True when opened from HomeGettingStartedView's "About You" step
-  /// (`HomePage._openAccountPageForOnboarding`) rather than Settings. That
-  /// step keeps an explicit "Continue" button (gated on the four required
-  /// fields already being filled in, saves only if something changed, then
-  /// pushes [MyVirtualModelPage]) — see [_AccountPageState._handleContinue].
-  /// From Settings there's no button: every edit auto-saves (see
-  /// [_AccountPageState._autoSave]).
+  /// Onboarding's "About You" step: an explicit Continue button instead of
+  /// auto-save, which then pushes [MyVirtualModelPage].
   final bool completingOnboarding;
 
   const AccountPage({super.key, this.completingOnboarding = false});
@@ -69,12 +60,10 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   static const double _kgPerLb = 0.45359237;
 
   final _nameCtrl = TextEditingController();
-  // Canonical values (always cm/kg) — these are what get saved.
+  // Canonical cm/kg — what gets saved.
   final _heightCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
-  // Imperial display/input — kept in sync with the canonical controllers
-  // above rather than being a second source of truth (see
-  // _syncImperialFromMetric and _onImperialHeight/WeightChanged).
+  // Imperial display/input, synced into the canonical controllers.
   final _heightFeetCtrl = TextEditingController();
   final _heightInchesCtrl = TextEditingController();
   final _weightLbCtrl = TextEditingController();
@@ -96,8 +85,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   String _initialWeight = '';
   _UnitSystem _initialUnitSystem = _UnitSystem.metric;
 
-  // Settings mode only — onboarding never requests a save through it, so
-  // its leave check is a no-op there.
+  // Settings mode only — onboarding saves on Continue.
   late final AutoSaveController _autoSave = AutoSaveController(
     onSave: _persistProfile,
     onError: (e) => showAutoSaveErrorDialog(
@@ -107,9 +95,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       fallback: _l10n.profileSaveFailed,
     ),
   );
-  // Re-entrancy guard for _leave — a double-tap on back must not pop twice.
   bool _leaving = false;
-  // Only while leaving waits on a save — drives the loading overlay.
   bool _savingBeforeLeave = false;
 
   final List<String> _genderOptions = [
@@ -121,9 +107,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
-  // These map the stable English values stored/sent to the backend to
-  // display text — the stored gender value itself must stay in English
-  // since that's the wire format `ProfileService.updateMyProfile` expects.
+  // The stored gender value stays English — it's the backend wire format.
   String _genderDisplayLabel(String value) {
     switch (value) {
       case 'Male':
@@ -139,8 +123,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  /// Onboarding's "anything to save before Continue?" check — auto-save
-  /// (Settings mode) doesn't use it.
+  /// Onboarding only — auto-save doesn't use it.
   bool get _isModified =>
       _nameCtrl.text.trim() != _initialName ||
       _selectedGender != _initialGender ||
@@ -150,11 +133,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       _weightCtrl.text != _initialWeight ||
       _unitSystem != _initialUnitSystem;
 
-  /// The onboarding "About You" step's completion rule — all four fields
-  /// non-empty. Deliberately unrelated to [_isModified]: a user who already
-  /// filled these in during an earlier visit (nothing changed *this*
-  /// session) should still see Continue immediately, not just after they
-  /// edit something.
+  /// Deliberately not tied to [_isModified]: fields filled on an earlier
+  /// visit should show Continue immediately.
   bool get _hasRequiredAboutYouFields =>
       _nameCtrl.text.trim().isNotEmpty &&
       _selectedGender != null &&
@@ -165,8 +145,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   void initState() {
     super.initState();
     _loadProfile();
-    // Typing doesn't rebuild this widget on its own — force one so
-    // onboarding's Continue gate gets re-evaluated as the user edits.
+    // Rebuild on typing so onboarding's Continue gate re-evaluates.
     _nameCtrl.addListener(_onFieldChanged);
     _heightCtrl.addListener(_onFieldChanged);
     _weightCtrl.addListener(_onFieldChanged);
@@ -186,9 +165,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     super.dispose();
   }
 
-  /// Called after every user edit. Onboarding saves only on Continue; from
-  /// Settings a discrete choice (picker, toggle, date) saves right away and
-  /// typing waits for a pause — [_onTextFieldBlur] cuts that wait short.
+  /// Onboarding saves only on Continue; otherwise typing is debounced and
+  /// everything else saves immediately.
   void _onEdited({bool typing = false}) {
     if (widget.completingOnboarding) return;
     if (typing) {
@@ -198,9 +176,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  /// Leaving a text field (or tapping Done) saves now rather than waiting
-  /// out the debounce. Skipped after a failure so a blur doesn't re-raise
-  /// the error dialog the user just dismissed.
+  /// Blur / Done skips the debounce. Not after a failure, so it doesn't
+  /// re-raise the error dialog the user just dismissed.
   void _onTextFieldBlur() {
     if (_autoSave.hasPendingChanges && !_autoSave.hasFailed) {
       _autoSave.requestSave();
@@ -216,9 +193,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     _onEdited();
   }
 
-  /// Recomputes the ft/in/lb fields from the canonical cm/kg controllers —
-  /// called on load and whenever the toggle switches to imperial, since
-  /// the imperial fields aren't kept live-updated while hidden.
+  /// The imperial fields aren't updated while hidden, so recompute them on
+  /// load and when switching to imperial.
   void _syncImperialFromMetric() {
     final cm = double.tryParse(_heightCtrl.text);
     if (cm != null) {
@@ -234,9 +210,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  // Imperial fields push into the canonical controllers as the user
-  // types (one-directional — the metric fields aren't visible at the
-  // same time, so there's no risk of the two fighting each other).
+  // One-directional: metric fields aren't visible at the same time.
   void _onImperialHeightChanged() {
     final feet = double.tryParse(_heightFeetCtrl.text) ?? 0;
     final inches = double.tryParse(_heightInchesCtrl.text) ?? 0;
@@ -258,8 +232,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   Future<void> _loadProfile() async {
     setState(() => _loading = true);
     try {
-      // Shared with Settings / My Virtual Model via profileProvider — a
-      // no-op fetch if one of those already loaded it.
       final profile = (await ref.read(profileProvider.future)).profile;
       if (!mounted) return;
       setState(() {
@@ -304,8 +276,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         builder: (_) => ImageEditorPage(
           title: _l10n.profilePhotoTitle,
           initialPath: _avatarLocalPath ?? _avatarUrl,
-          // This reopens the already-saved avatar — confirming with zero
-          // changes would just re-upload an identical copy.
+          // Confirming with zero changes would re-upload an identical copy.
           requireChangeToConfirm: true,
           onRefreshUrl: () => ProfileService().getMyAvatar(),
         ),
@@ -321,11 +292,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     try {
       final url = await ProfileService().uploadAvatar(localPath);
       if (mounted) {
-        // Precache before switching over to it — every upload gets a
-        // freshly-signed, genuinely different URL, so plain URL-keyed
-        // caching (no separate cache key) already picks up the change; this
-        // just confirms the new photo is actually fetchable before the UI
-        // commits to it.
+        // Each upload gets a new signed URL, so no cache key is needed.
+        // Precache is best-effort: a failure is logged and the URL is used anyway.
         try {
           await precacheImage(CachedNetworkImageProvider(url), context);
         } catch (e) {
@@ -336,8 +304,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           _avatarUrl = url;
           _avatarLocalPath = null;
         });
-        // Re-pull so profileProvider (Settings' avatar, etc.) picks up the
-        // new signed URL.
         ref.read(profileProvider.notifier).refresh();
       }
     } on AuthExpiredException {
@@ -357,11 +323,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  /// PATCHes the whole form and syncs [profileProvider]. Throws on failure —
-  /// this is [_autoSave]'s `onSave` as-is; onboarding's Continue wraps it in
-  /// [_saveProfile] for its own loading/error handling. An empty name or an
-  /// unparseable height/weight is left out (= "unchanged" on the backend)
-  /// rather than sent.
+  /// Throws on failure. An empty name or unparseable height/weight is
+  /// omitted (= unchanged on the backend) rather than sent.
   Future<void> _persistProfile() async {
     // Read up front: a save can still land after the page is gone, and
     // Settings must see it even then.
@@ -403,9 +366,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     }
   }
 
-  /// Only re-saves if something was actually edited this session — a user
-  /// who arrives with the four fields already filled from an earlier visit
-  /// can just continue straight on without an unnecessary PATCH.
+  /// Skips the PATCH when nothing was edited this session.
   Future<void> _handleContinue() async {
     if (_isModified && !await _saveProfile()) return;
     if (!mounted) return;
@@ -493,9 +454,8 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   bool get _showsBottomActionButton =>
       widget.completingOnboarding && _hasRequiredAboutYouFields && !_loading;
 
-  /// The backend's OpenAPI schema example ("string") occasionally leaks
-  /// through as a literal placeholder value instead of a real URL/null —
-  /// treat it the same as "no avatar set".
+  /// The backend's OpenAPI example value "string" sometimes leaks through as
+  /// a URL; treat it as "no avatar".
   String? _resolvedAvatarUrl(String? url) =>
       (url == null || url.isEmpty || url == 'string') ? null : url;
 
@@ -690,8 +650,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   Widget _buildUnitOption(_UnitSystem value, String label) {
     final selected = _unitSystem == value;
     return GestureDetector(
-      // opaque so the padding around the label is tappable — an unselected
-      // option's AnimatedContainer is transparent and absorbs nothing.
       behavior: HitTestBehavior.opaque,
       onTap: () => _setUnitSystem(value),
       child: AnimatedContainer(

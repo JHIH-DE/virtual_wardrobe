@@ -82,9 +82,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  // getTripSuggestion (packing-analysis) is the only initState call as long
-  // as the seeded detail carries no stale image URLs (which would trigger a
-  // background reload).
+  // Packing analysis is the only initState request while the seeded detail
+  // has no stale image URLs (those trigger a background reload).
   http.Client packingAdviceClient({int recommendedTotal = 6}) {
     return MockClient((request) async {
       if (request.url.path.endsWith('/packing-analysis')) {
@@ -112,14 +111,12 @@ void main() {
       // Destinations header + the selected day's city subtitle.
       expect(find.text('Kyoto'), findsWidgets);
       expect(find.text('Suitcase'), findsOneWidget);
-      // The outfit-advice card lives on the Suitcase page now, not here.
+      // The outfit-advice card belongs to the Suitcase page.
       expect(find.text('Layer up for the evenings.'), findsNothing);
     }, packingAdviceClient);
   });
 
-  // Planning/updating the trip's outfits is TripSuitcasePage's job now (see
-  // trip_suitcase_page_test.dart) — without a plan yet, this page's only
-  // entry point into that flow is the wardrobe section's CTA card.
+  // Without a plan, the wardrobe CTA is this page's only way into planning.
   testWidgets(
     'with no plan, the wardrobe section offers a CTA that opens the Suitcase '
     'page',
@@ -189,8 +186,8 @@ void main() {
           find.descendant(of: row, matching: find.byIcon(Icons.edit_outlined)),
           findsOneWidget,
         );
-        // The pencil's disc lines up with the row's (content's) right edge
-        // rather than sitting inset inside its larger tap box.
+        // The pencil's disc aligns with the row's right edge, not inset in
+        // its larger tap box.
         final disc = tester.getRect(
           find
               .descendant(
@@ -222,11 +219,8 @@ void main() {
     }, packingAdviceClient);
   });
 
-  // Regression: a day with no option of its own (e.g. a leg added after the
-  // rest of the trip already had a plan) used to show both this card's own
-  // "No outfit planned yet" text AND the wardrobe section's "Let Uwearis
-  // Plan Your Trip" CTA right underneath — the same message twice. Only the
-  // actionable CTA should show.
+  // A day with no option (e.g. a leg added after planning) shows only the
+  // CTA, not also the card's own "No outfit planned yet".
   testWidgets(
     "a day with no option of its own shows only the wardrobe section's plan "
     'CTA, not a redundant "No outfit planned yet" card',
@@ -352,9 +346,8 @@ void main() {
     }, packingAdviceClient);
   });
 
-  // Regression/new behavior: the button is now always shown once a day has
-  // an option and no render yet — it's disabled (not hidden) when the day's
-  // own garments don't cover Top/Bottom/Shoes, with an explanation above it.
+  // Disabled (not hidden), with an explanation, when the day's garments
+  // don't cover Top/Bottom/Shoes.
   testWidgets(
     'a day missing a core category (only a Top here) disables Generate '
     'Outfit and explains why',
@@ -479,10 +472,8 @@ void main() {
     },
   );
 
-  // New behavior: Edit Itinerary's Save button (AppDialog's onPrimary)
-  // stays disabled until the legs actually differ from what the dialog
-  // opened with — mirrors the rename dialog's "no-op has nothing to save"
-  // gating (see showTextInputDialog).
+  // Save stays disabled until the legs differ from what the dialog opened
+  // with.
   testWidgets('Edit Itinerary: Save starts disabled, enables once a leg is '
       'removed, and persists the change', (tester) async {
     late http.Request capturedPatch;
@@ -538,14 +529,6 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.more_vert));
       await tester.pumpAndSettle();
-      // AppPopupMenu's item Row hard-caps at ~196px (its own maxWidth:220
-      // minus padding — see app_popup_menu.dart); "Edit Itinerary" only
-      // fits that in the app's real bundled NotoSansTC font, which
-      // `flutter test` doesn't load, so its fallback-font metrics render
-      // this one label a hair wider and trip a RenderFlex overflow here
-      // that doesn't reproduce in the running app. Drain it so it doesn't
-      // fail this test.
-      while (tester.takeException() != null) {}
       await tester.tap(find.text('Edit Itinerary'));
       await tester.pumpAndSettle();
 
@@ -555,9 +538,7 @@ void main() {
 
       expect(saveButton().onPressed, isNull);
 
-      // Removing the second leg (Osaka) — with 2 legs, both rows' remove
-      // badges are enabled; the first leg's stays disabled only once a
-      // single leg remains.
+      // Remove Osaka; remove badges are disabled only for a single leg.
       await tester.tap(find.byIcon(Icons.close).last);
       await tester.pump();
 
@@ -573,10 +554,8 @@ void main() {
     }, () => client);
   });
 
-  // TripsPage.handleCreateTrip pushes TripSuitcasePage directly on top of
-  // this page — never through _openSuitcase. The plan generated there is
-  // written into tripDetailProvider, which this page watches, so it shows on
-  // return without this page re-fetching anything itself.
+  // TripsPage.handleCreateTrip pushes TripSuitcasePage directly, not via
+  // _openSuitcase; the plan reaches this page through tripDetailProvider.
   testWidgets(
     'a plan generated on a Suitcase page pushed directly on top of this page '
     '(the just-created-trip flow) shows up on return',
@@ -638,9 +617,6 @@ void main() {
 
         expect(find.text('Let Uwearis Plan Your Trip'), findsOneWidget);
 
-        // Mirrors TripsPage.handleCreateTrip: push the Suitcase page
-        // straight onto the navigator, not via TripDetailsPage's own
-        // _openSuitcase.
         final navigator = tester.state<NavigatorState>(find.byType(Navigator));
         navigator.push(
           MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: _trip())),
@@ -662,10 +638,8 @@ void main() {
     },
   );
 
-  // Regression: popping back from the day outfit editor used to re-fetch
-  // the plan right as _openDayOutfitEditor sent its own updateOptionItems
-  // PATCH, and a stale GET /plan landing last overwrote the edit. The editor
-  // now opens from the cached suitcase and nothing is re-fetched on return.
+  // Nothing may be re-fetched on return: a GET /plan racing the PATCH could
+  // land last and overwrite the edit.
   testWidgets(
     'changing a day\'s garments sends the update without re-fetching the plan '
     'or the suitcase',
@@ -717,15 +691,12 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        // "Change Garments" pencil — opens OutfitEditPage.
         await tester.tap(find.byIcon(Icons.edit_outlined));
         await tester.pump();
         await tester.pump();
         await tester.pumpAndSettle();
 
-        // Tap the existing "Item 1" card (OutfitEditPage shows names, unlike
-        // TripDetailsPage's own image-only thumbnails) to swap it, then pick
-        // "Item 2".
+        // Swap "Item 1" for "Item 2".
         await tester.tap(find.text('Item 1'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Item 2'));
@@ -734,24 +705,18 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        // The swap actually went through with the new selection...
         expect(capturedPatch.method, 'PATCH');
         expect(jsonDecode(capturedPatch.body), {
           'garment_ids': [2],
         });
-        // ...and nothing raced it: the day editor round trip must not have
-        // triggered the stale-plan refetch that used to overwrite this.
         expect(planRequests, 0);
         expect(tripRequests, 0);
       }, () => client);
     },
   );
 
-  // TripDetailsPage's own Replan entry point — the Daily Outfit Plan
-  // title's refresh icon. Unlike TripSuitcasePage's bottom button, this
-  // doesn't require the suitcase to have changed; it shares the same
-  // confirm dialog and the same TripDayOutfit.needsReplan/daysToReplan
-  // policy (see _replanPlan's doc comment).
+  // Unlike TripSuitcasePage's Replan, this one doesn't require a suitcase
+  // change; same confirm dialog and daysToReplan policy.
   group('the Daily Outfit Plan refresh icon (Replan)', () {
     testWidgets('only shows once a trip plan actually exists', (tester) async {
       await http.runWithClient(() async {
@@ -863,7 +828,6 @@ void main() {
           expect(body['days'], [
             {'date': '2026-11-02'},
           ]);
-          // Refreshed in place — no navigation, no pop.
           expect(find.byType(TripDetailsPage), findsOneWidget);
           expect(planRefetches, 1);
         }, () => client);

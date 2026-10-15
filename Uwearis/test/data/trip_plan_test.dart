@@ -174,8 +174,6 @@ void main() {
     });
   });
 
-  // "Replan Trip Outfits"'s per-day decision — see TripDayOutfit.needsReplan
-  // and TripSuitcasePage._generatePlan.
   group('TripDayOutfit.needsReplan', () {
     Garment garment(int id) => Garment(
       id: id,

@@ -20,6 +20,7 @@ void main() {
             hasTop: false,
             hasBottom: false,
             hasShoes: false,
+            hasCreatedOutfit: false,
             onGetStarted: () {},
             onAddClothing: () {},
             onCreateOutfit: () {},
@@ -36,48 +37,44 @@ void main() {
       // My Virtual Model (both photos already set) is the only done row.
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
       expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(5));
-      // About You — the checklist's first row — isn't done yet, so the CTA
-      // is still "Get Started", not "Next".
+      // The first row isn't done, so the CTA is still "Get Started".
       expect(find.text('Get Started'), findsOneWidget);
       expect(find.text('Next'), findsNothing);
     },
   );
 
-  testWidgets(
-    'once About You is done the CTA switches to Next, even though My '
-    'Virtual Model is still pending, and tapping it opens the profile '
-    'step\'s first sub-step',
-    (tester) async {
-      var opened = false;
-      await pumpApp(
-        tester,
-        Scaffold(
-          body: HomeGettingStartedView(
-            hasAboutYou: true,
-            hasProfilePhoto: false,
-            hasFullBodyPhoto: false,
-            hasTop: false,
-            hasBottom: false,
-            hasShoes: false,
-            onGetStarted: () => opened = true,
-            onAddClothing: () {},
-            onCreateOutfit: () {},
-          ),
+  testWidgets('once About You is done the CTA switches to Next, even though My '
+      'Virtual Model is still pending, and tapping it opens the profile '
+      'step\'s first sub-step', (tester) async {
+    var opened = false;
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: HomeGettingStartedView(
+          hasAboutYou: true,
+          hasProfilePhoto: false,
+          hasFullBodyPhoto: false,
+          hasTop: false,
+          hasBottom: false,
+          hasShoes: false,
+          hasCreatedOutfit: false,
+          onGetStarted: () => opened = true,
+          onAddClothing: () {},
+          onCreateOutfit: () {},
         ),
-      );
+      ),
+    );
 
-      // About You done; everything else (including Create Outfit) pending.
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
-      expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(5));
-      expect(find.text('Get Started'), findsNothing);
-      expect(find.text('Next'), findsOneWidget);
+    // About You done; everything else (including Create Outfit) pending.
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(5));
+    expect(find.text('Get Started'), findsNothing);
+    expect(find.text('Next'), findsOneWidget);
 
-      // The label says "Next", but the profile step still isn't done, so it
-      // must still open the profile step's first sub-step.
-      await tester.tap(find.text('Next'));
-      expect(opened, isTrue);
-    },
-  );
+    // Profile step still isn't done, so "Next" opens its first sub-step.
+    await tester.tap(find.text('Next'));
+    expect(opened, isTrue);
+  });
 
   testWidgets(
     'only one of the two reference photos done still keeps My Virtual '
@@ -94,6 +91,7 @@ void main() {
             hasTop: false,
             hasBottom: false,
             hasShoes: false,
+            hasCreatedOutfit: false,
             onGetStarted: () {},
             onAddClothing: () {},
             onCreateOutfit: () {},
@@ -123,6 +121,7 @@ void main() {
             hasTop: true,
             hasBottom: true,
             hasShoes: false,
+            hasCreatedOutfit: false,
             onGetStarted: () {},
             onAddClothing: () => addClothingTapped = true,
             onCreateOutfit: () {},
@@ -156,6 +155,7 @@ void main() {
             hasTop: false,
             hasBottom: false,
             hasShoes: false,
+            hasCreatedOutfit: false,
             onGetStarted: () {},
             onAddClothing: () {},
             onCreateOutfit: () {},
@@ -184,6 +184,7 @@ void main() {
             hasTop: true,
             hasBottom: true,
             hasShoes: true,
+            hasCreatedOutfit: false,
             onGetStarted: () {},
             onAddClothing: () {},
             onCreateOutfit: () => createOutfitTapped = true,
@@ -191,17 +192,41 @@ void main() {
         ),
       );
 
-      // Every checklist row done except Create Outfit's own — it never
-      // shows as checked (see HomeGettingStartedView's doc comment).
       expect(find.byIcon(Icons.check_circle), findsNWidgets(5));
       expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
-      // "Create Outfit" only labels the checklist row now — the CTA itself
-      // reads "Next".
+      // "Create Outfit" is only the row label; the CTA reads "Next".
       expect(find.text('Create Outfit'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
 
       await tester.tap(find.text('Next'));
       expect(createOutfitTapped, isTrue);
+    },
+  );
+
+  testWidgets(
+    'an established user with outfits but an incomplete closet sees Create '
+    'Outfit checked',
+    (tester) async {
+      await pumpApp(
+        tester,
+        Scaffold(
+          body: HomeGettingStartedView(
+            hasAboutYou: true,
+            hasProfilePhoto: true,
+            hasFullBodyPhoto: true,
+            hasTop: true,
+            hasBottom: true,
+            hasShoes: false,
+            hasCreatedOutfit: true,
+            onGetStarted: () {},
+            onAddClothing: () {},
+            onCreateOutfit: () {},
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.check_circle), findsNWidgets(5));
+      expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
     },
   );
 }

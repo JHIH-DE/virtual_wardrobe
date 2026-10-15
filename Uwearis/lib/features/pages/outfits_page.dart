@@ -59,11 +59,6 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     });
   }
 
-  /// Triggered by the empty-state "Create Outfit" CTA — mirrors
-  /// [main_shell.dart]'s own `QuickAction.addOutfit` (warm garmentsProvider,
-  /// then push [AddOutfitPage]), routed through [MainShellScope]'s
-  /// per-tab loading overlay since this page is itself a main tab (see
-  /// CLAUDE.md's main-tab loading convention) rather than a page-local one.
   Future<void> _openAddOutfit() async {
     final l10n = AppLocalizations.of(context);
     MainShellScope.of(

@@ -199,9 +199,7 @@ void main() {
       expect(garment.garmentId, isNull);
     });
 
-    // id/garment_id are always JSON numbers on this endpoint — unlike
-    // price/thickness/formality they have never accepted a numeric string, so
-    // a string (or any non-number) still throws rather than being coerced.
+    // Unlike price/thickness/formality, ids are never coerced from strings.
     test('throws on a non-numeric id/garment_id, contract unchanged', () {
       expect(() => Garment.fromJson({'id': 'abc'}), throwsA(isA<TypeError>()));
       expect(() => Garment.fromJson({'id': '7'}), throwsA(isA<TypeError>()));
@@ -211,8 +209,7 @@ void main() {
       );
     });
 
-    // A fractional / non-finite id must never be truncated to a whole number
-    // — that would silently point the app at a different garment row.
+    // Truncating would silently point at a different garment.
     test('throws on a fractional, NaN or Infinity id/garment_id', () {
       expect(
         () => Garment.fromJson({'id': 5.5}),
@@ -344,7 +341,6 @@ void main() {
         expect(cleared.price, isNull);
         expect(cleared.purchaseDate, isNull);
         expect(cleared.metadata, isNull);
-        // Untouched fields survive.
         expect(cleared.name, original.name);
       },
     );
@@ -423,10 +419,8 @@ void main() {
       expect(garment.toJson()['purchase_date'], isNull);
     });
 
-    // The backend `purchase_date` is a Pydantic `date` — it rejects a
-    // datetime string with a non-zero time component. A picked date can carry
-    // a time (or a future default might), so toJson must always emit
-    // `yyyy-MM-dd`, matching GarmentService.completeUpload's own serialization.
+    // Backend `purchase_date` is a Pydantic `date`: a non-zero time is
+    // rejected.
     test(
       'serializes purchase_date as date-only even when the DateTime has a time',
       () {

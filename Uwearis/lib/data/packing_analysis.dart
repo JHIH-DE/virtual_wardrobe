@@ -1,7 +1,6 @@
 import 'garment.dart';
 
-/// One category's row from `POST`/`GET /trip_plans/{id}/packing-analysis`
-/// (`TripService.analyzeTrip` / `getTripSuggestion`).
+/// One category's row from `/trip_plans/{id}/packing-analysis`.
 class PackingCategory {
   final GarmentCategory category;
   final int recommendedQuantity;
@@ -36,8 +35,6 @@ class PackingCategory {
   }
 }
 
-/// The full packing-analysis response: an overall blurb plus per-category
-/// recommendations.
 class PackingAnalysis {
   final String? overallAdvice;
   final List<PackingCategory> categories;
@@ -57,8 +54,7 @@ class PackingAnalysis {
     );
   }
 
-  /// Sum of every category's `recommended_quantity` — the "pack N items"
-  /// target the Suitcase card and the Generate-Plan gate use.
+  /// The "pack N items" target shown on Trip Details' Suitcase card.
   int get recommendedTotal =>
       categories.fold(0, (sum, c) => sum + c.recommendedQuantity);
 

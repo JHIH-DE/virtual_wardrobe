@@ -6,10 +6,7 @@ import '../../../core/services/outfit_service.dart';
 import '../../../data/outfit.dart';
 import '../common/images/refreshable_network_image.dart';
 
-/// Single source of truth for "what is this outfit's image URL right now" —
-/// mirrors GarmentImage's reliance on `GarmentService().getGarment(id)`.
-/// Goes through `Outfit.fromJson` (not a raw map cast) so a malformed/missing
-/// field degrades to `''` instead of throwing.
+/// A freshly-signed image URL for the outfit.
 Future<String> fetchFreshOutfitImageUrl(int groupId, int outfitId) async {
   final outfit = await OutfitService().getOutfit(groupId, outfitId);
   return outfit.imageUrl;
@@ -72,15 +69,8 @@ class OutfitImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The backend hands back a freshly re-signed URL on every fetch even
-    // when the underlying image hasn't changed, which would otherwise
-    // defeat the disk cache (URL-keyed by default) on every refetch. Key by
-    // the stable outfit/job id instead — same scheme as
-    // trip_details_page.dart's own outfit image, so the two can even share
-    // a cache entry. The version suffix comes from ImageCacheBust: this same
-    // image can also be overwritten in place at this exact URL by
-    // OutfitService.regenerateOutfit (see outfit_details_page.dart), which a
-    // stable-URL/stable-key cache would otherwise never see as a change.
+    // Keyed by outfit id, not URL: every fetch re-signs the URL. The version
+    // suffix catches a regenerate overwriting the image in place.
     final cacheKey = outfitImageVersionedCacheKey(outfitId);
     final image = imageUrl.isEmpty
         ? _fallback(Icons.image_outlined, noImageLabel)
@@ -92,9 +82,6 @@ class OutfitImage extends StatelessWidget {
             height: height,
             fit: fit,
             alignment: alignment,
-            // Plain white background instead of a per-tile loading
-            // spinner — quieter for dense grids/lists — with a quick
-            // cross-fade once the image actually loads.
             placeholderBuilder:
                 placeholderBuilder ??
                 (_) => Container(color: AppColors.surface),

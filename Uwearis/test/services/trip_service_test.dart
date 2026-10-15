@@ -115,8 +115,7 @@ void main() {
       );
     });
 
-    // A JSON encoder can serialize the new id as a float (9.0); parse it via
-    // num rather than rejecting anything that isn't exactly an int.
+    // A JSON encoder can serialize the new id as a float (9.0).
     test('accepts an id returned as a float', () async {
       final client = MockClient(
         (request) async => _jsonResponse(_envelope({'id': 9.0})),
@@ -318,9 +317,8 @@ void main() {
       expect(payload['alternatives_per_day'], 3);
     });
 
-    // The generate POST carries a .timeout(); a stalled request must surface a
-    // TimeoutException rather than hang the caller. (A MockClient throwing
-    // TimeoutException reproduces what .timeout() does when it fires.)
+    // Throwing TimeoutException from the MockClient stands in for .timeout()
+    // firing.
     test('surfaces a TimeoutException from a stalled generation', () async {
       await expectLater(
         http.runWithClient(

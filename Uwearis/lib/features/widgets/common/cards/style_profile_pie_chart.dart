@@ -2,9 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// One slice of a [StyleProfilePieChart] — [color] should come from
-/// `AppColors.chartCategorical` (or `AppColors.chartOther` for a folded
-/// "everything else" bucket), never an ad hoc hue.
+/// [color] should come from `AppColors.chartCategorical` (or
+/// `AppColors.chartOther` for an "everything else" bucket).
 class StyleProfileSlice {
   final String label;
   final int count;
@@ -17,11 +16,8 @@ class StyleProfileSlice {
   });
 }
 
-/// Read-only donut chart for Style Taste's "outfits per style" breakdown —
-/// part-to-whole at a glance only (see the dataviz skill's guidance: a
-/// donut is for that, not for comparing close values). Exact counts belong
-/// in a legend next to it, not on the chart itself — a slice's color is
-/// never the only way to identify it.
+/// Read-only donut for Style Taste's outfits-per-style breakdown. Exact
+/// counts belong in a legend beside it, not on the chart.
 class StyleProfilePieChart extends StatelessWidget {
   final List<StyleProfileSlice> slices;
   final double size;
@@ -60,8 +56,7 @@ class _DonutPainter extends CustomPainter {
 
   // Ring thickness as a fraction of the chart's radius.
   static const double _strokeFraction = 0.32;
-  // Angular surface gap between adjacent slices — the curved-stroke
-  // approximation of the mark spec's 2px surface gap between fills.
+  // Gap between adjacent slices.
   static const double _gapRadians = 4 * math.pi / 180;
 
   const _DonutPainter({required this.slices});
@@ -82,8 +77,7 @@ class _DonutPainter extends CustomPainter {
     for (final slice in slices) {
       if (slice.count <= 0) continue;
       final sweep = (slice.count / total) * 2 * math.pi;
-      // A single slice spanning the full circle has no neighbor to gap
-      // against; anything else gets a flat cut on each side.
+      // A lone full-circle slice has no neighbor to gap against.
       final visibleSweep = slices.length == 1
           ? sweep
           : (sweep - _gapRadians).clamp(0.0, sweep);

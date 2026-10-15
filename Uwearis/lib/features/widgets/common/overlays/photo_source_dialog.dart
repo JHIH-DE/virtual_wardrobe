@@ -7,15 +7,8 @@ import '../../../pages/camera_capture_page.dart';
 import 'app_dialog.dart';
 import 'dialog_option_card.dart';
 
-/// Shows a "Take Photo / Choose from Album" dialog and returns the picked
-/// photo's local path, or null if the user cancels at any step (the dialog
-/// itself, or the camera/gallery picker it opens). Shared by every flow that
-/// needs one photo from either source: [GarmentUploadHelper]'s new-garment
-/// flow and Match a Look's reference photo. [cameraFrameRatio] picks the
-/// camera's framing guide: garments keep the square default, a full-body
-/// look photo passes [CameraFrameRatio.portrait]. [subtitle] replaces the
-/// generic "How would you like to add it?" line when the flow needs to
-/// explain itself (Match a Look has no other entry card to do that).
+/// Camera / album picker dialog; returns the photo's local path, or null if
+/// cancelled at any step. [subtitle] replaces the generic prompt line.
 Future<String?> showPhotoSourceDialog(
   BuildContext context, {
   required String title,

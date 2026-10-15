@@ -162,9 +162,8 @@ void main() {
         ),
       );
       await tester.tap(find.text('open'));
-      // Plain pumps past the push transition, not pumpAndSettle: the
-      // spinner animates forever, and settling would run the fake clock
-      // into getTrip's 15s timeout.
+      // Not pumpAndSettle: the spinner never settles, and settling would
+      // run the fake clock into getTrip's 15s timeout.
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
@@ -324,7 +323,7 @@ void main() {
             );
             expect(find.text('Add from an Outfit'), findsOneWidget);
             expect(
-              find.text('Pack the garments of a saved outfit in one go.'),
+              find.text('Pack the garments from your outfit.'),
               findsOneWidget,
             );
             expect(find.text('Sneakers'), findsNothing);
@@ -386,22 +385,17 @@ void main() {
     });
   });
 
-  // Plan-generation moved here from Trip Details — see trip_details_page.dart
-  // and its own test's "the wardrobe section offers a CTA" case.
   group('plan generation', () {
     final viableSuitcase = [
       {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
       {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
       {'garment_id': 3, 'name': 'Sneakers', 'category': 'shoes'},
     ];
-    // Same minimum viable set plus one extra item that isn't load-bearing —
-    // removing it leaves top+bottom+shoes intact (still viable) while still
-    // changing the packed set relative to what it was on open.
+    // Removing the extra item changes the packed set but stays viable.
     final viableSuitcaseWithExtra = [
       ...viableSuitcase,
       {'garment_id': 4, 'name': 'Cap', 'category': 'accessory'},
     ];
-    // A plan with one AI-generated day already exists for this trip.
     final existingPlanDays = [
       {
         'date': '2026-11-01',
@@ -417,11 +411,7 @@ void main() {
       },
     ];
 
-    /// Removes the last packed card (Accessory sorts last in
-    /// [_TripSuitcasePageState._categoryOrder], so with
-    /// [viableSuitcaseWithExtra] this is always "Cap") via its corner "×"
-    /// badge + the REMOVE confirm — puts the suitcase in a "changed since
-    /// open" state without disturbing the minimum viable top+bottom+shoes.
+    /// Removes the last packed card — "Cap", since accessories sort last.
     Future<void> removeLastPackedCard(WidgetTester tester) async {
       await tester.tap(find.byIcon(Icons.close).last);
       await tester.pumpAndSettle();
@@ -561,7 +551,6 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(find.text('Replan trip outfits?'), findsOneWidget);
-          // Cancel -> no getTripPlan/generate call, still on the Suitcase page.
           await tester.tap(find.text('Cancel'));
           await tester.pumpAndSettle();
 
@@ -577,11 +566,7 @@ void main() {
     });
   });
 
-  // Replan reads the day-by-day plan (loaded with the page from GET /plan)
-  // after a confirmed replan + committed suitcase, and only sends the backend the dates that
-  // actually need regenerating (TripDayOutfit.needsReplan) — everything
-  // else (manually edited, or already rendered and still fully packed)
-  // stays out of the `days` filter untouched.
+  // Replan sends only the dates where TripDayOutfit.needsReplan is true.
   group('replanning an existing trip plan', () {
     final baseSuitcase = [
       {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
@@ -629,9 +614,7 @@ void main() {
           }
           if (request.method == 'GET' &&
               request.url.path.endsWith('/trip_plans/7')) {
-            // Cap (garment 4) is still packed on open — removed below via
-            // the "×" badge, which both puts the suitcase in a "changed"
-            // state and orphans day 2026-11-03's garment.
+            // Removing Cap (4) below orphans day 2026-11-03's garment.
             return jsonResponse(envelope({'suitcase_items': baseSuitcase}));
           }
           if (request.method == 'GET' && request.url.path.endsWith('/plan')) {
@@ -653,9 +636,8 @@ void main() {
                     isManuallyEdited: false,
                     outfitId: 99,
                   ),
-                  // Manually edited AND rendered, but garment (4) was just
-                  // removed from the suitcase -> missing-garment rule wins,
-                  // regenerate anyway.
+                  // Edited and rendered, but garment (4) gets unpacked ->
+                  // the missing-garment rule wins.
                   optionDay(
                     date: '2026-11-03',
                     optionId: 203,
@@ -663,8 +645,7 @@ void main() {
                     isManuallyEdited: true,
                     outfitId: 55,
                   ),
-                  // AI-produced, never touched, never rendered, garment (3)
-                  // still packed -> nothing to lose, regenerate.
+                  // Untouched, unrendered -> regenerate.
                   optionDay(
                     date: '2026-11-04',
                     optionId: 204,
@@ -696,8 +677,6 @@ void main() {
           await tester.pump();
           await tester.pump();
 
-          // Removing Cap puts the suitcase in a "changed since open" state
-          // and is exactly what orphans day 2026-11-03's garment.
           await tester.tap(find.byIcon(Icons.close).last);
           await tester.pumpAndSettle();
           await tester.tap(find.text('REMOVE'));
@@ -733,9 +712,7 @@ void main() {
           }
           if (request.method == 'GET' &&
               request.url.path.endsWith('/trip_plans/7')) {
-            // Cap (garment 4) is still packed on open — removed below to
-            // put the suitcase in a "changed" state, but neither day
-            // references it, so nothing actually gets orphaned by that.
+            // Removing Cap (4) below orphans nothing; no day uses it.
             return jsonResponse(envelope({'suitcase_items': baseSuitcase}));
           }
           if (request.method == 'GET' && request.url.path.endsWith('/plan')) {
@@ -805,12 +782,8 @@ void main() {
     );
   });
 
-  // `DELETE /suitcase-items/{garment_id}` now returns `affected_options` —
-  // days/options still referencing the removed garment at the moment of
-  // removal. Purely informational: removal itself always succeeds and
-  // nothing about the day's outfit/render/option is touched automatically
-  // (no Fix/Replan offered), so the only observable difference is whether a
-  // SnackBar mentions it.
+  // `affected_options` is informational only: the only visible difference
+  // is whether a SnackBar mentions it.
   group('removing a suitcase item affecting existing day outfits', () {
     testWidgets(
       'affected_options empty: removal behaves exactly as before, no extra '

@@ -14,19 +14,9 @@ import '../common/overlays/error_dialog.dart';
 import '../common/overlays/inline_error_text.dart';
 import 'garment_image.dart';
 
-/// Shows [garment]'s photo plus its category/name/color/brand/price, in a
-/// centered dialog — opened by tapping a garment in an outfit's garment
-/// list or in a trip day's outfit strip. Tapping anywhere on the card
-/// closes it; there's no separate Close button.
-///
-/// When [Garment.isDeleted] (the garment is still referenced here but has
-/// since been removed from the closet), the dialog also offers "Add Back to
-/// Closet" ([GarmentService.restoreGarment]) — that button sits inside the
-/// same tap-to-close surface but wins the gesture arena over it, so tapping
-/// it only restores, it doesn't also close the dialog. [show] resolves to
-/// the restored [Garment] when that succeeds, or `null` for every other way
-/// the dialog closes — the caller uses that to swap its own copy of the
-/// garment in place.
+/// Tap-anywhere-to-close garment summary dialog. A soft-deleted garment also
+/// gets "Add Back to Closet", which wins the gesture arena over the close
+/// tap. [show] resolves to the restored [Garment], or null otherwise.
 class GarmentDetailDialog extends StatefulWidget {
   final Garment garment;
 
@@ -149,11 +139,10 @@ class _GarmentDetailDialogState extends State<GarmentDetailDialog> {
                     ),
                     child: Text(
                       l10n.addBackToCloset,
-                      style: AppTextStyle.regular16.copyWith(
+                      style: AppTextStyle.medium16.copyWith(
                         color: _restoring
                             ? AppColors.hintText
                             : AppColors.textOnPrimary,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),

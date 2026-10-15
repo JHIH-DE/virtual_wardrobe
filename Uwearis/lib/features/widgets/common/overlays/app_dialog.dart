@@ -9,12 +9,9 @@ class AppDialog extends StatefulWidget {
   final Widget? content;
   final String primaryLabel;
 
-  /// Null renders the primary button in a disabled/greyed state (still
-  /// visible, just unpressable) — for a form dialog whose primary action
-  /// only makes sense once required fields are filled in.
+  /// Null shows the primary button greyed out (still visible).
   final VoidCallback? onPrimary;
 
-  /// Optional leading icon on the (non-text-button) primary button.
   final IconData? primaryIcon;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
@@ -28,15 +25,12 @@ class AppDialog extends StatefulWidget {
   /// button instead of a full-width outlined button.
   final bool secondaryIsTextButton;
 
-  /// When true, the primary button renders as the same low-emphasis
-  /// centered text button used for [secondaryLabel]. Use for dialogs whose
-  /// sole button is a dismiss action (e.g. a list picker's "Cancel") rather
-  /// than a true call to action — accent orange and filled buttons are
-  /// reserved for actual primary actions.
+  /// For a dialog whose only button is a dismiss: the filled accent style
+  /// is reserved for real calls to action.
   final bool primaryIsTextButton;
 
-  /// Rim border applied to the primary, secondary (outlined), and tertiary
-  /// buttons — not the flat text-button variants, which stay chromeless.
+  /// Border for the filled/outlined buttons; text-button variants stay
+  /// chromeless.
   final BorderSide? borderSide;
 
   const AppDialog({
@@ -104,9 +98,8 @@ class _AppDialogState extends State<AppDialog> {
                       ),
                       child: Text(
                         widget.primaryLabel,
-                        style: AppTextStyle.regular16.copyWith(
+                        style: AppTextStyle.medium16.copyWith(
                           color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     )
@@ -122,9 +115,8 @@ class _AppDialogState extends State<AppDialog> {
                         ),
                         child: Text(
                           widget.secondaryLabel!,
-                          style: AppTextStyle.regular14.copyWith(
+                          style: AppTextStyle.medium14.copyWith(
                             color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       )
@@ -144,9 +136,8 @@ class _AppDialogState extends State<AppDialog> {
                         ),
                         child: Text(
                           widget.secondaryLabel!,
-                          style: AppTextStyle.regular14.copyWith(
+                          style: AppTextStyle.medium14.copyWith(
                             color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -159,9 +150,6 @@ class _AppDialogState extends State<AppDialog> {
                   child: TextButton(
                     onPressed: widget.onTertiary,
                     style: TextButton.styleFrom(
-                      // Same press feedback as the "Cancel" text button
-                      // above — a Material state-layer overlay, not a colour
-                      // swap — just inside a bordered pill.
                       foregroundColor: AppColors.textSecondary,
                       minimumSize: const Size(0, 38),
                       padding: EdgeInsets.zero,
@@ -173,9 +161,8 @@ class _AppDialogState extends State<AppDialog> {
                     ),
                     child: Text(
                       widget.tertiaryLabel!,
-                      style: AppTextStyle.regular14.copyWith(
+                      style: AppTextStyle.medium14.copyWith(
                         color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -188,9 +175,6 @@ class _AppDialogState extends State<AppDialog> {
     );
   }
 
-  /// The filled accent primary button — greys out via [onPrimary] being
-  /// null (see its doc) rather than being hidden, since a form dialog wants
-  /// every button visible at all times, just not always pressable.
   Widget _buildPrimaryButton() {
     final textColor = widget.onPrimary == null
         ? AppColors.hintText
@@ -200,7 +184,7 @@ class _AppDialogState extends State<AppDialog> {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.accent,
         disabledBackgroundColor: AppColors.borderSubtle,
-        // Matches BottomActionButton's height.
+        // Matches ActionButton's height.
         minimumSize: const Size(double.infinity, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         elevation: 0,
@@ -209,10 +193,7 @@ class _AppDialogState extends State<AppDialog> {
       child: widget.primaryIcon == null
           ? Text(
               widget.primaryLabel,
-              style: AppTextStyle.regular16.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppTextStyle.medium16.copyWith(color: textColor),
             )
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -224,10 +205,7 @@ class _AppDialogState extends State<AppDialog> {
                     widget.primaryLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyle.regular16.copyWith(
-                      color: textColor,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: AppTextStyle.medium16.copyWith(color: textColor),
                   ),
                 ),
               ],

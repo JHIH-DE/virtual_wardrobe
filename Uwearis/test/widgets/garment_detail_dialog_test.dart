@@ -34,8 +34,8 @@ Garment _garment({
   );
 }
 
-/// Pumps a page with a button that opens [GarmentDetailDialog.show] for
-/// [garment] and stashes whatever it resolves to in [onResult].
+/// Opens [GarmentDetailDialog.show] from a button; its result goes to
+/// [onResult].
 Future<void> _pumpOpener(
   WidgetTester tester,
   Garment garment,
@@ -61,9 +61,7 @@ Future<void> _pumpOpener(
 void main() {
   setUp(setUpFakeAuth);
 
-  // The dialog's photo (aspect ratio 1) plus every detail row needs more
-  // height than the default 800x600 test surface — same reasoning as every
-  // other full-page test in this suite that calls this useTallSurface.
+  // The dialog doesn't fit the default 800x600 test surface.
   void useTallSurface(WidgetTester tester) {
     tester.view.physicalSize = const Size(1000, 4000);
     tester.view.devicePixelRatio = 1.0;
@@ -137,9 +135,7 @@ void main() {
     await http.runWithClient(() async {
       await _pumpOpener(tester, _garment(id: 1), (r) => result = r);
 
-      // No dedicated Close button — the card itself is the tap target.
-      // The garment name is always rendered, so it's a reliable spot to
-      // tap that isn't also a competing interactive widget.
+      // No Close button: tapping the card closes it.
       await tester.tap(find.text('Denim Jacket'));
       await tester.pumpAndSettle();
     }, () => MockClient((_) async => jsonResponse(envelope(null))));
@@ -177,8 +173,7 @@ void main() {
         await tester.pumpAndSettle();
       }, () => client);
 
-      // The gesture arena resolves to the button, not the card's own
-      // tap-to-close — the result is the restored garment, not null.
+      // The button wins over the card's tap-to-close.
       expect(result, isNotNull);
       expect(result!.isDeleted, isFalse);
     },
@@ -256,7 +251,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Failed to restore this item'), findsOneWidget);
-      // Dialog itself is still up — the button is still there to retry.
       expect(find.text('Add Back to Closet'), findsOneWidget);
     }, () => client);
   });

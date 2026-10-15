@@ -5,21 +5,12 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 
-/// Compact circular icon button — a glass disc with an [AppColors.icon]
-/// glyph at half its [size]. The one design for every in-page round icon
-/// action (Outfit Details' tag editor, Trip Details' Replan / Change
-/// Garments), on the cream page and on white cards alike.
+/// Glass-disc icon button for in-page round icon actions. The tap target is
+/// padded to at least [AppDimens.minTouchTarget]; [discAlignment] places
+/// the disc inside it (`centerRight` aligns it with a row's end).
 ///
-/// The visible disc stays [size] wide, but the tap target is padded out
-/// (transparently) to at least [AppDimens.minTouchTarget] so a near-miss
-/// around the disc still registers. [discAlignment] places the disc inside
-/// that larger box — `Alignment.centerRight` lines its edge up with content
-/// at the end of a row, the extra tap area growing inward instead.
-///
-/// When [enabled] is false the button greys out and taps are ignored.
-/// [onPressed] may be null while a feature is still visual-only — the
-/// button then looks active but does nothing. [tooltip] also labels the
-/// button for screen readers.
+/// A null [onPressed] keeps the active look without handling taps — e.g. as
+/// an `AppPopupMenu` trigger, which handles the tap itself.
 class CircleIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
@@ -46,10 +37,8 @@ class CircleIconButton extends StatelessWidget {
     final button = Opacity(
       opacity: enabled ? 1 : 0.6,
       child: GestureDetector(
-        // Catches near-misses in the transparent ring that pads the visible
-        // disc out to AppDimens.minTouchTarget. The inner InkWell still owns
-        // direct hits (and the ripple); the gesture arena resolves a tap on
-        // the disc to it, not to this, so onPressed never fires twice.
+        // Near-misses only: the arena gives a direct hit to the inner
+        // InkWell, so onPressed never fires twice.
         behavior: HitTestBehavior.opaque,
         onTap: enabled ? onPressed : null,
         child: SizedBox.square(
@@ -59,9 +48,8 @@ class CircleIconButton extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                // The fade to clear stays white (not Colors.transparent,
-                // which is clear *black* and greys the blend), so only the
-                // outer rim picks up the darker edge tone.
+                // Fade to clear *white*: Colors.transparent is clear black
+                // and would grey the blend.
                 gradient: RadialGradient(
                   colors: [
                     AppColors.iconButtonFillCenter,

@@ -5,37 +5,24 @@ import '../../../core/utils/image_cache_bust.dart';
 import '../../../data/garment.dart';
 import '../common/images/app_image.dart';
 
-/// Garment-specific wrapping of [AppImage]: computes the stable per-garment
-/// cache key (bumped by [ImageCacheBust] whenever Edit image replaces this
-/// exact garment's photo — see garment_details_page.dart) and the
-/// signed-URL refresh callback; [AppImage] itself owns the actual
-/// local-file/network rendering, shared with any other "one photo, mixed
-/// source" screen (e.g. My Virtual Model's reference photos).
+/// [AppImage] with a garment's stable cache key and signed-URL refresh.
 class GarmentImage extends StatelessWidget {
   final String? url;
 
-  /// When set, a load failure triggers one refetch of this garment from
-  /// the backend to pick up a freshly-signed image URL (e.g. the cached one
-  /// expired, or this id came from a closet-analysis result — outfit ideas /
-  /// similar garments — that was persisted before the garment got deleted;
-  /// see [GarmentService.getGarment]'s `includeDeleted` doc). Leave null to
-  /// skip the retry (no ID available to refetch).
+  /// When set, a load failure refetches the garment once for a freshly
+  /// signed URL. Null skips the retry.
   final int? garmentId;
   final double? width;
   final double? height;
 
-  /// Decode target size in physical pixels for thumbnail-sized uses — see
-  /// [AppImage.memCacheWidth]. Leave null for full-resolution decoding.
+  /// Decode size in physical pixels; null decodes at full resolution.
   final int? memCacheWidth;
   final int? memCacheHeight;
   final BoxFit fit;
   final double borderRadius;
 
-  /// See [AppImage.onUrlRefreshed] — fires once self-heal picks up a working
-  /// replacement URL. A caller that holds its own longer-lived copy of this
-  /// garment's image URL (e.g. a persisted closet-analysis result) should
-  /// use this to fold the fresh URL back in, or it keeps re-serving the
-  /// expired one on every future read of that copy.
+  /// Lets a caller holding a longer-lived copy of the URL (e.g. a persisted
+  /// closet analysis) fold the fresh one back in.
   final void Function(String oldUrl, String newUrl)? onUrlRefreshed;
 
   const GarmentImage({
@@ -54,12 +41,8 @@ class GarmentImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final id = garmentId;
-    // A re-signed URL for the same garment shouldn't read as a disk-cache
-    // miss, so key by the stable id instead — plus ImageCacheBust's version
-    // suffix, bumped whenever Edit image replaces this exact garment's
-    // photo in place (same stable id, genuinely different bytes), which a
-    // stable-key cache would otherwise never see as a change and keep
-    // serving stale.
+    // Keyed by id so a re-signed URL isn't a cache miss; the version suffix
+    // changes when Edit image replaces the photo in place.
     final baseKey = id != null ? garmentImageCacheKey(id) : null;
     final cacheKey = baseKey == null
         ? null
@@ -71,12 +54,8 @@ class GarmentImage extends StatelessWidget {
       onRefreshUrl: id == null
           ? null
           : () async {
-              // includeDeleted: true — this id may come from a persisted
-              // closet-analysis result (outfit ideas / similar garments)
-              // that's older than the garment's own since-deleted state;
-              // without it, getGarment 404s instead of returning the still-
-              // resolvable fresh URL (mirrors _openAiGarmentDetail's own
-              // lookup for the same data).
+              // The id may come from a persisted closet analysis that
+              // predates the garment's deletion; without this it 404s.
               final fresh = await GarmentService().getGarment(
                 id,
                 includeDeleted: true,

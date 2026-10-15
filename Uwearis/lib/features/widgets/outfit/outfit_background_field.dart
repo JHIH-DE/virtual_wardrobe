@@ -9,12 +9,8 @@ import '../common/fields/labeled_field.dart';
 import '../common/fields/tappable_field_decorator.dart';
 import '../common/overlays/picker_sheet.dart';
 
-/// The "BACKGROUND" field shared by Create Outfit (`AddOutfitPage`) and
-/// Outfit Details' "+ New Version" picker (`OutfitEditPage`) — same shape as
-/// Garment Details' Color field: a tappable field showing the selected
-/// preset's name, opening a bottom sheet with a single
-/// horizontally swipeable row of bundled background photos. Tapping a
-/// photo selects it and closes the sheet.
+/// Shows the selected background; opens a sheet with a horizontal row of
+/// presets. Tapping one selects it and closes the sheet.
 class OutfitBackgroundField extends StatelessWidget {
   final BackgroundOption selected;
 
@@ -66,8 +62,7 @@ class OutfitBackgroundField extends StatelessWidget {
   void _openSheet(BuildContext context) {
     const options = BackgroundOption.all;
     final selectedIndex = options.indexWhere((b) => b.id == selected.id);
-    // Opens with the current background centered (or as close as the row's
-    // ends allow), so it's in view even when it sits past the first screen.
+    // Open with the current background centered (clamped to the row ends).
     final screenWidth = MediaQuery.of(context).size.width;
     final contentWidth =
         options.length * _cardWidth +
@@ -131,9 +126,6 @@ class OutfitBackgroundField extends StatelessWidget {
   }
 }
 
-/// Selected-state treatment (foreground border + checkmark badge) mirrors
-/// `GarmentCard`'s selected styling, so the same "picked" affordance reads
-/// consistently across the app.
 class _BackgroundCard extends StatelessWidget {
   final BackgroundOption background;
   final bool isSelected;
@@ -160,8 +152,7 @@ class _BackgroundCard extends StatelessWidget {
             ),
           ],
         ),
-        // Painted after the child (unlike `decoration`), so this stays
-        // visible over the photo instead of being covered by it.
+        // Foreground, so the border isn't covered by the photo.
         foregroundDecoration: isSelected
             ? BoxDecoration(
                 borderRadius: BorderRadius.circular(16),

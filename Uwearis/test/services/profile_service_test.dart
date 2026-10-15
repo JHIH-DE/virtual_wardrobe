@@ -181,8 +181,7 @@ void main() {
       expect(url, isNull);
     });
 
-    // avatar / body-ref / face-ref completes share one helper — body-ref and
-    // face-ref must reject a missing object_url just like avatar does.
+    // Body-ref and face-ref must reject a missing object_url like avatar.
     test('uploadBodyRef and uploadFaceRef throw when complete is missing '
         'object_url', () async {
       final tempFile = await _writeTempJpeg();
@@ -561,27 +560,20 @@ void main() {
       expect(jsonDecode(captured.body), {});
     });
 
-    test(
-      'sends temperatureOffsetC under its wire key',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return _jsonResponse(_envelope({}));
-        });
+    test('sends temperatureOffsetC under its wire key', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(_envelope({}));
+      });
 
-        await http.runWithClient(
-          () => ProfileService().updateMyProfile(
-            temperatureOffsetC: -2,
-          ),
-          () => client,
-        );
+      await http.runWithClient(
+        () => ProfileService().updateMyProfile(temperatureOffsetC: -2),
+        () => client,
+      );
 
-        expect(jsonDecode(captured.body), {
-          'temperature_offset_c': -2,
-        });
-      },
-    );
+      expect(jsonDecode(captured.body), {'temperature_offset_c': -2});
+    });
   });
 }
 

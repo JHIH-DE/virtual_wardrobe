@@ -18,12 +18,8 @@ import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
 
-/// Picks one version of [outfit]'s group to pack — swipe between the
-/// group's versions, then "Add to Suitcase" pops with the one on screen;
-/// backing out pops null. Reached from [TripOutfitSelectionPage].
-///
-/// Read-only on purpose: unlike Outfit Details' carousel there's no
-/// favourite / regenerate / cover / delete here, only choosing.
+/// Pops with the version on screen to pack, or null. Deliberately read-only
+/// (no favourite / regenerate / cover / delete).
 class TripOutfitVersionPage extends ConsumerStatefulWidget {
   final Outfit outfit;
 
@@ -35,8 +31,7 @@ class TripOutfitVersionPage extends ConsumerStatefulWidget {
 }
 
 class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
-  // Starts as just the tapped card's outfit (the group's cover), replaced by
-  // the whole group once [_loadVersions] resolves.
+  // Just the tapped outfit until [_loadVersions] resolves.
   late final List<Outfit> _versions = [widget.outfit];
   int _currentIndex = 0;
   final PageController _pageController = PageController();
@@ -71,8 +66,7 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
         widget.outfit.groupId,
       );
       if (!mounted || outfits.isEmpty) return;
-      // Re-select the tapped version by id — getGroupOutfits doesn't
-      // necessarily return the cover first.
+      // Order isn't guaranteed; stay on the tapped version.
       final matchedIndex = outfits.indexWhere((o) => o.id == widget.outfit.id);
       setState(() {
         _versions
@@ -101,8 +95,7 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
 
   @override
   Widget build(BuildContext context) {
-    // .active: only garments still in the closet can be packed, so those are
-    // the ones this version would actually add.
+    // Only garments still in the closet can be packed.
     final closetById = {
       for (final g in (ref.watch(garmentsProvider).value ?? const []).active)
         if (g.id != null) g.id!: g,
@@ -165,8 +158,6 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
     );
   }
 
-  /// "n / total" once the group's versions have loaded and there's more
-  /// than one to swipe between — otherwise just the gap.
   Widget _buildVersionCounter() {
     if (!_versionsResolved || _versions.length < 2) {
       return const SizedBox(height: AppDimens.sectionSpacing);

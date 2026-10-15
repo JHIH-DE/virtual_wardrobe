@@ -16,8 +16,7 @@ void main() {
     double width = 390,
     Widget? leading,
   }) async {
-    // A phone-like screen with a status bar, so the toolbar (and the sheet
-    // lined up with it) sits under a non-zero inset.
+    // A non-zero top inset, like a phone status bar.
     tester.view.physicalSize = Size(width, 844);
     tester.view.devicePixelRatio = 1.0;
     tester.view.padding = const FakeViewPadding(top: 47);
@@ -83,7 +82,6 @@ void main() {
       'the title level with it and centred on the sheet', (tester) async {
     await pumpAndOpen(tester);
 
-    // The glyph is centred on its disc.
     final sheet = tester.getRect(find.byType(BottomSheet));
     final close = tester.getCenter(find.byIcon(Icons.close));
     expect(close.dx, sheet.right - 20 - ActionDisc.size / 2);

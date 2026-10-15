@@ -61,9 +61,7 @@ class _TripGarmentSelectionPageState
 
   final _filter = GarmentColorTypeFilter();
 
-  /// This page is a pure picker now — it always hands the current selection
-  /// back to [TripSuitcasePage], which stages the diff and shows its own
-  /// "Confirm" button.
+  /// [TripSuitcasePage] stages the diff and confirms it.
   void _returnSelection() => Navigator.pop(context, _selectedIds);
 
   @override
@@ -74,7 +72,7 @@ class _TripGarmentSelectionPageState
 
   Future<void> _loadAdvice() async {
     try {
-      // Same analysis Trip Details already fetched (see tripSuggestionProvider).
+      // Cached; Trip Details already fetched it.
       final analysis = await ref.read(
         tripSuggestionProvider(widget.tripId).future,
       );
@@ -118,19 +116,13 @@ class _TripGarmentSelectionPageState
           onChanged: () => setState(() {}),
         ),
       ],
-      // Sharing the app bar's own Material/shadow with the tab strip (rather
-      // than stacking it below in the body) keeps the two reading as one
-      // continuous surface — see CategorySelector's preferredSize doc.
       bottom: _buildCategorySelector(),
     );
   }
 
-  /// Orders a category's grid: items selected *on entry* first, then
-  /// AI-suggested, then everything else — each bucket keeps the closet's own
-  /// order. Keyed off [TripGarmentSelectionPage.initiallySelectedIds] rather
-  /// than the live selection on purpose: toggling an item during this visit
-  /// must not make it jump buckets under the user's finger. The order only
-  /// re-settles next time the page is opened.
+  /// Selected-on-entry first, then AI-suggested, then the rest. Uses
+  /// [TripGarmentSelectionPage.initiallySelectedIds], not the live selection,
+  /// so a toggled item doesn't jump under the user's finger.
   List<Garment> _sortedItemsForCategory(PackingCategory? advice) {
     final items = _filter.apply(_byCategory);
     final suggested = advice?.suggestedGarmentIds ?? const <int>{};

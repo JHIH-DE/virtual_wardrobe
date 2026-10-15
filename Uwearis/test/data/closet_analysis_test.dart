@@ -55,8 +55,7 @@ void main() {
     });
 
     test('a Closet-with-only-the-target response is a normal success', () {
-      // garments-api.md §8: when the closet has nothing but the target,
-      // the backend still answers 200 with level 1 / Very Limited and
+      // A closet with only the target still answers 200 with level 1 and
       // empty arrays — not an error.
       final analysis = ClosetAnalysis.fromJson({
         'versatility': {'level': 1, 'label': 'Very Limited'},
@@ -87,9 +86,7 @@ void main() {
   });
 
   group('ClosetAnalysis.toJson round-trip', () {
-    // GarmentService persists a closet-analysis result to local storage by
-    // round-tripping it through toJson/fromJson — this is what that cache
-    // relies on staying lossless.
+    // GarmentService's persisted cache relies on this being lossless.
     test('fromJson(toJson(x)) reproduces every field', () {
       final original = ClosetAnalysis.fromJson({
         'versatility': {'level': 8, 'label': 'Versatile'},

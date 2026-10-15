@@ -21,15 +21,12 @@ class ProfileService with BaseService {
   static final String _styleProfileUrl = '$_baseUrl/style_profile';
 
   static const _quick = Duration(seconds: 15);
-  // Body/face-ref `complete` runs a background-removal pass server-side
-  // (1 to several seconds), on top of a possible Cloud Run cold start.
+  // `complete` runs server-side background removal.
   static const _completeTimeout = Duration(seconds: 60);
-  // `base-model/generate` is synchronous AI generation (usually tens of
-  // seconds); the API doc asks for a timeout of at least 120 s.
+  // Synchronous AI generation; the API doc asks for at least 120s.
   static const _generateTimeout = Duration(seconds: 120);
 
-  /// `data` out of a decoded envelope, falling back to the whole envelope for
-  /// a bare (un-enveloped) response — the shape every method here expects.
+  /// `data`, or the whole body for an un-enveloped response.
   Map<String, dynamic> _data(Map<String, dynamic> envelope) =>
       (envelope['data'] as Map<String, dynamic>?) ?? envelope;
 
@@ -43,20 +40,9 @@ class ProfileService with BaseService {
     return UserProfile.fromJson(_data(decodeMap(res, op: 'getMyProfile')));
   }
 
-  /// One `GET /users/me` request parsed into everything Account / Settings /
-  /// Home / My Virtual Model need: the profile fields plus both reference-photo
-  /// signed URLs and the generated base-model signed URL — all four already
-  /// live in the same response body (see [_profileImageField]'s doc).
-  /// [ProfileNotifier] uses this instead of calling
-  /// [getMyProfile]/[getBodyRef]/[getFaceReference] separately (that used to
-  /// be 3 redundant requests to this same endpoint via `Future.wait`).
-  ///
-  /// Note: this only reflects what the backend's DB record says (an
-  /// `object_name` set → a signed URL comes back) — it does not verify the
-  /// underlying GCS object still exists. A stale/deleted object 404s only
-  /// when the image widget actually requests the signed URL; that's a
-  /// per-image UI concern (see `RefreshableNetworkImage`/`AppImage`'s
-  /// `onLoadError`), not something this call can detect or should fail on.
+  /// Profile plus the reference-photo and base-model signed URLs, from one
+  /// request. A URL can still point at a deleted object; that surfaces as an
+  /// image load error, not here.
   Future<ProfileData> getMyProfileData() async {
     debugLog('--- getMyProfileData ---');
     final res = await withAuth(
@@ -114,9 +100,7 @@ class ProfileService with BaseService {
     return url;
   }
 
-  /// The whole init-upload → PUT-to-signed-URL → complete flow for one
-  /// reference photo, returning its new signed object URL. Callers just hand
-  /// over the local file path — see [account_page] / [my_virtual_model_page].
+  /// init-upload → PUT to signed URL → complete; returns the new signed URL.
   Future<String> _uploadRef(
     String baseUrl,
     String localPath, {
@@ -136,8 +120,7 @@ class ProfileService with BaseService {
   Future<String> uploadFaceRef(String localPath) =>
       _uploadRef(_faceRefUrl, localPath, opPrefix: 'faceRef');
 
-  /// Deletes one photo (plus its server-processed variant). `PHOTO_NOT_FOUND`
-  /// (404) is treated as success, same as every other idempotent delete.
+  /// Also deletes the server-processed variant; 404 counts as success.
   Future<void> _deleteRef(String baseUrl, {required String op}) async {
     debugLog('--- $op ---');
     await deleteIdempotent(Uri.parse(baseUrl), op: op);
@@ -152,13 +135,9 @@ class ProfileService with BaseService {
   /// Same base-model side effect as [deleteBodyRef].
   Future<void> deleteFaceRef() => _deleteRef(_faceRefUrl, op: 'deleteFaceRef');
 
-  /// Manually (re-)triggers base-model generation from the user's currently
-  /// committed body-reference (required) and face-reference (optional —
-  /// used as the face identity input only if one has been uploaded) photos.
-  /// Uploading a new reference photo does not regenerate it automatically.
-  /// The previous base model is only deleted once the new one succeeds; a
-  /// failed generation keeps it. Does not count against the daily try-on
-  /// quota. Returns the newly-generated base model's signed `object_url`.
+  /// Generates from the body reference (required) and face reference
+  /// (optional); uploads don't trigger it. A failure keeps the previous
+  /// model. Not counted against the daily try-on quota.
   Future<String> generateBaseModel() async {
     debugLog('--- generateBaseModel ---');
     final res = await withAuth(
@@ -180,9 +159,7 @@ class ProfileService with BaseService {
 
   // ---- image reads (a 404 means "not set yet", not an error) ----
 
-  /// None of the photos has a dedicated GET — avatar, body-ref and face-ref
-  /// signed URLs are all bundled into the main profile response under their
-  /// own key. Used to re-sign an expired URL.
+  /// The photos have no GET of their own; re-signs via the profile response.
   Future<String?> _profileImageField(String key, {required String op}) async {
     debugLog('--- $op ---');
     final res = await withAuth(
@@ -203,13 +180,8 @@ class ProfileService with BaseService {
   Future<String?> getFaceReference() =>
       _profileImageField('face_reference_object_url', op: 'getFaceReference');
 
-  /// The user's Style Taste Profile — one entry per learned preference
-  /// dimension (`style_balance`, `color_pairing`, ...), each with its own
-  /// `score`/`confidence`/`label`/`insight`. When there isn't enough data
-  /// yet (fewer than the backend's analysis minimum), `status` comes back
-  /// `"learning"` instead of `"ready"` rather than the backend fabricating
-  /// untrustworthy scores — callers should treat scores/confidence as
-  /// unreliable in that case.
+  /// `status` is `"learning"` (scores unreliable) until the backend has
+  /// enough data, then `"ready"`.
   Future<StyleTasteProfile> getMyStyleTaste() async {
     debugLog('--- getMyStyleTaste ---');
     final res = await withAuth(
@@ -222,9 +194,7 @@ class ProfileService with BaseService {
     return StyleTasteProfile.fromApi(data);
   }
 
-  /// Outfit counts per style tag (`GET /users/me/style_profile`), sorted
-  /// high to low by the backend — powers Style Taste's style profile pie
-  /// chart.
+  /// Outfit counts per style tag, sorted high to low by the backend.
   Future<List<StyleProfileItem>> getMyStyleProfile() async {
     debugLog('--- getMyStyleProfile ---');
     final res = await withAuth(
@@ -253,8 +223,7 @@ class ProfileService with BaseService {
     num? temperatureOffsetC,
     String? locale,
   }) async {
-    // A null argument means "leave unchanged" (the field is omitted), so this
-    // can't clear a field.
+    // Null means "leave unchanged", so this can't clear a field.
     debugLog('--- updateMyProfile ---');
     final uri = Uri.parse(_baseUrl);
 
@@ -280,9 +249,7 @@ class ProfileService with BaseService {
     return UserProfile.fromJson(_data(decodeMap(res, op: 'updateMyProfile')));
   }
 
-  /// Permanently deletes the signed-in user's account — every DB row and GCS
-  /// file under it — with no way to undo it. 404 (already deleted) is
-  /// treated as success, same as every other idempotent delete in the app.
+  /// Permanent, including all stored files. 404 counts as success.
   Future<void> deleteMyAccount() async {
     debugLog('--- deleteMyAccount ---');
     await deleteIdempotent(Uri.parse(_baseUrl), op: 'deleteMyAccount');

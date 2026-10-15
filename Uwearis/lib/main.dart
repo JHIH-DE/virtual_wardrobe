@@ -7,9 +7,7 @@ import 'app/app.dart';
 import 'core/utils/crash_handler.dart';
 
 void main() {
-  // GlobalErrorHandler installs FlutterError.onError / PlatformDispatcher.onError
-  // / a release-mode error screen; runZonedGuarded catches anything that escapes
-  // the zone. See crash_handler.dart.
+  // runZonedGuarded catches anything GlobalErrorHandler's hooks don't.
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     GlobalErrorHandler.initialize();

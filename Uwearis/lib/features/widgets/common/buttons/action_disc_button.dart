@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 
-/// The translucent disc behind a header action glyph — every icon action on
-/// [AppToolBar] (back button, "⋮" menu, filter, page-specific actions) and a
-/// [pageSheet]'s header actions. Visual only; [ActionDiscButton] wraps it in
-/// the toolbar-height tap target. Size the [child] glyph to [iconSize].
+/// The translucent disc behind a toolbar / page-sheet header action glyph.
+/// Visual only — [ActionDiscButton] adds the tap target. Size the [child]
+/// glyph to [iconSize].
 class ActionDisc extends StatelessWidget {
   static const double size = 40;
   static const double iconSize = 22;
@@ -39,8 +38,6 @@ class ActionDisc extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Inner highlight on the top and bottom edges only, fading out
-            // towards the sides.
             Positioned.fill(
               child: ShaderMask(
                 blendMode: BlendMode.dstIn,
@@ -101,8 +98,7 @@ class _OuterShadowPainter extends CustomPainter {
   bool shouldRepaint(_OuterShadowPainter oldDelegate) => false;
 }
 
-/// An [ActionDisc] in a [AppDimens.toolbarHeight] square tap target — the
-/// shape of every icon action on [AppToolBar].
+/// An [ActionDisc] in a [AppDimens.toolbarHeight] square tap target.
 class ActionDiscButton extends StatelessWidget {
   final Widget icon;
   final VoidCallback? onPressed;

@@ -39,9 +39,7 @@ void main() {
     expect(selected, 'delete');
   });
 
-  // Longest existing menu label in the app — see add_outfit_page.dart's
-  // Match a Look card ("Remove Reference Look", no icon, text-only item).
-  // Content-based sizing (no fixed/capped width) must still never overflow.
+  // Longest menu label in the app (add_outfit_page.dart).
   testWidgets('the longest existing label renders without overflowing', (
     tester,
   ) async {
@@ -90,10 +88,7 @@ void main() {
       ),
     );
 
-    // The trigger's own hit-target box (CompositedTransformTarget), not
-    // just the "⋮" glyph inside it — the glyph is centered within a larger
-    // touch target, so its own rect is inset from the box the menu is
-    // actually anchored to.
+    // The menu anchors to the hit-target box, not the smaller glyph.
     final triggerRect = tester.getRect(find.byType(CompositedTransformTarget));
 
     await tester.tap(find.byIcon(Icons.more_vert));
@@ -103,9 +98,7 @@ void main() {
       find.ancestor(of: find.text('A'), matching: find.byType(Material)).first,
     );
 
-    // Below the trigger, right edge pulled 10px in from the trigger's own
-    // right edge (see the CompositedTransformFollower's own offset) — never
-    // clamped against the physical screen edge instead.
+    // Anchored to the trigger (10px in), not clamped to the screen edge.
     expect(menuRect.top, greaterThanOrEqualTo(triggerRect.bottom));
     expect(menuRect.right, closeTo(triggerRect.right - 10, 1));
   });
@@ -139,8 +132,7 @@ void main() {
         .width;
     final textWidth = tester.getSize(find.text('A')).width;
 
-    // 12px horizontal padding each side (see AppPopupMenu's item row), no
-    // icon — should track the label exactly, with no artificial step/cap.
+    // 12px padding each side, no icon.
     expect(itemWidth, closeTo(textWidth + 24, 1));
   });
 

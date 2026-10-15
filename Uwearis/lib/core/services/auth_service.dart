@@ -10,8 +10,7 @@ import 'base_service.dart';
 class AuthService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/auth';
 
-  /// One unauthenticated JSON POST against `/auth`, time-bounded so a login
-  /// or refresh can't hang the sign-in flow forever.
+  /// Unauthenticated, time-bounded POST to `/auth`.
   Future<http.Response> _postJson(String path, Map<String, dynamic> body) {
     return sendTimed(
       () => http
@@ -24,9 +23,6 @@ class AuthService with BaseService {
     );
   }
 
-  /// Pulls the issued `access_token`/`refresh_token` pair out of a decoded
-  /// response envelope, throwing a clear [label]-prefixed error if either is
-  /// missing or blank.
   ({String accessToken, String refreshToken}) _tokenPair(
     Map<String, dynamic> envelope, {
     required String label,
@@ -56,13 +52,8 @@ class AuthService with BaseService {
     );
   }
 
-  /// [name] is the user's display name — only pass it on the *first* Apple
-  /// authorization: Apple hands it to the client exactly once, in
-  /// `AuthorizationCredentialAppleID.givenName`/`familyName`, and never
-  /// again on subsequent sign-ins with the same Apple ID. The backend only
-  /// has anywhere to put it on that same first request (it can't ask Apple
-  /// for it later), so omit this argument entirely on repeat logins rather
-  /// than send an empty string.
+  /// [name]: Apple only provides it on the first authorization, so omit it
+  /// on repeat logins rather than sending an empty string.
   Future<({String accessToken, String refreshToken})> loginWithAppleIdToken(
     String idToken, {
     String? name,
@@ -78,10 +69,8 @@ class AuthService with BaseService {
     );
   }
 
-  /// Facebook Login hands the client an *access token*, not an id token
-  /// (unlike Google/Apple) — the backend verifies it against the Graph API
-  /// itself, so this is the one provider whose request body key is
-  /// `access_token`.
+  /// Facebook gives an access token, not an id token, hence the
+  /// `access_token` body key.
   Future<({String accessToken, String refreshToken})>
   loginWithFacebookAccessToken(String accessToken) async {
     debugLog('--- loginWithFacebookAccessToken ---');
@@ -94,8 +83,7 @@ class AuthService with BaseService {
 
   Future<void> logout(String refreshToken) async {
     debugLog('--- logout ---');
-    // Best-effort: local tokens are cleared by the caller regardless of the
-    // server's response, so this deliberately doesn't check the status.
+    // Best-effort: the caller clears local tokens regardless of status.
     await _postJson('/logout', {'refresh_token': refreshToken});
   }
 }

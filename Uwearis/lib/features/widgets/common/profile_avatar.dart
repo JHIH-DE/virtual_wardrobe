@@ -8,8 +8,7 @@ import 'images/app_image.dart';
 class ProfileAvatar extends StatelessWidget {
   final String? url;
 
-  /// See [AppImage.onRefreshUrl] — a re-fetch callback so a broken/expired
-  /// signed URL self-heals once instead of just showing the error state.
+  /// Re-fetches a broken/expired signed URL once ([AppImage.onRefreshUrl]).
   final Future<String?> Function()? onRefreshUrl;
 
   final VoidCallback? onTap;

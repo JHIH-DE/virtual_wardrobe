@@ -8,10 +8,8 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 
-/// Debug-only screen for previewing UI states that are otherwise hard to
-/// trigger on demand (e.g. the dialog shown for an unrecoverable backend
-/// error). Only reachable from Settings when [kDebugMode] is true — see
-/// `settings_page.dart`'s `_buildDebugToolsCard`.
+/// Debug-only previews of hard-to-trigger UI states; reachable from Settings
+/// only when [kDebugMode] is true.
 class DebugToolsPage extends StatelessWidget {
   const DebugToolsPage({super.key});
 
@@ -30,10 +28,7 @@ class DebugToolsPage extends StatelessWidget {
         children: [
           AppListCard(
             onTap: () => _showSampleErrorDialog(context, l10n),
-            leading: const Icon(
-              Icons.error_outline,
-              color: AppColors.icon,
-            ),
+            leading: const Icon(Icons.error_outline, color: AppColors.icon),
             summary: l10n.debugToolsErrorDialogSummary,
             child: Text(
               l10n.debugToolsErrorDialogButton,

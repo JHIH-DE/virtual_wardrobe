@@ -5,18 +5,9 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../fields/app_text_field.dart';
 import 'app_dialog.dart';
 
-/// A one-field text-input dialog: an [AppDialog] wrapping a single
-/// autofocused [TextField]. This is the one dialog behind every rename flow
-/// in the app (trip / outfit / garment) — they differ only in the
-/// [title]/[hint] strings and what they do with the result.
-///
-/// The primary button stays disabled (per [AppDialog]'s nullable `onPrimary`
-/// — see CLAUDE.md's "Dialog primary button disabled state") while the
-/// field is empty or unchanged from [initialValue], so there's no no-op
-/// submit to guard against after the dialog closes.
-///
-/// Returns the trimmed text on confirm, or null if the user cancelled — a
-/// caller can just `if (result != null)` and persist.
+/// The one-field dialog behind every rename flow. Confirm stays disabled while
+/// the text is empty or unchanged, so a non-null result (trimmed) is always
+/// a real change; null means cancelled.
 Future<String?> showTextInputDialog(
   BuildContext context, {
   required String title,
@@ -51,9 +42,5 @@ Future<String?> showTextInputDialog(
     ),
   );
   WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
-
-  // onPrimary only pops with a value once hasChange is true, so a non-null
-  // result here is already guaranteed non-empty and different from
-  // initialValue — nothing left to re-check.
   return result;
 }

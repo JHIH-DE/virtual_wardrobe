@@ -5,25 +5,16 @@ import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
 enum ActionButtonVariant {
-  /// Solid accent fill, white label — the screen's main action. Always what
-  /// [BottomActionButton] shows, and the default for an in-page button.
+  /// Solid accent fill — the screen's main action.
   primary,
 
-  /// The secondary form: pale accent tint ([AppColors.accentTint]),
-  /// full-strength accent label — an in-page action that shouldn't compete
-  /// with a primary one on the same screen (e.g. Garment Details' "View
-  /// Closet Match" while Add to Closet is showing). Pressed deepens the tint
-  /// to 20%; disabled pales it to 6% and dims the label.
+  /// Pale accent tint — an action that shouldn't compete with a primary one
+  /// on the same screen.
   secondary,
 }
 
-/// The full-width pill call-to-action — sized and shaped by the
-/// `AppDimens.actionButton*` tokens so every variant matches. Fills its
-/// parent's width; [BottomActionButton] wraps the [ActionButtonVariant.primary]
-/// one in its bottom panel and hide/show behaviour.
+/// Full-width pill call-to-action.
 class ActionButton extends StatelessWidget {
-  // Secondary variant's label/icon while disabled — the accent dimmed, paired
-  // with its paler disabled fill (see build).
   static final Color _secondaryDisabledForeground = AppColors.accent.withValues(
     alpha: 0.38,
   );
@@ -70,9 +61,8 @@ class ActionButton extends StatelessWidget {
       ),
     );
     if (variant == ActionButtonVariant.secondary) {
-      // The tint itself carries the state feedback (no ripple layered on
-      // top, so pressed is exactly its own shade), and disabled is a much
-      // paler fill so it never reads like the resting state.
+      // The tint is the state feedback (no ripple); disabled is paler than
+      // resting so it never reads as enabled.
       style = style.copyWith(
         backgroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {

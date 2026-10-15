@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// Small pill-shaped badge for a plain item count (e.g. next to "Closet"/
-/// "Outfits" in an AppToolBar title). Deliberately not [AppColors.accent]
-/// (purple) — that color means "tappable" elsewhere in the app, and this
-/// badge isn't.
+/// Item-count badge. Deliberately not [AppColors.accent], which signals
+/// "tappable" elsewhere.
 class CountPill extends StatelessWidget {
   final int count;
 

@@ -7,11 +7,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../common/buttons/accent_pill_button.dart';
 import '../common/cards/app_card_shell.dart';
 
-/// One suggested outfit in Garment Details' Closet Match sheet. Laid out
-/// like TripCard: a header block — [title] plus the optional "Try It On"
-/// action — on the same interactive-area tint as TripCard's "View Plan"
-/// strip, split by a hairline divider from [child], the outfit's garment
-/// row. [onTryOn] null hides the action.
+/// One suggested outfit in Garment Details' Closet Match sheet: [title] and
+/// an optional "Try It On" action (hidden when [onTryOn] is null) over [child].
 class GarmentOutfitIdeasCard extends StatelessWidget {
   final String title;
   final VoidCallback? onTryOn;
@@ -35,8 +32,7 @@ class GarmentOutfitIdeasCard extends StatelessWidget {
           Container(
             color: AppColors.interactiveArea,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            // AccentPillButton's full tap-target height, with or without
-            // the button, so every card's header is the same height.
+            // Same height with or without the button.
             height: AppDimens.minTouchTarget + 4,
             child: Row(
               children: [

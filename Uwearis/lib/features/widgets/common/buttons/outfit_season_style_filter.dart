@@ -5,19 +5,15 @@ import '../../../../data/style_type.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'filter_button.dart';
 
-/// Season + style filter state shared by the Outfits tab and the
-/// "used in outfits" list. Holds the two selected-value sets and applies
-/// the filter — the page owns one instance and rebuilds on change.
+/// Season + style filter state for the Outfits tab and a garment's outfit
+/// list. The page owns one instance and rebuilds on change.
 class OutfitSeasonStyleFilter {
   Set<String> seasons = {'All'};
   Set<String> styles = {'All'};
 
   bool get isActive => !seasons.contains('All') || !styles.contains('All');
 
-  // The backend's style tags are snake_case (`smart_casual`) while the
-  // filter chips show Title Case with spaces ("Smart Casual") — normalize
-  // both sides to compare regardless of separator/case. Harmless for
-  // seasons too (single words, no separators).
+  // Backend tags are snake_case (`smart_casual`), chips are "Smart Casual".
   static String _normalizeTag(String s) =>
       s.toLowerCase().replaceAll(RegExp(r'[\s_]+'), '');
 
@@ -37,17 +33,12 @@ class OutfitSeasonStyleFilter {
     }).toList();
   }
 
-  /// The canonical [seasonOptions] narrowed to what's actually tagged on
-  /// [outfits] — no point offering "Spring" as a filter when nothing is
-  /// tagged Spring. A currently-selected value is always kept even if it's
-  /// no longer present (e.g. its last outfit was just deleted), so an
-  /// active filter never leaves an un-clearable invisible chip. Order
-  /// follows [seasonOptions].
+  /// [seasonOptions] narrowed to tags used by [outfits]. Selected values are
+  /// always kept so an active filter can't become an invisible chip.
   List<String> visibleSeasonOptions(List<Outfit> outfits) =>
       _present(seasonOptions, outfits.expand((o) => o.seasons), seasons);
 
-  /// [styleOptions] narrowed the same way [visibleSeasonOptions] narrows
-  /// seasons.
+  /// Same as [visibleSeasonOptions], for [styleOptions].
   List<String> visibleStyleOptions(List<Outfit> outfits) =>
       _present(styleOptions, outfits.expand((o) => o.style), styles);
 
@@ -62,10 +53,7 @@ class OutfitSeasonStyleFilter {
         .toList();
   }
 
-  /// The standard season + style [FilterButton], with each group's chips
-  /// limited to the tags present in [outfits] (see [visibleSeasonOptions] /
-  /// [visibleStyleOptions]). [onChanged] fires after a selection changes —
-  /// call `setState` there.
+  /// Call `setState` in [onChanged].
   FilterButton buildButton(
     AppLocalizations l10n,
     List<Outfit> outfits, {

@@ -16,15 +16,12 @@ Map<String, dynamic> _g(int id, {String imageUrl = ''}) => {
   'image_url': imageUrl,
 };
 
-/// The paginated `GET /garments` envelope shape (`data: {items, total, page,
-/// size}`) — a single page covers every test list here since none exceeds
-/// `GarmentService.getGarments`'s per-page fetch size.
+/// One page of `GET /garments`; no test list here exceeds the page size.
 Map<String, dynamic> _garmentsPage(List<Map<String, dynamic>> items) =>
     envelope({'items': items, 'total': items.length, 'page': 1, 'size': 100});
 
-/// Runs [body] with garmentsProvider seeded from [items]; [onRequest], if
-/// given, replaces the default handler (which always returns [items]) so a
-/// test can count / vary responses.
+/// [onRequest], if given, replaces the default handler that returns
+/// [items].
 Future<void> withGarments(
   List<Map<String, dynamic>> items,
   Future<void> Function(ProviderContainer container) body, {
@@ -79,9 +76,7 @@ void main() {
 
     test('updateFavorite flips isFavorite only on the target', () {
       return withGarments([_g(1), _g(2)], (c) async {
-        c
-            .read(garmentsProvider.notifier)
-            .updateFavorite(1, isFavorite: true);
+        c.read(garmentsProvider.notifier).updateFavorite(1, isFavorite: true);
         final list = c.read(garmentsProvider).value!;
         expect(list.firstWhere((g) => g.id == 1).isFavorite, isTrue);
         expect(list.firstWhere((g) => g.id == 2).isFavorite, isFalse);

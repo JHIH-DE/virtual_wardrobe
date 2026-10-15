@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'action_button.dart';
 
-/// A screen's primary action pinned to the bottom (via
-/// `Scaffold.bottomNavigationBar`): the solid [ActionButton] in a padded,
-/// safe-area-aware panel that hides itself whenever the action can't be
-/// taken.
+/// A screen's primary action, for `Scaffold.bottomNavigationBar`. Hides
+/// itself (rather than greying out) whenever the action can't be taken.
 class BottomActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -26,20 +24,14 @@ class BottomActionButton extends StatelessWidget {
     this.panelPadding = const EdgeInsets.fromLTRB(20, 0, 20, 0),
   });
 
-  // Hidden whenever the action can't currently be taken — genuinely
-  // disabled, or a request for it is already in flight — rather than
-  // showing a grayed-out or spinner state in place.
   bool get _isUnavailable => !enabled || onPressed == null || isLoading;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
-      // The default transition keys each FadeTransition by its child's key,
-      // so flipping hidden → visible → hidden within 200ms leaves two
-      // outgoing transitions with the same key ("Duplicate keys found").
-      // An unkeyed transition lets AnimatedSwitcher give each one a unique
-      // key of its own.
+      // The default transition keys by child key, so a quick hidden →
+      // visible → hidden flip hits "Duplicate keys found".
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
       child: _isUnavailable
@@ -48,9 +40,6 @@ class BottomActionButton extends StatelessWidget {
     );
   }
 
-  // Only ever built while the action is actually available (see
-  // _isUnavailable), so onPressed is always non-null here — no disabled
-  // styling to account for.
   Widget _buildButton({required Key key}) {
     return Padding(
       key: key,

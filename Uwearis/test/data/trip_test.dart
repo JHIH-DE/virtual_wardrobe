@@ -29,8 +29,7 @@ void main() {
       expect(leg.location.latitude, 0);
       expect(leg.location.longitude, 0);
       expect(leg.location.timezone, 'UTC');
-      // An unparseable/missing date falls back to "now" rather than null,
-      // since TripLeg.dateRange is non-nullable.
+      // Falls back to "now": TripLeg.dateRange is non-nullable.
       expect(leg.dateRange.start, isNotNull);
     });
 
@@ -81,8 +80,7 @@ void main() {
         ],
       });
 
-      // Numeric ids come back as strings — every other id in the app is an
-      // int, but Trip.id is used as a stable widget/route key.
+      // Unlike other ids, Trip.id is a String.
       expect(trip.id, '9');
       expect(trip.name, 'Japan Trip');
       expect(trip.activities, ['outdoor', 'business']);
@@ -176,16 +174,19 @@ void main() {
       );
     });
 
-    test('legForDate returns the leg covering that date, or null outside any leg', () {
-      final trip = buildTwoLegTrip();
-      expect(trip.legForDate(DateTime(2026, 10, 2))?.location.name, 'Tokyo');
-      expect(
-        trip.legForDate(DateTime(2026, 10, 6))?.location.name,
-        'Kyoto, Japan',
-      );
-      expect(trip.legForDate(DateTime(2026, 10, 4)), isNull);
-      expect(trip.legForDate(DateTime(2026, 12, 25)), isNull);
-    });
+    test(
+      'legForDate returns the leg covering that date, or null outside any leg',
+      () {
+        final trip = buildTwoLegTrip();
+        expect(trip.legForDate(DateTime(2026, 10, 2))?.location.name, 'Tokyo');
+        expect(
+          trip.legForDate(DateTime(2026, 10, 6))?.location.name,
+          'Kyoto, Japan',
+        );
+        expect(trip.legForDate(DateTime(2026, 10, 4)), isNull);
+        expect(trip.legForDate(DateTime(2026, 12, 25)), isNull);
+      },
+    );
 
     test('copyWith overrides only the given fields', () {
       final trip = buildTwoLegTrip();

@@ -5,9 +5,8 @@ import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/services/auth_handler.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-/// Centered error message with a retry button. Renders nothing for
-/// [AuthExpiredException] since that's handled by the auth-expiry listener
-/// at the page level instead.
+/// Renders nothing for [AuthExpiredException] — the page's auth-expiry
+/// listener handles that.
 class ErrorStateWidget extends StatelessWidget {
   final Object error;
   final VoidCallback onRetry;
@@ -30,9 +29,7 @@ class ErrorStateWidget extends StatelessWidget {
           const Icon(Icons.error_outline, size: 48, color: AppColors.icon),
           const SizedBox(height: 12),
           Text(
-            // Never the raw exception text (a type-cast message, a stack
-            // frame, a raw HTTP body) — that's an implementation detail, not
-            // something a user can act on or that they should see.
+            // Never the raw exception text.
             AppLocalizations.of(context).failedToLoad,
             style: AppTextStyle.regular16.copyWith(
               color: AppColors.textSecondary,

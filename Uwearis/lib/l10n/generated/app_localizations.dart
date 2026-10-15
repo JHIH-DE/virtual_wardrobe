@@ -2115,17 +2115,17 @@ abstract class AppLocalizations {
   /// **'Purchase date (optional)'**
   String get purchaseDateLabel;
 
-  /// No description provided for @notUsedInOutfitsYet.
-  ///
-  /// In en, this message translates to:
-  /// **'Not used in any outfits yet'**
-  String get notUsedInOutfitsYet;
-
   /// No description provided for @usedInOutfits.
   ///
   /// In en, this message translates to:
   /// **'Used in Outfits'**
   String get usedInOutfits;
+
+  /// No description provided for @usedInOutfitsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 Outfit} other{{count} Outfits}}'**
+  String usedInOutfitsCount(int count);
 
   /// No description provided for @selectAColor.
   ///
@@ -2520,7 +2520,7 @@ abstract class AppLocalizations {
   /// No description provided for @addFromOutfitHint.
   ///
   /// In en, this message translates to:
-  /// **'Pack the garments of a saved outfit in one go.'**
+  /// **'Pack the garments from your outfit.'**
   String get addFromOutfitHint;
 
   /// No description provided for @selectAnOutfitTitle.
@@ -2672,6 +2672,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View Details'**
   String get viewDetails;
+
+  /// No description provided for @viewFullOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'View Full Outfit'**
+  String get viewFullOutfit;
 
   /// No description provided for @gettingStartedSectionLabel.
   ///

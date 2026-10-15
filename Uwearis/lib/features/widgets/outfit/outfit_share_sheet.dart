@@ -4,13 +4,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../common/overlays/share_image_sheet.dart';
 import 'outfit_share_card.dart';
 
-/// Opens the share sheet for an outfit — a large photo, the name, a compact
-/// style / season line and a row of garment thumbnails, rendered as an
-/// [OutfitShareCard] and handed to [showShareImageSheet].
-///
-/// [style]/[seasons] are already display-formatted by the caller (Outfit
-/// Details owns the snake_case → Title Case rule). [garmentImageUrls] are the
-/// outfit's garment photos, in order.
+/// Shares an outfit as an [OutfitShareCard] image. [style]/[seasons] arrive
+/// already display-formatted.
 Future<void> showOutfitShareSheet(
   BuildContext context, {
   required String imageUrl,

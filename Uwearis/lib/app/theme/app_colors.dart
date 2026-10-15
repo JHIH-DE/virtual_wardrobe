@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Warm cream base, monochrome ink for actions/selection, and uniformly
-/// black icons. Every screen should pull colors from here; nothing else in
-/// `lib/` should reference `Colors.*` or a raw `Color(0x...)` literal.
+/// Warm cream base, monochrome ink for actions/selection, black icons.
+/// UI code uses these instead of raw `Color(0x...)` literals.
 class AppColors {
   AppColors._();
 
@@ -14,16 +13,14 @@ class AppColors {
   ); // empty photo/avatar wells
   static const Color toolbarBackground = Color(0xFFEFECEB);
   static const Color interactiveArea = Color(0xFFF8F7F4);
-  // CircleIconButton's glass disc. It must read on both the cream page and a
-  // white card, so it carries both a lighter part (the centre) and a darker
-  // part (the edge) — a lighten-only fill vanishes on white.
+  // CircleIconButton's glass disc: a lighter centre and darker edge so it
+  // reads on both cream and white (a lighten-only fill vanishes on white).
   static const Color iconButtonFillCenter = Color(0x99FFFFFF); // white @60%
   static const Color iconButtonFillEdge = Color(0x143C3C43); // grey @8%
   static const Color iconButtonRim = Color(0x383C3C43); // grey @22%
   static const Color iconButtonSheen = Color(0xB3FFFFFF); // white @70%
 
-  // Pressed / "clicked" state fill for a tappable surface (e.g. the
-  // add-clothing dialog's Camera / Photo Album rows). #C6C0AB @ 36%.
+  // Pressed-state fill (e.g. DialogOptionCard). #C6C0AB @ 36%.
   static const Color pressedOverlay = Color(0x5CC6C0AB);
 
   // Text & icons
@@ -41,17 +38,14 @@ class AppColors {
   // Brand — near-black for actions/selection
   static const Color primary = Color(0xFF1A1A1A);
 
-  // Warm attention-grabbing accent — nav bar's raised center button, primary
-  // dialog actions, and anywhere else that needs to stand out from the
-  // monochrome ink/cream palette.
+  // Stands out from the monochrome palette (nav center button, primary
+  // dialog actions).
   static const Color accent = Color(0xFF9966CC);
 
-  // Pale accent tint — e.g. a filter chip's selected-state background,
-  // where a solid `accent` fill would be too heavy
+  // E.g. a selected filter chip's background.
   static const Color accentTint = Color(0x1F9966CC); // accent @12%
 
-  // Softened `accent` for attention outlines (a highlighted AppListCard) —
-  // present but not shouty. Equivalent to `accent.withValues(alpha: 0.55)`.
+  // Attention outline (a highlighted AppListCard).
   static const Color accentOutline = Color(0x8C9966CC); // accent @55%
 
   // Social sign-in (fixed brand color, do not retint)
@@ -63,7 +57,7 @@ class AppColors {
   // Filled-heart color when an outfit/garment is marked favorite
   static const Color favorite = Color(0xFFE53935);
 
-  // Trip status dots (TripMainPage's Ongoing/Upcoming/Past section headers)
+  // Trip status dots (TripsPage's section headers)
   static const Color statusOngoing = Color(0xFF4CAF50);
   static const Color statusUpcoming = Color(0xFF4F7FFF);
   static const Color statusPast = Color(0xFF9E9E9E);
@@ -77,10 +71,8 @@ class AppColors {
   static const Color tierBronze = Color(0xFFE2B48C);
   static const Color tierBronzeText = Color(0xFF5A3214);
 
-  // UwearisInsightCard — the AI-output call-out's gradient background tint
+  // AI-output call-out background (UwearisInsightCard).
   static const Color uwearisCardTint = Color(0xFFF3EFE6);
-
-  // The AI-output gradient background — UwearisInsightCard's.
   static const LinearGradient uwearisGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -91,13 +83,9 @@ class AppColors {
   static const Color tagBackground = Color(0xFFEFEAE2);
   static const Color tagText = Color(0xFF6F655A);
 
-  // Style Profile pie chart's categorical series — a fixed, validated
-  // 5-hue order (adjacent-pairlist CVD ΔE >= 8, normal-vision ΔE >= 15;
-  // see the dataviz skill's reference palette). Never reorder or cycle
-  // these independently of each other, and never add a 7th — past this
-  // many series, fold the remainder into chartOther instead. Some of these
-  // read below 3:1 contrast on `surface`, so a slice must always carry a
-  // visible text label alongside its color, never color alone.
+  // Style Profile pie chart: a validated 5-hue order (adjacent CVD ΔE >= 8).
+  // Don't reorder or add a 6th — fold extra series into chartOther. Some
+  // are below 3:1 on `surface`, so slices always need a text label.
   static const List<Color> chartCategorical = [
     Color(0xFF2A78D6), // blue
     Color(0xFFEB6834), // orange
@@ -105,12 +93,10 @@ class AppColors {
     Color(0xFFEDA100), // yellow
     Color(0xFFE87BA4), // magenta
   ];
-  // The folded "everything past the top N series" bucket — deliberately a
-  // neutral, not part of the categorical sequence above, since it isn't a
-  // single identity.
+  // Neutral: the folded bucket isn't a single identity.
   static const Color chartOther = borderStrong;
 
-  // Shared shadow/backdrop tiers (replaces ad hoc Colors.black.withOpacity(...) literals)
+  // Shared shadow/backdrop tiers
   static const Color shadowResting = Color(
     0x0F000000,
   ); // resting card shadow, black @6%
@@ -141,9 +127,7 @@ class AppColors {
   static const Color surfaceTranslucentMedium = Color(
     0xA6FFFFFF,
   ); // white @65%, e.g. a badge sitting on top of a photo (slightly lighter than surfaceTranslucent)
-  // The disc behind a toolbar / page-sheet header action icon (ActionDisc),
-  // modelled on iOS 26's glass bar buttons: barely lighter than the page,
-  // brightest at the centre, lifted by a cool rim + a white inner highlight.
+  // Toolbar action disc, modelled on iOS 26's glass bar buttons.
   static const Color actionDiscFillCenter = Color(0x80FFFFFF); // white @50%
   static const Color actionDiscFillEdge = Color(0x10FFFFFF); // white @6%
   static const Color actionDiscRim = Color(
@@ -151,7 +135,7 @@ class AppColors {
   ); // iOS separator grey @29%
   static const Color borderOnDark = Color(
     0x8AFFFFFF,
-  ); // subtle border on dark buttons/dialogs (was Colors.white54), white @54%
+  ); // subtle border on dark buttons/dialogs, white @54%
   static const Color trueBlack = Color(
     0xFF000000,
   ); // pure opaque black — Material shadowColor, camera viewfinder backdrop/mask base

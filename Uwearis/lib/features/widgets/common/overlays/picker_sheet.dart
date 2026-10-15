@@ -4,11 +4,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../app_divider.dart';
 
-/// Shared chrome for every "pick one from a list" bottom sheet in the app
-/// (Style, Gender, Language, Color, Background): a drag handle, a title row
-/// (with an optional trailing action, e.g. Color's "Clear" button), and a
-/// divider inset 24px from each side. Put the actual list/grid as further
-/// children after it in the same [Column].
+/// Header for picker sheets: drag handle, title row (optional [trailing]
+/// action) and divider. Put the list after it in the same [Column].
 class PickerSheetHeader extends StatelessWidget {
   final String title;
   final String? description;
@@ -49,8 +46,6 @@ class PickerSheetHeader extends StatelessWidget {
   }
 }
 
-/// The small rounded drag handle shown at the top of every bottom sheet
-/// that uses [showPickerSheet]'s chrome.
 class SheetDragHandle extends StatelessWidget {
   const SheetDragHandle({super.key});
 
@@ -69,13 +64,8 @@ class SheetDragHandle extends StatelessWidget {
   }
 }
 
-/// Opens a bottom sheet with the app's standard picker-sheet chrome —
-/// surface background, rounded top corners, and [builder]'s content
-/// (typically starting with a [PickerSheetHeader]).
-///
-/// By default Flutter caps a modal sheet at 9/16 of the screen. With
-/// [fitContent] the sheet grows to its content's height instead (still kept
-/// below the status bar).
+/// Flutter caps a modal sheet at 9/16 of the screen; [fitContent] lets it
+/// grow to its content (still below the status bar).
 Future<T?> showPickerSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
@@ -95,9 +85,7 @@ Future<T?> showPickerSheet<T>(
   );
 }
 
-/// The standard single-choice picker: [PickerSheetHeader] + one radio row
-/// per option, the current [selected] in bold. Resolves to the tapped
-/// option, or `null` when the sheet is dismissed without a choice.
+/// Resolves to the tapped option, or `null` if dismissed.
 Future<T?> showSingleChoiceSheet<T>(
   BuildContext context, {
   required String title,
@@ -116,7 +104,6 @@ Future<T?> showSingleChoiceSheet<T>(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           PickerSheetHeader(title),
-          // Only scrolls when the options can't fit the whole screen.
           Flexible(
             child: ListView(
               shrinkWrap: true,

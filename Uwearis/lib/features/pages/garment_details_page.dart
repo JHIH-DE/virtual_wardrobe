@@ -22,6 +22,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/action_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
@@ -81,23 +82,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   DateTime? _purchaseDate;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
-  // The closet-analysis state below is ValueNotifiers rather than plain
-  // setState fields: the result is shown in a modal sheet (its own route),
-  // which this page's setState never rebuilds — the sheet listens to these
-  // instead.
-  //
-  // Closet-analysis result — null until the user opens the Closet Match
-  // sheet (which runs _runClosetAnalysis), or restored in
-  // initState from GarmentService's persisted cache if this garment has
-  // ever been analyzed (see _loadCachedClosetAnalysis). In Add mode it's a
-  // preview run against the form fields (see _runClosetAnalysis).
+  // ValueNotifiers, not setState fields: the analysis is shown in a modal
+  // sheet (its own route) that this page's setState never rebuilds.
   final _closetAnalysis = ValueNotifier<ClosetAnalysis?>(null);
-  // Drives the *initial* loading state — the first-ever "Analyze with AI"
-  // run, and (reused, since it looks identical) the brief async cache read
-  // in initState. [_isRefreshingAnalysis] is the separate in-flight flag
-  // for re-analyzing once a result already exists, since that must keep
-  // showing the old result rather than this full-body loading state — see
-  // _refreshClosetAnalysis.
+  // First run / cache read (full loading state). A re-run keeps showing the
+  // old result, so it uses [_isRefreshingAnalysis] instead.
   final _isAnalyzingCloset = ValueNotifier<bool>(false);
   final _isRefreshingAnalysis = ValueNotifier<bool>(false);
   final _closetAnalysisError = ValueNotifier<String?>(null);
@@ -109,15 +98,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   ]);
   int? _outfitCount;
 
-  /// The edit-mode name heading's source of truth — mirrors
-  /// `OutfitDetailsPage._name`. Only [_showRenameDialog] updates this (edit
-  /// mode has no inline name field), and add mode shows the toolbar's
-  /// "Add Clothing" title instead.
+  /// Edit mode's name heading; only [_showRenameDialog] changes it.
   String? _name;
 
-  // Edit mode only: every change saves itself (see _onEdited). Add mode
-  // never requests a save through it — it keeps the explicit Add to Closet
-  // button and its own unsaved-changes prompt.
+  // Edit mode only — add mode keeps the explicit Add to Closet button.
   late final AutoSaveController _autoSave = AutoSaveController(
     onSave: _persistEdits,
     onError: (e) => showAutoSaveErrorDialog(
@@ -127,9 +111,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       fallback: _l10n.garmentSaveFailed,
     ),
   );
-  // Re-entrancy guard for _leave — a double-tap on back must not pop twice.
   bool _leaving = false;
-  // Only while leaving waits on a save — drives the loading overlay.
   bool _savingBeforeLeave = false;
 
   // Add mode only — gates Add to Closet and the leave prompt.
@@ -163,14 +145,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _id = _editingGarment?.id;
     _imagePathOrUrl = _editingGarment?.imageUrl;
     _name = _editingGarment?.name;
-    // A persisted cache read is async (SharedPreferences), so it can't
-    // resolve within initState itself — reuse the insight card's normal
-    // "Analyzing…" loading state for that brief window instead of flashing
-    // the "Analyze with AI" prompt right before it's (usually) immediately
-    // replaced by a cached result. See _loadCachedClosetAnalysis.
+    // Show loading during the async cache read rather than flashing the
+    // "Analyze with AI" prompt.
     if (_id != null) _isAnalyzingCloset.value = true;
 
-    // Snapshot initial values for later change detection
     _initialName = _editingGarment?.name ?? '';
     _initialCategory = _editingGarment?.category ?? GarmentCategory.top;
     _initialSub = _editingGarment?.subCategory ?? '';
@@ -235,14 +213,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final gid = _garmentIdForOutfits;
     if (gid == null) return;
     try {
-      // Same list GarmentOutfitsPage shows (general outfits only) — shared
-      // via garmentOutfitsProvider so opening that page doesn't re-fetch.
+      // Shared with GarmentOutfitsPage so opening it doesn't re-fetch.
       final outfits = await ref.read(garmentOutfitsProvider(gid).future);
       if (mounted) setState(() => _outfitCount = outfits.length);
     } catch (e) {
-      // Tile just stays in its loading state; not worth surfacing an error
-      // for a secondary count that the user can still reach via the tap —
-      // but still log it, so a silent failure here doesn't go unnoticed.
+      // Secondary count — the tile stays hidden; no error UI.
       debugLog('Failed to load outfit count: $e');
     }
   }
@@ -282,10 +257,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Every user edit lands here. Add mode just re-evaluates the Add to
-  /// Closet gate; edit mode saves — a discrete choice (picker, color, date,
-  /// rename) right away, typing after a pause ([_onTextFieldBlur] cuts that
-  /// short).
+  /// Add mode re-checks the Add to Closet gate; edit mode auto-saves
+  /// (typing is debounced, everything else saves immediately).
   void _onEdited({bool typing = false}) {
     if (_isAddMode) {
       _checkModified();
@@ -296,9 +269,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Leaving a text field (or tapping Done) saves now rather than waiting
-  /// out the debounce. Skipped after a failure so a blur doesn't re-raise
-  /// the error dialog the user just dismissed.
+  /// Blur / Done skips the debounce. Not after a failure, so it doesn't
+  /// re-raise the error dialog the user just dismissed.
   void _onTextFieldBlur() {
     if (_autoSave.hasPendingChanges && !_autoSave.hasFailed) {
       _autoSave.requestSave();
@@ -319,11 +291,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     super.dispose();
   }
 
-  // No ID means Add mode
   bool get _isAddMode => _id == null;
 
-  /// Mirrors `OutfitDetailsPage._title` — App Bar title, sourced from
-  /// [_name] rather than [_nameCtrl] (see [_name]'s doc comment).
   String get _title {
     if (_isAddMode) return _l10n.quickActionAddClothing;
     if (_name != null && _name!.isNotEmpty) return _name!;
@@ -344,10 +313,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Opens the share sheet — a small card preview of this garment that
-  /// rasterizes to a PNG for the system share sheet. Only reachable in edit
-  /// mode (the ⋮ menu is hidden while adding). Reflects the form's current
-  /// name/category so a just-made edit shows even before it's saved.
+  /// Uses the form's current values so an edit shows before it's saved.
   void _shareGarment() {
     final base = _editingGarment;
     if (base == null) return;
@@ -369,10 +335,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  /// Edit mode's only way to rename — mirrors
-  /// `OutfitDetailsPage._showRenameDialog`. Goes through [_autoSave] like
-  /// every other field (the PATCH carries the whole form, [_nameCtrl]
-  /// included), so a rename can never race a field save already in flight.
+  /// Saves through [_autoSave] (the PATCH carries the whole form) so a
+  /// rename can't race a field save already in flight.
   Future<void> _showRenameDialog() async {
     final result = await showTextInputDialog(
       context,
@@ -426,7 +390,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Add mode's leave check: Add to Closet hasn't been tapped yet, so ask.
   Future<bool> _confirmLeaveAddMode() async {
     if (!_isModified) return true;
 
@@ -462,10 +425,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      // Add mode: "Add Clothing" in the toolbar (the name field takes its
-      // old spot below). Edit mode: "Clothing Details", matching Trip/Outfit
-      // Details' fixed AppBar title — the garment's own name still shows as
-      // its own block below the app bar (see [_buildForm]).
       title: _isAddMode ? _title : _l10n.clothingDetailsTitle,
       onBack: _leave,
       actions: [
@@ -513,9 +472,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return ListenableBuilder(
       listenable: _autoSave,
       builder: (context, child) => PopScope(
-        // Only intercept when there's actually something to lose. A
-        // hardcoded false would disable the iOS edge-swipe-back gesture
-        // outright.
+        // Not a hardcoded false — that would disable iOS swipe-back.
         canPop: _isAddMode ? !_isModified : !_autoSave.hasPendingChanges,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _leave();
@@ -553,9 +510,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   Widget _buildForm() {
     return Form(
       key: _formKey,
-      // Edit mode has no submit step to validate on, so a field that goes
-      // invalid (an emptied Product Type) flags itself as the user types —
-      // and _updateGarmentFields keeps the saved value meanwhile.
+      // Edit mode has no submit step, so validate as the user types.
       autovalidateMode: _isAddMode
           ? AutovalidateMode.disabled
           : AutovalidateMode.onUserInteraction,
@@ -569,16 +524,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            // Add mode: the name input sits here (title moved to the toolbar).
-            // Edit mode: the garment's name as a heading.
             child: _isAddMode
                 ? _buildNameField()
                 : Text(_title, style: AppTextStyle.bold20),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: AppDivider(topSpacing: 12, bottomSpacing: 16),
-          ),
+          const SizedBox(height: AppDimens.titleGap),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _imagePreview(),
@@ -588,8 +538,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: ActionButton(
               label: _l10n.viewClosetMatch,
-              // Secondary only while Add to Closet is the screen's main
-              // action; once the garment exists nothing else competes.
+              // Secondary while Add to Closet is the main action.
               variant: _isAddMode
                   ? ActionButtonVariant.secondary
                   : ActionButtonVariant.primary,
@@ -600,7 +549,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               onPressed: _openClosetAnalysisSheet,
             ),
           ),
-          SizedBox(height: _isAddMode ? 0 : AppDimens.sectionSpacing),
           _buildDetailsSection(),
         ],
       ),
@@ -614,12 +562,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_isAddMode) _buildUsedInOutfitsTile(),
+          if (_showUsedInOutfits) ...[
+            const SizedBox(height: AppDimens.sectionSpacing),
+            _buildUsedInOutfitsTile(),
+          ],
           const AppDivider(),
-          // In Add Mode the name field lives up top where the title block
-          // otherwise sits (see _buildForm). Editing an existing garment has
-          // no inline name field at all — it renames via the App Bar's ⋮ ▸
-          // Rename dialog (see _showRenameDialog).
           _buildCategoryField(),
           const SizedBox(height: 20),
           _buildSubCategoryField(),
@@ -650,8 +597,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  // No FieldLabel — it sits where the page title used to be, so "NAME" above
-  // it would read as a stray label; the hint carries the affordance.
+  // No label — it sits in the title position; the hint carries it.
   Widget _buildNameField() {
     return AppTextField(
       controller: _nameCtrl,
@@ -674,11 +620,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  /// A labeled [PickerField] that opens a single-choice bottom sheet — shared
-  /// by category and every garment attribute (fit / silhouette / sleeve
-  /// length / crop length). [onSelected] runs inside setState, followed by
-  /// [_onEdited] — so a category change and the attributes it drops (see
-  /// [_dropInapplicableAttributes]) go out as one save.
+  /// [onSelected] runs inside one setState before [_onEdited], so a category
+  /// change and the attributes it drops go out as one save.
   Widget _buildOptionField<T>({
     required String label,
     required T? value,
@@ -721,9 +664,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _onEdited();
   }
 
-  /// Clears attributes the current [_category] doesn't support, mirroring
-  /// the backend: a hidden field must not silently save a stale value, and
-  /// a silhouette from another category's option set would 400 on PATCH
+  /// Clears attributes [_category] doesn't support — a hidden field must not
+  /// save a stale value, and a foreign silhouette 400s on PATCH
   /// (`INVALID_GARMENT_ATTRIBUTE`).
   void _dropInapplicableAttributes() {
     if (!_showFitField) _selectedFit = null;
@@ -971,12 +913,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Runs the AI closet analysis (versatility level + outfit ideas + similar
-  /// garments) for this garment — the insight card's "Analyze with AI" /
-  /// "Analyze Again" button. Synchronous re-entrancy guard — it's a paid AI
-  /// call. In Add mode (no [_id] yet) this runs the same analysis as a
-  /// preview against the garment's current form fields instead — see
-  /// [GarmentService.closetAnalysis]'s null-[garmentId] mode.
+  /// Paid AI call, hence the synchronous guard. Add mode (no [_id]) runs a
+  /// preview against the current form fields.
   Future<void> _runClosetAnalysis() async {
     if (_isAnalyzingCloset.value) return;
     _isAnalyzingCloset.value = true;
@@ -1007,10 +945,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Restores a previously-persisted closet-analysis result on page open —
-  /// see [GarmentService.cachedClosetAnalysis]'s own doc comment for the
-  /// caching policy (no TTL; the user decides when to re-run it). A cache
-  /// miss just falls through to the normal "Analyze with AI" prompt.
   Future<void> _loadCachedClosetAnalysis() async {
     final id = _id;
     if (id == null) return;
@@ -1020,13 +954,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _isAnalyzingCloset.value = false;
   }
 
-  /// Called when an Outfit Ideas / Similar Garments thumbnail's own self-heal
-  /// (see [GarmentImage.onUrlRefreshed]) picks up a working replacement URL
-  /// for [garmentId] — [_closetAnalysis]'s persisted cache has no TTL of its
-  /// own (see [_loadCachedClosetAnalysis]), so without this every future
-  /// read of that cache (this session's next visit to this page, or after an
-  /// app restart) would keep re-serving the same already-expired URL and
-  /// repeat the same expired-URL failure this fix is meant to skip.
+  /// Writes a thumbnail's refreshed URL back into the persisted cache, which
+  /// has no TTL and would otherwise keep serving the expired one.
   void _onOutfitIdeaImageRefreshed(int garmentId, String freshUrl) {
     final analysis = _closetAnalysis.value;
     final id = _id;
@@ -1036,10 +965,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     GarmentService().cacheClosetAnalysis(id, updated);
   }
 
-  /// Returns a copy of [analysis] with every [ClosetAnalysisGarment] entry
-  /// matching [garmentId] (it may appear in more than one outfit idea, plus
-  /// possibly Similar in Your Closet) pointed at [freshUrl] instead of its
-  /// original, now-expired one.
   ClosetAnalysis _withRefreshedGarmentImage(
     ClosetAnalysis analysis,
     int garmentId,
@@ -1069,13 +994,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  /// Re-runs the closet analysis for a garment that already has a result —
-  /// the analysis sheet's refresh action. Unlike [_runClosetAnalysis],
-  /// this keeps showing the *existing* [_closetAnalysis] for the whole
-  /// request: a failure leaves it (and its persisted cache entry) exactly
-  /// as it was, with just an error dialog instead of replacing the card
-  /// with the full error state — refreshing re-generates, it never deletes.
-  /// Synchronous re-entrancy guard, same reasoning as [_runClosetAnalysis].
+  /// Unlike [_runClosetAnalysis], keeps the existing result on screen; a
+  /// failure only shows a dialog and leaves the result and cache intact.
   Future<void> _refreshClosetAnalysis() async {
     if (_isRefreshingAnalysis.value || _closetAnalysis.value == null) return;
     _isRefreshingAnalysis.value = true;
@@ -1099,20 +1019,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Opens the full closet analysis in a [pageSheet]. With no
-  /// result yet, the first run starts as the sheet opens so it shows the
-  /// "Analyzing…" state straight away; an existing (or cached) result is
-  /// shown as-is, re-runnable via the sheet's top-left refresh action.
-  /// Closing the sheet mid-run doesn't cancel anything — the run keeps going
-  /// and reopening shows wherever it's got to.
+  /// Starts the first run on open if there's no result yet. Closing the
+  /// sheet mid-run doesn't cancel it.
   void _openClosetAnalysisSheet() {
     if (_closetAnalysis.value == null) _runClosetAnalysis();
     pageSheet<void>(
       context,
       title: _l10n.closetMatch,
-      // Re-analyze lives at the sheet's top left, and only once there's a
-      // result to re-run — a first run's retry is the error state's own
-      // "Analyze Again" button.
+      // Only once there's a result; a first-run failure retries from the
+      // error state's own button.
       leading: ListenableBuilder(
         listenable: _closetAnalysisState,
         builder: (_, _) => _closetAnalysis.value == null
@@ -1124,9 +1039,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
                 onTap: _refreshClosetAnalysis,
               ),
       ),
-      // A first run has nothing to show yet, so its LoadingOverlay fills an
-      // empty body; a refresh lays it over the old result instead, which
-      // stays (blurred, untappable) until the new one replaces it.
       builder: (_) => ListenableBuilder(
         listenable: _closetAnalysisState,
         builder: (_, _) => Stack(
@@ -1140,9 +1052,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
                     errorMessage: _closetAnalysisError.value,
                     onAnalyze: _runClosetAnalysis,
                     onGarmentTap: _openAiGarmentDetail,
-                    // Add mode's own garment isn't in the closet yet, so an
-                    // outfit idea built around it can't be saved as a real
-                    // outfit.
+                    // Add mode's garment isn't in the closet yet.
                     onCreateOutfit: _isAddMode ? null : _openAddOutfitFromIdea,
                     onGarmentImageRefreshed: _onOutfitIdeaImageRefreshed,
                     targetImageOverride: _isAddMode ? _imagePathOrUrl : null,
@@ -1159,12 +1069,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  /// Opens Add Outfit pre-filled with an outfit idea's garments. The idea
-  /// only carries ids, so they're resolved against the closet (warming
-  /// garmentsProvider first, which Add Outfit reads anyway); `.active`
-  /// drops any garment deleted since the analysis ran. Pushed on top of the
-  /// analysis sheet, so backing out of Add Outfit returns to it. Re-entrancy
-  /// guard so a double tap can't push the page twice.
+  /// The idea only carries ids, so resolve them against the closet;
+  /// `.active` drops garments deleted since the analysis ran.
   Future<void> _openAddOutfitFromIdea(
     List<ClosetAnalysisGarment> ideaGarments,
   ) async {
@@ -1193,12 +1099,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// Opens [GarmentDetailDialog] for an outfit idea's garment — same dialog
-  /// Outfit Details' own garment list uses (see `_openGarmentDetail` there).
-  /// Resolves [garmentId] against the already-loaded closet first (cheap,
-  /// and already includes soft-deleted entries — see `GarmentService.
-  /// getGarments`'s own doc comment); falls back to a direct fetch only if
-  /// it isn't there yet.
+  /// Looks in the loaded closet first (it includes soft-deleted garments);
+  /// fetches only on a miss.
   Future<void> _openAiGarmentDetail(int garmentId) async {
     Garment? garment;
     for (final g in ref.read(garmentsProvider).value ?? const []) {
@@ -1230,62 +1132,19 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     ref.read(garmentsProvider.notifier).updateGarment(restored);
   }
 
-  Widget _buildUsedInOutfitsTile() {
-    final count = _outfitCount;
-    final loading = count == null;
-    final zero = count == 0;
-    final navigable = !zero;
+  bool get _showUsedInOutfits =>
+      !_isAddMode && _outfitCount != null && _outfitCount! > 0;
 
-    return GestureDetector(
-      // opaque so the whole 48px row is tappable — the Container has a
-      // `decoration`, not a `color`, so it doesn't absorb hits itself.
-      behavior: HitTestBehavior.opaque,
-      onTap: navigable ? _openUsedInOutfits : null,
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.checkroom_outlined,
-              size: 24,
-              color: AppColors.icon,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                zero ? _l10n.notUsedInOutfitsYet : _l10n.usedInOutfits,
-                style: AppTextStyle.regular14.copyWith(
-                  color: zero ? AppColors.textSecondary : AppColors.textPrimary,
-                ),
-              ),
-            ),
-            if (loading)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else if (navigable) ...[
-              Text(
-                '$count',
-                style: AppTextStyle.bold14.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: AppDimens.iconSmallSize,
-                color: AppColors.icon,
-              ),
-            ],
-          ],
-        ),
-      ),
+  Widget _buildUsedInOutfitsTile() {
+    final count = _outfitCount!;
+
+    return AppListCard(
+      title: _l10n.usedInOutfits,
+      onTap: _openUsedInOutfits,
+      showArrow: true,
+      leading: const Icon(Icons.checkroom_outlined, color: AppColors.icon),
+      summary: _l10n.usedInOutfitsCount(count),
+      child: const SizedBox.shrink(),
     );
   }
 
@@ -1357,9 +1216,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   Widget _buildColorSwatch(GarmentColor c) {
     final isSelected = c == _selectedColor;
     return GestureDetector(
-      // opaque so the full 44px swatch is tappable — an unselected swatch's
-      // Container has a `decoration` and no child, so it absorbs nothing on
-      // its own.
       behavior: HitTestBehavior.opaque,
       onTap: () {
         Navigator.pop(context);
@@ -1399,14 +1255,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
             child: AspectRatio(
               aspectRatio: 1.1,
-              // Canonical GarmentImage instead of a hand-rolled
-              // Image.network/Image.file — its RefreshableNetworkImage
-              // downloads to a complete file before decoding, unlike a bare
-              // Image.network streaming bytes straight into the decoder as
-              // they arrive, which on an imperfect connection can decode a
-              // truncated/torn frame instead of erroring cleanly (this is
-              // what was actually producing the "torn" garment photos —
-              // see git history, not a backend or crop-math bug after all).
+              // Not Image.network: it decodes while streaming, which can
+              // render a torn frame on a flaky connection.
               child: GarmentImage(
                 url: img,
                 garmentId: _id,
@@ -1428,27 +1278,16 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   /// Add mode's Add to Closet — edit mode auto-saves via [_persistEdits].
   Future<void> _saveGarment() async {
-    // Synchronous re-entrancy guard — the bottom button only hides ~200ms
-    // after _uploading flips (BottomActionButton's AnimatedSwitcher), so a
-    // double-tap could otherwise create two garment records / run two
-    // uploads. See CLAUDE.md "Guarding costly / mutating actions against
-    // double-invocation".
     if (_uploading) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _uploading = true);
 
     try {
-      // Adding uploads a fresh photo + creates the record, then hands the
-      // new Garment back to whichever screen started the add-clothing
-      // flow (GarmentUploadHelper.startAddClothingFlow) — that caller owns
-      // the closet provider update and the "added" confirmation shown once
-      // back on its own page.
+      // The caller (GarmentUploadHelper.startAddClothingFlow) updates the
+      // closet provider and shows the confirmation.
       final result = await _uploadNewGarment();
       if (!mounted) return;
-      // If the user already ran "Analyze with AI" before saving, carry
-      // that result over into the real per-garment cache instead of
-      // discarding it — otherwise reopening the same garment right after
-      // Add to Closet looks like the analysis never ran.
+      // Keep a preview analysis so reopening the garment doesn't lose it.
       final previewAnalysis = _closetAnalysis.value;
       if (previewAnalysis != null && result.id != null) {
         await GarmentService().cacheClosetAnalysis(
@@ -1474,23 +1313,17 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
-  /// [_autoSave]'s `onSave` (edit mode): PATCHes the whole form and syncs
-  /// the closet provider. Throws on failure so the controller can offer a
-  /// retry. Deliberately doesn't write the response back into the form
-  /// fields — the user may already be typing the next change.
+  /// [_autoSave]'s `onSave`; throws so the controller can offer a retry.
+  /// Doesn't write the response back into the form — the user may already
+  /// be typing the next change.
   Future<void> _persistEdits() async {
     final garments = ref.read(garmentsProvider.notifier);
     final updated = await _updateGarmentFields();
-    // The next PATCH builds on this (see _updateGarmentFields), and the
-    // closet must see it even if this page is already gone.
     _editingGarment = updated;
     garments.updateGarment(updated);
   }
 
-  /// Uploads the picked photo and creates a new garment record. Only ever
-  /// called in add mode (see _saveGarment) — the backend has no "update
-  /// image" endpoint, and there is no UI path to replace an existing
-  /// garment's photo, so editing never reaches this method.
+  /// Add mode only — there's no endpoint to replace an existing photo.
   Future<Garment> _uploadNewGarment() async {
     final initDate = await GarmentService().initUpload();
     await GarmentService().putJpegToSignedUrl(
@@ -1512,15 +1345,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
     );
-    // Fold the metadata fields the form can edit (fit / silhouette /
-    // sleeve_length / crop_length) back in — `/complete` reads them only
-    // from `metadata`. `crop_length` isn't nullable there, so unset goes
-    // as "". Never
-    // send a bare `null` here: `/complete` requires `metadata` and 500s
-    // reading `metadata.thickness` on a null value — `_metaData` is
-    // normally seeded (fresh analysis, or an existing garment's own saved
-    // metadata; see initState), but this is the last line of defense in
-    // case both are somehow unavailable.
+    // `/complete` reads these only from `metadata`, which must never be null
+    // (it 500s). `crop_length` isn't nullable there, so unset is "".
     final metadata = <String, dynamic>{
       ...?_metaData,
       'fit': _selectedFit?.apiValue,
@@ -1531,13 +1357,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return GarmentService().completeUpload(temp, metadata);
   }
 
-  /// Add mode only: the current form fields, in the shape
-  /// `GarmentService.closetAnalysis`'s null-`garmentId` mode sends to the
-  /// backend — same category/sub_category/name/brand/color/fit/silhouette/
-  /// sleeve_length/crop_length the form is
-  /// currently showing, with thickness/formality/material/style folded in
-  /// from [_metaData] (the form has no widgets for those; see
-  /// [_uploadNewGarment] for the same fold-in over `fit`).
+  /// Add mode's preview request body; fields the form can't edit
+  /// (thickness, material, …) come from [_metaData].
   Map<String, dynamic> _closetAnalysisPreviewFields() {
     final brand = _brandCtrl.text.trim();
     return <String, dynamic>{
@@ -1554,15 +1375,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     };
   }
 
-  /// Re-points a preview analysis's sentinel target entries (see
-  /// [GarmentService.closetAnalysis]'s null-`garmentId` mode: garmentId 0,
-  /// empty imageUrl) at
-  /// the real garment [saved] just became — used to seed the normal
-  /// per-garment cache on save (see [GarmentService.cacheClosetAnalysis]) so
-  /// reopening it right after Add to Closet doesn't show a broken thumbnail
-  /// under an id that no longer means anything, or force a fresh AI call.
-  /// [similarGarments] never contains the target (excluded by construction
-  /// on the backend), so only outfit ideas' garment lists need rewriting.
+  /// Points a preview's placeholder target (id 0, empty imageUrl) at the
+  /// saved garment. Similar garments never include the target.
   ClosetAnalysis _retargetClosetAnalysis(
     ClosetAnalysis analysis,
     Garment saved,
@@ -1591,7 +1405,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     );
   }
 
-  /// Updates just the text fields of an existing garment (image unchanged).
   Future<Garment> _updateGarmentFields() async {
     final saved = _editingGarment!;
     final name = _nameCtrl.text.trim();
@@ -1600,8 +1413,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final priceText = _priceCtrl.text.trim();
     final price = double.tryParse(priceText);
     final updated = saved.copyWith(
-      // A field that's currently invalid (empty name/product type, a price
-      // that doesn't parse) keeps its saved value instead of being sent.
+      // An invalid field keeps its saved value instead of being sent.
       name: name.isEmpty ? saved.name : name,
       category: _category,
       subCategory: subCategory.isEmpty ? saved.subCategory : subCategory,
@@ -1638,41 +1450,20 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 }
 
-/// The closet analysis, laid out directly on the analysis page sheet
-/// (see `_openClosetAnalysisSheet`) — the sheet itself paints the AI
-/// gradient, so there's no card chrome or header of its own. While a run is
-/// in flight the sheet shows a LoadingOverlay instead (see
-/// `_openClosetAnalysisSheet`), so this normally opens straight into a
-/// result; the one-line prompt + "Analyze with AI" button is only a
-/// fallback. Once a run finishes (or a persisted result is restored on
-/// open), shows a 1–10
-/// versatility level, up to 3 outfit ideas, and up to 3 similar-in-closet
-/// garments (see garments-api.md §8). Re-running an existing result is the
-/// sheet's own top-left action (see `_openClosetAnalysisSheet`), not part of
-/// this content. [onAnalyze] triggers the first run and a retry after
-/// [errorMessage]. [onGarmentTap] opens the same [GarmentDetailDialog] Outfit
-/// Details' own garment list uses, for a garment tapped inside an outfit
-/// idea or the Similar in Your Closet row.
+/// Versatility level, outfit ideas and similar garments. The prompt/error
+/// states are fallbacks — the sheet normally opens into a loading overlay.
 class _ClosetAnalysisSheetContent extends StatelessWidget {
   final ClosetAnalysis? analysis;
   final String? errorMessage;
   final VoidCallback onAnalyze;
   final void Function(int garmentId) onGarmentTap;
 
-  /// Opens Add Outfit pre-filled with an outfit idea's garments — the
-  /// "Try It On" button on each idea's card. Null hides the button.
+  /// Each idea's "Try It On" button; null hides it.
   final void Function(List<ClosetAnalysisGarment> garments)? onCreateOutfit;
 
-  /// Fires when a thumbnail's own self-heal (see [GarmentImage.onUrlRefreshed])
-  /// picks up a working replacement URL for a garment — lets the caller fold
-  /// it back into its own longer-lived copy of [analysis] (this card itself
-  /// only ever reads a snapshot passed in from above).
   final void Function(int garmentId, String freshUrl) onGarmentImageRefreshed;
 
-  /// Add mode only: the target garment's own [ClosetAnalysisGarment.imageUrl]
-  /// is always empty (the backend preview endpoint has no persisted photo for
-  /// it) — shown instead via the same local photo already on screen on this
-  /// page. Null in edit mode, where the target already has a real signed URL.
+  /// Add mode's local photo — the preview target has no image URL.
   final String? targetImageOverride;
 
   const _ClosetAnalysisSheetContent({
@@ -1745,10 +1536,7 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildVersatilitySection(context, l10n, analysis.versatility),
-        // outfit_ideas / similar_garments come back empty rather than
-        // padded with placeholders when the closet can't support them (see
-        // garments-api.md §8) — each section is simply omitted rather than
-        // showing empty space or a placeholder grid.
+        // Empty when the closet can't support them — omit the section.
         if (ideas.isNotEmpty) ...[
           const SizedBox(height: 20),
           SectionTitle(l10n.outfitIdeasHeading, style: headingStyle),
@@ -1838,10 +1626,7 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
     );
   }
 
-  /// [isOutfit] is for an outfit idea, whose garments combine into one look
-  /// (as opposed to a plain list): a "+" between thumbnails, and no
-  /// thumbnail borders inside the outfit's own card except the analyzed
-  /// garment's own outline.
+  /// [isOutfit]: "+" separators and no borders except the target's.
   Widget _buildGarmentThumbRow(
     List<ClosetAnalysisGarment> garments, {
     bool isOutfit = false,
@@ -1866,9 +1651,7 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
             : const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final g = garments[i];
-          // The preview-mode target rides a sentinel non-positive id (see
-          // GarmentService.closetAnalysis's null-garmentId mode) — it isn't
-          // a real garment, so there's nothing for a tap to open.
+          // The preview target (id 0) isn't a real garment yet.
           final canOpen = onGarmentTap != null && g.garmentId > 0;
           return _AiGarmentThumb(
             garment: g,
@@ -1883,9 +1666,6 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
   }
 }
 
-/// Simple 10-segment fill bar for [ClosetAnalysisVersatility.level] (1–10) —
-/// the "quickly readable at a glance" treatment the card wants without a
-/// score-dashboard-sized ring or chart.
 class _VersatilityLevelBar extends StatelessWidget {
   final int level;
 
@@ -1915,28 +1695,12 @@ class _VersatilityLevelBar extends StatelessWidget {
   }
 }
 
-/// Compact garment thumbnail for the AI analysis card's outfit-idea and
-/// similar-garments rows — same bordered-square shape as the "compatible
-/// garments" thumbnails this card used to show (see git history), just
-/// smaller. [ClosetAnalysisGarment.isTarget] gets a 1.5px `borderStrong`
-/// outline — the same one a selected GarmentCard uses — instead of a
-/// separate badge/label, so the analyzed garment reads as "this one"
-/// without adding visual complexity. With [bordered] false (outfit ideas,
-/// already inside their own card) only that target outline is drawn — the
-/// other garments have none.
-/// [onTap] opens the same [GarmentDetailDialog] Outfit Details' own garment
-/// list uses; leave it null for a non-interactive thumbnail.
+/// The target garment gets the same outline as a selected GarmentCard.
 class _AiGarmentThumb extends StatefulWidget {
   final ClosetAnalysisGarment garment;
   final VoidCallback? onTap;
   final bool bordered;
-
-  /// See [_ClosetAnalysisSheetContent.targetImageOverride] — substituted only
-  /// when this tile is the target and the backend gave it no image of its
-  /// own (the preview-mode case).
   final String? targetImageOverride;
-
-  /// See [_ClosetAnalysisSheetContent.onGarmentImageRefreshed].
   final void Function(int garmentId, String freshUrl)? onImageUrlRefreshed;
 
   const _AiGarmentThumb({
@@ -1954,14 +1718,8 @@ class _AiGarmentThumb extends StatefulWidget {
 }
 
 class _AiGarmentThumbState extends State<_AiGarmentThumb> {
-  /// Non-null while this tile's [ClosetAnalysisGarment.imageUrl] is a signed
-  /// URL that's *already known* to be expired (e.g. restored from
-  /// [GarmentDetailsPage]'s untimeboxed persisted closet-analysis cache —
-  /// see `_loadCachedClosetAnalysis`'s doc comment). Rather than handing that
-  /// URL to [GarmentImage] knowing it will fail and flash the broken-image
-  /// icon before [GarmentImage]'s own reactive self-heal kicks in, this pre-
-  /// fetches a fresh one first and shows a blank placeholder (matching
-  /// [AppImage]'s own loading treatment) in the meantime.
+  /// Set when the cached URL is already expired: fetch a fresh one first
+  /// instead of flashing the broken-image icon.
   Future<String?>? _preRefresh;
 
   @override

@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// Small inline error message shown above a form while the form itself
-/// stays visible — as opposed to [ErrorStateWidget], which replaces the
-/// whole page with a centered icon + retry button.
+/// Inline error above a form that stays visible (vs. the full-page
+/// [ErrorStateWidget]).
 class InlineErrorText extends StatelessWidget {
   final String message;
   final EdgeInsetsGeometry padding;

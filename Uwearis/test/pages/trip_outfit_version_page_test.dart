@@ -54,8 +54,7 @@ void main() {
     _garment(3, 'Sneakers', GarmentCategory.shoes),
   ];
 
-  /// Pushes the page over a host route and returns a getter for whatever it
-  /// popped with.
+  /// Returns a getter for the popped result.
   Future<Outfit? Function()> pumpPage(WidgetTester tester, Outfit seed) async {
     tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1.0;
