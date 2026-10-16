@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../services/auth_handler.dart';
 import '../services/outfit_service.dart';
@@ -16,8 +17,8 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   int tryOnOutfitId = 0;
 
   /// Pass [groupId] to add another version to an existing group instead of
-  /// starting a new one.
-  Future<int?> performTryOn(
+  /// starting a new one. Returns the rendered outfit, or null on failure.
+  Future<Outfit?> performTryOn(
     List<int> garmentIds, {
     int? groupId,
     String type = 'general',
@@ -39,14 +40,14 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
         type: type,
         backgroundId: backgroundId,
       );
-      if (!mounted) return outfit.id;
+      if (!mounted) return outfit;
       setState(() {
         isOutfitLoading = false;
         tryOnGroupId = outfit.groupId;
         tryOnOutfitId = outfit.id;
         tryOnResultUrl = outfit.imageUrl;
       });
-      return outfit.id;
+      return outfit;
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
       return null;

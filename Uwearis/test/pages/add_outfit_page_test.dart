@@ -11,6 +11,7 @@ import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart'
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
 import 'package:uwearis/data/garment.dart';
+import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/add_outfit_page.dart';
 import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
@@ -643,6 +644,117 @@ void main() {
       }, () => client);
     },
   );
+
+  group('version mode (Outfit Details\' Add Version)', () {
+    testWidgets('starts from the source version and only offers Create '
+        'Version once something changed', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        AddOutfitPage(
+          initialGarments: [closet[0], closet[1], closet[2]],
+          targetGroupId: 40,
+          initialBackgroundId: 7,
+        ),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+
+      expect(find.text('Add Version'), findsOneWidget);
+      expect(find.byTooltip('Match a Look'), findsOneWidget);
+      expect(find.text('Tokyo Street'), findsOneWidget);
+      expect(
+        find.widgetWithText(BottomActionButton, 'Create Version'),
+        findsNothing,
+      );
+
+      await tester.ensureVisible(find.text('Tokyo Street'));
+      await tester.tap(find.text('Tokyo Street'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Paris Street'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(BottomActionButton, 'Create Version'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('renders into the target group and pops the new version '
+        'instead of opening it as a new outfit', (tester) async {
+      useTallSurface(tester);
+      final generateBodies = <Map<String, dynamic>>[];
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/generate')) {
+          generateBodies.add({
+            'path': request.url.path,
+            ...jsonDecode(request.body) as Map<String, dynamic>,
+          });
+          return jsonResponse(
+            envelope({
+              'outfit_id': 77,
+              'group_id': 40,
+              'result_image_url': '',
+              'garment_ids': [1, 2, 3],
+            }),
+          );
+        }
+        return jsonResponse(envelope(null), status: 404);
+      });
+
+      Outfit? popped;
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () async {
+                  popped = await Navigator.push<Outfit>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddOutfitPage(
+                        initialGarments: [closet[0], closet[1], closet[2]],
+                        targetGroupId: 40,
+                        initialBackgroundId: 7,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+          overrides: closetOverride(),
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.text('Tokyo Street'));
+        await tester.tap(find.text('Tokyo Street'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Paris Street'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(BottomActionButton, 'Create Version'),
+        );
+        await tester.pumpAndSettle();
+      }, () => client);
+
+      expect(generateBodies, hasLength(1));
+      expect(generateBodies.single['path'], endsWith('/outfit/40/generate'));
+      expect(generateBodies.single['garment_ids'], [1, 2, 3]);
+      expect(generateBodies.single['background_id'], 6);
+      expect(find.byType(AddOutfitPage), findsNothing);
+      expect(find.byType(OutfitDetailsPage), findsNothing);
+      expect(popped?.id, 77);
+      expect(popped?.groupId, 40);
+    });
+  });
 }
 
 class _FakeWeather extends WeatherNotifier {

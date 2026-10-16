@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/data/garment.dart';
-import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/pages/outfit_edit_page.dart';
 import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
 import 'package:uwearis/features/widgets/garment/garment_image.dart';
@@ -86,14 +85,14 @@ void main() {
     'Confirm appears once the selection changes, and pops the picked ids',
     (tester) async {
       useTallSurface(tester);
-      OutfitEditResult? poppedResult;
+      Set<int>? poppedResult;
       await pumpApp(
         tester,
         Builder(
           builder: (context) => Scaffold(
             body: ElevatedButton(
               onPressed: () async {
-                poppedResult = await Navigator.push<OutfitEditResult>(
+                poppedResult = await Navigator.push<Set<int>>(
                   context,
                   MaterialPageRoute(
                     builder: (_) => OutfitEditPage(
@@ -126,8 +125,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OutfitEditPage), findsNothing);
-      expect(poppedResult?.garmentIds, {1, 2, 3});
-      expect(poppedResult?.backgroundId, isNull);
+      expect(poppedResult, {1, 2, 3});
     },
   );
 
@@ -273,112 +271,5 @@ void main() {
     expect(find.text('Tee'), findsNothing);
     expect(find.text('Jeans'), findsOneWidget);
     expect(find.text('Confirm'), findsOneWidget);
-  });
-
-  group('showBackgroundPicker (Outfit Details\' new-version flow)', () {
-    Future<OutfitEditResult?> pumpAndConfirm(
-      WidgetTester tester, {
-      int? initialBackgroundId,
-      required Future<void> Function() interact,
-    }) async {
-      OutfitEditResult? popped;
-      await pumpApp(
-        tester,
-        Builder(
-          builder: (context) => Scaffold(
-            body: ElevatedButton(
-              onPressed: () async {
-                popped = await Navigator.push<OutfitEditResult>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => OutfitEditPage(
-                      preloadedGarments: suitcase,
-                      initialGarments: [suitcase[0], suitcase[1]],
-                      showBackgroundPicker: true,
-                      initialBackgroundId: initialBackgroundId,
-                    ),
-                  ),
-                );
-              },
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-      await interact();
-      await tester.tap(find.text('Confirm'));
-      await tester.pumpAndSettle();
-      return popped;
-    }
-
-    testWidgets('preselects the source version\'s background', (tester) async {
-      useTallSurface(tester);
-      await pumpApp(
-        tester,
-        OutfitEditPage(
-          preloadedGarments: suitcase,
-          initialGarments: [suitcase.first],
-          showBackgroundPicker: true,
-          initialBackgroundId: 7,
-        ),
-      );
-      await tester.pump();
-
-      expect(find.text('BACKGROUND'), findsOneWidget);
-      expect(find.text('Tokyo Street'), findsOneWidget);
-      expect(find.text('Confirm'), findsNothing);
-      // Sits below the outfit items, behind a divider.
-      expect(
-        tester.getTopLeft(find.text('BACKGROUND')).dy,
-        greaterThan(tester.getTopLeft(find.text('OUTFIT ITEMS')).dy),
-      );
-      expect(find.byType(AppDivider), findsWidgets);
-
-      await tester.tap(find.text('Tokyo Street'));
-      await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.check), findsOneWidget);
-    });
-
-    testWidgets(
-      'changing only the background enables Confirm and pops its id',
-      (tester) async {
-        useTallSurface(tester);
-        final result = await pumpAndConfirm(
-          tester,
-          initialBackgroundId: 7,
-          interact: () async {
-            await tester.tap(find.text('Tokyo Street'));
-            await tester.pumpAndSettle();
-            expect(find.text('Confirm'), findsNothing);
-            await tester.tap(find.text('Paris Street'));
-            await tester.pumpAndSettle();
-          },
-        );
-
-        expect(result?.garmentIds, {1, 2});
-        expect(result?.backgroundId, 6);
-      },
-    );
-
-    testWidgets('keeps the source background when only garments change', (
-      tester,
-    ) async {
-      useTallSurface(tester);
-      final result = await pumpAndConfirm(
-        tester,
-        initialBackgroundId: 7,
-        interact: () async {
-          await tester.tap(find.byType(AppListCard));
-          await tester.pumpAndSettle();
-          await tester.tap(find.text('Sneakers'));
-          await tester.pumpAndSettle();
-        },
-      );
-
-      expect(result?.garmentIds, {1, 2, 3});
-      expect(result?.backgroundId, 7);
-    });
   });
 }

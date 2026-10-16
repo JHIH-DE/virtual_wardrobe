@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/providers/daily_outfit_provider.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
@@ -40,7 +41,7 @@ import '../widgets/outfit/outfit_garment_section.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/outfit/outfit_share_sheet.dart';
 import '../widgets/outfit/outfit_title.dart';
-import 'outfit_edit_page.dart';
+import 'add_outfit_page.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
 
@@ -79,9 +80,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isLoadingGarments = false;
   // Lets [_loadGarments] skip re-fetching the set it already has.
   Set<int>? _loadedGarmentIds;
-  // Also guards against re-entering _openCreateAnotherVersion.
-  bool _isOpeningTryOn = false;
-  bool _isCreatingVersion = false;
+  // Guards against re-entering _openCreateAnotherVersion.
+  bool _isAddingVersion = false;
   // [isNew] only: Save was tapped, so leaving no longer prompts.
   bool _saved = false;
   bool _isRegenerating = false;
@@ -209,12 +209,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             bottomNavigationBar: _buildBottomBar(),
           ),
         ),
-        if (_isOpeningTryOn)
-          Positioned.fill(child: LoadingOverlay(label: _l10n.loadingGarments)),
-        if (_isCreatingVersion)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.generatingEllipsis),
-          ),
         if (_isLeaving)
           Positioned.fill(child: LoadingOverlay(label: _l10n.loading)),
       ],
@@ -304,86 +298,48 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool get _showsBottomActionButton =>
       !_isResolvingSavedStatus && widget.isNew && !_saved;
 
-  /// Picks garments and renders them as a new version in this same group.
+  /// Opens Add Outfit in version mode on this version's garments and
+  /// background; the version it renders is swiped into view here.
   /// At [_maxVersions] the pill stays and explains the limit instead.
   Future<void> _openCreateAnotherVersion() async {
-    if (_isOpeningTryOn) return;
+    if (_isAddingVersion) return;
     if (_versions.length >= _maxVersions) {
       await _showVersionLimitDialog();
       return;
     }
-    setState(() => _isOpeningTryOn = true);
-    try {
-      // OutfitEditPage doesn't fetch its own pool. .active: a deleted
-      // garment can't go into a new version.
-      final closet = (await ref.read(garmentsProvider.future)).active;
-      if (!mounted) return;
-      setState(() => _isOpeningTryOn = false);
-      if (!context.mounted) return;
-      final result = await Navigator.push<OutfitEditResult>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OutfitEditPage(
-            initialGarments: _garments ?? const [],
-            preloadedGarments: closet,
-            title: _l10n.addVersionTitle,
-            showBackgroundPicker: true,
-            initialBackgroundId: _current.backgroundId,
-          ),
+    setState(() => _isAddingVersion = true);
+    final outfit = await Navigator.push<Outfit>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddOutfitPage(
+          // A deleted garment can't go into a new version.
+          initialGarments: [
+            for (final g in _garments ?? const <Garment>[])
+              if (!g.isDeleted) g,
+          ],
+          targetGroupId: _current.groupId,
+          initialBackgroundId: _current.backgroundId,
         ),
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _isAddingVersion = false);
+    if (outfit == null) return;
+    // Read before the swipe-in await so it still lands if the page closes.
+    final outfits = ref.read(outfitsProvider.notifier);
+    setState(() {
+      _versions.add(outfit);
+      _currentIndex = _versions.length - 1;
+    });
+    _loadGarments();
+    if (_pageController.hasClients) {
+      await _pageController.animateToPage(
+        _currentIndex,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
       );
-      if (result == null || result.garmentIds.isEmpty || !mounted) return;
-      await _createVersionFromGarmentIds(
-        result.garmentIds.toList(),
-        backgroundId: result.backgroundId,
-      );
-    } on AuthExpiredException {
-      if (!mounted) return;
-      setState(() => _isOpeningTryOn = false);
-      await AuthExpiredHandler.handle(context);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isOpeningTryOn = false);
-      if (context.mounted) {
-        showErrorDialog(context, message: _l10n.failedToLoadGarments);
-      }
     }
-  }
-
-  Future<void> _createVersionFromGarmentIds(
-    List<int> garmentIds, {
-    int? backgroundId,
-  }) async {
-    setState(() => _isCreatingVersion = true);
-    try {
-      final outfit = await OutfitService().generateOutfit(
-        garmentIds: garmentIds,
-        groupId: _current.groupId,
-        backgroundId: backgroundId,
-      );
-      if (!mounted) return;
-      setState(() {
-        _versions.add(outfit);
-        _currentIndex = _versions.length - 1;
-      });
-      _loadGarments();
-      if (_pageController.hasClients) {
-        await _pageController.animateToPage(
-          _currentIndex,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-      await ref.read(outfitsProvider.notifier).refresh();
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (_) {
-      if (!mounted) return;
-      showErrorDialog(context, message: _l10n.failedToLoadGarments);
-    } finally {
-      if (mounted) setState(() => _isCreatingVersion = false);
-    }
+    await outfits.refresh();
   }
 
   Future<void> _showVersionLimitDialog() {
@@ -556,13 +512,20 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     final target = _current;
     final index = _currentIndex;
     final next = !target.isFavorite;
-    setState(() => _versions[index] = target.copyWith(isFavorite: next));
+    final updated = target.copyWith(isFavorite: next);
+    // Read before the await so the sync still lands if the page is popped
+    // meanwhile. Each is a no-op when it doesn't hold this version.
+    final outfits = ref.read(outfitsProvider.notifier);
+    final dailyOutfits = ref.read(dailyOutfitProvider.notifier);
+    setState(() => _versions[index] = updated);
     try {
       await OutfitService().updateOutfit(
         target.groupId,
         target.id,
         isFavorite: next,
       );
+      outfits.updateOutfit(updated);
+      dailyOutfits.updateOutfit(updated);
     } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _versions[index] = target);
@@ -759,7 +722,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     final canAddVersion = !widget.isNew && widget.showEditOutfitWhenSaved;
 
     final showsCounter = _versionsResolved && _versions.length >= 2;
-    final enabled = !_isOpeningTryOn && !_isCreatingVersion;
+    final enabled = !_isAddingVersion;
 
     if (!canAddVersion && !showsCounter) {
       return const SizedBox(height: AppDimens.sectionSpacing);
@@ -798,6 +761,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       boxShadow: const [],
       size: 36,
       iconSize: 20,
+      discAlignment: Alignment.topRight,
       onTap: _regenerateImage,
     );
   }

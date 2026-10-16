@@ -4,11 +4,9 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
-import '../../data/background_option.dart';
 import '../../data/garment.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -16,7 +14,6 @@ import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/garment/garment_image.dart';
-import '../widgets/outfit/outfit_background_field.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
 /// Garment slots — not [GarmentCategory], since Top and Mid Layer are two
@@ -75,12 +72,10 @@ class _OutfitSelection {
   }
 }
 
-/// Popped on Confirm. A null [backgroundId] leaves it to the backend.
-typedef OutfitEditResult = ({Set<int> garmentIds, int? backgroundId});
-
-/// Picks an outfit's garments from a fixed pool (a trip's suitcase, or the
-/// closet) for Trip Details' outfit edit and Outfit Details' new version.
-/// Pops an [OutfitEditResult], or null if the user backs out.
+/// Picks an outfit's garments from a fixed pool (a trip's suitcase) for
+/// Trip Details' outfit edit. Pops the picked garment ids on Confirm, or
+/// null if the user backs out. (Outfit Details' Add Version uses
+/// AddOutfitPage's version mode instead.)
 class OutfitEditPage extends StatefulWidget {
   final List<Garment> initialGarments;
 
@@ -94,13 +89,6 @@ class OutfitEditPage extends StatefulWidget {
   /// Defaults to [AppLocalizations.selectGarmentsTitle].
   final String? title;
 
-  /// Shows the BACKGROUND field — only the new-version flow renders an
-  /// image.
-  final bool showBackgroundPicker;
-
-  /// The source version's background, kept unless the user changes it.
-  final int? initialBackgroundId;
-
   const OutfitEditPage({
     super.key,
     this.initialGarments = const [],
@@ -108,8 +96,6 @@ class OutfitEditPage extends StatefulWidget {
     this.onBack,
     this.validGarmentIds,
     this.title,
-    this.showBackgroundPicker = false,
-    this.initialBackgroundId,
   });
 
   @override
@@ -125,11 +111,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
 
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
-
-  // Null when the initial id is missing or not in [BackgroundOption.all].
-  BackgroundOption? _initialBackground;
-  late BackgroundOption _background;
-  bool _backgroundCustomized = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -158,8 +139,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         sameSlot(_outfit.bottom, _initialOutfit.bottom) &&
         sameSlot(_outfit.onePiece, _initialOutfit.onePiece) &&
         sameSlot(_outfit.shoes, _initialOutfit.shoes) &&
-        setEquals(_accessoryIds, _initialAccessoryIds) &&
-        !_backgroundCustomized);
+        setEquals(_accessoryIds, _initialAccessoryIds));
   }
 
   bool get _showsBottomActionButton => _hasSelection && _isModified;
@@ -177,10 +157,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         ..addAll(_buildInitialAccessories(widget.initialGarments));
     }
     _initialAccessoryIds = _accessoryIds;
-    _initialBackground = BackgroundOption.all
-        .where((b) => b.backgroundId == widget.initialBackgroundId)
-        .firstOrNull;
-    _background = _initialBackground ?? BackgroundOption.all.first;
   }
 
   _OutfitSelection _buildInitialOutfit(List<Garment> garments) {
@@ -368,14 +344,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     return {...coreIds, ...accessoryIds}.toList();
   }
 
-  /// An untouched default (no matching initial background) sends nothing,
-  /// so the backend picks its own default.
-  int? get _resultBackgroundId {
-    if (!widget.showBackgroundPicker) return null;
-    if (!_backgroundCustomized && _initialBackground == null) return null;
-    return _background.backgroundId;
-  }
-
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: widget.title ?? _l10n.selectGarmentsTitle,
@@ -401,20 +369,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
           _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
           const SizedBox(height: AppDimens.cardHeaderGap),
           _hInset(_buildYourOutfitRow()),
-          if (widget.showBackgroundPicker) ...[
-            _hInset(const AppDivider(spacing: AppDimens.sectionSpacing)),
-            _hInset(
-              OutfitBackgroundField(
-                selected: _background,
-                onSelected: (background) => setState(() {
-                  _background = background;
-                  _backgroundCustomized =
-                      background.id !=
-                      (_initialBackground ?? BackgroundOption.all.first).id;
-                }),
-              ),
-            ),
-          ],
         ],
       ),
       bottomNavigationBar: _buildBottomBar(),
@@ -431,10 +385,8 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   Widget _buildBottomBar() {
     return BottomActionButton(
       label: _l10n.confirm,
-      onPressed: () => Navigator.pop<OutfitEditResult>(context, (
-        garmentIds: _selectedGarmentIds().toSet(),
-        backgroundId: _resultBackgroundId,
-      )),
+      onPressed: () =>
+          Navigator.pop<Set<int>>(context, _selectedGarmentIds().toSet()),
       enabled: _showsBottomActionButton,
     );
   }
@@ -561,6 +513,10 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
                     ),
                   ),
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Container(width: 1, color: AppColors.borderSubtle),
               ),
               Expanded(
                 child: Padding(

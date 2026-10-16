@@ -117,6 +117,12 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get account;
 
+  /// No description provided for @accountSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal details & security'**
+  String get accountSummary;
+
   /// No description provided for @profilePhotoTitle.
   ///
   /// In en, this message translates to:
@@ -282,7 +288,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiModelReady.
   ///
   /// In en, this message translates to:
-  /// **'Ready · Face + Body Configured'**
+  /// **'Face & body ready'**
   String get aiModelReady;
 
   /// No description provided for @aiModelReferencesAdded.
@@ -306,7 +312,7 @@ abstract class AppLocalizations {
   /// No description provided for @styleTasteSummary.
   ///
   /// In en, this message translates to:
-  /// **'Uwearis learns how you like to put outfits together'**
+  /// **'Your outfit preferences'**
   String get styleTasteSummary;
 
   /// No description provided for @styleTasteHeroSubtitle.
@@ -360,7 +366,7 @@ abstract class AppLocalizations {
   /// No description provided for @logout.
   ///
   /// In en, this message translates to:
-  /// **'Logout'**
+  /// **'Log out'**
   String get logout;
 
   /// No description provided for @logoutConfirmTitle.
@@ -378,7 +384,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccount.
   ///
   /// In en, this message translates to:
-  /// **'Delete Account'**
+  /// **'Delete account'**
   String get deleteAccount;
 
   /// No description provided for @tierGold.
@@ -578,6 +584,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create Outfit'**
   String get createOutfit;
+
+  /// No description provided for @createVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Version'**
+  String get createVersion;
 
   /// No description provided for @createOutfitHint.
   ///
@@ -2643,11 +2655,17 @@ abstract class AppLocalizations {
   /// **'Add Garments'**
   String get addGarmentsButton;
 
-  /// No description provided for @perceivedTempOffset.
+  /// No description provided for @temperaturePreference.
   ///
   /// In en, this message translates to:
-  /// **'Perceived Temperature Offset'**
-  String get perceivedTempOffset;
+  /// **'Temperature Preference'**
+  String get temperaturePreference;
+
+  /// No description provided for @temperaturePreferenceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust for your comfort'**
+  String get temperaturePreferenceSummary;
 
   /// No description provided for @todaysOutfit.
   ///
@@ -2775,6 +2793,18 @@ abstract class AppLocalizations {
   /// **'Log-In / Sign-in to get dressed!'**
   String get loginHeading;
 
+  /// No description provided for @loginTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your AI stylist, every day'**
+  String get loginTagline;
+
+  /// No description provided for @loginTermsNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'By continuing, you agree to our Terms of Service and Privacy Policy.'**
+  String get loginTermsNotice;
+
   /// No description provided for @continueWithApple.
   ///
   /// In en, this message translates to:
@@ -2802,7 +2832,7 @@ abstract class AppLocalizations {
   /// No description provided for @copyrightText.
   ///
   /// In en, this message translates to:
-  /// **'copyright reserved to Uwearis inc.'**
+  /// **'© Uwearis Inc. All rights reserved.'**
   String get copyrightText;
 
   /// No description provided for @noItemsFound.

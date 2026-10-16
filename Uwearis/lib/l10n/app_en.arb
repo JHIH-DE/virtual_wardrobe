@@ -7,6 +7,7 @@
 
   "settings": "Settings",
   "account": "Account",
+  "accountSummary": "Personal details & security",
   "profilePhotoTitle": "Profile Photo",
   "myVirtualModelTitle": "My Virtual Model",
   "myVirtualModelDescription": "Add a face photo and a full-body photo to create your virtual model.",
@@ -34,14 +35,14 @@
   "virtualModelGenerateSuccessTitle": "Done",
   "virtualModelGenerateSuccessBody": "Your virtual model has been generated.",
   "virtualModelGenerateFailed": "Couldn't generate your virtual model. Please try again.",
-  "aiModelReady": "Ready · Face + Body Configured",
+  "aiModelReady": "Face & body ready",
   "aiModelReferencesAdded": "{count}/2 References Added",
   "@aiModelReferencesAdded": {
     "placeholders": { "count": { "type": "int" } }
   },
   "styleTaste": "Style Taste",
   "styleTasteDetailsLabel": "Style Insights",
-  "styleTasteSummary": "Uwearis learns how you like to put outfits together",
+  "styleTasteSummary": "Your outfit preferences",
   "styleTasteHeroSubtitle": "Based on your saved outfits and feedback, Uwearis is learning your style taste.",
   "styleTasteDimensionsInfoTitle": "What these mean",
   "styleTasteRadarCardTitle": "Your Style Taste",
@@ -61,10 +62,10 @@
       }
     }
   },
-  "logout": "Logout",
+  "logout": "Log out",
   "logoutConfirmTitle": "Log out?",
   "logoutConfirmBody": "You'll need to sign in again to use Uwearis.",
-  "deleteAccount": "Delete Account",
+  "deleteAccount": "Delete account",
   "tierGold": "Gold",
   "tierSilver": "Silver",
   "tierBronze": "Bronze",
@@ -100,6 +101,7 @@
   "accessoriesLabel": "Accessories",
   "optionalLabel": "Optional",
   "createOutfit": "Create Outfit",
+  "createVersion": "Create Version",
   "createOutfitHint": "Create another outfit using these garments",
   "backgroundLabel": "Background",
   "noneLabel": "None",
@@ -566,7 +568,8 @@
   "startPackingTripHint": "Choose clothes from your closet to build your trip outfits.",
   "addGarmentsButton": "Add Garments",
 
-  "perceivedTempOffset": "Perceived Temperature Offset",
+  "temperaturePreference": "Temperature Preference",
+  "temperaturePreferenceSummary": "Adjust for your comfort",
 
   "todaysOutfit": "Today's Outfit",
   "latestOutfitTitle": "Your Latest Outfit",
@@ -591,11 +594,13 @@
   "appleLoginSuccess": "Apple login success",
   "facebookLoginSuccess": "Facebook login success",
   "loginHeading": "Log-In / Sign-in to get dressed!",
+  "loginTagline": "Your AI stylist, every day",
+  "loginTermsNotice": "By continuing, you agree to our Terms of Service and Privacy Policy.",
   "continueWithApple": "Continue with Apple",
   "signInWithGoogle": "Sign in with Google",
   "signInWithFacebook": "Sign in with Facebook",
   "loginFailed": "Login failed. Please try again.",
-  "copyrightText": "copyright reserved to Uwearis inc.",
+  "copyrightText": "© Uwearis Inc. All rights reserved.",
 
   "noItemsFound": "No items found.",
 

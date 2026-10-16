@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons_300.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme/app_colors.dart';
@@ -72,6 +73,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
   ProfileData? get _data => ref.watch(profileProvider).value;
   bool get _loading => ref.watch(profileProvider).isLoading && _data == null;
 
@@ -89,9 +92,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _fullBodyUrl!.isNotEmpty &&
       _fullBodyUrl != 'string';
 
-  String _aiModelStatusLabel(AppLocalizations l10n) {
+  String _aiModelStatusLabel() {
     final count = (_hasFaceReference ? 1 : 0) + (_hasBodyReference ? 1 : 0);
-    return count == 2 ? l10n.aiModelReady : l10n.aiModelReferencesAdded(count);
+    return count == 2
+        ? _l10n.aiModelReady
+        : _l10n.aiModelReferencesAdded(count);
   }
 
   Future<void> _loadTemperatureOffset() async {
@@ -104,10 +109,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _temperatureOffsetLabel(int offset) =>
       '${offset > 0 ? '+' : ''}$offset°C';
 
-  Future<void> _openTemperatureOffsetPicker(AppLocalizations l10n) async {
+  Future<void> _openTemperatureOffsetPicker() async {
     final selected = await showSingleChoiceSheet<int>(
       context,
-      title: l10n.perceivedTempOffset,
+      title: _l10n.temperaturePreference,
       options: _temperatureOffsetOptions,
       selected: _temperatureOffset,
       labelOf: _temperatureOffsetLabel,
@@ -138,10 +143,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       debugLog('SettingsPage save temperature offset failed: $e');
       if (!mounted) return;
       setState(() => _temperatureOffset = previous);
-      final l10n = AppLocalizations.of(context);
       showErrorDialog(
         context,
-        message: apiErrorMessage(l10n, e, fallback: l10n.profileSaveFailed),
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.profileSaveFailed),
         onRetry: () => _saveTemperatureOffset(offset),
       );
     } finally {
@@ -165,15 +169,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _logout() async {
-    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: l10n.logoutConfirmTitle,
-        body: l10n.logoutConfirmBody,
-        primaryLabel: l10n.logout,
+        title: _l10n.logoutConfirmTitle,
+        body: _l10n.logoutConfirmBody,
+        primaryLabel: _l10n.logout,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: l10n.cancel,
+        secondaryLabel: _l10n.cancel,
         onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
@@ -196,15 +199,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _deleteAccount() async {
-    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: l10n.deleteAccountConfirmTitle,
-        body: l10n.deleteAccountConfirmBody,
-        primaryLabel: l10n.deleteAccount,
+        title: _l10n.deleteAccountConfirmTitle,
+        body: _l10n.deleteAccountConfirmBody,
+        primaryLabel: _l10n.deleteAccount,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: l10n.cancel,
+        secondaryLabel: _l10n.cancel,
         onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
@@ -228,181 +230,206 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (!mounted) return;
       showErrorDialog(
         context,
-        message: apiErrorMessage(l10n, e, fallback: l10n.deleteAccountFailed),
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.deleteAccountFailed),
       );
     } finally {
       if (mounted) setState(() => _deletingAccount = false);
     }
   }
 
-  AppToolBar _buildAppBar(AppLocalizations l10n) {
-    return AppToolBar(title: l10n.settings);
+  AppToolBar _buildAppBar() {
+    return AppToolBar(title: _l10n.settings);
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final cards = [
+      _buildAccountCard(),
+      _buildTryOnProfileCard(),
+      _buildStyleTasteCard(),
+      _buildTemperatureOffsetCard(),
+      _buildLanguageCard(),
+      if (Env.enableDebugTools) _buildDebugToolsCard(),
+      _buildLogoutCard(),
+    ];
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(l10n),
+      appBar: _buildAppBar(),
       body: Stack(
         children: [
           _loading
               ? const Center(child: AppSpinner())
               : ListView(
                   children: [
-                    _buildProfileCard(l10n),
-                    const SizedBox(height: AppDimens.sectionSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildAccountCard(l10n),
-                    ),
-                    const SizedBox(height: AppDimens.sectionSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildTryOnProfileCard(l10n),
-                    ),
-                    const SizedBox(height: AppDimens.sectionSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildStyleTasteCard(l10n),
-                    ),
-                    const SizedBox(height: AppDimens.sectionSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildTemperatureOffsetCard(l10n),
-                    ),
-                    const SizedBox(height: AppDimens.sectionSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildLanguageCard(l10n),
-                    ),
-                    if (Env.enableDebugTools) ...[
+                    _buildProfileCard(),
+                    for (final card in cards) ...[
                       const SizedBox(height: AppDimens.sectionSpacing),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _buildDebugToolsCard(l10n),
+                        child: card,
                       ),
                     ],
                     const SizedBox(height: AppDimens.sectionSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildLogoutCard(l10n),
-                    ),
-                    const SizedBox(height: AppDimens.sectionSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildDeleteAccountCard(l10n),
-                    ),
+                    _buildDeleteAccountButton(),
                     const SizedBox(height: 32),
                   ],
                 ),
           if (_deletingAccount)
-            Positioned.fill(child: LoadingOverlay(label: l10n.deletingAccount)),
+            Positioned.fill(
+              child: LoadingOverlay(label: _l10n.deletingAccount),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileCard(AppLocalizations l10n) {
+  Widget _buildProfileCard() {
     final url =
         (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string')
         ? _avatarUrl
         : null;
     return Padding(
-      padding: const EdgeInsets.only(top: 24),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+      child: Row(
         children: [
           ProfileAvatar(
             url: url,
             onRefreshUrl: () => ProfileService().getMyAvatar(),
-            size: 120,
+            size: 96,
             showEditLabel: false,
+            fallbackIconSize: 52,
           ),
-          const SizedBox(height: 16),
-          Text(
-            (_name != null && _name!.isNotEmpty) ? _name! : '---',
-            style: AppTextStyle.bold20,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            (_email != null && _email!.isNotEmpty) ? _email! : '---',
-            style: AppTextStyle.regular14.copyWith(
-              color: AppColors.textSecondary,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (_name != null && _name!.isNotEmpty) ? _name! : '---',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyle.bold20,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  (_email != null && _email!.isNotEmpty) ? _email! : '---',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyle.regular14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                if (_data != null) ...[
+                  const SizedBox(height: 8),
+                  _TierBadge(tier: _data!.profile.tier),
+                ],
+              ],
             ),
           ),
-          if (_data != null) ...[
-            const SizedBox(height: 12),
-            _TierBadge(tier: _data!.profile.tier),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildAccountCard(AppLocalizations l10n) {
-    return AppListCard(
-      onTap: _openAccount,
-      leadingAsset: 'assets/images/account.png',
-      showArrow: true,
-      child: Text(l10n.account, style: AppTextStyle.bold16),
+  Widget _buildLeadingIcon(IconData icon) {
+    return SizedBox.square(
+      dimension: 40,
+      child: Icon(icon, size: 32, color: AppColors.icon),
     );
   }
 
-  Widget _buildTryOnProfileCard(AppLocalizations l10n) {
+  Widget _buildAccountCard() {
+    return AppListCard(
+      onTap: _openAccount,
+      leading: _buildLeadingIcon(LucideIcons300.user),
+      showArrow: true,
+      summary: _l10n.accountSummary,
+      child: Text(_l10n.account, style: AppTextStyle.bold16),
+    );
+  }
+
+  Widget _buildTryOnProfileCard() {
+    final ready = _hasFaceReference && _hasBodyReference;
     return AppListCard(
       onTap: _openMyVirtualModel,
       leadingAsset: 'assets/images/figure_setting.png',
       showArrow: true,
-      summary: _aiModelStatusLabel(l10n),
-      child: Text(l10n.myVirtualModelTitle, style: AppTextStyle.bold16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_l10n.myVirtualModelTitle, style: AppTextStyle.bold16),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: ready ? AppColors.statusOngoing : AppColors.hintText,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _aiModelStatusLabel(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyle.regular12.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildStyleTasteCard(AppLocalizations l10n) {
+  Widget _buildStyleTasteCard() {
     return AppListCard(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const StyleTastePage()),
       ),
-      leading: const Icon(Icons.auto_awesome_outlined, color: AppColors.icon),
+      leading: _buildLeadingIcon(LucideIcons300.sparkles),
       showArrow: true,
-      summary: l10n.styleTasteSummary,
-      child: Text(l10n.styleTaste, style: AppTextStyle.bold16),
+      summary: _l10n.styleTasteSummary,
+      child: Text(_l10n.styleTaste, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildTemperatureOffsetCard(AppLocalizations l10n) {
+  Widget _buildTemperatureOffsetCard() {
     return AppListCard(
-      onTap: _savingTemperatureOffset
-          ? null
-          : () => _openTemperatureOffsetPicker(l10n),
-      leading: const Icon(Icons.thermostat_outlined, color: AppColors.icon),
+      onTap: _savingTemperatureOffset ? null : _openTemperatureOffsetPicker,
+      leading: _buildLeadingIcon(LucideIcons300.thermometer),
       showArrow: true,
-      summary: _temperatureOffsetLabel(_temperatureOffset),
-      child: Text(l10n.perceivedTempOffset, style: AppTextStyle.bold16),
+      summary: _l10n.temperaturePreferenceSummary,
+      status: _temperatureOffsetLabel(_temperatureOffset),
+      child: Text(_l10n.temperaturePreference, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildLanguageCard(AppLocalizations l10n) {
+  Widget _buildLanguageCard() {
     final locale = ref.watch(localeProvider);
     return AppListCard(
-      onTap: () => _openLanguagePicker(l10n),
-      leading: const Icon(Icons.language_outlined, color: AppColors.icon),
+      onTap: _openLanguagePicker,
+      leading: _buildLeadingIcon(LucideIcons300.globe),
       showArrow: true,
-      summary: _localeDisplayLabel(locale, l10n),
-      child: Text(l10n.language, style: AppTextStyle.bold16),
+      status: _localeDisplayLabel(locale),
+      child: Text(_l10n.language, style: AppTextStyle.bold16),
     );
   }
 
-  String _localeDisplayLabel(Locale? locale, AppLocalizations l10n) {
-    if (locale == null) return l10n.languageSystemDefault;
+  String _localeDisplayLabel(Locale? locale) {
+    if (locale == null) return _l10n.languageSystemDefault;
     return locale.languageCode == 'zh'
-        ? l10n.languageTraditionalChinese
-        : l10n.languageEnglish;
+        ? _l10n.languageTraditionalChinese
+        : _l10n.languageEnglish;
   }
 
-  Future<void> _openLanguagePicker(AppLocalizations l10n) async {
+  Future<void> _openLanguagePicker() async {
     final current = ref.read(localeProvider);
     const options = <Locale?>[null, Locale('en'), Locale('zh', 'TW')];
 
@@ -412,7 +439,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PickerSheetHeader(l10n.selectLanguageTitle),
+          PickerSheetHeader(_l10n.selectLanguageTitle),
           for (final option in options)
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -421,7 +448,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 color: option == current ? AppColors.accent : AppColors.icon,
               ),
               title: Text(
-                _localeDisplayLabel(option, l10n),
+                _localeDisplayLabel(option),
                 style: option == current
                     ? AppTextStyle.semibold16.copyWith(color: AppColors.accent)
                     : AppTextStyle.regular16,
@@ -439,36 +466,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ref.read(localeProvider.notifier).setLocale(choice.locale);
   }
 
-  Widget _buildDebugToolsCard(AppLocalizations l10n) {
+  Widget _buildDebugToolsCard() {
     return AppListCard(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const DebugToolsPage()),
       ),
-      leading: const Icon(Icons.bug_report_outlined, color: AppColors.icon),
+      leading: _buildLeadingIcon(LucideIcons300.bug),
       showArrow: true,
-      child: Text(l10n.debugTools, style: AppTextStyle.bold16),
+      child: Text(_l10n.debugTools, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildLogoutCard(AppLocalizations l10n) {
+  Widget _buildLogoutCard() {
     return AppListCard(
       onTap: _logout,
-      leadingAsset: 'assets/images/logout.png',
-      child: Text(l10n.logout, style: AppTextStyle.bold16),
+      leading: _buildLeadingIcon(LucideIcons300.logOut),
+      child: Text(_l10n.logout, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildDeleteAccountCard(AppLocalizations l10n) {
-    return AppListCard(
-      onTap: _deletingAccount ? null : _deleteAccount,
-      leading: const Icon(
-        Icons.delete_forever_outlined,
-        color: AppColors.error,
-      ),
-      child: Text(
-        l10n.deleteAccount,
-        style: AppTextStyle.bold16.copyWith(color: AppColors.error),
+  Widget _buildDeleteAccountButton() {
+    return Center(
+      child: TextButton.icon(
+        onPressed: _deletingAccount ? null : _deleteAccount,
+        style: TextButton.styleFrom(foregroundColor: AppColors.error),
+        icon: const Icon(LucideIcons300.trash2),
+        label: Text(
+          _l10n.deleteAccount,
+          style: AppTextStyle.medium16.copyWith(color: AppColors.error),
+        ),
       ),
     );
   }
@@ -501,7 +528,7 @@ class _TierBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.workspace_premium, size: 16, color: text),
+          Icon(Icons.stars, size: 18, color: text),
           const SizedBox(width: 4),
           Text(
             tier.localizedLabel(context),

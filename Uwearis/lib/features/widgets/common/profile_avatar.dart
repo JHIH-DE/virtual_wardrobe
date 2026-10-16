@@ -26,6 +26,12 @@ class ProfileAvatar extends StatelessWidget {
     this.fallbackIconSize = 64,
   });
 
+  /// Decoding the full-size photo made it fall out of the image cache, so
+  /// every visit re-decoded it. Precache with the same width to share the
+  /// cache entry.
+  static int decodeWidth(BuildContext context, double size) =>
+      (size * MediaQuery.devicePixelRatioOf(context)).round();
+
   @override
   Widget build(BuildContext context) {
     final hasImage = url != null && url!.isNotEmpty;
@@ -43,6 +49,7 @@ class ProfileAvatar extends StatelessWidget {
                   ? AppImage(
                       url: url,
                       onRefreshUrl: onRefreshUrl,
+                      memCacheWidth: decodeWidth(context, size),
                       fit: BoxFit.cover,
                     )
                   : ColoredBox(

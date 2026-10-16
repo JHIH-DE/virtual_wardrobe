@@ -3,8 +3,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
@@ -100,49 +100,53 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Future<void> _tryPrecache(String path, {required bool allowRefresh}) async {
     final isHttp = path.startsWith('http');
     final provider = isHttp
-        ? NetworkImage(path) as ImageProvider
+        ? CachedNetworkImageProvider(path) as ImageProvider
         : FileImage(File(path));
-    try {
-      await precacheImage(provider, context);
-    } catch (e) {
-      // Not an error case by itself — a broken file still shows
-      // _buildImageContent's error state.
-      debugLog('Failed to precache image: $e');
-      if (isHttp &&
-          allowRefresh &&
-          widget.onRefreshUrl != null &&
-          mounted &&
+    // precacheImage never throws; failures only reach onError.
+    var failed = false;
+    await precacheImage(
+      provider,
+      context,
+      onError: (e, _) {
+        failed = true;
+        debugLog('Failed to precache image: $e');
+      },
+    );
+    if (!mounted) return;
+    if (failed &&
+        isHttp &&
+        allowRefresh &&
+        widget.onRefreshUrl != null &&
+        path == _currentPath) {
+      String? fresh;
+      try {
+        fresh = await widget.onRefreshUrl!();
+      } on AuthExpiredException {
+        if (mounted) await AuthExpiredHandler.handle(context);
+        return;
+      } catch (e2) {
+        debugLog('Failed to refresh image URL: $e2');
+        // The photo itself is gone, not just a stale URL — explain rather
+        // than leave a bare broken-image icon.
+        if (mounted) {
+          showErrorDialog(
+            context,
+            message: apiErrorMessage(
+              _l10n,
+              e2,
+              fallback: _l10n.photoProcessingFailed,
+            ),
+          );
+        }
+      }
+      if (mounted &&
+          fresh != null &&
+          fresh.isNotEmpty &&
+          fresh != path &&
           path == _currentPath) {
-        String? fresh;
-        try {
-          fresh = await widget.onRefreshUrl!();
-        } on AuthExpiredException {
-          if (mounted) await AuthExpiredHandler.handle(context);
-          return;
-        } catch (e2) {
-          debugLog('Failed to refresh image URL: $e2');
-          // The photo itself is gone, not just a stale URL — explain rather
-          // than leave a bare broken-image icon.
-          if (mounted) {
-            showErrorDialog(
-              context,
-              message: apiErrorMessage(
-                _l10n,
-                e2,
-                fallback: _l10n.photoProcessingFailed,
-              ),
-            );
-          }
-        }
-        if (mounted &&
-            fresh != null &&
-            fresh.isNotEmpty &&
-            fresh != path &&
-            path == _currentPath) {
-          setState(() => _currentPath = fresh);
-          await _tryPrecache(fresh, allowRefresh: false);
-          return;
-        }
+        setState(() => _currentPath = fresh);
+        await _tryPrecache(fresh, allowRefresh: false);
+        return;
       }
     }
     // A Retake/Album swap mid-precache must not mark the new path ready.
@@ -211,8 +215,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   Future<String> _captureFramedImage() async {
     final path = _currentPath!;
     final Uint8List sourceBytes = path.startsWith('http')
-        ? (await http.get(Uri.parse(path)).timeout(const Duration(seconds: 30)))
-              .bodyBytes
+        ? await (await CachedNetworkImageProvider.defaultCacheManager
+                  .getSingleFile(path)
+                  .timeout(const Duration(seconds: 30)))
+              .readAsBytes()
         : await File(path).readAsBytes();
 
     // package:image (CPU only): dart:ui's Canvas/toImage rasterizes on the
@@ -430,8 +436,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       );
     }
     final image = _currentPath!.startsWith('http')
-        ? Image.network(
-            _currentPath!,
+        ? Image(
+            image: CachedNetworkImageProvider(_currentPath!),
             fit: BoxFit.contain,
             errorBuilder: (_, _, _) => const Center(
               child: Icon(Icons.broken_image, size: 50, color: AppColors.icon),

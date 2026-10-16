@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account => 'Account';
 
   @override
+  String get accountSummary => 'Personal details & security';
+
+  @override
   String get profilePhotoTitle => 'Profile Photo';
 
   @override
@@ -109,7 +112,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t generate your virtual model. Please try again.';
 
   @override
-  String get aiModelReady => 'Ready · Face + Body Configured';
+  String get aiModelReady => 'Face & body ready';
 
   @override
   String aiModelReferencesAdded(int count) {
@@ -123,8 +126,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteDetailsLabel => 'Style Insights';
 
   @override
-  String get styleTasteSummary =>
-      'Uwearis learns how you like to put outfits together';
+  String get styleTasteSummary => 'Your outfit preferences';
 
   @override
   String get styleTasteHeroSubtitle =>
@@ -156,7 +158,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get logout => 'Logout';
+  String get logout => 'Log out';
 
   @override
   String get logoutConfirmTitle => 'Log out?';
@@ -166,7 +168,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'You\'ll need to sign in again to use Uwearis.';
 
   @override
-  String get deleteAccount => 'Delete Account';
+  String get deleteAccount => 'Delete account';
 
   @override
   String get tierGold => 'Gold';
@@ -269,6 +271,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createOutfit => 'Create Outfit';
+
+  @override
+  String get createVersion => 'Create Version';
 
   @override
   String get createOutfitHint => 'Create another outfit using these garments';
@@ -1375,7 +1380,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addGarmentsButton => 'Add Garments';
 
   @override
-  String get perceivedTempOffset => 'Perceived Temperature Offset';
+  String get temperaturePreference => 'Temperature Preference';
+
+  @override
+  String get temperaturePreferenceSummary => 'Adjust for your comfort';
 
   @override
   String get todaysOutfit => 'Today\'s Outfit';
@@ -1446,6 +1454,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginHeading => 'Log-In / Sign-in to get dressed!';
 
   @override
+  String get loginTagline => 'Your AI stylist, every day';
+
+  @override
+  String get loginTermsNotice =>
+      'By continuing, you agree to our Terms of Service and Privacy Policy.';
+
+  @override
   String get continueWithApple => 'Continue with Apple';
 
   @override
@@ -1458,7 +1473,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginFailed => 'Login failed. Please try again.';
 
   @override
-  String get copyrightText => 'copyright reserved to Uwearis inc.';
+  String get copyrightText => '© Uwearis Inc. All rights reserved.';
 
   @override
   String get noItemsFound => 'No items found.';

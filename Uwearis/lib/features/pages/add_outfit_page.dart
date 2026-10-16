@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -114,11 +115,22 @@ class AddOutfitPage extends ConsumerStatefulWidget {
   /// Look runs on it automatically on open.
   final String? initialMatchALookImagePath;
 
+  /// Version mode (Outfit Details' Add Version): renders into this existing
+  /// group and pops the new [Outfit] back, rather than opening it as a new
+  /// outfit — whose "Don't Save" would delete the whole group.
+  final int? targetGroupId;
+
+  /// Version mode's starting background: the source version's, kept unless
+  /// the user changes it.
+  final int? initialBackgroundId;
+
   const AddOutfitPage({
     super.key,
     this.initialGarments = const [],
     this.onBack,
     this.initialMatchALookImagePath,
+    this.targetGroupId,
+    this.initialBackgroundId,
   });
 
   @override
@@ -144,10 +156,15 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
-  BackgroundOption _background = BackgroundOption.all.first;
+  // Null when [AddOutfitPage.initialBackgroundId] is unset or unknown.
+  BackgroundOption? _initialBackground;
+  late BackgroundOption _background;
   // [_background] always has a default; this tells an explicit pick apart
-  // from "never touched" (only an explicit pick is sent).
+  // from "never touched" (only an explicit pick, or version mode's initial
+  // background, is sent).
   bool _backgroundCustomized = false;
+  // Version mode only enables Create once the pick differs from these.
+  late final Set<int> _initialGarmentIds;
 
   // Finish Outfit: locked ids are kept; excluded ids are past AI picks so a
   // re-run suggests something else. A null style lets the backend infer it.
@@ -312,6 +329,11 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         ..clear()
         ..addAll(_buildInitialAccessories(widget.initialGarments));
     }
+    _initialGarmentIds = _selectedGarmentIds().toSet();
+    _initialBackground = BackgroundOption.all
+        .where((b) => b.backgroundId == widget.initialBackgroundId)
+        .firstOrNull;
+    _background = _initialBackground ?? BackgroundOption.all.first;
     // Post-frame: refreshIfNeeded synchronously sets AsyncLoading, which
     // Riverpod forbids during initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -557,13 +579,18 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         await deleteOutfitJob(tryOnGroupId, tryOnOutfitId);
       }
 
-      await performTryOn(
+      final outfit = await performTryOn(
         ids,
-        backgroundId: _backgroundCustomized ? _background.backgroundId : null,
+        groupId: widget.targetGroupId,
+        backgroundId: _backgroundCustomized || _initialBackground != null
+            ? _background.backgroundId
+            : null,
       );
       if (!mounted) return;
 
-      if (tryOnResultUrl != null) {
+      if (outfit != null && _isVersionMode) {
+        Navigator.pop<Outfit>(context, outfit);
+      } else if (tryOnResultUrl != null) {
         await _showTryOnResult(ids);
       } else if (tryOnErrorMessage != null) {
         showErrorDialog(context, message: tryOnErrorMessage!);
@@ -597,9 +624,20 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
+  bool get _isVersionMode => widget.targetGroupId != null;
+
+  /// A new version identical to its source would just be a re-render —
+  /// Regenerate already covers that.
+  bool get _isUnchangedVersion =>
+      _isVersionMode &&
+      setEquals(_selectedGarmentIds().toSet(), _initialGarmentIds) &&
+      _background.id == (_initialBackground ?? BackgroundOption.all.first).id;
+
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: _l10n.quickActionAddOutfit,
+      title: _isVersionMode
+          ? _l10n.addVersionTitle
+          : _l10n.quickActionAddOutfit,
       onBack: widget.onBack,
       actions: [
         ActionDiscButton(
@@ -633,7 +671,9 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
               0,
               24,
               0,
-              _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 0,
+              _showsBottomActionButton
+                  ? AppDimens.bottomActionBtnClearance
+                  : 24 + MediaQuery.paddingOf(context).bottom,
             ),
             children: _buildCreateFlowBody(),
           ),
@@ -641,7 +681,11 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         ),
         if (isOutfitLoading)
           Positioned.fill(
-            child: LoadingOverlay(label: _l10n.creatingOutfitsEllipsis),
+            child: LoadingOverlay(
+              label: _isVersionMode
+                  ? _l10n.generatingEllipsis
+                  : _l10n.creatingOutfitsEllipsis,
+            ),
           ),
         if (_garmentPoolLoading)
           Positioned.fill(
@@ -800,6 +844,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                     ),
                   ),
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Container(width: 1, color: AppColors.borderSubtle),
               ),
               Expanded(
                 child: Padding(
@@ -1278,7 +1326,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     if (isOutfitLoading ||
         _garmentPoolLoading ||
         _tryOnRequested ||
-        _isCompletingWithAi) {
+        _isCompletingWithAi ||
+        _isUnchangedVersion) {
       return false;
     }
     if (_coreChecklist.isEmpty) return _selectedGarmentIds().length >= 2;
@@ -1289,7 +1338,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   Widget _buildBottomBar() {
     return BottomActionButton(
-      label: _l10n.createOutfit,
+      label: _isVersionMode ? _l10n.createVersion : _l10n.createOutfit,
       leading: Image.asset(
         'assets/images/ai_process_inv.png',
         width: 18,

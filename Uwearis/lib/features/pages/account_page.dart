@@ -58,6 +58,7 @@ class AccountPage extends ConsumerStatefulWidget {
 class _AccountPageState extends ConsumerState<AccountPage> {
   static const double _cmPerInch = 2.54;
   static const double _kgPerLb = 0.45359237;
+  static const double _avatarSize = 120;
 
   final _nameCtrl = TextEditingController();
   // Canonical cm/kg — what gets saved.
@@ -295,7 +296,13 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         // Each upload gets a new signed URL, so no cache key is needed.
         // Precache is best-effort: a failure is logged and the URL is used anyway.
         try {
-          await precacheImage(CachedNetworkImageProvider(url), context);
+          await precacheImage(
+            ResizeImage(
+              CachedNetworkImageProvider(url),
+              width: ProfileAvatar.decodeWidth(context, _avatarSize),
+            ),
+            context,
+          );
         } catch (e) {
           debugLog('_uploadAvatar: failed to precache avatar: $e');
         }
@@ -433,7 +440,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                         SizedBox(
                           height: _showsBottomActionButton
                               ? AppDimens.bottomActionBtnClearance
-                              : 0,
+                              : MediaQuery.paddingOf(context).bottom,
                         ),
                       ],
                     ),
@@ -475,7 +482,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         child: ProfileAvatar(
           url: url,
           onRefreshUrl: () => ProfileService().getMyAvatar(),
-          size: 120,
+          size: _avatarSize,
           onTap: _avatarUploading ? null : _changeAvatar,
         ),
       ),

@@ -100,6 +100,7 @@ class AppColors {
   static const Color shadowResting = Color(
     0x0F000000,
   ); // resting card shadow, black @6%
+  static const Color shadowFaint = Color(0x08000000); // black @3%
   static const Color overlaySubtle = Color(
     0x1F000000,
   ); // light overlay/shadow, black @12%

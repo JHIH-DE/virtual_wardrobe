@@ -345,6 +345,8 @@ Scaffold(
 bool get _showsBottomActionButton => /* same condition that controls the button's own visibility/enabled state */;
 ```
 
+The hidden-state gap (`0` above) is only safe when the body already keeps clear of the bottom system inset (e.g. it sits inside a `SafeArea`). A `ListView` with an explicit `padding:` gets no automatic safe-area inset, so its hidden-state bottom padding must be a real gap plus `MediaQuery.paddingOf(context).bottom` (see `add_outfit_page.dart`) — with `0`, the last field ends up under the home indicator and can't be scrolled clear of it.
+
 Never place `BottomActionButton` inline inside the scrollable body as a sibling widget — it must go through `Scaffold.bottomNavigationBar`. All current call sites in the app follow this shape.
 
 ### Section headers and field labels
@@ -399,7 +401,7 @@ Each file below is canonical **only for the specific things listed** — it is n
 | Service (minimal shape) | `lib/core/services/daily_outfit_service.dart` | Minimal stateless (non-singleton) service shape | — |
 | Provider | `lib/core/providers/garments_provider.dart` | `AsyncNotifier` `refresh()` shape, verb+noun mutation naming, `retry: appRetryPolicy` on a network-backed provider | — |
 | Data model | `lib/data/outfit.dart` | `copyWith` `clearX` flags, extracted cache-key helper (`outfitImageCacheKey`), `num`-tolerant `parseId`, `OutfitGroupType` enum with `apiValue`/`fromApiValue` | — |
-| Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading, `on AuthExpiredException` clause shape, synchronous re-entrancy guard on costly actions (`_regenerateImage`/`_setCover` — see [Guarding costly / mutating actions against double-invocation](#double-invocation-guard)) | one raw `BorderRadius.circular(16)` instead of `AppDimens.cardRadius` |
+| Page | `lib/features/pages/outfit_details_page.dart` | Field→`initState`→`build`→helper ordering, `_l10n` alias getter, `BottomActionButton` wiring, pushed-page `Positioned.fill(LoadingOverlay)` loading, `on AuthExpiredException` clause shape, synchronous re-entrancy guard on costly actions (`_regenerateImage`/`_setCover` — see [Guarding costly / mutating actions against double-invocation](#double-invocation-guard)) | — |
 | Shared widget | `lib/features/widgets/common/buttons/bottom_action_button.dart` | Full compliance — colors via `AppColors`, no hardcoded text, documented literals | — |
 | Shared grid | `lib/features/widgets/outfit/outfit_grid.dart` / `lib/features/widgets/garment/garment_grid.dart` | Canonical grid per product concept: shared delegate + padding + (for `OutfitGrid`) empty state / refresh; per-screen item wrappers stay at the call site via `itemBuilder`. `GarmentGrid.gridDelegate` is exposed for the one raw `SliverGrid` call site | — |
 | Shared filter state | `lib/features/widgets/common/buttons/garment_color_type_filter.dart` / `outfit_season_style_filter.dart` | Non-widget state class that owns a `FilterButton`'s data: derives the option lists, holds the selected sets, `apply()`s the filter. The "move orchestration to a controller" resolution for repeated filter blocks | — |

@@ -49,6 +49,7 @@ dependencies:
   receive_sharing_intent: ^1.9.0
   image: ^4.10.1
   meta: ^1.16.0
+  lucide_icons_flutter: ^4.0.0
 
 
 dev_dependencies:

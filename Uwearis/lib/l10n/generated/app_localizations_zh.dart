@@ -18,6 +18,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get account => '帳號';
 
   @override
+  String get accountSummary => '個人資料與安全性';
+
+  @override
   String get profilePhotoTitle => '個人頭像';
 
   @override
@@ -99,7 +102,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get virtualModelGenerateFailed => '虚拟模特生成失败，请稍后再试。';
 
   @override
-  String get aiModelReady => '已就緒．臉部與身形皆已設定';
+  String get aiModelReady => '臉部與身形已就緒';
 
   @override
   String aiModelReferencesAdded(int count) {
@@ -113,7 +116,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteSummary => 'Uwearis 學習你偏好的穿搭組合方式';
+  String get styleTasteSummary => '你的穿搭偏好';
 
   @override
   String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
@@ -252,6 +255,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get createOutfit => '建立造型';
+
+  @override
+  String get createVersion => '建立版本';
 
   @override
   String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
@@ -1316,7 +1322,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addGarmentsButton => '新增衣物';
 
   @override
-  String get perceivedTempOffset => '體感溫度調整';
+  String get temperaturePreference => '溫度偏好';
+
+  @override
+  String get temperaturePreferenceSummary => '依你的體感調整';
 
   @override
   String get todaysOutfit => '今日穿搭';
@@ -1384,6 +1393,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginHeading => '登入 / 註冊，開始穿搭吧！';
 
   @override
+  String get loginTagline => '你的每日 AI 穿搭师';
+
+  @override
+  String get loginTermsNotice => '继续即表示你同意我们的服务条款和隐私政策。';
+
+  @override
   String get continueWithApple => '使用 Apple 繼續';
 
   @override
@@ -1396,7 +1411,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginFailed => '登录失败，请再试一次。';
 
   @override
-  String get copyrightText => '版權所有 © Uwearis inc.';
+  String get copyrightText => '© Uwearis Inc. 版权所有';
 
   @override
   String get noItemsFound => '找不到項目。';
@@ -1512,6 +1527,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get account => '帳號';
 
   @override
+  String get accountSummary => '個人資料與安全性';
+
+  @override
   String get profilePhotoTitle => '個人頭像';
 
   @override
@@ -1593,7 +1611,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get virtualModelGenerateFailed => '虛擬模特兒生成失敗，請稍後再試。';
 
   @override
-  String get aiModelReady => '已就緒．臉部與身形皆已設定';
+  String get aiModelReady => '臉部與身形已就緒';
 
   @override
   String aiModelReferencesAdded(int count) {
@@ -1607,7 +1625,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteSummary => 'Uwearis 學習你偏好的穿搭組合方式';
+  String get styleTasteSummary => '你的穿搭偏好';
 
   @override
   String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
@@ -1746,6 +1764,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get createOutfit => '建立造型';
+
+  @override
+  String get createVersion => '建立版本';
 
   @override
   String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
@@ -2810,7 +2831,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addGarmentsButton => '新增衣物';
 
   @override
-  String get perceivedTempOffset => '體感溫度調整';
+  String get temperaturePreference => '溫度偏好';
+
+  @override
+  String get temperaturePreferenceSummary => '依你的體感調整';
 
   @override
   String get todaysOutfit => '今日穿搭';
@@ -2878,6 +2902,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loginHeading => '登入 / 註冊，開始穿搭吧！';
 
   @override
+  String get loginTagline => '你的每日 AI 穿搭師';
+
+  @override
+  String get loginTermsNotice => '繼續即表示你同意我們的服務條款與隱私權政策。';
+
+  @override
   String get continueWithApple => '使用 Apple 繼續';
 
   @override
@@ -2890,7 +2920,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loginFailed => '登入失敗，請再試一次。';
 
   @override
-  String get copyrightText => '版權所有 © Uwearis inc.';
+  String get copyrightText => '© Uwearis Inc. 版權所有';
 
   @override
   String get noItemsFound => '找不到項目。';

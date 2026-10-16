@@ -1,10 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/core/providers/daily_outfit_provider.dart';
+import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/features/pages/add_outfit_page.dart';
 import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/circle_icon_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
@@ -31,6 +35,22 @@ Outfit _outfit({
     style: style,
     garmentIds: garmentIds,
   );
+}
+
+class _FakeDailyOutfitNotifier extends DailyOutfitNotifier {
+  _FakeDailyOutfitNotifier(this._outfits);
+  final List<Outfit> _outfits;
+
+  @override
+  Future<List<Outfit>> build() async => _outfits;
+}
+
+class _FakeOutfitsNotifier extends OutfitsNotifier {
+  _FakeOutfitsNotifier(this._outfits);
+  final List<Outfit> _outfits;
+
+  @override
+  Future<List<Outfit>> build() async => _outfits;
 }
 
 void main() {
@@ -535,6 +555,42 @@ void main() {
     },
   );
 
+  testWidgets(
+    '"+ New Version" opens Add Outfit in version mode, and the version it '
+    'pops back is swiped into view',
+    (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, OutfitDetailsPage(outfit: _outfit(groupId: 704)));
+        await tester.pump();
+        await tester.pump();
+
+        await tester.tap(find.widgetWithText(AccentPillButton, 'New Version'));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+
+        final addOutfit = tester.widget<AddOutfitPage>(
+          find.byType(AddOutfitPage),
+        );
+        expect(addOutfit.targetGroupId, 704);
+        expect(find.text('Add Version'), findsOneWidget);
+
+        Navigator.of(tester.element(find.byType(AddOutfitPage))).pop(
+          Outfit(id: 2, groupId: 704, imageUrl: 'https://img.example/2.png'),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(find.byType(AddOutfitPage), findsNothing);
+        expect(find.text('2 / 2'), findsOneWidget);
+        // Let the post-swipe outfitsProvider.refresh() settle before the
+        // scope is torn down.
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pump();
+      }, stubClient);
+    },
+  );
+
   group('edit tags sheet auto-saves on close', () {
     late List<Map<String, dynamic>> patches;
     late bool fail;
@@ -643,5 +699,58 @@ void main() {
         expect(button.onPressed, isNotNull);
       }, tagsClient);
     });
+  });
+
+  // Regression: the heart only updated this page's own copy, so un-favoriting
+  // an outfit here (opened from Outfits) left Home's / Today's Outfit's
+  // daily copy still favorited.
+  testWidgets('toggling favorite syncs the daily outfit and My Outfits', (
+    tester,
+  ) async {
+    final favorited = Outfit(
+      id: 1,
+      groupId: 3,
+      imageUrl: 'https://img.example/1.png',
+      isFavorite: true,
+    );
+    final client = MockClient((request) async {
+      if (request.method == 'PATCH') {
+        return jsonResponse(envelope({'outfit_id': 1, 'group_id': 3}));
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(outfit: favorited),
+        overrides: [
+          dailyOutfitProvider.overrideWith(
+            () => _FakeDailyOutfitNotifier([favorited]),
+          ),
+          outfitsProvider.overrideWith(() => _FakeOutfitsNotifier([favorited])),
+        ],
+      );
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(OutfitDetailsPage)),
+      );
+      // Home keeps both alive in the real app.
+      container.listen(dailyOutfitProvider, (_, _) {});
+      container.listen(outfitsProvider, (_, _) {});
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.favorite));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+      expect(
+        container.read(dailyOutfitProvider).value!.single.isFavorite,
+        isFalse,
+      );
+      expect(container.read(outfitsProvider).value!.single.isFavorite, isFalse);
+    }, () => client);
   });
 }

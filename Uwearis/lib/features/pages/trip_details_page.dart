@@ -353,7 +353,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     final optionId = _currentDayOutfit?.optionId;
     if (optionId == null) return;
 
-    final result = await Navigator.push<OutfitEditResult>(
+    final garmentIds = await Navigator.push<Set<int>>(
       context,
       MaterialPageRoute(
         builder: (_) => OutfitEditPage(
@@ -364,14 +364,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         ),
       ),
     );
-    if (result == null || !mounted) return;
+    if (garmentIds == null || !mounted) return;
 
     final detailNotifier = _detailNotifier;
     try {
       final newGarments = await TripService().updateOptionItems(
         _tripId,
         optionId: optionId,
-        garmentIds: result.garmentIds.toList(),
+        garmentIds: garmentIds.toList(),
       );
       // The backend clears the option's rendered outfit, so drop
       // outfitId/resultImageUrl; everHadOutfit stays so the CTA reads

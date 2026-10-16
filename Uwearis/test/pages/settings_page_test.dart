@@ -38,14 +38,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  testWidgets('tapping Logout asks for confirmation instead of logging out '
+  testWidgets('tapping Log out asks for confirmation instead of logging out '
       'immediately', (tester) async {
     await runWithProfile(() async {
       useTallSurface(tester);
       await pumpApp(tester, const SettingsPage());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Logout'));
+      await tester.tap(find.text('Log out'));
       await tester.pumpAndSettle();
 
       expect(find.text('Log out?'), findsOneWidget);
@@ -62,7 +62,7 @@ void main() {
       await pumpApp(tester, const SettingsPage());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Logout'));
+      await tester.tap(find.text('Log out'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
@@ -74,7 +74,7 @@ void main() {
   });
 
   testWidgets(
-    'confirming Logout clears any cached closet-analysis results — this '
+    'confirming Log out clears any cached closet-analysis results — this '
     'app has no per-user cache key, so wiping it at the one point a '
     'session ends is what stops the next signed-in user on this device '
     'from seeing it',
@@ -96,9 +96,9 @@ void main() {
         await pumpApp(tester, const SettingsPage());
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Logout'));
+        await tester.tap(find.text('Log out'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Logout').last);
+        await tester.tap(find.text('Log out').last);
         await tester.pump();
         // LoginPage's Google-button network image fails in flutter_test and
         // its fallback overflows; unrelated to this test, so drain them.
@@ -130,7 +130,7 @@ void main() {
         await pumpApp(tester, const SettingsPage());
         await tester.pumpAndSettle();
 
-        expect(find.text('Perceived Temperature Offset'), findsOneWidget);
+        expect(find.text('Temperature Preference'), findsOneWidget);
         expect(find.text('-2°C'), findsOneWidget);
       });
     });
@@ -145,7 +145,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('0°C'), findsOneWidget);
 
-        await tester.tap(find.text('Perceived Temperature Offset'));
+        await tester.tap(find.text('Temperature Preference'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('+2°C'));
         await tester.pumpAndSettle();
@@ -167,7 +167,7 @@ void main() {
         await pumpApp(tester, const SettingsPage());
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Perceived Temperature Offset'));
+        await tester.tap(find.text('Temperature Preference'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('+2°C'));
         await tester.pumpAndSettle();

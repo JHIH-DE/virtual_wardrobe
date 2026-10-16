@@ -100,7 +100,7 @@ class AppListCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadowResting,
+            color: AppColors.shadowFaint,
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),

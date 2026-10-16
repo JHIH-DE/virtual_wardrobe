@@ -177,35 +177,57 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: AppColors.pageBackground,
       body: SafeArea(
         top: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [_buildHeaderImage(), _buildLoginCard()],
+                children: [
+                  SizedBox(height: MediaQuery.paddingOf(context).top + 16),
+                  const Spacer(),
+                  _buildBrandHeader(),
+                  const Spacer(),
+                  _buildHeaderImage(),
+                  const Spacer(),
+                  _buildLoginCard(),
+                ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderImage() {
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (bounds) => const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Colors.transparent, Colors.black],
-        stops: [0, 0.15],
-      ).createShader(bounds),
-      child: Image.asset(
-        'assets/images/login_page.png',
-        width: double.infinity,
-        fit: BoxFit.fitWidth,
+  Widget _buildBrandHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Text(
+            _l10n.appTitle,
+            style: AppTextStyle.brandTitle.copyWith(
+              fontSize: 44,
+              letterSpacing: -1.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _l10n.loginTagline,
+            textAlign: TextAlign.center,
+            style: AppTextStyle.medium16.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildHeaderImage() {
+    return AspectRatio(
+      aspectRatio: 1 / 0.62,
+      child: Image.asset('assets/images/login_image.png', fit: BoxFit.cover),
     );
   }
 
@@ -236,7 +258,9 @@ class _LoginPageState extends State<LoginPage> {
           _buildGoogleButton(),
           const SizedBox(height: 15),
           _buildFacebookButton(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+          _buildTermsNotice(),
+          const SizedBox(height: 12),
           _buildCopyrightText(),
         ],
       ),
@@ -332,17 +356,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildTermsNotice() {
+    return Text(
+      _l10n.loginTermsNotice,
+      textAlign: TextAlign.center,
+      style: AppTextStyle.regular12.copyWith(color: AppColors.textSecondary),
+    );
+  }
+
   Widget _buildCopyrightText() {
     return Text(
       _l10n.copyrightText,
       textAlign: TextAlign.center,
-      style: GoogleFonts.roboto(
-        fontSize: 16,
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w700,
-        height: 22 / 16,
-        letterSpacing: 16 * 0.02,
-      ),
+      style: AppTextStyle.regular12.copyWith(color: AppColors.hintText),
     );
   }
 }
