@@ -19,3 +19,11 @@ String outfitDisplayTitle(
       : '${word[0].toUpperCase()}${word.substring(1)}';
   return l10n.outfitTitle(capitalized);
 }
+
+/// A season/style value as a tag label. Styles arrive snake_case
+/// (`smart_casual`).
+String outfitTagLabel(String s) => s
+    .replaceAll('_', ' ')
+    .split(' ')
+    .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+    .join(' ');

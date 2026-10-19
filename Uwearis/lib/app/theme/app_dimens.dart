@@ -31,9 +31,10 @@ abstract class AppDimens {
   static const double garmentCardHeight = 230;
   static const double garmentCardInfoHeight = 70;
 
-  // GarmentListCard. 108, not 100: iOS CoreText renders NotoSansTC's CJK
-  // line box taller, and 100 clipped the text stack ~4px on iOS.
-  static const double garmentListCardHeight = 108;
+  // GarmentListCard. iOS CoreText renders NotoSansTC's CJK line box taller
+  // (the text stack needs ~76px there), so keep >= 76 + the card's 2 * 8
+  // vertical text padding.
+  static const double garmentListCardHeight = 96;
 
   // An AppBar caps its leading and every `actions` child at this height —
   // also the tap-box size of an ActionDiscButton.

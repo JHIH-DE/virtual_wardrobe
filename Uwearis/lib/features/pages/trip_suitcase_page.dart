@@ -7,6 +7,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
+import '../../core/providers/outfits_provider.dart';
 import '../../core/providers/trip_detail_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
@@ -119,9 +120,11 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _watchAuthExpiry(garmentsProvider);
+      _watchAuthExpiry(outfitsProvider);
       // Also keeps the detail provider alive while a first load retries.
       _watchAuthExpiry(tripDetailProvider(_tripId));
       ref.read(garmentsProvider.notifier).refreshIfNeeded();
+      ref.read(outfitsProvider.notifier).refreshIfNeeded();
     });
     if (_hasCachedDetail) {
       _applySuitcase(_detailState.requireValue.suitcase);
@@ -205,7 +208,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     if (!mounted) return;
     final outfit = await Navigator.push<Outfit>(
       context,
-      MaterialPageRoute(builder: (_) => const TripOutfitSelectionPage()),
+      MaterialPageRoute(
+        builder: (_) => TripOutfitSelectionPage(packedGarmentIds: _packedIds),
+      ),
     );
     if (outfit == null || !mounted) return;
 
@@ -218,12 +223,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         if (!packedIds.contains(id) && closetById[id] != null) closetById[id]!,
     ];
 
-    if (newGarments.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_l10n.noNewItemsFromOutfit)));
-      return;
-    }
+    if (newGarments.isEmpty) return;
     setState(() => _packedGarments = [..._packedGarments, ...newGarments]);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -355,20 +355,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
     try {
       final detailNotifier = _detailNotifier;
-      final affected = await TripService().removeSuitcaseItem(
-        _tripId,
-        garmentId: id,
-      );
+      await TripService().removeSuitcaseItem(_tripId, garmentId: id);
       detailNotifier.removeSuitcaseGarment(id);
       if (mounted) setState(() => _committedIds.remove(id));
-      // Informational only; the removal already succeeded.
-      if (affected.isNotEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_l10n.suitcaseItemStillUsedCount(affected.length)),
-          ),
-        );
-      }
     } on AuthExpiredException {
       if (!mounted) return;
       setState(() => _packedGarments = previousGarments);
@@ -445,37 +434,53 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
-  Widget _buildBody(List<Garment> closetGarments) {
-    if (_loading) return const Center(child: AppSpinner());
-    final addFromOutfitCard = Padding(
-      padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-      child: AppListCard(
-        title: _l10n.addFromOutfit,
-        leading: const Icon(Icons.style_outlined, color: AppColors.icon),
-        showArrow: true,
-        onTap: _addFromOutfit,
-        child: Text(
-          _l10n.addFromOutfitHint,
-          style: AppTextStyle.regular14.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+  /// Hidden until outfits and closet have loaded and some outfit has a
+  /// closet garment that isn't packed yet.
+  bool _hasOutfitToPack(List<Garment> closetGarments) {
+    final outfits = ref.watch(outfitsProvider).value ?? const <Outfit>[];
+    final closetIds = _indexGarmentsById(closetGarments).keys.toSet();
+    final packedIds = _packedIds;
+    return outfits.any(
+      (o) => o.garmentIds.any(
+        (id) => closetIds.contains(id) && !packedIds.contains(id),
       ),
     );
+  }
+
+  Widget _buildBody(List<Garment> closetGarments) {
+    if (_loading) return const Center(child: AppSpinner());
+    final addFromOutfitCard = !_hasOutfitToPack(closetGarments)
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
+            child: AppListCard(
+              title: _l10n.addFromOutfit,
+              leading: const Icon(Icons.style_outlined, color: AppColors.icon),
+              showArrow: true,
+              onTap: _addFromOutfit,
+              child: Text(
+                _l10n.addFromOutfitHint,
+                style: AppTextStyle.regular14.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          );
     return RefreshIndicator(
       onRefresh: () => _loadPackedItems(reload: true),
       child: _packedGarments.isEmpty
           ? _buildEmptyPackingState(closetGarments, addFromOutfitCard)
           : CustomScrollView(
               slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  sliver: SliverToBoxAdapter(child: addFromOutfitCard),
-                ),
+                if (addFromOutfitCard != null)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    sliver: SliverToBoxAdapter(child: addFromOutfitCard),
+                  ),
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
                     16,
-                    0,
+                    addFromOutfitCard == null ? 16 : 0,
                     16,
                     _showsBottomActionButton
                         ? AppDimens.bottomActionBtnClearance
@@ -500,7 +505,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   Widget _buildEmptyPackingState(
     List<Garment> closetGarments,
-    Widget addFromOutfitCard,
+    Widget? addFromOutfitCard,
   ) {
     return EmptyStatePlaceholder(
       icon: Icons.luggage_outlined,
@@ -510,10 +515,12 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       onAction: () => _handleAddGarment(closetGarments),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       fillAvailableSpace: true,
-      pinnedTop: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-        child: addFromOutfitCard,
-      ),
+      pinnedTop: addFromOutfitCard == null
+          ? null
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: addFromOutfitCard,
+            ),
     );
   }
 

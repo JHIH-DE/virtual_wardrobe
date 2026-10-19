@@ -656,6 +656,46 @@ void main() {
       }, tagsClient);
     });
 
+    // Today's Outfit reads dailyOutfitProvider, so an edit here must reach
+    // it (and My Outfits) or that page keeps showing the old tags.
+    testWidgets('a saved edit syncs the daily outfit and My Outfits', (
+      tester,
+    ) async {
+      final seed = _outfit(style: ['street']);
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(outfit: seed),
+          overrides: [
+            dailyOutfitProvider.overrideWith(
+              () => _FakeDailyOutfitNotifier([seed]),
+            ),
+            outfitsProvider.overrideWith(() => _FakeOutfitsNotifier([seed])),
+          ],
+        );
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(OutfitDetailsPage)),
+        );
+        container.listen(dailyOutfitProvider, (_, _) {});
+        container.listen(outfitsProvider, (_, _) {});
+        await tester.pump();
+        await tester.pump();
+        await tester.tap(find.byIcon(Icons.sell_outlined));
+        await settle(tester);
+
+        await tester.tap(find.text('Summer'));
+        await settle(tester);
+        await dismissSheet(tester);
+
+        final daily = container.read(dailyOutfitProvider).value!.single;
+        final mine = container.read(outfitsProvider).value!.single;
+        expect(daily.seasons, ['summer']);
+        expect(daily.style, ['street']);
+        expect(mine.seasons, ['summer']);
+      }, tagsClient);
+    });
+
     testWidgets('closing without a change sends nothing', (tester) async {
       await http.runWithClient(() async {
         await openSheet(tester);

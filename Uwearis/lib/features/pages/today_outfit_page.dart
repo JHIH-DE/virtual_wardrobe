@@ -8,6 +8,7 @@ import '../../core/providers/daily_outfit_provider.dart';
 import '../../core/providers/garments_provider.dart';
 import '../../core/providers/outfits_provider.dart';
 import '../../core/services/auth_handler.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/outfit_garments.dart';
 import '../../data/garment.dart';
@@ -23,6 +24,8 @@ import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/outfit/outfit_garment_section.dart';
 import '../widgets/outfit/outfit_image.dart';
+import '../widgets/outfit/outfit_tag_rows.dart';
+import '../widgets/outfit/outfit_tags_sheet.dart';
 import '../widgets/outfit/outfit_title.dart';
 import 'outfit_details_page.dart';
 
@@ -53,6 +56,7 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
   // Keyed by outfit id, so swiping back doesn't re-fetch.
   final Map<int, List<Garment>> _garmentsByOutfitId = {};
   final Set<int> _loadingGarmentsFor = {};
+  bool _isSavingTags = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -86,7 +90,13 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
               ),
               children: [
                 Text(_titleFor(current), style: AppTextStyle.bold20),
-                const SizedBox(height: AppDimens.titleGap),
+                const SizedBox(height: 8),
+                OutfitTagsHeader(
+                  seasons: current.seasons,
+                  style: current.style,
+                  onEdit: _isSavingTags ? null : () => _editTags(current),
+                ),
+                const SizedBox(height: AppDimens.cardHeaderGap),
                 _buildOutfitImage(options, current),
                 if (options.length > 1) ...[
                   const SizedBox(height: 10),
@@ -226,6 +236,40 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
         .read(dailyOutfitProvider.notifier)
         .updateOutfit(outfit.copyWith(imageUrl: fresh));
     return fresh;
+  }
+
+  Future<void> _editTags(Outfit target) async {
+    if (_isSavingTags) return;
+    final tags = await showOutfitTagsSheet(context, target);
+    if (tags == null || !mounted) return;
+    await _saveTags(target, tags);
+  }
+
+  /// A failure rolls back (in [DailyOutfitNotifier.updateOutfitTags]) and
+  /// offers Retry.
+  Future<void> _saveTags(Outfit target, OutfitTags tags) async {
+    setState(() => _isSavingTags = true);
+    var retry = false;
+    try {
+      await ref
+          .read(dailyOutfitProvider.notifier)
+          .updateOutfitTags(target, seasons: tags.seasons, style: tags.style);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      if (!mounted) return;
+      debugLog('TodayOutfitPage update tags failed: $e');
+      await showErrorDialog(
+        context,
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitUpdateFailed),
+        onRetry: () => retry = true,
+      );
+    } finally {
+      if (mounted) setState(() => _isSavingTags = false);
+    }
+    // After the finally, or it would clear _isSavingTags under the retry.
+    if (retry && mounted) await _saveTags(target, tags);
   }
 
   Future<void> _toggleFavorite(Outfit target) async {

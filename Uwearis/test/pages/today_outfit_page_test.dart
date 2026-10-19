@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +10,7 @@ import 'package:uwearis/core/providers/daily_outfit_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/today_outfit_page.dart';
+import 'package:uwearis/features/widgets/outfit/outfit_tag_rows.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -50,7 +54,15 @@ http.Client _garmentClient() => MockClient((request) async {
 // Empty image URLs keep the carousel off the network.
 final _options = [
   Outfit(id: 10, groupId: 1, name: 'Office', imageUrl: '', garmentIds: [1]),
-  Outfit(id: 20, groupId: 2, name: 'Weekend', imageUrl: '', garmentIds: [2]),
+  Outfit(
+    id: 20,
+    groupId: 2,
+    name: 'Weekend',
+    imageUrl: '',
+    garmentIds: [2],
+    seasons: ['summer'],
+    style: ['smart_casual', 'street'],
+  ),
   Outfit(id: 30, groupId: 3, imageUrl: '', garmentIds: [1, 2]),
 ];
 
@@ -140,5 +152,76 @@ void main() {
     expect(find.text('View Full Outfit'), findsOneWidget);
     expect(find.byIcon(Icons.refresh), findsNothing);
     expect(find.byIcon(Icons.more_horiz), findsNothing);
+  });
+
+  testWidgets('shows season and style tags beside the edit-tags button', (
+    tester,
+  ) async {
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        const TodayOutfitPage(initialIndex: 1),
+        overrides: _overrides(),
+      );
+      await _settle(tester);
+
+      expect(find.text('Summer'), findsOneWidget);
+      expect(find.text('Smart Casual'), findsOneWidget);
+      expect(find.text('Street'), findsOneWidget);
+      expect(find.byIcon(Icons.sell_outlined), findsOneWidget);
+    }, _garmentClient);
+  });
+
+  testWidgets('an untagged option reads "My Collection"', (tester) async {
+    await http.runWithClient(() async {
+      await pumpApp(tester, const TodayOutfitPage(), overrides: _overrides());
+      await _settle(tester);
+
+      expect(find.text('My Collection'), findsOneWidget);
+      expect(find.byType(OutfitTagRows), findsNothing);
+    }, _garmentClient);
+  });
+
+  // Outfit Details opened from here reads OutfitService / outfitsProvider,
+  // so an edit here must reach My Outfits as well as today's list.
+  testWidgets('editing tags PATCHes them and syncs today and My Outfits', (
+    tester,
+  ) async {
+    final patches = <Map<String, dynamic>>[];
+    final client = MockClient((request) async {
+      if (request.method == 'PATCH') {
+        patches.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return jsonResponse(envelope({'outfit_id': 10, 'group_id': 1}));
+      }
+      return _garmentClient().send(request).then(http.Response.fromStream);
+    });
+
+    useTallSurface(tester);
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        const TodayOutfitPage(),
+        overrides: _overrides(myOutfits: [_options[0]]),
+      );
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(TodayOutfitPage)),
+      );
+      container.listen(outfitsProvider, (_, _) {});
+      await _settle(tester);
+
+      await tester.tap(find.byIcon(Icons.sell_outlined));
+      await _settle(tester);
+      await tester.tap(find.text('Winter'));
+      await _settle(tester);
+      await tester.tapAt(const Offset(10, 10));
+      await _settle(tester);
+
+      expect(patches.single['season'], ['winter']);
+      expect(find.text('Winter'), findsOneWidget);
+      expect(container.read(dailyOutfitProvider).value!.first.seasons, [
+        'winter',
+      ]);
+      expect(container.read(outfitsProvider).value!.single.seasons, ['winter']);
+    }, () => client);
   });
 }

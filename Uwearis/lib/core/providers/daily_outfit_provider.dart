@@ -141,4 +141,28 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
       rethrow;
     }
   }
+
+  /// Optimistic tag update for Today's Outfit's tag sheet; syncs
+  /// [outfitsProvider] once saved. Rolls back and rethrows on failure.
+  Future<void> updateOutfitTags(
+    Outfit target, {
+    required List<String> seasons,
+    required List<String> style,
+  }) async {
+    final updated = target.copyWith(seasons: seasons, style: style);
+    final outfits = ref.read(outfitsProvider.notifier);
+    updateOutfit(updated);
+    try {
+      await OutfitService().updateOutfit(
+        target.groupId,
+        target.id,
+        season: seasons,
+        style: style,
+      );
+      outfits.updateOutfit(updated);
+    } catch (_) {
+      updateOutfit(target);
+      rethrow;
+    }
+  }
 }

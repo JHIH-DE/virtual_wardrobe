@@ -1323,23 +1323,11 @@ abstract class AppLocalizations {
   /// **'Regenerate Outfit'**
   String get regenerateOutfit;
 
-  /// No description provided for @changeGarments.
-  ///
-  /// In en, this message translates to:
-  /// **'Change Garments'**
-  String get changeGarments;
-
   /// No description provided for @missingFromSuitcaseCount.
   ///
   /// In en, this message translates to:
   /// **'{count} items aren\'t packed yet.'**
   String missingFromSuitcaseCount(int count);
-
-  /// No description provided for @suitcaseItemStillUsedCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Removed from Suitcase. This item is still used in {count} of this trip\'s planned outfits.'**
-  String suitcaseItemStillUsedCount(int count);
 
   /// No description provided for @addToSuitcase.
   ///
@@ -2553,11 +2541,11 @@ abstract class AppLocalizations {
   /// **'Added {count} items from this outfit.'**
   String addedItemsFromOutfitCount(int count);
 
-  /// No description provided for @noNewItemsFromOutfit.
+  /// No description provided for @allItemsAlreadyInSuitcase.
   ///
   /// In en, this message translates to:
-  /// **'No new items to add from this outfit.'**
-  String get noNewItemsFromOutfit;
+  /// **'All garments in this version are already in your Suitcase.'**
+  String get allItemsAlreadyInSuitcase;
 
   /// No description provided for @noGarmentsInCategory.
   ///

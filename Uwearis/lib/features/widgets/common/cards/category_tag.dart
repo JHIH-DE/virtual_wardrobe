@@ -5,8 +5,9 @@ import '../../../../app/theme/app_text_styles.dart';
 
 class CategoryTag extends StatelessWidget {
   final String label;
+  final Color? borderColor;
 
-  const CategoryTag({super.key, required this.label});
+  const CategoryTag({super.key, required this.label, this.borderColor});
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +16,7 @@ class CategoryTag extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.tagBackground,
         borderRadius: BorderRadius.circular(4),
+        border: borderColor == null ? null : Border.all(color: borderColor!),
       ),
       child: Text(
         label,

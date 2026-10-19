@@ -356,33 +356,58 @@ void main() {
       },
     );
 
-    testWidgets('an outfit with nothing new to pack says so', (tester) async {
-      await http.runWithClient(
-        () async {
-          await pumpWithOutfit(
-            tester,
-            Outfit(id: 51, imageUrl: '', garmentIds: const [1]),
-          );
+    testWidgets(
+      'the Add from an Outfit card stays hidden when no outfit has an '
+      'unpacked closet garment',
+      (tester) async {
+        await http.runWithClient(
+          () async {
+            // 1 is packed and 99 isn't in the closet.
+            await pumpWithOutfit(
+              tester,
+              Outfit(id: 51, imageUrl: '', garmentIds: const [1, 99]),
+            );
 
-          await tester.tap(find.text('Add from an Outfit'));
-          await tester.pumpAndSettle();
-          await tester.tap(find.byType(OutfitCard));
-          await tester.pumpAndSettle();
-          await tester.tap(find.text('Add to Suitcase'));
-          await tester.pumpAndSettle();
+            expect(find.text('Tee'), findsOneWidget);
+            expect(find.text('Add from an Outfit'), findsNothing);
+          },
+          () => suitcaseClient(
+            suitcaseItems: const [
+              {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+            ],
+          ),
+        );
+      },
+    );
 
-          expect(
-            find.text('No new items to add from this outfit.'),
-            findsOneWidget,
-          );
-        },
-        () => suitcaseClient(
-          suitcaseItems: const [
-            {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
-          ],
-        ),
-      );
-    });
+    testWidgets(
+      'the card disappears once the outfit\'s garments are all staged',
+      (tester) async {
+        await http.runWithClient(
+          () async {
+            await pumpWithOutfit(
+              tester,
+              Outfit(id: 50, imageUrl: '', garmentIds: const [1, 3]),
+            );
+
+            await tester.tap(find.text('Add from an Outfit'));
+            await tester.pumpAndSettle();
+            await tester.tap(find.byType(OutfitCard));
+            await tester.pumpAndSettle();
+            await tester.tap(find.text('Add to Suitcase'));
+            await tester.pumpAndSettle();
+
+            expect(find.text('Sneakers'), findsOneWidget);
+            expect(find.text('Add from an Outfit'), findsNothing);
+          },
+          () => suitcaseClient(
+            suitcaseItems: const [
+              {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+            ],
+          ),
+        );
+      },
+    );
   });
 
   group('plan generation', () {
@@ -834,8 +859,7 @@ void main() {
     );
 
     testWidgets(
-      'affected_options non-empty: garment is still removed, and a plain '
-      'SnackBar explains it is still used elsewhere in the trip',
+      'affected_options non-empty: garment is still removed silently',
       (tester) async {
         final client = MockClient((request) async {
           if (request.url.path.endsWith('/plan')) {
@@ -895,13 +919,7 @@ void main() {
 
           // Garment removal itself is unaffected — no Fix/Replan, no undo.
           expect(find.text('Jeans'), findsNothing);
-          expect(
-            find.text(
-              'Removed from Suitcase. This item is still used in 2 of '
-              "this trip's planned outfits.",
-            ),
-            findsOneWidget,
-          );
+          expect(find.byType(SnackBar), findsNothing);
         }, () => client);
       },
     );

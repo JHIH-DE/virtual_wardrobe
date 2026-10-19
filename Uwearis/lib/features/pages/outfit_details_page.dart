@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,16 +16,12 @@ import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/outfit_garments.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
-import '../../data/style_type.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/circle_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
-import '../widgets/common/cards/category_tag.dart';
 import '../widgets/common/images/fullscreen_image_viewer.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
 import '../widgets/common/overlays/app_dialog.dart';
@@ -40,6 +34,8 @@ import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/outfit/outfit_garment_section.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/outfit/outfit_share_sheet.dart';
+import '../widgets/outfit/outfit_tag_rows.dart';
+import '../widgets/outfit/outfit_tags_sheet.dart';
 import '../widgets/outfit/outfit_title.dart';
 import 'add_outfit_page.dart';
 
@@ -355,36 +351,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  // Styles arrive snake_case (`smart_casual`).
-  String _titleCase(String s) => s
-      .replaceAll('_', ' ')
-      .split(' ')
-      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-      .join(' ');
-
   Widget _buildInfoCard() {
-    final tags = [..._effectiveStyle.map(_titleCase)];
-    final tagStyle = AppTextStyle.regular14.copyWith(
-      color: AppColors.textSecondary,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircleIconButton(
-            icon: Icons.sell_outlined,
-            onPressed: _isSavingTags ? null : _openEditTagsSheet,
-          ),
-          const SizedBox(width: 2),
-          Expanded(
-            child: tags.isEmpty
-                ? Text(_l10n.myCollection, style: tagStyle)
-                : _CollapsingTagsRow(tags: tags),
-          ),
-        ],
-      ),
+    return OutfitTagsHeader(
+      seasons: _effectiveSeasons,
+      style: _effectiveStyle,
+      onEdit: _isSavingTags ? null : _openEditTagsSheet,
     );
   }
 
@@ -394,44 +365,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     if (_isSavingTags) return;
     final target = _current;
     final index = _currentIndex;
-    final initialSeasons = target.seasons.map(_titleCase).toSet();
-    final initialStyles = target.style.map(_titleCase).toSet();
-    final selectedSeasons = {...initialSeasons};
-    final selectedStyles = {...initialStyles};
-
-    FilterGroup tagGroup(String label, List<String> options, Set<String> sel) {
-      return FilterGroup(
-        label: label,
-        options: options,
-        selected: () => sel,
-        onToggle: (option) {
-          if (!sel.remove(option)) sel.add(option);
-        },
-      );
-    }
-
-    await showChipGroupsSheet(
-      context,
-      groups: [
-        tagGroup(_l10n.seasonLabel, seasonOptions, selectedSeasons),
-        tagGroup(_l10n.styleLabel, styleOptions, selectedStyles),
-      ],
-    );
-    if (!mounted) return;
-    if (setEquals(selectedSeasons, initialSeasons) &&
-        setEquals(selectedStyles, initialStyles)) {
-      return;
-    }
-
-    await _saveTags(
-      index,
-      target,
-      seasons: selectedSeasons.map((s) => s.toLowerCase()).toList(),
-      // Back to the backend's snake_case.
-      styles: selectedStyles
-          .map((s) => s.toLowerCase().replaceAll(' ', '_'))
-          .toList(),
-    );
+    final tags = await showOutfitTagsSheet(context, target);
+    if (tags == null || !mounted) return;
+    await _saveTags(index, target, seasons: tags.seasons, styles: tags.style);
   }
 
   /// Optimistic; a failure rolls back to [target] and offers Retry.
@@ -442,6 +378,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     required List<String> styles,
   }) async {
     final updated = target.copyWith(seasons: seasons, style: styles);
+    // Read before the await so the sync still lands if the page is popped
+    // meanwhile. Each is a no-op when it doesn't hold this version.
+    final outfits = ref.read(outfitsProvider.notifier);
+    final dailyOutfits = ref.read(dailyOutfitProvider.notifier);
     setState(() {
       _isSavingTags = true;
       if (index < _versions.length) _versions[index] = updated;
@@ -462,6 +402,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         season: seasons,
         style: styles,
       );
+      outfits.updateOutfit(updated);
+      dailyOutfits.updateOutfit(updated);
     } on AuthExpiredException {
       if (!mounted) return;
       setState(rollBack);
@@ -489,8 +431,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       context,
       imageUrl: _current.imageUrl,
       name: _title,
-      style: _effectiveStyle.map(_titleCase).toList(),
-      seasons: _effectiveSeasons.map(_titleCase).toList(),
+      style: _effectiveStyle.map(outfitTagLabel).toList(),
+      seasons: _effectiveSeasons.map(outfitTagLabel).toList(),
       garmentImageUrls: [
         for (final g in _garments ?? const <Garment>[])
           if ((g.imageUrl ?? '').isNotEmpty) g.imageUrl!,
@@ -1079,97 +1021,5 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitUpdateFailed),
       );
     }
-  }
-}
-
-/// Lays [tags] out on a single line, collapsing whatever doesn't fit into a
-/// trailing "+N" tag instead of wrapping to a second line.
-class _CollapsingTagsRow extends StatelessWidget {
-  final List<String> tags;
-
-  const _CollapsingTagsRow({required this.tags});
-
-  @override
-  Widget build(BuildContext context) {
-    const tagSpacing = 8.0;
-    const tagHPadding = 20.0; // CategoryTag's horizontal padding (10 * 2).
-    // Measured width can trail the rendered one by a sub-pixel; reserve a
-    // little so a near-miss collapses into "+N" instead of overflowing.
-    const tagSlack = 3.0;
-    // What CategoryTag's Text actually resolves to.
-    final tagTextStyle = DefaultTextStyle.of(
-      context,
-    ).style.merge(AppTextStyle.bold12);
-    final textScaler = MediaQuery.textScalerOf(context);
-
-    double textWidth(String text) {
-      final painter = TextPainter(
-        text: TextSpan(text: text, style: tagTextStyle),
-        maxLines: 1,
-        textDirection: ui.TextDirection.ltr,
-        textScaler: textScaler,
-      )..layout();
-      return painter.width;
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final tagWidths = tags
-            .map((t) => textWidth(t) + tagHPadding + tagSlack)
-            .toList();
-
-        var visibleCount = tags.length;
-        var usedWidth = 0.0;
-        for (var i = 0; i < tags.length; i++) {
-          final width = tagWidths[i] + (i > 0 ? tagSpacing : 0);
-          if (usedWidth + width > maxWidth) {
-            visibleCount = i;
-            break;
-          }
-          usedWidth += width;
-        }
-
-        // A non-scrolling viewport clips any remaining estimate error
-        // instead of throwing a RenderFlex overflow.
-        Widget oneLine(List<Widget> children) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const NeverScrollableScrollPhysics(),
-          child: Row(mainAxisSize: MainAxisSize.min, children: children),
-        );
-
-        if (visibleCount == tags.length) {
-          return oneLine([
-            for (var i = 0; i < tags.length; i++) ...[
-              if (i > 0) const SizedBox(width: tagSpacing),
-              CategoryTag(label: tags[i]),
-            ],
-          ]);
-        }
-
-        // Shrink further if needed so the trailing "+N" tag also fits.
-        var count = visibleCount;
-        while (count > 0) {
-          final overflowLabel = '+${tags.length - count}';
-          var used =
-              tagSpacing + textWidth(overflowLabel) + tagHPadding + tagSlack;
-          for (var i = 0; i < count; i++) {
-            used += tagWidths[i] + (i > 0 ? tagSpacing : 0);
-          }
-          if (used <= maxWidth) break;
-          count--;
-        }
-        count = count.clamp(1, tags.length);
-
-        return oneLine([
-          for (var i = 0; i < count; i++) ...[
-            if (i > 0) const SizedBox(width: tagSpacing),
-            CategoryTag(label: tags[i]),
-          ],
-          const SizedBox(width: tagSpacing),
-          CategoryTag(label: '+${tags.length - count}'),
-        ]);
-      },
-    );
   }
 }

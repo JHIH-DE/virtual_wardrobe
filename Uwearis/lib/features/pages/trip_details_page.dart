@@ -963,11 +963,22 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       children: [
         Expanded(child: FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
         if (_selectedDayHasOption)
-          CircleIconButton(
-            icon: Icons.edit_outlined,
-            tooltip: _l10n.changeGarments,
-            discAlignment: Alignment.centerRight,
+          TextButton(
             onPressed: _openDayOutfitEditor,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.accent,
+              minimumSize: const Size(
+                AppDimens.minTouchTarget,
+                AppDimens.minTouchTarget,
+              ),
+              padding: const EdgeInsets.only(left: 16),
+              alignment: Alignment.centerRight,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              _l10n.edit,
+              style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
+            ),
           ),
       ],
     );

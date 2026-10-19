@@ -222,4 +222,20 @@ void main() {
       );
     });
   });
+
+  test('updateOutfitTags rolls back and rethrows when the PATCH fails', () {
+    final backend = _Backend(plan: [1])..patchStatus = 400;
+    return _withDaily(backend, [_outfit(1)], (c, _) async {
+      final target = c.read(dailyOutfitProvider).value!.single;
+      await expectLater(
+        c
+            .read(dailyOutfitProvider.notifier)
+            .updateOutfitTags(target, seasons: ['winter'], style: ['street']),
+        throwsA(anything),
+      );
+
+      expect(c.read(dailyOutfitProvider).value!.single.seasons, isEmpty);
+      expect(c.read(outfitsProvider).value!.single.seasons, isEmpty);
+    });
+  });
 }

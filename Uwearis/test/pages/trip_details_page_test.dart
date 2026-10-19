@@ -11,7 +11,6 @@ import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/trip_plan.dart';
 import 'package:uwearis/features/pages/trip_details_page.dart';
 import 'package:uwearis/features/pages/trip_suitcase_page.dart';
-import 'package:uwearis/features/widgets/common/buttons/circle_icon_button.dart';
 import 'package:uwearis/features/widgets/common/cards/generated_image_card.dart';
 import 'package:uwearis/features/widgets/trip/trip_day_card.dart';
 
@@ -182,21 +181,18 @@ void main() {
           of: find.text('OUTFIT ITEMS'),
           matching: find.byType(Row),
         );
+        final edit = find.descendant(
+          of: row,
+          matching: find.widgetWithText(TextButton, 'Edit'),
+        );
+        expect(edit, findsOneWidget);
+        // The label sits flush with the row's right edge.
         expect(
-          find.descendant(of: row, matching: find.byIcon(Icons.edit_outlined)),
-          findsOneWidget,
+          tester
+              .getRect(find.descendant(of: edit, matching: find.text('Edit')))
+              .right,
+          tester.getRect(row.first).right,
         );
-        // The pencil's disc aligns with the row's right edge, not inset in
-        // its larger tap box.
-        final disc = tester.getRect(
-          find
-              .descendant(
-                of: find.widgetWithIcon(CircleIconButton, Icons.edit_outlined),
-                matching: find.byType(DecoratedBox),
-              )
-              .first,
-        );
-        expect(disc.right, tester.getRect(row.first).right);
       }, packingAdviceClient);
     },
   );
@@ -691,7 +687,7 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.byIcon(Icons.edit_outlined));
+        await tester.tap(find.widgetWithText(TextButton, 'Edit'));
         await tester.pump();
         await tester.pump();
         await tester.pumpAndSettle();

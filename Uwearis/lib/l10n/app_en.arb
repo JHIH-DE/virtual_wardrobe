@@ -284,13 +284,8 @@
   "failedToUpdateDayOutfit": "Failed to update outfit",
   "failedToGenerateOutfit": "Failed to generate outfit",
   "regenerateOutfit": "Regenerate Outfit",
-  "changeGarments": "Change Garments",
   "missingFromSuitcaseCount": "{count} items aren't packed yet.",
   "@missingFromSuitcaseCount": {
-    "placeholders": { "count": { "type": "int" } }
-  },
-  "suitcaseItemStillUsedCount": "Removed from Suitcase. This item is still used in {count} of this trip's planned outfits.",
-  "@suitcaseItemStillUsedCount": {
     "placeholders": { "count": { "type": "int" } }
   },
   "addToSuitcase": "Add to Suitcase",
@@ -534,7 +529,7 @@
   "@addedItemsFromOutfitCount": {
     "placeholders": { "count": { "type": "int" } }
   },
-  "noNewItemsFromOutfit": "No new items to add from this outfit.",
+  "allItemsAlreadyInSuitcase": "All garments in this version are already in your Suitcase.",
   "noGarmentsInCategory": "No garments in {category}",
   "@noGarmentsInCategory": {
     "placeholders": { "category": { "type": "String" } }

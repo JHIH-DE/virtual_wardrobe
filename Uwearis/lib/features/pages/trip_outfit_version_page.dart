@@ -22,8 +22,13 @@ import '../widgets/outfit/outfit_image.dart';
 /// (no favourite / regenerate / cover / delete).
 class TripOutfitVersionPage extends ConsumerStatefulWidget {
   final Outfit outfit;
+  final Set<int> packedGarmentIds;
 
-  const TripOutfitVersionPage({super.key, required this.outfit});
+  const TripOutfitVersionPage({
+    super.key,
+    required this.outfit,
+    this.packedGarmentIds = const {},
+  });
 
   @override
   ConsumerState<TripOutfitVersionPage> createState() =>
@@ -104,12 +109,15 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
       for (final id in _current.garmentIds.toSet())
         if (closetById[id] != null) closetById[id]!,
     ];
+    final hasUnpacked = garments.any(
+      (g) => !widget.packedGarmentIds.contains(g.id),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       extendBody: true,
       appBar: AppToolBar(title: _l10n.selectVersionTitle),
-      bottomNavigationBar: _buildAddButton(),
+      bottomNavigationBar: _buildAddButton(hasUnpacked),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           20,
@@ -120,6 +128,17 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
         children: [
           _buildVersionCarousel(),
           _buildVersionCounter(),
+          if (garments.isNotEmpty && !hasUnpacked)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
+              child: Text(
+                _l10n.allItemsAlreadyInSuitcase,
+                textAlign: TextAlign.center,
+                style: AppTextStyle.medium14.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
           LabeledDivider(label: _l10n.garmentsCount(garments.length)),
           const SizedBox(height: AppDimens.cardHeaderGap),
           for (final g in garments)
@@ -176,10 +195,10 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
     );
   }
 
-  Widget _buildAddButton() {
+  Widget _buildAddButton(bool hasUnpacked) {
     return BottomActionButton(
       label: _l10n.addToSuitcase,
-      onPressed: _addToSuitcase,
+      onPressed: hasUnpacked ? _addToSuitcase : null,
       leading: const Icon(Icons.luggage_outlined),
     );
   }

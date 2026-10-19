@@ -55,7 +55,11 @@ void main() {
   ];
 
   /// Returns a getter for the popped result.
-  Future<Outfit? Function()> pumpPage(WidgetTester tester, Outfit seed) async {
+  Future<Outfit? Function()> pumpPage(
+    WidgetTester tester,
+    Outfit seed, {
+    Set<int> packedGarmentIds = const {},
+  }) async {
     tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -69,7 +73,10 @@ void main() {
               popped = await Navigator.push<Outfit>(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => TripOutfitVersionPage(outfit: seed),
+                  builder: (_) => TripOutfitVersionPage(
+                    outfit: seed,
+                    packedGarmentIds: packedGarmentIds,
+                  ),
                 ),
               );
             },
@@ -129,6 +136,54 @@ void main() {
 
         expect(find.byType(TripOutfitVersionPage), findsNothing);
         expect(popped()?.id, 66);
+      }, () => client);
+    },
+  );
+
+  testWidgets(
+    'Add to Suitcase is hidden only for a version whose garments are all '
+    'already packed',
+    (tester) async {
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/outfit/40')) {
+          return jsonResponse(
+            envelope({
+              'group_id': 40,
+              'outfits': [
+                _outfitJson(65, 40, [1, 2]),
+                _outfitJson(66, 40, [2, 3]),
+              ],
+            }),
+          );
+        }
+        return jsonResponse(envelope({}), status: 404);
+      });
+
+      await http.runWithClient(() async {
+        await pumpPage(
+          tester,
+          Outfit(id: 65, groupId: 40, imageUrl: '', garmentIds: const [1, 2]),
+          packedGarmentIds: {1, 2},
+        );
+
+        expect(find.text('Add to Suitcase'), findsNothing);
+        expect(
+          find.text(
+            'All garments in this version are already in your Suitcase.',
+          ),
+          findsOneWidget,
+        );
+
+        await tester.drag(find.byType(PageView), const Offset(-800, 0));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Add to Suitcase'), findsOneWidget);
+        expect(
+          find.text(
+            'All garments in this version are already in your Suitcase.',
+          ),
+          findsNothing,
+        );
       }, () => client);
     },
   );

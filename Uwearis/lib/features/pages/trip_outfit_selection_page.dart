@@ -16,7 +16,9 @@ import 'trip_outfit_version_page.dart';
 /// Pick an outfit, then a version ([TripOutfitVersionPage]), to pack its
 /// garments; pops with the chosen [Outfit] or null.
 class TripOutfitSelectionPage extends ConsumerStatefulWidget {
-  const TripOutfitSelectionPage({super.key});
+  final Set<int> packedGarmentIds;
+
+  const TripOutfitSelectionPage({super.key, this.packedGarmentIds = const {}});
 
   @override
   ConsumerState<TripOutfitSelectionPage> createState() =>
@@ -41,7 +43,12 @@ class _TripOutfitSelectionPageState
   Future<void> _pickVersion(Outfit outfit) async {
     final version = await Navigator.push<Outfit>(
       context,
-      MaterialPageRoute(builder: (_) => TripOutfitVersionPage(outfit: outfit)),
+      MaterialPageRoute(
+        builder: (_) => TripOutfitVersionPage(
+          outfit: outfit,
+          packedGarmentIds: widget.packedGarmentIds,
+        ),
+      ),
     );
     if (version != null && mounted) Navigator.pop(context, version);
   }

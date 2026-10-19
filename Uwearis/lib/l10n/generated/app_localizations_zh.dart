@@ -638,16 +638,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get regenerateOutfit => '重新產生穿搭';
 
   @override
-  String get changeGarments => '更換單品';
-
-  @override
   String missingFromSuitcaseCount(int count) {
     return '還有 $count 件尚未打包。';
-  }
-
-  @override
-  String suitcaseItemStillUsedCount(int count) {
-    return '已從行李箱移除。這件衣物仍被本次行程中 $count 套穿搭方案使用。';
   }
 
   @override
@@ -1265,7 +1257,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get noNewItemsFromOutfit => '這套穿搭沒有可新增的單品。';
+  String get allItemsAlreadyInSuitcase => '此版本的單品都已在行李箱中。';
 
   @override
   String noGarmentsInCategory(String category) {
@@ -2147,16 +2139,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get regenerateOutfit => '重新產生穿搭';
 
   @override
-  String get changeGarments => '更換單品';
-
-  @override
   String missingFromSuitcaseCount(int count) {
     return '還有 $count 件尚未打包。';
-  }
-
-  @override
-  String suitcaseItemStillUsedCount(int count) {
-    return '已從行李箱移除。這件衣物仍被本次行程中 $count 套穿搭方案使用。';
   }
 
   @override
@@ -2774,7 +2758,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String get noNewItemsFromOutfit => '這套穿搭沒有可新增的單品。';
+  String get allItemsAlreadyInSuitcase => '此版本的單品都已在行李箱中。';
 
   @override
   String noGarmentsInCategory(String category) {

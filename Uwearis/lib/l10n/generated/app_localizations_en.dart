@@ -677,16 +677,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get regenerateOutfit => 'Regenerate Outfit';
 
   @override
-  String get changeGarments => 'Change Garments';
-
-  @override
   String missingFromSuitcaseCount(int count) {
     return '$count items aren\'t packed yet.';
-  }
-
-  @override
-  String suitcaseItemStillUsedCount(int count) {
-    return 'Removed from Suitcase. This item is still used in $count of this trip\'s planned outfits.';
   }
 
   @override
@@ -1321,7 +1313,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get noNewItemsFromOutfit => 'No new items to add from this outfit.';
+  String get allItemsAlreadyInSuitcase =>
+      'All garments in this version are already in your Suitcase.';
 
   @override
   String noGarmentsInCategory(String category) {
