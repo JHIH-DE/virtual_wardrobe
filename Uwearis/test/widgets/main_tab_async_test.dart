@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
+import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/main_tab_async.dart';
 import 'package:uwearis/features/widgets/common/overlays/error_state_widget.dart';
 
@@ -30,20 +31,22 @@ void main() {
     expect(find.text('data: 1,2,3'), findsOneWidget);
   });
 
-  testWidgets('error renders ErrorStateWidget; its retry button calls onRetry',
-      (tester) async {
-    var retries = 0;
-    await pumpApp(
-      tester,
-      bodyFor(
-        AsyncError(Exception('boom'), StackTrace.empty),
-        onRetry: () => retries++,
-      ),
-    );
-    expect(find.byType(ErrorStateWidget), findsOneWidget);
-    await tester.tap(find.byType(ElevatedButton));
-    expect(retries, 1);
-  });
+  testWidgets(
+    'error renders ErrorStateWidget; its retry button calls onRetry',
+    (tester) async {
+      var retries = 0;
+      await pumpApp(
+        tester,
+        bodyFor(
+          AsyncError(Exception('boom'), StackTrace.empty),
+          onRetry: () => retries++,
+        ),
+      );
+      expect(find.byType(ErrorStateWidget), findsOneWidget);
+      await tester.tap(find.byType(AccentPillButton));
+      expect(retries, 1);
+    },
+  );
 
   testWidgets('an AuthExpiredException error renders nothing (handled by the '
       'page-level listener instead)', (tester) async {
@@ -52,7 +55,7 @@ void main() {
       bodyFor(AsyncError(AuthExpiredException(), StackTrace.empty)),
     );
     expect(find.byType(ErrorStateWidget), findsOneWidget);
-    expect(find.byType(ElevatedButton), findsNothing);
+    expect(find.byType(AccentPillButton), findsNothing);
     expect(find.byIcon(Icons.error_outline), findsNothing);
   });
 }

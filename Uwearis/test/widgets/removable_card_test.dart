@@ -7,13 +7,16 @@ import '../helpers/widget_harness.dart';
 
 void main() {
   testWidgets(
-    'the delete badge uses hintText, matching FavoriteCard\'s neutral-state '
+    'the delete badge uses hintText, matching the favorite badge\'s neutral-state '
     'color — not the darker AppColors.icon',
     (tester) async {
       await pumpApp(
         tester,
         Scaffold(
-          body: RemovableCard(onDelete: () {}, child: const SizedBox.square(dimension: 80)),
+          body: RemovableCard(
+            onDelete: () {},
+            child: const SizedBox.square(dimension: 80),
+          ),
         ),
       );
 

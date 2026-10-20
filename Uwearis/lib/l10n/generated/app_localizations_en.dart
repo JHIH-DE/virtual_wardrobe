@@ -1574,4 +1574,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get debugToolsSampleErrorMessage =>
       'This is a simulated backend error message, shown to preview the error dialog design.';
+
+  @override
+  String get debugToolsComponentGallery => 'Component Gallery';
+
+  @override
+  String get debugToolsComponentGallerySummary =>
+      'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale';
 }

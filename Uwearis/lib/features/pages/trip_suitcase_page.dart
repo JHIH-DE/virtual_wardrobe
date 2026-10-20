@@ -460,7 +460,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
               onTap: _addFromOutfit,
               child: Text(
                 _l10n.addFromOutfitHint,
-                style: AppTextStyle.regular14.copyWith(
+                style: AppTextStyle.regular12.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
@@ -477,25 +477,27 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     sliver: SliverToBoxAdapter(child: addFromOutfitCard),
                   ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    addFromOutfitCard == null ? 16 : 0,
-                    16,
-                    _showsBottomActionButton
-                        ? AppDimens.bottomActionBtnClearance
-                        : 16,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      for (final category in _categoryOrder)
-                        ..._buildCategorySection(
-                          category,
-                          _packedGarments
-                              .where((g) => g.category == category)
-                              .toList(),
-                        ),
-                    ]),
+                Builder(
+                  builder: (bodyContext) => SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      addFromOutfitCard == null ? 16 : 0,
+                      16,
+                      _showsBottomActionButton
+                          ? BottomActionButton.scrollClearance(bodyContext)
+                          : 16 + MediaQuery.paddingOf(context).bottom,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        for (final category in _categoryOrder)
+                          ..._buildCategorySection(
+                            category,
+                            _packedGarments
+                                .where((g) => g.category == category)
+                                .toList(),
+                          ),
+                      ]),
+                    ),
                   ),
                 ),
               ],

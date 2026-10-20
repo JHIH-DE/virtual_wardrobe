@@ -19,6 +19,32 @@ class ActionButton extends StatelessWidget {
     alpha: 0.38,
   );
 
+  static const double _labelVerticalPadding = 12;
+  static const double _labelHorizontalPadding = 24;
+  static const double _iconSize = 24;
+
+  /// The width a button needs to show [label] on one line under [context]'s
+  /// text scale. A parent placing two buttons side by side stacks them
+  /// instead when either one needs more than its share.
+  static double oneLineWidthFor(
+    BuildContext context,
+    String label, {
+    bool hasIcon = false,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: AppTextStyle.medium16),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width =
+        painter.width +
+        2 * _labelHorizontalPadding +
+        (hasIcon ? _iconSize + AppDimens.actionButtonIconGap : 0);
+    painter.dispose();
+    return width;
+  }
+
   final String label;
   final VoidCallback? onPressed;
   final ActionButtonVariant variant;
@@ -36,7 +62,14 @@ class ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final disabled = onPressed == null;
     final (background, foreground, border) = switch (variant) {
+      // Disabled matches AppDialog's disabled primary.
+      ActionButtonVariant.primary when disabled => (
+        AppColors.borderSubtle,
+        AppColors.hintText,
+        BorderSide.none,
+      ),
       ActionButtonVariant.primary => (
         AppColors.accent,
         AppColors.textOnPrimary,
@@ -47,14 +80,21 @@ class ActionButton extends StatelessWidget {
       ),
       ActionButtonVariant.secondary => (
         AppColors.accentTint,
-        onPressed == null ? _secondaryDisabledForeground : AppColors.accent,
+        disabled ? _secondaryDisabledForeground : AppColors.accent,
         BorderSide.none,
       ),
     };
     var style = ElevatedButton.styleFrom(
       backgroundColor: background,
       foregroundColor: foreground,
+      disabledBackgroundColor: background,
+      disabledForegroundColor: foreground,
       elevation: 0,
+      minimumSize: const Size.fromHeight(AppDimens.actionButtonHeight),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _labelHorizontalPadding,
+        vertical: _labelVerticalPadding,
+      ),
       side: border,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDimens.actionButtonRadius),
@@ -81,9 +121,9 @@ class ActionButton extends StatelessWidget {
         elevation: const WidgetStatePropertyAll(0),
       );
     }
+    // Grows taller rather than truncating: a long or enlarged label wraps.
     return SizedBox(
       width: double.infinity,
-      height: AppDimens.actionButtonHeight,
       child: ElevatedButton(
         onPressed: onPressed,
         style: style,
@@ -97,9 +137,12 @@ class ActionButton extends StatelessWidget {
               ),
               const SizedBox(width: AppDimens.actionButtonIconGap),
             ],
-            Text(
-              label,
-              style: AppTextStyle.medium16.copyWith(color: foreground),
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: AppTextStyle.medium16.copyWith(color: foreground),
+              ),
             ),
             if (trailing != null) ...[
               const SizedBox(width: AppDimens.actionButtonIconGap),

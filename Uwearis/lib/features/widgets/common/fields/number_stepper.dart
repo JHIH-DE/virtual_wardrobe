@@ -41,6 +41,22 @@ class NumberStepper extends StatefulWidget {
          'label is required for the card/row variants',
        );
 
+  /// The width a [NumberStepperVariant.tile] stepper needs to show
+  /// [sampleValueLabel] at full size under [context]'s text scale. A host
+  /// sizing tiles side by side compares a representative value against
+  /// this, so the layout doesn't jump as the value changes.
+  static double tileWidthFor(BuildContext context, String sampleValueLabel) {
+    final painter = TextPainter(
+      text: TextSpan(text: sampleValueLabel, style: AppTextStyle.bold16),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = 2 * AppDimens.minTouchTarget + painter.width;
+    painter.dispose();
+    return width;
+  }
+
   @override
   State<NumberStepper> createState() => _NumberStepperState();
 }
@@ -96,6 +112,13 @@ class _NumberStepperState extends State<NumberStepper> {
   @override
   Widget build(BuildContext context) {
     final isTile = widget.variant == NumberStepperVariant.tile;
+    final valueText = Text(
+      widget.valueLabel,
+      textAlign: TextAlign.center,
+      style: _valueTextStyle,
+      maxLines: 1,
+      softWrap: false,
+    );
     final row = Row(
       mainAxisSize: _isPill ? MainAxisSize.min : MainAxisSize.max,
       mainAxisAlignment: isTile
@@ -115,18 +138,19 @@ class _NumberStepperState extends State<NumberStepper> {
           icon: Icons.remove_circle_outline,
           onPressed: widget.onDecrement,
         ),
-        const SizedBox(width: 6),
-        ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 20),
-          child: Text(
-            widget.valueLabel,
-            textAlign: TextAlign.center,
-            style: _valueTextStyle,
-            maxLines: 1,
-            softWrap: false,
+        if (!isTile) const SizedBox(width: 6),
+        if (isTile)
+          // The 44px tap boxes already space the value from the glyphs; an
+          // unusually long value scales down rather than overflowing.
+          Flexible(
+            child: FittedBox(fit: BoxFit.scaleDown, child: valueText),
+          )
+        else
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 20),
+            child: valueText,
           ),
-        ),
-        const SizedBox(width: 6),
+        if (!isTile) const SizedBox(width: 6),
         _buildStepButton(
           icon: Icons.add_circle_outline,
           onPressed: widget.onIncrement,

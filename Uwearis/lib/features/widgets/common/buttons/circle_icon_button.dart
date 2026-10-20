@@ -18,8 +18,10 @@ class CircleIconButton extends StatelessWidget {
   final String? tooltip;
   final Alignment discAlignment;
 
-  /// Diameter of the disc; the glyph renders at half this.
+  /// Diameter of the disc; the glyph renders at half this unless
+  /// [iconSize] is set.
   final double size;
+  final double? iconSize;
 
   const CircleIconButton({
     super.key,
@@ -29,6 +31,7 @@ class CircleIconButton extends StatelessWidget {
     this.tooltip,
     this.discAlignment = Alignment.center,
     this.size = 32,
+    this.iconSize,
   });
 
   @override
@@ -97,7 +100,11 @@ class CircleIconButton extends StatelessWidget {
                     child: SizedBox.square(
                       dimension: size,
                       child: Center(
-                        child: Icon(icon, size: size / 2, color: color),
+                        child: Icon(
+                          icon,
+                          size: iconSize ?? size / 2,
+                          color: color,
+                        ),
                       ),
                     ),
                   ),

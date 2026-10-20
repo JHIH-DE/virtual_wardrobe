@@ -118,38 +118,44 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
       extendBody: true,
       appBar: AppToolBar(title: _l10n.selectVersionTitle),
       bottomNavigationBar: _buildAddButton(hasUnpacked),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          AppDimens.bottomActionBtnClearance,
-        ),
-        children: [
-          _buildVersionCarousel(),
-          _buildVersionCounter(),
-          if (garments.isNotEmpty && !hasUnpacked)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-              child: Text(
-                _l10n.allItemsAlreadyInSuitcase,
-                textAlign: TextAlign.center,
-                style: AppTextStyle.medium14.copyWith(
-                  color: AppColors.textSecondary,
+      body: Builder(
+        builder: (bodyContext) => ListView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            BottomActionButton.scrollClearance(bodyContext),
+          ),
+          children: [
+            _buildVersionCarousel(),
+            _buildVersionCounter(),
+            if (garments.isNotEmpty && !hasUnpacked)
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: AppDimens.sectionSpacing,
+                ),
+                child: Text(
+                  _l10n.allItemsAlreadyInSuitcase,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyle.medium14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
-            ),
-          LabeledDivider(label: _l10n.garmentsCount(garments.length)),
-          const SizedBox(height: AppDimens.cardHeaderGap),
-          for (final g in garments)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-              child: GarmentListCard(
-                garment: g,
-                onTap: () => GarmentDetailDialog.show(context, g),
+            LabeledDivider(label: _l10n.garmentsCount(garments.length)),
+            const SizedBox(height: AppDimens.cardHeaderGap),
+            for (final g in garments)
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: AppDimens.sectionSpacing,
+                ),
+                child: GarmentListCard(
+                  garment: g,
+                  onTap: () => GarmentDetailDialog.show(context, g),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

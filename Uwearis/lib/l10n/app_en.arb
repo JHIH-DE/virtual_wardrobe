@@ -635,5 +635,7 @@
   "debugTools": "Debug Tools",
   "debugToolsErrorDialogButton": "Show Backend Error Dialog",
   "debugToolsErrorDialogSummary": "Preview the dialog shown for a backend error",
-  "debugToolsSampleErrorMessage": "This is a simulated backend error message, shown to preview the error dialog design."
+  "debugToolsSampleErrorMessage": "This is a simulated backend error message, shown to preview the error dialog design.",
+  "debugToolsComponentGallery": "Component Gallery",
+  "debugToolsComponentGallerySummary": "Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale"
 }

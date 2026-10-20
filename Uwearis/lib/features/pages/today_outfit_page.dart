@@ -24,7 +24,7 @@ import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/outfit/outfit_garment_section.dart';
 import '../widgets/outfit/outfit_image.dart';
-import '../widgets/outfit/outfit_tag_rows.dart';
+import '../widgets/outfit/outfit_tag_row.dart';
 import '../widgets/outfit/outfit_tags_sheet.dart';
 import '../widgets/outfit/outfit_title.dart';
 import 'outfit_details_page.dart';
@@ -81,39 +81,41 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
       appBar: AppToolBar(title: _l10n.todaysOutfit),
       body: current == null
           ? const SizedBox.shrink()
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                20,
-                20,
-                AppDimens.bottomActionBtnClearance,
-              ),
-              children: [
-                Text(_titleFor(current), style: AppTextStyle.bold20),
-                const SizedBox(height: 8),
-                OutfitTagsHeader(
-                  seasons: current.seasons,
-                  style: current.style,
-                  onEdit: _isSavingTags ? null : () => _editTags(current),
+          : Builder(
+              builder: (bodyContext) => ListView(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  20,
+                  20,
+                  BottomActionButton.scrollClearance(bodyContext),
                 ),
-                const SizedBox(height: AppDimens.cardHeaderGap),
-                _buildOutfitImage(options, current),
-                if (options.length > 1) ...[
-                  const SizedBox(height: 10),
-                  CarouselDotsIndicator(
-                    count: options.length,
-                    currentIndex: _currentIndex,
+                children: [
+                  Text(_titleFor(current), style: AppTextStyle.bold20),
+                  const SizedBox(height: 8),
+                  OutfitTagsHeader(
+                    seasons: current.seasons,
+                    style: current.style,
+                    onEdit: _isSavingTags ? null : () => _editTags(current),
                   ),
+                  const SizedBox(height: AppDimens.cardHeaderGap),
+                  _buildOutfitImage(options, current),
+                  if (options.length > 1) ...[
+                    const SizedBox(height: 10),
+                    CarouselDotsIndicator(
+                      count: options.length,
+                      currentIndex: _currentIndex,
+                    ),
+                  ],
+                  const SizedBox(height: AppDimens.sectionSpacing),
+                  if (current.garmentIds.isNotEmpty)
+                    OutfitGarmentSection(
+                      garments: _garmentsByOutfitId[current.id],
+                      garmentCount: current.garmentIds.length,
+                      isLoading: !_garmentsByOutfitId.containsKey(current.id),
+                      onGarmentTap: _openGarmentDetail,
+                    ),
                 ],
-                const SizedBox(height: AppDimens.sectionSpacing),
-                if (current.garmentIds.isNotEmpty)
-                  OutfitGarmentSection(
-                    garments: _garmentsByOutfitId[current.id],
-                    garmentCount: current.garmentIds.length,
-                    isLoading: !_garmentsByOutfitId.containsKey(current.id),
-                    onGarmentTap: _openGarmentDetail,
-                  ),
-              ],
+              ),
             ),
       bottomNavigationBar: current == null
           ? null

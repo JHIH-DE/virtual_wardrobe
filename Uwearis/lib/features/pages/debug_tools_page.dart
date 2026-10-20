@@ -7,6 +7,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/overlays/error_dialog.dart';
+import 'component_gallery_page.dart';
 
 /// Debug-only previews of hard-to-trigger UI states; reachable from Settings
 /// only when [kDebugMode] is true.
@@ -32,6 +33,20 @@ class DebugToolsPage extends StatelessWidget {
             summary: l10n.debugToolsErrorDialogSummary,
             child: Text(
               l10n.debugToolsErrorDialogButton,
+              style: AppTextStyle.bold16,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sectionSpacing),
+          AppListCard(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ComponentGalleryPage()),
+            ),
+            leading: const Icon(Icons.widgets_outlined, color: AppColors.icon),
+            showArrow: true,
+            summary: l10n.debugToolsComponentGallerySummary,
+            child: Text(
+              l10n.debugToolsComponentGallery,
               style: AppTextStyle.bold16,
             ),
           ),

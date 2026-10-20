@@ -10,7 +10,7 @@ import 'package:uwearis/core/providers/daily_outfit_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/today_outfit_page.dart';
-import 'package:uwearis/features/widgets/outfit/outfit_tag_rows.dart';
+import 'package:uwearis/features/widgets/outfit/outfit_tag_row.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -178,7 +178,7 @@ void main() {
       await _settle(tester);
 
       expect(find.text('My Collection'), findsOneWidget);
-      expect(find.byType(OutfitTagRows), findsNothing);
+      expect(find.byType(OutfitTagRow), findsNothing);
     }, _garmentClient);
   });
 

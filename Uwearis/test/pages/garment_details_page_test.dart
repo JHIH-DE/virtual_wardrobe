@@ -14,12 +14,12 @@ import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/add_outfit_page.dart';
 import 'package:uwearis/features/pages/garment_details_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
-import 'package:uwearis/features/widgets/common/buttons/action_button.dart';
 import 'package:uwearis/features/widgets/common/cards/uwearis_insight_card.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/common/section_title.dart';
 import 'package:uwearis/features/widgets/garment/garment_image.dart';
 import 'package:uwearis/features/widgets/garment/garment_outfit_ideas_card.dart';
+import 'package:uwearis/l10n/generated/app_localizations.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -61,11 +61,8 @@ void main() {
 
   // Fixed pumps, not pumpAndSettle(): the sheet's loading spinner never
   // settles.
-  Future<void> openAnalysisSheet(
-    WidgetTester tester, {
-    String label = 'View Closet Match',
-  }) async {
-    await tester.tap(find.text(label));
+  Future<void> openAnalysisSheet(WidgetTester tester) async {
+    await tester.tap(find.text('Closet Match'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
   }
@@ -89,10 +86,22 @@ void main() {
 
       expect(find.text('Add Clothing'), findsWidgets);
       expect(find.text('Select Color'), findsOneWidget);
-      // View Closet Match defers to Add to Closet until the garment exists.
+      // Closet Match sits in the image's top-right corner.
+      final image = tester.getRect(find.byType(GarmentImage));
+      final link = tester.getRect(
+        find.ancestor(
+          of: find.text('Closet Match'),
+          matching: find.byType(TextButton),
+        ),
+      );
+      expect(image.right - link.right, closeTo(3, 0.5));
+      expect(link.top - image.top, closeTo(-1, 0.5));
       expect(
-        tester.widget<ActionButton>(find.byType(ActionButton)).variant,
-        ActionButtonVariant.secondary,
+        find.descendant(
+          of: find.byType(TextButton),
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+        findsOneWidget,
       );
       expect(find.text('Add to Closet'), findsNothing);
       expect(
@@ -114,14 +123,18 @@ void main() {
       );
       await tester.pump();
 
-      final button = tester.getRect(find.byType(ActionButton));
+      final image = tester.getRect(find.byType(GarmentImage));
       final category = tester.getRect(find.text('CATEGORY'));
       final divider = tester
           .widgetList<Divider>(find.byType(Divider))
           .map((d) => tester.getRect(find.byWidget(d)))
-          .singleWhere((r) => r.top > button.bottom && r.top < category.top);
+          .singleWhere((r) => r.top > image.bottom && r.top < category.top);
 
-      expect(divider.top - button.bottom, AppDimens.cardHeaderGap);
+      // +1 for the image frame's border.
+      expect(
+        divider.top - image.bottom,
+        closeTo(AppDimens.cardHeaderGap + 1, 0.01),
+      );
       expect(category.top - divider.bottom, AppDimens.cardHeaderGap);
     });
   });
@@ -336,7 +349,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('View Closet Match'), findsOneWidget);
+      expect(find.text('Closet Match'), findsOneWidget);
       expect(find.text('Versatile'), findsNothing);
 
       await openAnalysisSheet(tester);
@@ -587,12 +600,8 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // No analysis until asked; the button is primary in edit mode.
-      expect(find.text('View Closet Match'), findsOneWidget);
-      expect(
-        tester.widget<ActionButton>(find.byType(ActionButton)).variant,
-        ActionButtonVariant.primary,
-      );
+      // No analysis until asked.
+      expect(find.text('Closet Match'), findsOneWidget);
       expect(find.byType(UwearisInsightCard), findsNothing);
       expect(
         find.text('How well this piece works with your closet.'),
@@ -613,7 +622,7 @@ void main() {
 
       await closeAnalysisSheet(tester);
       expect(find.text('8/10'), findsNothing);
-      expect(find.text('View Closet Match'), findsOneWidget);
+      expect(find.text('Closet Match'), findsOneWidget);
     }, () => client);
   });
 
@@ -1474,6 +1483,88 @@ void main() {
         await pump500(tester);
         expect(find.byType(GarmentDetailsPage), findsNothing);
       }, () => _garmentBackend(shirt, patches, fail: true));
+    });
+  });
+
+  group('favorite', () {
+    const saved = Garment(
+      id: 7001,
+      name: 'Oxford Shirt',
+      category: GarmentCategory.top,
+      subCategory: 'Shirt',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: '',
+    );
+
+    testWidgets('the heart sits in the image\'s bottom-right corner and '
+        'toggles is_favorite', (tester) async {
+      final patches = <Map<String, dynamic>>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const GarmentDetailsPage(initialGarment: saved));
+        await tester.pump();
+
+        final heart = find.byIcon(Icons.favorite_border);
+        final image = tester.getRect(find.byType(GarmentImage));
+        final disc = tester.getRect(
+          find.ancestor(of: heart, matching: find.byType(DecoratedBox)).first,
+        );
+        expect(image.right - disc.right, closeTo(11, 0.5));
+        expect(image.bottom - disc.bottom, closeTo(11, 0.5));
+
+        await tester.tap(heart);
+        await tester.pump();
+        expect(find.byIcon(Icons.favorite), findsOneWidget);
+        expect(patches, [
+          {'is_favorite': true},
+        ]);
+
+        await tester.tap(find.byIcon(Icons.favorite));
+        await tester.pump();
+        expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+        expect(patches.last, {'is_favorite': false});
+      }, () => _garmentBackend(saved, patches));
+    });
+
+    testWidgets('a failed toggle reverts the heart and says so', (
+      tester,
+    ) async {
+      final patches = <Map<String, dynamic>>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const GarmentDetailsPage(initialGarment: saved));
+        await tester.pump();
+
+        await tester.tap(find.byIcon(Icons.favorite_border));
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+        expect(find.byIcon(Icons.favorite), findsNothing);
+        expect(
+          find.text(
+            AppLocalizations.of(
+              tester.element(find.byType(GarmentDetailsPage)),
+            ).failedToUpdateFavorite,
+          ),
+          findsOneWidget,
+        );
+      }, () => _garmentBackend(saved, patches, fail: true));
+    });
+
+    testWidgets('add mode has no heart', (tester) async {
+      await runWithEmptyCloset(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          const GarmentDetailsPage(initialGarment: _draftGarment),
+        );
+        await tester.pump();
+
+        expect(find.byIcon(Icons.favorite_border), findsNothing);
+        expect(find.byIcon(Icons.favorite), findsNothing);
+      });
     });
   });
 }

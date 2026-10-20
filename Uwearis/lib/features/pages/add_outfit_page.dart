@@ -23,11 +23,13 @@ import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/style_type_localization.dart';
 import '../widgets/common/buttons/action_disc_button.dart';
+import '../widgets/common/adaptive_side_layout.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/buttons/circle_icon_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
@@ -174,6 +176,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   // null = follow `WeatherData.todayMeanTemp`; set once the user nudges the
   // stepper (this outfit only, not persisted).
   double? _weatherTempOverrideC;
+  bool _finishOutfitExpanded = false;
   bool _isCompletingWithAi = false;
   // Create Outfit's re-entrancy guard; Finish Outfit's is
   // [_isCompletingWithAi].
@@ -665,17 +668,19 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           backgroundColor: AppColors.pageBackground,
           extendBody: true,
           appBar: _buildAppBar(),
-          body: ListView(
-            physics: const ClampingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              0,
-              24,
-              0,
-              _showsBottomActionButton
-                  ? AppDimens.bottomActionBtnClearance
-                  : 24 + MediaQuery.paddingOf(context).bottom,
+          body: Builder(
+            builder: (bodyContext) => ListView(
+              physics: const ClampingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                0,
+                24,
+                0,
+                _showsBottomActionButton
+                    ? BottomActionButton.scrollClearance(bodyContext)
+                    : 24 + MediaQuery.paddingOf(context).bottom,
+              ),
+              children: _buildCreateFlowBody(),
             ),
-            children: _buildCreateFlowBody(),
           ),
           bottomNavigationBar: _buildBottomBar(),
         ),
@@ -765,29 +770,26 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     final iconColor = enabled ? AppColors.icon : AppColors.hintText;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
-      child: SizedBox(
-        height: _outfitRowHeight,
-        child: AppListCard(
-          onTap: enabled ? () => _pickGarmentForOutfit() : null,
-          showArrow: true,
-          minHeight: _outfitRowHeight,
-          leading: SizedBox(
-            width: _addGarmentIconSize,
-            height: _addGarmentIconSize,
-            child: CustomPaint(
-              painter: DashedBorderPainter(
-                color: enabled ? AppColors.borderStrong : AppColors.hintText,
-                radius: AppDimens.cardRadius,
-              ),
-              child: Center(child: Icon(Icons.add, size: 22, color: iconColor)),
+      child: AppListCard(
+        onTap: enabled ? () => _pickGarmentForOutfit() : null,
+        showArrow: true,
+        minHeight: _outfitRowHeight,
+        leading: SizedBox(
+          width: _addGarmentIconSize,
+          height: _addGarmentIconSize,
+          child: CustomPaint(
+            painter: DashedBorderPainter(
+              color: enabled ? AppColors.borderStrong : AppColors.hintText,
+              radius: AppDimens.cardRadius,
             ),
+            child: Center(child: Icon(Icons.add, size: 22, color: iconColor)),
           ),
-          title: _l10n.addGarment,
-          child: Text(
-            _l10n.browseYourClosetHint,
-            style: AppTextStyle.regular12.copyWith(
-              color: AppColors.textSecondary,
-            ),
+        ),
+        title: _l10n.addGarment,
+        child: Text(
+          _l10n.browseYourClosetHint,
+          style: AppTextStyle.regular12.copyWith(
+            color: AppColors.textSecondary,
           ),
         ),
       ),
@@ -813,7 +815,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
               current: g,
             ),
       child: Container(
-        height: _outfitRowHeight,
+        constraints: const BoxConstraints(minHeight: _outfitRowHeight),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -852,57 +854,63 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              g.name,
-                              style: AppTextStyle.bold14,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: AppTextStyle.regular12.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                  child: AdaptiveSideLayout(
+                    sideEdge: AdaptiveSide.trailing,
+                    gap: 8,
+                    stackedGap: 4,
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          g.name,
+                          style: AppTextStyle.bold14,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      CardCornerBadge(
-                        icon: locked ? Icons.lock : Icons.lock_open,
-                        backgroundColor: locked
-                            ? AppColors.primary
-                            : AppColors.placeholderSurface,
-                        iconColor: locked
-                            ? AppColors.textOnPrimary
-                            : AppColors.icon,
-                        hitTargetSize: const Size(24, AppDimens.minTouchTarget),
-                        onTap: isOutfitLoading ? null : () => _toggleLock(g),
-                      ),
-                      if (!isOutfitLoading) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: AppTextStyle.regular12.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                    side: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         CardCornerBadge(
-                          icon: Icons.close,
-                          backgroundColor: AppColors.placeholderSurface,
-                          iconColor: AppColors.icon,
+                          icon: locked ? Icons.lock : Icons.lock_open,
+                          backgroundColor: locked
+                              ? AppColors.primary
+                              : AppColors.placeholderSurface,
+                          iconColor: locked
+                              ? AppColors.textOnPrimary
+                              : AppColors.icon,
                           hitTargetSize: const Size(
                             24,
                             AppDimens.minTouchTarget,
                           ),
-                          onTap: () => _removeOutfitEntry(entry),
+                          onTap: isOutfitLoading ? null : () => _toggleLock(g),
                         ),
+                        if (!isOutfitLoading) ...[
+                          const SizedBox(width: 8),
+                          CardCornerBadge(
+                            icon: Icons.close,
+                            backgroundColor: AppColors.placeholderSurface,
+                            iconColor: AppColors.icon,
+                            hitTargetSize: const Size(
+                              24,
+                              AppDimens.minTouchTarget,
+                            ),
+                            onTap: () => _removeOutfitEntry(entry),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1172,22 +1180,37 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(child: SectionTitle(_l10n.finishOutfit)),
-              AccentPillButton(
-                label: _l10n.finishWithAi,
-                icon: Icons.auto_awesome,
-                enabled: enabled,
-                onPressed: _completeWithAi,
-              ),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.centerLeft,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 40),
+                  child: SectionTitle(_l10n.finishOutfit),
+                ),
+                Positioned(
+                  right: 0,
+                  child: CircleIconButton(
+                    icon: _finishOutfitExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    iconSize: 24,
+                    discAlignment: Alignment.centerRight,
+                    onPressed: () => setState(
+                      () => _finishOutfitExpanded = !_finishOutfitExpanded,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppDimens.cardHeaderGap),
-          Row(
-            children: [
-              Expanded(
-                child: _buildFinishOutfitTile(
+          if (_finishOutfitExpanded) ...[
+            const SizedBox(height: AppDimens.cardHeaderGap),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final temperatureTile = _buildFinishOutfitTile(
                   label: _l10n.temperatureFieldLabel,
                   child: NumberStepper(
                     variant: NumberStepperVariant.tile,
@@ -1197,11 +1220,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                     onIncrement: () =>
                         setState(() => _weatherTempOverrideC = tempC + 1),
                   ),
-                ),
-              ),
-              const SizedBox(width: AppDimens.cardSpacing),
-              Expanded(
-                child: _buildFinishOutfitTile(
+                );
+                final styleTile = _buildFinishOutfitTile(
                   label: _l10n.styleLabel,
                   onTap: _openStylePicker,
                   child: Row(
@@ -1222,9 +1242,45 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                       ),
                     ],
                   ),
-                ),
-              ),
-            ],
+                );
+                // Side by side only while half the row still fits a typical
+                // temperature at full size (minus the tile's 12px padding).
+                final tileContentWidth =
+                    (constraints.maxWidth - AppDimens.cardSpacing) / 2 - 2 * 12;
+                final sideBySide =
+                    tileContentWidth >=
+                    NumberStepper.tileWidthFor(
+                      context,
+                      '${_defaultTemperatureC.round()}°C',
+                    );
+                if (!sideBySide) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      temperatureTile,
+                      const SizedBox(height: AppDimens.cardSpacing),
+                      styleTile,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: temperatureTile),
+                    const SizedBox(width: AppDimens.cardSpacing),
+                    Expanded(child: styleTile),
+                  ],
+                );
+              },
+            ),
+          ],
+          const SizedBox(height: AppDimens.cardSpacing),
+          Center(
+            child: AccentPillButton(
+              label: _l10n.finishWithAi,
+              icon: Icons.auto_awesome,
+              enabled: enabled,
+              onPressed: _completeWithAi,
+            ),
           ),
         ],
       ),
@@ -1251,8 +1307,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               FieldLabel(label.toUpperCase()),
-              SizedBox(
-                height: AppDimens.minTouchTarget,
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: AppDimens.minTouchTarget,
+                ),
                 child: Align(alignment: Alignment.centerLeft, child: child),
               ),
             ],

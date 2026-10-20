@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
@@ -437,10 +436,14 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                       children: [
                         _buildAvatarSection(),
                         _buildFormFields(),
-                        SizedBox(
-                          height: _showsBottomActionButton
-                              ? AppDimens.bottomActionBtnClearance
-                              : MediaQuery.paddingOf(context).bottom,
+                        Builder(
+                          builder: (bodyContext) => SizedBox(
+                            height: _showsBottomActionButton
+                                ? BottomActionButton.scrollClearance(
+                                    bodyContext,
+                                  )
+                                : MediaQuery.paddingOf(context).bottom,
+                          ),
                         ),
                       ],
                     ),

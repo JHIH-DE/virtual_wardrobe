@@ -326,6 +326,33 @@ These inspect an `AsyncValue.error` / handed-over error *value*; they are not th
   - Any provider sync inside `onSave` reads the notifier *before* the `await` and applies the result even if the page has since been disposed.
 - **A one-shot edit** (one request per user action, e.g. Outfit Details' tag sheet saving on close) doesn't need the controller: update the UI optimistically, PATCH, roll back + `showErrorDialog(onRetry:)` on failure, and disable the trigger while the request is in flight — same shape as `_toggleFavorite`.
 
+### Button hierarchy {#button-hierarchy}
+
+Pick a button by the action's **role on that screen**, not by what powers it — an AI-backed action is not automatically primary, and a non-AI action is not automatically secondary.
+
+| Role | Widget | Use for | Not for |
+|---|---|---|---|
+| The screen's final action | `BottomActionButton` (renders `ActionButton.primary`) | The one action that completes the screen's flow: Create Outfit, Save on a new record, onboarding Continue, Plan/Replan on Trip Suitcase | A helper that only prepares input (Create Outfit's Finish with AI); a second commit beside another one |
+| In-page primary / secondary | `ActionButton` `primary` / `secondary` | `primary`: the main action of a dialog/sheet, or of a page with no bottom bar. `secondary`: an in-page action that must not compete with a visible primary (Garment Details' View Closet Match) | Two `primary`s on one screen |
+| Section-level supporting action | `AccentPillButton` (`inline`; `toolbar` only in an `AppToolBar` leading slot) | An action scoped to one card/section: Finish with AI, Analyze with AI, a day card's Generate Outfit, New Version, an empty state's call-to-action, `ErrorStateWidget`'s Retry | The screen's final commit; destructive actions |
+
+- One primary per screen: while a `BottomActionButton` is showing, nothing else on the screen is `primary`.
+- The same action can play different roles on different screens — Plan Trip Outfits is Trip Suitcase's final action (`BottomActionButton`) but a call-to-action inside Trip Details' plan card (`AccentPillButton`). That is correct, not drift.
+- Width follows the widget: `ActionButton` fills its slot and grows taller rather than truncating (a label too long for the slot wraps — so its height depends on the label and the available width, and nothing should estimate it from the text scale alone); `AccentPillButton` hugs its label. Don't wrap either one to fake the other's shape.
+- Two `ActionButton`s side by side: the **parent** stacks them (primary on top) when either label needs more than its half on one line — compare `ActionButton.oneLineWidthFor(context, label)` against the half width. No screen does this yet; the Component Gallery's `_ActionButtonPair` is the reference shape.
+- States: an unavailable `BottomActionButton` hides itself; `ActionButton` with `onPressed: null` renders its disabled style (primary: `borderSubtle` fill + `hintText` label, matching `AppDialog`'s disabled primary); `AccentPillButton` takes `enabled: false`, plus `disabledMessage` when the reason isn't obvious. There is no in-button spinner — in-flight work disables or hides the trigger and the screen shows `LoadingOverlay` (see [Loading/empty/error state](#loadingemptyerror-state)).
+- Debug Tools → Component Gallery (`lib/features/pages/component_gallery_page.dart`, debug builds only) previews every variant and state on both backgrounds at 1.0 / 1.3 / 2.0 text scale; check a button/tag/chip/card change there before the affected screens.
+
+### Enlarged text {#enlarged-text}
+
+Every screen must stay readable at system text scale 1.3 and 2.0, at 390 and 320 logical px wide, in English and Traditional Chinese.
+
+- **Minimum height, not fixed height**, on anything holding text: `constraints: BoxConstraints(minHeight: …)` / `AppListCard(minHeight:)`, never `SizedBox(height: …)` / `Container(height: …)` around a text stack. Rows keep their default-size height and grow only when text needs it (`GarmentListCard`, Create Outfit / Outfit Edit's Add Garment and garment rows).
+- **When two things share a row and stop fitting, the parent changes the arrangement** instead of squeezing either one: a title beside its action → `Wrap(alignment: WrapAlignment.spaceBetween)` inside a full-width `SizedBox` (Create Outfit's Auto-Complete header); two tiles/buttons → a `Column` when a measured representative content width no longer fits half the row (Auto-Complete's temperature/style tiles via `NumberStepper.tileWidthFor`, the gallery's `_ActionButtonPair`). Measure a fixed representative value, not the live one, so the layout doesn't jump while the value changes.
+- **Words don't break; decorations and side actions move instead**: `AdaptiveSideLayout` (`common/adaptive_side_layout.dart`) keeps a side widget beside its text until the text's widest Latin word no longer fits next to it, then moves it above (`AppListCard`'s leading icon) or below (the garment rows' lock / remove badges) — the user's text size is never reduced and tap targets keep their size. CJK wraps between any characters and never triggers it. (`getMinIntrinsicWidth` can't drive this: it reports a whole CJK run as one word; use `longestWordWidth`.)
+- **Truncation is for secondary text only, and never to a fragment**: names/descriptions get a second line before an ellipsis (`GarmentListCard`'s name once text is enlarged, `AppListCard`'s summary); a trailing status in an `AppListCard` moves under the title when text is enlarged. Primary action labels and titles are never ellipsized.
+- **Tests**: a layout that changes with text scale gets a test over `layoutCases` from `test/helpers/text_scale_harness.dart` (`loadAppFont()` so widths are real, not Ahem). Let overflow errors fail the test — never swallow them — and also assert readability: `renderedLineCount`, `isTruncated`, `expectWithin`, `expectNoBrokenWords`. Exercise real page states (garments in the outfit, locked and unlocked), not just empty ones.
+
 ### `BottomActionButton`
 
 Every page with a bottom action button follows this exact shape (see `image_editor_page.dart`, `garment_details_page.dart`, `account_page.dart`):
@@ -334,18 +361,24 @@ Every page with a bottom action button follows this exact shape (see `image_edit
 Scaffold(
   extendBody: true,
   bottomNavigationBar: _buildActionButton(), // returns BottomActionButton
-  body: Column(
-    children: [
-      ...,
-      SizedBox(height: _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 0),
-    ],
+  body: Builder(
+    builder: (bodyContext) => ListView(
+      padding: EdgeInsets.only(
+        bottom: _showsBottomActionButton
+            ? BottomActionButton.scrollClearance(bodyContext)
+            : 24 + MediaQuery.paddingOf(context).bottom,
+      ),
+      children: [...],
+    ),
   ),
 )
 
 bool get _showsBottomActionButton => /* same condition that controls the button's own visibility/enabled state */;
 ```
 
-The hidden-state gap (`0` above) is only safe when the body already keeps clear of the bottom system inset (e.g. it sits inside a `SafeArea`). A `ListView` with an explicit `padding:` gets no automatic safe-area inset, so its hidden-state bottom padding must be a real gap plus `MediaQuery.paddingOf(context).bottom` (see `add_outfit_page.dart`) — with `0`, the last field ends up under the home indicator and can't be scrolled clear of it.
+The hidden-state gap could only be a bare `0` when the body already keeps clear of the bottom system inset (e.g. it sits inside a `SafeArea`). A `ListView` with an explicit `padding:` gets no automatic safe-area inset, so its hidden-state bottom padding must be a real gap plus `MediaQuery.paddingOf(context).bottom` (see `add_outfit_page.dart`) — with `0`, the last field ends up under the home indicator and can't be scrolled clear of it.
+
+`BottomActionButton.scrollClearance(bodyContext)` is the visible-state gap: the bottom bar's **actual laid-out height** + 8, never less than `AppDimens.bottomActionBtnClearance`. Pass a context *inside* the Scaffold body (a `Builder` around the scroll view, as above; it asserts on a context outside one): with `extendBody: true`, Scaffold gives the body a `MediaQuery.padding.bottom` of `max(inset, bottom bar height)`, and the bar's height already includes a wrapped label and the home indicator — so the clearance follows the real button at any text scale, label length or width, and nothing adds the inset a second time. The hidden-state gap still adds the inset (`MediaQuery.paddingOf(context).bottom`, page or body context alike — with the bar hidden both equal the inset). `image_editor_page.dart` keeps the bare constant: its body is a non-scrolling `Column`, where a taller spacer could only cause an overflow.
 
 Never place `BottomActionButton` inline inside the scrollable body as a sibling widget — it must go through `Scaffold.bottomNavigationBar`. All current call sites in the app follow this shape.
 
@@ -359,7 +392,7 @@ Never place `BottomActionButton` inline inside the scrollable body as a sibling 
 
 `CardCornerBadge` (`lib/features/widgets/common/cards/card_corner_badge.dart`) has two established, deliberately different treatments. Match whichever one applies and don't add a new comment re-justifying the color/size/border choice at the call site — this section is that explanation.
 
-- **Photo-overlay family** — a badge floating on a photo/full-bleed image: `FavoriteCard`, `RemovableCard`, Outfit Details' favourite heart + "⋮" menu trigger, Trip Details' regenerate icon (via `GeneratedImageCard`), Home's "worn today" icon. Shape: `backgroundColor: AppColors.surfaceTranslucent`, `border: Border.all(color: AppColors.borderSubtle)`, `boxShadow: const []`, `size: 36`, `iconSize: 20` (Home's "worn today" badge uses `24` — the standing-figure glyph carries more internal whitespace and needs it to read at the same visual weight; that's the one deliberate exception). Color: the **neutral/resting state is always `AppColors.hintText`** — an active/toggled-on state gets its own color (favourited heart → `AppColors.favorite`, marked "worn today" → `AppColors.accent`) — the resting state is never `AppColors.icon` (reads too dark/heavy against this family) and never a raw color.
+- **Photo-overlay family** — a badge floating on a photo/full-bleed image: `RemovableCard`, Outfit Details' and Garment Details' favourite heart + "⋮" menu trigger, Trip Details' regenerate icon (via `GeneratedImageCard`), Home's "worn today" icon. Shape: `backgroundColor: AppColors.surfaceTranslucent`, `border: Border.all(color: AppColors.borderSubtle)`, `boxShadow: const []`, `size: 36`, `iconSize: 20` (Home's "worn today" badge uses `24` — the standing-figure glyph carries more internal whitespace and needs it to read at the same visual weight; that's the one deliberate exception). Color: the **neutral/resting state is always `AppColors.hintText`** — an active/toggled-on state gets its own color (favourited heart → `AppColors.favorite`, marked "worn today" → `AppColors.accent`) — the resting state is never `AppColors.icon` (reads too dark/heavy against this family) and never a raw color.
 - **List-row action-badge family** — a badge on a plain card row, not a photo: Add Outfit's lock/remove, Outfit Edit's remove, Trip Legs Editor's remove. Shape: `backgroundColor: AppColors.placeholderSurface`, no `border`, default shadow, `hitTargetSize: Size(24, AppDimens.minTouchTarget)`. Color: `AppColors.icon` — this family is a deliberately distinct treatment for a different surface, not "the photo-overlay family done slightly wrong," so its darker icon color is correct here and must never be changed to match the photo-overlay family above.
 - A badge that's inherently a warning/alert rather than a toggle (e.g. `garment_list_card.dart`'s soft-deleted-garment badge, `AppColors.error`) is its own case outside both families above.
 

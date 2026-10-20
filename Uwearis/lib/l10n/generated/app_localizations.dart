@@ -3020,6 +3020,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This is a simulated backend error message, shown to preview the error dialog design.'**
   String get debugToolsSampleErrorMessage;
+
+  /// No description provided for @debugToolsComponentGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Component Gallery'**
+  String get debugToolsComponentGallery;
+
+  /// No description provided for @debugToolsComponentGallerySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale'**
+  String get debugToolsComponentGallerySummary;
 }
 
 class _AppLocalizationsDelegate

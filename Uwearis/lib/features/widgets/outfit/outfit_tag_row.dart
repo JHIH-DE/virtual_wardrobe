@@ -9,33 +9,25 @@ import '../common/buttons/circle_icon_button.dart';
 import '../common/cards/category_tag.dart';
 import 'outfit_title.dart';
 
-/// An outfit's season tags over its style tags, each on one line — shared
-/// by Outfit Details and Today's Outfit. Either row is left out when empty;
-/// the caller decides what an untagged outfit shows.
-class OutfitTagRows extends StatelessWidget {
+/// An outfit's season tags then its style tags on a single line, collapsing
+/// whatever doesn't fit into a trailing "+N" — shared by Outfit Details and
+/// Today's Outfit. The caller decides what an untagged outfit shows.
+class OutfitTagRow extends StatelessWidget {
   final List<String> seasons;
   final List<String> style;
 
-  const OutfitTagRows({super.key, required this.seasons, required this.style});
+  const OutfitTagRow({super.key, required this.seasons, required this.style});
 
   @override
   Widget build(BuildContext context) {
-    final seasonTags = seasons.map(outfitTagLabel).toList();
-    final styleTags = style.map(outfitTagLabel).toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (seasonTags.isNotEmpty) _CollapsingTagsRow(tags: seasonTags),
-        if (seasonTags.isNotEmpty && styleTags.isNotEmpty)
-          const SizedBox(height: 6),
-        if (styleTags.isNotEmpty) _CollapsingTagsRow(tags: styleTags),
-      ],
+    return _CollapsingTagsRow(
+      tags: [...seasons, ...style].map(outfitTagLabel).toList(),
     );
   }
 }
 
 /// The tag line under an outfit's name on Outfit Details and Today's
-/// Outfit: the edit-tags button beside [OutfitTagRows], or "My Collection"
+/// Outfit: the edit-tags button beside [OutfitTagRow], or "My Collection"
 /// for an untagged outfit. A null [onEdit] disables the button (e.g. while
 /// a save is in flight).
 class OutfitTagsHeader extends StatelessWidget {
@@ -66,7 +58,7 @@ class OutfitTagsHeader extends StatelessWidget {
                       color: AppColors.textSecondary,
                     ),
                   )
-                : OutfitTagRows(seasons: seasons, style: style),
+                : OutfitTagRow(seasons: seasons, style: style),
           ),
         ],
       ),

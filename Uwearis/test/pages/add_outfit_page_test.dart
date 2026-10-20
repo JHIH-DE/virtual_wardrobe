@@ -18,6 +18,7 @@ import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 
+import '../helpers/add_outfit_harness.dart';
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
@@ -232,6 +233,7 @@ void main() {
         ],
       );
       await tester.pumpAndSettle();
+      await expandFinishOutfit(tester);
 
       // High 28 / low 18 → 23, not the current reading (30).
       expect(find.text('23°C'), findsOneWidget);
@@ -247,6 +249,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 6)); // weather lookup settles
       await tester.pumpAndSettle();
+      await expandFinishOutfit(tester);
 
       expect(find.byIcon(Icons.info_outline), findsNothing);
       expect(find.text('OCCASION'), findsNothing);
@@ -257,8 +260,8 @@ void main() {
       final finish = find.widgetWithText(AccentPillButton, 'Finish with AI');
       expect(finish, findsOneWidget);
       expect(
-        tester.getCenter(finish).dy,
-        closeTo(tester.getCenter(find.text('Auto-Complete')).dy, 4),
+        tester.getRect(finish).top,
+        greaterThan(tester.getRect(find.text('Auto')).bottom),
       );
       expect(
         tester.getCenter(find.text('STYLE')).dy,

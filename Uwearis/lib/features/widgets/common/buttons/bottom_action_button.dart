@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_dimens.dart';
 import 'action_button.dart';
 
 /// A screen's primary action, for `Scaffold.bottomNavigationBar`. Hides
@@ -23,6 +26,23 @@ class BottomActionButton extends StatelessWidget {
     this.trailing,
     this.panelPadding = const EdgeInsets.fromLTRB(20, 0, 20, 0),
   });
+
+  /// Bottom padding a scrolling body under `extendBody: true` needs so its
+  /// last row scrolls clear of this button. Pass a context *inside* the
+  /// Scaffold's body (wrap the scroll view in a `Builder`): there, Scaffold
+  /// reports the bottom bar's laid-out height — the button however tall its
+  /// label wrapped, plus the home indicator — as `MediaQuery.padding.bottom`,
+  /// so this follows the real button instead of estimating it.
+  static double scrollClearance(BuildContext bodyContext) {
+    assert(
+      Scaffold.maybeOf(bodyContext) != null,
+      'scrollClearance needs a context inside the Scaffold body',
+    );
+    return math.max(
+      AppDimens.bottomActionBtnClearance,
+      MediaQuery.paddingOf(bodyContext).bottom + 8,
+    );
+  }
 
   bool get _isUnavailable => !enabled || onPressed == null || isLoading;
 

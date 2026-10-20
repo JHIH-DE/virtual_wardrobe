@@ -7,6 +7,7 @@ import '../../app/theme/app_text_styles.dart';
 import '../../data/garment.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/adaptive_side_layout.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -357,19 +358,23 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
       backgroundColor: AppColors.pageBackground,
       extendBody: true,
       appBar: _buildAppBar(),
-      body: ListView(
-        physics: const ClampingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          0,
-          24,
-          0,
-          _showsBottomActionButton ? AppDimens.bottomActionBtnClearance : 24,
+      body: Builder(
+        builder: (bodyContext) => ListView(
+          physics: const ClampingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            0,
+            24,
+            0,
+            _showsBottomActionButton
+                ? BottomActionButton.scrollClearance(bodyContext)
+                : 24 + MediaQuery.paddingOf(context).bottom,
+          ),
+          children: [
+            _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
+            const SizedBox(height: AppDimens.cardHeaderGap),
+            _hInset(_buildYourOutfitRow()),
+          ],
         ),
-        children: [
-          _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
-          const SizedBox(height: AppDimens.cardHeaderGap),
-          _hInset(_buildYourOutfitRow()),
-        ],
       ),
       bottomNavigationBar: _buildBottomBar(),
     );
@@ -414,29 +419,26 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     final iconColor = exhausted ? AppColors.hintText : AppColors.icon;
     return Opacity(
       opacity: exhausted ? 0.5 : 1,
-      child: SizedBox(
-        height: _outfitRowHeight,
-        child: AppListCard(
-          onTap: exhausted ? null : () => _pickGarmentForOutfit(),
-          showArrow: true,
-          minHeight: _outfitRowHeight,
-          leading: SizedBox(
-            width: _addGarmentIconSize,
-            height: _addGarmentIconSize,
-            child: CustomPaint(
-              painter: DashedBorderPainter(
-                color: exhausted ? AppColors.hintText : AppColors.borderStrong,
-                radius: AppDimens.cardRadius,
-              ),
-              child: Center(child: Icon(Icons.add, size: 22, color: iconColor)),
+      child: AppListCard(
+        onTap: exhausted ? null : () => _pickGarmentForOutfit(),
+        showArrow: true,
+        minHeight: _outfitRowHeight,
+        leading: SizedBox(
+          width: _addGarmentIconSize,
+          height: _addGarmentIconSize,
+          child: CustomPaint(
+            painter: DashedBorderPainter(
+              color: exhausted ? AppColors.hintText : AppColors.borderStrong,
+              radius: AppDimens.cardRadius,
             ),
+            child: Center(child: Icon(Icons.add, size: 22, color: iconColor)),
           ),
-          title: _l10n.addGarment,
-          child: Text(
-            _l10n.browseYourClosetHint,
-            style: AppTextStyle.regular12.copyWith(
-              color: AppColors.textSecondary,
-            ),
+        ),
+        title: _l10n.addGarment,
+        child: Text(
+          _l10n.browseYourClosetHint,
+          style: AppTextStyle.regular12.copyWith(
+            color: AppColors.textSecondary,
           ),
         ),
       ),
@@ -463,7 +465,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         current: g,
       ),
       child: Container(
-        height: _outfitRowHeight,
+        constraints: const BoxConstraints(minHeight: _outfitRowHeight),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -521,40 +523,46 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              g.name,
-                              style: AppTextStyle.bold14,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: AppTextStyle.regular12.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                  child: AdaptiveSideLayout(
+                    sideEdge: AdaptiveSide.trailing,
+                    gap: 8,
+                    stackedGap: 4,
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          g.name,
+                          style: AppTextStyle.bold14,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      CardCornerBadge(
-                        icon: Icons.close,
-                        backgroundColor: AppColors.placeholderSurface,
-                        iconColor: AppColors.icon,
-                        hitTargetSize: const Size(24, AppDimens.minTouchTarget),
-                        onTap: () => _removeOutfitEntry(entry),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: AppTextStyle.regular12.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                    side: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CardCornerBadge(
+                          icon: Icons.close,
+                          backgroundColor: AppColors.placeholderSurface,
+                          iconColor: AppColors.icon,
+                          hitTargetSize: const Size(
+                            24,
+                            AppDimens.minTouchTarget,
+                          ),
+                          onTap: () => _removeOutfitEntry(entry),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

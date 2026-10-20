@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
-import '../section_title.dart';
+import '../adaptive_side_layout.dart';
 
 class AppListCard extends StatelessWidget {
   final String? title;
@@ -28,57 +28,78 @@ class AppListCard extends StatelessWidget {
     this.leading,
     this.status,
     this.summary,
-    this.minHeight = 70,
+    this.minHeight = 54,
     this.leadingSize = 40,
     this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
-    final content = Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        if (leading != null || leadingAsset != null) ...[
-          leading ??
-              Image.asset(
-                leadingAsset!,
-                width: leadingSize,
-                height: leadingSize,
-              ),
-          const SizedBox(width: 18),
-        ],
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (title != null) ...[
-                SectionTitle(title!),
-                const SizedBox(height: 4),
-              ],
-              child,
-              if (summary != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  summary!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.regular12.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (status != null) ...[
-          const SizedBox(width: 8),
-          Text(
+    // Enlarged text: [status] moves under the title instead of squeezing it
+    // into a sliver.
+    final textEnlarged = MediaQuery.textScalerOf(context).scale(1) > 1;
+    final statusText = status == null
+        ? null
+        : Text(
             status!,
             style: AppTextStyle.regular14.copyWith(
               color: AppColors.textSecondary,
             ),
+          );
+    // A leading decoration moves above the text when a long word at the
+    // current text size wouldn't fit beside it, rather than breaking it.
+    final leadingWidget =
+        leading ??
+        (leadingAsset == null
+            ? null
+            : Image.asset(
+                leadingAsset!,
+                width: leadingSize,
+                height: leadingSize,
+              ));
+    final textColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (title != null) ...[
+          Text(title!, style: AppTextStyle.bold16),
+          const SizedBox(height: 2),
+        ],
+        child,
+        if (statusText != null && textEnlarged) ...[
+          const SizedBox(height: 2),
+          statusText,
+        ],
+        if (summary != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            summary!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyle.regular12.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
+        ],
+      ],
+    );
+    final content = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: leadingWidget == null
+              ? textColumn
+              : AdaptiveSideLayout(
+                  sideEdge: AdaptiveSide.leading,
+                  side: leadingWidget,
+                  content: textColumn,
+                  gap: 18,
+                  stackedGap: 8,
+                ),
+        ),
+        if (statusText != null && !textEnlarged) ...[
+          const SizedBox(width: 8),
+          statusText,
         ],
         if (showArrow && onTap != null) ...[
           const SizedBox(width: 4),

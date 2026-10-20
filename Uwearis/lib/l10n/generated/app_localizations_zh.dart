@@ -1503,6 +1503,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get debugToolsSampleErrorMessage => '这是一条模拟的后端错误消息，用于预览错误弹窗的设计。';
+
+  @override
+  String get debugToolsComponentGallery => '组件展示';
+
+  @override
+  String get debugToolsComponentGallerySummary =>
+      '按钮、卡片、标签与状态，含 1.0 / 1.3 / 2.0 文字缩放';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3004,4 +3011,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get debugToolsSampleErrorMessage => '這是一則模擬的後端錯誤訊息，用於預覽錯誤彈窗的設計。';
+
+  @override
+  String get debugToolsComponentGallery => '元件展示';
+
+  @override
+  String get debugToolsComponentGallerySummary =>
+      '按鈕、卡片、標籤與狀態，含 1.0 / 1.3 / 2.0 文字縮放';
 }

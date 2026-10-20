@@ -1036,7 +1036,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       onTap: _openSuitcase,
       child: Text(
         summary,
-        style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+        style: AppTextStyle.regular12.copyWith(color: AppColors.textSecondary),
       ),
     );
   }

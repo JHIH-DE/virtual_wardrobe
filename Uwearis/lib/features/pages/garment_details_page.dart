@@ -20,9 +20,9 @@ import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
-import '../widgets/common/buttons/action_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
+import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/fields/app_text_field.dart';
 import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
@@ -70,6 +70,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   bool _isImageChanged = false;
   bool _isAnalyzing = false;
   bool _uploading = false;
+  bool _isFavorite = false;
   bool _openingAddOutfit = false;
   int? _id;
   String? _imagePathOrUrl;
@@ -143,6 +144,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     super.initState();
     _editingGarment = widget.initialGarment;
     _id = _editingGarment?.id;
+    _isFavorite = _editingGarment?.isFavorite ?? false;
     _imagePathOrUrl = _editingGarment?.imageUrl;
     _name = _editingGarment?.name;
     // Show loading during the async cache read rather than flashing the
@@ -514,43 +516,29 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       autovalidateMode: _isAddMode
           ? AutovalidateMode.disabled
           : AutovalidateMode.onUserInteraction,
-      child: ListView(
-        padding: EdgeInsets.only(
-          bottom: _showsBottomActionButton
-              ? AppDimens.bottomActionBtnClearance
-              : 20,
-        ),
-        children: [
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _isAddMode
-                ? _buildNameField()
-                : Text(_title, style: AppTextStyle.bold20),
+      child: Builder(
+        builder: (bodyContext) => ListView(
+          padding: EdgeInsets.only(
+            bottom: _showsBottomActionButton
+                ? BottomActionButton.scrollClearance(bodyContext)
+                : 20 + MediaQuery.paddingOf(context).bottom,
           ),
-          const SizedBox(height: AppDimens.titleGap),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _imagePreview(),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: ActionButton(
-              label: _l10n.viewClosetMatch,
-              // Secondary while Add to Closet is the main action.
-              variant: _isAddMode
-                  ? ActionButtonVariant.secondary
-                  : ActionButtonVariant.primary,
-              leading: const Icon(
-                Icons.auto_awesome_outlined,
-                size: AppDimens.iconSmallSize,
-              ),
-              onPressed: _openClosetAnalysisSheet,
+          children: [
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _isAddMode
+                  ? _buildNameField()
+                  : Text(_title, style: AppTextStyle.bold20),
             ),
-          ),
-          _buildDetailsSection(),
-        ],
+            const SizedBox(height: AppDimens.titleGap),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _imagePreview(),
+            ),
+            _buildDetailsSection(),
+          ],
+        ),
       ),
     );
   }
@@ -1139,12 +1127,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     final count = _outfitCount!;
 
     return AppListCard(
-      title: _l10n.usedInOutfits,
       onTap: _openUsedInOutfits,
       showArrow: true,
       leading: const Icon(Icons.checkroom_outlined, color: AppColors.icon),
-      summary: _l10n.usedInOutfitsCount(count),
-      child: const SizedBox.shrink(),
+      status: _l10n.usedInOutfitsCount(count),
+      child: Text(_l10n.usedInOutfits, style: AppTextStyle.bold16),
     );
   }
 
@@ -1265,6 +1252,49 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
             ),
           ),
         ),
+        Positioned(
+          top: 0,
+          right: 4,
+          child: TextButton(
+            onPressed: _openClosetAnalysisSheet,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.accent,
+              minimumSize: const Size(0, AppDimens.minTouchTarget),
+              padding: const EdgeInsets.only(left: 8, right: 2),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _l10n.closetMatch,
+                  style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.accent,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!_isAddMode)
+          Positioned(
+            bottom: 12,
+            right: 12,
+            child: CardCornerBadge(
+              icon: _isFavorite ? Icons.favorite : Icons.favorite_border,
+              backgroundColor: AppColors.surfaceTranslucent,
+              iconColor: _isFavorite ? AppColors.favorite : AppColors.hintText,
+              border: Border.all(color: AppColors.borderSubtle),
+              boxShadow: const [],
+              size: 36,
+              iconSize: 20,
+              discAlignment: Alignment.bottomRight,
+              onTap: _toggleFavorite,
+            ),
+          ),
         if (_isAnalyzing)
           Positioned.fill(
             child: ClipRRect(
@@ -1318,9 +1348,39 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// be typing the next change.
   Future<void> _persistEdits() async {
     final garments = ref.read(garmentsProvider.notifier);
-    final updated = await _updateGarmentFields();
+    // The PATCH doesn't carry is_favorite, so a toggle made while it was in
+    // flight must survive the response.
+    final updated = (await _updateGarmentFields()).copyWith(
+      isFavorite: _isFavorite,
+    );
     _editingGarment = updated;
     garments.updateGarment(updated);
+  }
+
+  Future<void> _toggleFavorite() async {
+    final id = _id;
+    if (id == null) return;
+    final next = !_isFavorite;
+    // Read before the await so the sync still lands if the page is popped.
+    final garments = ref.read(garmentsProvider.notifier);
+    void apply(bool value) {
+      _editingGarment = _editingGarment?.copyWith(isFavorite: value);
+      garments.updateFavorite(id, isFavorite: value);
+      if (mounted) setState(() => _isFavorite = value);
+    }
+
+    apply(next);
+    try {
+      await GarmentService().setFavorite(id, isFavorite: next);
+    } on AuthExpiredException {
+      apply(!next);
+      if (mounted) await AuthExpiredHandler.handle(context);
+    } catch (_) {
+      apply(!next);
+      if (mounted) {
+        showErrorDialog(context, message: _l10n.failedToUpdateFavorite);
+      }
+    }
   }
 
   /// Add mode only — there's no endpoint to replace an existing photo.

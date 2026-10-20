@@ -4,6 +4,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/services/auth_handler.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../buttons/accent_pill_button.dart';
 
 /// Renders nothing for [AuthExpiredException] — the page's auth-expiry
 /// listener handles that.
@@ -36,9 +37,10 @@ class ErrorStateWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ElevatedButton(
+          AccentPillButton(
+            label: retryLabel ?? AppLocalizations.of(context).retry,
+            icon: Icons.refresh,
             onPressed: onRetry,
-            child: Text(retryLabel ?? AppLocalizations.of(context).retry),
           ),
         ],
       ),

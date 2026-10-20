@@ -34,7 +34,7 @@ import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/outfit/outfit_garment_section.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/outfit/outfit_share_sheet.dart';
-import '../widgets/outfit/outfit_tag_rows.dart';
+import '../widgets/outfit/outfit_tag_row.dart';
 import '../widgets/outfit/outfit_tags_sheet.dart';
 import '../widgets/outfit/outfit_title.dart';
 import 'add_outfit_page.dart';
@@ -184,23 +184,27 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             backgroundColor: AppColors.pageBackground,
             extendBody: true,
             appBar: _buildAppBar(),
-            body: ListView(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                20,
-                20,
-                _showsBottomActionButton
-                    ? AppDimens.bottomActionBtnClearance
-                    : 30,
+            body: Builder(
+              builder: (bodyContext) => ListView(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  20,
+                  20,
+                  _showsBottomActionButton
+                      ? BottomActionButton.scrollClearance(bodyContext)
+                      : 30 + MediaQuery.paddingOf(context).bottom,
+                ),
+                children: [
+                  Text(_title, style: AppTextStyle.bold20),
+                  const SizedBox(height: 8),
+                  _buildInfoCard(),
+                  const SizedBox(height: AppDimens.cardHeaderGap),
+                  _buildOutfitImage(),
+                  if (_current.garmentIds.isNotEmpty) ...[
+                    _buildGarmentSection(),
+                  ],
+                ],
               ),
-              children: [
-                Text(_title, style: AppTextStyle.bold20),
-                const SizedBox(height: 8),
-                _buildInfoCard(),
-                const SizedBox(height: AppDimens.cardHeaderGap),
-                _buildOutfitImage(),
-                if (_current.garmentIds.isNotEmpty) ...[_buildGarmentSection()],
-              ],
             ),
             bottomNavigationBar: _buildBottomBar(),
           ),

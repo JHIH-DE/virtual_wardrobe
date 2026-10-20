@@ -4,18 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../core/providers/garments_provider.dart';
-import '../../core/services/auth_handler.dart';
-import '../../core/services/garment_service.dart';
 import '../../data/garment.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/filter_button.dart';
-import '../widgets/common/cards/favorite_card.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
-import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
@@ -260,36 +256,11 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
   }
 
   Widget _buildGarmentCard(Garment garment) {
-    return FavoriteCard(
-      isFavorite: garment.isFavorite,
-      onToggle: () => _toggleFavorite(garment),
-      child: GarmentCard(
-        garment: garment,
-        showSelectionIndicator: false,
-        onTap: () => _editGarment(garment),
-      ),
+    return GarmentCard(
+      garment: garment,
+      showSelectionIndicator: false,
+      onTap: () => _editGarment(garment),
     );
-  }
-
-  Future<void> _toggleFavorite(Garment garment) async {
-    final id = garment.id;
-    if (id == null) return;
-    final next = !garment.isFavorite;
-    ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: next);
-    try {
-      await GarmentService().setFavorite(id, isFavorite: next);
-    } on AuthExpiredException {
-      ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: !next);
-      if (mounted) await AuthExpiredHandler.handle(context);
-    } catch (_) {
-      ref.read(garmentsProvider.notifier).updateFavorite(id, isFavorite: !next);
-      if (mounted) {
-        showErrorDialog(
-          context,
-          message: AppLocalizations.of(context).failedToUpdateFavorite,
-        );
-      }
-    }
   }
 
   Future<void> _editGarment(Garment garment) async {
