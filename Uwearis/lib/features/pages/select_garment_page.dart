@@ -102,6 +102,8 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
         final g = items[i];
         return GarmentCard(
           garment: g,
+          // Single pick that pops right away, so a checkbox would mislead.
+          showSelectionIndicator: false,
           isSelected:
               widget.selected?.id != null && widget.selected!.id == g.id,
           onTap: () => Navigator.pop(context, SelectGarmentResult(g)),

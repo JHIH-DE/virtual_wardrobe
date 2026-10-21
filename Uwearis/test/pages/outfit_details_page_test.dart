@@ -8,7 +8,7 @@ import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/daily_outfit_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/data/outfit.dart';
-import 'package:uwearis/features/pages/add_outfit_page.dart';
+import 'package:uwearis/features/pages/create_outfit_page.dart';
 import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/circle_icon_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
@@ -399,76 +399,28 @@ void main() {
     }, stubClient);
   });
 
-  testWidgets('the pill keeps reading "New Version" once a sibling version '
-      'exists, with an "n / total" counter (no dots) on the same row', (
-    tester,
-  ) async {
-    useTallSurface(tester);
-    // Unique group id: OutfitService caches per group.
-    const groupId = 702;
-    final client = MockClient((request) async {
-      if (request.url.path.endsWith('/$groupId')) {
-        return jsonResponse(
-          envelope({
-            'outfits': [
-              {
-                'id': 1,
-                'group_id': groupId,
-                'image_url': 'https://img.example/1.png',
-              },
-              {
-                'id': 2,
-                'group_id': groupId,
-                'image_url': 'https://img.example/2.png',
-              },
-            ],
-          }),
-        );
-      }
-      return jsonResponse(envelope({'items': []}));
-    });
-
-    await http.runWithClient(() async {
-      await pumpApp(
-        tester,
-        OutfitDetailsPage(outfit: _outfit(groupId: groupId)),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(
-        find.widgetWithText(AccentPillButton, 'New Version'),
-        findsOneWidget,
-      );
-      expect(find.widgetWithIcon(CircleIconButton, Icons.add), findsNothing);
-      expect(find.text('1 / 2'), findsOneWidget);
-      expect(find.byType(CarouselDotsIndicator), findsNothing);
-      expect(
-        tester.getCenter(find.text('1 / 2')).dy,
-        moreOrLessEquals(
-          tester.getCenter(find.byType(AccentPillButton)).dy,
-          epsilon: 1,
-        ),
-      );
-    }, () => client);
-  });
-
   testWidgets(
-    'the version row keeps the pill\'s height when only the counter shows',
+    'the pill keeps reading "New Version" once a sibling version '
+    'exists, over the photo, with the Home-style dots + "n / total" counter below',
     (tester) async {
       useTallSurface(tester);
-      const groupId = 790;
+      // Unique group id: OutfitService caches per group.
+      const groupId = 702;
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/$groupId')) {
           return jsonResponse(
             envelope({
               'outfits': [
-                for (final id in [1, 2])
-                  {
-                    'id': id,
-                    'group_id': groupId,
-                    'image_url': 'https://img.example/$id.png',
-                  },
+                {
+                  'id': 1,
+                  'group_id': groupId,
+                  'image_url': 'https://img.example/1.png',
+                },
+                {
+                  'id': 2,
+                  'group_id': groupId,
+                  'image_url': 'https://img.example/2.png',
+                },
               ],
             }),
           );
@@ -477,26 +429,81 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        // An entry point that doesn't offer "+ New Version".
         await pumpApp(
           tester,
-          OutfitDetailsPage(
-            outfit: _outfit(groupId: groupId),
-            showEditOutfitWhenSaved: false,
-          ),
+          OutfitDetailsPage(outfit: _outfit(groupId: groupId)),
         );
         await tester.pump();
         await tester.pump();
 
-        expect(find.byType(AccentPillButton), findsNothing);
-        final row = find.ancestor(
-          of: find.text('1 / 2'),
-          matching: find.byType(Row),
+        expect(
+          find.widgetWithText(AccentPillButton, 'New Version'),
+          findsOneWidget,
         );
-        expect(tester.getSize(row.first).height, 44);
+        expect(find.widgetWithIcon(CircleIconButton, Icons.add), findsNothing);
+        expect(find.text('1 / 2'), findsOneWidget);
+        final dots = tester.widget<CarouselDotsIndicator>(
+          find.byType(CarouselDotsIndicator),
+        );
+        expect(dots.count, 2);
+        expect(dots.currentIndex, 0);
+        // The pill floats over the photo's bottom-left corner; the counter
+        // stays on the row under the photo.
+        final photo = tester.getRect(find.byType(PageView));
+        final pill = tester.getRect(
+          find.descendant(
+            of: find.byType(AccentPillButton),
+            matching: find.byType(TextButton),
+          ),
+        );
+        expect(pill.left - photo.left, closeTo(12, 0.5));
+        expect(photo.bottom - pill.bottom, closeTo(12, 0.5));
+        expect(
+          tester.getTopLeft(find.text('1 / 2')).dy,
+          greaterThan(photo.bottom),
+        );
       }, () => client);
     },
   );
+
+  testWidgets('the dots still show without "+ New Version"', (tester) async {
+    useTallSurface(tester);
+    const groupId = 790;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/$groupId')) {
+        return jsonResponse(
+          envelope({
+            'outfits': [
+              for (final id in [1, 2])
+                {
+                  'id': id,
+                  'group_id': groupId,
+                  'image_url': 'https://img.example/$id.png',
+                },
+            ],
+          }),
+        );
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
+      // An entry point that doesn't offer "+ New Version".
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(
+          outfit: _outfit(groupId: groupId),
+          showEditOutfitWhenSaved: false,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(AccentPillButton), findsNothing);
+      expect(find.byType(CarouselDotsIndicator), findsOneWidget);
+      expect(find.text('1 / 2'), findsOneWidget);
+    }, () => client);
+  });
 
   // The version cap is enforced client-side only.
   testWidgets(
@@ -569,19 +576,19 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
-        final addOutfit = tester.widget<AddOutfitPage>(
-          find.byType(AddOutfitPage),
+        final addOutfit = tester.widget<CreateOutfitPage>(
+          find.byType(CreateOutfitPage),
         );
         expect(addOutfit.targetGroupId, 704);
         expect(find.text('Add Version'), findsOneWidget);
 
-        Navigator.of(tester.element(find.byType(AddOutfitPage))).pop(
+        Navigator.of(tester.element(find.byType(CreateOutfitPage))).pop(
           Outfit(id: 2, groupId: 704, imageUrl: 'https://img.example/2.png'),
         );
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
-        expect(find.byType(AddOutfitPage), findsNothing);
+        expect(find.byType(CreateOutfitPage), findsNothing);
         expect(find.text('2 / 2'), findsOneWidget);
         // Let the post-swipe outfitsProvider.refresh() settle before the
         // scope is torn down.

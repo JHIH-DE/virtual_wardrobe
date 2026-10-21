@@ -18,7 +18,6 @@ class EmptyStatePlaceholder extends StatelessWidget {
   final String? title;
 
   final String? actionLabel;
-  final IconData actionIcon;
   final VoidCallback? onAction;
 
   /// Centers across the whole (bounded-height) area and stays
@@ -42,7 +41,6 @@ class EmptyStatePlaceholder extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.title,
     this.actionLabel,
-    this.actionIcon = Icons.add,
     this.onAction,
     this.fillAvailableSpace = false,
     this.pinnedTop,
@@ -95,11 +93,7 @@ class EmptyStatePlaceholder extends StatelessWidget {
             ),
             if (actionLabel != null) ...[
               const SizedBox(height: 16),
-              AccentPillButton(
-                label: actionLabel!,
-                icon: actionIcon,
-                onPressed: onAction,
-              ),
+              AccentPillButton(label: actionLabel!, onPressed: onAction),
             ],
           ],
         ),

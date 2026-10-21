@@ -27,12 +27,16 @@ void main() {
     },
   );
 
-  testWidgets('"Add Itinerary" renders as an AccentPillButton and opens the '
-      'location picker', (tester) async {
+  testWidgets('"Add" sits beside the Itinerary & Dates label as an '
+      'AccentPillButton and opens the location picker', (tester) async {
     await pumpApp(tester, const TripCreateDialog());
     await tester.pump();
 
-    expect(find.byType(AccentPillButton), findsOneWidget);
+    final pill = find.widgetWithText(AccentPillButton, 'Add');
+    expect(pill, findsOneWidget);
+    final label = find.text('ITINERARY & DATES');
+    expect(tester.getCenter(pill).dy, closeTo(tester.getCenter(label).dy, 1));
+    expect(tester.getCenter(pill).dx, greaterThan(tester.getCenter(label).dx));
 
     await tester.tap(find.byType(AccentPillButton));
     await tester.pumpAndSettle();

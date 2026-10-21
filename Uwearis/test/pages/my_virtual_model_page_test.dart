@@ -184,6 +184,21 @@ class _FakeImagePickerPlatform extends ImagePickerPlatform
   }) async => XFile(pathToReturn);
 }
 
+/// The virtual model's Generate pill — the reference cards' Update / Add
+/// pills are AccentPillButtons too.
+final _generatePill = find.ancestor(
+  of: find.text(_l10n.virtualModelGenerateAction),
+  matching: find.byType(AccentPillButton),
+);
+
+/// The full-body card's pill is shown (disabled) while the page is busy, so
+/// waiting for it means waiting for it to be enabled.
+bool _bodyActionEnabled(WidgetTester tester) {
+  final pill = find.byKey(const ValueKey('updatePhotoAction-body'));
+  return pill.evaluate().isNotEmpty &&
+      tester.widget<AccentPillButton>(pill).enabled;
+}
+
 void main() {
   setUp(setUpFakeAuth);
 
@@ -361,13 +376,7 @@ void main() {
               _useTallSurface(tester);
               _mockPathProviderChannel();
               await pumpApp(tester, const MyVirtualModelPage());
-              await _pumpUntil(
-                tester,
-                () => find
-                    .byKey(const ValueKey('updatePhotoAction-body'))
-                    .evaluate()
-                    .isNotEmpty,
-              );
+              await _pumpUntil(tester, () => _bodyActionEnabled(tester));
 
               await tester.tap(
                 find.byKey(const ValueKey('updatePhotoAction-body')),
@@ -383,10 +392,10 @@ void main() {
               expect(find.text(_l10n.photoProcessingFailed), findsOneWidget);
               expect(find.byType(ImageEditorPage), findsNothing);
 
-              final inkWell = tester.widget<InkWell>(
+              final pill = tester.widget<AccentPillButton>(
                 find.byKey(const ValueKey('updatePhotoAction-body')),
               );
-              expect(inkWell.onTap, isNotNull);
+              expect(pill.enabled, isTrue);
             }, () => client);
           });
         },
@@ -716,8 +725,12 @@ void main() {
           await tester.pump();
 
           expect(
-            find.byKey(const ValueKey('updatePhotoAction-body')),
-            findsNothing,
+            tester
+                .widget<AccentPillButton>(
+                  find.byKey(const ValueKey('updatePhotoAction-body')),
+                )
+                .enabled,
+            isFalse,
           );
           expect(downloadCalls, 1);
 
@@ -740,10 +753,7 @@ void main() {
           );
           await _pumpUntil(
             tester,
-            () => find
-                .byKey(const ValueKey('updatePhotoAction-body'))
-                .evaluate()
-                .isNotEmpty,
+            () => _bodyActionEnabled(tester),
             maxTries: 150,
           );
 
@@ -845,9 +855,7 @@ void main() {
           find.text(_l10n.virtualModelGenerateRequiresBodyRefHint),
           findsOneWidget,
         );
-        final pill = tester.widget<AccentPillButton>(
-          find.byType(AccentPillButton),
-        );
+        final pill = tester.widget<AccentPillButton>(_generatePill);
         expect(pill.enabled, isFalse);
       },
     );
@@ -874,11 +882,9 @@ void main() {
         );
         await tester.pump();
 
-        final pill = tester.widget<AccentPillButton>(
-          find.byType(AccentPillButton),
-        );
+        final pill = tester.widget<AccentPillButton>(_generatePill);
         expect(pill.enabled, isTrue);
-        await tester.tap(find.byType(AccentPillButton));
+        await tester.tap(_generatePill);
         await tester.pumpAndSettle();
 
         expect(
@@ -919,7 +925,7 @@ void main() {
         );
         await tester.pump();
 
-        await tester.tap(find.byType(AccentPillButton));
+        await tester.tap(_generatePill);
         await tester.pumpAndSettle();
         await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
         await tester.pumpAndSettle();
@@ -953,7 +959,7 @@ void main() {
 
       final beforeAnyGenerate = cacheKeyOf();
 
-      await tester.tap(find.byType(AccentPillButton));
+      await tester.tap(_generatePill);
       await tester.pumpAndSettle();
       await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
       await tester.pumpAndSettle();
@@ -963,7 +969,7 @@ void main() {
       final afterFirstGenerate = cacheKeyOf();
       expect(afterFirstGenerate, isNot(beforeAnyGenerate));
 
-      await tester.tap(find.byType(AccentPillButton));
+      await tester.tap(_generatePill);
       await tester.pumpAndSettle();
       await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
       await tester.pumpAndSettle();

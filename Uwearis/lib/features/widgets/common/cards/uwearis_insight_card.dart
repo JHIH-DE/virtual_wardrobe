@@ -11,11 +11,7 @@ class UwearisInsightCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? margin;
 
-  const UwearisInsightCard({
-    super.key,
-    required this.child,
-    this.margin,
-  });
+  const UwearisInsightCard({super.key, required this.child, this.margin});
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +54,7 @@ class UwearisInsightCard extends StatelessWidget {
               const SizedBox(width: 8),
               SectionTitle(
                 l10n.appTitle,
-                style: AppTextStyle.bold18.copyWith(letterSpacing: 1.5),
+                style: AppTextStyle.bold16.copyWith(letterSpacing: 1.5),
               ),
               const SizedBox(width: 6),
               Container(

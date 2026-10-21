@@ -4,49 +4,54 @@ import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 
 void main() {
-  Widget host(Widget child) => MaterialApp(home: Scaffold(body: Center(child: child)));
+  Widget host(Widget child) => MaterialApp(
+    home: Scaffold(body: Center(child: child)),
+  );
 
-  Color iconColor(WidgetTester tester) =>
-      tester.widget<Icon>(find.byType(Icon)).color!;
+  Color labelColor(WidgetTester tester, String label) =>
+      tester.widget<Text>(find.text(label)).style!.color!;
 
-  testWidgets('enabled: accent colored and taps fire onPressed', (tester) async {
+  Color? fillColor(WidgetTester tester) => tester
+      .widget<TextButton>(find.byType(TextButton))
+      .style!
+      .backgroundColor!
+      .resolve({});
+
+  testWidgets('enabled: solid accent with a white label; taps fire onPressed', (
+    tester,
+  ) async {
     var taps = 0;
     await tester.pumpWidget(
       host(
-        AccentPillButton(
-          label: 'Complete with AI',
-          icon: Icons.auto_awesome,
-          onPressed: () => taps++,
-        ),
+        AccentPillButton(label: 'Complete with AI', onPressed: () => taps++),
       ),
     );
 
     expect(find.text('Complete with AI'), findsOneWidget);
-    expect(iconColor(tester), AppColors.accent);
-    expect(tester.widget<Opacity>(find.byType(Opacity)).opacity, 1);
+    expect(find.byType(Icon), findsNothing);
+    expect(fillColor(tester), AppColors.accent);
+    expect(labelColor(tester, 'Complete with AI'), AppColors.textOnPrimary);
 
     await tester.tap(find.byType(AccentPillButton));
     expect(taps, 1);
   });
 
-  testWidgets('disabled: greyed out and taps are ignored', (tester) async {
+  testWidgets('disabled: grey fill and hint label; taps are ignored', (
+    tester,
+  ) async {
     var taps = 0;
     await tester.pumpWidget(
       host(
         AccentPillButton(
           label: 'Complete with AI',
-          icon: Icons.auto_awesome,
           enabled: false,
           onPressed: () => taps++,
         ),
       ),
     );
 
-    expect(iconColor(tester), AppColors.hintText);
-    expect(
-      tester.widget<Opacity>(find.byType(Opacity)).opacity,
-      lessThan(1),
-    );
+    expect(fillColor(tester), AppColors.borderSubtle);
+    expect(labelColor(tester, 'Complete with AI'), AppColors.hintText);
 
     await tester.tap(find.byType(AccentPillButton));
     expect(taps, 0);
@@ -59,7 +64,6 @@ void main() {
       host(
         AccentPillButton(
           label: 'Generate Outfit',
-          icon: Icons.auto_awesome,
           enabled: false,
           disabledMessage: 'Missing a core item',
           onPressed: () {},
@@ -79,7 +83,6 @@ void main() {
       host(
         AccentPillButton(
           label: 'Generate Outfit',
-          icon: Icons.auto_awesome,
           disabledMessage: 'Missing a core item',
           onPressed: () {},
         ),

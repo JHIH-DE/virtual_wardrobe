@@ -46,7 +46,6 @@ class _ExplorePageState extends State<ExplorePage> {
             alignment: Alignment.centerLeft,
             child: AccentPillButton(
               label: l10n.navHome,
-              icon: Icons.home_outlined,
               variant: AccentPillButtonVariant.toolbar,
               onPressed: () => Navigator.pop(context),
             ),

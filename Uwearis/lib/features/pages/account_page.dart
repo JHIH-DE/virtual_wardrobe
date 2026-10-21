@@ -590,7 +590,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           Expanded(
             child: Text(
               _homeLocation ?? _l10n.selectYourCityHint,
-              style: AppTextStyle.regular16.copyWith(
+              style: AppTextStyle.regular14.copyWith(
                 color: _homeLocation == null
                     ? AppColors.textSecondary
                     : AppColors.textPrimary,

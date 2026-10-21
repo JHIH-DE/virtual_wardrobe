@@ -30,7 +30,7 @@ Future<String?> showTextInputDialog(
             controller: controller,
             autofocus: true,
             textCapitalization: TextCapitalization.sentences,
-            style: AppTextStyle.bold16,
+            style: AppTextStyle.bold14,
             decoration: appInputDecoration(hint: hint),
           ),
           primaryLabel: confirmLabel ?? l10n.save,

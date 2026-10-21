@@ -751,7 +751,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Widget _buildGenerateOutfitButton() {
     final hasCoreOutfit = _hasCoreOutfit;
     return AccentPillButton(
-      icon: Icons.auto_awesome,
       label: (_currentDayOutfit?.everHadOutfit ?? false)
           ? _l10n.regenerateOutfit
           : _l10n.generateOutfit,
@@ -963,23 +962,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       children: [
         Expanded(child: FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
         if (_selectedDayHasOption)
-          TextButton(
-            onPressed: _openDayOutfitEditor,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.accent,
-              minimumSize: const Size(
-                AppDimens.minTouchTarget,
-                AppDimens.minTouchTarget,
-              ),
-              padding: const EdgeInsets.only(left: 16),
-              alignment: Alignment.centerRight,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              _l10n.edit,
-              style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
-            ),
-          ),
+          AccentPillButton(label: _l10n.edit, onPressed: _openDayOutfitEditor),
       ],
     );
   }
@@ -1110,11 +1093,7 @@ class _GeneratePlanCta extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          AccentPillButton(
-            label: l10n.planTripOutfits,
-            icon: Icons.auto_awesome,
-            onPressed: onTap,
-          ),
+          AccentPillButton(label: l10n.planTripOutfits, onPressed: onTap),
         ],
       ),
     );

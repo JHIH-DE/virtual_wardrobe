@@ -21,8 +21,8 @@ InputDecoration appInputDecoration({
   return InputDecoration(
     hintText: hint,
     labelText: label,
-    hintStyle: AppTextStyle.regular16.copyWith(color: AppColors.textSecondary),
-    labelStyle: AppTextStyle.regular16.copyWith(color: AppColors.textSecondary),
+    hintStyle: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+    labelStyle: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
     suffixText: suffixText,
     suffixStyle: AppTextStyle.medium14.copyWith(color: AppColors.textSecondary),
     suffix: suffix,
@@ -99,7 +99,7 @@ class AppTextField extends StatelessWidget {
       readOnly: readOnly,
       maxLines: maxLines,
       validator: validator,
-      style: AppTextStyle.regular16,
+      style: AppTextStyle.regular14,
       decoration: appInputDecoration(
         hint: hint,
         label: label,

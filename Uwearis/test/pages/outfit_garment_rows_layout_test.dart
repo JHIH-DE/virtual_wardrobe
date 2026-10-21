@@ -1,10 +1,13 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_dimens.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
-import 'package:uwearis/features/pages/add_outfit_page.dart';
+import 'package:uwearis/features/pages/create_outfit_page.dart';
 import 'package:uwearis/features/pages/outfit_edit_page.dart';
 import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
 import 'package:uwearis/features/widgets/common/cards/card_corner_badge.dart';
@@ -106,6 +109,56 @@ void _expectAddGarmentRowReadable(WidgetTester tester, AppLocalizations l10n) {
   expectNoBrokenWords(tester, find.text(l10n.browseYourClosetHint));
 }
 
+/// Writes a 100x300 PNG — a tall photo like a pair of trousers.
+Future<String> _writeTallPhoto() async {
+  final recorder = ui.PictureRecorder();
+  Canvas(recorder).drawRect(
+    const Rect.fromLTWH(0, 0, 100, 300),
+    Paint()..color = const Color(0xFF222222),
+  );
+  final image = await recorder.endRecording().toImage(100, 300);
+  final png = await image.toByteData(format: ui.ImageByteFormat.png);
+  final dir = await Directory.systemTemp.createTemp('tall_photo');
+  final file = File('${dir.path}/tall.png');
+  await file.writeAsBytes(png!.buffer.asUint8List());
+  return file.path;
+}
+
+/// A loaded tall photo must not stretch its row past the text's height.
+Future<void> _expectTallPhotoKeepsRowHeight(
+  WidgetTester tester,
+  Widget Function(Garment tall) page,
+) async {
+  final path = (await tester.runAsync(_writeTallPhoto))!;
+  final tall = Garment(
+    id: 9,
+    garmentId: 9,
+    name: 'Cargo Pants',
+    category: GarmentCategory.bottom,
+    subCategory: 'Pants',
+    uploadUrl: '',
+    objectName: '',
+    imageUrl: path,
+  );
+  await pumpApp(
+    tester,
+    page(tall),
+    overrides: [
+      garmentsProvider.overrideWith(() => _FakeGarments([tall, _spare])),
+    ],
+  );
+  await tester.pump();
+  // File decoding runs off the fake clock.
+  for (var i = 0; i < 20; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+
+  expect(tester.getSize(_rowOf('Cargo Pants')).height, closeTo(84, 0.5));
+}
+
 void main() {
   setUpAll(loadAppFont);
   setUp(() {
@@ -121,7 +174,7 @@ void main() {
         final closet = _closet(c.locale);
         await pumpApp(
           tester,
-          AddOutfitPage(initialGarments: closet),
+          CreateOutfitPage(initialGarments: closet),
           overrides: [
             garmentsProvider.overrideWith(
               () => _FakeGarments([...closet, _spare]),
@@ -130,7 +183,7 @@ void main() {
         );
         await tester.pump();
         final l10n = AppLocalizations.of(
-          tester.element(find.byType(AddOutfitPage)),
+          tester.element(find.byType(CreateOutfitPage)),
         );
 
         _expectAddGarmentRowReadable(tester, l10n);
@@ -164,6 +217,27 @@ void main() {
         expect(find.text(longName), findsNothing);
       });
     }
+  });
+
+  testWidgets('Create Outfit: a tall photo keeps the row at its text height', (
+    tester,
+  ) async {
+    await _expectTallPhotoKeepsRowHeight(
+      tester,
+      (tall) => CreateOutfitPage(initialGarments: [tall]),
+    );
+  });
+
+  testWidgets('Outfit Edit: a tall photo keeps the row at its text height', (
+    tester,
+  ) async {
+    await _expectTallPhotoKeepsRowHeight(
+      tester,
+      (tall) => OutfitEditPage(
+        preloadedGarments: [tall, _spare],
+        initialGarments: [tall],
+      ),
+    );
   });
 
   group('Outfit Edit', () {

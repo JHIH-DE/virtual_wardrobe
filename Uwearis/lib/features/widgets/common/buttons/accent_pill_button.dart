@@ -4,8 +4,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
-/// Outlined accent pill for secondary call-outs; the outlined sibling of
-/// [PillButton].
+/// Solid accent pill for section-level call-outs. Disabled, it takes the
+/// same grey fill + hint label as a disabled [ActionButton] primary.
 ///
 /// The tap target is padded to [AppDimens.minTouchTarget] beyond the
 /// 28px (toolbar: 32px) pill, since several call sites are AI triggers.
@@ -14,7 +14,6 @@ import '../../../../app/theme/app_text_styles.dart';
 /// it's taller than a toolbar slot.
 class AccentPillButton extends StatelessWidget {
   final String label;
-  final IconData icon;
   final VoidCallback? onPressed;
   final bool enabled;
   final AccentPillButtonVariant variant;
@@ -23,7 +22,6 @@ class AccentPillButton extends StatelessWidget {
   const AccentPillButton({
     super.key,
     required this.label,
-    required this.icon,
     this.onPressed,
     this.enabled = true,
     this.variant = AccentPillButtonVariant.inline,
@@ -34,48 +32,38 @@ class AccentPillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? AppColors.accent : AppColors.hintText;
+    final background = enabled ? AppColors.accent : AppColors.borderSubtle;
+    final foreground = enabled ? AppColors.textOnPrimary : AppColors.hintText;
     final onToolbar = variant == AccentPillButtonVariant.toolbar;
     final pill = TextButton(
       onPressed: enabled ? onPressed : null,
       style: TextButton.styleFrom(
-        foregroundColor: color,
+        foregroundColor: foreground,
+        backgroundColor: background,
+        disabledForegroundColor: foreground,
+        disabledBackgroundColor: background,
         minimumSize: Size(0, onToolbar ? 32 : 28),
-        padding: EdgeInsets.symmetric(horizontal: onToolbar ? 12 : 10),
+        padding: EdgeInsets.symmetric(horizontal: onToolbar ? 14 : 12),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-        side: BorderSide(color: color),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: onToolbar ? 17 : 15, color: color),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              label,
-              style: (onToolbar ? AppTextStyle.bold15 : AppTextStyle.bold14)
-                  .copyWith(color: color),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: (onToolbar ? AppTextStyle.bold15 : AppTextStyle.bold14).copyWith(
+          color: foreground,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
 
-    final button = Opacity(
-      opacity: enabled ? 1 : 0.6,
-      child: GestureDetector(
-        // Near-misses around the pill; direct hits still go to the button.
-        behavior: HitTestBehavior.opaque,
-        onTap: enabled ? onPressed : null,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: AppDimens.minTouchTarget,
-          ),
-          child: Center(widthFactor: 1, child: pill),
-        ),
+    final button = GestureDetector(
+      // Near-misses around the pill; direct hits still go to the button.
+      behavior: HitTestBehavior.opaque,
+      onTap: enabled ? onPressed : null,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
+        child: Center(widthFactor: 1, child: pill),
       ),
     );
 

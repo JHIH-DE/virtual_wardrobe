@@ -167,11 +167,7 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
             runSpacing: 4,
             children: [
               SectionTitle(_l10n.finishOutfit),
-              AccentPillButton(
-                label: _l10n.finishWithAi,
-                icon: Icons.auto_awesome,
-                onPressed: () {},
-              ),
+              AccentPillButton(label: _l10n.finishWithAi, onPressed: () {}),
             ],
           ),
         ),
@@ -180,22 +176,13 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
       Wrap(
         spacing: 12,
         children: [
-          AccentPillButton(
-            label: _l10n.addVersionButton,
-            icon: Icons.add,
-            onPressed: () {},
-          ),
-          AccentPillButton(
-            label: _l10n.addVersionButton,
-            icon: Icons.add,
-            enabled: false,
-          ),
+          AccentPillButton(label: _l10n.addVersionButton, onPressed: () {}),
+          AccentPillButton(label: _l10n.addVersionButton, enabled: false),
         ],
       ),
       const _Spec('inline · disabled + disabledMessage'),
       AccentPillButton(
         label: _l10n.planTripOutfits,
-        icon: Icons.auto_awesome,
         enabled: false,
         disabledMessage: _l10n.dayOutfitMissingCoreItemsMessage,
       ),
@@ -204,7 +191,6 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         alignment: Alignment.centerLeft,
         child: AccentPillButton(
           label: _l10n.explore,
-          icon: Icons.explore_outlined,
           variant: AccentPillButtonVariant.toolbar,
           onPressed: () {},
         ),
@@ -237,11 +223,7 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
       const _Spec('in-page trigger while in flight → enabled: false'),
       Align(
         alignment: Alignment.centerLeft,
-        child: AccentPillButton(
-          label: _l10n.finishWithAi,
-          icon: Icons.auto_awesome,
-          enabled: false,
-        ),
+        child: AccentPillButton(label: _l10n.finishWithAi, enabled: false),
       ),
       const _Spec('AppSpinner (brief in-place fetch)'),
       const Center(child: AppSpinner()),

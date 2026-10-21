@@ -104,6 +104,26 @@ void main() {
     expect(cards.firstWhere((c) => c.garment.id == 2).isSelected, isTrue);
   });
 
+  testWidgets('cards show no selection checkbox — a tap picks and leaves', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    await pumpApp(
+      tester,
+      SelectGarmentPage(
+        title: 'Add Garment',
+        garments: garments,
+        selected: garments.first,
+      ),
+    );
+    await tester.pump();
+
+    final cards = tester.widgetList<GarmentCard>(find.byType(GarmentCard));
+    expect(cards, hasLength(2));
+    expect(cards.every((c) => !c.showSelectionIndicator), isTrue);
+    expect(find.byIcon(Icons.check), findsNothing);
+  });
+
   testWidgets('tapping a garment pops with the SelectGarmentResult', (
     tester,
   ) async {

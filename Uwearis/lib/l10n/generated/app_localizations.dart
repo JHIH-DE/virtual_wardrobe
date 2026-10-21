@@ -168,7 +168,7 @@ abstract class AppLocalizations {
   /// No description provided for @updatePhotoAction.
   ///
   /// In en, this message translates to:
-  /// **'Update photo'**
+  /// **'Update'**
   String get updatePhotoAction;
 
   /// No description provided for @addPhotoAction.

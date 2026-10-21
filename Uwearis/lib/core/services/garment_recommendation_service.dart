@@ -9,7 +9,8 @@ import 'base_service.dart';
 
 /// Add Outfit's "Complete with AI": the backend fills in the rest of an
 /// outfit around the picked garments. Text-only — no try-on image, no
-/// OutfitGroup created. Locking is frontend-only; the backend never sees it.
+/// OutfitGroup created. Locked garments go as `garment_ids`, which the
+/// backend always keeps in the result.
 class GarmentRecommendationService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/outfit/advice';
 

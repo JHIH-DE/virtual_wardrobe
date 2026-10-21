@@ -4,9 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
 import 'package:uwearis/data/garment.dart';
-import 'package:uwearis/features/pages/add_outfit_page.dart';
+import 'package:uwearis/features/pages/create_outfit_page.dart';
 
-import '../helpers/add_outfit_harness.dart';
 import '../helpers/fake_auth.dart';
 import '../helpers/text_scale_harness.dart';
 import '../helpers/widget_harness.dart';
@@ -72,7 +71,7 @@ void main() {
         applyLayoutCase(tester, c, height: 3000);
         await pumpApp(
           tester,
-          const AddOutfitPage(),
+          const CreateOutfitPage(),
           overrides: [
             garmentsProvider.overrideWith(_EmptyCloset.new),
             weatherProvider.overrideWith(() => _FixedWeather(t)),
@@ -80,7 +79,6 @@ void main() {
         );
         await tester.pump();
         await tester.pump();
-        await expandFinishOutfit(tester);
 
         final value = find.text('$t°C');
         final tile = find

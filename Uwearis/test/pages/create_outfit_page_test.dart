@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,13 +14,13 @@ import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/outfit.dart';
-import 'package:uwearis/features/pages/add_outfit_page.dart';
+import 'package:uwearis/features/pages/create_outfit_page.dart';
 import 'package:uwearis/features/pages/outfit_details_page.dart';
+import 'package:uwearis/features/pages/select_garment_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 
-import '../helpers/add_outfit_harness.dart';
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
@@ -81,7 +83,11 @@ void main() {
     'create mode shows the Match a Look app-bar icon and an empty Your Outfit row',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(),
+      );
       await tester.pump();
 
       expect(find.byTooltip('Match a Look'), findsOneWidget);
@@ -102,7 +108,7 @@ void main() {
     useTallSurface(tester);
     await pumpApp(
       tester,
-      AddOutfitPage(
+      CreateOutfitPage(
         initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
       ),
       overrides: closetOverride(),
@@ -120,7 +126,7 @@ void main() {
     useTallSurface(tester);
     await pumpApp(
       tester,
-      AddOutfitPage(initialGarments: [closet[0], closet[1], closet[2]]),
+      CreateOutfitPage(initialGarments: [closet[0], closet[1], closet[2]]),
       overrides: closetOverride(),
     );
     await tester.pump();
@@ -144,7 +150,7 @@ void main() {
       await http.runWithClient(() async {
         await pumpApp(
           tester,
-          AddOutfitPage(initialGarments: [closet[0], closet[1], closet[2]]),
+          CreateOutfitPage(initialGarments: [closet[0], closet[1], closet[2]]),
           overrides: closetOverride(),
         );
         await tester.pump();
@@ -168,7 +174,11 @@ void main() {
     'a manually added garment is locked by default; removing it clears the lock',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(),
+      );
       await tester.pump();
 
       await tester.tap(find.text('Add Garment'));
@@ -187,7 +197,11 @@ void main() {
 
   testWidgets('tapping the lock badge toggles it', (tester) async {
     useTallSurface(tester);
-    await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+    await pumpApp(
+      tester,
+      const CreateOutfitPage(),
+      overrides: closetOverride(),
+    );
     await tester.pump();
 
     await tester.tap(find.text('Add Garment'));
@@ -210,7 +224,11 @@ void main() {
     'the Complete with AI pill is enabled with zero garments picked',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(),
+      );
       await tester.pump();
 
       final pill = tester.widget<AccentPillButton>(
@@ -226,14 +244,13 @@ void main() {
       useTallSurface(tester);
       await pumpApp(
         tester,
-        const AddOutfitPage(),
+        const CreateOutfitPage(),
         overrides: [
           ...closetOverride(),
           weatherProvider.overrideWith(_FakeWeather.new),
         ],
       );
       await tester.pumpAndSettle();
-      await expandFinishOutfit(tester);
 
       // High 28 / low 18 → 23, not the current reading (30).
       expect(find.text('23°C'), findsOneWidget);
@@ -245,11 +262,14 @@ void main() {
     'the Finish Outfit card holds the temperature + style knobs, no occasion',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(),
+      );
       await tester.pump();
       await tester.pump(const Duration(seconds: 6)); // weather lookup settles
       await tester.pumpAndSettle();
-      await expandFinishOutfit(tester);
 
       expect(find.byIcon(Icons.info_outline), findsNothing);
       expect(find.text('OCCASION'), findsNothing);
@@ -260,8 +280,8 @@ void main() {
       final finish = find.widgetWithText(AccentPillButton, 'Finish with AI');
       expect(finish, findsOneWidget);
       expect(
-        tester.getRect(finish).top,
-        greaterThan(tester.getRect(find.text('Auto')).bottom),
+        tester.getCenter(finish).dy,
+        closeTo(tester.getCenter(find.text('Auto-Complete')).dy, 4),
       );
       expect(
         tester.getCenter(find.text('STYLE')).dy,
@@ -318,7 +338,7 @@ void main() {
       await http.runWithClient(() async {
         await pumpApp(
           tester,
-          const AddOutfitPage(),
+          const CreateOutfitPage(),
           overrides: closetOverride(),
         );
         await tester.pump();
@@ -349,6 +369,70 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Finish with AI never replaces a locked garment, even when it suggests '
+    'another piece for the same slot',
+    (tester) async {
+      useTallSurface(tester);
+      final wardrobe = [
+        _garment(
+          id: 1,
+          category: GarmentCategory.top,
+          name: 'Tee',
+          subCategory: 'T-shirt',
+        ),
+        _garment(
+          id: 2,
+          category: GarmentCategory.top,
+          name: 'Polo',
+          subCategory: 'Polo shirt',
+        ),
+        _garment(id: 3, category: GarmentCategory.bottom, name: 'Jeans'),
+        _garment(id: 4, category: GarmentCategory.bottom, name: 'Chinos'),
+        _garment(id: 5, category: GarmentCategory.shoes, name: 'Sneakers'),
+      ];
+      final client = MockClient(
+        (request) async => jsonResponse(
+          envelope({
+            'selected_garment_ids': [1, 2, 3, 4, 5],
+            'items': <Object?>[],
+          }),
+        ),
+      );
+
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          const CreateOutfitPage(),
+          overrides: closetOverride(wardrobe),
+        );
+        await tester.pump();
+        // Manual picks are locked.
+        for (final name in ['Tee', 'Jeans']) {
+          await tester.tap(find.text('Add Garment'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(name));
+          await tester.pumpAndSettle();
+        }
+        expect(find.byIcon(Icons.lock), findsNWidgets(2));
+
+        await tester.tap(
+          find.widgetWithText(AccentPillButton, 'Finish with AI'),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 6));
+        await tester.pump();
+
+        expect(find.text('Tee'), findsOneWidget);
+        expect(find.text('Jeans'), findsOneWidget);
+        expect(find.text('Polo'), findsNothing);
+        expect(find.text('Chinos'), findsNothing);
+        expect(find.text('Sneakers'), findsOneWidget);
+        expect(find.byIcon(Icons.lock), findsNWidgets(2));
+      }, () => client);
+    },
+  );
+
   testWidgets('Finish with AI surfaces an error when the request fails', (
     tester,
   ) async {
@@ -358,7 +442,11 @@ void main() {
     );
 
     await http.runWithClient(() async {
-      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(),
+      );
       await tester.pump();
 
       await tester.tap(find.widgetWithText(AccentPillButton, 'Finish with AI'));
@@ -401,7 +489,7 @@ void main() {
       ];
       await pumpApp(
         tester,
-        AddOutfitPage(
+        CreateOutfitPage(
           // Wearing the Jeans (fills Bottom) and the Ray-Bans (sunglasses).
           initialGarments: [wardrobe[1], wardrobe[3]],
         ),
@@ -457,7 +545,7 @@ void main() {
       ];
       await pumpApp(
         tester,
-        AddOutfitPage(initialGarments: [wardrobe[0]]),
+        CreateOutfitPage(initialGarments: [wardrobe[0]]),
         overrides: closetOverride(wardrobe),
       );
       await tester.pump();
@@ -500,7 +588,7 @@ void main() {
       ];
       await pumpApp(
         tester,
-        AddOutfitPage(initialGarments: [wardrobe[0]]),
+        CreateOutfitPage(initialGarments: [wardrobe[0]]),
         overrides: closetOverride(wardrobe),
       );
       await tester.pump();
@@ -525,7 +613,11 @@ void main() {
     'it and updates the field',
     (tester) async {
       useTallSurface(tester);
-      await pumpApp(tester, const AddOutfitPage(), overrides: closetOverride());
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(),
+      );
       await tester.pump();
       expect(find.text('BACKGROUND'), findsOneWidget);
       expect(find.text('(OPTIONAL)'), findsNothing);
@@ -607,7 +699,9 @@ void main() {
       await http.runWithClient(() async {
         await pumpApp(
           tester,
-          AddOutfitPage(initialGarments: wardrobe), // Top+Bottom+Shoes+Ray-Bans
+          CreateOutfitPage(
+            initialGarments: wardrobe,
+          ), // Top+Bottom+Shoes+Ray-Bans
           overrides: closetOverride(wardrobe),
         );
         await tester.pump();
@@ -639,7 +733,7 @@ void main() {
         tester.takeException();
 
         // The accessory picked before "Create Outfit" must survive.
-        expect(find.byType(AddOutfitPage), findsOneWidget);
+        expect(find.byType(CreateOutfitPage), findsOneWidget);
         expect(find.text('Ray-Bans'), findsOneWidget);
 
         // Drain the toast's auto-dismiss timer before teardown.
@@ -648,13 +742,234 @@ void main() {
     },
   );
 
+  group('tops (up to two, no fixed top / mid layer)', () {
+    final tee = _garment(
+      id: 11,
+      category: GarmentCategory.top,
+      name: 'Tee',
+      subCategory: 'T-shirt',
+    );
+    final hoodie = _garment(
+      id: 12,
+      category: GarmentCategory.top,
+      name: 'Hoodie',
+      subCategory: 'Hoodie',
+    );
+    final cardi = _garment(
+      id: 13,
+      category: GarmentCategory.top,
+      name: 'Cardi',
+      subCategory: 'Cardigan',
+    );
+    final polo = _garment(
+      id: 14,
+      category: GarmentCategory.top,
+      name: 'Polo',
+      subCategory: 'Polo shirt',
+    );
+    final jeans = _garment(
+      id: 15,
+      category: GarmentCategory.bottom,
+      name: 'Jeans',
+    );
+    final boots = _garment(
+      id: 16,
+      category: GarmentCategory.shoes,
+      name: 'Boots',
+    );
+
+    Finder rowOf(String name) => find
+        .ancestor(of: find.text(name), matching: find.byType(GestureDetector))
+        .first;
+
+    Future<void> removeRow(WidgetTester tester, String name) async {
+      await tester.tap(
+        find.descendant(of: rowOf(name), matching: find.byIcon(Icons.close)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    testWidgets('removing the first of two tops still counts the other as '
+        'the Top, so Create Version appears', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(
+          initialGarments: [hoodie, tee, jeans, boots],
+          targetGroupId: 7,
+        ),
+        overrides: closetOverride([hoodie, tee, jeans, boots]),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('bottomActionButton-hidden')),
+        findsOneWidget,
+      );
+
+      await removeRow(tester, 'Hoodie');
+
+      expect(find.text('Hoodie'), findsNothing);
+      expect(find.text('Top · T-shirt'), findsOneWidget);
+      expect(
+        find.widgetWithText(BottomActionButton, 'Create Version'),
+        findsOneWidget,
+      );
+
+      // With no top left, Top is missing again.
+      await removeRow(tester, 'Tee');
+      expect(
+        find.byKey(const ValueKey('bottomActionButton-hidden')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('after removing a top, Add Garment offers tops again', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: [hoodie, tee]),
+        overrides: closetOverride([hoodie, tee, cardi, jeans]),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      expect(find.text('Jeans'), findsOneWidget);
+      expect(find.text('Cardi'), findsNothing, reason: 'two tops is the cap');
+      Navigator.of(tester.element(find.byType(SelectGarmentPage))).pop();
+      await tester.pumpAndSettle();
+
+      await removeRow(tester, 'Hoodie');
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cardi'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Top · T-shirt'), findsOneWidget);
+      expect(find.text('Top · Cardigan'), findsOneWidget);
+    });
+
+    testWidgets('swapping the second top replaces only that one', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: [tee, cardi]),
+        overrides: closetOverride([tee, cardi, hoodie]),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Cardi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hoodie'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cardi'), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('Tee')).dy,
+        lessThan(tester.getTopLeft(find.text('Hoodie')).dy),
+        reason: 'the swap keeps the row in place',
+      );
+    });
+
+    testWidgets('Match a Look\'s top replaces the interchangeable worn top, '
+        'keeps the other, and leaves with the reference look', (tester) async {
+      useTallSurface(tester);
+      final photo = (await tester.runAsync(() async {
+        final dir = await Directory.systemTemp.createTemp('match_look');
+        final recorder = ui.PictureRecorder();
+        Canvas(recorder).drawRect(
+          const Rect.fromLTWH(0, 0, 4, 4),
+          Paint()..color = const Color(0xFF888888),
+        );
+        final image = await recorder.endRecording().toImage(4, 4);
+        final png = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File('${dir.path}/look.png');
+        await file.writeAsBytes(png!.buffer.asUint8List());
+        return file.path;
+      }))!;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith('/reference/init-upload')) {
+          return jsonResponse(
+            envelope({
+              'upload_url': 'https://storage.example/look.jpg',
+              'object_name': 'look.jpg',
+            }),
+          );
+        }
+        if (path.endsWith('/look.jpg')) return http.Response('', 200);
+        if (path.endsWith('/match')) {
+          return jsonResponse(
+            envelope({
+              'reference_id': 1,
+              'roles': [
+                {
+                  'role': 'top',
+                  'match_status': 'strong_match',
+                  'selected_garment_id': polo.id,
+                },
+              ],
+              'garments': [
+                {
+                  'id': polo.id,
+                  'garment_id': polo.id,
+                  'name': polo.name,
+                  'category': 'Top',
+                  'sub_category': polo.subCategory,
+                },
+              ],
+            }),
+          );
+        }
+        return jsonResponse(envelope(<String, dynamic>{}));
+      });
+
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(
+            initialGarments: [tee, cardi, jeans, boots],
+            initialMatchALookImagePath: photo,
+          ),
+          overrides: closetOverride([tee, cardi, polo, jeans, boots]),
+        );
+        // The photo is read off the fake clock.
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+          await tester.pump();
+        }
+
+        expect(find.text('Tee'), findsNothing);
+        expect(find.text('Top · Polo shirt'), findsOneWidget);
+        expect(find.text('Top · Cardigan'), findsOneWidget);
+        expect(find.text('1 pieces matched'), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Remove Reference Look'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Polo'), findsNothing);
+        expect(find.text('Top · Cardigan'), findsOneWidget);
+      }, () => client);
+    });
+  });
+
   group('version mode (Outfit Details\' Add Version)', () {
     testWidgets('starts from the source version and only offers Create '
         'Version once something changed', (tester) async {
       useTallSurface(tester);
       await pumpApp(
         tester,
-        AddOutfitPage(
+        CreateOutfitPage(
           initialGarments: [closet[0], closet[1], closet[2]],
           targetGroupId: 40,
           initialBackgroundId: 7,
@@ -720,7 +1035,7 @@ void main() {
                   popped = await Navigator.push<Outfit>(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AddOutfitPage(
+                      builder: (_) => CreateOutfitPage(
                         initialGarments: [closet[0], closet[1], closet[2]],
                         targetGroupId: 40,
                         initialBackgroundId: 7,
@@ -752,7 +1067,7 @@ void main() {
       expect(generateBodies.single['path'], endsWith('/outfit/40/generate'));
       expect(generateBodies.single['garment_ids'], [1, 2, 3]);
       expect(generateBodies.single['background_id'], 6);
-      expect(find.byType(AddOutfitPage), findsNothing);
+      expect(find.byType(CreateOutfitPage), findsNothing);
       expect(find.byType(OutfitDetailsPage), findsNothing);
       expect(popped?.id, 77);
       expect(popped?.groupId, 40);

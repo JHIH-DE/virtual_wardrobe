@@ -42,7 +42,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bodyMeasurementsLabel => '身形數據';
 
   @override
-  String get updatePhotoAction => '更新照片';
+  String get updatePhotoAction => '更新';
 
   @override
   String get addPhotoAction => '新增照片';
@@ -1550,7 +1550,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get bodyMeasurementsLabel => '身形數據';
 
   @override
-  String get updatePhotoAction => '更新照片';
+  String get updatePhotoAction => '更新';
 
   @override
   String get addPhotoAction => '新增照片';

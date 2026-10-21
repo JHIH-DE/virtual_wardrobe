@@ -272,4 +272,87 @@ void main() {
     expect(find.text('Jeans'), findsOneWidget);
     expect(find.text('Confirm'), findsOneWidget);
   });
+
+  group('tops (up to two, no fixed top / mid layer)', () {
+    final tee = _garment(
+      id: 11,
+      category: GarmentCategory.top,
+      name: 'Tee',
+      subCategory: 'T-shirt',
+    );
+    final hoodie = _garment(
+      id: 12,
+      category: GarmentCategory.top,
+      name: 'Hoodie',
+      subCategory: 'Hoodie',
+    );
+    final cardi = _garment(
+      id: 13,
+      category: GarmentCategory.top,
+      name: 'Cardi',
+      subCategory: 'Cardigan',
+    );
+
+    Finder rowOf(String name) => find
+        .ancestor(of: find.text(name), matching: find.byType(GestureDetector))
+        .first;
+
+    testWidgets('removing the first top keeps the second, and re-adding it '
+        'counts as unchanged', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitEditPage(
+          preloadedGarments: [hoodie, tee],
+          initialGarments: [hoodie, tee],
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(
+        find.descendant(
+          of: rowOf('Hoodie'),
+          matching: find.byIcon(Icons.close),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Hoodie'), findsNothing);
+      expect(find.text('Top · T-shirt'), findsOneWidget);
+      expect(find.text('Confirm'), findsOneWidget);
+
+      await tester.tap(find.byType(AppListCard));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hoodie'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Top · Hoodie'), findsOneWidget);
+      expect(find.text('Top · T-shirt'), findsOneWidget);
+      expect(find.text('Confirm'), findsNothing);
+    });
+
+    testWidgets('swapping the second top replaces only that one', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitEditPage(
+          preloadedGarments: [tee, cardi, hoodie],
+          initialGarments: [tee, cardi],
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Cardi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hoodie'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cardi'), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('Tee')).dy,
+        lessThan(tester.getTopLeft(find.text('Hoodie')).dy),
+      );
+    });
+  });
 }

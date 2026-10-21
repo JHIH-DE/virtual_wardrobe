@@ -15,7 +15,7 @@
   "faceReferenceComingSoon": "Coming soon",
   "fullBodyPhotoLabel": "Full-Body Photo",
   "bodyMeasurementsLabel": "Body Measurements",
-  "updatePhotoAction": "Update photo",
+  "updatePhotoAction": "Update",
   "addPhotoAction": "Add photo",
   "profileSaveFailed": "Couldn't save your profile. Please try again.",
   "photoUploadFailed": "Couldn't upload photo. Please try again.",

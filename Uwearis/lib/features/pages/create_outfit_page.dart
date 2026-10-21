@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
@@ -29,7 +30,6 @@ import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
-import '../widgets/common/buttons/circle_icon_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
@@ -48,36 +48,37 @@ import 'camera_capture_page.dart' show CameraFrameRatio;
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
-/// Garment slots — not [GarmentCategory], since Top and Mid Layer are two
-/// slots sharing [GarmentCategory.top].
-enum _Slot { top, middle, outer, bottom, onePiece, shoes }
+/// Garment slots. [top] holds up to [_maxTops] garments
+/// ([_OutfitSelection.tops]); the rest hold one each.
+enum _Slot { top, outer, bottom, onePiece, shoes }
+
+const int _maxTops = 2;
 
 /// No error state: a failed match shows a dialog and drops back to [idle].
 enum _MatchALookStatus { idle, analyzing, matched }
 
 enum _ReferenceLookCardAction { remove }
 
-/// One "Outfit Items" row: a core slot pick ([slot] set) or an accessory
-/// ([accessoryIndex] set).
+/// One "Outfit Items" row: a core slot pick ([slot] set; [topIndex] too for
+/// a top) or an accessory ([accessoryIndex] set).
 typedef _OutfitEntry = ({
   Garment garment,
   GarmentCategory category,
   _Slot? slot,
+  int? topIndex,
   int? accessoryIndex,
 });
 
 /// In-progress slot picks — local UI state, not a domain model.
 class _OutfitSelection {
-  final Garment? top;
-  final Garment? middle;
+  final List<Garment> tops;
   final Garment? outer;
   final Garment? bottom;
   final Garment? onePiece;
   final Garment? shoes;
 
   const _OutfitSelection({
-    this.top,
-    this.middle,
+    this.tops = const [],
     this.outer,
     this.bottom,
     this.onePiece,
@@ -85,31 +86,32 @@ class _OutfitSelection {
   });
 
   _OutfitSelection copyWith({
-    Garment? top,
-    Garment? middle,
+    List<Garment>? tops,
     Garment? outer,
     Garment? bottom,
     Garment? onePiece,
     Garment? shoes,
-    bool clearTop = false,
-    bool clearMiddle = false,
     bool clearOuter = false,
     bool clearBottom = false,
     bool clearOnePiece = false,
     bool clearShoes = false,
   }) {
     return _OutfitSelection(
-      top: clearTop ? null : (top ?? this.top),
-      middle: clearMiddle ? null : (middle ?? this.middle),
+      tops: List.unmodifiable(tops ?? this.tops),
       outer: clearOuter ? null : (outer ?? this.outer),
       bottom: clearBottom ? null : (bottom ?? this.bottom),
       onePiece: clearOnePiece ? null : (onePiece ?? this.onePiece),
       shoes: clearShoes ? null : (shoes ?? this.shoes),
     );
   }
+
+  List<Garment?> get _singles => [outer, bottom, onePiece, shoes];
+
+  /// Tops first, then the single slots — the "Outfit Items" order.
+  List<Garment> get garments => [...tops, ..._singles.whereType<Garment>()];
 }
 
-class AddOutfitPage extends ConsumerStatefulWidget {
+class CreateOutfitPage extends ConsumerStatefulWidget {
   final List<Garment> initialGarments;
   final VoidCallback? onBack;
 
@@ -126,7 +128,7 @@ class AddOutfitPage extends ConsumerStatefulWidget {
   /// the user changes it.
   final int? initialBackgroundId;
 
-  const AddOutfitPage({
+  const CreateOutfitPage({
     super.key,
     this.initialGarments = const [],
     this.onBack,
@@ -136,10 +138,11 @@ class AddOutfitPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<AddOutfitPage> createState() => _AddOutfitPageState();
+  ConsumerState<CreateOutfitPage> createState() => _CreateOutfitPageState();
 }
 
-class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
+class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
+    with TryOnMixin {
   late _OutfitSelection _outfit;
 
   /// `.active`: a soft-deleted garment can't be picked for a new outfit.
@@ -150,15 +153,15 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   _MatchALookStatus _matchALookStatus = _MatchALookStatus.idle;
   String? _referenceImagePath;
-  // Slots still holding Match a Look's pick; a manual pick or clear removes
-  // the slot from this set.
-  final Set<_Slot> _aiPopulatedSlots = {};
+  // Match a Look's picks; a manual pick or removal drops the garment from
+  // this set.
+  final Set<int> _aiPickedIds = {};
 
   static const int _maxAccessories = 4;
 
   // Always exactly one trailing empty ("+") slot until the max is reached.
   final List<Garment?> _accessories = [null];
-  // Null when [AddOutfitPage.initialBackgroundId] is unset or unknown.
+  // Null when [CreateOutfitPage.initialBackgroundId] is unset or unknown.
   BackgroundOption? _initialBackground;
   late BackgroundOption _background;
   // [_background] always has a default; this tells an explicit pick apart
@@ -176,7 +179,6 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   // null = follow `WeatherData.todayMeanTemp`; set once the user nudges the
   // stepper (this outfit only, not persisted).
   double? _weatherTempOverrideC;
-  bool _finishOutfitExpanded = false;
   bool _isCompletingWithAi = false;
   // Create Outfit's re-entrancy guard; Finish Outfit's is
   // [_isCompletingWithAi].
@@ -199,14 +201,14 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   /// already picked. The `keep*` args re-admit whatever is being swapped.
   List<Garment> _addGarmentCandidates({
     GarmentCategory? keepCategory,
-    _Slot? keepSlot,
+    int? keepTopIndex,
     int? keepAccessoryIndex,
   }) {
     bool categoryFull(GarmentCategory c) {
       if (c == keepCategory) return false;
       switch (c) {
         case GarmentCategory.top:
-          return _outfit.top != null && _outfit.middle != null;
+          return _outfit.tops.length >= _maxTops;
         case GarmentCategory.outer:
           return _outfit.outer != null;
         case GarmentCategory.bottom:
@@ -231,26 +233,14 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
 
     final wornTopKeys = <String>{
-      for (final entry in [
-        (_outfit.top, _Slot.top),
-        (_outfit.middle, _Slot.middle),
-      ])
-        if (entry.$1 != null &&
-            entry.$2 != keepSlot &&
-            entry.$1!.subCategory.isNotEmpty)
-          baseTopSlotKey(entry.$1!.subCategory),
+      for (var i = 0; i < _outfit.tops.length; i++)
+        if (i != keepTopIndex && _outfit.tops[i].subCategory.isNotEmpty)
+          baseTopSlotKey(_outfit.tops[i].subCategory),
     };
 
     final coreIds = <int>{
-      for (final g in [
-        _outfit.top,
-        _outfit.middle,
-        _outfit.outer,
-        _outfit.bottom,
-        _outfit.onePiece,
-        _outfit.shoes,
-      ])
-        if (g?.id != null) g!.id!,
+      for (final g in _outfit.garments)
+        if (g.id != null) g.id!,
     };
 
     return _garmentPool.where((g) {
@@ -308,7 +298,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   bool _coreSlotMet(GarmentCategory c) {
     switch (c) {
       case GarmentCategory.top:
-        return _outfit.top != null || _outfit.onePiece != null;
+        return _outfit.tops.isNotEmpty || _outfit.onePiece != null;
       case GarmentCategory.bottom:
         return _outfit.bottom != null || _outfit.onePiece != null;
       case GarmentCategory.shoes:
@@ -353,8 +343,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         .where((g) => g.category == GarmentCategory.top)
         .toList();
     return _OutfitSelection(
-      top: tops.isNotEmpty ? tops[0] : null,
-      middle: tops.length > 1 ? tops[1] : null,
+      tops: tops.take(_maxTops).toList(),
       outer: garments
           .where((g) => g.category == GarmentCategory.outer)
           .firstOrNull,
@@ -389,9 +378,8 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   _Slot? _slotFor(MatchALookRole role) {
     switch (role) {
       case MatchALookRole.top:
-        return _Slot.top;
       case MatchALookRole.midLayer:
-        return _Slot.middle;
+        return _Slot.top;
       case MatchALookRole.outer:
         return _Slot.outer;
       case MatchALookRole.bottom:
@@ -405,12 +393,11 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
+  /// Single slots only; tops go through [_placeTop] or their index.
   _OutfitSelection _applyToSlot(_OutfitSelection sel, _Slot slot, Garment g) {
     switch (slot) {
       case _Slot.top:
-        return sel.copyWith(top: g);
-      case _Slot.middle:
-        return sel.copyWith(middle: g);
+        throw ArgumentError.value(slot, 'slot', 'tops are indexed');
       case _Slot.outer:
         return sel.copyWith(outer: g);
       case _Slot.bottom:
@@ -425,9 +412,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   _OutfitSelection _clearSlotValue(_OutfitSelection sel, _Slot slot) {
     switch (slot) {
       case _Slot.top:
-        return sel.copyWith(clearTop: true);
-      case _Slot.middle:
-        return sel.copyWith(clearMiddle: true);
+        throw ArgumentError.value(slot, 'slot', 'tops are indexed');
       case _Slot.outer:
         return sel.copyWith(clearOuter: true);
       case _Slot.bottom:
@@ -439,9 +424,30 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  void _markSlotManual(_Slot slot) {
-    _aiPopulatedSlots.remove(slot);
+  /// A top interchangeable with a worn one ([baseTopSlotKey], e.g. Polo
+  /// over T-shirt) replaces it; otherwise it's added, or replaces the last
+  /// top once [_maxTops] are worn.
+  List<Garment> _placeTop(List<Garment> tops, Garment g) {
+    final next = [...tops];
+    final same = next.indexWhere(
+      (t) => baseTopSlotKey(t.subCategory) == baseTopSlotKey(g.subCategory),
+    );
+    if (same >= 0) {
+      next[same] = g;
+    } else if (next.length < _maxTops) {
+      next.add(g);
+    } else {
+      next[next.length - 1] = g;
+    }
+    return next;
   }
+
+  void _markManual(Garment g) {
+    if (g.id != null) _aiPickedIds.remove(g.id);
+  }
+
+  int get _aiPickedCount =>
+      _outfit.garments.where((g) => _aiPickedIds.contains(g.id)).length;
 
   /// [initialImagePath] skips the camera/album picker.
   Future<void> _startMatchALookFlow({String? initialImagePath}) async {
@@ -502,41 +508,62 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
   void _applyMatchResult(String imagePath, MatchALookResult result) {
     var next = _outfit;
-    final newAiSlots = <_Slot>{};
+    final matchedTops = <Garment>[];
+    final newAiIds = <int>{};
 
     for (final match in result.roles) {
       final slot = _slotFor(match.role);
-      if (slot == null) continue;
-      if (match.matched) {
-        final garment = result.garments[match.selectedGarmentId];
-        // An unknown garment id counts as no match.
-        if (garment != null) {
-          next = _applyToSlot(next, slot, garment);
-          newAiSlots.add(slot);
-        }
+      if (slot == null || !match.matched) continue;
+      final garment = result.garments[match.selectedGarmentId];
+      // An unknown garment id counts as no match.
+      if (garment == null) continue;
+      if (garment.id != null) newAiIds.add(garment.id!);
+      if (slot == _Slot.top) {
+        matchedTops.add(garment);
+      } else {
+        next = _applyToSlot(next, slot, garment);
       }
+    }
+    if (matchedTops.isNotEmpty) {
+      // The look's tops lead; worn tops fill what's left unless the look
+      // already has one interchangeable with them.
+      String key(Garment g) => baseTopSlotKey(g.subCategory);
+      final kept = next.tops.where(
+        (t) => !matchedTops.any((m) => m.id == t.id || key(m) == key(t)),
+      );
+      next = next.copyWith(
+        tops: [...matchedTops, ...kept].take(_maxTops).toList(),
+      );
     }
 
     setState(() {
       _outfit = next;
       _referenceImagePath = imagePath;
-      _aiPopulatedSlots
+      _aiPickedIds
         ..clear()
-        ..addAll(newAiSlots);
+        ..addAll(newAiIds);
       _matchALookStatus = _MatchALookStatus.matched;
     });
   }
 
-  /// Also clears the slots Match a Look still holds (manual picks stay).
+  /// Also drops the garments Match a Look still holds (manual picks stay).
   /// The backend DELETE is best-effort: the next upload overwrites it.
   Future<void> _clearMatchALookSession() async {
-    var next = _outfit;
-    for (final slot in _aiPopulatedSlots) {
-      next = _clearSlotValue(next, slot);
+    bool ai(Garment? g) => g != null && _aiPickedIds.contains(g.id);
+    var next = _outfit.copyWith(
+      tops: _outfit.tops.where((t) => !ai(t)).toList(),
+    );
+    for (final slot in [
+      _Slot.outer,
+      _Slot.bottom,
+      _Slot.onePiece,
+      _Slot.shoes,
+    ]) {
+      if (ai(_garmentIn(next, slot))) next = _clearSlotValue(next, slot);
     }
     setState(() {
       _outfit = next;
-      _aiPopulatedSlots.clear();
+      _aiPickedIds.clear();
       _referenceImagePath = null;
       _matchALookStatus = _MatchALookStatus.idle;
     });
@@ -556,14 +583,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   /// Core slots and accessories as one list — the backend takes a single
   /// `garment_ids`.
   List<int> _selectedGarmentIds() {
-    final coreIds = [
-      _outfit.top,
-      _outfit.middle,
-      _outfit.outer,
-      _outfit.bottom,
-      _outfit.onePiece,
-      _outfit.shoes,
-    ].whereType<Garment>().map((g) => g.id).whereType<int>();
+    final coreIds = _outfit.garments.map((g) => g.id).whereType<int>();
     final accessoryIds = _accessories
         .whereType<Garment>()
         .map((g) => g.id)
@@ -645,10 +665,10 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       actions: [
         ActionDiscButton(
           tooltip: _l10n.matchALookTitle,
-          icon: Image.asset(
-            'assets/images/camera.png',
-            width: ActionDisc.iconSize,
-            height: ActionDisc.iconSize,
+          icon: const Icon(
+            LucideIcons400.camera,
+            size: ActionDisc.iconSize,
+            color: AppColors.icon,
           ),
           onPressed: _referenceImagePath != null
               ? _changeReferenceLook
@@ -712,7 +732,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
         _hInset(
           _ReferenceLookCard(
             referenceImagePath: _referenceImagePath!,
-            matchedSlotCount: _aiPopulatedSlots.length,
+            matchedSlotCount: _aiPickedCount,
             onChange: _changeReferenceLook,
             onRemove: _clearMatchALookSession,
           ),
@@ -811,6 +831,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           : () => _pickGarmentForOutfit(
               initial: entry.category,
               replaceSlot: entry.slot,
+              replaceTopIndex: entry.topIndex,
               replaceAccessoryIndex: entry.accessoryIndex,
               current: g,
             ),
@@ -839,10 +860,16 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
                   width: _outfitThumbnailWidth,
                   child: Padding(
                     padding: const EdgeInsets.all(8),
-                    child: GarmentImage(
-                      url: g.imageUrl,
-                      garmentId: g.id,
-                      fit: BoxFit.contain,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: GarmentImage(
+                            url: g.imageUrl,
+                            garmentId: g.id,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -921,26 +948,35 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     );
   }
 
-  /// Core slots first, then accessories. Mid layer is labelled as a top.
+  /// Tops, then the other core slots, then accessories.
   List<_OutfitEntry> _outfitEntries() {
-    final list = <_OutfitEntry>[];
-    void addSlot(Garment? g, _Slot slot, GarmentCategory category) {
+    final list = <_OutfitEntry>[
+      for (var i = 0; i < _outfit.tops.length; i++)
+        (
+          garment: _outfit.tops[i],
+          category: GarmentCategory.top,
+          slot: _Slot.top,
+          topIndex: i,
+          accessoryIndex: null,
+        ),
+    ];
+    for (final slot in [
+      _Slot.outer,
+      _Slot.bottom,
+      _Slot.onePiece,
+      _Slot.shoes,
+    ]) {
+      final g = _garmentIn(_outfit, slot);
       if (g != null) {
         list.add((
           garment: g,
-          category: category,
+          category: _categoryForSlot(slot),
           slot: slot,
+          topIndex: null,
           accessoryIndex: null,
         ));
       }
     }
-
-    addSlot(_outfit.top, _Slot.top, GarmentCategory.top);
-    addSlot(_outfit.middle, _Slot.middle, GarmentCategory.top);
-    addSlot(_outfit.outer, _Slot.outer, GarmentCategory.outer);
-    addSlot(_outfit.bottom, _Slot.bottom, GarmentCategory.bottom);
-    addSlot(_outfit.onePiece, _Slot.onePiece, GarmentCategory.onePiece);
-    addSlot(_outfit.shoes, _Slot.shoes, GarmentCategory.shoes);
     for (var i = 0; i < _accessories.length; i++) {
       final g = _accessories[i];
       if (g != null) {
@@ -948,6 +984,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
           garment: g,
           category: g.category,
           slot: null,
+          topIndex: null,
           accessoryIndex: i,
         ));
       }
@@ -958,14 +995,17 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   void _removeOutfitEntry(_OutfitEntry entry) {
     setState(() {
       final slot = entry.slot;
-      if (slot != null) {
+      final topIndex = entry.topIndex;
+      if (topIndex != null) {
+        _outfit = _outfit.copyWith(tops: [..._outfit.tops]..removeAt(topIndex));
+      } else if (slot != null) {
         _outfit = _clearSlotValue(_outfit, slot);
-        _markSlotManual(slot);
       } else if (entry.accessoryIndex != null) {
         _accessories.removeAt(entry.accessoryIndex!);
         _accessories.removeWhere((g) => g == null);
         if (_accessories.length < _maxAccessories) _accessories.add(null);
       }
+      _markManual(entry.garment);
       if (entry.garment.id != null) {
         _lockedGarmentIds.remove(entry.garment.id);
       }
@@ -987,10 +1027,24 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     });
   }
 
+  Garment? _garmentIn(_OutfitSelection sel, _Slot slot) {
+    switch (slot) {
+      case _Slot.top:
+        throw ArgumentError.value(slot, 'slot', 'tops are indexed');
+      case _Slot.outer:
+        return sel.outer;
+      case _Slot.bottom:
+        return sel.bottom;
+      case _Slot.onePiece:
+        return sel.onePiece;
+      case _Slot.shoes:
+        return sel.shoes;
+    }
+  }
+
   GarmentCategory _categoryForSlot(_Slot slot) {
     switch (slot) {
       case _Slot.top:
-      case _Slot.middle:
         return GarmentCategory.top;
       case _Slot.outer:
         return GarmentCategory.outer;
@@ -1003,11 +1057,13 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     }
   }
 
-  /// [replaceSlot] / [replaceAccessoryIndex] pin the pick to the row being
-  /// swapped; [current] shows as selected in the picker.
+  /// [replaceSlot] (+ [replaceTopIndex] for a top) / [replaceAccessoryIndex]
+  /// pin the pick to the row being swapped; [current] shows as selected in
+  /// the picker.
   Future<void> _pickGarmentForOutfit({
     GarmentCategory? initial,
     _Slot? replaceSlot,
+    int? replaceTopIndex,
     int? replaceAccessoryIndex,
     Garment? current,
   }) async {
@@ -1015,7 +1071,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     if (!mounted) return;
     final candidates = _addGarmentCandidates(
       keepCategory: replaceSlot != null ? _categoryForSlot(replaceSlot) : null,
-      keepSlot: replaceSlot,
+      keepTopIndex: replaceTopIndex,
       keepAccessoryIndex: replaceAccessoryIndex,
     );
     final tabs = _addGarmentTabs(candidates);
@@ -1038,6 +1094,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     _assignGarment(
       picked,
       replaceSlot: replaceSlot,
+      replaceTopIndex: replaceTopIndex,
       replaceAccessoryIndex: replaceAccessoryIndex,
     );
   }
@@ -1046,12 +1103,21 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
   void _assignGarment(
     Garment g, {
     _Slot? replaceSlot,
+    int? replaceTopIndex,
     int? replaceAccessoryIndex,
   }) {
     setState(() {
       if (replaceSlot != null && g.category == _categoryForSlot(replaceSlot)) {
-        _outfit = _applyToSlot(_outfit, replaceSlot, g);
-        _markSlotManual(replaceSlot);
+        if (replaceTopIndex != null && replaceTopIndex < _outfit.tops.length) {
+          _outfit = _outfit.copyWith(
+            tops: [..._outfit.tops]..[replaceTopIndex] = g,
+          );
+        } else if (replaceSlot != _Slot.top) {
+          _outfit = _applyToSlot(_outfit, replaceSlot, g);
+        } else {
+          _outfit = _outfit.copyWith(tops: _placeTop(_outfit.tops, g));
+        }
+        _markManual(g);
         _lockGarment(g);
         return;
       }
@@ -1071,34 +1137,20 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
     });
   }
 
-  /// Call inside `setState`. A top interchangeable with the current one
-  /// ([baseTopSlotKey], e.g. Polo over T-shirt) replaces it instead of
-  /// becoming the mid layer.
+  /// Call inside `setState`.
   void _placeGarment(Garment g, {required bool lock}) {
+    _markManual(g);
     switch (g.category) {
       case GarmentCategory.top:
-        final existingTop = _outfit.top;
-        final sameBaseLayer =
-            existingTop != null &&
-            baseTopSlotKey(existingTop.subCategory) ==
-                baseTopSlotKey(g.subCategory);
-        final slot = (_outfit.top == null || sameBaseLayer)
-            ? _Slot.top
-            : (_outfit.middle == null ? _Slot.middle : _Slot.top);
-        _outfit = _applyToSlot(_outfit, slot, g);
-        _markSlotManual(slot);
+        _outfit = _outfit.copyWith(tops: _placeTop(_outfit.tops, g));
       case GarmentCategory.outer:
         _outfit = _applyToSlot(_outfit, _Slot.outer, g);
-        _markSlotManual(_Slot.outer);
       case GarmentCategory.bottom:
         _outfit = _applyToSlot(_outfit, _Slot.bottom, g);
-        _markSlotManual(_Slot.bottom);
       case GarmentCategory.onePiece:
         _outfit = _applyToSlot(_outfit, _Slot.onePiece, g);
-        _markSlotManual(_Slot.onePiece);
       case GarmentCategory.shoes:
         _outfit = _applyToSlot(_outfit, _Slot.shoes, g);
-        _markSlotManual(_Slot.shoes);
       case GarmentCategory.accessory:
       case GarmentCategory.socks:
         final filled = _accessories.whereType<Garment>().toList();
@@ -1138,10 +1190,7 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       _excludedGarmentIds.addAll(
         garmentIds.where((id) => !keepGarmentIds.contains(id)),
       );
-      if (!kept(_outfit.top)) _outfit = _outfit.copyWith(clearTop: true);
-      if (!kept(_outfit.middle)) {
-        _outfit = _outfit.copyWith(clearMiddle: true);
-      }
+      _outfit = _outfit.copyWith(tops: _outfit.tops.where(kept).toList());
       if (!kept(_outfit.outer)) {
         _outfit = _outfit.copyWith(clearOuter: true);
       }
@@ -1162,9 +1211,37 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
 
       for (final g in recommended) {
         if (kept(g)) continue; // already kept in place above
+        // Only kept garments remain, and the backend may still suggest a
+        // second piece for a locked slot — that must not displace it.
+        if (!_hasRoomFor(g)) continue;
         _placeGarment(g, lock: false);
       }
     });
+  }
+
+  /// Whether [g] fits without replacing a garment already picked.
+  bool _hasRoomFor(Garment g) {
+    switch (g.category) {
+      case GarmentCategory.top:
+        return _outfit.tops.length < _maxTops &&
+            !_outfit.tops.any(
+              (t) =>
+                  baseTopSlotKey(t.subCategory) ==
+                  baseTopSlotKey(g.subCategory),
+            );
+      case GarmentCategory.outer:
+        return _outfit.outer == null;
+      case GarmentCategory.bottom:
+        return _outfit.bottom == null;
+      case GarmentCategory.onePiece:
+        return _outfit.onePiece == null;
+      case GarmentCategory.shoes:
+        return _outfit.shoes == null;
+      case GarmentCategory.accessory:
+      case GarmentCategory.socks:
+        // _placeGarment only appends accessories, never replaces one.
+        return true;
+    }
   }
 
   static const double _defaultTemperatureC = 20;
@@ -1180,107 +1257,88 @@ class _AddOutfitPageState extends ConsumerState<AddOutfitPage> with TryOnMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // The pill drops below the title when both don't fit on one line,
+          // so enlarged text never squeezes the title into fragments.
           SizedBox(
             width: double.infinity,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.centerLeft,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: 4,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 40),
-                  child: SectionTitle(_l10n.finishOutfit),
-                ),
-                Positioned(
-                  right: 0,
-                  child: CircleIconButton(
-                    icon: _finishOutfitExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    iconSize: 24,
-                    discAlignment: Alignment.centerRight,
-                    onPressed: () => setState(
-                      () => _finishOutfitExpanded = !_finishOutfitExpanded,
-                    ),
-                  ),
+                SectionTitle(_l10n.finishOutfit),
+                AccentPillButton(
+                  label: _l10n.finishWithAi,
+                  enabled: enabled,
+                  onPressed: _completeWithAi,
                 ),
               ],
             ),
           ),
-          if (_finishOutfitExpanded) ...[
-            const SizedBox(height: AppDimens.cardHeaderGap),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final temperatureTile = _buildFinishOutfitTile(
-                  label: _l10n.temperatureFieldLabel,
-                  child: NumberStepper(
-                    variant: NumberStepperVariant.tile,
-                    valueLabel: '${tempC.round()}°C',
-                    onDecrement: () =>
-                        setState(() => _weatherTempOverrideC = tempC - 1),
-                    onIncrement: () =>
-                        setState(() => _weatherTempOverrideC = tempC + 1),
-                  ),
-                );
-                final styleTile = _buildFinishOutfitTile(
-                  label: _l10n.styleLabel,
-                  onTap: _openStylePicker,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _completeWithAiStyle?.localizedName(context) ??
-                              _l10n.styleAuto,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyle.bold16,
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 20,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                );
-                // Side by side only while half the row still fits a typical
-                // temperature at full size (minus the tile's 12px padding).
-                final tileContentWidth =
-                    (constraints.maxWidth - AppDimens.cardSpacing) / 2 - 2 * 12;
-                final sideBySide =
-                    tileContentWidth >=
-                    NumberStepper.tileWidthFor(
-                      context,
-                      '${_defaultTemperatureC.round()}°C',
-                    );
-                if (!sideBySide) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      temperatureTile,
-                      const SizedBox(height: AppDimens.cardSpacing),
-                      styleTile,
-                    ],
-                  );
-                }
-                return Row(
+          const SizedBox(height: AppDimens.cardHeaderGap),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final temperatureTile = _buildFinishOutfitTile(
+                label: _l10n.temperatureFieldLabel,
+                child: NumberStepper(
+                  variant: NumberStepperVariant.tile,
+                  valueLabel: '${tempC.round()}°C',
+                  onDecrement: () =>
+                      setState(() => _weatherTempOverrideC = tempC - 1),
+                  onIncrement: () =>
+                      setState(() => _weatherTempOverrideC = tempC + 1),
+                ),
+              );
+              final styleTile = _buildFinishOutfitTile(
+                label: _l10n.styleLabel,
+                onTap: _openStylePicker,
+                child: Row(
                   children: [
-                    Expanded(child: temperatureTile),
-                    const SizedBox(width: AppDimens.cardSpacing),
-                    Expanded(child: styleTile),
+                    Expanded(
+                      child: Text(
+                        _completeWithAiStyle?.localizedName(context) ??
+                            _l10n.styleAuto,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyle.bold16,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              );
+              // Side by side only while half the row still fits a typical
+              // temperature at full size (minus the tile's 12px padding).
+              final tileContentWidth =
+                  (constraints.maxWidth - AppDimens.cardSpacing) / 2 - 2 * 12;
+              final sideBySide =
+                  tileContentWidth >=
+                  NumberStepper.tileWidthFor(
+                    context,
+                    '${_defaultTemperatureC.round()}°C',
+                  );
+              if (!sideBySide) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    temperatureTile,
+                    const SizedBox(height: AppDimens.cardSpacing),
+                    styleTile,
                   ],
                 );
-              },
-            ),
-          ],
-          const SizedBox(height: AppDimens.cardSpacing),
-          Center(
-            child: AccentPillButton(
-              label: _l10n.finishWithAi,
-              icon: Icons.auto_awesome,
-              enabled: enabled,
-              onPressed: _completeWithAi,
-            ),
+              }
+              return Row(
+                children: [
+                  Expanded(child: temperatureTile),
+                  const SizedBox(width: AppDimens.cardSpacing),
+                  Expanded(child: styleTile),
+                ],
+              );
+            },
           ),
         ],
       ),

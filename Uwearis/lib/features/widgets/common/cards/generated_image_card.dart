@@ -164,7 +164,6 @@ class GeneratedImageCard extends StatelessWidget {
     }
     return AccentPillButton(
       label: generateLabel!,
-      icon: Icons.auto_awesome,
       enabled: generateEnabled,
       disabledMessage: generateDisabledMessage,
       onPressed: onGenerate,

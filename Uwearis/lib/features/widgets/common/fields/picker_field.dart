@@ -101,7 +101,7 @@ class _TapToPickField extends StatelessWidget {
                 Expanded(
                   child: Text(
                     hasValue ? text : (hint ?? ''),
-                    style: AppTextStyle.regular16.copyWith(
+                    style: AppTextStyle.regular14.copyWith(
                       color: hasValue
                           ? AppColors.textPrimary
                           : AppColors.textSecondary,

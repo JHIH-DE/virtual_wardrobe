@@ -18,7 +18,6 @@ class OutfitGrid extends StatelessWidget {
   final IconData? emptyIcon;
   final String? emptyTitle;
   final String? emptyActionLabel;
-  final IconData emptyActionIcon;
   final VoidCallback? onEmptyAction;
 
   // Clears the floating MainNavBar on a main tab.
@@ -34,7 +33,6 @@ class OutfitGrid extends StatelessWidget {
     this.emptyIcon,
     this.emptyTitle,
     this.emptyActionLabel,
-    this.emptyActionIcon = Icons.add,
     this.onEmptyAction,
     this.emptyBottomInset = 0,
   });
@@ -50,7 +48,6 @@ class OutfitGrid extends StatelessWidget {
               icon: emptyIcon,
               title: emptyTitle,
               actionLabel: emptyActionLabel,
-              actionIcon: emptyActionIcon,
               onAction: onEmptyAction,
               fillAvailableSpace: true,
               bottomInset: emptyBottomInset,

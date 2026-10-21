@@ -219,7 +219,7 @@ class AppTextStyle {
     color: AppColors.textSecondary,
   );
 
-  /// `ExpandableInsightBody`'s title — lighter than [bold18], which reads too
-  /// heavy under the card's own bold18 header.
+  /// `ExpandableInsightBody`'s title — lighter than [bold16], which reads too
+  /// heavy under the card's own bold16 header.
   static const TextStyle insightCardTitle = regular16;
 }

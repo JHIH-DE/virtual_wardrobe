@@ -43,7 +43,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bodyMeasurementsLabel => 'Body Measurements';
 
   @override
-  String get updatePhotoAction => 'Update photo';
+  String get updatePhotoAction => 'Update';
 
   @override
   String get addPhotoAction => 'Add photo';

@@ -16,7 +16,7 @@ import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/outfit/outfit_grid.dart';
-import 'add_outfit_page.dart';
+import 'create_outfit_page.dart';
 import 'outfit_details_page.dart';
 
 class OutfitsPage extends ConsumerStatefulWidget {
@@ -70,7 +70,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
       MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const AddOutfitPage()),
+        MaterialPageRoute(builder: (_) => const CreateOutfitPage()),
       );
     } on AuthExpiredException {
       if (!mounted) return;

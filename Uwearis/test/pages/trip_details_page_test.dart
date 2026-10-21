@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/core/providers/trip_detail_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
@@ -186,13 +187,12 @@ void main() {
           matching: find.widgetWithText(TextButton, 'Edit'),
         );
         expect(edit, findsOneWidget);
-        // The label sits flush with the row's right edge.
+        // The pill sits flush with the row's right edge.
         expect(
-          tester
-              .getRect(find.descendant(of: edit, matching: find.text('Edit')))
-              .right,
-          tester.getRect(row.first).right,
+          find.ancestor(of: edit, matching: find.byType(AccentPillButton)),
+          findsOneWidget,
         );
+        expect(tester.getRect(edit).right, tester.getRect(row.first).right);
       }, packingAdviceClient);
     },
   );

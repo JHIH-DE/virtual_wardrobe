@@ -11,9 +11,10 @@ import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/app/theme/app_dimens.dart';
 import 'package:uwearis/core/services/garment_service.dart';
 import 'package:uwearis/data/garment.dart';
-import 'package:uwearis/features/pages/add_outfit_page.dart';
+import 'package:uwearis/features/pages/create_outfit_page.dart';
 import 'package:uwearis/features/pages/garment_details_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
+import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/cards/uwearis_insight_card.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/common/section_title.dart';
@@ -86,23 +87,18 @@ void main() {
 
       expect(find.text('Add Clothing'), findsWidgets);
       expect(find.text('Select Color'), findsOneWidget);
-      // Closet Match sits in the image's top-right corner.
+      // Closet Match sits in the image's bottom-left corner.
       final image = tester.getRect(find.byType(GarmentImage));
-      final link = tester.getRect(
-        find.ancestor(
-          of: find.text('Closet Match'),
+      final pill = tester.getRect(
+        find.descendant(
+          of: find.widgetWithText(AccentPillButton, 'Closet Match'),
           matching: find.byType(TextButton),
         ),
       );
-      expect(image.right - link.right, closeTo(3, 0.5));
-      expect(link.top - image.top, closeTo(-1, 0.5));
-      expect(
-        find.descendant(
-          of: find.byType(TextButton),
-          matching: find.byIcon(Icons.chevron_right_rounded),
-        ),
-        findsOneWidget,
-      );
+      // Bottom-left, with the favorite heart's 12pt inset (image frame
+      // border aside).
+      expect(pill.left - image.left, closeTo(11, 0.5));
+      expect(image.bottom - pill.bottom, closeTo(11, 0.5));
       expect(find.text('Add to Closet'), findsNothing);
       expect(
         find.byKey(const ValueKey('bottomActionButton-hidden')),
@@ -922,8 +918,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
-      final addOutfit = tester.widget<AddOutfitPage>(
-        find.byType(AddOutfitPage),
+      final addOutfit = tester.widget<CreateOutfitPage>(
+        find.byType(CreateOutfitPage),
       );
       expect(addOutfit.initialGarments.map((g) => g.id), [501, 109]);
     }, () => client);

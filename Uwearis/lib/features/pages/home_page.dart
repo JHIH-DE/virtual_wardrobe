@@ -36,7 +36,7 @@ import '../widgets/home/home_getting_started_view.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/trip/trip_card.dart';
 import 'account_page.dart';
-import 'add_outfit_page.dart';
+import 'create_outfit_page.dart';
 import 'explore_page.dart';
 import 'garment_details_page.dart';
 import 'outfit_details_page.dart';
@@ -320,7 +320,7 @@ class _HomePageState extends ConsumerState<HomePage>
       MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const AddOutfitPage()),
+        MaterialPageRoute(builder: (_) => const CreateOutfitPage()),
       );
     } on AuthExpiredException {
       if (!mounted) return;
@@ -369,7 +369,6 @@ class _HomePageState extends ConsumerState<HomePage>
         alignment: Alignment.centerLeft,
         child: AccentPillButton(
           label: AppLocalizations.of(context).explore,
-          icon: Icons.explore_outlined,
           variant: AccentPillButtonVariant.toolbar,
           onPressed: () => Navigator.push(
             context,

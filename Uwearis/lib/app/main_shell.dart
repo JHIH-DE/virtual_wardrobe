@@ -5,7 +5,7 @@ import '../core/providers/garments_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/shared_media_handler.dart';
 import '../core/utils/debug_log.dart';
-import '../features/pages/add_outfit_page.dart';
+import '../features/pages/create_outfit_page.dart';
 import '../features/pages/closet_page.dart';
 import '../features/pages/home_page.dart';
 import '../features/pages/outfits_page.dart';
@@ -126,7 +126,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 }
 
 /// Warms [garmentsProvider] behind a modal [LoadingOverlay], then pushes
-/// [AddOutfitPage]. Also used by `SharedMediaHandler` for a shared-in photo.
+/// [CreateOutfitPage]. Also used by `SharedMediaHandler` for a shared-in photo.
 Future<void> openAddOutfit(
   BuildContext context,
   WidgetRef ref, {
@@ -148,7 +148,7 @@ Future<void> openAddOutfit(
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddOutfitPage(
+        builder: (_) => CreateOutfitPage(
           onBack: () => Navigator.popUntil(context, (route) => route.isFirst),
           initialMatchALookImagePath: initialMatchALookImagePath,
         ),

@@ -41,7 +41,7 @@ import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_image.dart';
 import '../widgets/garment/garment_outfit_ideas_card.dart';
 import '../widgets/garment/garment_share_sheet.dart';
-import 'add_outfit_page.dart';
+import 'create_outfit_page.dart';
 import 'garment_outfits_page.dart';
 
 enum _GarmentMenuAction { rename, share, delete }
@@ -701,7 +701,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           Expanded(
             child: Text(
               selected?.localizedLabel(context) ?? _l10n.selectAColor,
-              style: AppTextStyle.regular16.copyWith(
+              style: AppTextStyle.regular14.copyWith(
                 color: selected == null
                     ? AppColors.textSecondary
                     : AppColors.textPrimary,
@@ -818,7 +818,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               _purchaseDate == null
                   ? _l10n.selectDate
                   : '${_purchaseDate!.year}/${_purchaseDate!.month}/${_purchaseDate!.day}',
-              style: AppTextStyle.regular16.copyWith(
+              style: AppTextStyle.regular14.copyWith(
                 color: _purchaseDate == null
                     ? AppColors.textSecondary
                     : AppColors.textPrimary,
@@ -1072,7 +1072,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => AddOutfitPage(initialGarments: garments),
+          builder: (_) => CreateOutfitPage(initialGarments: garments),
         ),
       );
     } on AuthExpiredException {
@@ -1253,30 +1253,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           ),
         ),
         Positioned(
-          top: 0,
-          right: 4,
-          child: TextButton(
+          left: 12,
+          bottom: 4,
+          child: AccentPillButton(
+            label: _l10n.closetMatch,
             onPressed: _openClosetAnalysisSheet,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.accent,
-              minimumSize: const Size(0, AppDimens.minTouchTarget),
-              padding: const EdgeInsets.only(left: 8, right: 2),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _l10n.closetMatch,
-                  style: AppTextStyle.bold14.copyWith(color: AppColors.accent),
-                ),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 18,
-                  color: AppColors.accent,
-                ),
-              ],
-            ),
           ),
         ),
         if (!_isAddMode)
@@ -1554,7 +1535,6 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
         Align(
           child: AccentPillButton(
             label: l10n.analyzeWithAi,
-            icon: Icons.auto_awesome_outlined,
             onPressed: onAnalyze,
           ),
         ),
@@ -1574,7 +1554,6 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
         Align(
           child: AccentPillButton(
             label: l10n.analyzeAgain,
-            icon: Icons.refresh,
             onPressed: onAnalyze,
           ),
         ),
@@ -1589,7 +1568,7 @@ class _ClosetAnalysisSheetContent extends StatelessWidget {
   ) {
     final ideas = analysis.outfitIdeas;
     final similar = analysis.similarGarments;
-    final headingStyle = AppTextStyle.bold18.copyWith(
+    final headingStyle = AppTextStyle.bold16.copyWith(
       color: AppColors.textSecondary,
     );
     return Column(

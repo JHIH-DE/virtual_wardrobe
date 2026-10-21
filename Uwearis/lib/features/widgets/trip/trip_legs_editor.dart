@@ -10,14 +10,17 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/location_picker_page.dart';
 import '../common/buttons/accent_pill_button.dart';
 import '../common/cards/card_corner_badge.dart';
+import '../common/field_label.dart';
 import 'trip_leg_date_range_picker.dart';
 
 /// Edits a trip's legs through [legsNotifier], which the hosting dialog
-/// reads on submit.
+/// reads on submit. With a [label], the add button sits beside it instead
+/// of under the legs.
 class TripLegsEditor extends StatefulWidget {
   final ValueNotifier<List<TripLeg>> legsNotifier;
+  final String? label;
 
-  const TripLegsEditor({super.key, required this.legsNotifier});
+  const TripLegsEditor({super.key, required this.legsNotifier, this.label});
 
   @override
   State<TripLegsEditor> createState() => _TripLegsEditorState();
@@ -78,24 +81,35 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final label = widget.label;
     return SizedBox(
       width: double.infinity,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (label != null) ...[
+            Row(
+              children: [
+                Expanded(child: FieldLabel(label.toUpperCase())),
+                AccentPillButton(label: l10n.addAction, onPressed: _addLeg),
+              ],
+            ),
+            if (_legs.isNotEmpty) const SizedBox(height: 4),
+          ],
           for (int i = 0; i < _legs.length; i++) ...[
             if (i != 0) const SizedBox(height: 12),
             _buildLegRow(i),
           ],
-          if (_legs.isNotEmpty) const SizedBox(height: 12),
-          Center(
-            child: AccentPillButton(
-              label: l10n.addLocation,
-              icon: Icons.add,
-              onPressed: _addLeg,
+          if (label == null) ...[
+            if (_legs.isNotEmpty) const SizedBox(height: 12),
+            Center(
+              child: AccentPillButton(
+                label: l10n.addLocation,
+                onPressed: _addLeg,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

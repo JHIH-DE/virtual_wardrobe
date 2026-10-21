@@ -39,7 +39,6 @@ class ErrorStateWidget extends StatelessWidget {
           const SizedBox(height: 12),
           AccentPillButton(
             label: retryLabel ?? AppLocalizations.of(context).retry,
-            icon: Icons.refresh,
             onPressed: onRetry,
           ),
         ],

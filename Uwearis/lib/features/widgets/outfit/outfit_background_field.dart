@@ -41,7 +41,7 @@ class OutfitBackgroundField extends StatelessWidget {
                   selected.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.regular16,
+                  style: AppTextStyle.regular14,
                 ),
               ),
               Image.asset(

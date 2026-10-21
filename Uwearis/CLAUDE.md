@@ -265,7 +265,7 @@ Hiding or disabling the trigger button is **not** a substitute:
 
 When the action has a pre-flight phase, keep the **guard flag distinct from the visual "generating" flag** — drive the overlay off the latter so it doesn't show over the confirm dialog — and wire the guard flag into the trigger's own disabled/hidden condition so the button also *looks* unavailable during the pre-flight phase.
 
-**Current state.** `_regenerateImage` / `_setCover` (`outfit_details_page.dart`) and `_generateSelectedDayOutfit` (`trip_details_page.dart`) already raise their flag synchronously and are the pattern to copy. `_startTryOn` / `_completeWithAi` (`add_outfit_page.dart`) and `_generatePlan` (`trip_suitcase_page.dart`) were brought in line with it.
+**Current state.** `_regenerateImage` / `_setCover` (`outfit_details_page.dart`) and `_generateSelectedDayOutfit` (`trip_details_page.dart`) already raise their flag synchronously and are the pattern to copy. `_startTryOn` / `_completeWithAi` (`create_outfit_page.dart`) and `_generatePlan` (`trip_suitcase_page.dart`) were brought in line with it.
 
 ### Error handling (UI) {#error-handling-ui}
 
@@ -376,7 +376,7 @@ Scaffold(
 bool get _showsBottomActionButton => /* same condition that controls the button's own visibility/enabled state */;
 ```
 
-The hidden-state gap could only be a bare `0` when the body already keeps clear of the bottom system inset (e.g. it sits inside a `SafeArea`). A `ListView` with an explicit `padding:` gets no automatic safe-area inset, so its hidden-state bottom padding must be a real gap plus `MediaQuery.paddingOf(context).bottom` (see `add_outfit_page.dart`) — with `0`, the last field ends up under the home indicator and can't be scrolled clear of it.
+The hidden-state gap could only be a bare `0` when the body already keeps clear of the bottom system inset (e.g. it sits inside a `SafeArea`). A `ListView` with an explicit `padding:` gets no automatic safe-area inset, so its hidden-state bottom padding must be a real gap plus `MediaQuery.paddingOf(context).bottom` (see `create_outfit_page.dart`) — with `0`, the last field ends up under the home indicator and can't be scrolled clear of it.
 
 `BottomActionButton.scrollClearance(bodyContext)` is the visible-state gap: the bottom bar's **actual laid-out height** + 8, never less than `AppDimens.bottomActionBtnClearance`. Pass a context *inside* the Scaffold body (a `Builder` around the scroll view, as above; it asserts on a context outside one): with `extendBody: true`, Scaffold gives the body a `MediaQuery.padding.bottom` of `max(inset, bottom bar height)`, and the bar's height already includes a wrapped label and the home indicator — so the clearance follows the real button at any text scale, label length or width, and nothing adds the inset a second time. The hidden-state gap still adds the inset (`MediaQuery.paddingOf(context).bottom`, page or body context alike — with the bar hidden both equal the inset). `image_editor_page.dart` keeps the bare constant: its body is a non-scrolling `Column`, where a taller spacer could only cause an overflow.
 
@@ -384,7 +384,7 @@ Never place `BottomActionButton` inline inside the scrollable body as a sibling 
 
 ### Section headers and field labels
 
-- A card/section title is `SectionTitle` (bold16, normal case). A field label above a form input is `FieldLabel` (small-caps). Never hand-build `Text(title, style: AppTextStyle.bold18)` as a substitute for `SectionTitle`.
+- A card/section title is `SectionTitle` (bold16, normal case). A field label above a form input is `FieldLabel` (small-caps). Never hand-build `Text(title, style: AppTextStyle.bold16)` as a substitute for `SectionTitle`.
 - If two pages need the same card chrome (border, padding, shadow), reuse or extract one shared Widget in `lib/features/widgets/common/cards/`; do not create two private `_buildCardShell` copies. Follow the full decision rules in [Widget reuse and extraction](#widget-reuse-and-extraction).
 - A field's own caption is `LabeledField` (`lib/features/widgets/common/fields/labeled_field.dart`) — label + a fixed 8px gap + the field, matching Garment Details/Account/AI Model's forms. When a dialog or form stacks more than one `LabeledField`, the gap *between* them is `20` (see Garment Details' Category → Product Type → ...; Plan a Trip's Trip Name → Destination & Dates matches this). Don't re-derive or re-justify either number with a fresh comment — this bullet is that record.
 
@@ -500,7 +500,7 @@ Known gaps between the current code and the rules above. Each is deliberately **
 
 ### 4. Widget-level duplicate `_buildXxx` helpers and loading/empty/error shape drift
 
-- **Scope**: Copy-pasted private `_buildXxx` blocks and slightly divergent hand-rolled loading/empty/error layouts remain in `lib/features/` beyond the widgets the refactor extracted (`OutfitGrid`, `GarmentGrid`, `main_tab_async`, `ExpandableInsightBody`, `CarouselDotsIndicator`, …). Known remaining: the single-select bottom sheet (`RadioGroup` + `PickerSheetHeader` + `ListTile`s) now has a canonical `showSingleChoiceSheet` (`common/overlays/picker_sheet.dart`, used by `garment_details_page.dart`) (and by `account_page.dart`'s gender picker) but is still open-coded in `settings_page.dart` — move it onto it when touched; the "titled card + subtitle" header is open-coded in `style_taste_page.dart` / `my_virtual_model_page.dart`; `add_outfit_page.dart`'s `_buildOutfitGarmentRow` is a ~110-line row helper.
+- **Scope**: Copy-pasted private `_buildXxx` blocks and slightly divergent hand-rolled loading/empty/error layouts remain in `lib/features/` beyond the widgets the refactor extracted (`OutfitGrid`, `GarmentGrid`, `main_tab_async`, `ExpandableInsightBody`, `CarouselDotsIndicator`, …). Known remaining: the single-select bottom sheet (`RadioGroup` + `PickerSheetHeader` + `ListTile`s) now has a canonical `showSingleChoiceSheet` (`common/overlays/picker_sheet.dart`, used by `garment_details_page.dart`) (and by `account_page.dart`'s gender picker) but is still open-coded in `settings_page.dart` — move it onto it when touched; the "titled card + subtitle" header is open-coded in `style_taste_page.dart` / `my_virtual_model_page.dart`; `create_outfit_page.dart`'s `_buildOutfitGarmentRow` is a ~110-line row helper.
 - **Risk**: Low-medium — maintainability; a fix applied to one copy can miss the others.
 - **Deferred reason**: Cross-cutting; each extraction needs its own design and visual QA.
 - **Trigger for revisiting**: When any listed page/helper is substantively touched, perform the required reuse search from [Widget reuse and extraction](#widget-reuse-and-extraction). At the **second** substantially-identical use, reuse or extract a canonical shared Widget in that change unless a concrete product/behaviour difference is documented. A **third** equivalent implementation is not allowed. When a loading/empty/error state is edited, align it with `EmptyStatePlaceholder`, `ErrorStateWidget`, or the standard shapes in [Loading/empty/error state](#loadingemptyerror-state).

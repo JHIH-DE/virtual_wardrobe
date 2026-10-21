@@ -39,7 +39,7 @@ void main() {
     expect(selected, 'delete');
   });
 
-  // Longest menu label in the app (add_outfit_page.dart).
+  // Longest menu label in the app (create_outfit_page.dart).
   testWidgets('the longest existing label renders without overflowing', (
     tester,
   ) async {

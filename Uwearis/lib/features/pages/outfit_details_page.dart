@@ -17,6 +17,7 @@ import '../../core/utils/outfit_garments.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
@@ -37,7 +38,7 @@ import '../widgets/outfit/outfit_share_sheet.dart';
 import '../widgets/outfit/outfit_tag_row.dart';
 import '../widgets/outfit/outfit_tags_sheet.dart';
 import '../widgets/outfit/outfit_title.dart';
-import 'add_outfit_page.dart';
+import 'create_outfit_page.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
 
@@ -311,7 +312,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     final outfit = await Navigator.push<Outfit>(
       context,
       MaterialPageRoute(
-        builder: (_) => AddOutfitPage(
+        builder: (_) => CreateOutfitPage(
           // A deleted garment can't go into a new version.
           initialGarments: [
             for (final g in _garments ?? const <Garment>[])
@@ -625,6 +626,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                         ? _buildVersionMenuButton()
                         : _buildRegenerateBadge(),
                   ),
+                if (!_isRegenerating && _canAddVersion)
+                  Positioned(
+                    left: 12,
+                    bottom: 4,
+                    child: AccentPillButton(
+                      label: _l10n.addVersionButton,
+                      enabled: !_isAddingVersion,
+                      onPressed: _openCreateAnotherVersion,
+                    ),
+                  ),
                 if (!_isRegenerating)
                   Positioned(
                     bottom: 12,
@@ -659,41 +670,22 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
         ),
         const SizedBox(height: 4),
-        _buildVersionActionRow(),
+        _buildVersionIndicator(),
       ],
     );
   }
 
-  Widget _buildVersionActionRow() {
-    final canAddVersion = !widget.isNew && widget.showEditOutfitWhenSaved;
+  bool get _canAddVersion => !widget.isNew && widget.showEditOutfitWhenSaved;
 
-    final showsCounter = _versionsResolved && _versions.length >= 2;
-    final enabled = !_isAddingVersion;
-
-    if (!canAddVersion && !showsCounter) {
+  Widget _buildVersionIndicator() {
+    if (!_versionsResolved || _versions.length < 2) {
       return const SizedBox(height: AppDimens.sectionSpacing);
     }
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
-      child: Row(
-        children: [
-          if (canAddVersion)
-            AccentPillButton(
-              label: _l10n.addVersionButton,
-              icon: Icons.add,
-              enabled: enabled,
-              onPressed: _openCreateAnotherVersion,
-            ),
-          const Spacer(),
-          if (showsCounter)
-            Text(
-              '${_currentIndex + 1} / ${_versions.length}',
-              style: AppTextStyle.semibold14.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: AppDimens.sectionSpacing),
+      child: CarouselDotsIndicator(
+        count: _versions.length,
+        currentIndex: _currentIndex,
       ),
     );
   }

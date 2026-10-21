@@ -57,9 +57,9 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
             ),
           ),
           const SizedBox(height: 20),
-          LabeledField(
+          TripLegsEditor(
+            legsNotifier: _legsNotifier,
             label: l10n.itineraryAndDatesLabel,
-            child: TripLegsEditor(legsNotifier: _legsNotifier),
           ),
         ],
       ),

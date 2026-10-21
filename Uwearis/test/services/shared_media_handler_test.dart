@@ -10,7 +10,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/services/shared_media_handler.dart';
 import 'package:uwearis/data/garment.dart';
-import 'package:uwearis/features/pages/add_outfit_page.dart';
+import 'package:uwearis/features/pages/create_outfit_page.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -56,10 +56,7 @@ void main() {
     (tester) async {
       ReceiveSharingIntent.setMockValues(
         initialMedia: [
-          SharedMediaFile(
-            path: '/tmp/shared.jpg',
-            type: SharedMediaType.image,
-          ),
+          SharedMediaFile(path: '/tmp/shared.jpg', type: SharedMediaType.image),
         ],
         mediaStream: const Stream.empty(),
       );
@@ -75,9 +72,7 @@ void main() {
     },
   );
 
-  testWidgets('a photo shared in while logged out is ignored', (
-    tester,
-  ) async {
+  testWidgets('a photo shared in while logged out is ignored', (tester) async {
     FlutterSecureStorage.setMockInitialValues(const {});
     ReceiveSharingIntent.setMockValues(
       initialMedia: [
@@ -153,10 +148,7 @@ void main() {
     (tester) async {
       ReceiveSharingIntent.setMockValues(
         initialMedia: [
-          SharedMediaFile(
-            path: '/tmp/shared.jpg',
-            type: SharedMediaType.image,
-          ),
+          SharedMediaFile(path: '/tmp/shared.jpg', type: SharedMediaType.image),
         ],
         mediaStream: const Stream.empty(),
       );
@@ -171,7 +163,9 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      final page = tester.widget<AddOutfitPage>(find.byType(AddOutfitPage));
+      final page = tester.widget<CreateOutfitPage>(
+        find.byType(CreateOutfitPage),
+      );
       expect(page.initialMatchALookImagePath, '/tmp/shared.jpg');
     },
   );

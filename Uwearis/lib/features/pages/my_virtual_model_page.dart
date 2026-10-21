@@ -17,6 +17,7 @@ import '../../core/utils/reference_photo_download.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/generated_image_card.dart';
@@ -450,29 +451,17 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     );
   }
 
-  /// [onTap] makes only [action] tappable, so a stray tap on the photo
-  /// doesn't open the picker. [subtitle] is only used in the load-failed state.
+  /// Only the [actionLabel] pill is tappable, so a stray tap on the photo
+  /// doesn't open the picker; a null [onTap] disables it. [subtitle] is only
+  /// used in the load-failed state.
   Widget _buildReferenceCard({
     required String title,
     required Widget photo,
     String? subtitle,
-    required Widget action,
+    required String actionLabel,
     required VoidCallback? onTap,
     Key? actionKey,
   }) {
-    Widget tappableAction = action;
-    if (onTap != null) {
-      tappableAction = InkWell(
-        key: actionKey,
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: tappableAction,
-        ),
-      );
-    }
-
     return AppCardShell(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
       child: Column(
@@ -492,30 +481,17 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
             ),
           ],
           const SizedBox(height: 2),
-          tappableAction,
+          Align(
+            alignment: Alignment.centerRight,
+            child: AccentPillButton(
+              key: actionKey,
+              label: actionLabel,
+              enabled: onTap != null,
+              onPressed: onTap,
+            ),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPhotoAction(String? url) => _buildActionLabel(
-    url != null ? _l10n.updatePhotoAction : _l10n.addPhotoAction,
-  );
-
-  Widget _buildActionLabel(String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
-        ),
-        const Icon(
-          Icons.arrow_forward_ios_rounded,
-          size: 18,
-          color: AppColors.accent,
-        ),
-      ],
     );
   }
 
@@ -596,9 +572,9 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
             : (isFace ? Icons.face_outlined : Icons.accessibility_new_outlined),
       ),
       subtitle: failed ? _l10n.photoLoadFailedSubtitle : null,
-      action: failed
-          ? _buildActionLabel(_l10n.reuploadPhotoAction)
-          : _buildPhotoAction(url),
+      actionLabel: failed
+          ? _l10n.reuploadPhotoAction
+          : (url != null ? _l10n.updatePhotoAction : _l10n.addPhotoAction),
     );
   }
 

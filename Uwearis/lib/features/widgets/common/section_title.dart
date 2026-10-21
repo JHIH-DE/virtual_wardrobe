@@ -12,6 +12,6 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: style ?? AppTextStyle.bold18);
+    return Text(title, style: style ?? AppTextStyle.bold16);
   }
 }

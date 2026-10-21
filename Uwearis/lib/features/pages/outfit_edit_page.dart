@@ -17,31 +17,32 @@ import '../widgets/common/images/dashed_border_painter.dart';
 import '../widgets/garment/garment_image.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
-/// Garment slots — not [GarmentCategory], since Top and Mid Layer are two
-/// slots sharing [GarmentCategory.top].
-enum _Slot { top, middle, outer, bottom, onePiece, shoes }
+/// Garment slots. [top] holds up to [_maxTops] garments
+/// ([_OutfitSelection.tops]); the rest hold one each.
+enum _Slot { top, outer, bottom, onePiece, shoes }
 
-/// One garment row: a core slot pick ([slot] set) or an accessory
-/// ([accessoryIndex] set).
+const int _maxTops = 2;
+
+/// One garment row: a core slot pick ([slot] set; [topIndex] too for a top)
+/// or an accessory ([accessoryIndex] set).
 typedef _OutfitEntry = ({
   Garment garment,
   GarmentCategory category,
   _Slot? slot,
+  int? topIndex,
   int? accessoryIndex,
 });
 
 /// In-progress slot picks — local UI state, not a domain model.
 class _OutfitSelection {
-  final Garment? top;
-  final Garment? middle;
+  final List<Garment> tops;
   final Garment? outer;
   final Garment? bottom;
   final Garment? onePiece;
   final Garment? shoes;
 
   const _OutfitSelection({
-    this.top,
-    this.middle,
+    this.tops = const [],
     this.outer,
     this.bottom,
     this.onePiece,
@@ -49,34 +50,36 @@ class _OutfitSelection {
   });
 
   _OutfitSelection copyWith({
-    Garment? top,
-    Garment? middle,
+    List<Garment>? tops,
     Garment? outer,
     Garment? bottom,
     Garment? onePiece,
     Garment? shoes,
-    bool clearTop = false,
-    bool clearMiddle = false,
     bool clearOuter = false,
     bool clearBottom = false,
     bool clearOnePiece = false,
     bool clearShoes = false,
   }) {
     return _OutfitSelection(
-      top: clearTop ? null : (top ?? this.top),
-      middle: clearMiddle ? null : (middle ?? this.middle),
+      tops: List.unmodifiable(tops ?? this.tops),
       outer: clearOuter ? null : (outer ?? this.outer),
       bottom: clearBottom ? null : (bottom ?? this.bottom),
       onePiece: clearOnePiece ? null : (onePiece ?? this.onePiece),
       shoes: clearShoes ? null : (shoes ?? this.shoes),
     );
   }
+
+  /// Tops first, then the single slots — the row order.
+  List<Garment> get garments => [
+    ...tops,
+    ...[outer, bottom, onePiece, shoes].whereType<Garment>(),
+  ];
 }
 
 /// Picks an outfit's garments from a fixed pool (a trip's suitcase) for
 /// Trip Details' outfit edit. Pops the picked garment ids on Confirm, or
 /// null if the user backs out. (Outfit Details' Add Version uses
-/// AddOutfitPage's version mode instead.)
+/// CreateOutfitPage's version mode instead.)
 class OutfitEditPage extends StatefulWidget {
   final List<Garment> initialGarments;
 
@@ -105,8 +108,7 @@ class OutfitEditPage extends StatefulWidget {
 
 class _OutfitEditPageState extends State<OutfitEditPage> {
   late _OutfitSelection _outfit;
-  late _OutfitSelection _initialOutfit;
-  late Set<int> _initialAccessoryIds;
+  late Set<int> _initialGarmentIds;
 
   static const int _maxAccessories = 4;
 
@@ -124,24 +126,10 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
       .toSet();
 
   bool get _hasSelection =>
-      _outfit.top != null ||
-      _outfit.middle != null ||
-      _outfit.outer != null ||
-      _outfit.bottom != null ||
-      _outfit.onePiece != null ||
-      _outfit.shoes != null ||
-      _accessoryIds.isNotEmpty;
+      _outfit.garments.isNotEmpty || _accessoryIds.isNotEmpty;
 
-  bool get _isModified {
-    bool sameSlot(Garment? a, Garment? b) => a?.id == b?.id;
-    return !(sameSlot(_outfit.top, _initialOutfit.top) &&
-        sameSlot(_outfit.middle, _initialOutfit.middle) &&
-        sameSlot(_outfit.outer, _initialOutfit.outer) &&
-        sameSlot(_outfit.bottom, _initialOutfit.bottom) &&
-        sameSlot(_outfit.onePiece, _initialOutfit.onePiece) &&
-        sameSlot(_outfit.shoes, _initialOutfit.shoes) &&
-        setEquals(_accessoryIds, _initialAccessoryIds));
-  }
+  bool get _isModified =>
+      !setEquals(_selectedGarmentIds().toSet(), _initialGarmentIds);
 
   bool get _showsBottomActionButton => _hasSelection && _isModified;
 
@@ -151,13 +139,12 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     _outfit = widget.initialGarments.isNotEmpty
         ? _buildInitialOutfit(widget.initialGarments)
         : const _OutfitSelection();
-    _initialOutfit = _outfit;
     if (widget.initialGarments.isNotEmpty) {
       _accessories
         ..clear()
         ..addAll(_buildInitialAccessories(widget.initialGarments));
     }
-    _initialAccessoryIds = _accessoryIds;
+    _initialGarmentIds = _selectedGarmentIds().toSet();
   }
 
   _OutfitSelection _buildInitialOutfit(List<Garment> garments) {
@@ -165,8 +152,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         .where((g) => g.category == GarmentCategory.top)
         .toList();
     return _OutfitSelection(
-      top: tops.isNotEmpty ? tops[0] : null,
-      middle: tops.length > 1 ? tops[1] : null,
+      tops: tops.take(_maxTops).toList(),
       outer: garments
           .where((g) => g.category == GarmentCategory.outer)
           .firstOrNull,
@@ -209,7 +195,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   GarmentCategory _categoryForSlot(_Slot slot) {
     switch (slot) {
       case _Slot.top:
-      case _Slot.middle:
         return GarmentCategory.top;
       case _Slot.outer:
         return GarmentCategory.outer;
@@ -222,12 +207,11 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     }
   }
 
+  /// Single slots only; tops go through [_placeTop] or their index.
   _OutfitSelection _applyToSlot(_OutfitSelection sel, _Slot slot, Garment g) {
     switch (slot) {
       case _Slot.top:
-        return sel.copyWith(top: g);
-      case _Slot.middle:
-        return sel.copyWith(middle: g);
+        throw ArgumentError.value(slot, 'slot', 'tops are indexed');
       case _Slot.outer:
         return sel.copyWith(outer: g);
       case _Slot.bottom:
@@ -244,14 +228,14 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   /// already picked. The `keep*` args re-admit whatever is being swapped.
   List<Garment> _addGarmentCandidates({
     GarmentCategory? keepCategory,
-    _Slot? keepSlot,
+    int? keepTopIndex,
     int? keepAccessoryIndex,
   }) {
     bool categoryFull(GarmentCategory c) {
       if (c == keepCategory) return false;
       switch (c) {
         case GarmentCategory.top:
-          return _outfit.top != null && _outfit.middle != null;
+          return _outfit.tops.length >= _maxTops;
         case GarmentCategory.outer:
           return _outfit.outer != null;
         case GarmentCategory.bottom:
@@ -276,26 +260,14 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     }
 
     final wornTopKeys = <String>{
-      for (final entry in [
-        (_outfit.top, _Slot.top),
-        (_outfit.middle, _Slot.middle),
-      ])
-        if (entry.$1 != null &&
-            entry.$2 != keepSlot &&
-            entry.$1!.subCategory.isNotEmpty)
-          baseTopSlotKey(entry.$1!.subCategory),
+      for (var i = 0; i < _outfit.tops.length; i++)
+        if (i != keepTopIndex && _outfit.tops[i].subCategory.isNotEmpty)
+          baseTopSlotKey(_outfit.tops[i].subCategory),
     };
 
     final coreIds = <int>{
-      for (final g in [
-        _outfit.top,
-        _outfit.middle,
-        _outfit.outer,
-        _outfit.bottom,
-        _outfit.onePiece,
-        _outfit.shoes,
-      ])
-        if (g?.id != null) g!.id!,
+      for (final g in _outfit.garments)
+        if (g.id != null) g.id!,
     };
 
     return _garmentPool.where((g) {
@@ -330,14 +302,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   }
 
   List<int> _selectedGarmentIds() {
-    final coreIds = [
-      _outfit.top,
-      _outfit.middle,
-      _outfit.outer,
-      _outfit.bottom,
-      _outfit.onePiece,
-      _outfit.shoes,
-    ].whereType<Garment>().map((g) => g.id).whereType<int>();
+    final coreIds = _outfit.garments.map((g) => g.id).whereType<int>();
     final accessoryIds = _accessories
         .whereType<Garment>()
         .map((g) => g.id)
@@ -461,6 +426,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
       onTap: () => _pickGarmentForOutfit(
         initial: entry.category,
         replaceSlot: entry.slot,
+        replaceTopIndex: entry.topIndex,
         replaceAccessoryIndex: entry.accessoryIndex,
         current: g,
       ),
@@ -493,10 +459,12 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
                       fit: StackFit.expand,
                       clipBehavior: Clip.none,
                       children: [
-                        GarmentImage(
-                          url: g.imageUrl,
-                          garmentId: g.id,
-                          fit: BoxFit.contain,
+                        Positioned.fill(
+                          child: GarmentImage(
+                            url: g.imageUrl,
+                            garmentId: g.id,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                         if (isInvalid)
                           Positioned(
@@ -573,26 +541,34 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     );
   }
 
-  /// Core slots first, then accessories. Mid layer is labelled as a top.
+  /// Tops, then the other core slots, then accessories.
   List<_OutfitEntry> _outfitEntries() {
-    final list = <_OutfitEntry>[];
-    void addSlot(Garment? g, _Slot slot, GarmentCategory category) {
+    final list = <_OutfitEntry>[
+      for (var i = 0; i < _outfit.tops.length; i++)
+        (
+          garment: _outfit.tops[i],
+          category: GarmentCategory.top,
+          slot: _Slot.top,
+          topIndex: i,
+          accessoryIndex: null,
+        ),
+    ];
+    void addSlot(Garment? g, _Slot slot) {
       if (g != null) {
         list.add((
           garment: g,
-          category: category,
+          category: _categoryForSlot(slot),
           slot: slot,
+          topIndex: null,
           accessoryIndex: null,
         ));
       }
     }
 
-    addSlot(_outfit.top, _Slot.top, GarmentCategory.top);
-    addSlot(_outfit.middle, _Slot.middle, GarmentCategory.top);
-    addSlot(_outfit.outer, _Slot.outer, GarmentCategory.outer);
-    addSlot(_outfit.bottom, _Slot.bottom, GarmentCategory.bottom);
-    addSlot(_outfit.onePiece, _Slot.onePiece, GarmentCategory.onePiece);
-    addSlot(_outfit.shoes, _Slot.shoes, GarmentCategory.shoes);
+    addSlot(_outfit.outer, _Slot.outer);
+    addSlot(_outfit.bottom, _Slot.bottom);
+    addSlot(_outfit.onePiece, _Slot.onePiece);
+    addSlot(_outfit.shoes, _Slot.shoes);
     for (var i = 0; i < _accessories.length; i++) {
       final g = _accessories[i];
       if (g != null) {
@@ -600,6 +576,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
           garment: g,
           category: g.category,
           slot: null,
+          topIndex: null,
           accessoryIndex: i,
         ));
       }
@@ -610,10 +587,11 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   void _removeOutfitEntry(_OutfitEntry entry) {
     setState(() {
       final slot = entry.slot;
-      if (slot != null) {
+      final topIndex = entry.topIndex;
+      if (topIndex != null) {
+        _outfit = _outfit.copyWith(tops: [..._outfit.tops]..removeAt(topIndex));
+      } else if (slot != null) {
         _outfit = _outfit.copyWith(
-          clearTop: slot == _Slot.top,
-          clearMiddle: slot == _Slot.middle,
           clearOuter: slot == _Slot.outer,
           clearBottom: slot == _Slot.bottom,
           clearOnePiece: slot == _Slot.onePiece,
@@ -627,17 +605,19 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     });
   }
 
-  /// [replaceSlot] / [replaceAccessoryIndex] pin the pick to the row being
-  /// swapped; [current] shows as selected in the picker.
+  /// [replaceSlot] (+ [replaceTopIndex] for a top) / [replaceAccessoryIndex]
+  /// pin the pick to the row being swapped; [current] shows as selected in
+  /// the picker.
   Future<void> _pickGarmentForOutfit({
     GarmentCategory? initial,
     _Slot? replaceSlot,
+    int? replaceTopIndex,
     int? replaceAccessoryIndex,
     Garment? current,
   }) async {
     final candidates = _addGarmentCandidates(
       keepCategory: replaceSlot != null ? _categoryForSlot(replaceSlot) : null,
-      keepSlot: replaceSlot,
+      keepTopIndex: replaceTopIndex,
       keepAccessoryIndex: replaceAccessoryIndex,
     );
     final tabs = _addGarmentTabs(candidates);
@@ -660,6 +640,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     _assignGarment(
       picked,
       replaceSlot: replaceSlot,
+      replaceTopIndex: replaceTopIndex,
       replaceAccessoryIndex: replaceAccessoryIndex,
     );
   }
@@ -667,11 +648,20 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
   void _assignGarment(
     Garment g, {
     _Slot? replaceSlot,
+    int? replaceTopIndex,
     int? replaceAccessoryIndex,
   }) {
     setState(() {
       if (replaceSlot != null && g.category == _categoryForSlot(replaceSlot)) {
-        _outfit = _applyToSlot(_outfit, replaceSlot, g);
+        if (replaceTopIndex != null && replaceTopIndex < _outfit.tops.length) {
+          _outfit = _outfit.copyWith(
+            tops: [..._outfit.tops]..[replaceTopIndex] = g,
+          );
+        } else if (replaceSlot != _Slot.top) {
+          _outfit = _applyToSlot(_outfit, replaceSlot, g);
+        } else {
+          _outfit = _outfit.copyWith(tops: _placeTop(_outfit.tops, g));
+        }
         return;
       }
       final isAccessory =
@@ -689,21 +679,29 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     });
   }
 
-  /// Call inside `setState`. A top interchangeable with the current one
-  /// ([baseTopSlotKey], e.g. Polo over T-shirt) replaces it instead of
-  /// becoming the mid layer.
+  /// A top interchangeable with a worn one ([baseTopSlotKey], e.g. Polo
+  /// over T-shirt) replaces it; otherwise it's added, or replaces the last
+  /// top once [_maxTops] are worn.
+  List<Garment> _placeTop(List<Garment> tops, Garment g) {
+    final next = [...tops];
+    final same = next.indexWhere(
+      (t) => baseTopSlotKey(t.subCategory) == baseTopSlotKey(g.subCategory),
+    );
+    if (same >= 0) {
+      next[same] = g;
+    } else if (next.length < _maxTops) {
+      next.add(g);
+    } else {
+      next[next.length - 1] = g;
+    }
+    return next;
+  }
+
+  /// Call inside `setState`.
   void _placeGarment(Garment g) {
     switch (g.category) {
       case GarmentCategory.top:
-        final existingTop = _outfit.top;
-        final sameBaseLayer =
-            existingTop != null &&
-            baseTopSlotKey(existingTop.subCategory) ==
-                baseTopSlotKey(g.subCategory);
-        final slot = (_outfit.top == null || sameBaseLayer)
-            ? _Slot.top
-            : (_outfit.middle == null ? _Slot.middle : _Slot.top);
-        _outfit = _applyToSlot(_outfit, slot, g);
+        _outfit = _outfit.copyWith(tops: _placeTop(_outfit.tops, g));
       case GarmentCategory.outer:
         _outfit = _applyToSlot(_outfit, _Slot.outer, g);
       case GarmentCategory.bottom:
