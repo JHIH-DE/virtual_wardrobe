@@ -86,7 +86,7 @@
 
   "renameOutfit": "重新命名穿搭",
   "outfitNameLabel": "這套穿搭的名稱",
-  "addVersionButton": "新版本",
+  "addVersionButton": "新增版本",
   "addVersionTitle": "新增版本",
   "versionLimitReachedTitle": "已達版本上限",
   "versionLimitReachedBody": "每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。",
@@ -315,6 +315,7 @@
   "analyzeAgain": "重新分析",
   "closetMatch": "衣櫥匹配度",
   "viewClosetMatch": "查看衣櫥匹配度",
+  "viewMatch": "查看匹配度",
   "closetAnalysisFailed": "分析失敗，請再試一次。",
   "closetAnalysisGarmentNotFound": "在你的衣櫃中找不到這件單品了。",
   "versatilityDescription": "這件單品跟你衣櫃的搭配度。",
@@ -456,7 +457,7 @@
   "suggestedByAi": "AI 建議",
   "loadingPackingSuggestions": "載入打包建議中…",
   "recommendedSelectedCount": "建議 {recommended} ‧ 已選 {selected}",
-  "packedItemsCount": "已打包 {count} 件",
+  "suitcaseItemsCount": "{count} 件",
 
   "failedToUpdateSuitcase": "更新行李箱失敗",
   "failedToRemoveItem": "移除項目失敗",

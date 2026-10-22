@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/core/services/garment_service.dart';
+import 'package:uwearis/features/widgets/common/profile_avatar.dart';
 import 'package:uwearis/features/pages/login_page.dart';
 import 'package:uwearis/features/pages/settings_page.dart';
 
@@ -226,5 +228,19 @@ void main() {
       await pumpWithTier(tester, null);
       expect(find.text('Bronze'), findsOneWidget);
     });
+
+    for (final (tier, color) in [
+      ('tier_1', AppColors.tierGold),
+      ('tier_2', AppColors.tierSilver),
+      (null, AppColors.tierBronze),
+    ]) {
+      testWidgets('the avatar ring matches the ${tier ?? 'default'} badge', (
+        tester,
+      ) async {
+        await pumpWithTier(tester, tier);
+        final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
+        expect(avatar.ringColor, color);
+      });
+    }
   });
 }

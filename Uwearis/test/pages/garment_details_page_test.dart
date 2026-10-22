@@ -63,7 +63,7 @@ void main() {
   // Fixed pumps, not pumpAndSettle(): the sheet's loading spinner never
   // settles.
   Future<void> openAnalysisSheet(WidgetTester tester) async {
-    await tester.tap(find.text('Closet Match'));
+    await tester.tap(find.text('View Match'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
   }
@@ -87,11 +87,11 @@ void main() {
 
       expect(find.text('Add Clothing'), findsWidgets);
       expect(find.text('Select Color'), findsOneWidget);
-      // Closet Match sits in the image's bottom-left corner.
+      // View Match sits in the image's bottom-left corner.
       final image = tester.getRect(find.byType(GarmentImage));
       final pill = tester.getRect(
         find.descendant(
-          of: find.widgetWithText(AccentPillButton, 'Closet Match'),
+          of: find.widgetWithText(AccentPillButton, 'View Match'),
           matching: find.byType(TextButton),
         ),
       );
@@ -345,7 +345,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Closet Match'), findsOneWidget);
+      expect(find.text('View Match'), findsOneWidget);
       expect(find.text('Versatile'), findsNothing);
 
       await openAnalysisSheet(tester);
@@ -565,7 +565,7 @@ void main() {
     },
   );
 
-  testWidgets('edit mode: the Closet Match button opens the analysis sheet, '
+  testWidgets('edit mode: the View Match button opens the Closet Match sheet, '
       'which runs it and shows the versatility result', (tester) async {
     final client = MockClient((request) async {
       if (request.method == 'POST' &&
@@ -597,7 +597,7 @@ void main() {
       await tester.pump();
 
       // No analysis until asked.
-      expect(find.text('Closet Match'), findsOneWidget);
+      expect(find.text('View Match'), findsOneWidget);
       expect(find.byType(UwearisInsightCard), findsNothing);
       expect(
         find.text('How well this piece works with your closet.'),
@@ -618,7 +618,7 @@ void main() {
 
       await closeAnalysisSheet(tester);
       expect(find.text('8/10'), findsNothing);
-      expect(find.text('Closet Match'), findsOneWidget);
+      expect(find.text('View Match'), findsOneWidget);
     }, () => client);
   });
 

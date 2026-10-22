@@ -298,6 +298,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             size: 96,
             showEditLabel: false,
             fallbackIconSize: 52,
+            ringColor: _data?.profile.tier.colors.fill,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -501,24 +502,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 }
 
+extension on UserTier {
+  ({Color fill, Color text}) get colors {
+    switch (this) {
+      case UserTier.gold:
+        return (fill: AppColors.tierGold, text: AppColors.tierGoldText);
+      case UserTier.silver:
+        return (fill: AppColors.tierSilver, text: AppColors.tierSilverText);
+      case UserTier.bronze:
+        return (fill: AppColors.tierBronze, text: AppColors.tierBronzeText);
+    }
+  }
+}
+
 class _TierBadge extends StatelessWidget {
   final UserTier tier;
   const _TierBadge({required this.tier});
 
-  (Color, Color) get _colors {
-    switch (tier) {
-      case UserTier.gold:
-        return (AppColors.tierGold, AppColors.tierGoldText);
-      case UserTier.silver:
-        return (AppColors.tierSilver, AppColors.tierSilverText);
-      case UserTier.bronze:
-        return (AppColors.tierBronze, AppColors.tierBronzeText);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final (fill, text) = _colors;
+    final (:fill, :text) = tier.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

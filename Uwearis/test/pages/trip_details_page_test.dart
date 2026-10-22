@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/core/providers/trip_detail_provider.dart';
 import 'package:uwearis/data/garment.dart';
@@ -113,6 +114,61 @@ void main() {
       expect(find.text('Suitcase'), findsOneWidget);
       // The outfit-advice card belongs to the Suitcase page.
       expect(find.text('Layer up for the evenings.'), findsNothing);
+    }, packingAdviceClient);
+  });
+
+  testWidgets('the Suitcase card shows the packed count as its status, with '
+      'no recommended / selected summary', (tester) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpDetails(
+        tester,
+        trip: _trip(),
+        detail: _detail(suitcaseIds: {1, 2, 3}),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final card = find.ancestor(
+        of: find.text('Suitcase'),
+        matching: find.byType(AppListCard),
+      );
+      expect(
+        find.descendant(of: card, matching: find.text('3 items')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Recommended'), findsNothing);
+      expect(find.textContaining('Packed'), findsNothing);
+    }, packingAdviceClient);
+  });
+
+  testWidgets('an empty suitcase keeps the packing hint and no count', (
+    tester,
+  ) async {
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpDetails(tester, trip: _trip(), detail: const TripDetail());
+      await tester.pump();
+      await tester.pump();
+
+      final card = find.ancestor(
+        of: find.text('Suitcase'),
+        matching: find.byType(AppListCard),
+      );
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.textContaining(RegExp(r'\d+ items?$')),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.text('Pack clothing for this trip'),
+        ),
+        findsOneWidget,
+      );
     }, packingAdviceClient);
   });
 

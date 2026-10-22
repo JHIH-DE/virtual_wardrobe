@@ -93,7 +93,7 @@
 
   "renameOutfit": "Rename Outfit",
   "outfitNameLabel": "Name of this outfit",
-  "addVersionButton": "New Version",
+  "addVersionButton": "Add Version",
   "addVersionTitle": "Add Version",
   "versionLimitReachedTitle": "Version limit reached",
   "versionLimitReachedBody": "You can keep up to 10 versions for each outfit. Delete a version to create a new one.",
@@ -377,6 +377,7 @@
   "analyzeAgain": "Analyze Again",
   "closetMatch": "Closet Match",
   "viewClosetMatch": "View Closet Match",
+  "viewMatch": "View Match",
   "closetAnalysisFailed": "Couldn't analyze — please try again.",
   "closetAnalysisGarmentNotFound": "This item could no longer be found in your closet.",
   "versatilityDescription": "How well this piece works with your closet.",
@@ -545,9 +546,9 @@
       "selected": { "type": "int" }
     }
   },
-  "packedItemsCount": "Packed {count}",
-  "@packedItemsCount": {
-    "description": "Suitcase card summary before AI packing recommendations have loaded",
+  "suitcaseItemsCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "@suitcaseItemsCount": {
+    "description": "Trip Details' Suitcase card status: how many garments are packed",
     "placeholders": {
       "count": { "type": "int" }
     }

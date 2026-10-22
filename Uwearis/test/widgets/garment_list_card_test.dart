@@ -196,10 +196,10 @@ void main() {
         }
         expect(isTruncated(tester, color), isFalse);
 
-        // Default size: one line, like every other row. Enlarged: a name
-        // that doesn't fit one line gets a second before any ellipsis.
+        // Below the threshold: one line, like every other row. From it: a
+        // name that doesn't fit one line gets a second before any ellipsis.
         final lines = renderedLineCount(tester, name);
-        if (c.scale == 1.0) {
+        if (c.scale < GarmentListCard.twoLineNameScale) {
           expect(lines, 1);
         } else if (isTruncated(tester, name)) {
           expect(lines, 2);

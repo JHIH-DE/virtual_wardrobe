@@ -36,11 +36,15 @@ class GarmentListCard extends StatelessWidget {
 
   static const double _imageSlotWidth = 80;
 
+  /// From this text scale the name gets a second line. Below it — the
+  /// default plus a step or two up — every row keeps one line.
+  static const double twoLineNameScale = 1.5;
+
   Widget _buildCard(BuildContext context) {
-    // At the default text size every row stays the same height with a
-    // one-line name; enlarged text grows the card and gives the name a
-    // second line so it stays identifiable.
-    final textEnlarged = MediaQuery.textScalerOf(context).scale(1) > 1;
+    // Rows stay one height with a one-line name until the text is enlarged
+    // enough that a single line would leave too little of the name.
+    final textEnlarged =
+        MediaQuery.textScalerOf(context).scale(1) >= twoLineNameScale;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,

@@ -540,7 +540,7 @@ abstract class AppLocalizations {
   /// No description provided for @addVersionButton.
   ///
   /// In en, this message translates to:
-  /// **'New Version'**
+  /// **'Add Version'**
   String get addVersionButton;
 
   /// No description provided for @addVersionTitle.
@@ -1773,6 +1773,12 @@ abstract class AppLocalizations {
   /// **'View Closet Match'**
   String get viewClosetMatch;
 
+  /// No description provided for @viewMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'View Match'**
+  String get viewMatch;
+
   /// No description provided for @closetAnalysisFailed.
   ///
   /// In en, this message translates to:
@@ -2583,11 +2589,11 @@ abstract class AppLocalizations {
   /// **'Recommended {recommended} · Selected {selected}'**
   String recommendedSelectedCount(int recommended, int selected);
 
-  /// Suitcase card summary before AI packing recommendations have loaded
+  /// Trip Details' Suitcase card status: how many garments are packed
   ///
   /// In en, this message translates to:
-  /// **'Packed {count}'**
-  String packedItemsCount(int count);
+  /// **'{count, plural, =1{1 item} other{{count} items}}'**
+  String suitcaseItemsCount(int count);
 
   /// No description provided for @failedToUpdateSuitcase.
   ///

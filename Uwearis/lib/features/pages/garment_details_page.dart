@@ -1256,7 +1256,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           left: 12,
           bottom: 4,
           child: AccentPillButton(
-            label: _l10n.closetMatch,
+            label: _l10n.viewMatch,
             onPressed: _openClosetAnalysisSheet,
           ),
         ),

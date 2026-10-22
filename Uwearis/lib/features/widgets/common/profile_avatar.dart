@@ -16,6 +16,9 @@ class ProfileAvatar extends StatelessWidget {
   final bool showEditLabel;
   final double fallbackIconSize;
 
+  /// Draws a ring around the photo, inside [size].
+  final Color? ringColor;
+
   const ProfileAvatar({
     super.key,
     this.url,
@@ -24,7 +27,11 @@ class ProfileAvatar extends StatelessWidget {
     this.size = 120,
     this.showEditLabel = true,
     this.fallbackIconSize = 64,
+    this.ringColor,
   });
+
+  static const double _ringWidth = 3;
+  static const double _ringGap = 2;
 
   /// Decoding the full-size photo made it fall out of the image cache, so
   /// every visit re-decoded it. Precache with the same width to share the
@@ -35,49 +42,60 @@ class ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasImage = url != null && url!.isNotEmpty;
+    final ring = ringColor;
+    final photoSize = ring == null ? size : size - 2 * (_ringWidth + _ringGap);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(shape: BoxShape.circle),
-        child: ClipOval(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              hasImage
-                  ? AppImage(
-                      url: url,
-                      onRefreshUrl: onRefreshUrl,
-                      memCacheWidth: decodeWidth(context, size),
-                      fit: BoxFit.cover,
-                    )
-                  : ColoredBox(
-                      color: AppColors.placeholderSurface,
-                      child: Icon(
-                        Icons.person,
-                        size: fallbackIconSize,
-                        color: AppColors.icon,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: ring == null
+              ? null
+              : Border.all(color: ring, width: _ringWidth),
+        ),
+        child: SizedBox.square(
+          dimension: photoSize,
+          child: ClipOval(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                hasImage
+                    ? AppImage(
+                        url: url,
+                        onRefreshUrl: onRefreshUrl,
+                        memCacheWidth: decodeWidth(context, photoSize),
+                        fit: BoxFit.cover,
+                      )
+                    : ColoredBox(
+                        color: AppColors.placeholderSurface,
+                        child: Icon(
+                          Icons.person,
+                          size: fallbackIconSize,
+                          color: AppColors.icon,
+                        ),
                       ),
-                    ),
-              if (showEditLabel)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.only(top: 4, bottom: 13),
-                    color: AppColors.overlayMedium,
-                    child: Text(
-                      AppLocalizations.of(context).editPhoto,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyle.bold12.copyWith(
-                        color: AppColors.textOnPrimary,
+                if (showEditLabel)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.only(top: 4, bottom: 13),
+                      color: AppColors.overlayMedium,
+                      child: Text(
+                        AppLocalizations.of(context).editPhoto,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.bold12.copyWith(
+                          color: AppColors.textOnPrimary,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

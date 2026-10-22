@@ -248,7 +248,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outfitNameLabel => 'Name of this outfit';
 
   @override
-  String get addVersionButton => 'New Version';
+  String get addVersionButton => 'Add Version';
 
   @override
   String get addVersionTitle => 'Add Version';
@@ -911,6 +911,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewClosetMatch => 'View Closet Match';
 
   @override
+  String get viewMatch => 'View Match';
+
+  @override
   String get closetAnalysisFailed => 'Couldn\'t analyze — please try again.';
 
   @override
@@ -1340,8 +1343,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String packedItemsCount(int count) {
-    return 'Packed $count';
+  String suitcaseItemsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+    );
+    return '$_temp0';
   }
 
   @override

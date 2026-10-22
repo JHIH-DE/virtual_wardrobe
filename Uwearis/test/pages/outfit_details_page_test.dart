@@ -309,7 +309,7 @@ void main() {
   );
 
   testWidgets(
-    'without "+ New Version" or a counter, a gap still separates the photo '
+    'without "+ Add Version" or a counter, a gap still separates the photo '
     'from the garments divider',
     (tester) async {
       useTallSurface(tester);
@@ -333,7 +333,7 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        // An entry point that doesn't offer "+ New Version", single version.
+        // An entry point that doesn't offer "+ Add Version", single version.
         await pumpApp(
           tester,
           OutfitDetailsPage(
@@ -384,7 +384,7 @@ void main() {
     },
   );
 
-  testWidgets('the pill reads "New Version" with only a single version', (
+  testWidgets('the pill reads "Add Version" with only a single version', (
     tester,
   ) async {
     useTallSurface(tester);
@@ -395,12 +395,12 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('New Version'), findsOneWidget);
+      expect(find.text('Add Version'), findsOneWidget);
     }, stubClient);
   });
 
   testWidgets(
-    'the pill keeps reading "New Version" once a sibling version '
+    'the pill keeps reading "Add Version" once a sibling version '
     'exists, over the photo, with the Home-style dots + "n / total" counter below',
     (tester) async {
       useTallSurface(tester);
@@ -437,7 +437,7 @@ void main() {
         await tester.pump();
 
         expect(
-          find.widgetWithText(AccentPillButton, 'New Version'),
+          find.widgetWithText(AccentPillButton, 'Add Version'),
           findsOneWidget,
         );
         expect(find.widgetWithIcon(CircleIconButton, Icons.add), findsNothing);
@@ -466,7 +466,7 @@ void main() {
     },
   );
 
-  testWidgets('the dots still show without "+ New Version"', (tester) async {
+  testWidgets('the dots still show without "+ Add Version"', (tester) async {
     useTallSurface(tester);
     const groupId = 790;
     final client = MockClient((request) async {
@@ -488,7 +488,7 @@ void main() {
     });
 
     await http.runWithClient(() async {
-      // An entry point that doesn't offer "+ New Version".
+      // An entry point that doesn't offer "+ Add Version".
       await pumpApp(
         tester,
         OutfitDetailsPage(
@@ -507,7 +507,7 @@ void main() {
 
   // The version cap is enforced client-side only.
   testWidgets(
-    '"+ New Version" past the version cap explains the limit instead of '
+    '"+ Add Version" past the version cap explains the limit instead of '
     'opening the picker',
     (tester) async {
       // Unique group id: OutfitService caches per group.
@@ -541,7 +541,7 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.widgetWithText(AccentPillButton, 'New Version'));
+        await tester.tap(find.widgetWithText(AccentPillButton, 'Add Version'));
         await tester.pump();
         await tester.pump();
 
@@ -557,13 +557,13 @@ void main() {
         await tester.tap(find.text('OK'));
         await tester.pump();
         await tester.pump();
-        expect(find.text('Add Version'), findsNothing);
+        expect(find.byType(CreateOutfitPage), findsNothing);
       }, () => client);
     },
   );
 
   testWidgets(
-    '"+ New Version" opens Add Outfit in version mode, and the version it '
+    '"+ Add Version" opens Add Outfit in version mode, and the version it '
     'pops back is swiped into view',
     (tester) async {
       await http.runWithClient(() async {
@@ -572,7 +572,7 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.widgetWithText(AccentPillButton, 'New Version'));
+        await tester.tap(find.widgetWithText(AccentPillButton, 'Add Version'));
         await tester.pump();
         await tester.pump(const Duration(seconds: 1));
 
@@ -580,7 +580,6 @@ void main() {
           find.byType(CreateOutfitPage),
         );
         expect(addOutfit.targetGroupId, 704);
-        expect(find.text('Add Version'), findsOneWidget);
 
         Navigator.of(tester.element(find.byType(CreateOutfitPage))).pop(
           Outfit(id: 2, groupId: 704, imageUrl: 'https://img.example/2.png'),

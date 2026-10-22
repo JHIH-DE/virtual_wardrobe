@@ -85,7 +85,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   // Display-only ("Recommended N · Selected M" on the Suitcase card), not a
   // plan-generation gate.
-  int? _recommendedTotal;
   bool _generatingOutfit = false;
   bool _dayOutfitActionInFlight = false;
   bool _replanActionInFlight = false;
@@ -165,17 +164,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   Future<void> _loadPackingAnalysis() async {
     try {
-      // Cached provider, shared with the suitcase page and garment picker.
-      final analysis = await ref.read(
-        tripSuggestionProvider(int.parse(_trip.id)).future,
-      );
-      if (mounted) {
-        setState(() {
-          _recommendedTotal = analysis.categories.isEmpty
-              ? null
-              : analysis.recommendedTotal;
-        });
-      }
+      // Warms the cached provider the suitcase page and garment picker read.
+      await ref.read(tripSuggestionProvider(int.parse(_trip.id)).future);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -190,14 +180,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// a plain re-read would return the pre-edit result.
   Future<void> _analyzeTrip() async {
     try {
-      final analysis = await TripService().analyzeTrip(int.parse(_trip.id));
-      if (mounted) {
-        setState(() {
-          _recommendedTotal = analysis.categories.isEmpty
-              ? null
-              : analysis.recommendedTotal;
-        });
-      }
+      await TripService().analyzeTrip(int.parse(_trip.id));
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -1005,22 +988,27 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   Widget _buildSuitcaseSection() {
     final packedCount = _suitcaseIds.length;
-    final recommended = _recommendedTotal;
-    final summary = packedCount == 0
-        ? _l10n.packClothingHint
-        : (recommended != null
-              ? _l10n.recommendedSelectedCount(recommended, packedCount)
-              : _l10n.packedItemsCount(packedCount));
-
+    const leading = Icon(Icons.luggage_outlined, color: AppColors.icon);
+    if (packedCount == 0) {
+      return AppListCard(
+        title: _l10n.suitcaseLabel,
+        leading: leading,
+        showArrow: true,
+        onTap: _openSuitcase,
+        child: Text(
+          _l10n.packClothingHint,
+          style: AppTextStyle.regular12.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
     return AppListCard(
-      title: _l10n.suitcaseLabel,
-      leading: const Icon(Icons.luggage_outlined, color: AppColors.icon),
+      leading: leading,
       showArrow: true,
       onTap: _openSuitcase,
-      child: Text(
-        summary,
-        style: AppTextStyle.regular12.copyWith(color: AppColors.textSecondary),
-      ),
+      status: _l10n.suitcaseItemsCount(packedCount),
+      child: Text(_l10n.suitcaseLabel, style: AppTextStyle.bold16),
     );
   }
 }

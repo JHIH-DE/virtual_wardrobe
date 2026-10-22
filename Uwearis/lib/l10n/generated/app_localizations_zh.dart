@@ -233,7 +233,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get addVersionButton => '新版本';
+  String get addVersionButton => '新增版本';
 
   @override
   String get addVersionTitle => '新增版本';
@@ -867,6 +867,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewClosetMatch => '查看衣櫥匹配度';
 
   @override
+  String get viewMatch => '查看匹配度';
+
+  @override
   String get closetAnalysisFailed => '分析失敗，請再試一次。';
 
   @override
@@ -1282,8 +1285,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String packedItemsCount(int count) {
-    return '已打包 $count 件';
+  String suitcaseItemsCount(int count) {
+    return '$count 件';
   }
 
   @override
@@ -1741,7 +1744,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get outfitNameLabel => '這套穿搭的名稱';
 
   @override
-  String get addVersionButton => '新版本';
+  String get addVersionButton => '新增版本';
 
   @override
   String get addVersionTitle => '新增版本';
@@ -2375,6 +2378,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get viewClosetMatch => '查看衣櫥匹配度';
 
   @override
+  String get viewMatch => '查看匹配度';
+
+  @override
   String get closetAnalysisFailed => '分析失敗，請再試一次。';
 
   @override
@@ -2790,8 +2796,8 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String packedItemsCount(int count) {
-    return '已打包 $count 件';
+  String suitcaseItemsCount(int count) {
+    return '$count 件';
   }
 
   @override
