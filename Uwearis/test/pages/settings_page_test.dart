@@ -12,6 +12,7 @@ import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/style_taste_page.dart';
 import 'package:uwearis/features/widgets/common/profile_avatar.dart';
 import 'package:uwearis/features/pages/login_page.dart';
+import 'package:uwearis/features/pages/my_outfit_profile_page.dart';
 import 'package:uwearis/features/pages/settings_page.dart';
 
 import '../helpers/fake_auth.dart';
@@ -122,113 +123,44 @@ void main() {
     },
   );
 
-  group('perceived temperature offset', () {
-    http.Client client(List<http.Request> patches, {int patchStatus = 200}) =>
-        MockClient((request) async {
-          if (request.method == 'PATCH') {
-            patches.add(request);
-            return patchStatus == 200
-                ? jsonResponse(envelope({'name': 'Test User'}))
-                : jsonResponse(envelope(null), status: patchStatus);
-          }
-          return jsonResponse(
-            envelope({'name': 'Test User', 'email': 'test@example.com'}),
-          );
-        });
-
-    // Two taps of + in the sheet, then dismiss — the sheet saves once on close.
-    Future<void> stepOffsetTo2(WidgetTester tester) async {
-      await tester.tap(find.text('Temperature Preference'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.add_circle_outline));
-      await tester.pump();
-      await tester.tap(find.byIcon(Icons.add_circle_outline));
-      await tester.pump();
-      expect(find.text('+2°C'), findsOneWidget);
-      await tester.tapAt(const Offset(20, 20));
-      await tester.pumpAndSettle();
-    }
-
-    testWidgets('shows the locally cached offset', (tester) async {
-      SharedPreferences.setMockInitialValues({'temperature_offset': -2});
+  group('My Outfit Profile entry', () {
+    testWidgets('one entry replaces My Virtual Model and Temperature '
+        'Preference', (tester) async {
       await runWithProfile(() async {
         useTallSurface(tester);
         await pumpApp(tester, const SettingsPage());
         await tester.pumpAndSettle();
 
-        expect(find.text('Temperature Preference'), findsOneWidget);
-        expect(find.text('-2°C'), findsOneWidget);
-      });
-    });
-
-    testWidgets('stepping the value PATCHes once on close and caches it', (
-      tester,
-    ) async {
-      final patches = <http.Request>[];
-      await http.runWithClient(() async {
-        useTallSurface(tester);
-        await pumpApp(tester, const SettingsPage());
-        await tester.pumpAndSettle();
-        expect(find.text('0°C'), findsOneWidget);
-
-        await stepOffsetTo2(tester);
-
-        expect(patches, hasLength(1));
-        final body = jsonDecode(patches.single.body) as Map<String, dynamic>;
-        expect(body, {'temperature_offset_c': 2});
-        expect(find.text('+2°C'), findsOneWidget);
-      }, () => client(patches));
-
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('temperature_offset'), 2);
-    });
-
-    testWidgets('a failed save rolls back and offers Retry', (tester) async {
-      final patches = <http.Request>[];
-      await http.runWithClient(() async {
-        useTallSurface(tester);
-        await pumpApp(tester, const SettingsPage());
-        await tester.pumpAndSettle();
-
-        await stepOffsetTo2(tester);
-
-        expect(find.text('Retry'), findsOneWidget);
-        expect(find.text('+2°C'), findsNothing);
-        expect(find.text('0°C'), findsOneWidget);
-      }, () => client(patches, patchStatus: 500));
-
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('temperature_offset'), isNull);
-    });
-
-    testWidgets('Settings no longer links to a Lifestyle page', (tester) async {
-      await runWithProfile(() async {
-        useTallSurface(tester);
-        await pumpApp(tester, const SettingsPage());
-        await tester.pumpAndSettle();
-
+        expect(find.text('My Outfit Profile'), findsOneWidget);
+        expect(
+          find.text('Virtual model & temperature comfort'),
+          findsOneWidget,
+        );
+        expect(find.text('My Virtual Model'), findsNothing);
+        expect(find.text('Temperature Preference'), findsNothing);
         expect(find.text('Lifestyle'), findsNothing);
+        expect(find.text('Account'), findsOneWidget);
+        expect(find.text('Style Taste'), findsOneWidget);
+        expect(find.text('Language'), findsOneWidget);
       });
     });
 
-    testWidgets('+ is disabled at the +5°C upper bound', (tester) async {
-      SharedPreferences.setMockInitialValues({'temperature_offset': 5});
-      final patches = <http.Request>[];
-      await http.runWithClient(() async {
+    testWidgets('tapping it opens My Outfit Profile, and back returns to '
+        'Settings', (tester) async {
+      await runWithProfile(() async {
         useTallSurface(tester);
         await pumpApp(tester, const SettingsPage());
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Temperature Preference'));
+        await tester.tap(find.text('My Outfit Profile'));
         await tester.pumpAndSettle();
-        await tester.tap(find.byIcon(Icons.add_circle_outline));
-        await tester.pump();
-        await tester.tapAt(const Offset(20, 20));
-        await tester.pumpAndSettle();
+        expect(find.byType(MyOutfitProfilePage), findsOneWidget);
 
-        expect(patches, isEmpty);
-        expect(find.text('+5°C'), findsOneWidget);
-      }, () => client(patches));
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(find.byType(MyOutfitProfilePage), findsNothing);
+        expect(find.byType(SettingsPage), findsOneWidget);
+      });
     });
   });
 

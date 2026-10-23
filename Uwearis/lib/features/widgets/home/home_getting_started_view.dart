@@ -26,8 +26,8 @@ class HomeGettingStartedView extends StatelessWidget {
   /// An established user can land here (incomplete closet) with outfits.
   final bool hasCreatedOutfit;
 
-  /// Opens Account in onboarding mode, which continues on to My Virtual
-  /// Model for the two reference photos.
+  /// Opens Account in onboarding mode, which continues on to My Outfit
+  /// Profile for the two reference photos.
   final VoidCallback onGetStarted;
 
   final VoidCallback onAddClothing;

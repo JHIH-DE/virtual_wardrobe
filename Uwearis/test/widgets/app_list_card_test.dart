@@ -64,7 +64,7 @@ void main() {
                     summary: l10n.styleTasteSummary,
                     status: status,
                     child: Text(
-                      l10n.temperaturePreference,
+                      l10n.myOutfitProfileTitle,
                       style: AppTextStyle.bold16,
                     ),
                   );
@@ -76,7 +76,7 @@ void main() {
       );
 
       final card = find.byType(AppListCard);
-      final title = find.text(l10n.temperaturePreference);
+      final title = find.text(l10n.myOutfitProfileTitle);
       final summary = find.text(l10n.styleTasteSummary);
       final statusText = find.text(status);
       for (final part in [title, summary, statusText]) {

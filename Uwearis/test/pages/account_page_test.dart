@@ -9,6 +9,7 @@ import 'package:uwearis/core/providers/profile_provider.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
 import 'package:uwearis/features/pages/account_page.dart';
+import 'package:uwearis/features/pages/my_outfit_profile_page.dart';
 import 'package:uwearis/l10n/generated/app_localizations_en.dart';
 
 import '../helpers/fake_auth.dart';
@@ -259,6 +260,19 @@ void main() {
       await tester.tap(find.text(_l10n.unitImperialLabel));
       await tester.pump(const Duration(seconds: 1));
       expect(patches, isEmpty);
+    }, backend);
+  });
+
+  testWidgets('onboarding Continue goes on to My Outfit Profile, where the '
+      'photos and virtual model are set up', (tester) async {
+    await http.runWithClient(() async {
+      await pumpAccount(tester, completingOnboarding: true);
+
+      await tester.tap(find.text(_l10n.continueLabel));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MyOutfitProfilePage), findsOneWidget);
+      expect(find.text(_l10n.editPhotosAction), findsOneWidget);
     }, backend);
   });
 

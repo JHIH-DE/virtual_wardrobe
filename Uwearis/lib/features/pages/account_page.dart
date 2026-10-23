@@ -30,7 +30,7 @@ import '../widgets/common/overlays/picker_sheet.dart';
 import '../widgets/common/profile_avatar.dart';
 import 'image_editor_page.dart';
 import 'location_picker_page.dart';
-import 'my_virtual_model_page.dart';
+import 'my_outfit_profile_page.dart';
 
 /// Display/input unit only — height/weight are always saved as cm/kg.
 enum _UnitSystem {
@@ -45,7 +45,7 @@ enum _UnitSystem {
 
 class AccountPage extends ConsumerStatefulWidget {
   /// Onboarding's "About You" step: an explicit Continue button instead of
-  /// auto-save, which then pushes [MyVirtualModelPage].
+  /// auto-save, which then pushes [MyOutfitProfilePage].
   final bool completingOnboarding;
 
   const AccountPage({super.key, this.completingOnboarding = false});
@@ -378,7 +378,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     if (!mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const MyVirtualModelPage()),
+      MaterialPageRoute(builder: (_) => const MyOutfitProfilePage()),
     );
   }
 

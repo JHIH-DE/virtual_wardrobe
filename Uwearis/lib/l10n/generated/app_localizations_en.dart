@@ -31,6 +31,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add a face photo and a full-body photo to create your virtual model.';
 
   @override
+  String get myOutfitProfileTitle => 'My Outfit Profile';
+
+  @override
+  String get myOutfitProfileSummary => 'Virtual model & temperature comfort';
+
+  @override
+  String get editPhotosAction => 'Edit Photos';
+
+  @override
+  String get temperatureAdjustmentTitle => 'Temperature Adjustment';
+
+  @override
+  String get temperatureAdjustmentDescription =>
+      'Fine-tune outfit recommendations to match how warm or cold you feel.';
+
+  @override
+  String get temperatureAdjustmentHint =>
+      'Run cold? Choose − for warmer outfits. Run warm? Choose + for lighter ones. Applies to new recommendations; weather data stays unchanged.';
+
+  @override
   String get facePhotoLabel => 'Face Photo';
 
   @override
@@ -84,7 +104,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get virtualModelSectionSubtitle =>
-      'Your virtual model is used to create consistent and realistic try-on images.';
+      'Used to generate your virtual try-on images.';
 
   @override
   String get virtualModelGenerateRequiresBodyRefHint =>
@@ -110,14 +130,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get virtualModelGenerateFailed =>
       'Couldn\'t generate your virtual model. Please try again.';
-
-  @override
-  String get aiModelReady => 'Face & body ready';
-
-  @override
-  String aiModelReferencesAdded(int count) {
-    return '$count/2 References Added';
-  }
 
   @override
   String get styleTaste => 'Style Taste';
@@ -1383,9 +1395,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addGarmentsButton => 'Add Garments';
-
-  @override
-  String get temperaturePreference => 'Temperature Preference';
 
   @override
   String get todaysOutfit => 'Today\'s Outfit';

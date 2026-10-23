@@ -12,7 +12,6 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
-import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/reference_photo_download.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/profile_data.dart';
@@ -20,12 +19,9 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_card_shell.dart';
-import '../widgets/common/cards/generated_image_card.dart';
 import '../widgets/common/images/app_image.dart';
 import '../widgets/common/images/app_spinner.dart';
-import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
-import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import 'camera_capture_page.dart';
 import 'image_editor_page.dart';
@@ -81,20 +77,6 @@ final verifyReferencePhotoLoadsProvider = Provider<VerifyReferencePhotoLoads>(
       (context, url) => precacheImage(CachedNetworkImageProvider(url), context),
 );
 
-/// Re-signs the base model's URL; it's cached in [profileProvider] for the
-/// whole session and outlives its signed-URL expiry.
-final fetchFreshBaseModelUrlProvider = Provider<Future<String?> Function()>(
-  (ref) =>
-      () => ProfileService().getBaseModel(),
-);
-
-typedef GenerateBaseModel = Future<String> Function();
-
-final generateBaseModelProvider = Provider<GenerateBaseModel>(
-  (ref) =>
-      () => ProfileService().generateBaseModel(),
-);
-
 /// Per-photo UI-only state. The committed URL lives only in
 /// [profileProvider]; a pending upload file is never stored in State.
 class _PhotoSlot {
@@ -109,23 +91,21 @@ class _PhotoSlot {
   bool loadFailed = false;
 }
 
-class MyVirtualModelPage extends ConsumerStatefulWidget {
-  const MyVirtualModelPage({super.key});
+/// The face and full-body reference photos behind the virtual model, opened
+/// from My Outfit Profile's Edit Photos.
+class ReferencePhotosPage extends ConsumerStatefulWidget {
+  const ReferencePhotosPage({super.key});
 
   @override
-  ConsumerState<MyVirtualModelPage> createState() => _MyVirtualModelPageState();
+  ConsumerState<ReferencePhotosPage> createState() =>
+      _ReferencePhotosPageState();
 }
 
-class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
-  // One base model per user, so no per-entity id.
-  static const _baseModelCacheKey = 'base_model';
-
+class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage> {
   bool _loading = false;
 
   final _faceSlot = _PhotoSlot();
   final _bodySlot = _PhotoSlot();
-
-  bool _generatingBaseModel = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -149,7 +129,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      debugLog('MyVirtualModelPage._loadProfile failed: $e');
+      debugLog('ReferencePhotosPage._loadProfile failed: $e');
       showErrorDialog(
         context,
         message: apiErrorMessage(_l10n, e, fallback: _l10n.failedToLoad),
@@ -205,7 +185,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
       final file = File(path);
       if (await file.exists()) await file.delete();
     } catch (e) {
-      debugLog('MyVirtualModelPage: failed to clean up temp file: $e');
+      debugLog('ReferencePhotosPage: failed to clean up temp file: $e');
     }
   }
 
@@ -236,7 +216,9 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
           if (mounted) await AuthExpiredHandler.handle(context);
           return;
         } catch (e) {
-          debugLog('MyVirtualModelPage._changePhoto($kind) prepare failed: $e');
+          debugLog(
+            'ReferencePhotosPage._changePhoto($kind) prepare failed: $e',
+          );
         }
         if (localOriginalPath == null) {
           // Stay here rather than open an editor with nothing to show.
@@ -287,7 +269,7 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
       await AuthExpiredHandler.handle(context);
       return;
     } catch (e) {
-      debugLog('MyVirtualModelPage._uploadPhoto($kind) failed: $e');
+      debugLog('ReferencePhotosPage._uploadPhoto($kind) failed: $e');
       if (mounted) {
         showErrorDialog(
           context,
@@ -300,164 +282,54 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
     }
   }
 
-  /// Confirms first: a successful run replaces the existing base model.
-  Future<void> _generateBaseModel() async {
-    if (_generatingBaseModel) return;
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.virtualModelGenerateConfirmTitle,
-        body: _l10n.virtualModelGenerateConfirmBody,
-        primaryLabel: _l10n.virtualModelGenerateAction,
-        onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
-      ),
-    );
-    if (ok != true || !mounted) return;
-
-    setState(() => _generatingBaseModel = true);
-    var succeeded = false;
-    try {
-      final url = await ref.read(generateBaseModelProvider)();
-      if (!mounted) return;
-      ref.read(profileProvider.notifier).setBaseModelUrl(url);
-      // A regenerate can overwrite the same GCS object; without a bump the
-      // disk cache under _baseModelCacheKey serves the old render.
-      ImageCacheBust.bump(_baseModelCacheKey);
-      succeeded = true;
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      if (!mounted) return;
-      debugLog('MyVirtualModelPage._generateBaseModel failed: $e');
-      showErrorDialog(
-        context,
-        message: apiErrorMessage(
-          _l10n,
-          e,
-          fallback: _l10n.virtualModelGenerateFailed,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _generatingBaseModel = false);
-    }
-
-    // Only after the loading overlay is gone — never both on screen.
-    if (succeeded && mounted) {
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AppDialog(
-          title: _l10n.virtualModelGenerateSuccessTitle,
-          body: _l10n.virtualModelGenerateSuccessBody,
-          primaryLabel: _l10n.ok,
-          onPrimary: () => Navigator.of(ctx).pop(),
-        ),
-      );
-    }
-  }
-
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: _l10n.myVirtualModelTitle);
+    return AppToolBar(title: _l10n.editPhotosAction);
   }
 
   @override
   Widget build(BuildContext context) {
     final profileData = ref.watch(profileProvider).value;
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: AppColors.pageBackground,
-          appBar: _buildAppBar(),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      appBar: _buildAppBar(),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _l10n.myVirtualModelDescription,
+              style: AppTextStyle.regular14.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: AppDimens.sectionSpacing),
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _l10n.myVirtualModelDescription,
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.4,
+                Expanded(
+                  child: _buildReferenceCardFor(
+                    ReferencePhotoKind.face,
+                    profileData,
                   ),
                 ),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildReferenceCardFor(
-                        ReferencePhotoKind.face,
-                        profileData,
-                      ),
-                    ),
-                    const SizedBox(width: AppDimens.cardSpacing),
-                    Expanded(
-                      child: _buildReferenceCardFor(
-                        ReferencePhotoKind.body,
-                        profileData,
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: AppDimens.cardSpacing),
+                Expanded(
+                  child: _buildReferenceCardFor(
+                    ReferencePhotoKind.body,
+                    profileData,
+                  ),
                 ),
-                const SizedBox(height: AppDimens.sectionSpacing),
-                _buildBaseModelCard(profileData),
               ],
             ),
-          ),
+          ],
         ),
-        if (_generatingBaseModel)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.generatingEllipsis),
-          ),
-      ],
-    );
-  }
-
-  /// Gated on the body photo only: the backend requires it, while the face
-  /// photo is an optional identity input.
-  Widget _buildBaseModelCard(ProfileData? data) {
-    final hasBodyRef = _resolvedUrl(data?.bodyRefUrl) != null;
-    final baseModelUrl = _resolvedUrl(data?.baseModelUrl);
-    final canGenerate = hasBodyRef && !_loading && !_generatingBaseModel;
-    return AppCardShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionTitle(_l10n.virtualModelSectionTitle),
-          const SizedBox(height: 6),
-          Text(
-            _l10n.virtualModelSectionSubtitle,
-            style: AppTextStyle.regular14.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: AppDimens.cardHeaderGap),
-          GeneratedImageCard(
-            imageUrl: baseModelUrl,
-            hasAssignment: true,
-            // No isLoading: build()'s full-screen LoadingOverlay covers it.
-            cacheKey:
-                '$_baseModelCacheKey-v${ImageCacheBust.versionOf(_baseModelCacheKey)}',
-            imageFit: BoxFit.contain,
-            imageAlignment: Alignment.center,
-            onRefreshUrl: () => ref.read(fetchFreshBaseModelUrlProvider)(),
-            onUrlRefreshed: (oldUrl, freshUrl) => ref
-                .read(profileProvider.notifier)
-                .setBaseModelUrlIfCurrent(oldUrl, freshUrl),
-            onGenerate: _generateBaseModel,
-            generateEnabled: canGenerate,
-            generateDisabledMessage: hasBodyRef
-                ? null
-                : _l10n.virtualModelGenerateRequiresBodyRefHint,
-            generateLabel: _l10n.virtualModelGenerateAction,
-            onRegenerate: canGenerate ? _generateBaseModel : null,
-          ),
-        ],
       ),
     );
   }

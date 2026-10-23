@@ -141,6 +141,42 @@ abstract class AppLocalizations {
   /// **'Add a face photo and a full-body photo to create your virtual model.'**
   String get myVirtualModelDescription;
 
+  /// No description provided for @myOutfitProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Outfit Profile'**
+  String get myOutfitProfileTitle;
+
+  /// No description provided for @myOutfitProfileSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Virtual model & temperature comfort'**
+  String get myOutfitProfileSummary;
+
+  /// No description provided for @editPhotosAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Photos'**
+  String get editPhotosAction;
+
+  /// No description provided for @temperatureAdjustmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature Adjustment'**
+  String get temperatureAdjustmentTitle;
+
+  /// No description provided for @temperatureAdjustmentDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine-tune outfit recommendations to match how warm or cold you feel.'**
+  String get temperatureAdjustmentDescription;
+
+  /// No description provided for @temperatureAdjustmentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Run cold? Choose − for warmer outfits. Run warm? Choose + for lighter ones. Applies to new recommendations; weather data stays unchanged.'**
+  String get temperatureAdjustmentHint;
+
   /// No description provided for @facePhotoLabel.
   ///
   /// In en, this message translates to:
@@ -240,7 +276,7 @@ abstract class AppLocalizations {
   /// No description provided for @virtualModelSectionSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Your virtual model is used to create consistent and realistic try-on images.'**
+  /// **'Used to generate your virtual try-on images.'**
   String get virtualModelSectionSubtitle;
 
   /// No description provided for @virtualModelGenerateRequiresBodyRefHint.
@@ -284,18 +320,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t generate your virtual model. Please try again.'**
   String get virtualModelGenerateFailed;
-
-  /// No description provided for @aiModelReady.
-  ///
-  /// In en, this message translates to:
-  /// **'Face & body ready'**
-  String get aiModelReady;
-
-  /// No description provided for @aiModelReferencesAdded.
-  ///
-  /// In en, this message translates to:
-  /// **'{count}/2 References Added'**
-  String aiModelReferencesAdded(int count);
 
   /// No description provided for @styleTaste.
   ///
@@ -2654,12 +2678,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add Garments'**
   String get addGarmentsButton;
-
-  /// No description provided for @temperaturePreference.
-  ///
-  /// In en, this message translates to:
-  /// **'Temperature Preference'**
-  String get temperaturePreference;
 
   /// No description provided for @todaysOutfit.
   ///

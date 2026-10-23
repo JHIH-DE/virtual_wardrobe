@@ -292,7 +292,7 @@ class _HomePageState extends ConsumerState<HomePage>
     ),
   ];
 
-  /// AccountPage continues on to MyVirtualModelPage in onboarding mode.
+  /// AccountPage continues on to MyOutfitProfilePage in onboarding mode.
   void _openAccountPageForOnboarding() {
     Navigator.push(
       context,

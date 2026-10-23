@@ -11,6 +11,12 @@
   "profilePhotoTitle": "Profile Photo",
   "myVirtualModelTitle": "My Virtual Model",
   "myVirtualModelDescription": "Add a face photo and a full-body photo to create your virtual model.",
+  "myOutfitProfileTitle": "My Outfit Profile",
+  "myOutfitProfileSummary": "Virtual model & temperature comfort",
+  "editPhotosAction": "Edit Photos",
+  "temperatureAdjustmentTitle": "Temperature Adjustment",
+  "temperatureAdjustmentDescription": "Fine-tune outfit recommendations to match how warm or cold you feel.",
+  "temperatureAdjustmentHint": "Run cold? Choose − for warmer outfits. Run warm? Choose + for lighter ones. Applies to new recommendations; weather data stays unchanged.",
   "facePhotoLabel": "Face Photo",
   "faceReferenceComingSoon": "Coming soon",
   "fullBodyPhotoLabel": "Full-Body Photo",
@@ -27,7 +33,7 @@
   "photoLoadFailedSubtitle": "Please upload the photo again.",
   "reuploadPhotoAction": "Re-upload",
   "virtualModelSectionTitle": "Virtual Model",
-  "virtualModelSectionSubtitle": "Your virtual model is used to create consistent and realistic try-on images.",
+  "virtualModelSectionSubtitle": "Used to generate your virtual try-on images.",
   "virtualModelGenerateRequiresBodyRefHint": "Add a full-body photo first.",
   "virtualModelGenerateAction": "Generate",
   "virtualModelGenerateConfirmTitle": "Generate virtual model?",
@@ -35,11 +41,6 @@
   "virtualModelGenerateSuccessTitle": "Done",
   "virtualModelGenerateSuccessBody": "Your virtual model has been generated.",
   "virtualModelGenerateFailed": "Couldn't generate your virtual model. Please try again.",
-  "aiModelReady": "Face & body ready",
-  "aiModelReferencesAdded": "{count}/2 References Added",
-  "@aiModelReferencesAdded": {
-    "placeholders": { "count": { "type": "int" } }
-  },
   "styleTaste": "Style Taste",
   "styleTasteDetailsLabel": "Style Insights",
   "styleTasteSummary": "Your outfit preferences",
@@ -565,7 +566,6 @@
   "startPackingTripHint": "Choose clothes from your closet to build your trip outfits.",
   "addGarmentsButton": "Add Garments",
 
-  "temperaturePreference": "Temperature Preference",
 
   "todaysOutfit": "Today's Outfit",
   "latestOutfitTitle": "Your Latest Outfit",

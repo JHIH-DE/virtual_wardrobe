@@ -30,6 +30,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get myVirtualModelDescription => '新增脸部照片与全身照，建立您的虚拟模特。';
 
   @override
+  String get myOutfitProfileTitle => '个人穿搭档案';
+
+  @override
+  String get myOutfitProfileSummary => '试穿模特与体感温度';
+
+  @override
+  String get editPhotosAction => '编辑照片';
+
+  @override
+  String get temperatureAdjustmentTitle => '体感温度校正';
+
+  @override
+  String get temperatureAdjustmentDescription => '依照你的冷热感受，微调推荐的穿搭。';
+
+  @override
+  String get temperatureAdjustmentHint =>
+      '怕冷调 −，会推荐较保暖的穿搭；怕热调 +，会推荐较轻薄的穿搭。只影响之后产生的推荐，不会改变天气资料。';
+
+  @override
   String get facePhotoLabel => '脸部照片';
 
   @override
@@ -75,10 +94,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reuploadPhotoAction => '重新上传';
 
   @override
-  String get virtualModelSectionTitle => '虚拟模特';
+  String get virtualModelSectionTitle => '试穿模特';
 
   @override
-  String get virtualModelSectionSubtitle => '您的虚拟模特能用来生成一致且真实的试穿图片。';
+  String get virtualModelSectionSubtitle => '用于生成你的虚拟试穿图片。';
 
   @override
   String get virtualModelGenerateRequiresBodyRefHint => '请先添加全身照片。';
@@ -100,14 +119,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get virtualModelGenerateFailed => '虚拟模特生成失败，请稍后再试。';
-
-  @override
-  String get aiModelReady => '臉部與身形已就緒';
-
-  @override
-  String aiModelReferencesAdded(int count) {
-    return '已新增 $count/2 項參考資料';
-  }
 
   @override
   String get styleTaste => '風格品味';
@@ -1320,9 +1331,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addGarmentsButton => '新增衣物';
 
   @override
-  String get temperaturePreference => '溫度偏好';
-
-  @override
   String get todaysOutfit => '今日穿搭';
 
   @override
@@ -1556,6 +1564,25 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get myVirtualModelDescription => '新增臉部照片與全身照，建立您的虛擬模特兒。';
 
   @override
+  String get myOutfitProfileTitle => '個人穿搭檔案';
+
+  @override
+  String get myOutfitProfileSummary => '試穿模特兒與體感溫度';
+
+  @override
+  String get editPhotosAction => '編輯照片';
+
+  @override
+  String get temperatureAdjustmentTitle => '體感溫度校正';
+
+  @override
+  String get temperatureAdjustmentDescription => '依照你的冷熱感受，微調推薦的穿搭。';
+
+  @override
+  String get temperatureAdjustmentHint =>
+      '怕冷調 −，會推薦較保暖的穿搭；怕熱調 +，會推薦較輕薄的穿搭。只影響之後產生的推薦，不會改變天氣資料。';
+
+  @override
   String get facePhotoLabel => '臉部照片';
 
   @override
@@ -1601,10 +1628,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get reuploadPhotoAction => '重新上傳';
 
   @override
-  String get virtualModelSectionTitle => '虛擬模特兒';
+  String get virtualModelSectionTitle => '試穿模特兒';
 
   @override
-  String get virtualModelSectionSubtitle => '您的虛擬模特兒能用來生成一致且真實的試穿圖片。';
+  String get virtualModelSectionSubtitle => '用於生成你的虛擬試穿圖片。';
 
   @override
   String get virtualModelGenerateRequiresBodyRefHint => '請先新增全身照片。';
@@ -1626,14 +1653,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get virtualModelGenerateFailed => '虛擬模特兒生成失敗，請稍後再試。';
-
-  @override
-  String get aiModelReady => '臉部與身形已就緒';
-
-  @override
-  String aiModelReferencesAdded(int count) {
-    return '已新增 $count/2 項參考資料';
-  }
 
   @override
   String get styleTaste => '風格品味';
@@ -2844,9 +2863,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get addGarmentsButton => '新增衣物';
-
-  @override
-  String get temperaturePreference => '溫度偏好';
 
   @override
   String get todaysOutfit => '今日穿搭';

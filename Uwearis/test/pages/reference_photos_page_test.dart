@@ -14,9 +14,8 @@ import 'package:uwearis/core/providers/profile_provider.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
 import 'package:uwearis/features/pages/image_editor_page.dart';
-import 'package:uwearis/features/pages/my_virtual_model_page.dart';
+import 'package:uwearis/features/pages/reference_photos_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
-import 'package:uwearis/features/widgets/common/cards/generated_image_card.dart';
 import 'package:uwearis/features/widgets/common/images/app_image.dart';
 import 'package:uwearis/features/widgets/common/images/app_spinner.dart';
 import 'package:uwearis/l10n/generated/app_localizations_en.dart';
@@ -54,14 +53,14 @@ class _FailingProfileNotifier extends ProfileNotifier {
   Future<ProfileData> build() async => throw Exception('boom');
 }
 
-Future<void> _pumpMyVirtualModelPage(
+Future<void> _pumpReferencePhotosPage(
   WidgetTester tester, {
   ProfileNotifier? notifier,
   Duration? Function(int retryCount, Object error)? retry,
 }) {
   return pumpApp(
     tester,
-    const MyVirtualModelPage(),
+    const ReferencePhotosPage(),
     overrides: [
       profileProvider.overrideWith(() => notifier ?? _FakeProfileNotifier()),
     ],
@@ -184,13 +183,6 @@ class _FakeImagePickerPlatform extends ImagePickerPlatform
   }) async => XFile(pathToReturn);
 }
 
-/// The virtual model's Generate pill — the reference cards' Update / Add
-/// pills are AccentPillButtons too.
-final _generatePill = find.ancestor(
-  of: find.text(_l10n.virtualModelGenerateAction),
-  matching: find.byType(AccentPillButton),
-);
-
 /// The full-body card's pill is shown (disabled) while the page is busy, so
 /// waiting for it means waiting for it to be enabled.
 bool _bodyActionEnabled(WidgetTester tester) {
@@ -207,7 +199,7 @@ void main() {
     'its re-upload state — face card and the page-level error banner are '
     'all untouched',
     (tester) async {
-      await _pumpMyVirtualModelPage(tester);
+      await _pumpReferencePhotosPage(tester);
       await tester.pump();
 
       expect(find.text(_l10n.fullBodyPhotoLabel), findsOneWidget);
@@ -234,7 +226,7 @@ void main() {
     'its re-upload state — body card and the page-level error banner are '
     'all untouched',
     (tester) async {
-      await _pumpMyVirtualModelPage(tester);
+      await _pumpReferencePhotosPage(tester);
       await tester.pump();
 
       _appImageFor(tester, 'face').onLoadError!();
@@ -256,7 +248,7 @@ void main() {
     'GET /users/me itself failing still shows the page-level error state '
     '(unchanged behaviour) — distinct from a per-image load failure',
     (tester) async {
-      await _pumpMyVirtualModelPage(
+      await _pumpReferencePhotosPage(
         tester,
         notifier: _FailingProfileNotifier(),
         // Belt-and-braces: appRetryPolicy already doesn't retry a plain
@@ -277,11 +269,11 @@ void main() {
     'of only living inside the image widget — regression coverage for the '
     'card/editor desync this was fixed for',
     (tester) async {
-      await _pumpMyVirtualModelPage(tester);
+      await _pumpReferencePhotosPage(tester);
       await tester.pump();
 
       final container = ProviderScope.containerOf(
-        tester.element(find.byType(MyVirtualModelPage)),
+        tester.element(find.byType(ReferencePhotosPage)),
       );
       final initialUrl = container.read(profileProvider).value!.bodyRefUrl!;
       expect(initialUrl, 'https://example.com/body.jpg');
@@ -313,11 +305,11 @@ void main() {
     'committed a different URL must not clobber that newer commit — the '
     'compare-and-set race this was fixed for',
     (tester) async {
-      await _pumpMyVirtualModelPage(tester);
+      await _pumpReferencePhotosPage(tester);
       await tester.pump();
 
       final container = ProviderScope.containerOf(
-        tester.element(find.byType(MyVirtualModelPage)),
+        tester.element(find.byType(ReferencePhotosPage)),
       );
       final originalUrl = container.read(profileProvider).value!.bodyRefUrl!;
 
@@ -375,7 +367,7 @@ void main() {
             await http.runWithClient(() async {
               _useTallSurface(tester);
               _mockPathProviderChannel();
-              await pumpApp(tester, const MyVirtualModelPage());
+              await pumpApp(tester, const ReferencePhotosPage());
               await _pumpUntil(tester, () => _bodyActionEnabled(tester));
 
               await tester.tap(
@@ -436,7 +428,7 @@ void main() {
       );
       await pumpApp(
         tester,
-        const MyVirtualModelPage(),
+        const ReferencePhotosPage(),
         overrides: [
           profileProvider.overrideWith(
             () => _FakeProfileNotifier(data: profile),
@@ -514,7 +506,7 @@ void main() {
 
           expect(find.text(_l10n.photoUploadFailed), findsOneWidget);
           final container = ProviderScope.containerOf(
-            tester.element(find.byType(MyVirtualModelPage)),
+            tester.element(find.byType(ReferencePhotosPage)),
           );
           expect(
             container.read(profileProvider).value!.bodyRefUrl,
@@ -570,7 +562,7 @@ void main() {
 
           expect(find.text(_l10n.photoUploadFailed), findsOneWidget);
           final container = ProviderScope.containerOf(
-            tester.element(find.byType(MyVirtualModelPage)),
+            tester.element(find.byType(ReferencePhotosPage)),
           );
           expect(
             container.read(profileProvider).value!.bodyRefUrl,
@@ -608,7 +600,7 @@ void main() {
 
         expect(find.text(_l10n.photoUploadFailed), findsOneWidget);
         final container = ProviderScope.containerOf(
-          tester.element(find.byType(MyVirtualModelPage)),
+          tester.element(find.byType(ReferencePhotosPage)),
         );
         expect(container.read(profileProvider).value!.bodyRefUrl, originalPath);
         expect(_appImageFor(tester, originalPath).url, originalPath);
@@ -670,7 +662,7 @@ void main() {
               'once the upload succeeds',
         );
         final container = ProviderScope.containerOf(
-          tester.element(find.byType(MyVirtualModelPage)),
+          tester.element(find.byType(ReferencePhotosPage)),
         );
         expect(container.read(profileProvider).value!.bodyRefUrl, newPath);
         expect(find.byType(AppSpinner), findsNothing);
@@ -694,7 +686,7 @@ void main() {
 
           await pumpApp(
             tester,
-            const MyVirtualModelPage(),
+            const ReferencePhotosPage(),
             overrides: [
               profileProvider.overrideWith(
                 () => _FakeProfileNotifier(data: profile),
@@ -775,7 +767,7 @@ void main() {
           const profile = ProfileData(profile: UserProfile(name: 'Test User'));
           await pumpApp(
             tester,
-            const MyVirtualModelPage(),
+            const ReferencePhotosPage(),
             overrides: [
               profileProvider.overrideWith(
                 () => _FakeProfileNotifier(data: profile),
@@ -821,7 +813,7 @@ void main() {
 
           expect(find.text(_l10n.photoUploadFailed), findsOneWidget);
           final container = ProviderScope.containerOf(
-            tester.element(find.byType(MyVirtualModelPage)),
+            tester.element(find.byType(ReferencePhotosPage)),
           );
           expect(container.read(profileProvider).value!.bodyRefUrl, isNull);
           expect(find.byType(AppImage), findsNothing);
@@ -829,201 +821,5 @@ void main() {
         });
       },
     );
-  });
-
-  group('generate base model', () {
-    testWidgets(
-      'the Generate action is disabled with a hint when no body reference '
-      'is set — face reference alone is not enough',
-      (tester) async {
-        const profile = ProfileData(
-          profile: UserProfile(name: 'Test User'),
-          faceRefUrl: 'https://example.com/face.jpg',
-        );
-        await pumpApp(
-          tester,
-          const MyVirtualModelPage(),
-          overrides: [
-            profileProvider.overrideWith(
-              () => _FakeProfileNotifier(data: profile),
-            ),
-          ],
-        );
-        await tester.pump();
-
-        expect(
-          find.text(_l10n.virtualModelGenerateRequiresBodyRefHint),
-          findsOneWidget,
-        );
-        final pill = tester.widget<AccentPillButton>(_generatePill);
-        expect(pill.enabled, isFalse);
-      },
-    );
-
-    testWidgets(
-      'tapping Generate with a body reference set confirms first, then '
-      'calls ProfileService.generateBaseModel, commits its returned URL, '
-      'and shows a success dialog',
-      (tester) async {
-        _useTallSurface(tester);
-        var calls = 0;
-        await pumpApp(
-          tester,
-          const MyVirtualModelPage(),
-          overrides: [
-            profileProvider.overrideWith(() => _FakeProfileNotifier()),
-            // '' not a real URL: GeneratedImageCard has no local-file branch,
-            // and a real fetch needs a sqflite factory the harness lacks.
-            generateBaseModelProvider.overrideWithValue(() async {
-              calls++;
-              return '';
-            }),
-          ],
-        );
-        await tester.pump();
-
-        final pill = tester.widget<AccentPillButton>(_generatePill);
-        expect(pill.enabled, isTrue);
-        await tester.tap(_generatePill);
-        await tester.pumpAndSettle();
-
-        expect(
-          find.text(_l10n.virtualModelGenerateConfirmTitle),
-          findsOneWidget,
-        );
-        expect(calls, 0);
-
-        await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
-        await tester.pumpAndSettle();
-
-        expect(calls, 1);
-        expect(
-          find.text(_l10n.virtualModelGenerateSuccessBody),
-          findsOneWidget,
-        );
-
-        final container = ProviderScope.containerOf(
-          tester.element(find.byType(MyVirtualModelPage)),
-        );
-        expect(container.read(profileProvider).value!.baseModelUrl, '');
-      },
-    );
-
-    testWidgets(
-      'a failed generation shows an error dialog instead of the success one',
-      (tester) async {
-        _useTallSurface(tester);
-        await pumpApp(
-          tester,
-          const MyVirtualModelPage(),
-          overrides: [
-            profileProvider.overrideWith(() => _FakeProfileNotifier()),
-            generateBaseModelProvider.overrideWithValue(
-              () async => throw Exception('boom'),
-            ),
-          ],
-        );
-        await tester.pump();
-
-        await tester.tap(_generatePill);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
-        await tester.pumpAndSettle();
-
-        expect(find.text(_l10n.virtualModelGenerateFailed), findsOneWidget);
-        expect(find.text(_l10n.virtualModelGenerateSuccessBody), findsNothing);
-      },
-    );
-
-    testWidgets(
-      'an expired base model URL re-signs through getBaseModel and syncs the '
-      'fresh URL back with compare-and-set, like the face/body photos',
-      (tester) async {
-        _useTallSurface(tester);
-        const original = 'https://example.com/base-model.jpg';
-        var refreshCalls = 0;
-        await pumpApp(
-          tester,
-          const MyVirtualModelPage(),
-          overrides: [
-            profileProvider.overrideWith(
-              () => _FakeProfileNotifier(
-                data: _FakeProfileNotifier._complete.copyWith(
-                  baseModelUrl: original,
-                ),
-              ),
-            ),
-            fetchFreshBaseModelUrlProvider.overrideWithValue(() async {
-              refreshCalls++;
-              return 'https://example.com/base-model-fresh.jpg';
-            }),
-          ],
-        );
-        await tester.pump();
-
-        GeneratedImageCard card() =>
-            tester.widget<GeneratedImageCard>(find.byType(GeneratedImageCard));
-        final container = ProviderScope.containerOf(
-          tester.element(find.byType(MyVirtualModelPage)),
-        );
-
-        final fresh = await card().onRefreshUrl!();
-        expect(refreshCalls, 1);
-        expect(fresh, 'https://example.com/base-model-fresh.jpg');
-
-        card().onUrlRefreshed!(original, fresh!);
-        await tester.pump();
-        expect(container.read(profileProvider).value!.baseModelUrl, fresh);
-        expect(card().imageUrl, fresh);
-
-        // A late refresh of the old URL must not revert the newer one.
-        card().onUrlRefreshed!(original, 'https://example.com/stale.jpg');
-        await tester.pump();
-        expect(container.read(profileProvider).value!.baseModelUrl, fresh);
-      },
-    );
-
-    testWidgets('each successful generation bumps the image cache key, so a '
-        "regenerate can't keep showing flutter_cache_manager's stale cached "
-        'bytes under a cache key that never changed', (tester) async {
-      _useTallSurface(tester);
-      var calls = 0;
-      await pumpApp(
-        tester,
-        const MyVirtualModelPage(),
-        overrides: [
-          profileProvider.overrideWith(() => _FakeProfileNotifier()),
-          generateBaseModelProvider.overrideWithValue(() async {
-            calls++;
-            return '';
-          }),
-        ],
-      );
-      await tester.pump();
-
-      String cacheKeyOf() => tester
-          .widget<GeneratedImageCard>(find.byType(GeneratedImageCard))
-          .cacheKey!;
-
-      final beforeAnyGenerate = cacheKeyOf();
-
-      await tester.tap(_generatePill);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(_l10n.ok));
-      await tester.pumpAndSettle();
-
-      final afterFirstGenerate = cacheKeyOf();
-      expect(afterFirstGenerate, isNot(beforeAnyGenerate));
-
-      await tester.tap(_generatePill);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
-      await tester.pumpAndSettle();
-
-      expect(calls, 2);
-      expect(cacheKeyOf(), isNot(afterFirstGenerate));
-    });
   });
 }

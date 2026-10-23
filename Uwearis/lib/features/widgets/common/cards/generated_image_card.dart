@@ -64,6 +64,10 @@ class GeneratedImageCard extends StatelessWidget {
 
   final double aspectRatio;
 
+  /// Bottom-right action: over the image, or under the empty state's own
+  /// content.
+  final Widget? cornerAction;
+
   const GeneratedImageCard({
     super.key,
     this.imageUrl,
@@ -85,6 +89,7 @@ class GeneratedImageCard extends StatelessWidget {
     this.imageFit = BoxFit.cover,
     this.imageAlignment = Alignment.topCenter,
     this.aspectRatio = 3 / 4,
+    this.cornerAction,
   });
 
   @override
@@ -140,6 +145,9 @@ class GeneratedImageCard extends StatelessWidget {
                 onTap: onRegenerate,
               ),
             ),
+          if (!isLoading && cornerAction != null)
+            // The pill's tap box adds 8px under it, so the visible gap is 12.
+            Positioned(right: 12, bottom: 4, child: cornerAction!),
           if (isLoading) LoadingOverlay(label: jobStatus ?? ''),
         ],
       ),
@@ -147,13 +155,34 @@ class GeneratedImageCard extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return SizedBox(
-      height: 140,
-      child: Center(
-        child: hasAssignment ? _buildNoImageView() : _buildNoAssignmentView(),
+    final content = hasAssignment
+        ? _buildNoImageView()
+        : _buildNoAssignmentView();
+    final cornerAction = this.cornerAction;
+    if (cornerAction == null) {
+      return SizedBox(
+        height: _emptyHeight,
+        child: Center(child: content),
+      );
+    }
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: _emptyHeight),
+      child: IntrinsicHeight(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: Column(
+            children: [
+              Expanded(child: Center(child: content)),
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: cornerAction),
+            ],
+          ),
+        ),
       ),
     );
   }
+
+  static const double _emptyHeight = 140;
 
   Widget _buildNoImageView() {
     final onGenerate = this.onGenerate;
