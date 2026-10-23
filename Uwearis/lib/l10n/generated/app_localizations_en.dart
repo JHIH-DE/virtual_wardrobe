@@ -129,6 +129,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteSummary => 'Your outfit preferences';
 
   @override
+  String get styleTasteLockedSummary => 'Create an outfit to unlock';
+
+  @override
   String get styleTasteHeroSubtitle =>
       'Based on your saved outfits and feedback, Uwearis is learning your style taste.';
 
@@ -1385,9 +1388,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get temperaturePreference => 'Temperature Preference';
 
   @override
-  String get temperaturePreferenceSummary => 'Adjust for your comfort';
-
-  @override
   String get todaysOutfit => 'Today\'s Outfit';
 
   @override
@@ -1590,4 +1590,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get debugToolsComponentGallerySummary =>
       'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale';
+
+  @override
+  String get createOutfitMissingItemsTitle => 'Missing Items';
+
+  @override
+  String get createOutfitMissingItemsBody => 'Add these to create your outfit.';
+
+  @override
+  String get createOutfitMinGarmentsBody =>
+      'Pick at least 2 garments to create your outfit.';
+
+  @override
+  String get createVersionUnchangedTitle => 'Nothing Changed Yet';
+
+  @override
+  String get createVersionUnchangedBody =>
+      'Change a garment or the background to create a new version.';
 }

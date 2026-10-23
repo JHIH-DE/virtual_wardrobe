@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons_300.dart';
@@ -8,6 +10,7 @@ import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/config/env.dart';
 import '../../core/providers/locale_provider.dart';
+import '../../core/providers/outfits_provider.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/auth_service.dart';
@@ -21,6 +24,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/user_tier_localization.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
+import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
@@ -53,9 +57,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // The backend field is write-only (not in /users/me), so the last saved
   // value is cached locally.
   static const _temperatureOffsetKey = 'temperature_offset';
-  static const _temperatureOffsetOptions = [
-    -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, //
-  ];
+  static const _minTemperatureOffset = -5;
+  static const _maxTemperatureOffset = 5;
   int _temperatureOffset = 0;
   bool _savingTemperatureOffset = false;
 
@@ -109,17 +112,57 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _temperatureOffsetLabel(int offset) =>
       '${offset > 0 ? '+' : ''}$offset°C';
 
+  /// Saves once on close rather than per tap.
   Future<void> _openTemperatureOffsetPicker() async {
-    final selected = await showSingleChoiceSheet<int>(
+    final draft = ValueNotifier(_temperatureOffset);
+    await showPickerSheet<void>(
       context,
-      title: _l10n.temperaturePreference,
-      options: _temperatureOffsetOptions,
-      selected: _temperatureOffset,
-      labelOf: _temperatureOffsetLabel,
+      fitContent: true,
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PickerSheetHeader(_l10n.temperaturePreference),
+          const SizedBox(height: 12),
+          // Same − / + spread as Create Outfit's half-width temperature tile.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = math.min(
+                constraints.maxWidth,
+                math.max(
+                  (constraints.maxWidth - AppDimens.cardSpacing) / 2 - 2 * 12,
+                  NumberStepper.tileWidthFor(
+                    context,
+                    _temperatureOffsetLabel(_maxTemperatureOffset),
+                  ),
+                ),
+              );
+              return Center(
+                child: SizedBox(
+                  width: width,
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: draft,
+                    builder: (_, offset, _) => NumberStepper(
+                      variant: NumberStepperVariant.tile,
+                      valueLabel: _temperatureOffsetLabel(offset),
+                      onDecrement: offset > _minTemperatureOffset
+                          ? () => draft.value = offset - 1
+                          : null,
+                      onIncrement: offset < _maxTemperatureOffset
+                          ? () => draft.value = offset + 1
+                          : null,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
-    if (selected == null || selected == _temperatureOffset || !mounted) {
-      return;
-    }
+    final selected = draft.value;
+    draft.dispose();
+    if (selected == _temperatureOffset || !mounted) return;
     await _saveTemperatureOffset(selected);
   }
 
@@ -389,14 +432,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildStyleTasteCard() {
+    // Unknown (loading / failed) counts as having outfits, so the card is
+    // never locked by mistake.
+    final hasOutfits = ref.watch(outfitsProvider).value?.isNotEmpty ?? true;
     return AppListCard(
+      enabled: hasOutfits,
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const StyleTastePage()),
       ),
       leading: _buildLeadingIcon(LucideIcons300.sparkles),
       showArrow: true,
-      summary: _l10n.styleTasteSummary,
+      summary: hasOutfits
+          ? _l10n.styleTasteSummary
+          : _l10n.styleTasteLockedSummary,
       child: Text(_l10n.styleTaste, style: AppTextStyle.bold16),
     );
   }
@@ -406,7 +455,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       onTap: _savingTemperatureOffset ? null : _openTemperatureOffsetPicker,
       leading: _buildLeadingIcon(LucideIcons300.thermometer),
       showArrow: true,
-      summary: _l10n.temperaturePreferenceSummary,
       status: _temperatureOffsetLabel(_temperatureOffset),
       child: Text(_l10n.temperaturePreference, style: AppTextStyle.bold16),
     );

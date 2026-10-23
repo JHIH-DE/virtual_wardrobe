@@ -19,6 +19,9 @@ import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/pages/select_garment_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
+import 'package:uwearis/features/widgets/common/cards/app_card_shell.dart';
+import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 
 import '../helpers/fake_auth.dart';
@@ -95,29 +98,59 @@ void main() {
       expect(find.text('OUTFIT ITEMS'), findsOneWidget);
       expect(find.text('Add Garment'), findsOneWidget);
 
-      expect(
+      // Always shown; with nothing picked, a tap lists every core item.
+      await tester.tap(
         find.widgetWithText(BottomActionButton, 'Create Outfit'),
-        findsNothing,
       );
+      await tester.pumpAndSettle();
+      expect(find.text('Missing Items'), findsOneWidget);
+      for (final label in ['Top', 'Bottom', 'Shoes']) {
+        expect(find.widgetWithText(CategoryTag, label), findsOneWidget);
+      }
     },
   );
 
-  testWidgets('Create Outfit stays hidden while Shoes are still missing', (
-    tester,
-  ) async {
+  testWidgets('tapping Create Outfit without Shoes names only Shoes, and '
+      'Add Garment opens the Shoes tab', (tester) async {
     useTallSurface(tester);
-    await pumpApp(
-      tester,
-      CreateOutfitPage(
-        initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
-      ),
-      overrides: closetOverride(),
-    );
-    await tester.pump();
-    expect(
-      find.widgetWithText(BottomActionButton, 'Create Outfit'),
-      findsNothing,
-    );
+    final requests = <http.Request>[];
+    final client = MockClient((request) async {
+      requests.add(request);
+      return jsonResponse(envelope(null), status: 500);
+    });
+
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        CreateOutfitPage(
+          initialGarments: [closet[0], closet[1]], // Top + Bottom, no Shoes
+        ),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Missing Items'), findsOneWidget);
+      expect(find.widgetWithText(CategoryTag, 'Shoes'), findsOneWidget);
+      expect(find.byType(CategoryTag), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.text('Add Garment'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final picker = tester.widget<SelectGarmentPage>(
+        find.byType(SelectGarmentPage),
+      );
+      expect(picker.category, GarmentCategory.shoes);
+    }, () => client);
+
+    expect(requests, isEmpty, reason: 'no render without the core items');
   });
 
   testWidgets('Create Outfit appears once Top, Bottom and Shoes are all set', (
@@ -279,9 +312,27 @@ void main() {
       expect(find.text('Auto'), findsOneWidget);
       final finish = find.widgetWithText(AccentPillButton, 'Finish with AI');
       expect(finish, findsOneWidget);
+      // Title above the card; the pill centered under the tiles.
       expect(
-        tester.getCenter(finish).dy,
-        closeTo(tester.getCenter(find.text('Auto-Complete')).dy, 4),
+        tester.getRect(find.text('AUTO-COMPLETE')).bottom,
+        lessThan(tester.getRect(find.text('TEMPERATURE')).top),
+      );
+      expect(
+        tester.getRect(finish).top,
+        greaterThan(tester.getRect(find.text('20°C')).bottom),
+      );
+      expect(
+        tester.getCenter(finish).dx,
+        closeTo(
+          tester
+              .getCenter(
+                find
+                    .ancestor(of: finish, matching: find.byType(AppCardShell))
+                    .first,
+              )
+              .dx,
+          1,
+        ),
       );
       expect(
         tester.getCenter(find.text('STYLE')).dy,
@@ -802,10 +853,6 @@ void main() {
         overrides: closetOverride([hoodie, tee, jeans, boots]),
       );
       await tester.pump();
-      expect(
-        find.byKey(const ValueKey('bottomActionButton-hidden')),
-        findsOneWidget,
-      );
 
       await removeRow(tester, 'Hoodie');
 
@@ -818,10 +865,13 @@ void main() {
 
       // With no top left, Top is missing again.
       await removeRow(tester, 'Tee');
-      expect(
-        find.byKey(const ValueKey('bottomActionButton-hidden')),
-        findsOneWidget,
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Version'),
       );
+      await tester.pumpAndSettle();
+      expect(find.text('Missing Items'), findsOneWidget);
+      expect(find.widgetWithText(CategoryTag, 'Top'), findsOneWidget);
+      expect(find.byType(CategoryTag), findsOneWidget);
     });
 
     testWidgets('after removing a top, Add Garment offers tops again', (
@@ -964,7 +1014,7 @@ void main() {
   });
 
   group('version mode (Outfit Details\' Add Version)', () {
-    testWidgets('starts from the source version and only offers Create '
+    testWidgets('starts from the source version and only creates a '
         'Version once something changed', (tester) async {
       useTallSurface(tester);
       await pumpApp(
@@ -981,10 +1031,18 @@ void main() {
       expect(find.text('Add Version'), findsOneWidget);
       expect(find.byTooltip('Match a Look'), findsOneWidget);
       expect(find.text('Tokyo Street'), findsOneWidget);
-      expect(
+
+      // Unchanged: the tap explains instead of re-rendering the source.
+      await tester.tap(
         find.widgetWithText(BottomActionButton, 'Create Version'),
-        findsNothing,
       );
+      await tester.pumpAndSettle();
+      expect(find.text('Nothing Changed Yet'), findsOneWidget);
+      await tester.tap(
+        find.descendant(of: find.byType(AppDialog), matching: find.text('OK')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Nothing Changed Yet'), findsNothing);
 
       await tester.ensureVisible(find.text('Tokyo Street'));
       await tester.tap(find.text('Tokyo Street'));

@@ -179,8 +179,6 @@ class _ChipGroup extends StatelessWidget {
               SelectableChip(
                 label: l10n.filterAll,
                 selected: group.selected().contains(FilterButton.allOption),
-                selectedColor: AppColors.accentTint,
-                selectedTextColor: AppColors.accent,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
@@ -327,8 +325,6 @@ class _JustifiedChipsState extends State<_JustifiedChips> {
       key: _keys[opt],
       label: opt,
       selected: selected,
-      selectedColor: AppColors.accentTint,
-      selectedTextColor: AppColors.accent,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       onTap: () {
         widget.onToggle(opt);

@@ -29,6 +29,8 @@ class AppColors {
   static const Color textOnPrimary = Color(0xFFFFFFFF);
   static const Color hintText = Color(0xFF9C978C);
   static const Color icon = textPrimary;
+  // Unselected tab on the dark nav bar; between hintText and textSecondary.
+  static const Color navBarInactive = Color(0xFF857F76);
 
   // Borders & dividers
   static const Color borderStrong = Color(0xFFB7AFA0);
@@ -53,6 +55,7 @@ class AppColors {
 
   // State
   static const Color error = Color(0xFFE4483F);
+  static const Color success = Color(0xFF4CAF50); // e.g. a completed step
 
   // Filled-heart color when an outfit/garment is marked favorite
   static const Color favorite = Color(0xFFE53935);

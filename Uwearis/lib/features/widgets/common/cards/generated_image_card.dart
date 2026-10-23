@@ -50,6 +50,9 @@ class GeneratedImageCard extends StatelessWidget {
   /// See [RefreshableNetworkImage.onRefreshUrl].
   final Future<String?> Function()? onRefreshUrl;
 
+  /// See [RefreshableNetworkImage.onUrlRefreshed].
+  final void Function(String oldUrl, String newUrl)? onUrlRefreshed;
+
   /// Stable cache key (e.g. the try-on job id): [imageUrl] is re-signed on
   /// every fetch, so the disk cache would never hit without it.
   final String? cacheKey;
@@ -77,6 +80,7 @@ class GeneratedImageCard extends StatelessWidget {
     this.noAssignmentTitle,
     this.noAssignmentHint,
     this.onRefreshUrl,
+    this.onUrlRefreshed,
     this.cacheKey,
     this.imageFit = BoxFit.cover,
     this.imageAlignment = Alignment.topCenter,
@@ -118,6 +122,7 @@ class GeneratedImageCard extends StatelessWidget {
             errorIconSize: 64,
             errorLabel: errorLabel,
             onRefreshUrl: onRefreshUrl,
+            onUrlRefreshed: onUrlRefreshed,
           ),
           if (!isLoading && onRegenerate != null)
             Positioned(

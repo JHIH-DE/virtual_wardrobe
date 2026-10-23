@@ -18,6 +18,10 @@ class AppListCard extends StatelessWidget {
   final double leadingSize;
   final Widget? trailing;
 
+  /// Disabled: not tappable, no arrow, content dimmed. Put the reason in
+  /// [summary] so the user knows what unlocks it.
+  final bool enabled;
+
   const AppListCard({
     super.key,
     this.title,
@@ -31,10 +35,14 @@ class AppListCard extends StatelessWidget {
     this.minHeight = 54,
     this.leadingSize = 40,
     this.trailing,
+    this.enabled = true,
   });
+
+  static const double _disabledOpacity = 0.4;
 
   @override
   Widget build(BuildContext context) {
+    final tap = enabled ? onTap : null;
     // Enlarged text: [status] moves under the title instead of squeezing it
     // into a sliver.
     final textEnlarged = MediaQuery.textScalerOf(context).scale(1) > 1;
@@ -101,7 +109,7 @@ class AppListCard extends StatelessWidget {
           const SizedBox(width: 8),
           statusText,
         ],
-        if (showArrow && onTap != null) ...[
+        if (showArrow && tap != null) ...[
           const SizedBox(width: 4),
           const Icon(
             Icons.arrow_forward_ios_rounded,
@@ -127,12 +135,15 @@ class AppListCard extends StatelessWidget {
           ),
         ],
       ),
-      child: content,
+      child: enabled
+          ? content
+          : Opacity(opacity: _disabledOpacity, child: content),
     );
 
-    if (onTap != null) {
+    if (!enabled) return Semantics(enabled: false, child: card);
+    if (tap != null) {
       return InkWell(
-        onTap: onTap,
+        onTap: tap,
         borderRadius: BorderRadius.circular(AppDimens.cardRadius),
         child: card,
       );

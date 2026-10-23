@@ -180,6 +180,9 @@ class ProfileService with BaseService {
   Future<String?> getFaceReference() =>
       _profileImageField('face_reference_object_url', op: 'getFaceReference');
 
+  Future<String?> getBaseModel() =>
+      _profileImageField('base_model_object_url', op: 'getBaseModel');
+
   /// `status` is `"learning"` (scores unreliable) until the backend has
   /// enough data, then `"ready"`.
   Future<StyleTasteProfile> getMyStyleTaste() async {

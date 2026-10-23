@@ -33,9 +33,11 @@ import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
+import '../widgets/common/cards/category_tag.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
+import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
@@ -695,9 +697,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
                 0,
                 24,
                 0,
-                _showsBottomActionButton
-                    ? BottomActionButton.scrollClearance(bodyContext)
-                    : 24 + MediaQuery.paddingOf(context).bottom,
+                BottomActionButton.scrollClearance(bodyContext),
               ),
               children: _buildCreateFlowBody(),
             ),
@@ -739,6 +739,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         ),
         const SizedBox(height: AppDimens.sectionSpacing),
       ],
+      _hInset(FieldLabel(_l10n.finishOutfit.toUpperCase())),
+      const SizedBox(height: AppDimens.cardHeaderGap),
       _hInset(_buildFinishOutfitCard()),
       const SizedBox(height: AppDimens.sectionSpacing),
       _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
@@ -1257,25 +1259,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // The pill drops below the title when both don't fit on one line,
-          // so enlarged text never squeezes the title into fragments.
-          SizedBox(
-            width: double.infinity,
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              runSpacing: 4,
-              children: [
-                SectionTitle(_l10n.finishOutfit),
-                AccentPillButton(
-                  label: _l10n.finishWithAi,
-                  enabled: enabled,
-                  onPressed: _completeWithAi,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppDimens.cardHeaderGap),
           LayoutBuilder(
             builder: (context, constraints) {
               final temperatureTile = _buildFinishOutfitTile(
@@ -1339,6 +1322,14 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
                 ],
               );
             },
+          ),
+          const SizedBox(height: AppDimens.sectionSpacing),
+          Center(
+            child: AccentPillButton(
+              label: _l10n.finishWithAi,
+              enabled: enabled,
+              onPressed: _completeWithAi,
+            ),
           ),
         ],
       ),
@@ -1436,21 +1427,87 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     }
   }
 
-  /// Needs every core category the closet has; a closet with none of them
-  /// falls back to "at least 2 garments".
-  bool get _createFlowReady {
+  /// The button stays visible; a tap that can't create explains why
+  /// instead. Needs every core category the closet has; a closet with none
+  /// of them falls back to "at least 2 garments".
+  Future<void> _onCreatePressed() async {
     if (isOutfitLoading ||
         _garmentPoolLoading ||
         _tryOnRequested ||
-        _isCompletingWithAi ||
-        _isUnchangedVersion) {
-      return false;
+        _isCompletingWithAi) {
+      return;
     }
-    if (_coreChecklist.isEmpty) return _selectedGarmentIds().length >= 2;
-    return _coreComplete;
+    if (_coreChecklist.isEmpty) {
+      if (_selectedGarmentIds().length < 2) {
+        await _showMissingItemsDialog(const []);
+        return;
+      }
+    } else if (!_coreComplete) {
+      await _showMissingItemsDialog(
+        _coreChecklist.where((c) => !_coreSlotMet(c)).toList(),
+      );
+      return;
+    }
+    if (_isUnchangedVersion) {
+      await _showVersionUnchangedDialog();
+      return;
+    }
+    await _startTryOn();
   }
 
-  bool get _showsBottomActionButton => _createFlowReady;
+  /// Empty [missing] means the "at least 2 garments" fallback.
+  Future<void> _showMissingItemsDialog(List<GarmentCategory> missing) async {
+    final addGarment = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.createOutfitMissingItemsTitle,
+        body: missing.isEmpty ? _l10n.createOutfitMinGarmentsBody : null,
+        content: missing.isEmpty
+            ? null
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _l10n.createOutfitMissingItemsBody,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.medium16,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final c in missing)
+                        CategoryTag(label: c.localizedLabel(context)),
+                    ],
+                  ),
+                ],
+              ),
+        primaryLabel: _l10n.addGarment,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx),
+      ),
+    );
+    if (addGarment != true || !mounted) return;
+    await _pickGarmentForOutfit(
+      initial: missing.isEmpty ? null : missing.first,
+    );
+  }
+
+  Future<void> _showVersionUnchangedDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.createVersionUnchangedTitle,
+        body: _l10n.createVersionUnchangedBody,
+        primaryLabel: _l10n.ok,
+        onPrimary: () => Navigator.pop(ctx),
+        primaryIsTextButton: true,
+      ),
+    );
+  }
 
   Widget _buildBottomBar() {
     return BottomActionButton(
@@ -1460,8 +1517,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         width: 18,
         height: 18,
       ),
-      onPressed: _startTryOn,
-      enabled: _createFlowReady,
+      onPressed: _onCreatePressed,
     );
   }
 }

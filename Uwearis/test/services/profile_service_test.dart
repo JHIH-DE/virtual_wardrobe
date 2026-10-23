@@ -436,6 +436,26 @@ void main() {
       expect(urls, [_base, _base]);
     });
 
+    test('getBaseModel re-signs from the profile root too', () async {
+      final urls = <String>[];
+      final client = MockClient((request) async {
+        urls.add(request.url.toString());
+        return _jsonResponse(
+          _envelope({
+            'base_model_object_url': 'https://cdn.example.com/base-model.jpg',
+          }),
+        );
+      });
+
+      final url = await http.runWithClient(
+        () => ProfileService().getBaseModel(),
+        () => client,
+      );
+
+      expect(url, 'https://cdn.example.com/base-model.jpg');
+      expect(urls, [_base]);
+    });
+
     test('getBodyRef returns null on a 404', () async {
       final client = MockClient(
         (request) async => _jsonResponse(_envelope(null), status: 404),

@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'nav_bar_tab.dart';
 
 enum ExploreTab { forYou, search, bag, saved, account }
 
@@ -47,7 +47,7 @@ class ExploreNavBar extends StatelessWidget {
                 child: Container(
                   color: AppColors.scrimBackdrop,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 8, bottom: 6),
+                    padding: const EdgeInsets.only(bottom: 6),
                     child: Material(
                       type: MaterialType.transparency,
                       child: Row(
@@ -101,36 +101,14 @@ class ExploreNavBar extends StatelessWidget {
     required IconData inactiveIcon,
     required String label,
   }) {
-    final isActive = tab == current;
-    final color = isActive ? AppColors.accent : AppColors.textOnPrimary;
     return Expanded(
-      child: InkWell(
+      child: NavBarTab(
+        activeIcon: activeIcon,
+        inactiveIcon: inactiveIcon,
+        label: label,
+        isActive: tab == current,
         onTap: () => onSelect(tab),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isActive ? activeIcon : inactiveIcon,
-                color: color,
-                size: 24,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: AppTextStyle.regular12.copyWith(
-                  color: color,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
-        ),
+        horizontalPadding: 2,
       ),
     );
   }

@@ -43,6 +43,7 @@
   "styleTaste": "Style Taste",
   "styleTasteDetailsLabel": "Style Insights",
   "styleTasteSummary": "Your outfit preferences",
+  "styleTasteLockedSummary": "Create an outfit to unlock",
   "styleTasteHeroSubtitle": "Based on your saved outfits and feedback, Uwearis is learning your style taste.",
   "styleTasteDimensionsInfoTitle": "What these mean",
   "styleTasteRadarCardTitle": "Your Style Taste",
@@ -565,7 +566,6 @@
   "addGarmentsButton": "Add Garments",
 
   "temperaturePreference": "Temperature Preference",
-  "temperaturePreferenceSummary": "Adjust for your comfort",
 
   "todaysOutfit": "Today's Outfit",
   "latestOutfitTitle": "Your Latest Outfit",
@@ -638,5 +638,10 @@
   "debugToolsErrorDialogSummary": "Preview the dialog shown for a backend error",
   "debugToolsSampleErrorMessage": "This is a simulated backend error message, shown to preview the error dialog design.",
   "debugToolsComponentGallery": "Component Gallery",
-  "debugToolsComponentGallerySummary": "Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale"
+  "debugToolsComponentGallerySummary": "Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale",
+  "createOutfitMissingItemsTitle": "Missing Items",
+  "createOutfitMissingItemsBody": "Add these to create your outfit.",
+  "createOutfitMinGarmentsBody": "Pick at least 2 garments to create your outfit.",
+  "createVersionUnchangedTitle": "Nothing Changed Yet",
+  "createVersionUnchangedBody": "Change a garment or the background to create a new version."
 }

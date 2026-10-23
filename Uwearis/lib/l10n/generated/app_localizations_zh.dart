@@ -119,6 +119,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteSummary => '你的穿搭偏好';
 
   @override
+  String get styleTasteLockedSummary => '建立穿搭後即可使用';
+
+  @override
   String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
 
   @override
@@ -1320,9 +1323,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get temperaturePreference => '溫度偏好';
 
   @override
-  String get temperaturePreferenceSummary => '依你的體感調整';
-
-  @override
   String get todaysOutfit => '今日穿搭';
 
   @override
@@ -1513,6 +1513,21 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get debugToolsComponentGallerySummary =>
       '按钮、卡片、标签与状态，含 1.0 / 1.3 / 2.0 文字缩放';
+
+  @override
+  String get createOutfitMissingItemsTitle => '还缺少单品';
+
+  @override
+  String get createOutfitMissingItemsBody => '加入以下单品，就能创建造型。';
+
+  @override
+  String get createOutfitMinGarmentsBody => '至少选择 2 件衣物，就能创建造型。';
+
+  @override
+  String get createVersionUnchangedTitle => '尚未做任何更改';
+
+  @override
+  String get createVersionUnchangedBody => '更换衣物或背景后，才能创建新版本。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1628,6 +1643,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleTasteSummary => '你的穿搭偏好';
+
+  @override
+  String get styleTasteLockedSummary => '建立穿搭後即可使用';
 
   @override
   String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
@@ -2831,9 +2849,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get temperaturePreference => '溫度偏好';
 
   @override
-  String get temperaturePreferenceSummary => '依你的體感調整';
-
-  @override
   String get todaysOutfit => '今日穿搭';
 
   @override
@@ -3024,4 +3039,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String get debugToolsComponentGallerySummary =>
       '按鈕、卡片、標籤與狀態，含 1.0 / 1.3 / 2.0 文字縮放';
+
+  @override
+  String get createOutfitMissingItemsTitle => '還缺少單品';
+
+  @override
+  String get createOutfitMissingItemsBody => '加入以下單品，就能建立造型。';
+
+  @override
+  String get createOutfitMinGarmentsBody => '至少選擇 2 件衣物，就能建立造型。';
+
+  @override
+  String get createVersionUnchangedTitle => '尚未做任何變更';
+
+  @override
+  String get createVersionUnchangedBody => '更換衣物或背景後，才能建立新版本。';
 }

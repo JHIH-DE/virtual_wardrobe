@@ -81,6 +81,13 @@ final verifyReferencePhotoLoadsProvider = Provider<VerifyReferencePhotoLoads>(
       (context, url) => precacheImage(CachedNetworkImageProvider(url), context),
 );
 
+/// Re-signs the base model's URL; it's cached in [profileProvider] for the
+/// whole session and outlives its signed-URL expiry.
+final fetchFreshBaseModelUrlProvider = Provider<Future<String?> Function()>(
+  (ref) =>
+      () => ProfileService().getBaseModel(),
+);
+
 typedef GenerateBaseModel = Future<String> Function();
 
 final generateBaseModelProvider = Provider<GenerateBaseModel>(
@@ -438,6 +445,10 @@ class _MyVirtualModelPageState extends ConsumerState<MyVirtualModelPage> {
                 '$_baseModelCacheKey-v${ImageCacheBust.versionOf(_baseModelCacheKey)}',
             imageFit: BoxFit.contain,
             imageAlignment: Alignment.center,
+            onRefreshUrl: () => ref.read(fetchFreshBaseModelUrlProvider)(),
+            onUrlRefreshed: (oldUrl, freshUrl) => ref
+                .read(profileProvider.notifier)
+                .setBaseModelUrlIfCurrent(oldUrl, freshUrl),
             onGenerate: _generateBaseModel,
             generateEnabled: canGenerate,
             generateDisabledMessage: hasBodyRef

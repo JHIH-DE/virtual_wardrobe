@@ -6,7 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
+import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/services/garment_service.dart';
+import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/features/pages/style_taste_page.dart';
 import 'package:uwearis/features/widgets/common/profile_avatar.dart';
 import 'package:uwearis/features/pages/login_page.dart';
 import 'package:uwearis/features/pages/settings_page.dart';
@@ -14,6 +17,14 @@ import 'package:uwearis/features/pages/settings_page.dart';
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
+
+class _FakeOutfits extends OutfitsNotifier {
+  _FakeOutfits(this._items);
+  final List<Outfit> _items;
+
+  @override
+  Future<List<Outfit>> build() async => _items;
+}
 
 void main() {
   setUp(() {
@@ -125,6 +136,19 @@ void main() {
           );
         });
 
+    // Two taps of + in the sheet, then dismiss — the sheet saves once on close.
+    Future<void> stepOffsetTo2(WidgetTester tester) async {
+      await tester.tap(find.text('Temperature Preference'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pump();
+      expect(find.text('+2°C'), findsOneWidget);
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('shows the locally cached offset', (tester) async {
       SharedPreferences.setMockInitialValues({'temperature_offset': -2});
       await runWithProfile(() async {
@@ -137,7 +161,7 @@ void main() {
       });
     });
 
-    testWidgets('picking a value PATCHes it and caches it locally', (
+    testWidgets('stepping the value PATCHes once on close and caches it', (
       tester,
     ) async {
       final patches = <http.Request>[];
@@ -147,10 +171,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('0°C'), findsOneWidget);
 
-        await tester.tap(find.text('Temperature Preference'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('+2°C'));
-        await tester.pumpAndSettle();
+        await stepOffsetTo2(tester);
 
         expect(patches, hasLength(1));
         final body = jsonDecode(patches.single.body) as Map<String, dynamic>;
@@ -169,10 +190,7 @@ void main() {
         await pumpApp(tester, const SettingsPage());
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Temperature Preference'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('+2°C'));
-        await tester.pumpAndSettle();
+        await stepOffsetTo2(tester);
 
         expect(find.text('Retry'), findsOneWidget);
         expect(find.text('+2°C'), findsNothing);
@@ -191,6 +209,62 @@ void main() {
 
         expect(find.text('Lifestyle'), findsNothing);
       });
+    });
+
+    testWidgets('+ is disabled at the +5°C upper bound', (tester) async {
+      SharedPreferences.setMockInitialValues({'temperature_offset': 5});
+      final patches = <http.Request>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const SettingsPage());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Temperature Preference'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.add_circle_outline));
+        await tester.pump();
+        await tester.tapAt(const Offset(20, 20));
+        await tester.pumpAndSettle();
+
+        expect(patches, isEmpty);
+        expect(find.text('+5°C'), findsOneWidget);
+      }, () => client(patches));
+    });
+  });
+
+  group('Style Taste', () {
+    Future<void> pumpWithOutfits(WidgetTester tester, List<Outfit> outfits) {
+      return runWithProfile(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          const SettingsPage(),
+          overrides: [
+            outfitsProvider.overrideWith(() => _FakeOutfits(outfits)),
+          ],
+        );
+        await tester.pumpAndSettle();
+      });
+    }
+
+    testWidgets('is locked with a reason when the user has no outfits', (
+      tester,
+    ) async {
+      await pumpWithOutfits(tester, const []);
+
+      expect(find.text('Create an outfit to unlock'), findsOneWidget);
+      await tester.tap(find.text('Style Taste'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StyleTastePage), findsNothing);
+    });
+
+    testWidgets('is enabled once the user has an outfit', (tester) async {
+      await pumpWithOutfits(tester, [
+        Outfit(id: 1, imageUrl: '', garmentIds: const [1]),
+      ]);
+
+      expect(find.text('Your outfit preferences'), findsOneWidget);
+      expect(find.text('Create an outfit to unlock'), findsNothing);
     });
   });
 

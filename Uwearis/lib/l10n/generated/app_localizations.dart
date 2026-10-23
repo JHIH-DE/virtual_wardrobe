@@ -315,6 +315,12 @@ abstract class AppLocalizations {
   /// **'Your outfit preferences'**
   String get styleTasteSummary;
 
+  /// No description provided for @styleTasteLockedSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an outfit to unlock'**
+  String get styleTasteLockedSummary;
+
   /// No description provided for @styleTasteHeroSubtitle.
   ///
   /// In en, this message translates to:
@@ -2655,12 +2661,6 @@ abstract class AppLocalizations {
   /// **'Temperature Preference'**
   String get temperaturePreference;
 
-  /// No description provided for @temperaturePreferenceSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Adjust for your comfort'**
-  String get temperaturePreferenceSummary;
-
   /// No description provided for @todaysOutfit.
   ///
   /// In en, this message translates to:
@@ -3038,6 +3038,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale'**
   String get debugToolsComponentGallerySummary;
+
+  /// No description provided for @createOutfitMissingItemsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing Items'**
+  String get createOutfitMissingItemsTitle;
+
+  /// No description provided for @createOutfitMissingItemsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add these to create your outfit.'**
+  String get createOutfitMissingItemsBody;
+
+  /// No description provided for @createOutfitMinGarmentsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least 2 garments to create your outfit.'**
+  String get createOutfitMinGarmentsBody;
+
+  /// No description provided for @createVersionUnchangedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing Changed Yet'**
+  String get createVersionUnchangedTitle;
+
+  /// No description provided for @createVersionUnchangedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Change a garment or the background to create a new version.'**
+  String get createVersionUnchangedBody;
 }
 
 class _AppLocalizationsDelegate

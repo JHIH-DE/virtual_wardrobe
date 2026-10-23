@@ -324,6 +324,15 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         summary: _l10n.accountSummary,
         child: Text(_l10n.account, style: AppTextStyle.bold16),
       ),
+      const _Spec('AppListCard · disabled'),
+      AppListCard(
+        enabled: false,
+        onTap: () {},
+        leading: const Icon(Icons.auto_awesome_outlined, color: AppColors.icon),
+        showArrow: true,
+        summary: _l10n.styleTasteLockedSummary,
+        child: Text(_l10n.styleTaste, style: AppTextStyle.bold16),
+      ),
       const _Spec('GarmentListCard · minimum height, long name'),
       GarmentListCard(garment: _sampleGarment, onTap: () {}),
     ];

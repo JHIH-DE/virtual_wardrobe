@@ -6,6 +6,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../common/buttons/accent_pill_button.dart';
 import '../common/cards/app_card_shell.dart';
 
 /// Home's setup checklist for a user who hasn't finished onboarding (see
@@ -46,6 +47,13 @@ class HomeGettingStartedView extends StatelessWidget {
     required this.onCreateOutfit,
   });
 
+  static const double _cardPadding = 20;
+  static const double _rowGap = 16;
+
+  /// [AccentPillButton]'s 44px tap box extends 8px past its 28px pill on
+  /// each side; subtracted so the visible gaps match [_cardPadding].
+  static const double _pillTapInset = 8;
+
   bool get _profileReady => hasAboutYou && hasProfilePhoto && hasFullBodyPhoto;
   bool get _closetReady => hasTop && hasBottom && hasShoes;
 
@@ -68,7 +76,7 @@ class HomeGettingStartedView extends StatelessWidget {
             height: 1.4,
           ),
         ),
-        const SizedBox(height: AppDimens.sectionSpacing * 2),
+        const SizedBox(height: AppDimens.titleGap),
         _buildChecklistCard(context, l10n),
       ],
     );
@@ -76,35 +84,41 @@ class HomeGettingStartedView extends StatelessWidget {
 
   Widget _buildChecklistCard(BuildContext context, AppLocalizations l10n) {
     return AppCardShell(
+      padding: const EdgeInsets.fromLTRB(
+        _cardPadding,
+        _cardPadding,
+        _cardPadding,
+        _cardPadding - _pillTapInset,
+      ),
       child: Column(
         children: [
           _ChecklistRow(
             label: l10n.gettingStartedAboutYouLabel,
             done: hasAboutYou,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _rowGap),
           _ChecklistRow(
             label: l10n.myVirtualModelTitle,
             done: hasProfilePhoto && hasFullBodyPhoto,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _rowGap),
           _ChecklistRow(
             label: GarmentCategory.top.localizedLabel(context),
             done: hasTop,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _rowGap),
           _ChecklistRow(
             label: GarmentCategory.bottom.localizedLabel(context),
             done: hasBottom,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _rowGap),
           _ChecklistRow(
             label: GarmentCategory.shoes.localizedLabel(context),
             done: hasShoes,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _rowGap),
           _ChecklistRow(label: l10n.createOutfit, done: hasCreatedOutfit),
-          const SizedBox(height: AppDimens.sectionSpacing),
+          const SizedBox(height: _cardPadding - _pillTapInset),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [_buildCtaButton(l10n)],
@@ -124,38 +138,11 @@ class HomeGettingStartedView extends StatelessWidget {
     } else {
       onPressed = onCreateOutfit;
     }
-    return _AccentActionButton(
+    return AccentPillButton(
       label: hasAboutYou
           ? l10n.gettingStartedNextButton
           : l10n.gettingStartedGetStartedButton,
       onPressed: onPressed,
-    );
-  }
-}
-
-/// [AppDialog]'s private primary-button style, sized to hug its label.
-class _AccentActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-
-  const _AccentActionButton({required this.label, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.accent,
-        minimumSize: const Size(0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 0,
-        side: const BorderSide(color: AppColors.borderOnDark, width: 1.5),
-      ),
-      child: Text(
-        label,
-        style: AppTextStyle.medium16.copyWith(color: AppColors.textOnPrimary),
-      ),
     );
   }
 }
@@ -173,7 +160,7 @@ class _ChecklistRow extends StatelessWidget {
         Icon(
           done ? Icons.check_circle : Icons.radio_button_unchecked,
           size: 22,
-          color: done ? AppColors.accent : AppColors.hintText,
+          color: done ? AppColors.success : AppColors.hintText,
         ),
         const SizedBox(width: 10),
         Expanded(child: Text(label, style: AppTextStyle.medium16)),

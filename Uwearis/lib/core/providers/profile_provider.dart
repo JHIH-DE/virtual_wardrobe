@@ -66,4 +66,11 @@ class ProfileNotifier extends AsyncNotifier<ProfileData> {
     if (current == null) return;
     state = AsyncData(current.copyWith(baseModelUrl: url));
   }
+
+  /// See [setBodyRefUrlIfCurrent].
+  void setBaseModelUrlIfCurrent(String expectedCurrent, String freshUrl) {
+    final current = state.value;
+    if (current == null || current.baseModelUrl != expectedCurrent) return;
+    state = AsyncData(current.copyWith(baseModelUrl: freshUrl));
+  }
 }

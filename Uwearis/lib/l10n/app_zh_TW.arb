@@ -37,6 +37,7 @@
   "styleTaste": "風格品味",
   "styleTasteDetailsLabel": "風格洞察",
   "styleTasteSummary": "你的穿搭偏好",
+  "styleTasteLockedSummary": "建立穿搭後即可使用",
   "styleTasteHeroSubtitle": "根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。",
   "styleTasteDimensionsInfoTitle": "這些代表什麼",
   "styleTasteRadarCardTitle": "你的風格品味",
@@ -470,7 +471,6 @@
   "addGarmentsButton": "新增衣物",
 
   "temperaturePreference": "溫度偏好",
-  "temperaturePreferenceSummary": "依你的體感調整",
 
   "todaysOutfit": "今日穿搭",
   "latestOutfitTitle": "你的最新穿搭",
@@ -544,5 +544,10 @@
   "debugToolsErrorDialogSummary": "預覽收到後端錯誤時的彈窗",
   "debugToolsSampleErrorMessage": "這是一則模擬的後端錯誤訊息，用於預覽錯誤彈窗的設計。",
   "debugToolsComponentGallery": "元件展示",
-  "debugToolsComponentGallerySummary": "按鈕、卡片、標籤與狀態，含 1.0 / 1.3 / 2.0 文字縮放"
+  "debugToolsComponentGallerySummary": "按鈕、卡片、標籤與狀態，含 1.0 / 1.3 / 2.0 文字縮放",
+  "createOutfitMissingItemsTitle": "還缺少單品",
+  "createOutfitMissingItemsBody": "加入以下單品，就能建立造型。",
+  "createOutfitMinGarmentsBody": "至少選擇 2 件衣物，就能建立造型。",
+  "createVersionUnchangedTitle": "尚未做任何變更",
+  "createVersionUnchangedBody": "更換衣物或背景後，才能建立新版本。"
 }

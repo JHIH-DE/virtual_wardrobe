@@ -217,10 +217,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   AppToolBar _buildAppBar() {
-    // Until Save, a new outfit is discarded via "Don't Save" on leave.
-    final isSaved = !widget.isNew || _saved;
     final items = [
-      if (isSaved)
+      if (_isSaved)
         AppPopupMenu.item(
           value: _OutfitMenuAction.rename,
           icon: const Icon(
@@ -240,7 +238,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ),
           label: _l10n.share,
         ),
-      if (isSaved)
+      if (_isSaved)
         AppPopupMenu.item(
           value: _OutfitMenuAction.delete,
           enabled: !_isDeleting,
@@ -636,7 +634,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                       onPressed: _openCreateAnotherVersion,
                     ),
                   ),
-                if (!_isRegenerating)
+                if (!_isRegenerating && _isSaved)
                   Positioned(
                     bottom: 12,
                     right: 12,
@@ -675,7 +673,10 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  bool get _canAddVersion => !widget.isNew && widget.showEditOutfitWhenSaved;
+  /// Until Save, a new outfit is discarded via "Don't Save" on leave.
+  bool get _isSaved => !widget.isNew || _saved;
+
+  bool get _canAddVersion => _isSaved && widget.showEditOutfitWhenSaved;
 
   Widget _buildVersionIndicator() {
     if (!_versionsResolved || _versions.length < 2) {

@@ -935,6 +935,54 @@ void main() {
       },
     );
 
+    testWidgets(
+      'an expired base model URL re-signs through getBaseModel and syncs the '
+      'fresh URL back with compare-and-set, like the face/body photos',
+      (tester) async {
+        _useTallSurface(tester);
+        const original = 'https://example.com/base-model.jpg';
+        var refreshCalls = 0;
+        await pumpApp(
+          tester,
+          const MyVirtualModelPage(),
+          overrides: [
+            profileProvider.overrideWith(
+              () => _FakeProfileNotifier(
+                data: _FakeProfileNotifier._complete.copyWith(
+                  baseModelUrl: original,
+                ),
+              ),
+            ),
+            fetchFreshBaseModelUrlProvider.overrideWithValue(() async {
+              refreshCalls++;
+              return 'https://example.com/base-model-fresh.jpg';
+            }),
+          ],
+        );
+        await tester.pump();
+
+        GeneratedImageCard card() =>
+            tester.widget<GeneratedImageCard>(find.byType(GeneratedImageCard));
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MyVirtualModelPage)),
+        );
+
+        final fresh = await card().onRefreshUrl!();
+        expect(refreshCalls, 1);
+        expect(fresh, 'https://example.com/base-model-fresh.jpg');
+
+        card().onUrlRefreshed!(original, fresh!);
+        await tester.pump();
+        expect(container.read(profileProvider).value!.baseModelUrl, fresh);
+        expect(card().imageUrl, fresh);
+
+        // A late refresh of the old URL must not revert the newer one.
+        card().onUrlRefreshed!(original, 'https://example.com/stale.jpg');
+        await tester.pump();
+        expect(container.read(profileProvider).value!.baseModelUrl, fresh);
+      },
+    );
+
     testWidgets('each successful generation bumps the image cache key, so a '
         "regenerate can't keep showing flutter_cache_manager's stale cached "
         'bytes under a cache key that never changed', (tester) async {

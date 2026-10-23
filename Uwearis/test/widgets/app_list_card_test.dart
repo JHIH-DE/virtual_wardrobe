@@ -10,6 +10,33 @@ import '../helpers/widget_harness.dart';
 void main() {
   setUpAll(loadAppFont);
 
+  testWidgets('disabled: ignores taps, hides the arrow and dims the content', (
+    tester,
+  ) async {
+    var taps = 0;
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: AppListCard(
+          enabled: false,
+          onTap: () => taps++,
+          showArrow: true,
+          summary: 'Locked',
+          child: const Text('Title'),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Title'));
+    expect(taps, 0);
+    expect(find.byType(InkWell), findsNothing);
+    expect(find.byIcon(Icons.arrow_forward_ios_rounded), findsNothing);
+    expect(
+      find.ancestor(of: find.text('Title'), matching: find.byType(Opacity)),
+      findsOneWidget,
+    );
+  });
+
   // Settings' Temperature Preference row: title + summary + a trailing
   // status, the tightest AppListCard shape in the app.
   for (final c in layoutCases) {
@@ -34,7 +61,7 @@ void main() {
                       child: Icon(Icons.thermostat, size: 32),
                     ),
                     showArrow: true,
-                    summary: l10n.temperaturePreferenceSummary,
+                    summary: l10n.styleTasteSummary,
                     status: status,
                     child: Text(
                       l10n.temperaturePreference,
@@ -50,7 +77,7 @@ void main() {
 
       final card = find.byType(AppListCard);
       final title = find.text(l10n.temperaturePreference);
-      final summary = find.text(l10n.temperaturePreferenceSummary);
+      final summary = find.text(l10n.styleTasteSummary);
       final statusText = find.text(status);
       for (final part in [title, summary, statusText]) {
         expectWithin(tester, part, card);

@@ -353,7 +353,7 @@ void main() {
   );
 
   testWidgets(
-    'a new outfit offers Rename/Delete in the app-bar menu once Saved',
+    'a new outfit offers Rename/Delete, Add Version and favorite once Saved',
     (tester) async {
       useTallSurface(tester);
 
@@ -369,12 +369,16 @@ void main() {
         await tester.pump(const Duration(milliseconds: 500));
         expect(find.text('Rename'), findsNothing);
         expect(find.text('Delete Outfit'), findsNothing);
+        expect(find.text('Add Version'), findsNothing);
+        expect(find.byIcon(Icons.favorite_border), findsNothing);
         await tester.tapAt(Offset.zero);
         await tester.pump(const Duration(milliseconds: 500));
 
         await tester.tap(find.text('Save'));
         // Past the "Outfit Saved" feedback overlay.
         await tester.pump(const Duration(seconds: 3));
+        expect(find.text('Add Version'), findsOneWidget);
+        expect(find.byIcon(Icons.favorite_border), findsOneWidget);
 
         await tester.tap(find.byIcon(Icons.more_vert));
         await tester.pump(const Duration(milliseconds: 500));

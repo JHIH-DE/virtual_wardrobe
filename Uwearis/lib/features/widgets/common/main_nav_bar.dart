@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'nav_bar_tab.dart';
 import 'pressed_state_mixin.dart';
 
 enum MainTab { home, closet, outfits, tripPlanner }
@@ -102,7 +103,7 @@ class _MainNavBarState extends State<MainNavBar> {
                         child: Container(
                           color: AppColors.scrimBackdrop,
                           child: Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 6),
+                            padding: const EdgeInsets.only(bottom: 6),
                             child: Material(
                               type: MaterialType.transparency,
                               child: Row(
@@ -164,28 +165,12 @@ class _MainNavBarState extends State<MainNavBar> {
     required IconData inactiveIcon,
     required String label,
   }) {
-    final isActive = tab == widget.current;
-    final color = isActive ? AppColors.accent : AppColors.textOnPrimary;
-    return InkWell(
+    return NavBarTab(
+      activeIcon: activeIcon,
+      inactiveIcon: inactiveIcon,
+      label: label,
+      isActive: tab == widget.current,
       onTap: () => widget.onSelect(tab),
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isActive ? activeIcon : inactiveIcon, color: color, size: 24),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: AppTextStyle.regular12.copyWith(
-                color: color,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -195,7 +180,7 @@ class _MainNavBarState extends State<MainNavBar> {
       size: _centerButtonSize,
       icon: showClose ? Icons.close : Icons.add,
       // Icons.close fills its bounds more than Icons.add, so it reads bigger.
-      iconSize: showClose ? 24 : 28,
+      iconSize: showClose ? 30 : 34,
       onTap: () => _handleQuickActionTap(context),
     );
   }
