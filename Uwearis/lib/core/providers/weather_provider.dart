@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -18,6 +17,11 @@ class WeatherData {
   final int high;
   final int low;
   final String condition;
+
+  /// Open-Meteo's WMO code for right now; null in a cache written before it
+  /// was stored, where [condition] stands in.
+  final int? currentCode;
+  final bool isDay;
   final List<int> weeklyCodes;
   final List<double> weeklyHighs;
   final List<double> weeklyLows;
@@ -29,6 +33,8 @@ class WeatherData {
     required this.high,
     required this.low,
     required this.condition,
+    this.currentCode,
+    this.isDay = true,
     required this.weeklyCodes,
     required this.weeklyHighs,
     required this.weeklyLows,
@@ -56,18 +62,31 @@ class WeatherData {
     return 'Clouds';
   }
 
-  static IconData iconFromCondition(String condition) {
-    switch (condition) {
-      case 'Clear':
-        return Icons.wb_sunny_rounded;
-      case 'Rain':
-        return Icons.umbrella_rounded;
-      case 'Snow':
-        return Icons.ac_unit_rounded;
-      default:
-        return Icons.wb_cloudy_rounded;
-    }
+  /// The Meteocons illustration for a WMO weather code.
+  static String iconAssetFor(int code, {required bool isDay}) {
+    final name = switch (code) {
+      0 => isDay ? 'clear-day' : 'clear-night',
+      1 || 2 => isDay ? 'partly-cloudy-day' : 'partly-cloudy-night',
+      45 || 48 => 'fog',
+      >= 51 && <= 57 => 'drizzle',
+      (>= 61 && <= 67) || (>= 80 && <= 82) => 'rain',
+      (>= 71 && <= 77) || 85 || 86 => 'snow',
+      >= 95 && <= 99 => 'thunderstorms-rain',
+      _ => 'overcast',
+    };
+    return 'assets/images/weather/$name.svg';
   }
+
+  String get iconAsset => iconAssetFor(
+    currentCode ??
+        switch (condition) {
+          'Clear' => 0,
+          'Rain' => 61,
+          'Snow' => 71,
+          _ => 3,
+        },
+    isDay: isDay,
+  );
 
   factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(
     location: json['location'] as String,
@@ -75,6 +94,8 @@ class WeatherData {
     high: json['high'] as int,
     low: json['low'] as int,
     condition: json['condition'] as String,
+    currentCode: (json['currentCode'] as num?)?.toInt(),
+    isDay: json['isDay'] as bool? ?? true,
     weeklyCodes: List<int>.from(json['weeklyCodes'] ?? []),
     weeklyHighs: List<double>.from(
       (json['weeklyHighs'] ?? []).map((t) => (t as num).toDouble()),
@@ -91,6 +112,8 @@ class WeatherData {
     'high': high,
     'low': low,
     'condition': condition,
+    'currentCode': currentCode,
+    'isDay': isDay,
     'weeklyCodes': weeklyCodes,
     'weeklyHighs': weeklyHighs,
     'weeklyLows': weeklyLows,
@@ -160,14 +183,17 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
       raw['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()),
     );
 
+    final current = raw['current_weather'] as Map<String, dynamic>;
+    final currentCode = (current['weathercode'] as num).toInt();
     final data = WeatherData(
       location: locationName,
       temp: (raw['current_weather']['temperature'] as num).toDouble(),
       high: weeklyHighs.isNotEmpty ? weeklyHighs[0].round() : 0,
       low: weeklyLows.isNotEmpty ? weeklyLows[0].round() : 0,
-      condition: WeatherData.conditionFromCode(
-        raw['current_weather']['weathercode'],
-      ),
+      condition: WeatherData.conditionFromCode(currentCode),
+      currentCode: currentCode,
+      // 1 = daytime; absent means daytime too.
+      isDay: (current['is_day'] as num?) != 0,
       weeklyCodes: weeklyCodes,
       weeklyHighs: weeklyHighs,
       weeklyLows: weeklyLows,

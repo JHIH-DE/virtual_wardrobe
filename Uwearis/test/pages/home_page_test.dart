@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -221,6 +223,29 @@ void main() {
 
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
       expect(dailyOutfit.refreshCount, 0);
+      // Header: the weather illustration, and a thermometer on the range.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is SvgPicture &&
+              (w.bytesLoader as SvgAssetLoader).assetName ==
+                  'assets/images/weather/clear-day.svg',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.thermostat_rounded), findsOneWidget);
+      final badge = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.byType(SvgPicture),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      expect(
+        (badge.decoration! as BoxDecoration).color,
+        AppColors.weatherBadgeDay,
+      );
 
       now = DateTime(2026, 9, 18, 0, 5);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);

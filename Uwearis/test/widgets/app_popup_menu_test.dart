@@ -192,4 +192,53 @@ void main() {
 
     expect(selected, isNull);
   });
+
+  testWidgets('an open menu follows the parent: an item enabled after it '
+      'opened becomes tappable', (tester) async {
+    final enabled = ValueNotifier(false);
+    addTearDown(enabled.dispose);
+    String? selected;
+    await pumpApp(
+      tester,
+      Scaffold(
+        appBar: AppBar(
+          actions: [
+            ValueListenableBuilder<bool>(
+              valueListenable: enabled,
+              builder: (_, isEnabled, _) => AppPopupMenu<String>(
+                onSelected: (value) => selected = value,
+                items: [
+                  AppPopupMenu.item(
+                    value: 'delete',
+                    label: 'Delete',
+                    enabled: isEnabled,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        body: const SizedBox(),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    double opacity() => tester
+        .widget<Opacity>(
+          find
+              .ancestor(of: find.text('Delete'), matching: find.byType(Opacity))
+              .first,
+        )
+        .opacity;
+    expect(opacity(), 0.38);
+
+    enabled.value = true;
+    await tester.pump();
+    await tester.pump();
+    expect(opacity(), 1);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(selected, 'delete');
+  });
 }

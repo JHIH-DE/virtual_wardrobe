@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,6 +85,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _saved = false;
   bool _isRegenerating = false;
   bool _isSettingCover = false;
+  bool _isTogglingFavorite = false;
   // Keeps the tag button disabled so two tag saves can't race.
   bool _isSavingTags = false;
 
@@ -447,22 +450,36 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     if (index >= _versions.length) return null;
     final outfit = _versions[index];
     final fresh = await fetchFreshOutfitImageUrl(outfit.groupId, outfit.id);
-    if (mounted && index < _versions.length) {
-      setState(() => _versions[index] = outfit.copyWith(imageUrl: fresh));
+    // By id: the list may have been reloaded or a version deleted meanwhile.
+    final i = _versions.indexWhere((v) => v.id == outfit.id);
+    if (mounted && i >= 0) {
+      setState(() => _versions[i] = _versions[i].copyWith(imageUrl: fresh));
     }
     return fresh;
   }
 
+  /// One request at a time: overlapping ones could land out of order, and
+  /// a failed one's rollback would undo the other.
   Future<void> _toggleFavorite() async {
+    if (_isTogglingFavorite) return;
     final target = _current;
-    final index = _currentIndex;
     final next = !target.isFavorite;
     final updated = target.copyWith(isFavorite: next);
     // Read before the await so the sync still lands if the page is popped
     // meanwhile. Each is a no-op when it doesn't hold this version.
     final outfits = ref.read(outfitsProvider.notifier);
     final dailyOutfits = ref.read(dailyOutfitProvider.notifier);
-    setState(() => _versions[index] = updated);
+
+    // By id, not index: versions may be deleted or reloaded meanwhile.
+    void setFavorite(bool value) {
+      final i = _versions.indexWhere((v) => v.id == target.id);
+      if (i >= 0) _versions[i] = _versions[i].copyWith(isFavorite: value);
+    }
+
+    setState(() {
+      _isTogglingFavorite = true;
+      setFavorite(next);
+    });
     try {
       await OutfitService().updateOutfit(
         target.groupId,
@@ -473,12 +490,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       dailyOutfits.updateOutfit(updated);
     } on AuthExpiredException {
       if (!mounted) return;
-      setState(() => _versions[index] = target);
+      setState(() => setFavorite(!next));
       await AuthExpiredHandler.handle(context);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _versions[index] = target);
+      setState(() => setFavorite(!next));
       showErrorDialog(context, message: _l10n.failedToUpdateFavorite);
+    } finally {
+      if (mounted) setState(() => _isTogglingFavorite = false);
     }
   }
 
@@ -498,7 +517,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
         target.groupId,
         coverOutfitId: target.id,
       );
-      await ref.read(outfitsProvider.notifier).refresh();
+      unawaited(ref.read(outfitsProvider.notifier).refresh());
     } on AuthExpiredException {
       if (!mounted) return;
       setState(() {
@@ -555,7 +574,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       // The image is overwritten at the same URL, so bump the cache key
       // every consumer reads or they keep serving the old bytes.
       ImageCacheBust.bump(outfitImageCacheKey(target.id));
-      await ref.read(outfitsProvider.notifier).refresh();
+      unawaited(ref.read(outfitsProvider.notifier).refresh());
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -961,8 +980,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       }
       _loadGarments();
       // Not removeOutfit: if [target] was the group's card representative,
-      // the card must switch to another version, not disappear.
-      await ref.read(outfitsProvider.notifier).refresh();
+      // the card must switch to another version, not disappear. Unawaited:
+      // the list re-fetch mustn't keep this page's actions disabled.
+      unawaited(ref.read(outfitsProvider.notifier).refresh());
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);

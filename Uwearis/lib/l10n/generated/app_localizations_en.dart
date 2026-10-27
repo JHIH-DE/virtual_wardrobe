@@ -37,18 +37,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myOutfitProfileSummary => 'Virtual model & temperature comfort';
 
   @override
-  String get editPhotosAction => 'Edit Photos';
-
-  @override
-  String get temperatureAdjustmentTitle => 'Temperature Adjustment';
+  String get temperatureAdjustmentTitle => 'Outfit Warmth';
 
   @override
   String get temperatureAdjustmentDescription =>
-      'Fine-tune outfit recommendations to match how warm or cold you feel.';
+      'Adjust daily outfit recommendations to your comfort.';
 
   @override
-  String get temperatureAdjustmentHint =>
-      'Run cold? Choose − for warmer outfits. Run warm? Choose + for lighter ones. Applies to new recommendations; weather data stays unchanged.';
+  String get temperatureAdjustmentLighter => 'Lighter';
+
+  @override
+  String get temperatureAdjustmentWarmer => 'Warmer';
 
   @override
   String get facePhotoLabel => 'Face Photo';
@@ -61,9 +60,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bodyMeasurementsLabel => 'Body Measurements';
-
-  @override
-  String get updatePhotoAction => 'Update';
 
   @override
   String get addPhotoAction => 'Add photo';
@@ -114,18 +110,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get virtualModelGenerateAction => 'Generate';
 
   @override
+  String get virtualModelGenerateNewAction => 'Generate Virtual Model';
+
+  @override
   String get virtualModelGenerateConfirmTitle => 'Generate virtual model?';
 
   @override
   String get virtualModelGenerateConfirmBody =>
       'This creates a new virtual model from your current photos and replaces any previous version.';
-
-  @override
-  String get virtualModelGenerateSuccessTitle => 'Done';
-
-  @override
-  String get virtualModelGenerateSuccessBody =>
-      'Your virtual model has been generated.';
 
   @override
   String get virtualModelGenerateFailed =>
@@ -744,6 +736,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get switchCamera => 'Switch camera';
+
+  @override
+  String get cameraUnavailable => 'Couldn\'t open the camera';
 
   @override
   String get takePhotoLabel => 'Camera';

@@ -245,7 +245,9 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Spec('CategoryTag · default / borderColor: surface · CountPill'),
+        const _Spec(
+          'CategoryTag · default / borderColor: surface / header · CountPill',
+        ),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -253,6 +255,7 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
           children: [
             CategoryTag(label: category),
             CategoryTag(label: category, borderColor: AppColors.surface),
+            CategoryTag(label: category, variant: CategoryTagVariant.header),
             // CountPill fills a loose width; real callers sit in a Row.
             const Row(
               mainAxisSize: MainAxisSize.min,

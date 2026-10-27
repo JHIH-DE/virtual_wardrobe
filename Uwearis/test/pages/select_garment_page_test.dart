@@ -104,7 +104,7 @@ void main() {
     expect(cards.firstWhere((c) => c.garment.id == 2).isSelected, isTrue);
   });
 
-  testWidgets('cards show no selection checkbox — a tap picks and leaves', (
+  testWidgets('the current garment shows the check, like Select Garments', (
     tester,
   ) async {
     useTallSurface(tester);
@@ -120,8 +120,8 @@ void main() {
 
     final cards = tester.widgetList<GarmentCard>(find.byType(GarmentCard));
     expect(cards, hasLength(2));
-    expect(cards.every((c) => !c.showSelectionIndicator), isTrue);
-    expect(find.byIcon(Icons.check), findsNothing);
+    expect(cards.every((c) => c.showSelectionIndicator), isTrue);
+    expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
   testWidgets('tapping a garment pops with the SelectGarmentResult', (

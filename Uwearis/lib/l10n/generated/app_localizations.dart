@@ -153,29 +153,29 @@ abstract class AppLocalizations {
   /// **'Virtual model & temperature comfort'**
   String get myOutfitProfileSummary;
 
-  /// No description provided for @editPhotosAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Photos'**
-  String get editPhotosAction;
-
   /// No description provided for @temperatureAdjustmentTitle.
   ///
   /// In en, this message translates to:
-  /// **'Temperature Adjustment'**
+  /// **'Outfit Warmth'**
   String get temperatureAdjustmentTitle;
 
   /// No description provided for @temperatureAdjustmentDescription.
   ///
   /// In en, this message translates to:
-  /// **'Fine-tune outfit recommendations to match how warm or cold you feel.'**
+  /// **'Adjust daily outfit recommendations to your comfort.'**
   String get temperatureAdjustmentDescription;
 
-  /// No description provided for @temperatureAdjustmentHint.
+  /// No description provided for @temperatureAdjustmentLighter.
   ///
   /// In en, this message translates to:
-  /// **'Run cold? Choose − for warmer outfits. Run warm? Choose + for lighter ones. Applies to new recommendations; weather data stays unchanged.'**
-  String get temperatureAdjustmentHint;
+  /// **'Lighter'**
+  String get temperatureAdjustmentLighter;
+
+  /// No description provided for @temperatureAdjustmentWarmer.
+  ///
+  /// In en, this message translates to:
+  /// **'Warmer'**
+  String get temperatureAdjustmentWarmer;
 
   /// No description provided for @facePhotoLabel.
   ///
@@ -200,12 +200,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Body Measurements'**
   String get bodyMeasurementsLabel;
-
-  /// No description provided for @updatePhotoAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Update'**
-  String get updatePhotoAction;
 
   /// No description provided for @addPhotoAction.
   ///
@@ -291,6 +285,12 @@ abstract class AppLocalizations {
   /// **'Generate'**
   String get virtualModelGenerateAction;
 
+  /// No description provided for @virtualModelGenerateNewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Virtual Model'**
+  String get virtualModelGenerateNewAction;
+
   /// No description provided for @virtualModelGenerateConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -302,18 +302,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This creates a new virtual model from your current photos and replaces any previous version.'**
   String get virtualModelGenerateConfirmBody;
-
-  /// No description provided for @virtualModelGenerateSuccessTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get virtualModelGenerateSuccessTitle;
-
-  /// No description provided for @virtualModelGenerateSuccessBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Your virtual model has been generated.'**
-  String get virtualModelGenerateSuccessBody;
 
   /// No description provided for @virtualModelGenerateFailed.
   ///
@@ -1454,6 +1442,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Switch camera'**
   String get switchCamera;
+
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the camera'**
+  String get cameraUnavailable;
 
   /// No description provided for @takePhotoLabel.
   ///

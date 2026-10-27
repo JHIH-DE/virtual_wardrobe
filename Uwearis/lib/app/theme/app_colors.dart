@@ -74,6 +74,17 @@ class AppColors {
   static const Color tierBronze = Color(0xFFE2B48C);
   static const Color tierBronzeText = Color(0xFF5A3214);
 
+  // Disc behind Home's weather illustration, so its pale clouds don't
+  // sink into the cream page background: a daytime sky and a night sky.
+  static const Color weatherBadgeDay = Color(0xFFDCE5EA);
+  static const Color weatherBadgeNight = Color(0xFF4A5878);
+
+  // Header metadata pills: Home's temperature/location, and the outfit tag
+  // line on Outfit Details / Today's Outfit (CategoryTagVariant.header).
+  static const Color headerChipBackground = Color(0xFFE4E0DD);
+  static const Color headerChipText = Color(0xFF514D49);
+  static const Color headerChipIcon = Color(0xFF817A73);
+
   // AI-output call-out background (UwearisInsightCard).
   static const Color uwearisCardTint = Color(0xFFF3EFE6);
   static const LinearGradient uwearisGradient = LinearGradient(

@@ -58,7 +58,6 @@ class MainNavBar extends StatefulWidget {
 class _MainNavBarState extends State<MainNavBar> {
   static const double _centerButtonSize = 56;
   static const double _notchRadius = 34;
-  static const double _cornerRadius = 28;
 
   /// Only Home opens a menu; other tabs fire their action directly.
   bool _menuOpen = false;
@@ -84,7 +83,6 @@ class _MainNavBarState extends State<MainNavBar> {
                   const SizedBox(height: _centerButtonSize / 2),
                   PhysicalShape(
                     clipper: const _NotchedBarClipper(
-                      cornerRadius: _cornerRadius,
                       notchRadius: _notchRadius,
                     ),
                     color: Colors.transparent,
@@ -95,48 +93,42 @@ class _MainNavBarState extends State<MainNavBar> {
                     // the whole screen.
                     child: ClipPath(
                       clipper: const _NotchedBarClipper(
-                        cornerRadius: _cornerRadius,
                         notchRadius: _notchRadius,
                       ),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                         child: Container(
                           color: AppColors.scrimBackdrop,
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Material(
-                              type: MaterialType.transparency,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _tab(
-                                    MainTab.home,
-                                    activeIcon: Icons.home_rounded,
-                                    inactiveIcon: Icons.home_outlined,
-                                    label: l10n.navHome,
-                                  ),
-                                  _tab(
-                                    MainTab.closet,
-                                    activeIcon: Icons.checkroom_rounded,
-                                    inactiveIcon: Icons.checkroom_outlined,
-                                    label: l10n.navCloset,
-                                  ),
-                                  const SizedBox(width: _centerButtonSize),
-                                  _tab(
-                                    MainTab.outfits,
-                                    activeIcon: Icons.style_rounded,
-                                    inactiveIcon: Icons.style_outlined,
-                                    label: l10n.navOutfits,
-                                  ),
-                                  _tab(
-                                    MainTab.tripPlanner,
-                                    activeIcon: Icons.luggage_rounded,
-                                    inactiveIcon: Icons.luggage_outlined,
-                                    label: l10n.navTrips,
-                                  ),
-                                ],
-                              ),
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: NavBarTabRow(
+                              children: [
+                                _tab(
+                                  MainTab.home,
+                                  activeIcon: Icons.home_rounded,
+                                  inactiveIcon: Icons.home_outlined,
+                                  label: l10n.navHome,
+                                ),
+                                _tab(
+                                  MainTab.closet,
+                                  activeIcon: Icons.checkroom_rounded,
+                                  inactiveIcon: Icons.checkroom_outlined,
+                                  label: l10n.navCloset,
+                                ),
+                                const SizedBox(width: _centerButtonSize),
+                                _tab(
+                                  MainTab.outfits,
+                                  activeIcon: Icons.style_rounded,
+                                  inactiveIcon: Icons.style_outlined,
+                                  label: l10n.navOutfits,
+                                ),
+                                _tab(
+                                  MainTab.tripPlanner,
+                                  activeIcon: Icons.luggage_rounded,
+                                  inactiveIcon: Icons.luggage_outlined,
+                                  label: l10n.navTrips,
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -362,14 +354,11 @@ class _QuickActionButtonState extends State<_QuickActionButton>
 /// Rounded rect with a top-center notch for the raised button.
 /// [CircularNotchedRectangle] avoids the sharp cusps a plain
 /// rect-minus-circle would leave.
+/// A stadium (fully round ends) with the center button's notch cut out.
 class _NotchedBarClipper extends CustomClipper<Path> {
-  final double cornerRadius;
   final double notchRadius;
 
-  const _NotchedBarClipper({
-    required this.cornerRadius,
-    required this.notchRadius,
-  });
+  const _NotchedBarClipper({required this.notchRadius});
 
   @override
   Path getClip(Size size) {
@@ -383,7 +372,9 @@ class _NotchedBarClipper extends CustomClipper<Path> {
       guest,
     );
     final roundedCornersPath = Path()
-      ..addRRect(RRect.fromRectAndRadius(host, Radius.circular(cornerRadius)));
+      ..addRRect(
+        RRect.fromRectAndRadius(host, Radius.circular(size.height / 2)),
+      );
     return Path.combine(
       PathOperation.intersect,
       smoothNotchedPath,
@@ -393,6 +384,5 @@ class _NotchedBarClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant _NotchedBarClipper oldClipper) =>
-      oldClipper.cornerRadius != cornerRadius ||
       oldClipper.notchRadius != notchRadius;
 }

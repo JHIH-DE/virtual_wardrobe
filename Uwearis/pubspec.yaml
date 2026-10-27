@@ -2,7 +2,7 @@ name: uwearis
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+12
+version: 1.0.0+13
 
 environment:
   sdk: ^3.9.2
@@ -50,6 +50,7 @@ dependencies:
   image: ^4.10.1
   meta: ^1.16.0
   lucide_icons_flutter: ^4.0.0
+  flutter_svg: ^2.3.0
 
 
 dev_dependencies:
@@ -89,6 +90,8 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    # Meteocons (MIT, Bas Milius) — see assets/images/weather/LICENSE.
+    - assets/images/weather/
 
   # App-wide typeface. Noto Sans TC is a single variable font (wght axis
   # 100–900) covering Latin + Traditional Chinese, so iOS and Android

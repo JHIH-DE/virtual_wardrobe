@@ -28,6 +28,13 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
   /// for; retrying the same inputs can't succeed, so [_fetch] skips it.
   String? _insufficientFor;
   bool _syncing = false;
+  // An outfits change that arrived mid-sync; that sync may have read the
+  // list before it, so one more pass runs afterwards.
+  bool _resyncPending = false;
+
+  /// One favorite request per outfit at a time: overlapping ones could land
+  /// out of order, and a failed one's rollback would undo the other.
+  final Set<int> _favoriteInFlight = {};
 
   @override
   Future<List<Outfit>> build() {
@@ -90,10 +97,17 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
   /// Re-reads in place on any [outfitsProvider] change. Not via [refresh]:
   /// flipping to loading would swap Home's carousel for its fallback.
   Future<void> _syncWithOutfits() async {
-    if (state.isLoading || _syncing) return;
+    if (state.isLoading) return;
+    if (_syncing) {
+      _resyncPending = true;
+      return;
+    }
     _syncing = true;
     try {
-      state = await AsyncValue.guard(_fetch);
+      do {
+        _resyncPending = false;
+        state = await AsyncValue.guard(_fetch);
+      } while (_resyncPending);
     } finally {
       _syncing = false;
     }
@@ -126,6 +140,7 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
   /// Optimistic favorite toggle shared by Home and Today's Outfit. Rolls
   /// back and rethrows on failure; the caller owns the error UI.
   Future<void> toggleOutfitFavorite(Outfit target) async {
+    if (!_favoriteInFlight.add(target.id)) return;
     final next = target.copyWith(isFavorite: !target.isFavorite);
     final outfits = ref.read(outfitsProvider.notifier);
     updateOutfit(next);
@@ -139,6 +154,8 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
     } catch (_) {
       updateOutfit(target);
       rethrow;
+    } finally {
+      _favoriteInFlight.remove(target.id);
     }
   }
 

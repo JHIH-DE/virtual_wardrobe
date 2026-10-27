@@ -67,6 +67,18 @@ class _AppPopupMenuState<T> extends State<AppPopupMenu<T>>
   );
   OverlayEntry? _overlayEntry;
 
+  // The open overlay reads [widget.items] when it builds, so a parent
+  // rebuild (e.g. an in-flight flag clearing) must reach it too. Deferred:
+  // the overlay sits above this widget and can't be dirtied mid-build.
+  @override
+  void didUpdateWidget(covariant AppPopupMenu<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_overlayEntry == null) return;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _overlayEntry?.markNeedsBuild(),
+    );
+  }
+
   @override
   void dispose() {
     _removeOverlay();

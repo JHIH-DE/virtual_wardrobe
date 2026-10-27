@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -238,17 +240,27 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     final toAdd = _packedIds.difference(_committedIds);
     final toRemove = _committedIds.difference(_packedIds);
     final committed = List.of(_packedGarments);
+    final byId = {
+      for (final g in committed)
+        if (g.id != null) g.id!: g,
+    };
+    // Tracks each request as it lands, so a failure midway still records
+    // what the server already has and a retry doesn't resend it.
+    final committedNow = {..._committedIds};
     final detailNotifier = _detailNotifier;
     setState(() => _committing = true);
     try {
       for (final id in toAdd) {
         await TripService().addSuitcaseItem(_tripId, garmentId: id);
+        committedNow.add(id);
+        detailNotifier.addSuitcaseGarments([?byId[id]]);
       }
       for (final id in toRemove) {
         await TripService().removeSuitcaseItem(_tripId, garmentId: id);
+        committedNow.remove(id);
+        detailNotifier.removeSuitcaseGarment(id);
       }
       detailNotifier.setSuitcase(committed);
-      if (mounted) setState(() => _committedIds = {..._packedIds});
       return true;
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
@@ -260,7 +272,12 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       }
       return false;
     } finally {
-      if (mounted) setState(() => _committing = false);
+      if (mounted) {
+        setState(() {
+          _committedIds = committedNow;
+          _committing = false;
+        });
+      }
     }
   }
 
@@ -347,11 +364,19 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       return;
     }
 
-    final previousGarments = _packedGarments;
+    final previousIndex = _packedGarments.indexWhere((g) => g.id == id);
     setState(() {
       _pendingIds.add(id);
       _packedGarments = _packedGarments.where((g) => g.id != id).toList();
     });
+
+    // Puts back only this garment: other removals or picks may have
+    // landed while the request was in flight.
+    void rollBack() {
+      if (_packedGarments.any((g) => g.id == id)) return;
+      _packedGarments = [..._packedGarments]
+        ..insert(math.min(previousIndex, _packedGarments.length), garment);
+    }
 
     try {
       final detailNotifier = _detailNotifier;
@@ -360,10 +385,10 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       if (mounted) setState(() => _committedIds.remove(id));
     } on AuthExpiredException {
       if (!mounted) return;
-      setState(() => _packedGarments = previousGarments);
+      setState(rollBack);
       await AuthExpiredHandler.handle(context);
     } catch (e) {
-      if (mounted) setState(() => _packedGarments = previousGarments);
+      if (mounted) setState(rollBack);
       debugLog('Failed to remove suitcase item: $e');
       if (mounted) {
         showErrorDialog(context, message: _l10n.failedToRemoveItem);

@@ -283,11 +283,17 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       ),
     );
     if (result == null || !mounted) return;
+    final previousLocalPath = _avatarLocalPath;
     setState(() => _avatarLocalPath = result.imagePath);
-    await _uploadAvatar(result.imagePath);
+    final uploaded = await _uploadAvatar(result.imagePath);
+    // A failed upload mustn't leave the unsaved photo looking saved.
+    if (!uploaded && mounted) {
+      setState(() => _avatarLocalPath = previousLocalPath);
+    }
   }
 
-  Future<void> _uploadAvatar(String localPath) async {
+  /// Returns whether the new avatar was saved.
+  Future<bool> _uploadAvatar(String localPath) async {
     setState(() => _avatarUploading = true);
     try {
       final url = await ProfileService().uploadAvatar(localPath);
@@ -305,17 +311,18 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         } catch (e) {
           debugLog('_uploadAvatar: failed to precache avatar: $e');
         }
-        if (!mounted) return;
+        if (!mounted) return true;
         setState(() {
           _avatarUrl = url;
           _avatarLocalPath = null;
         });
         ref.read(profileProvider.notifier).refresh();
       }
+      return true;
     } on AuthExpiredException {
-      if (!mounted) return;
+      if (!mounted) return false;
       await AuthExpiredHandler.handle(context);
-      return;
+      return false;
     } catch (e) {
       debugLog('AccountPage avatar upload error: $e');
       if (mounted) {
@@ -324,6 +331,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           message: apiErrorMessage(_l10n, e, fallback: _l10n.photoUploadFailed),
         );
       }
+      return false;
     } finally {
       if (mounted) setState(() => _avatarUploading = false);
     }

@@ -190,6 +190,22 @@ void main() {
     });
   });
 
+  test('a My Outfits change arriving mid-sync gets its own re-read after '
+      'that sync, rather than being dropped', () {
+    final backend = _Backend(plan: [1, 2]);
+    return _withDaily(backend, [_outfit(1), _outfit(2)], (c, outfits) async {
+      final before = backend.getCount;
+      outfits.set([_outfit(1)]);
+      // Lands while the first re-read is still in flight.
+      backend.plan = [1];
+      outfits.set([_outfit(1), _outfit(3)]);
+      await pumpEventQueue();
+
+      expect(backend.getCount - before, 2);
+      expect(_ids(c), [1]);
+    });
+  });
+
   test('toggleOutfitFavorite flips the heart in both today and My Outfits', () {
     final backend = _Backend(plan: [1, 2]);
     return _withDaily(backend, [_outfit(1), _outfit(2)], (c, _) async {
@@ -203,6 +219,26 @@ void main() {
         c.read(outfitsProvider).value!.firstWhere((o) => o.id == 2).isFavorite,
         isTrue,
       );
+    });
+  });
+
+  test('a second toggleOutfitFavorite on the same outfit while the first '
+      'is in flight is ignored', () {
+    final backend = _Backend(plan: [1, 2]);
+    return _withDaily(backend, [_outfit(1), _outfit(2)], (c, _) async {
+      final notifier = c.read(dailyOutfitProvider.notifier);
+      final first = notifier.toggleOutfitFavorite(
+        c.read(dailyOutfitProvider).value![1],
+      );
+      // What a second tap passes: the already-flipped outfit.
+      final second = notifier.toggleOutfitFavorite(
+        c.read(dailyOutfitProvider).value![1],
+      );
+      await Future.wait([first, second]);
+      await pumpEventQueue();
+
+      expect(backend.favorites, {2});
+      expect(c.read(dailyOutfitProvider).value![1].isFavorite, isTrue);
     });
   });
 

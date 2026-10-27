@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -59,6 +60,7 @@ class _HomePageState extends ConsumerState<HomePage>
     with WidgetsBindingObserver {
   int _todayOutfitIndex = 0;
   final PageController _todayOutfitPageController = PageController();
+  final Set<int> _fallbackFavoriteInFlight = {};
 
   // Home stays mounted for the app's lifetime (IndexedStack tab), so a day
   // boundary has to be detected here rather than on the next cold start.
@@ -386,6 +388,10 @@ class _HomePageState extends ConsumerState<HomePage>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        ...weatherAsync.maybeWhen(
+          data: (w) => [_buildWeatherBadge(w), const SizedBox(width: 14)],
+          orElse: () => const <Widget>[],
+        ),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,26 +405,16 @@ class _HomePageState extends ConsumerState<HomePage>
                 children: [
                   weatherAsync.when(
                     data: (w) => _headerChip(
-                      icon: Icon(
-                        WeatherData.iconFromCondition(w.condition),
-                        size: 16,
-                        color: AppColors.statusUpcoming,
-                      ),
+                      icon: Icons.thermostat_rounded,
                       label: '${w.low}°C - ${w.high}°C',
-                      tint: AppColors.statusUpcoming,
                     ),
                     loading: () => const SizedBox.shrink(),
                     error: (_, _) => const SizedBox.shrink(),
                   ),
                   weatherAsync.maybeWhen(
                     data: (w) => _headerChip(
-                      icon: const Icon(
-                        Icons.location_on_outlined,
-                        size: 16,
-                        color: AppColors.statusOngoing,
-                      ),
+                      icon: Icons.location_on_outlined,
                       label: w.location,
-                      tint: AppColors.statusOngoing,
                     ),
                     orElse: () => const SizedBox.shrink(),
                   ),
@@ -431,25 +427,39 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  Widget _headerChip({
-    required Widget icon,
-    required String label,
-    required Color tint,
-  }) {
+  /// The current conditions, large, beside the date and temperature.
+  Widget _buildWeatherBadge(WeatherData weather) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      width: 56,
+      height: 56,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.08),
+        color: weather.isDay
+            ? AppColors.weatherBadgeDay
+            : AppColors.weatherBadgeNight,
+        shape: BoxShape.circle,
+      ),
+      child: SvgPicture.asset(weather.iconAsset, width: 46, height: 46),
+    );
+  }
+
+  Widget _headerChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.headerChipBackground,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          icon,
+          Icon(icon, size: 16, color: AppColors.headerChipIcon),
           const SizedBox(width: 6),
           Text(
             label,
-            style: AppTextStyle.bold14.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyle.bold14.copyWith(
+              color: AppColors.headerChipText,
+            ),
           ),
         ],
       ),
@@ -602,7 +612,10 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
+  /// Same one-request-per-outfit rule as
+  /// [DailyOutfitNotifier.toggleOutfitFavorite].
   Future<void> _toggleFallbackFavorite(Outfit target) async {
+    if (!_fallbackFavoriteInFlight.add(target.id)) return;
     final outfits = ref.read(outfitsProvider.notifier);
     final next = target.copyWith(isFavorite: !target.isFavorite);
     outfits.updateOutfit(next);
@@ -615,6 +628,8 @@ class _HomePageState extends ConsumerState<HomePage>
     } catch (_) {
       outfits.updateOutfit(target);
       rethrow;
+    } finally {
+      _fallbackFavoriteInFlight.remove(target.id);
     }
   }
 

@@ -36,17 +36,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get myOutfitProfileSummary => '试穿模特与体感温度';
 
   @override
-  String get editPhotosAction => '编辑照片';
+  String get temperatureAdjustmentTitle => '穿搭保暖度';
 
   @override
-  String get temperatureAdjustmentTitle => '体感温度校正';
+  String get temperatureAdjustmentDescription => '依照你的舒适度，调整每日穿搭推荐。';
 
   @override
-  String get temperatureAdjustmentDescription => '依照你的冷热感受，微调推荐的穿搭。';
+  String get temperatureAdjustmentLighter => '较轻薄';
 
   @override
-  String get temperatureAdjustmentHint =>
-      '怕冷调 −，会推荐较保暖的穿搭；怕热调 +，会推荐较轻薄的穿搭。只影响之后产生的推荐，不会改变天气资料。';
+  String get temperatureAdjustmentWarmer => '较保暖';
 
   @override
   String get facePhotoLabel => '脸部照片';
@@ -59,9 +58,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get bodyMeasurementsLabel => '身形數據';
-
-  @override
-  String get updatePhotoAction => '更新';
 
   @override
   String get addPhotoAction => '新增照片';
@@ -106,16 +102,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get virtualModelGenerateAction => '生成';
 
   @override
+  String get virtualModelGenerateNewAction => '生成新的合成照';
+
+  @override
   String get virtualModelGenerateConfirmTitle => '要生成虚拟模特吗？';
 
   @override
   String get virtualModelGenerateConfirmBody => '系统将以目前的照片重新生成虚拟模特，并取代先前的版本。';
-
-  @override
-  String get virtualModelGenerateSuccessTitle => '完成';
-
-  @override
-  String get virtualModelGenerateSuccessBody => '虚拟模特已生成完成。';
 
   @override
   String get virtualModelGenerateFailed => '虚拟模特生成失败，请稍后再试。';
@@ -703,6 +696,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get switchCamera => '切換鏡頭';
+
+  @override
+  String get cameraUnavailable => '无法打开相机';
 
   @override
   String get takePhotoLabel => '相機';
@@ -1570,17 +1566,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get myOutfitProfileSummary => '試穿模特兒與體感溫度';
 
   @override
-  String get editPhotosAction => '編輯照片';
+  String get temperatureAdjustmentTitle => '穿搭保暖度';
 
   @override
-  String get temperatureAdjustmentTitle => '體感溫度校正';
+  String get temperatureAdjustmentDescription => '依照你的舒適度，調整每日穿搭推薦。';
 
   @override
-  String get temperatureAdjustmentDescription => '依照你的冷熱感受，微調推薦的穿搭。';
+  String get temperatureAdjustmentLighter => '較輕薄';
 
   @override
-  String get temperatureAdjustmentHint =>
-      '怕冷調 −，會推薦較保暖的穿搭；怕熱調 +，會推薦較輕薄的穿搭。只影響之後產生的推薦，不會改變天氣資料。';
+  String get temperatureAdjustmentWarmer => '較保暖';
 
   @override
   String get facePhotoLabel => '臉部照片';
@@ -1593,9 +1588,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get bodyMeasurementsLabel => '身形數據';
-
-  @override
-  String get updatePhotoAction => '更新';
 
   @override
   String get addPhotoAction => '新增照片';
@@ -1640,16 +1632,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get virtualModelGenerateAction => '生成';
 
   @override
+  String get virtualModelGenerateNewAction => '生成新的合成照';
+
+  @override
   String get virtualModelGenerateConfirmTitle => '要生成虛擬模特兒嗎？';
 
   @override
   String get virtualModelGenerateConfirmBody => '系統將以目前的照片重新生成虛擬模特兒，並取代先前的版本。';
-
-  @override
-  String get virtualModelGenerateSuccessTitle => '完成';
-
-  @override
-  String get virtualModelGenerateSuccessBody => '虛擬模特兒已生成完成。';
 
   @override
   String get virtualModelGenerateFailed => '虛擬模特兒生成失敗，請稍後再試。';
@@ -2237,6 +2226,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get switchCamera => '切換鏡頭';
+
+  @override
+  String get cameraUnavailable => '無法開啟相機';
 
   @override
   String get takePhotoLabel => '相機';

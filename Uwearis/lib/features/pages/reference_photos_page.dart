@@ -11,17 +11,20 @@ import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
 import '../../core/utils/api_error_text.dart';
+import '../../core/utils/base_model_generation_mixin.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/reference_photo_download.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
+import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/images/app_image.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/error_dialog.dart';
+import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import 'camera_capture_page.dart';
 import 'image_editor_page.dart';
@@ -92,7 +95,7 @@ class _PhotoSlot {
 }
 
 /// The face and full-body reference photos behind the virtual model, opened
-/// from My Outfit Profile's Edit Photos.
+/// from the Edit button on My Outfit Profile's model preview.
 class ReferencePhotosPage extends ConsumerStatefulWidget {
   const ReferencePhotosPage({super.key});
 
@@ -101,7 +104,8 @@ class ReferencePhotosPage extends ConsumerStatefulWidget {
       _ReferencePhotosPageState();
 }
 
-class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage> {
+class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
+    with BaseModelGenerationMixin {
   bool _loading = false;
 
   final _faceSlot = _PhotoSlot();
@@ -283,54 +287,92 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage> {
   }
 
   AppToolBar _buildAppBar() {
-    return AppToolBar(title: _l10n.editPhotosAction);
+    return AppToolBar(title: _l10n.edit);
+  }
+
+  /// Needs a full-body photo that's actually loading, and no photo change
+  /// in progress — a render mid-upload would use the old photo.
+  bool _canGenerate(ProfileData? data) =>
+      data != null &&
+      data.hasBodyReference &&
+      !_bodySlot.loadFailed &&
+      !_loading &&
+      !_faceSlot.busy &&
+      !_bodySlot.busy &&
+      !baseModelBusy;
+
+  /// Straight back to My Outfit Profile, where the new model is shown.
+  Future<void> _generateNewModel() async {
+    // Tapping this page's dedicated button is the confirmation.
+    final succeeded = await generateBaseModel(confirm: false);
+    if (succeeded && mounted) Navigator.maybePop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final profileData = ref.watch(profileProvider).value;
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          16 + MediaQuery.paddingOf(context).bottom,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _l10n.myVirtualModelDescription,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.4,
+    final showsGenerate = _canGenerate(profileData);
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: AppColors.pageBackground,
+          extendBody: true,
+          appBar: _buildAppBar(),
+          bottomNavigationBar: BottomActionButton(
+            key: const ValueKey('generateNewModelAction'),
+            label: _l10n.virtualModelGenerateNewAction,
+            enabled: showsGenerate,
+            onPressed: _generateNewModel,
+          ),
+          body: Builder(
+            builder: (bodyContext) => SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                showsGenerate
+                    ? BottomActionButton.scrollClearance(bodyContext)
+                    : 16 + MediaQuery.paddingOf(context).bottom,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _l10n.myVirtualModelDescription,
+                    style: AppTextStyle.regular14.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: AppDimens.sectionSpacing),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildReferenceCardFor(
+                          ReferencePhotoKind.face,
+                          profileData,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimens.cardSpacing),
+                      Expanded(
+                        child: _buildReferenceCardFor(
+                          ReferencePhotoKind.body,
+                          profileData,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppDimens.sectionSpacing),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildReferenceCardFor(
-                    ReferencePhotoKind.face,
-                    profileData,
-                  ),
-                ),
-                const SizedBox(width: AppDimens.cardSpacing),
-                Expanded(
-                  child: _buildReferenceCardFor(
-                    ReferencePhotoKind.body,
-                    profileData,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
-      ),
+        if (generatingBaseModel)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.generatingEllipsis),
+          ),
+      ],
     );
   }
 
@@ -446,7 +488,9 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage> {
                 : _l10n.fullBodyPhotoLoadFailedTitle)
           : _titleFor(kind),
       actionKey: ValueKey('updatePhotoAction-${kind.name}'),
-      onTap: (_loading || slot.busy) ? null : () => _changePhoto(kind),
+      onTap: (_loading || slot.busy || baseModelBusy)
+          ? null
+          : () => _changePhoto(kind),
       photo: _buildPhotoLeading(
         kind,
         url,
@@ -457,7 +501,7 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage> {
       subtitle: failed ? _l10n.photoLoadFailedSubtitle : null,
       actionLabel: failed
           ? _l10n.reuploadPhotoAction
-          : (url != null ? _l10n.updatePhotoAction : _l10n.addPhotoAction),
+          : (url != null ? _l10n.edit : _l10n.addPhotoAction),
     );
   }
 

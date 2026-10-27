@@ -11,6 +11,7 @@ import 'package:http/testing.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:uwearis/core/providers/profile_provider.dart';
+import 'package:uwearis/core/utils/base_model_generation_mixin.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
 import 'package:uwearis/features/pages/image_editor_page.dart';
@@ -18,10 +19,13 @@ import 'package:uwearis/features/pages/reference_photos_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/images/app_image.dart';
 import 'package:uwearis/features/widgets/common/images/app_spinner.dart';
+import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
+import 'package:uwearis/l10n/generated/app_localizations.dart';
 import 'package:uwearis/l10n/generated/app_localizations_en.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
+import '../helpers/text_scale_harness.dart';
 import '../helpers/widget_harness.dart';
 
 final _l10n = AppLocalizationsEn();
@@ -182,6 +186,12 @@ class _FakeImagePickerPlatform extends ImagePickerPlatform
     ImagePickerOptions options = const ImagePickerOptions(),
   }) async => XFile(pathToReturn);
 }
+
+/// The image editor's own Confirm — the photos page has a bottom button too.
+final _editorConfirm = find.descendant(
+  of: find.byType(ImageEditorPage),
+  matching: find.byKey(const ValueKey('bottomActionButton-visible')),
+);
 
 /// The full-body card's pill is shown (disabled) while the page is busy, so
 /// waiting for it means waiting for it to be enabled.
@@ -460,15 +470,10 @@ void main() {
       await tester.tap(find.text(_l10n.album));
       await _pumpUntil(
         tester,
-        () => find
-            .byKey(const ValueKey('bottomActionButton-visible'))
-            .evaluate()
-            .isNotEmpty,
+        () => _editorConfirm.evaluate().isNotEmpty,
         maxTries: 150,
       );
-      await tester.tap(
-        find.byKey(const ValueKey('bottomActionButton-visible')),
-      );
+      await tester.tap(_editorConfirm);
     }
 
     testWidgets(
@@ -734,15 +739,10 @@ void main() {
           await tester.tap(find.text(_l10n.album));
           await _pumpUntil(
             tester,
-            () => find
-                .byKey(const ValueKey('bottomActionButton-visible'))
-                .evaluate()
-                .isNotEmpty,
+            () => _editorConfirm.evaluate().isNotEmpty,
             maxTries: 150,
           );
-          await tester.tap(
-            find.byKey(const ValueKey('bottomActionButton-visible')),
-          );
+          await tester.tap(_editorConfirm);
           await _pumpUntil(
             tester,
             () => _bodyActionEnabled(tester),
@@ -795,15 +795,10 @@ void main() {
           await tester.tap(find.text(_l10n.album));
           await _pumpUntil(
             tester,
-            () => find
-                .byKey(const ValueKey('bottomActionButton-visible'))
-                .evaluate()
-                .isNotEmpty,
+            () => _editorConfirm.evaluate().isNotEmpty,
             maxTries: 150,
           );
-          await tester.tap(
-            find.byKey(const ValueKey('bottomActionButton-visible')),
-          );
+          await tester.tap(_editorConfirm);
 
           await _pumpUntil(
             tester,
@@ -821,5 +816,160 @@ void main() {
         });
       },
     );
+  });
+
+  group('generate new model (bottom button)', () {
+    final generateButton = find.byKey(
+      const ValueKey('bottomActionButton-visible'),
+    );
+
+    /// Over a placeholder route, so going back is observable.
+    Future<void> pushPage(
+      WidgetTester tester, {
+      ProfileData? data,
+      required GenerateBaseModel generate,
+    }) async {
+      _useTallSurface(tester);
+      await pumpApp(
+        tester,
+        Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReferencePhotosPage()),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+        overrides: [
+          profileProvider.overrideWith(() => _FakeProfileNotifier(data: data)),
+          generateBaseModelProvider.overrideWithValue(generate),
+        ],
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('hidden until there is a full-body photo', (tester) async {
+      await pushPage(
+        tester,
+        data: const ProfileData(
+          profile: UserProfile(name: 'Test User'),
+          faceRefUrl: 'https://example.com/face.jpg',
+        ),
+        generate: () async => fail('must not generate'),
+      );
+      expect(generateButton, findsNothing);
+      expect(find.text(_l10n.virtualModelGenerateNewAction), findsNothing);
+    });
+
+    testWidgets('generates right away without a confirmation, commits the '
+        'new model, then returns to the previous page with no success '
+        'dialog', (tester) async {
+      var calls = 0;
+      await pushPage(
+        tester,
+        // '' not a real URL: a real fetch needs a sqflite factory.
+        generate: () async {
+          calls++;
+          return '';
+        },
+      );
+      expect(find.text(_l10n.virtualModelGenerateNewAction), findsOneWidget);
+
+      await tester.tap(find.text(_l10n.virtualModelGenerateNewAction));
+      await tester.pumpAndSettle();
+      expect(find.text(_l10n.virtualModelGenerateConfirmTitle), findsNothing);
+      expect(calls, 1);
+      // No "Done" dialog: straight back to the previous page.
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(ReferencePhotosPage), findsNothing);
+      final container = ProviderScope.containerOf(
+        tester.element(find.text('open')),
+      );
+      expect(container.read(profileProvider).value!.baseModelUrl, '');
+      expect(find.text('open'), findsOneWidget);
+    });
+
+    testWidgets('a double tap still generates only once', (tester) async {
+      var calls = 0;
+      final pending = Completer<String>();
+      await pushPage(
+        tester,
+        generate: () {
+          calls++;
+          return pending.future;
+        },
+      );
+
+      final button = find.text(_l10n.virtualModelGenerateNewAction);
+      await tester.tap(button);
+      await tester.tap(button, warnIfMissed: false);
+      await tester.pump();
+      expect(calls, 1);
+      expect(find.byType(LoadingOverlay), findsOneWidget);
+
+      pending.complete('');
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+
+    testWidgets('a failed generation shows an error and stays on the page', (
+      tester,
+    ) async {
+      await pushPage(tester, generate: () async => throw Exception('boom'));
+
+      await tester.tap(find.text(_l10n.virtualModelGenerateNewAction));
+      await tester.pumpAndSettle();
+
+      expect(find.text(_l10n.virtualModelGenerateFailed), findsOneWidget);
+      await tester.tap(find.text(_l10n.ok));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReferencePhotosPage), findsOneWidget);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(ReferencePhotosPage)),
+      );
+      expect(container.read(profileProvider).value!.baseModelUrl, isNull);
+    });
+  });
+
+  group('layout with the bottom button', () {
+    setUpAll(loadAppFont);
+
+    for (final c in layoutCases) {
+      testWidgets('${describeCase(c)}: the button label is whole and the '
+          'last card scrolls clear of it', (tester) async {
+        applyLayoutCase(tester, c);
+        await pumpApp(
+          tester,
+          const ReferencePhotosPage(),
+          overrides: [
+            profileProvider.overrideWith(() => _FakeProfileNotifier()),
+          ],
+        );
+        await tester.pump();
+        await tester.pump();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(ReferencePhotosPage)),
+        );
+        final label = find.text(l10n.virtualModelGenerateNewAction);
+        expect(label, findsOneWidget);
+        expect(isTruncated(tester, label), isFalse);
+        expectNoBrokenWords(tester, label);
+
+        final scrollable = find.byType(Scrollable);
+        await tester.drag(scrollable, const Offset(0, -2000));
+        await tester.pump();
+        final lastPill = find.byKey(const ValueKey('updatePhotoAction-body'));
+        final button = find.byKey(const ValueKey('bottomActionButton-visible'));
+        expect(
+          tester.getRect(lastPill).bottom,
+          lessThanOrEqualTo(tester.getRect(button).top),
+        );
+      });
+    }
   });
 }

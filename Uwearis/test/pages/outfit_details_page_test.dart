@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -98,6 +99,12 @@ void main() {
       expect(find.text('Smart Casual'), findsOneWidget);
       expect(find.text('Street'), findsOneWidget);
       expect(find.byType(CategoryTag), findsNWidgets(2));
+      expect(
+        tester
+            .widgetList<CategoryTag>(find.byType(CategoryTag))
+            .every((t) => t.variant == CategoryTagVariant.header),
+        isTrue,
+      );
     }, stubClient);
   });
 
@@ -801,6 +808,101 @@ void main() {
         isFalse,
       );
       expect(container.read(outfitsProvider).value!.single.isFavorite, isFalse);
+    }, () => client);
+  });
+
+  testWidgets('after deleting a version, the next one can be deleted right '
+      'away, even while My Outfits is still re-fetching', (tester) async {
+    useTallSurface(tester);
+    // Unique group id: OutfitService caches per group.
+    const groupId = 731;
+    final listFetch = Completer<http.Response>();
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      if (request.method == 'GET' && path.endsWith('/$groupId')) {
+        return jsonResponse(
+          envelope({
+            'outfits': [
+              for (final id in [1, 2, 3])
+                {
+                  'id': id,
+                  'group_id': groupId,
+                  'image_url': 'https://img.example/$id.png',
+                },
+            ],
+          }),
+        );
+      }
+      if (request.method == 'DELETE') return jsonResponse(envelope(null));
+      // My Outfits' list re-fetch: never answers within this test.
+      return listFetch.future;
+    });
+
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(outfit: _outfit(groupId: groupId)),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('1 / 3'), findsOneWidget);
+
+      Opacity deleteItem() => tester.widget<Opacity>(
+        find
+            .ancestor(
+              of: find.text('Delete Version'),
+              matching: find.byType(Opacity),
+            )
+            .first,
+      );
+
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('Delete Version'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('Delete').last);
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('1 / 2'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(deleteItem().opacity, 1);
+    }, () => client);
+    listFetch.complete(jsonResponse(envelope({'items': []})));
+  });
+
+  testWidgets('a second favorite tap while the first is in flight sends '
+      'nothing; a failure rolls back to where it started', (tester) async {
+    final patch = Completer<http.Response>();
+    var patches = 0;
+    final client = MockClient((request) async {
+      if (request.method == 'PATCH') {
+        patches++;
+        return patch.future;
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(tester, OutfitDetailsPage(outfit: _outfit(groupId: 741)));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.favorite_border));
+      await tester.pump();
+      expect(find.byIcon(Icons.favorite), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.favorite));
+      await tester.pump();
+      expect(patches, 1);
+      expect(find.byIcon(Icons.favorite), findsOneWidget);
+
+      patch.complete(jsonResponse(envelope(null), status: 500));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+      expect(patches, 1);
     }, () => client);
   });
 }

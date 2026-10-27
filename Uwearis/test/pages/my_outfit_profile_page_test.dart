@@ -7,10 +7,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/profile_provider.dart';
+import 'package:uwearis/core/utils/base_model_generation_mixin.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
 import 'package:uwearis/features/pages/my_outfit_profile_page.dart';
 import 'package:uwearis/features/pages/reference_photos_page.dart';
+import 'package:uwearis/features/widgets/common/app_tool_bar.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/cards/generated_image_card.dart';
 import 'package:uwearis/features/widgets/common/fields/number_stepper.dart';
@@ -102,7 +104,7 @@ void main() {
   group('virtual model', () {
     testWidgets(
       'no photos and no model: Generate is disabled with the body-photo '
-      'hint, Edit Photos stays available, and temperature still works',
+      'hint, Edit stays available, and temperature still works',
       (tester) async {
         _useTallSurface(tester);
         final patches = <Map<String, dynamic>>[];
@@ -136,7 +138,7 @@ void main() {
       },
     );
 
-    testWidgets('Edit Photos opens the reference photos page, and a photo '
+    testWidgets('Edit opens the reference photos page, and a photo '
         'committed there is what this page shows on return', (tester) async {
       _useTallSurface(tester);
       await _pumpPage(tester);
@@ -145,7 +147,13 @@ void main() {
       await tester.tap(_editPhotosPill);
       await tester.pumpAndSettle();
       expect(find.byType(ReferencePhotosPage), findsOneWidget);
-      expect(find.text(_l10n.editPhotosAction), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AppToolBar),
+          matching: find.text(_l10n.edit),
+        ),
+        findsOneWidget,
+      );
 
       final container = ProviderScope.containerOf(
         tester.element(find.byType(ReferencePhotosPage)),
@@ -181,7 +189,7 @@ void main() {
 
     testWidgets(
       'Generate confirms first, then calls generateBaseModel, commits its '
-      'URL and shows a success dialog — without touching the temperature',
+      'URL with no success dialog — without touching the temperature',
       (tester) async {
         _useTallSurface(tester);
         var calls = 0;
@@ -210,10 +218,8 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(calls, 1);
-          expect(
-            find.text(_l10n.virtualModelGenerateSuccessBody),
-            findsOneWidget,
-          );
+          // Success is silent: no "Done" dialog, the new image is shown.
+          expect(find.byType(Dialog), findsNothing);
           final container = ProviderScope.containerOf(
             tester.element(find.byType(MyOutfitProfilePage)),
           );
@@ -223,8 +229,7 @@ void main() {
       },
     );
 
-    testWidgets('a failed generation shows an error dialog instead of the '
-        'success one', (tester) async {
+    testWidgets('a failed generation shows an error dialog', (tester) async {
       _useTallSurface(tester);
       await _pumpPage(tester, generate: () async => throw Exception('boom'));
       await tester.pumpAndSettle();
@@ -235,7 +240,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(_l10n.virtualModelGenerateFailed), findsOneWidget);
-      expect(find.text(_l10n.virtualModelGenerateSuccessBody), findsNothing);
     });
 
     testWidgets('each successful generation bumps the image cache key, so a '
@@ -260,9 +264,6 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(_l10n.virtualModelGenerateAction).last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text(_l10n.ok));
-      await tester.pumpAndSettle();
-
       expect(calls, 1);
       expect(cacheKeyOf(), isNot(before));
     });
@@ -324,7 +325,8 @@ void main() {
 
       expect(find.text(_l10n.temperatureAdjustmentTitle), findsOneWidget);
       expect(find.text('-2°C'), findsOneWidget);
-      expect(find.text(_l10n.temperatureAdjustmentHint), findsOneWidget);
+      expect(find.text(_l10n.temperatureAdjustmentWarmer), findsOneWidget);
+      expect(find.text(_l10n.temperatureAdjustmentLighter), findsOneWidget);
     });
 
     testWidgets('stepping PATCHes only temperature_offset_c and caches the '
@@ -449,11 +451,12 @@ void main() {
           final page = find.byType(MyOutfitProfilePage);
           for (final text in [
             l10n.virtualModelSectionTitle,
-            l10n.editPhotosAction,
+            l10n.edit,
             l10n.virtualModelSectionSubtitle,
             l10n.temperatureAdjustmentTitle,
             l10n.temperatureAdjustmentDescription,
-            l10n.temperatureAdjustmentHint,
+            l10n.temperatureAdjustmentWarmer,
+            l10n.temperatureAdjustmentLighter,
           ]) {
             final f = find.text(text);
             expect(f, findsOneWidget, reason: text);
@@ -462,12 +465,32 @@ void main() {
           for (final text in [
             l10n.virtualModelSectionSubtitle,
             l10n.temperatureAdjustmentDescription,
-            l10n.temperatureAdjustmentHint,
+            l10n.temperatureAdjustmentWarmer,
+            l10n.temperatureAdjustmentLighter,
           ]) {
             expectNoBrokenWords(tester, find.text(text));
           }
-          expect(isTruncated(tester, find.text(l10n.editPhotosAction)), false);
-          // Edit Photos sits in the preview's bottom-right corner, and in
+          // Warmer belongs to −, Lighter to +, beside or under each.
+          final minus = tester.getCenter(
+            find.byIcon(Icons.remove_circle_outline),
+          );
+          final plus = tester.getCenter(find.byIcon(Icons.add_circle_outline));
+          final warmer = tester.getCenter(
+            find.text(l10n.temperatureAdjustmentWarmer),
+          );
+          final lighter = tester.getCenter(
+            find.text(l10n.temperatureAdjustmentLighter),
+          );
+          expect(warmer.dx, lessThan(plus.dx));
+          expect(lighter.dx, greaterThan(minus.dx));
+          expect(warmer.dx, lessThan(lighter.dx));
+          if (c.width == 390 && c.scale == 1.0) {
+            expect(warmer.dx, lessThan(minus.dx));
+            expect(lighter.dx, greaterThan(plus.dx));
+            expect(warmer.dy, closeTo(minus.dy, 2));
+          }
+          expect(isTruncated(tester, find.text(l10n.edit)), false);
+          // Edit sits in the preview's bottom-right corner, and in
           // the empty state never overlaps the Generate content.
           final preview = find.byType(GeneratedImageCard);
           final card = tester.getRect(preview);

@@ -19,6 +19,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/buttons/pill_button.dart';
+import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import 'camera_capture_page.dart';
@@ -456,33 +457,21 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   Widget _buildResetButton() {
     return Positioned(
-      top: 16,
-      right: 16,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _resetImage,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.scrimBackdrop,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              Text(
-                _l10n.reset,
-                style: AppTextStyle.bold16.copyWith(
-                  color: AppColors.textOnPrimary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Image.asset(
-                'assets/images/reset.png',
-                height: AppDimens.iconSmallSize,
-                color: AppColors.textOnPrimary,
-              ),
-            ],
-          ),
+      top: 12,
+      right: 12,
+      child: Semantics(
+        button: true,
+        label: _l10n.reset,
+        child: CardCornerBadge(
+          icon: Icons.refresh,
+          backgroundColor: AppColors.surfaceTranslucent,
+          iconColor: AppColors.hintText,
+          border: Border.all(color: AppColors.borderSubtle),
+          boxShadow: const [],
+          size: 36,
+          iconSize: 20,
+          discAlignment: Alignment.topRight,
+          onTap: _resetImage,
         ),
       ),
     );

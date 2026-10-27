@@ -8,7 +8,10 @@ import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart'
 import 'package:uwearis/core/providers/profile_provider.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
+import 'package:uwearis/data/image_edit_result.dart';
 import 'package:uwearis/features/pages/account_page.dart';
+import 'package:uwearis/features/pages/image_editor_page.dart';
+import 'package:uwearis/features/widgets/common/profile_avatar.dart';
 import 'package:uwearis/features/pages/my_outfit_profile_page.dart';
 import 'package:uwearis/l10n/generated/app_localizations_en.dart';
 
@@ -272,7 +275,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(MyOutfitProfilePage), findsOneWidget);
-      expect(find.text(_l10n.editPhotosAction), findsOneWidget);
+      expect(find.text(_l10n.edit), findsOneWidget);
     }, backend);
   });
 
@@ -290,5 +293,39 @@ void main() {
       expect(patches.single['gender'], 'Female');
       expect(find.text(_l10n.genderFemale), findsOneWidget);
     }, backend);
+  });
+
+  testWidgets('a failed avatar upload goes back to the saved avatar instead '
+      'of showing the unsaved photo', (tester) async {
+    useTallSurface(tester);
+    final client = MockClient(
+      (_) async => jsonResponse({'success': false}, status: 500),
+    );
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        const AccountPage(),
+        overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(
+        tester.widget<ProfileAvatar>(find.byType(ProfileAvatar)).url,
+        isNull,
+      );
+
+      await tester.tap(find.byType(ProfileAvatar));
+      await tester.pumpAndSettle();
+      Navigator.of(
+        tester.element(find.byType(ImageEditorPage)),
+      ).pop(ImageEditResult(imagePath: '/tmp/uwearis_new_avatar.jpg'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(_l10n.photoUploadFailed), findsOneWidget);
+      expect(
+        tester.widget<ProfileAvatar>(find.byType(ProfileAvatar)).url,
+        isNull,
+      );
+    }, () => client);
   });
 }

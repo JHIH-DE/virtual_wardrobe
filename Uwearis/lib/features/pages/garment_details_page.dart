@@ -71,6 +71,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   bool _isAnalyzing = false;
   bool _uploading = false;
   bool _isFavorite = false;
+  bool _isTogglingFavorite = false;
   bool _openingAddOutfit = false;
   int? _id;
   String? _imagePathOrUrl;
@@ -879,25 +880,24 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   Future<void> _runAIAnalysis(String imagePath) async {
-    if (imagePath.startsWith('http')) return;
+    if (!mounted || imagePath.startsWith('http')) return;
+    setState(() => _isAnalyzing = true);
     try {
-      setState(() => _isAnalyzing = true);
       final result = await GarmentService().analyzeGarment(imagePath);
-      setState(() {
-        _applyAnalysisData(
+      if (!mounted) return;
+      setState(
+        () => _applyAnalysisData(
           result.metadata,
           processedImagePath: result.processedImagePath,
-        );
-        _isAnalyzing = false;
-      });
+        ),
+      );
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
-      return;
     } catch (e) {
-      if (!mounted) return;
       debugLog('AI Analysis failed: $e');
-      setState(() => _isAnalyzing = false);
+    } finally {
+      if (mounted) setState(() => _isAnalyzing = false);
     }
   }
 
@@ -1338,9 +1338,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     garments.updateGarment(updated);
   }
 
+  /// One request at a time: overlapping ones could land out of order, and
+  /// a failed one's rollback would undo the other.
   Future<void> _toggleFavorite() async {
     final id = _id;
-    if (id == null) return;
+    if (id == null || _isTogglingFavorite) return;
+    _isTogglingFavorite = true;
     final next = !_isFavorite;
     // Read before the await so the sync still lands if the page is popped.
     final garments = ref.read(garmentsProvider.notifier);
@@ -1361,6 +1364,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       if (mounted) {
         showErrorDialog(context, message: _l10n.failedToUpdateFavorite);
       }
+    } finally {
+      _isTogglingFavorite = false;
     }
   }
 

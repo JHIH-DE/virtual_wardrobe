@@ -10,10 +10,8 @@ import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
-import '../../core/utils/api_error_text.dart';
 import '../../core/utils/auto_save_controller.dart';
-import '../../core/utils/debug_log.dart';
-import '../../core/utils/image_cache_bust.dart';
+import '../../core/utils/base_model_generation_mixin.dart';
 import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
@@ -22,9 +20,7 @@ import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/generated_image_card.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/app_spinner.dart';
-import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/auto_save_prompts.dart';
-import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_header.dart';
@@ -37,13 +33,6 @@ final fetchFreshBaseModelUrlProvider = Provider<Future<String?> Function()>(
       () => ProfileService().getBaseModel(),
 );
 
-typedef GenerateBaseModel = Future<String> Function();
-
-final generateBaseModelProvider = Provider<GenerateBaseModel>(
-  (ref) =>
-      () => ProfileService().generateBaseModel(),
-);
-
 /// The virtual model and the temperature offset: one entry point, but
 /// separate data, saving and errors — neither section triggers the other.
 class MyOutfitProfilePage extends ConsumerStatefulWidget {
@@ -54,9 +43,8 @@ class MyOutfitProfilePage extends ConsumerStatefulWidget {
       _MyOutfitProfilePageState();
 }
 
-class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage> {
-  // One base model per user, so no per-entity id.
-  static const _baseModelCacheKey = 'base_model';
+class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
+    with BaseModelGenerationMixin {
   static const double _previewAspectRatio = 4 / 5;
 
   // The backend field is write-only (not in /users/me), so the last saved
@@ -64,8 +52,6 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage> {
   static const _temperatureOffsetKey = 'temperature_offset';
   static const _minTemperatureOffset = -5;
   static const _maxTemperatureOffset = 5;
-
-  bool _generatingBaseModel = false;
 
   int _temperatureOffset = 0;
   late final AutoSaveController _temperatureAutoSave = AutoSaveController(
@@ -153,66 +139,6 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage> {
     );
   }
 
-  /// Confirms first: a successful run replaces the existing base model.
-  Future<void> _generateBaseModel() async {
-    if (_generatingBaseModel) return;
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.virtualModelGenerateConfirmTitle,
-        body: _l10n.virtualModelGenerateConfirmBody,
-        primaryLabel: _l10n.virtualModelGenerateAction,
-        onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
-      ),
-    );
-    if (ok != true || !mounted) return;
-
-    setState(() => _generatingBaseModel = true);
-    var succeeded = false;
-    try {
-      final url = await ref.read(generateBaseModelProvider)();
-      if (!mounted) return;
-      ref.read(profileProvider.notifier).setBaseModelUrl(url);
-      // A regenerate can overwrite the same GCS object; without a bump the
-      // disk cache under _baseModelCacheKey serves the old render.
-      ImageCacheBust.bump(_baseModelCacheKey);
-      succeeded = true;
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      if (!mounted) return;
-      debugLog('MyOutfitProfilePage._generateBaseModel failed: $e');
-      showErrorDialog(
-        context,
-        message: apiErrorMessage(
-          _l10n,
-          e,
-          fallback: _l10n.virtualModelGenerateFailed,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _generatingBaseModel = false);
-    }
-
-    // Only after the loading overlay is gone — never both on screen.
-    if (succeeded && mounted) {
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AppDialog(
-          title: _l10n.virtualModelGenerateSuccessTitle,
-          body: _l10n.virtualModelGenerateSuccessBody,
-          primaryLabel: _l10n.ok,
-          onPrimary: () => Navigator.of(ctx).pop(),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -246,7 +172,7 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage> {
               ],
             ),
           ),
-          if (_generatingBaseModel)
+          if (generatingBaseModel)
             Positioned.fill(
               child: LoadingOverlay(label: _l10n.generatingEllipsis),
             ),
@@ -290,13 +216,12 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage> {
     final baseModelUrl = ProfileData.isRealPhotoUrl(data.baseModelUrl)
         ? data.baseModelUrl
         : null;
-    final canGenerate = hasBodyRef && !_generatingBaseModel;
+    final canGenerate = hasBodyRef && !baseModelBusy;
     return GeneratedImageCard(
       imageUrl: baseModelUrl,
       hasAssignment: true,
       // No isLoading: build()'s full-screen LoadingOverlay covers it.
-      cacheKey:
-          '$_baseModelCacheKey-v${ImageCacheBust.versionOf(_baseModelCacheKey)}',
+      cacheKey: baseModelImageCacheKey(),
       imageFit: BoxFit.contain,
       imageAlignment: Alignment.center,
       aspectRatio: _previewAspectRatio,
@@ -304,19 +229,35 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage> {
       onUrlRefreshed: (oldUrl, freshUrl) => ref
           .read(profileProvider.notifier)
           .setBaseModelUrlIfCurrent(oldUrl, freshUrl),
-      onGenerate: _generateBaseModel,
+      onGenerate: generateBaseModel,
       generateEnabled: canGenerate,
       generateDisabledMessage: hasBodyRef
           ? null
           : _l10n.virtualModelGenerateRequiresBodyRefHint,
       generateLabel: _l10n.virtualModelGenerateAction,
-      onRegenerate: canGenerate ? _generateBaseModel : null,
       cornerAction: AccentPillButton(
         key: const ValueKey('editPhotosAction'),
-        label: _l10n.editPhotosAction,
+        label: _l10n.edit,
         onPressed: _openReferencePhotos,
       ),
     );
+  }
+
+  static const double _stepperLabelGap = 8;
+  static final TextStyle _stepperLabelStyle = AppTextStyle.medium14.copyWith(
+    color: AppColors.textSecondary,
+  );
+
+  double _measureStepperLabel(BuildContext context, String text) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: _stepperLabelStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width.ceilToDouble();
+    painter.dispose();
+    return width;
   }
 
   Widget _buildTemperatureCard() {
@@ -333,40 +274,98 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage> {
           // Same − / + spread as Create Outfit's half-width temperature tile.
           LayoutBuilder(
             builder: (context, constraints) {
-              final width = math.min(
-                constraints.maxWidth,
-                math.max(
-                  constraints.maxWidth / 2,
-                  NumberStepper.tileWidthFor(
-                    context,
-                    _temperatureOffsetLabel(_maxTemperatureOffset),
-                  ),
+              final maxWidth = constraints.maxWidth;
+              final minStepperWidth = NumberStepper.tileWidthFor(
+                context,
+                _temperatureOffsetLabel(_maxTemperatureOffset),
+              );
+              final stepper = NumberStepper(
+                variant: NumberStepperVariant.tile,
+                valueLabel: _temperatureOffsetLabel(offset),
+                onDecrement: offset > _minTemperatureOffset
+                    ? () => _stepTemperatureOffset(-1)
+                    : null,
+                onIncrement: offset < _maxTemperatureOffset
+                    ? () => _stepTemperatureOffset(1)
+                    : null,
+              );
+              final warmer = Text(
+                _l10n.temperatureAdjustmentWarmer,
+                style: _stepperLabelStyle,
+              );
+              final lighter = Text(
+                _l10n.temperatureAdjustmentLighter,
+                style: _stepperLabelStyle,
+              );
+              // Equal side columns keep the value centered under the title.
+              final labelWidth = math.max(
+                _measureStepperLabel(
+                  context,
+                  _l10n.temperatureAdjustmentWarmer,
                 ),
+                _measureStepperLabel(
+                  context,
+                  _l10n.temperatureAdjustmentLighter,
+                ),
+              );
+              final sideWidth = labelWidth + _stepperLabelGap;
+              if (maxWidth - 2 * sideWidth >= minStepperWidth) {
+                final stepperWidth = math.min(
+                  maxWidth - 2 * sideWidth,
+                  math.max(maxWidth / 2, minStepperWidth),
+                );
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: labelWidth,
+                      child: Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: warmer,
+                      ),
+                    ),
+                    const SizedBox(width: _stepperLabelGap),
+                    SizedBox(width: stepperWidth, child: stepper),
+                    const SizedBox(width: _stepperLabelGap),
+                    SizedBox(width: labelWidth, child: lighter),
+                  ],
+                );
+              }
+              // Under the stepper, wide enough that neither label breaks.
+              final stepperWidth = math.min(
+                maxWidth,
+                [
+                  maxWidth / 2,
+                  minStepperWidth,
+                  2 * labelWidth + _stepperLabelGap,
+                ].reduce(math.max),
               );
               return Center(
                 child: SizedBox(
-                  width: width,
-                  child: NumberStepper(
-                    variant: NumberStepperVariant.tile,
-                    valueLabel: _temperatureOffsetLabel(offset),
-                    onDecrement: offset > _minTemperatureOffset
-                        ? () => _stepTemperatureOffset(-1)
-                        : null,
-                    onIncrement: offset < _maxTemperatureOffset
-                        ? () => _stepTemperatureOffset(1)
-                        : null,
+                  width: stepperWidth,
+                  child: Column(
+                    children: [
+                      stepper,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Flexible(child: warmer),
+                          const SizedBox(width: _stepperLabelGap),
+                          Flexible(
+                            child: Text(
+                              _l10n.temperatureAdjustmentLighter,
+                              style: _stepperLabelStyle,
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               );
             },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _l10n.temperatureAdjustmentHint,
-            style: AppTextStyle.regular13.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.3,
-            ),
           ),
         ],
       ),

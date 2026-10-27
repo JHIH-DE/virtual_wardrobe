@@ -17,6 +17,7 @@ import 'package:uwearis/features/pages/trip_outfit_selection_page.dart';
 import 'package:uwearis/features/pages/trip_outfit_version_page.dart';
 import 'package:uwearis/features/pages/trip_suitcase_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
+import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/images/app_spinner.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/outfit/outfit_card.dart';
@@ -923,5 +924,175 @@ void main() {
         }, () => client);
       },
     );
+  });
+
+  group('state stays in step with the server after a failure', () {
+    Garment closetGarment(int id, String name, GarmentCategory category) =>
+        Garment(
+          id: id,
+          garmentId: id,
+          name: name,
+          category: category,
+          subCategory: '',
+          uploadUrl: '',
+          objectName: '',
+        );
+
+    Future<http.Response> commonResponse(http.Request request) async {
+      if (request.url.path.endsWith('/plan')) {
+        return jsonResponse(envelope({'days': [], 'suitcase_items': []}));
+      }
+      if (request.url.path.endsWith('/packing-analysis')) {
+        return jsonResponse(
+          envelope({'overall_advice': null, 'categories': []}),
+        );
+      }
+      return jsonResponse(envelope({}), status: 404);
+    }
+
+    testWidgets('a failed removal puts back only that garment, not one '
+        'removed successfully meanwhile', (tester) async {
+      final jeansDelete = Completer<http.Response>();
+      final client = MockClient((request) async {
+        if (request.method == 'GET' &&
+            request.url.path.endsWith('/trip_plans/7')) {
+          return jsonResponse(
+            envelope({
+              'suitcase_items': [
+                {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+                {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'},
+                {'garment_id': 3, 'name': 'Sneakers', 'category': 'shoes'},
+              ],
+            }),
+          );
+        }
+        if (request.method == 'DELETE' &&
+            request.url.path.endsWith('/suitcase-items/2')) {
+          return jeansDelete.future;
+        }
+        if (request.method == 'DELETE' &&
+            request.url.path.endsWith('/suitcase-items/1')) {
+          return jsonResponse(envelope({'affected_options': []}));
+        }
+        return commonResponse(request);
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, TripSuitcasePage(trip: _trip()));
+        await tester.pump();
+        await tester.pump();
+
+        // Jeans first (left in flight), then Tee (succeeds).
+        await tester.tap(find.byIcon(Icons.close).at(1));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('REMOVE'));
+        await tester.pumpAndSettle();
+        expect(find.text('Jeans'), findsNothing);
+
+        await tester.tap(find.byIcon(Icons.close).first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('REMOVE'));
+        await tester.pumpAndSettle();
+        expect(find.text('Tee'), findsNothing);
+
+        jeansDelete.complete(jsonResponse(envelope(null), status: 500));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Jeans'), findsOneWidget);
+        expect(find.text('Tee'), findsNothing);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(TripSuitcasePage)),
+        );
+        expect(container.read(tripDetailProvider(7)).value!.suitcaseIds, {
+          2,
+          3,
+        });
+      }, () => client);
+    });
+
+    testWidgets('a commit failing midway keeps what already landed, so the '
+        'retry only sends the rest', (tester) async {
+      final posted = <int>[];
+      var failNextSecondPost = true;
+      final client = MockClient((request) async {
+        if (request.method == 'GET' &&
+            request.url.path.endsWith('/trip_plans/7')) {
+          return jsonResponse(
+            envelope({
+              'suitcase_items': [
+                {'garment_id': 1, 'name': 'Tee', 'category': 'top'},
+              ],
+            }),
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/suitcase-items')) {
+          final id = (jsonDecode(request.body) as Map)['garment_id'] as int;
+          if (posted.length == 1 && failNextSecondPost) {
+            failNextSecondPost = false;
+            return jsonResponse(envelope(null), status: 500);
+          }
+          posted.add(id);
+          return jsonResponse(envelope({}));
+        }
+        return commonResponse(request);
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          TripSuitcasePage(trip: _trip()),
+          overrides: [
+            garmentsProvider.overrideWith(
+              () => _FakeGarments([
+                closetGarment(1, 'Tee', GarmentCategory.top),
+                closetGarment(2, 'Jeans', GarmentCategory.bottom),
+                closetGarment(3, 'Sneakers', GarmentCategory.shoes),
+              ]),
+            ),
+          ],
+        );
+        await tester.pump();
+        await tester.pump();
+
+        // Stage Jeans + Sneakers through the picker.
+        await tester.tap(find.byType(ActionDiscButton).last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Bottom'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Jeans'));
+        await tester.pump();
+        await tester.tap(find.text('Shoes'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Sneakers'));
+        await tester.pump();
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(find.text('Jeans'), findsOneWidget);
+        expect(find.text('Sneakers'), findsOneWidget);
+
+        // Leaving commits: the first add lands, the second fails.
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(posted, hasLength(1));
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(TripSuitcasePage)),
+        );
+        expect(container.read(tripDetailProvider(7)).value!.suitcaseIds, {
+          1,
+          posted.first,
+        });
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+
+        // The retry sends only the one that failed.
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(posted.toSet(), {2, 3});
+        expect(posted, hasLength(2));
+      }, () => client);
+    });
   });
 }

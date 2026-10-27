@@ -6,6 +6,7 @@ import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/utils/debug_log.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/buttons/accent_pill_button.dart';
 
 /// The cutout shape. Only a framing guide — the capture is always
 /// full-frame and gets cropped later in the image editor.
@@ -39,7 +40,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   List<CameraDescription> _cameras = const [];
   int _cameraIndex = 0;
   bool _isInitialized = false;
-  // A second tap mid-swap would race two CameraControllers onto one texture.
+  // No camera, or none would start: shown instead of an endless spinner.
+  bool _initFailed = false;
+  // A second tap mid-swap (or mid-retry) would race two CameraControllers
+  // onto one texture.
   bool _switching = false;
 
   @override
@@ -49,12 +53,26 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   Future<void> _initializeCamera() async {
-    _cameras = await availableCameras();
-    if (_cameras.isEmpty) return;
-    await _startController(_cameras[_cameraIndex]);
+    if (_switching) return;
+    _switching = true;
+    if (_initFailed) setState(() => _initFailed = false);
+    try {
+      try {
+        _cameras = await availableCameras();
+      } catch (e) {
+        debugLog('availableCameras failed: $e');
+        _cameras = const [];
+      }
+      final started =
+          _cameras.isNotEmpty && await _startController(_cameras[_cameraIndex]);
+      if (!started && mounted) setState(() => _initFailed = true);
+    } finally {
+      _switching = false;
+    }
   }
 
-  Future<void> _startController(CameraDescription description) async {
+  /// Returns whether the camera started.
+  Future<bool> _startController(CameraDescription description) async {
     // Dispose first: iOS AVFoundation won't run two sessions at once, and
     // the new preview stays black.
     final previous = _controller;
@@ -72,27 +90,37 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     } on CameraException catch (e) {
       debugLog('Camera initialize failed: $e');
       await controller.dispose();
-      return;
+      return false;
     }
     if (!mounted) {
       await controller.dispose();
-      return;
+      return false;
     }
     setState(() {
       _controller = controller;
       _isInitialized = true;
+      _initFailed = false;
     });
+    return true;
   }
 
   Future<void> _switchCamera() async {
     if (_switching || _cameras.length < 2) return;
     _switching = true;
+    final previousIndex = _cameraIndex;
     setState(() => _isInitialized = false);
     try {
       _cameraIndex = (_cameraIndex + 1) % _cameras.length;
-      await _startController(_cameras[_cameraIndex]);
+      var started = await _startController(_cameras[_cameraIndex]);
+      // Fall back to the camera that was working.
+      if (!started && mounted) {
+        _cameraIndex = previousIndex;
+        started = await _startController(_cameras[_cameraIndex]);
+      }
+      if (!started && mounted) setState(() => _initFailed = true);
     } catch (e) {
       debugLog('Error switching camera: $e');
+      if (mounted) setState(() => _initFailed = true);
     } finally {
       _switching = false;
     }
@@ -118,6 +146,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_initFailed) return _buildUnavailable();
     if (!_isInitialized || _controller == null) {
       return const Scaffold(
         backgroundColor: AppColors.trueBlack,
@@ -149,6 +178,46 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
           _buildHighlightBorder(box),
           _buildHeader(),
           _buildCaptureButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnavailable() {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      backgroundColor: AppColors.trueBlack,
+      body: Stack(
+        children: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.no_photography_outlined,
+                    size: 48,
+                    color: AppColors.textOnPrimary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.cameraUnavailable,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyle.bold16.copyWith(
+                      color: AppColors.textOnPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  AccentPillButton(
+                    label: l10n.retry,
+                    onPressed: _initializeCamera,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _buildHeader(),
         ],
       ),
     );

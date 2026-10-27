@@ -76,8 +76,8 @@ class _CollapsingTagsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const tagSpacing = 8.0;
-    // CategoryTag's horizontal padding (10 * 2) + its 1px border on each side.
-    const tagHPadding = 22.0;
+    // CategoryTag's horizontal padding (10 * 2).
+    const tagHPadding = 20.0;
     // Measured width can trail the rendered one by a sub-pixel; reserve a
     // little so a near-miss collapses into "+N" instead of overflowing.
     const tagSlack = 3.0;
@@ -127,7 +127,7 @@ class _CollapsingTagsRow extends StatelessWidget {
           return oneLine([
             for (var i = 0; i < tags.length; i++) ...[
               if (i > 0) const SizedBox(width: tagSpacing),
-              CategoryTag(label: tags[i], borderColor: AppColors.surface),
+              CategoryTag(label: tags[i], variant: CategoryTagVariant.header),
             ],
           ]);
         }
@@ -149,12 +149,12 @@ class _CollapsingTagsRow extends StatelessWidget {
         return oneLine([
           for (var i = 0; i < count; i++) ...[
             if (i > 0) const SizedBox(width: tagSpacing),
-            CategoryTag(label: tags[i], borderColor: AppColors.surface),
+            CategoryTag(label: tags[i], variant: CategoryTagVariant.header),
           ],
           const SizedBox(width: tagSpacing),
           CategoryTag(
             label: '+${tags.length - count}',
-            borderColor: AppColors.surface,
+            variant: CategoryTagVariant.header,
           ),
         ]);
       },
