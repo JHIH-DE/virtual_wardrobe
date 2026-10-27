@@ -540,6 +540,7 @@
   "googleLoginMissingToken": "Google 登入失敗：缺少身份權杖",
   "appleLoginMissingToken": "Apple 登入失敗：缺少身份權杖",
   "unknownLocation": "未知地點",
+  "homeHeaderDatePattern": "M月d日 EEEE",
 
   "debugTools": "测试工具",
   "debugToolsErrorDialogButton": "显示后端错误弹窗",

@@ -27,6 +27,10 @@ class WeatherData {
   final List<double> weeklyLows;
   final int timestamp;
 
+  /// Locale [location] was geocoded in; null in a cache written before it
+  /// was stored.
+  final String? locationLocale;
+
   const WeatherData({
     required this.location,
     required this.temp,
@@ -39,6 +43,7 @@ class WeatherData {
     required this.weeklyHighs,
     required this.weeklyLows,
     required this.timestamp,
+    this.locationLocale,
   });
 
   bool get isStale =>
@@ -104,6 +109,7 @@ class WeatherData {
       (json['weeklyLows'] ?? []).map((t) => (t as num).toDouble()),
     ),
     timestamp: json['timestamp'] as int,
+    locationLocale: json['locationLocale'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -118,6 +124,7 @@ class WeatherData {
     'weeklyHighs': weeklyHighs,
     'weeklyLows': weeklyLows,
     'timestamp': timestamp,
+    'locationLocale': locationLocale,
   };
 }
 
@@ -127,12 +134,14 @@ final weatherProvider = AsyncNotifierProvider<WeatherNotifier, WeatherData>(
 );
 
 class WeatherNotifier extends AsyncNotifier<WeatherData> {
-  static const String _cacheKey = 'cached_weather';
+  // v2: earlier caches hold place names in the device language, whatever
+  // their `locationLocale` says.
+  static const String _cacheKey = 'cached_weather_v2';
 
   // No BuildContext here: the language override, else the device locale.
   AppLocalizations _l10n() {
     final locale =
-        ref.read(localeProvider) ?? PlatformDispatcher.instance.locale;
+        ref.watch(localeProvider) ?? PlatformDispatcher.instance.locale;
     try {
       return lookupAppLocalizations(locale);
     } catch (_) {
@@ -140,15 +149,28 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
     }
   }
 
+  // The app's `zh` strings are Traditional, so any Chinese maps to zh_TW.
+  Locale _geocodingLocale() => _l10n().localeName.startsWith('zh')
+      ? const Locale('zh', 'TW')
+      : const Locale('en');
+
   @override
   Future<WeatherData> build() async {
+    final geocodingLocale = _geocodingLocale();
     final cached = await _loadCache();
 
     if (cached != null && cached.hasWeeklyData) {
+      if (cached.locationLocale != geocodingLocale.toLanguageTag()) {
+        try {
+          return await _fetchFromNetwork(geocodingLocale);
+        } catch (_) {
+          return cached;
+        }
+      }
       if (cached.isStale) {
         Future.microtask(() async {
           try {
-            final fresh = await _fetchFromNetwork();
+            final fresh = await _fetchFromNetwork(geocodingLocale);
             state = AsyncData(fresh);
           } catch (_) {}
         });
@@ -156,7 +178,7 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
       return cached;
     }
 
-    return _fetchFromNetwork();
+    return _fetchFromNetwork(geocodingLocale);
   }
 
   Future<WeatherData?> _loadCache() async {
@@ -170,10 +192,14 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
     }
   }
 
-  Future<WeatherData> _fetchFromNetwork() async {
+  Future<WeatherData> _fetchFromNetwork(Locale geocodingLocale) async {
     final pos = await _getLocation();
     final raw = await _fetchWeatherApi(pos.latitude, pos.longitude);
-    final locationName = await _getLocationName(pos.latitude, pos.longitude);
+    final locationName = await _getLocationName(
+      pos.latitude,
+      pos.longitude,
+      geocodingLocale,
+    );
 
     final weeklyCodes = List<int>.from(raw['daily']['weathercode']);
     final weeklyHighs = List<double>.from(
@@ -198,6 +224,7 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
       weeklyHighs: weeklyHighs,
       weeklyLows: weeklyLows,
       timestamp: DateTime.now().millisecondsSinceEpoch,
+      locationLocale: geocodingLocale.toLanguageTag(),
     );
 
     final prefs = await SharedPreferences.getInstance();
@@ -235,19 +262,57 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
         'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon'
         '&daily=weathercode,temperature_2m_max,temperature_2m_min'
         '&current_weather=true&timezone=auto';
-    final res = await http.get(Uri.parse(url));
+    final res = await http
+        .get(Uri.parse(url))
+        .timeout(const Duration(seconds: 15));
     if (res.statusCode == 200) return json.decode(res.body);
     throw Exception('Failed to load weather');
   }
 
-  Future<String> _getLocationName(double lat, double lon) async {
-    final unknownLocation = _l10n().unknownLocation;
+  Future<String> _getLocationName(double lat, double lon, Locale locale) async {
+    return await _fetchLocationName(lat, lon, locale) ??
+        await _geocodeLocationName(lat, lon, locale) ??
+        lookupAppLocalizations(locale).unknownLocation;
+  }
+
+  // The platform geocoders ignore the requested locale (Android answers in
+  // the system language), so the name comes from an API that honours it.
+  Future<String?> _fetchLocationName(
+    double lat,
+    double lon,
+    Locale locale,
+  ) async {
     try {
-      final placemarks = await Geocoding().placemarkFromCoordinates(lat, lon);
-      if (placemarks.isNotEmpty) {
-        return placemarks.first.administrativeArea ?? unknownLocation;
-      }
+      final language = locale.languageCode == 'zh' ? 'zh-Hant' : 'en';
+      final res = await http
+          .get(
+            Uri.parse(
+              'https://api.bigdatacloud.net/data/reverse-geocode-client'
+              '?latitude=$lat&longitude=$lon&localityLanguage=$language',
+            ),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      final name = (json.decode(res.body) as Map)['principalSubdivision'];
+      return name is String && name.isNotEmpty ? name : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _geocodeLocationName(
+    double lat,
+    double lon,
+    Locale locale,
+  ) async {
+    try {
+      // The plugin sends `toString()` (`zh_TW`), which Android's
+      // Locale.forLanguageTag rejects.
+      final placemarks = await Geocoding(
+        locale: Locale(locale.toLanguageTag()),
+      ).placemarkFromCoordinates(lat, lon);
+      if (placemarks.isNotEmpty) return placemarks.first.administrativeArea;
     } catch (_) {}
-    return unknownLocation;
+    return null;
   }
 }

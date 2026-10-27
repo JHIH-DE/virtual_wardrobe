@@ -1575,6 +1575,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unknownLocation => 'Unknown Location';
 
   @override
+  String get homeHeaderDatePattern => 'EEEE, MMM d';
+
+  @override
   String get debugTools => 'Debug Tools';
 
   @override

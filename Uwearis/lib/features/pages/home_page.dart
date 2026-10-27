@@ -44,6 +44,7 @@ import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'today_outfit_page.dart';
 import 'trips_page.dart';
+import '../../core/utils/date_locale.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key, @visibleForTesting DateTime Function()? now})
@@ -383,7 +384,10 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Widget _buildHeader() {
     final weatherAsync = ref.watch(weatherProvider);
-    final dateStr = DateFormat('EEEE, MMM d').format(widget._now());
+    final dateStr = DateFormat(
+      AppLocalizations.of(context).homeHeaderDatePattern,
+      dateLocaleOf(context),
+    ).format(widget._now());
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,

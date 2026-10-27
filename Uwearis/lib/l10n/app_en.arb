@@ -631,6 +631,10 @@
   "googleLoginMissingToken": "Google login failed: missing ID token",
   "appleLoginMissingToken": "Apple login failed: missing ID token",
   "unknownLocation": "Unknown Location",
+  "homeHeaderDatePattern": "EEEE, MMM d",
+  "@homeHeaderDatePattern": {
+    "description": "intl DateFormat pattern for the Home header date, not display text"
+  },
 
   "debugTools": "Debug Tools",
   "debugToolsErrorDialogButton": "Show Backend Error Dialog",

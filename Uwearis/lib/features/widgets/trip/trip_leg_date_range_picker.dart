@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/utils/date_locale.dart';
 
 /// Date-range picker that disables days covered by [occupiedRanges]
 /// (e.g. another trip leg).
@@ -155,7 +156,7 @@ class _TripLegDateRangePickerDialogState
                   onPressed: () => _changeMonth(-1),
                 ),
                 Text(
-                  DateFormat('MMMM yyyy').format(_visibleMonth),
+                  DateFormat.yMMMM(dateLocaleOf(context)).format(_visibleMonth),
                   style: AppTextStyle.bold16,
                 ),
                 IconButton(

@@ -15,6 +15,7 @@ import '../../data/garment.dart';
 import '../../data/trip.dart';
 import '../../data/trip_plan.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/circle_icon_button.dart';
@@ -36,6 +37,7 @@ import '../widgets/trip/trip_day_card.dart';
 import '../widgets/trip/trip_legs_editor.dart';
 import 'outfit_edit_page.dart';
 import 'trip_suitcase_page.dart';
+import '../../core/utils/date_locale.dart';
 
 enum _TripMenuAction { editName, editLegs, delete }
 
@@ -697,7 +699,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           ),
           const SizedBox(height: AppDimens.sectionSpacing),
           _buildTripDaySelector(),
-          const SizedBox(height: AppDimens.sectionSpacing),
+          _paddedSection(
+            AppDivider(
+              topSpacing: AppDimens.sectionSpacing,
+              bottomSpacing: _selectedDayHasOption
+                  ? 8
+                  : AppDimens.sectionSpacing,
+            ),
+          ),
           _buildWardrobeSection(),
           if (_hasOutfitImage) ...[
             const SizedBox(height: AppDimens.sectionSpacing),
@@ -870,7 +879,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       children: [
         if (_selectedDayHasOption || _todayGarments.isNotEmpty) ...[
           _paddedSection(_buildOutfitItemsHeader()),
-          const SizedBox(height: AppDimens.cardHeaderGap),
+          SizedBox(height: _selectedDayHasOption ? 4 : AppDimens.cardHeaderGap),
         ],
         if (_todayGarments.isEmpty)
           Padding(
@@ -1037,8 +1046,8 @@ class _TripItineraryHeader extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                "${DateFormat('MMM d').format(trip.legs[i].dateRange.start)} - "
-                "${DateFormat('MMM d').format(trip.legs[i].dateRange.end)}",
+                "${DateFormat.MMMd(dateLocaleOf(context)).format(trip.legs[i].dateRange.start)} - "
+                "${DateFormat.MMMd(dateLocaleOf(context)).format(trip.legs[i].dateRange.end)}",
                 style: AppTextStyle.regular14.copyWith(
                   color: AppColors.textSecondary,
                 ),

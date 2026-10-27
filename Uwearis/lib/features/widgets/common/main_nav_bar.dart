@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -81,58 +79,38 @@ class _MainNavBarState extends State<MainNavBar> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: _centerButtonSize / 2),
-                  PhysicalShape(
+                  NavBarGlass(
                     clipper: const _NotchedBarClipper(
                       notchRadius: _notchRadius,
                     ),
-                    color: Colors.transparent,
-                    elevation: 8,
-                    shadowColor: AppColors.trueBlack,
-                    // PhysicalShape's clip doesn't confine a
-                    // BackdropFilter; without this ClipPath the blur covers
-                    // the whole screen.
-                    child: ClipPath(
-                      clipper: const _NotchedBarClipper(
-                        notchRadius: _notchRadius,
-                      ),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                        child: Container(
-                          color: AppColors.scrimBackdrop,
-                          child: Material(
-                            type: MaterialType.transparency,
-                            child: NavBarTabRow(
-                              children: [
-                                _tab(
-                                  MainTab.home,
-                                  activeIcon: Icons.home_rounded,
-                                  inactiveIcon: Icons.home_outlined,
-                                  label: l10n.navHome,
-                                ),
-                                _tab(
-                                  MainTab.closet,
-                                  activeIcon: Icons.checkroom_rounded,
-                                  inactiveIcon: Icons.checkroom_outlined,
-                                  label: l10n.navCloset,
-                                ),
-                                const SizedBox(width: _centerButtonSize),
-                                _tab(
-                                  MainTab.outfits,
-                                  activeIcon: Icons.style_rounded,
-                                  inactiveIcon: Icons.style_outlined,
-                                  label: l10n.navOutfits,
-                                ),
-                                _tab(
-                                  MainTab.tripPlanner,
-                                  activeIcon: Icons.luggage_rounded,
-                                  inactiveIcon: Icons.luggage_outlined,
-                                  label: l10n.navTrips,
-                                ),
-                              ],
-                            ),
-                          ),
+                    child: NavBarTabRow(
+                      children: [
+                        _tab(
+                          MainTab.home,
+                          activeIcon: Icons.home_rounded,
+                          inactiveIcon: Icons.home_outlined,
+                          label: l10n.navHome,
                         ),
-                      ),
+                        _tab(
+                          MainTab.closet,
+                          activeIcon: Icons.checkroom_rounded,
+                          inactiveIcon: Icons.checkroom_outlined,
+                          label: l10n.navCloset,
+                        ),
+                        const SizedBox(width: _centerButtonSize),
+                        _tab(
+                          MainTab.outfits,
+                          activeIcon: Icons.style_rounded,
+                          inactiveIcon: Icons.style_outlined,
+                          label: l10n.navOutfits,
+                        ),
+                        _tab(
+                          MainTab.tripPlanner,
+                          activeIcon: Icons.luggage_rounded,
+                          inactiveIcon: Icons.luggage_outlined,
+                          label: l10n.navTrips,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -206,12 +184,11 @@ class _MainNavBarState extends State<MainNavBar> {
           alignment: Alignment.bottomCenter,
           child: Padding(
             padding: const EdgeInsets.only(bottom: 100),
-            child: Material(
-              color: AppColors.scrimBackdrop,
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: const BorderSide(color: AppColors.dividerOnDark),
+            child: NavBarGlass(
+              clipper: const ShapeBorderClipper(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                ),
               ),
               child: IntrinsicWidth(
                 child: Column(
@@ -273,18 +250,18 @@ class _MainNavBarState extends State<MainNavBar> {
         decoration: showDivider
             ? const BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: AppColors.dividerOnDark, width: 1),
+                  bottom: BorderSide(color: AppColors.borderSubtle, width: 1),
                 ),
               )
             : null,
         child: Row(
           children: [
-            Icon(icon, size: 20, color: AppColors.textOnPrimary),
+            Icon(icon, size: 20, color: AppColors.icon),
             const SizedBox(width: 12),
             Text(
               label,
-              style: AppTextStyle.regular16.copyWith(
-                color: AppColors.textOnPrimary,
+              style: AppTextStyle.medium16.copyWith(
+                color: AppColors.textPrimary,
               ),
             ),
           ],

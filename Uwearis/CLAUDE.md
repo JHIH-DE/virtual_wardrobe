@@ -480,6 +480,7 @@ Known gaps between the current code and the rules above. Each is deliberately **
 - **Profile fetch / reference-image isolation**: `profileProvider` now fetches `/users/me` once through `getMyProfileData()` instead of three parallel calls to the same endpoint. Face/body signed-URL load failures stay card-local in the reference photos page (My Outfit Profile → Edit Photos) and offer the existing re-upload action; they do not fail the provider or erase the rest of the profile.
 - **Riverpod retry policy**: all current network-backed Future-based providers use the shared whitelist `appRetryPolicy` (max 3 retries / ~2.9s pure backoff). `AuthExpiredException`, 4xx, business errors, permission errors, unknown exceptions and Dart `Error`s do not retry; Style Taste and Trip Suitcase auth-expiry listener gaps were closed.
 - **`GarmentService.uploadImage` wrapper (former item 3)**: deleted; `garment_details_page.dart`'s add flow calls `putJpegToSignedUrl` directly like the other upload sites.
+- **Weather timeouts / place-name language (former item 8)**: `weather_provider.dart`'s Open-Meteo fetch now has a 15s `.timeout()`. The Home place name comes from BigDataCloud's `reverse-geocode-client` with `localityLanguage` (`en` / `zh-Hant`), falling back to the platform geocoder — both platform geocoders ignore a requested locale (Android also rejects the plugin's `zh_TW` tag), so the name followed the device language instead of the app's.
 - **`location_picker_page.dart` Chinese-search / debt items 8 & 9**: `_search`'s Open-Meteo request had no `language` param, so it only matched a place's English/default GeoNames name — any Chinese input (e.g. `東京`, `北京`) returned an empty result set, which read as "Chinese isn't supported." Fixed by passing `language=${Localizations.localeOf(context).languageCode}` (and `Uri.encodeQueryComponent` on the query text). In the same pass, the two items this file tracked individually are resolved: a `.timeout(const Duration(seconds: 15))` was added (former item 8, which now only covers `weather_provider.dart`), and `latitude`/`longitude` parsing switched to `(r['latitude'] as num).toDouble()` (former item 9, removed — `trip.dart`'s convention). Follow-up: Open-Meteo matches alternate names *exactly* (no CJK prefix/fuzzy match), and GeoNames' Chinese names are usually the full administrative form in one script (`台北市`, `臺中市`), so bare `台北` / `台中` still returned nothing. `_queryVariants` now fans CJK input out to the 台/臺 swap + a trailing `市`, merges by id and ranks by population (so `高雄` → 高雄市 TW, not the Sichuan village). Names with no GeoNames Chinese alias at all in any of those forms (e.g. `首爾`, `墾丁`) are still third-party data coverage.
 
 ### 1. `_l10n` getter not adopted in ~14 pages
@@ -526,13 +527,7 @@ Known gaps between the current code and the rules above. Each is deliberately **
 - **Deferred reason**: The consistency refactor was explicitly scoped to the Flutter frontend only.
 - **Trigger for revisiting**: A dedicated backend pass, driven from the backend repo — never from frontend work.
 
-### 8. Third-party HTTP calls without a timeout
-
-- **Scope**: One direct `package:http` call that doesn't go through `BaseService` (which always caps its own calls) has no `.timeout()`:
-  - `weather_provider.dart`'s Open-Meteo forecast fetch (`_fetchWeatherApi`).
-- **Risk**: Low-medium — if the third-party request stays pending, the provider can sit in a loading state indefinitely. The call doesn't touch auth or user data, and already has status/error handling around the response.
-- **Deferred reason**: Not on the `BaseService` path, so it needs its own timeout-UX decision (duration, error copy, retry) and its own test approach; outside the core service slice the consistency refactor covered.
-- **Trigger for revisiting**: Next time the weather integration is touched, or if a request-hang / stuck-loading bug is reported — add a `.timeout()` matching the project's 15s convention and test the post-timeout provider state.
+### 8. *(resolved — see Recently resolved above)*
 
 ### 9. `MatchLookService.uploadReference` logs a local image path
 

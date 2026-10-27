@@ -32,7 +32,9 @@ class CarouselDotsIndicator extends StatelessWidget {
                   width: isActive ? 18 : 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: isActive ? AppColors.accent : AppColors.borderSubtle,
+                    color: isActive
+                        ? AppColors.textSecondary
+                        : AppColors.borderSubtle,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 );

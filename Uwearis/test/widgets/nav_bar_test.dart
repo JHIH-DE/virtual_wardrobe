@@ -76,7 +76,7 @@ void _expectInsideStadium(
 
 /// The tap highlight sits the same distance from the bar's top and bottom.
 void _expectHighlightCentered(WidgetTester tester) {
-  final bar = tester.getRect(find.byType(PhysicalShape));
+  final bar = tester.getRect(find.byType(NavBarGlass));
   for (final e in find.byType(NavBarTab).evaluate()) {
     final ink = tester.getRect(
       find.descendant(
@@ -89,9 +89,9 @@ void _expectHighlightCentered(WidgetTester tester) {
   }
 }
 
-/// Icons, labels and the active marker stay clear of the round ends.
+/// Icons and labels stay clear of the round ends.
 void _expectNothingClipped(WidgetTester tester) {
-  final bar = tester.getRect(find.byType(PhysicalShape));
+  final bar = tester.getRect(find.byType(NavBarGlass));
   final tabs = find.byType(NavBarTab);
   for (final type in [Icon, Text]) {
     _expectInsideStadium(
@@ -100,13 +100,6 @@ void _expectNothingClipped(WidgetTester tester) {
       find.descendant(of: tabs, matching: find.byType(type)),
     );
   }
-  // The marker's outer corner may dip ~1px into the curve (it's rounded).
-  _expectInsideStadium(
-    tester,
-    bar,
-    find.descendant(of: tabs, matching: find.byType(AnimatedContainer)),
-    slack: 1.5,
-  );
 }
 
 Future<void> _pumpMain(WidgetTester tester, {MainTab current = MainTab.home}) =>

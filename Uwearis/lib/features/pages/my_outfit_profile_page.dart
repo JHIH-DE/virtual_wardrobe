@@ -45,7 +45,7 @@ class MyOutfitProfilePage extends ConsumerStatefulWidget {
 
 class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
     with BaseModelGenerationMixin {
-  static const double _previewAspectRatio = 4 / 5;
+  static const double _previewAspectRatio = 3 / 4;
 
   // The backend field is write-only (not in /users/me), so the last saved
   // value is cached locally.

@@ -29,7 +29,7 @@ class AppColors {
   static const Color textOnPrimary = Color(0xFFFFFFFF);
   static const Color hintText = Color(0xFF9C978C);
   static const Color icon = textPrimary;
-  // Unselected tab on the dark nav bar; between hintText and textSecondary.
+  // Unselected nav bar tab; between hintText and textSecondary.
   static const Color navBarInactive = Color(0xFF857F76);
 
   // Borders & dividers
@@ -42,7 +42,7 @@ class AppColors {
 
   // Stands out from the monochrome palette (nav center button, primary
   // dialog actions).
-  static const Color accent = Color(0xFF9966CC);
+  static const Color accent = Color(0xFF6455C8);
 
   // E.g. a selected filter chip's background.
   static const Color accentTint = Color(0x1F9966CC); // accent @12%
@@ -124,9 +124,6 @@ class AppColors {
   static const Color scrimBackdrop = Color(
     0xA6000000,
   ); // full-screen dark backdrop, black @65%
-  static const Color dividerOnDark = Color(
-    0x26FFFFFF,
-  ); // divider on dark surfaces (e.g. nav bar's quick-action menu), white @15%
   static const Color shadowSoft = Color(
     0x26000000,
   ); // soft drop shadow (e.g. a card corner badge), black @15%
@@ -142,6 +139,13 @@ class AppColors {
   static const Color surfaceTranslucentMedium = Color(
     0xA6FFFFFF,
   ); // white @65%, e.g. a badge sitting on top of a photo (slightly lighter than surfaceTranslucent)
+  // Nav bar frosted glass: a warm-grey sheen fading down over the blurred
+  // page, tinted so it stays distinct from white cards under it.
+  static const Color navBarGlassTop = Color(0xBFF7F5F2); // warm white @75%
+  static const Color navBarGlassBottom = Color(0xA6E9E5DF); // warm grey @65%
+  static const Color navBarGlassSheen = Color(0x73FFFFFF); // white @45%
+  static const Color navBarGlassHighlight = Color(0xE6FFFFFF); // white @90%
+  static const Color navBarGlassShade = Color(0x14000000); // black @8%
   // Toolbar action disc, modelled on iOS 26's glass bar buttons.
   static const Color actionDiscFillCenter = Color(0x80FFFFFF); // white @50%
   static const Color actionDiscFillEdge = Color(0x10FFFFFF); // white @6%

@@ -1500,6 +1500,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unknownLocation => '未知地點';
 
   @override
+  String get homeHeaderDatePattern => 'M月d日 EEEE';
+
+  @override
   String get debugTools => '测试工具';
 
   @override
@@ -3028,6 +3031,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get unknownLocation => '未知地點';
+
+  @override
+  String get homeHeaderDatePattern => 'M月d日 EEEE';
 
   @override
   String get debugTools => '測試工具';

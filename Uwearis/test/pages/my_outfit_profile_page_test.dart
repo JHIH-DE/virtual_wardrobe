@@ -499,7 +499,7 @@ void main() {
           expect(card.right - edit.right, lessThanOrEqualTo(16));
           expect(card.bottom - edit.bottom, lessThanOrEqualTo(8));
           if (withModel) {
-            expect(card.height, closeTo(card.width * 5 / 4, 1));
+            expect(card.height, closeTo(card.width * 4 / 3, 1));
           } else {
             final generate = find.ancestor(
               of: find.text(l10n.virtualModelGenerateAction),

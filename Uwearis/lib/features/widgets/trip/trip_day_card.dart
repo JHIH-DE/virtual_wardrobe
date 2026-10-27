@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/utils/date_locale.dart';
 
 /// One day's tile in Trip Details' horizontal day selector.
 class TripDayCard extends StatelessWidget {
@@ -33,10 +34,10 @@ class TripDayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(onTap: onTap, child: _buildCard());
+    return GestureDetector(onTap: onTap, child: _buildCard(context));
   }
 
-  Widget _buildCard() {
+  Widget _buildCard(BuildContext context) {
     return Container(
       width: 95,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
@@ -84,7 +85,7 @@ class TripDayCard extends StatelessWidget {
                 Container(width: 1, height: 24, color: AppColors.borderSubtle),
                 const SizedBox(width: 6),
                 Text(
-                  DateFormat('E').format(date),
+                  DateFormat.E(dateLocaleOf(context)).format(date),
                   style: AppTextStyle.bold14.copyWith(
                     color: AppColors.textPrimary,
                   ),

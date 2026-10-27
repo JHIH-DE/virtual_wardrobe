@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -6,7 +7,6 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 /// One tab of the frosted bottom nav bars ([MainNavBar], [ExploreNavBar]).
-/// Must sit flush with the bar's top edge so the active marker hangs from it.
 class NavBarTab extends StatelessWidget {
   final IconData activeIcon;
   final IconData inactiveIcon;
@@ -23,16 +23,13 @@ class NavBarTab extends StatelessWidget {
     required this.onTap,
   });
 
-  static const double _markerHeight = 5;
-  static const double _markerWidth = 24;
-
   /// From the tab's top edge to its icon's top.
   static const double _iconTop = 12;
 
   /// The gap between the tap highlight and the bar's top edge — and, via
   /// [NavBarTabRow], its bottom edge too, so the highlight is centered.
   static const double _highlightInset = 6;
-  static const double _horizontalPadding = 6;
+  static const double _horizontalPadding = 4;
   static const double _iconSize = 24;
   static const double _labelGap = 3;
 
@@ -40,7 +37,7 @@ class NavBarTab extends StatelessWidget {
   static const double _labelBottomPadding = 4;
 
   static TextStyle get _labelStyle =>
-      AppTextStyle.regular12.copyWith(fontWeight: FontWeight.w700);
+      AppTextStyle.regular13.copyWith(fontWeight: FontWeight.w700);
 
   /// This tab's height at [context]'s text scale.
   static double heightFor(BuildContext context) {
@@ -75,74 +72,45 @@ class NavBarTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? AppColors.textOnPrimary : AppColors.navBarInactive;
-    // The marker hangs from the bar's top edge, outside the tap highlight,
-    // which starts [_highlightInset] below it.
+    final color = isActive ? AppColors.accent : AppColors.navBarInactive;
     return Semantics(
       selected: isActive,
       button: true,
-      child: Stack(
-        // Keeps the row's width for the tab, so the highlight fills it.
-        fit: StackFit.passthrough,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: _highlightInset),
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  _horizontalPadding,
-                  _iconTop - _highlightInset,
-                  _horizontalPadding,
-                  _labelBottomPadding,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isActive ? activeIcon : inactiveIcon,
-                      color: color,
-                      size: _iconSize,
-                    ),
-                    const SizedBox(height: _labelGap),
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyle.regular12.copyWith(
-                        color: color,
-                        fontWeight: isActive
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: _highlightInset),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              _horizontalPadding,
+              _iconTop - _highlightInset,
+              _horizontalPadding,
+              _labelBottomPadding,
             ),
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-                width: isActive ? _markerWidth : 0,
-                height: _markerHeight,
-                decoration: const BoxDecoration(
-                  color: AppColors.accent,
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.circular(_markerHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isActive ? activeIcon : inactiveIcon,
+                  color: color,
+                  size: _iconSize,
+                ),
+                const SizedBox(height: _labelGap),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyle.regular13.copyWith(
+                    color: color,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -150,8 +118,7 @@ class NavBarTab extends StatelessWidget {
 
 /// The content of a round-ended nav bar: its [NavBarTab]s (plus any
 /// fixed-width [SizedBox] gap), evenly spaced, with each end inset just
-/// enough that the outer tab's active marker (which hangs from the bar's top
-/// edge) stays on the straight part of the outline, clear of the curve.
+/// enough that the outer tab's icon and label stay clear of the curve.
 ///
 /// Every tab gets the same width — [tabWidth], or more when enlarged text
 /// needs it — as long as that still fits every label whole. When it can't
@@ -161,10 +128,6 @@ class NavBarTab extends StatelessWidget {
 class NavBarTabRow extends StatelessWidget {
   /// Fits the widest current label (為你推薦) at the default text size.
   static const double tabWidth = 60;
-
-  /// How far the marker may reach into the curve: at 8px the curve has
-  /// dropped only ~1px, under the marker's own rounded corner.
-  static const double _markerCurveOverlap = 8;
 
   final List<Widget> children;
 
@@ -189,13 +152,11 @@ class NavBarTabRow extends StatelessWidget {
     final iconTopCurve = curveAt(radius - NavBarTab._iconTop);
 
     // The inset an outer tab [w] wide (natural width [natural]) needs so its
-    // centered marker, icon and label clear the curve. The marker may reach
-    // [_markerCurveOverlap] past where the curve starts.
+    // centered icon and label clear the curve.
     double endInset(double w, double natural) {
       final label = natural - 2 * NavBarTab._horizontalPadding;
       return [
         0.0,
-        radius - _markerCurveOverlap - (w - NavBarTab._markerWidth) / 2,
         iconTopCurve - (w - NavBarTab._iconSize) / 2,
         labelBottomCurve - (w - math.min(label, w)) / 2,
       ].reduce(math.max);
@@ -273,4 +234,141 @@ class NavBarTabRow extends StatelessWidget {
       },
     );
   }
+}
+
+/// The frosted-glass surface of the bottom nav bars and [MainNavBar]'s
+/// quick-action menu, in [clipper]'s outline: blurred page behind a tinted
+/// fill with a top sheen, a lit top edge and shaded bottom edge for
+/// thickness, a hairline rim, and a soft shadow.
+class NavBarGlass extends StatelessWidget {
+  final CustomClipper<Path> clipper;
+  final Widget child;
+
+  const NavBarGlass({super.key, required this.clipper, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _NavBarGlassShadowPainter(clipper),
+      foregroundPainter: _NavBarGlassRimPainter(clipper),
+      child: ClipPath(
+        clipper: clipper,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [AppColors.navBarGlassTop, AppColors.navBarGlassBottom],
+              ),
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.navBarGlassSheen,
+                    AppColors.navBarGlassSheen.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.5],
+                ),
+              ),
+              child: Material(type: MaterialType.transparency, child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Paints only outside the outline: an elevation shadow would show through
+/// the translucent glass and grey it.
+class _NavBarGlassShadowPainter extends CustomPainter {
+  final CustomClipper<Path> clipper;
+
+  const _NavBarGlassShadowPainter(this.clipper);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outline = clipper.getClip(size);
+    final outside = Path.combine(
+      PathOperation.difference,
+      Path()..addRect((Offset.zero & size).inflate(48)),
+      outline,
+    );
+    canvas
+      ..save()
+      ..clipPath(outside)
+      ..drawPath(
+        outline.shift(const Offset(0, 6)),
+        Paint()
+          ..color = AppColors.shadowResting
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
+      )
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_NavBarGlassShadowPainter oldDelegate) =>
+      oldDelegate.clipper != clipper;
+}
+
+class _NavBarGlassRimPainter extends CustomPainter {
+  final CustomClipper<Path> clipper;
+
+  const _NavBarGlassRimPainter(this.clipper);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outline = clipper.getClip(size);
+    final bounds = Offset.zero & size;
+    // Clipped to the outline, so only the inner half of each stroke shows.
+    Paint innerEdge(List<Color> colors, List<double> stops) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: colors,
+        stops: stops,
+      ).createShader(bounds);
+    canvas
+      ..save()
+      ..clipPath(outline)
+      ..drawPath(
+        outline,
+        innerEdge(
+          [
+            AppColors.navBarGlassHighlight,
+            AppColors.navBarGlassHighlight.withValues(alpha: 0),
+          ],
+          const [0, 0.5],
+        ),
+      )
+      ..drawPath(
+        outline,
+        innerEdge(
+          [
+            AppColors.navBarGlassShade.withValues(alpha: 0),
+            AppColors.navBarGlassShade,
+          ],
+          const [0.5, 1],
+        ),
+      )
+      ..restore()
+      ..drawPath(
+        outline,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = AppColors.borderSubtle,
+      );
+  }
+
+  @override
+  bool shouldRepaint(_NavBarGlassRimPainter oldDelegate) =>
+      oldDelegate.clipper != clipper;
 }

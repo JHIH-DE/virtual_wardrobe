@@ -3015,6 +3015,12 @@ abstract class AppLocalizations {
   /// **'Unknown Location'**
   String get unknownLocation;
 
+  /// intl DateFormat pattern for the Home header date, not display text
+  ///
+  /// In en, this message translates to:
+  /// **'EEEE, MMM d'**
+  String get homeHeaderDatePattern;
+
   /// No description provided for @debugTools.
   ///
   /// In en, this message translates to:

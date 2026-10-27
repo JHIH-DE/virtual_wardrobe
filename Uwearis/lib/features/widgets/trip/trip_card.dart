@@ -11,6 +11,7 @@ import '../common/buttons/circle_icon_button.dart';
 import '../common/overlays/app_dialog.dart';
 import '../common/overlays/text_input_dialog.dart';
 import '../common/section_title.dart';
+import '../../../core/utils/date_locale.dart';
 
 enum _TripCardAction { editName, delete }
 
@@ -31,9 +32,10 @@ class TripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final dateLocale = dateLocaleOf(context);
     final dateStr =
-        "${DateFormat('MMM d').format(trip.dateRange.start)} - "
-        "${DateFormat('MMM d, yyyy').format(trip.dateRange.end)}";
+        "${DateFormat.MMMd(dateLocale).format(trip.dateRange.start)} - "
+        "${DateFormat.yMMMd(dateLocale).format(trip.dateRange.end)}";
 
     return Container(
       clipBehavior: Clip.antiAlias,
