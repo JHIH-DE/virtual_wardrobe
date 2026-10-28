@@ -14,6 +14,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/main_tab_async.dart';
+import '../widgets/common/overlays/ai_consent_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
@@ -48,6 +49,7 @@ Future<void> handleCreateTrip(
   WidgetRef ref, {
   VoidCallback? onCreated,
 }) async {
+  if (!await ensureAiConsent(context) || !context.mounted) return;
   final l10n = AppLocalizations.of(context);
   // Captured up front: `context` may be gone after the awaits, and the
   // loading overlay must be popped from the navigator showDialog used.
@@ -186,6 +188,8 @@ Future<void> openTripDetails(
   Trip trip, {
   required MainTab tab,
 }) async {
+  // Trip Details' load runs the AI packing analysis when none exists yet.
+  if (!await ensureAiConsent(context) || !context.mounted) return;
   final l10n = AppLocalizations.of(context);
   final cached = ref.read(tripDetailProvider(int.parse(trip.id)));
   final needsLoad = !cached.hasValue || cached.hasError;

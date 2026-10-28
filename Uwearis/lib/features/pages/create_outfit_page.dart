@@ -37,6 +37,7 @@ import '../widgets/common/cards/category_tag.dart';
 import '../widgets/common/field_label.dart';
 import '../widgets/common/fields/number_stepper.dart';
 import '../widgets/common/images/dashed_border_painter.dart';
+import '../widgets/common/overlays/ai_consent_dialog.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
@@ -466,6 +467,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   }
 
   Future<void> _runMatchALook(String imagePath) async {
+    if (!await ensureAiConsent(context) || !mounted) return;
     setState(() => _matchALookStatus = _MatchALookStatus.analyzing);
     try {
       // Two calls: upload/analyze the reference, then match the closet
@@ -597,6 +599,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     if (_tryOnRequested || isOutfitLoading || _isCompletingWithAi) return;
     setState(() => _tryOnRequested = true);
     try {
+      if (!await ensureAiConsent(context) || !mounted) return;
       final ids = _selectedGarmentIds();
       if (ids.isEmpty) return;
 
@@ -646,6 +649,17 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     resetTryOnState();
     if (saved == true) {
       showFeedbackOverlay(context, message: _l10n.outfitSaved);
+    }
+  }
+
+  /// Leaves mid-render; [TryOnMixin] discards the result when it lands (it
+  /// still counts toward the daily quota).
+  void _cancelRender() {
+    final onBack = widget.onBack;
+    if (onBack != null) {
+      onBack();
+    } else {
+      Navigator.pop(context);
     }
   }
 
@@ -710,6 +724,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
               label: _isVersionMode
                   ? _l10n.generatingEllipsis
                   : _l10n.creatingOutfitsEllipsis,
+              actionLabel: _l10n.cancel,
+              onAction: _cancelRender,
             ),
           ),
         if (_garmentPoolLoading)
@@ -1400,6 +1416,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   /// Picks garments only — no try-on image (that's [_startTryOn]).
   Future<void> _completeWithAi() async {
     if (_isCompletingWithAi) return;
+    if (!await ensureAiConsent(context)) return;
+    if (!mounted || _isCompletingWithAi) return;
     setState(() => _isCompletingWithAi = true);
     try {
       // null lets the backend decide.

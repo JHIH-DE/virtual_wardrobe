@@ -237,6 +237,30 @@ abstract class AppLocalizations {
   /// **'The required file is no longer available. Please upload it again or try again.'**
   String get fileNotFound;
 
+  /// 429 DAILY_GENERATION_LIMIT_EXCEEDED; {time} is the local HH:mm the quota resets
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used all of today\'s AI try-ons. Your limit resets at {time}.'**
+  String dailyGenerationLimitReached(String time);
+
+  /// No description provided for @errorNoConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Check your connection and try again.'**
+  String get errorNoConnection;
+
+  /// No description provided for @errorTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please wait a moment and try again.'**
+  String get errorTooManyRequests;
+
+  /// Generate timed out; {action} is the createOutfit button label
+  ///
+  /// In en, this message translates to:
+  /// **'This is taking longer than usual and may still be in progress. Tap {action} again in a moment — if it has finished, you\'ll see the result without generating another.'**
+  String tryOnStillRendering(String action);
+
   /// No description provided for @facePhotoLoadFailedTitle.
   ///
   /// In en, this message translates to:
@@ -2805,11 +2829,89 @@ abstract class AppLocalizations {
   /// **'Your AI stylist, every day'**
   String get loginTagline;
 
-  /// No description provided for @loginTermsNotice.
+  /// Login footer; {terms} and {privacy} are tappable links (termsOfService / privacyPolicy)
   ///
   /// In en, this message translates to:
-  /// **'By continuing, you agree to our Terms of Service and Privacy Policy.'**
-  String get loginTermsNotice;
+  /// **'By continuing, you agree to our {terms} and {privacy}.'**
+  String loginTermsNotice(String terms, String privacy);
+
+  /// No description provided for @termsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @contactSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Support'**
+  String get contactSupport;
+
+  /// No description provided for @helpAndLegal.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & Legal'**
+  String get helpAndLegal;
+
+  /// No description provided for @appVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String appVersionLabel(String version);
+
+  /// No description provided for @supportEmailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Uwearis Support'**
+  String get supportEmailSubject;
+
+  /// Pre-filled support email body; diagnostics below the line help support find the user's crash reports
+  ///
+  /// In en, this message translates to:
+  /// **'Please describe the issue above this line.\n\n---\nApp version: {version}\nDevice: {device}\nUser ID: {userId}'**
+  String supportEmailBody(String version, String device, String userId);
+
+  /// No description provided for @openLinkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the page. Please try again later.'**
+  String get openLinkFailed;
+
+  /// No description provided for @supportEmailCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open Mail. Our support address {email} has been copied — paste it into any email app.'**
+  String supportEmailCopied(String email);
+
+  /// Third-party AI data disclosure (App Review 5.1.2(i)); must list every kind of data sent to Gemini
+  ///
+  /// In en, this message translates to:
+  /// **'How AI Features Use Your Data'**
+  String get aiConsentTitle;
+
+  /// {provider} is AppConfig.aiProviderName
+  ///
+  /// In en, this message translates to:
+  /// **'To analyze your clothing, create try-on images and plan outfits, Uwearis sends the photos you add (clothing, body and face reference photos, and Match a Look photos) and related details (clothing info, height and weight, temperature preference, and trip destinations, dates and weather) to a third-party AI service provider (currently {provider}) for processing. You can delete your photos or your account in the app at any time.'**
+  String aiConsentBody(String provider);
+
+  /// No description provided for @aiConsentAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and Continue'**
+  String get aiConsentAgree;
+
+  /// No description provided for @aiConsentDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Now'**
+  String get aiConsentDecline;
 
   /// No description provided for @continueWithApple.
   ///

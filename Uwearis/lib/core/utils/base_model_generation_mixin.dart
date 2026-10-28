@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/widgets/common/overlays/ai_consent_dialog.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../features/widgets/common/overlays/error_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -63,6 +64,7 @@ mixin BaseModelGenerationMixin<T extends ConsumerStatefulWidget>
         );
         if (ok != true || !mounted) return false;
       }
+      if (!await ensureAiConsent(context) || !mounted) return false;
 
       setState(() => generatingBaseModel = true);
       final url = await ref.read(generateBaseModelProvider)();

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -18,6 +19,7 @@ import '../../core/services/auth_storage.dart';
 import '../../core/utils/api_error_text.dart';
 import '../../core/utils/crash_handler.dart';
 import '../../core/utils/debug_log.dart';
+import '../../core/utils/external_links.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 
@@ -270,7 +272,7 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 15),
           _buildFacebookButton(),
           const SizedBox(height: 20),
-          _buildTermsNotice(),
+          const _TermsNotice(),
           const SizedBox(height: 12),
           _buildCopyrightText(),
         ],
@@ -365,19 +367,74 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTermsNotice() {
-    return Text(
-      _l10n.loginTermsNotice,
-      textAlign: TextAlign.center,
-      style: AppTextStyle.regular12.copyWith(color: AppColors.textSecondary),
-    );
-  }
-
   Widget _buildCopyrightText() {
     return Text(
       _l10n.copyrightText,
       textAlign: TextAlign.center,
       style: AppTextStyle.regular12.copyWith(color: AppColors.hintText),
+    );
+  }
+}
+
+/// The sign-in consent line, with Terms / Privacy as in-app links.
+class _TermsNotice extends StatefulWidget {
+  const _TermsNotice();
+
+  @override
+  State<_TermsNotice> createState() => _TermsNoticeState();
+}
+
+class _TermsNoticeState extends State<_TermsNotice> {
+  late final _termsTap = TapGestureRecognizer()
+    ..onTap = () => openTermsOfService(context);
+  late final _privacyTap = TapGestureRecognizer()
+    ..onTap = () => openPrivacyPolicy(context);
+
+  @override
+  void dispose() {
+    _termsTap.dispose();
+    _privacyTap.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    // Sentinels stand in for the links so each locale keeps its own order.
+    const termsMark = '\u0001';
+    const privacyMark = '\u0002';
+    final template = l10n.loginTermsNotice(termsMark, privacyMark);
+    final base = AppTextStyle.regular12.copyWith(
+      color: AppColors.textSecondary,
+    );
+    final link = base.copyWith(
+      color: AppColors.textPrimary,
+      decoration: TextDecoration.underline,
+    );
+
+    final spans = <InlineSpan>[];
+    var last = 0;
+    for (final m in RegExp('[$termsMark$privacyMark]').allMatches(template)) {
+      if (m.start > last) {
+        spans.add(TextSpan(text: template.substring(last, m.start)));
+      }
+      final isTerms = m.group(0) == termsMark;
+      spans.add(
+        TextSpan(
+          text: isTerms ? l10n.termsOfService : l10n.privacyPolicy,
+          style: link,
+          recognizer: isTerms ? _termsTap : _privacyTap,
+        ),
+      );
+      last = m.end;
+    }
+    if (last < template.length) {
+      spans.add(TextSpan(text: template.substring(last)));
+    }
+    return Text.rich(
+      TextSpan(children: spans),
+      style: base,
+      textAlign: TextAlign.center,
     );
   }
 }

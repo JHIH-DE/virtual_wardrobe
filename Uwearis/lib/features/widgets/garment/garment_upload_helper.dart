@@ -7,6 +7,7 @@ import '../../../data/garment.dart';
 import '../../../data/image_edit_result.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/garment_details_page.dart';
+import '../common/overlays/ai_consent_dialog.dart';
 import '../common/overlays/app_dialog.dart';
 import '../common/overlays/feedback_overlay.dart';
 import '../common/overlays/loading_overlay.dart';
@@ -94,6 +95,7 @@ class GarmentUploadHelper {
     // Captured up front: the overlay must be popped from the navigator
     // showDialog pushed it onto, and `context` may be stale after the await.
     final navigator = Navigator.of(context, rootNavigator: true);
+    if (!await ensureAiConsent(context)) return null;
 
     while (true) {
       if (!context.mounted) return null;

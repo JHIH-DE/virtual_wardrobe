@@ -8,7 +8,7 @@ import '../../../../app/theme/app_text_styles.dart';
 /// same grey fill + hint label as a disabled [ActionButton] primary.
 ///
 /// The tap target is padded to [AppDimens.minTouchTarget] beyond the
-/// 28px (toolbar: 32px) pill, since several call sites are AI triggers.
+/// [pillHeight] pill, since several call sites are AI triggers.
 ///
 /// [disabledMessage] shows above a disabled pill; inline variant only, as
 /// it's taller than a toolbar slot.
@@ -18,6 +18,9 @@ class AccentPillButton extends StatelessWidget {
   final bool enabled;
   final AccentPillButtonVariant variant;
   final String? disabledMessage;
+
+  /// Visible pill height at default text scale (both variants).
+  static const double pillHeight = 36;
 
   const AccentPillButton({
     super.key,
@@ -42,8 +45,8 @@ class AccentPillButton extends StatelessWidget {
         backgroundColor: background,
         disabledForegroundColor: foreground,
         disabledBackgroundColor: background,
-        minimumSize: Size(0, onToolbar ? 32 : 28),
-        padding: EdgeInsets.symmetric(horizontal: onToolbar ? 14 : 12),
+        minimumSize: const Size(0, pillHeight),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
       ),

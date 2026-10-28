@@ -5,7 +5,8 @@ import '../../../../app/theme/app_dimens.dart';
 
 /// The translucent disc behind a toolbar / page-sheet header action glyph.
 /// Visual only — [ActionDiscButton] adds the tap target. Size the [child]
-/// glyph to [iconSize].
+/// glyph to [iconSize]. A child wider than the disc (a label) stretches it
+/// into a pill of the same height and finish.
 class ActionDisc extends StatelessWidget {
   static const double size = 40;
   static const double iconSize = 22;
@@ -13,6 +14,9 @@ class ActionDisc extends StatelessWidget {
   /// How far a [AppDimens.toolbarHeight] tap box sits from the screen /
   /// sheet edge so its disc lands 20 from that edge, as on iOS.
   static const double edgeInset = 20 - (AppDimens.toolbarHeight - size) / 2;
+
+  // A circle at [size] x [size]; the ends of a wider pill.
+  static const _radius = BorderRadius.all(Radius.circular(size / 2));
 
   final Widget child;
 
@@ -23,10 +27,13 @@ class ActionDisc extends StatelessWidget {
     return CustomPaint(
       painter: const _OuterShadowPainter(),
       child: Container(
-        width: size,
-        height: size,
+        constraints: const BoxConstraints(
+          minWidth: size,
+          minHeight: size,
+          maxHeight: size,
+        ),
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
+          borderRadius: _radius,
           gradient: const RadialGradient(
             colors: [
               AppColors.actionDiscFillCenter,
@@ -54,7 +61,7 @@ class ActionDisc extends StatelessWidget {
                 ).createShader(bounds),
                 child: Container(
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                    borderRadius: _radius,
                     border: Border.all(color: AppColors.surface),
                   ),
                 ),
@@ -75,7 +82,13 @@ class _OuterShadowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final circle = Path()..addOval(Offset.zero & size);
+    final circle = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          Radius.circular(size.height / 2),
+        ),
+      );
     canvas
       ..save()
       ..clipPath(

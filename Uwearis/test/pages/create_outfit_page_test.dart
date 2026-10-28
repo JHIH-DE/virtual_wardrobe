@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -699,6 +700,74 @@ void main() {
       expect(find.text('Fitting Room'), findsNothing);
     },
   );
+
+  testWidgets('cancelling mid-render leaves at once and discards the result '
+      'when it lands', (tester) async {
+    useTallSurface(tester);
+    final pending = Completer<http.Response>();
+    final deleted = <String>[];
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      if (request.method == 'POST' && path.endsWith('/outfit')) {
+        return jsonResponse(envelope({'group_id': 42}));
+      }
+      if (request.method == 'POST' && path.endsWith('/generate')) {
+        return pending.future;
+      }
+      if (request.method == 'DELETE') {
+        deleted.add(path);
+        return jsonResponse(envelope(null));
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CreateOutfitPage(initialGarments: closet),
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+        overrides: closetOverride(closet),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(CreateOutfitPage), findsNothing);
+      expect(deleted, isEmpty, reason: 'the render is still running');
+
+      pending.complete(
+        jsonResponse(
+          envelope({
+            'outfit_id': 99,
+            'group_id': 42,
+            'result_image_url': 'https://img.example/outfit.png',
+            'garment_ids': [1, 2, 3],
+          }),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(deleted, [contains('/outfit/42')]);
+    }, () => client);
+  });
 
   testWidgets(
     'an accessory survives the round trip through Create Outfit and back',

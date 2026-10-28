@@ -118,6 +118,7 @@ class OutfitService with BaseService {
     String type = 'general',
     int? backgroundId,
     bool isFavorite = false,
+    String? idempotencyKey,
   }) async {
     groupId ??= await createGroup(type: type);
     debugLog(
@@ -132,7 +133,11 @@ class OutfitService with BaseService {
     };
     final res = await withAuth(
       (token) => http
-          .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
+          .post(
+            uri,
+            headers: _withIdempotencyKey(authHeaders(token), idempotencyKey),
+            body: jsonEncode(payload),
+          )
           // Synchronous AI render; backend rate-limit retries can stack.
           .timeout(const Duration(seconds: 90)),
     );
@@ -151,6 +156,7 @@ class OutfitService with BaseService {
     int groupId,
     int outfitId, {
     int? backgroundId,
+    String? idempotencyKey,
   }) async {
     debugLog(
       '--- regenerateOutfit: groupId=$groupId outfitId=$outfitId '
@@ -160,7 +166,11 @@ class OutfitService with BaseService {
     final payload = <String, dynamic>{'background_id': ?backgroundId};
     final res = await withAuth(
       (token) => http
-          .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
+          .post(
+            uri,
+            headers: _withIdempotencyKey(authHeaders(token), idempotencyKey),
+            body: jsonEncode(payload),
+          )
           // Synchronous AI render; backend rate-limit retries can stack.
           .timeout(const Duration(seconds: 90)),
     );
@@ -237,8 +247,13 @@ class OutfitService with BaseService {
 
   /// Every version in [groupId]. Served from [_groupCache] unless an image
   /// URL has expired.
-  Future<List<Outfit>> getGroupOutfits(int groupId) async {
-    final cached = _groupCache[groupId];
+  /// [forceRefresh] skips the cache, e.g. to see whether a render that timed
+  /// out on the client has since landed.
+  Future<List<Outfit>> getGroupOutfits(
+    int groupId, {
+    bool forceRefresh = false,
+  }) async {
+    final cached = forceRefresh ? null : _groupCache[groupId];
     if (cached != null && !anySignedUrlExpired(cached.map((o) => o.imageUrl))) {
       return cached;
     }
@@ -342,4 +357,11 @@ class OutfitService with BaseService {
   /// Session boundary only (logout / session expiry), so the next user
   /// can't see the previous user's cached groups.
   void clearGroupCache() => _groupCache.clear();
+
+  /// Backend dedupe for generate/regenerate retries (same key = same
+  /// render); unknown headers are ignored until the backend supports it.
+  Map<String, String> _withIdempotencyKey(
+    Map<String, String> headers,
+    String? key,
+  ) => key == null ? headers : {...headers, 'Idempotency-Key': key};
 }

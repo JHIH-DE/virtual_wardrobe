@@ -82,12 +82,19 @@ class _AppDialogState extends State<AppDialog> {
                 style: AppTextStyle.bold20,
               ),
               SizedBox(height: widget.titleSpacing),
-              widget.content ??
-                  Text(
-                    widget.body!,
-                    textAlign: TextAlign.center,
-                    style: AppTextStyle.medium16,
-                  ),
+              // Scrolls when long (enlarged text, a full disclosure) so the
+              // buttons below always stay on screen.
+              Flexible(
+                child: SingleChildScrollView(
+                  child:
+                      widget.content ??
+                      Text(
+                        widget.body!,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyle.medium16,
+                      ),
+                ),
+              ),
               SizedBox(height: widget.contentToPrimarySpacing),
               widget.primaryIsTextButton
                   ? TextButton(

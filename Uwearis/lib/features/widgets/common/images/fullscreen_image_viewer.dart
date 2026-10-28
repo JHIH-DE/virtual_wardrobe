@@ -11,17 +11,32 @@ Future<void> showFullscreenImage(
   String? cacheKey,
   Future<String?> Function()? onRefreshUrl,
 }) {
+  return showFullscreenImageWidget(
+    context,
+    image: RefreshableNetworkImage(
+      imageUrl: imageUrl,
+      cacheKey: cacheKey,
+      fit: BoxFit.cover,
+      onRefreshUrl: onRefreshUrl,
+    ),
+  );
+}
+
+/// [showFullscreenImage] for an image that isn't a plain network URL (e.g.
+/// a garment's local file in add mode). [image] fills the screen.
+Future<void> showFullscreenImageWidget(
+  BuildContext context, {
+  required Widget image,
+  Color backgroundColor = Colors.black,
+}) {
   return Navigator.push(
     context,
     PageRouteBuilder(
       opaque: true,
       transitionDuration: const Duration(milliseconds: 200),
       reverseTransitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, _, _) => _FullscreenImagePage(
-        imageUrl: imageUrl,
-        cacheKey: cacheKey,
-        onRefreshUrl: onRefreshUrl,
-      ),
+      pageBuilder: (_, _, _) =>
+          _FullscreenImagePage(image: image, backgroundColor: backgroundColor),
       transitionsBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
     ),
@@ -30,32 +45,23 @@ Future<void> showFullscreenImage(
 
 class _FullscreenImagePage extends StatelessWidget {
   const _FullscreenImagePage({
-    required this.imageUrl,
-    required this.cacheKey,
-    required this.onRefreshUrl,
+    required this.image,
+    required this.backgroundColor,
   });
 
-  final String imageUrl;
-  final String? cacheKey;
-  final Future<String?> Function()? onRefreshUrl;
+  final Widget image;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: backgroundColor,
         body: InteractiveViewer(
           minScale: 1,
           maxScale: 4,
-          child: SizedBox.expand(
-            child: RefreshableNetworkImage(
-              imageUrl: imageUrl,
-              cacheKey: cacheKey,
-              fit: BoxFit.cover,
-              onRefreshUrl: onRefreshUrl,
-            ),
-          ),
+          child: SizedBox.expand(child: image),
         ),
       ),
     );

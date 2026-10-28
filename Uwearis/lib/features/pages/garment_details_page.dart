@@ -28,6 +28,8 @@ import '../widgets/common/fields/labeled_field.dart';
 import '../widgets/common/fields/picker_field.dart';
 import '../widgets/common/fields/tappable_field_decorator.dart';
 import '../widgets/common/images/app_spinner.dart';
+import '../widgets/common/images/fullscreen_image_viewer.dart';
+import '../widgets/common/overlays/ai_consent_dialog.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/auto_save_prompts.dart';
 import '../widgets/common/overlays/error_dialog.dart';
@@ -881,6 +883,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   Future<void> _runAIAnalysis(String imagePath) async {
     if (!mounted || imagePath.startsWith('http')) return;
+    if (!await ensureAiConsent(context) || !mounted) return;
     setState(() => _isAnalyzing = true);
     try {
       final result = await GarmentService().analyzeGarment(imagePath);
@@ -905,6 +908,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// preview against the current form fields.
   Future<void> _runClosetAnalysis() async {
     if (_isAnalyzingCloset.value) return;
+    if (!await ensureAiConsent(context)) return;
+    if (!mounted || _isAnalyzingCloset.value) return;
     _isAnalyzingCloset.value = true;
     _closetAnalysisError.value = null;
     try {
@@ -986,6 +991,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   /// failure only shows a dialog and leaves the result and cache intact.
   Future<void> _refreshClosetAnalysis() async {
     if (_isRefreshingAnalysis.value || _closetAnalysis.value == null) return;
+    if (!await ensureAiConsent(context)) return;
+    if (!mounted || _isRefreshingAnalysis.value) return;
     _isRefreshingAnalysis.value = true;
     try {
       final id = _id;
@@ -1009,8 +1016,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   /// Starts the first run on open if there's no result yet. Closing the
   /// sheet mid-run doesn't cancel it.
-  void _openClosetAnalysisSheet() {
-    if (_closetAnalysis.value == null) _runClosetAnalysis();
+  Future<void> _openClosetAnalysisSheet() async {
+    if (_closetAnalysis.value == null) {
+      // Asked before the sheet opens, so declining leaves no empty sheet.
+      if (!await ensureAiConsent(context) || !mounted) return;
+      _runClosetAnalysis();
+    }
     pageSheet<void>(
       context,
       title: _l10n.closetMatch,
@@ -1244,17 +1255,32 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               aspectRatio: 1.1,
               // Not Image.network: it decodes while streaming, which can
               // render a torn frame on a flaky connection.
-              child: GarmentImage(
-                url: img,
-                garmentId: _id,
-                fit: BoxFit.contain,
+              child: GestureDetector(
+                onTap: img == null || img.isEmpty
+                    ? null
+                    : () => showFullscreenImageWidget(
+                        context,
+                        // Cut-out garments are transparent; black would hide
+                        // dark clothing.
+                        backgroundColor: AppColors.surface,
+                        image: GarmentImage(
+                          url: img,
+                          garmentId: _id,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                child: GarmentImage(
+                  url: img,
+                  garmentId: _id,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
           ),
         ),
         Positioned(
           left: 12,
-          bottom: 4,
+          bottom: 8,
           child: AccentPillButton(
             label: _l10n.viewMatch,
             onPressed: _openClosetAnalysisSheet,

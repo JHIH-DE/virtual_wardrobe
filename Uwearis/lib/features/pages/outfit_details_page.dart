@@ -14,6 +14,7 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/outfit_service.dart';
 import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
+import '../../core/utils/idempotency_key.dart';
 import '../../core/utils/image_cache_bust.dart';
 import '../../core/utils/outfit_garments.dart';
 import '../../data/garment.dart';
@@ -27,6 +28,7 @@ import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
 import '../widgets/common/images/fullscreen_image_viewer.dart';
 import '../widgets/common/images/refreshable_network_image.dart';
+import '../widgets/common/overlays/ai_consent_dialog.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/feedback_overlay.dart';
@@ -560,6 +562,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       ),
     );
     if (ok != true || !mounted) return;
+    if (!await ensureAiConsent(context) || !mounted || _isRegenerating) return;
 
     final target = _current;
     final index = _currentIndex;
@@ -568,6 +571,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       final outfit = await OutfitService().regenerateOutfit(
         target.groupId,
         target.id,
+        idempotencyKey: newIdempotencyKey(),
       );
       if (!mounted) return;
       setState(() => _versions[index] = outfit);
@@ -646,7 +650,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                 if (!_isRegenerating && _canAddVersion)
                   Positioned(
                     left: 12,
-                    bottom: 4,
+                    bottom: 8,
                     child: AccentPillButton(
                       label: _l10n.addVersionButton,
                       enabled: !_isAddingVersion,

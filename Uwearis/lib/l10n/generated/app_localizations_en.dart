@@ -84,6 +84,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'The required file is no longer available. Please upload it again or try again.';
 
   @override
+  String dailyGenerationLimitReached(String time) {
+    return 'You\'ve used all of today\'s AI try-ons. Your limit resets at $time.';
+  }
+
+  @override
+  String get errorNoConnection =>
+      'No internet connection. Check your connection and try again.';
+
+  @override
+  String get errorTooManyRequests =>
+      'Too many requests. Please wait a moment and try again.';
+
+  @override
+  String tryOnStillRendering(String action) {
+    return 'This is taking longer than usual and may still be in progress. Tap $action again in a moment — if it has finished, you\'ll see the result without generating another.';
+  }
+
+  @override
   String get facePhotoLoadFailedTitle => 'Face photo unavailable';
 
   @override
@@ -1463,8 +1481,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginTagline => 'Your AI stylist, every day';
 
   @override
-  String get loginTermsNotice =>
-      'By continuing, you agree to our Terms of Service and Privacy Policy.';
+  String loginTermsNotice(String terms, String privacy) {
+    return 'By continuing, you agree to our $terms and $privacy.';
+  }
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get contactSupport => 'Contact Support';
+
+  @override
+  String get helpAndLegal => 'Help & Legal';
+
+  @override
+  String appVersionLabel(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get supportEmailSubject => 'Uwearis Support';
+
+  @override
+  String supportEmailBody(String version, String device, String userId) {
+    return 'Please describe the issue above this line.\n\n---\nApp version: $version\nDevice: $device\nUser ID: $userId';
+  }
+
+  @override
+  String get openLinkFailed =>
+      'Couldn\'t open the page. Please try again later.';
+
+  @override
+  String supportEmailCopied(String email) {
+    return 'Couldn\'t open Mail. Our support address $email has been copied — paste it into any email app.';
+  }
+
+  @override
+  String get aiConsentTitle => 'How AI Features Use Your Data';
+
+  @override
+  String aiConsentBody(String provider) {
+    return 'To analyze your clothing, create try-on images and plan outfits, Uwearis sends the photos you add (clothing, body and face reference photos, and Match a Look photos) and related details (clothing info, height and weight, temperature preference, and trip destinations, dates and weather) to a third-party AI service provider (currently $provider) for processing. You can delete your photos or your account in the app at any time.';
+  }
+
+  @override
+  String get aiConsentAgree => 'Agree and Continue';
+
+  @override
+  String get aiConsentDecline => 'Not Now';
 
   @override
   String get continueWithApple => 'Continue with Apple';

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
+import 'api_exception.dart';
 import 'base_service.dart';
 
 class AuthService with BaseService {
@@ -21,6 +22,17 @@ class AuthService with BaseService {
           )
           .timeout(const Duration(seconds: 15)),
     );
+  }
+
+  /// A 401 from a login endpoint means the provider token was rejected, not
+  /// that a session expired — [decodeMap] would raise AuthExpiredException.
+  Map<String, dynamic> _decodeLogin(http.Response res, {required String op}) {
+    if (res.statusCode == 401) {
+      final rejected = ApiException.fromResponse(res);
+      debugLog('$op rejected: 401 error_code=${rejected.errorCode}');
+      throw rejected;
+    }
+    return decodeMap(res, op: op);
   }
 
   ({String accessToken, String refreshToken}) _tokenPair(
@@ -47,7 +59,7 @@ class AuthService with BaseService {
     debugLog('--- loginWithGoogleIdToken ---');
     final res = await _postJson('/google', {'id_token': idToken});
     return _tokenPair(
-      decodeMap(res, op: 'loginWithGoogle'),
+      _decodeLogin(res, op: 'loginWithGoogle'),
       label: 'Google login',
     );
   }
@@ -64,7 +76,7 @@ class AuthService with BaseService {
       if (name != null && name.isNotEmpty) 'name': name,
     });
     return _tokenPair(
-      decodeMap(res, op: 'loginWithApple'),
+      _decodeLogin(res, op: 'loginWithApple'),
       label: 'Apple login',
     );
   }
@@ -76,7 +88,7 @@ class AuthService with BaseService {
     debugLog('--- loginWithFacebookAccessToken ---');
     final res = await _postJson('/facebook', {'access_token': accessToken});
     return _tokenPair(
-      decodeMap(res, op: 'loginWithFacebook'),
+      _decodeLogin(res, op: 'loginWithFacebook'),
       label: 'Facebook login',
     );
   }

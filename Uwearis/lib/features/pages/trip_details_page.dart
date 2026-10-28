@@ -10,6 +10,7 @@ import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
+import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/trip.dart';
@@ -241,7 +242,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       } catch (e) {
         debugLog('Failed to replan trip: $e');
         if (mounted) {
-          showErrorDialog(context, message: _l10n.failedToGeneratePlan);
+          showErrorDialog(
+            context,
+            message: apiErrorMessage(
+              _l10n,
+              e,
+              fallback: _l10n.failedToGeneratePlan,
+            ),
+          );
         }
       } finally {
         if (mounted) setState(() => _replanningPlan = false);
@@ -323,7 +331,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       } catch (e) {
         debugLog('Failed to generate day outfit: $e');
         if (mounted) {
-          showErrorDialog(context, message: _l10n.failedToGenerateOutfit);
+          showErrorDialog(
+            context,
+            message: apiErrorMessage(
+              _l10n,
+              e,
+              fallback: _l10n.failedToGenerateOutfit,
+            ),
+          );
         }
       } finally {
         if (mounted) setState(() => _generatingOutfit = false);

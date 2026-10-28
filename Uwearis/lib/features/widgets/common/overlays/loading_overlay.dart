@@ -3,16 +3,29 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../buttons/action_disc_button.dart';
 
 /// Full-screen blocking overlay for long AI/generation waits. Brief reads
 /// should use `AppSpinner`: this one makes short waits feel slower.
 class LoadingOverlay extends StatefulWidget {
   final String label;
 
-  const LoadingOverlay({super.key, required this.label});
+  /// An optional way out under the spinner (e.g. cancel a long render): the
+  /// overlay covers the toolbar, so its back button can't be reached.
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const LoadingOverlay({
+    super.key,
+    required this.label,
+    this.actionLabel,
+    this.onAction,
+  }) : assert((actionLabel == null) == (onAction == null));
 
   @override
   State<LoadingOverlay> createState() => _LoadingOverlayState();
@@ -53,6 +66,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
       color: AppColors.accent,
       decoration: TextDecoration.none,
     );
+    final hasAction = widget.actionLabel != null;
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
       child: Container(
@@ -63,6 +77,10 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Balances the action below, so the spinner stays where every
+            // other overlay has it.
+            if (hasAction)
+              const SizedBox(height: _actionGap + AppDimens.toolbarHeight),
             const _SpokeSpinner(size: 90),
             const SizedBox(height: 4),
             // Hidden dots are painted transparent so the width never jitters.
@@ -82,7 +100,59 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+            if (hasAction) ...[
+              const SizedBox(height: _actionGap),
+              _buildAction(),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  static const double _actionGap = 24;
+
+  /// Same disc finish and tap box as a toolbar ActionDiscButton.
+  Widget _buildAction() {
+    // Sits above the page's Scaffold, so the ink needs its own Material.
+    return Material(
+      type: MaterialType.transparency,
+      child: Semantics(
+        button: true,
+        child: InkWell(
+          onTap: widget.onAction,
+          customBorder: const StadiumBorder(),
+          child: SizedBox(
+            height: AppDimens.toolbarHeight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: (AppDimens.toolbarHeight - ActionDisc.size) / 2,
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: ActionDisc(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.actionLabel!,
+                          style: AppTextStyle.semibold14,
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          LucideIcons400.x,
+                          size: 16,
+                          color: AppColors.icon,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

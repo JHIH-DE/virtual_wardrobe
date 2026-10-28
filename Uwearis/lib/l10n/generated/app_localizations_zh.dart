@@ -78,6 +78,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileNotFound => '所需文件已不存在，请重新上传或再试一次。';
 
   @override
+  String dailyGenerationLimitReached(String time) {
+    return '今天的 AI 试穿次数已经用完，将在 $time 重置。';
+  }
+
+  @override
+  String get errorNoConnection => '目前没有网络连接，请检查网络后重试。';
+
+  @override
+  String get errorTooManyRequests => '操作过于频繁，请稍等一下再试。';
+
+  @override
+  String tryOnStillRendering(String action) {
+    return '这次生成比平常久，可能还在处理中。稍等一下再按一次「$action」；如果已经完成，会直接显示结果，不会再生成一次。';
+  }
+
+  @override
   String get facePhotoLoadFailedTitle => '脸部照片无法加载';
 
   @override
@@ -1395,7 +1411,56 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginTagline => '你的每日 AI 穿搭师';
 
   @override
-  String get loginTermsNotice => '继续即表示你同意我们的服务条款和隐私政策。';
+  String loginTermsNotice(String terms, String privacy) {
+    return '继续即表示你同意我们的$terms和$privacy。';
+  }
+
+  @override
+  String get termsOfService => '服务条款';
+
+  @override
+  String get privacyPolicy => '隐私政策';
+
+  @override
+  String get contactSupport => '联系客服';
+
+  @override
+  String get helpAndLegal => '帮助与法律信息';
+
+  @override
+  String appVersionLabel(String version) {
+    return '版本 $version';
+  }
+
+  @override
+  String get supportEmailSubject => 'Uwearis 客服';
+
+  @override
+  String supportEmailBody(String version, String device, String userId) {
+    return '请在这行上方描述你遇到的问题。\n\n---\nApp 版本：$version\n设备：$device\n用户 ID：$userId';
+  }
+
+  @override
+  String get openLinkFailed => '无法打开页面，请稍后再试。';
+
+  @override
+  String supportEmailCopied(String email) {
+    return '无法打开邮件 App。已复制客服邮箱 $email，请粘贴到任意邮件 App 给我们发邮件。';
+  }
+
+  @override
+  String get aiConsentTitle => 'AI 功能的数据使用说明';
+
+  @override
+  String aiConsentBody(String provider) {
+    return '为了分析衣物、生成试穿图和规划穿搭，Uwearis 会把你提供的照片（衣物照、身形与脸部参考照、Match a Look 参考照）以及相关数据（衣物信息、身高体重、温度偏好、行程的地点、日期与天气）发送给第三方 AI 服务供应商（目前为 $provider）处理。你可以随时在 App 里删除照片或账号。';
+  }
+
+  @override
+  String get aiConsentAgree => '同意并继续';
+
+  @override
+  String get aiConsentDecline => '暂不使用';
 
   @override
   String get continueWithApple => '使用 Apple 繼續';
@@ -1622,6 +1687,22 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get fileNotFound => '所需的檔案已不存在，請重新上傳或再試一次。';
+
+  @override
+  String dailyGenerationLimitReached(String time) {
+    return '今天的 AI 試穿次數已經用完，將在 $time 重置。';
+  }
+
+  @override
+  String get errorNoConnection => '目前沒有網路連線，請確認網路後再試一次。';
+
+  @override
+  String get errorTooManyRequests => '操作太頻繁了，請稍等一下再試。';
+
+  @override
+  String tryOnStillRendering(String action) {
+    return '這次生成比平常久，可能還在處理中。稍等一下再按一次「$action」；如果已經完成，會直接顯示結果，不會再生成一次。';
+  }
 
   @override
   String get facePhotoLoadFailedTitle => '臉部照片無法載入';
@@ -2941,7 +3022,56 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loginTagline => '你的每日 AI 穿搭師';
 
   @override
-  String get loginTermsNotice => '繼續即表示你同意我們的服務條款與隱私權政策。';
+  String loginTermsNotice(String terms, String privacy) {
+    return '繼續即表示你同意我們的$terms與$privacy。';
+  }
+
+  @override
+  String get termsOfService => '服務條款';
+
+  @override
+  String get privacyPolicy => '隱私權政策';
+
+  @override
+  String get contactSupport => '聯絡客服';
+
+  @override
+  String get helpAndLegal => '說明與法律資訊';
+
+  @override
+  String appVersionLabel(String version) {
+    return '版本 $version';
+  }
+
+  @override
+  String get supportEmailSubject => 'Uwearis 客服';
+
+  @override
+  String supportEmailBody(String version, String device, String userId) {
+    return '請在這行上方描述你遇到的問題。\n\n---\nApp 版本：$version\n裝置：$device\n使用者 ID：$userId';
+  }
+
+  @override
+  String get openLinkFailed => '無法開啟頁面，請稍後再試。';
+
+  @override
+  String supportEmailCopied(String email) {
+    return '無法開啟郵件 App。已複製客服信箱 $email，請貼到任何郵件 App 寄信給我們。';
+  }
+
+  @override
+  String get aiConsentTitle => 'AI 功能的資料使用說明';
+
+  @override
+  String aiConsentBody(String provider) {
+    return '為了分析衣物、生成試穿圖和規劃穿搭，Uwearis 會把你提供的照片（衣物照、身形與臉部參考照、Match a Look 參考照）以及相關資料（衣物資訊、身高體重、溫度偏好、行程的地點、日期與天氣）傳送給第三方 AI 服務供應商（目前為 $provider）處理。你可以隨時在 App 裡刪除照片或帳號。';
+  }
+
+  @override
+  String get aiConsentAgree => '同意並繼續';
+
+  @override
+  String get aiConsentDecline => '暫不使用';
 
   @override
   String get continueWithApple => '使用 Apple 繼續';

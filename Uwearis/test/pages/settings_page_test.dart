@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/services/garment_service.dart';
+import 'package:uwearis/core/utils/ai_consent.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/style_taste_page.dart';
 import 'package:uwearis/features/widgets/common/profile_avatar.dart';
@@ -248,5 +250,56 @@ void main() {
         expect(avatar.ringColor, color);
       });
     }
+  });
+
+  group('Help & Legal', () {
+    setUp(() {
+      PackageInfo.setMockInitialValues(
+        appName: 'Uwearis',
+        packageName: 'com.uwearis.app',
+        version: '1.0.0',
+        buildNumber: '16',
+        buildSignature: '',
+      );
+    });
+
+    testWidgets('the card shows the app version and opens the three links', (
+      tester,
+    ) async {
+      await runWithProfile(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const SettingsPage());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Help & Legal'), findsOneWidget);
+        expect(find.text('Version 1.0.0 (16)'), findsOneWidget);
+
+        await tester.tap(find.text('Help & Legal'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Privacy Policy'), findsOneWidget);
+        expect(find.text('Terms of Service'), findsOneWidget);
+        expect(find.text('Contact Support'), findsOneWidget);
+      });
+    });
+  });
+
+  testWidgets('declining AI consent keeps Style Taste closed', (tester) async {
+    AiConsent.debugGrantedOverride = false;
+    addTearDown(() => AiConsent.debugGrantedOverride = true);
+    await runWithProfile(() async {
+      useTallSurface(tester);
+      await pumpApp(tester, const SettingsPage());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Style Taste'));
+      await tester.pumpAndSettle();
+      expect(find.text('How AI Features Use Your Data'), findsOneWidget);
+
+      await tester.tap(find.text('Not Now'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StyleTastePage), findsNothing);
+      expect(find.byType(SettingsPage), findsOneWidget);
+    });
   });
 }

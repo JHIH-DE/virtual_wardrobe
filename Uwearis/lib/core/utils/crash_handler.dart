@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -10,6 +9,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/generated/app_localizations_zh.dart';
+import '../services/auth_storage.dart';
 import 'debug_log.dart';
 
 class GlobalErrorHandler {
@@ -44,25 +44,10 @@ class GlobalErrorHandler {
     if (!_reporting) return;
     try {
       await FirebaseCrashlytics.instance.setUserIdentifier(
-        userIdFromToken(accessToken) ?? '',
+        AuthStorage.userIdFromToken(accessToken) ?? '',
       );
     } catch (e) {
       debugLog('setReportingUser failed: $e');
-    }
-  }
-
-  @visibleForTesting
-  static String? userIdFromToken(String? token) {
-    final parts = token?.split('.');
-    if (parts == null || parts.length != 3) return null;
-    try {
-      final payload = jsonDecode(
-        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
-      );
-      final sub = payload is Map ? payload['sub'] : null;
-      return sub?.toString();
-    } catch (_) {
-      return null;
     }
   }
 

@@ -23,6 +23,7 @@ import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/images/app_image.dart';
 import '../widgets/common/images/app_spinner.dart';
+import '../widgets/common/overlays/ai_consent_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
@@ -210,6 +211,8 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
     setState(() => slot.busy = true);
     String? localOriginalPath;
     try {
+      // Asked before picking: these photos exist only to be sent to the AI.
+      if (!await ensureAiConsent(context) || !mounted) return;
       final data = ref.read(profileProvider).value;
       final committedUrl = _resolvedUrl(_committedUrlOf(kind, data));
 

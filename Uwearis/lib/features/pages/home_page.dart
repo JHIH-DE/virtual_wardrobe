@@ -40,6 +40,7 @@ import 'account_page.dart';
 import 'create_outfit_page.dart';
 import 'explore_page.dart';
 import 'garment_details_page.dart';
+import 'my_outfit_profile_page.dart';
 import 'outfit_details_page.dart';
 import 'settings_page.dart';
 import 'today_outfit_page.dart';
@@ -288,6 +289,7 @@ class _HomePageState extends ConsumerState<HomePage>
             hasShoes: _hasShoes,
             hasCreatedOutfit: _hasCreatedOutfit,
             onGetStarted: _openAccountPageForOnboarding,
+            onSetUpVirtualModel: _openMyOutfitProfile,
             onAddClothing: _addGarment,
             onCreateOutfit: _openAddOutfit,
           ),
@@ -303,6 +305,13 @@ class _HomePageState extends ConsumerState<HomePage>
       MaterialPageRoute(
         builder: (_) => const AccountPage(completingOnboarding: true),
       ),
+    );
+  }
+
+  void _openMyOutfitProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MyOutfitProfilePage()),
     );
   }
 

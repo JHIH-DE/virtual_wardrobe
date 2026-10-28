@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
+import 'package:uwearis/core/services/api_exception.dart';
 import 'package:uwearis/core/services/auth_service.dart';
 
 const _base = '${AppConfig.baseUrl}${AppConfig.apiPath}/auth';
@@ -193,5 +194,29 @@ void main() {
       expect(captured.url.toString(), '$_base/logout');
       expect(jsonDecode(captured.body), {'refresh_token': 'some-refresh'});
     });
+  });
+
+  test('a rejected provider token (401) is an ApiException, not an '
+      'expired session', () async {
+    final client = MockClient(
+      (_) async => _jsonResponse({
+        'success': false,
+        'message': 'bad token',
+        'data': null,
+        'error_code': 'INVALID_APPLE_TOKEN',
+      }, status: 401),
+    );
+
+    await expectLater(
+      http.runWithClient(
+        () => AuthService().loginWithAppleIdToken('id-token'),
+        () => client,
+      ),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.statusCode, 'statusCode', 401)
+            .having((e) => e.errorCode, 'errorCode', 'INVALID_APPLE_TOKEN'),
+      ),
+    );
   });
 }

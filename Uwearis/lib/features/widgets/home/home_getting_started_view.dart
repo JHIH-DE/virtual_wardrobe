@@ -30,6 +30,9 @@ class HomeGettingStartedView extends StatelessWidget {
   /// Profile for the two reference photos.
   final VoidCallback onGetStarted;
 
+  /// Opens My Outfit Profile directly once About You is already done.
+  final VoidCallback onSetUpVirtualModel;
+
   final VoidCallback onAddClothing;
   final VoidCallback onCreateOutfit;
 
@@ -43,6 +46,7 @@ class HomeGettingStartedView extends StatelessWidget {
     required this.hasShoes,
     required this.hasCreatedOutfit,
     required this.onGetStarted,
+    required this.onSetUpVirtualModel,
     required this.onAddClothing,
     required this.onCreateOutfit,
   });
@@ -50,11 +54,12 @@ class HomeGettingStartedView extends StatelessWidget {
   static const double _cardPadding = 20;
   static const double _rowGap = 16;
 
-  /// [AccentPillButton]'s 44px tap box extends 8px past its 28px pill on
-  /// each side; subtracted so the visible gaps match [_cardPadding].
-  static const double _pillTapInset = 8;
+  /// [AccentPillButton]'s tap box extends past its pill on each side;
+  /// subtracted so the visible gaps match [_cardPadding].
+  static const double _pillTapInset =
+      (AppDimens.minTouchTarget - AccentPillButton.pillHeight) / 2;
 
-  bool get _profileReady => hasAboutYou && hasProfilePhoto && hasFullBodyPhoto;
+  bool get _virtualModelReady => hasProfilePhoto && hasFullBodyPhoto;
   bool get _closetReady => hasTop && hasBottom && hasShoes;
 
   @override
@@ -99,7 +104,7 @@ class HomeGettingStartedView extends StatelessWidget {
           const SizedBox(height: _rowGap),
           _ChecklistRow(
             label: l10n.myVirtualModelTitle,
-            done: hasProfilePhoto && hasFullBodyPhoto,
+            done: _virtualModelReady,
           ),
           const SizedBox(height: _rowGap),
           _ChecklistRow(
@@ -131,8 +136,10 @@ class HomeGettingStartedView extends StatelessWidget {
   /// One CTA that targets whichever step is next.
   Widget _buildCtaButton(AppLocalizations l10n) {
     final VoidCallback onPressed;
-    if (!_profileReady) {
+    if (!hasAboutYou) {
       onPressed = onGetStarted;
+    } else if (!_virtualModelReady) {
+      onPressed = onSetUpVirtualModel;
     } else if (!_closetReady) {
       onPressed = onAddClothing;
     } else {

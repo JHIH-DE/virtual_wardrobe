@@ -1563,6 +1563,55 @@ void main() {
       });
     });
   });
+
+  testWidgets('tapping the garment photo opens it full-screen with pinch '
+      'zoom on a light backdrop; tapping again closes it', (tester) async {
+    const withPhoto = Garment(
+      id: 7002,
+      name: 'Oxford Shirt',
+      category: GarmentCategory.top,
+      subCategory: 'Shirt',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: 'https://example.com/shirt.png',
+    );
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const GarmentDetailsPage(initialGarment: withPhoto),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byType(GarmentImage));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      final viewer = find.byType(InteractiveViewer);
+      expect(viewer, findsOneWidget);
+      expect(
+        tester
+            .widget<Scaffold>(
+              find.ancestor(of: viewer, matching: find.byType(Scaffold)).first,
+            )
+            .backgroundColor,
+        AppColors.surface,
+      );
+      expect(
+        tester
+            .widget<GarmentImage>(
+              find.descendant(of: viewer, matching: find.byType(GarmentImage)),
+            )
+            .url,
+        'https://example.com/shirt.png',
+      );
+
+      await tester.tap(viewer);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(InteractiveViewer), findsNothing);
+    }, () => _garmentBackend(withPhoto, []));
+  });
 }
 
 /// Records every garment PATCH body and answers with [garment] (or a 500

@@ -22,6 +22,7 @@ void main() {
             hasShoes: false,
             hasCreatedOutfit: false,
             onGetStarted: () {},
+            onSetUpVirtualModel: () {},
             onAddClothing: () {},
             onCreateOutfit: () {},
           ),
@@ -44,8 +45,8 @@ void main() {
   );
 
   testWidgets('once About You is done the CTA switches to Next, even though My '
-      'Virtual Model is still pending, and tapping it opens the profile '
-      'step\'s first sub-step', (tester) async {
+      'Virtual Model is still pending, and tapping it skips straight to My '
+      'Virtual Model', (tester) async {
     var opened = false;
     await pumpApp(
       tester,
@@ -58,7 +59,8 @@ void main() {
           hasBottom: false,
           hasShoes: false,
           hasCreatedOutfit: false,
-          onGetStarted: () => opened = true,
+          onGetStarted: () => fail('About You is already done'),
+          onSetUpVirtualModel: () => opened = true,
           onAddClothing: () {},
           onCreateOutfit: () {},
         ),
@@ -71,7 +73,7 @@ void main() {
     expect(find.text('Get Started'), findsNothing);
     expect(find.text('Next'), findsOneWidget);
 
-    // Profile step still isn't done, so "Next" opens its first sub-step.
+    // About You is done, so "Next" goes to the first unchecked step.
     await tester.tap(find.text('Next'));
     expect(opened, isTrue);
   });
@@ -93,6 +95,7 @@ void main() {
             hasShoes: false,
             hasCreatedOutfit: false,
             onGetStarted: () {},
+            onSetUpVirtualModel: () {},
             onAddClothing: () {},
             onCreateOutfit: () {},
           ),
@@ -123,6 +126,7 @@ void main() {
             hasShoes: false,
             hasCreatedOutfit: false,
             onGetStarted: () {},
+            onSetUpVirtualModel: () {},
             onAddClothing: () => addClothingTapped = true,
             onCreateOutfit: () {},
           ),
@@ -157,6 +161,7 @@ void main() {
             hasShoes: false,
             hasCreatedOutfit: false,
             onGetStarted: () {},
+            onSetUpVirtualModel: () {},
             onAddClothing: () {},
             onCreateOutfit: () {},
           ),
@@ -186,6 +191,7 @@ void main() {
             hasShoes: true,
             hasCreatedOutfit: false,
             onGetStarted: () {},
+            onSetUpVirtualModel: () {},
             onAddClothing: () {},
             onCreateOutfit: () => createOutfitTapped = true,
           ),
@@ -219,6 +225,7 @@ void main() {
             hasShoes: false,
             hasCreatedOutfit: true,
             onGetStarted: () {},
+            onSetUpVirtualModel: () {},
             onAddClothing: () {},
             onCreateOutfit: () {},
           ),
