@@ -10,7 +10,7 @@ void main() {
   // runZonedGuarded catches anything GlobalErrorHandler's hooks don't.
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    GlobalErrorHandler.initialize();
+    await GlobalErrorHandler.initialize();
     runApp(const ProviderScope(child: App()));
   }, GlobalErrorHandler.onZoneError);
 }

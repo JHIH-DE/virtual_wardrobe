@@ -3057,6 +3057,30 @@ abstract class AppLocalizations {
   /// **'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale'**
   String get debugToolsComponentGallerySummary;
 
+  /// No description provided for @debugToolsTestDartError.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Test Error'**
+  String get debugToolsTestDartError;
+
+  /// No description provided for @debugToolsTestDartErrorSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Throws an uncaught Dart exception — appears in Crashlytics on next launch (non-debug builds only)'**
+  String get debugToolsTestDartErrorSummary;
+
+  /// No description provided for @debugToolsTestNativeCrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Force Native Crash'**
+  String get debugToolsTestNativeCrash;
+
+  /// No description provided for @debugToolsTestNativeCrashSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Closes the app immediately to test crash symbolication'**
+  String get debugToolsTestNativeCrashSummary;
+
   /// No description provided for @createOutfitMissingItemsTitle.
   ///
   /// In en, this message translates to:

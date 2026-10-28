@@ -24,17 +24,17 @@ class NavBarTab extends StatelessWidget {
   });
 
   /// From the tab's top edge to its icon's top.
-  static const double _iconTop = 12;
+  static const double _iconTop = 9;
 
   /// The gap between the tap highlight and the bar's top edge — and, via
   /// [NavBarTabRow], its bottom edge too, so the highlight is centered.
   static const double _highlightInset = 6;
   static const double _horizontalPadding = 4;
-  static const double _iconSize = 24;
+  static const double _iconSize = 28;
   static const double _labelGap = 3;
 
   /// Under the label.
-  static const double _labelBottomPadding = 4;
+  static const double _labelBottomPadding = 1;
 
   static TextStyle get _labelStyle =>
       AppTextStyle.regular13.copyWith(fontWeight: FontWeight.w700);

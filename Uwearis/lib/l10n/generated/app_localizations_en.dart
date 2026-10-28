@@ -1599,6 +1599,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale';
 
   @override
+  String get debugToolsTestDartError => 'Send Test Error';
+
+  @override
+  String get debugToolsTestDartErrorSummary =>
+      'Throws an uncaught Dart exception — appears in Crashlytics on next launch (non-debug builds only)';
+
+  @override
+  String get debugToolsTestNativeCrash => 'Force Native Crash';
+
+  @override
+  String get debugToolsTestNativeCrashSummary =>
+      'Closes the app immediately to test crash symbolication';
+
+  @override
   String get createOutfitMissingItemsTitle => 'Missing Items';
 
   @override

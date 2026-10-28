@@ -138,6 +138,9 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
   // their `locationLocale` says.
   static const String _cacheKey = 'cached_weather_v2';
 
+  late Locale _locale;
+  bool _refreshInFlight = false;
+
   // No BuildContext here: the language override, else the device locale.
   AppLocalizations _l10n() {
     final locale =
@@ -156,29 +159,40 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
 
   @override
   Future<WeatherData> build() async {
-    final geocodingLocale = _geocodingLocale();
+    _locale = _geocodingLocale();
     final cached = await _loadCache();
 
     if (cached != null && cached.hasWeeklyData) {
-      if (cached.locationLocale != geocodingLocale.toLanguageTag()) {
+      if (cached.locationLocale != _locale.toLanguageTag()) {
         try {
-          return await _fetchFromNetwork(geocodingLocale);
+          return await _fetchFromNetwork(_locale);
         } catch (_) {
           return cached;
         }
       }
-      if (cached.isStale) {
-        Future.microtask(() async {
-          try {
-            final fresh = await _fetchFromNetwork(geocodingLocale);
-            state = AsyncData(fresh);
-          } catch (_) {}
-        });
-      }
+      // A Future, not a microtask: runs once build's value is in state.
+      if (cached.isStale) Future(refreshIfStale);
       return cached;
     }
 
-    return _fetchFromNetwork(geocodingLocale);
+    return _fetchFromNetwork(_locale);
+  }
+
+  /// Background refresh once the reading is stale (or failed): the old
+  /// reading stays on screen meanwhile and if the fetch fails.
+  Future<void> refreshIfStale() async {
+    if (_refreshInFlight || state.isLoading) return;
+    final current = state.value;
+    if (current != null && !current.isStale) return;
+    _refreshInFlight = true;
+    try {
+      final fresh = await _fetchFromNetwork(_locale);
+      // A locale change rebuilt the provider meanwhile; its own fetch wins.
+      if (ref.mounted) state = AsyncData(fresh);
+    } catch (_) {
+    } finally {
+      _refreshInFlight = false;
+    }
   }
 
   Future<WeatherData?> _loadCache() async {

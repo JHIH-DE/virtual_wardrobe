@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/locale_provider.dart';
 import '../core/services/auth_storage.dart';
+import '../core/utils/crash_handler.dart';
 import '../core/utils/route_observer.dart';
 import '../features/pages/login_page.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
@@ -17,6 +18,7 @@ class App extends ConsumerWidget {
   Future<Widget> _bootstrap() async {
     final token = await AuthStorage.getAccessToken();
     if (token != null && token.isNotEmpty) {
+      await GlobalErrorHandler.setReportingUser(token);
       return const MainShell();
     }
     return const LoginPage();

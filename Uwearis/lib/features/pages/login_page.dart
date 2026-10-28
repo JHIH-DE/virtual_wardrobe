@@ -15,6 +15,7 @@ import '../../core/services/auth_handler.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/auth_storage.dart';
 import '../../core/utils/api_error_text.dart';
+import '../../core/utils/crash_handler.dart';
 import '../../core/utils/debug_log.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/overlays/error_dialog.dart';
@@ -46,6 +47,9 @@ class _LoginPageState extends State<LoginPage> {
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   Future<void> _goHome() async {
+    await GlobalErrorHandler.setReportingUser(
+      await AuthStorage.getAccessToken(),
+    );
     if (!mounted) return;
     // Here, not at logout — see invalidateSignedInProviders.
     invalidateSignedInProviders(context);

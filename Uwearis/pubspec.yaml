@@ -51,8 +51,10 @@ dependencies:
   meta: ^1.16.0
   lucide_icons_flutter: ^4.0.0
   flutter_svg: ^2.3.0
-
-
+  # Held on the 4.x / 5.x line: FlutterFire 5.x / 6.x pull firebase-ios-sdk
+  # 13, which refuses to build below Xcode 26.2. Bump together once Xcode is.
+  firebase_core: ^4.15.2
+  firebase_crashlytics: ^5.4.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

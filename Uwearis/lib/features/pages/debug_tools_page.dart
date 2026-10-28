@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
@@ -9,8 +10,8 @@ import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import 'component_gallery_page.dart';
 
-/// Debug-only previews of hard-to-trigger UI states; reachable from Settings
-/// only when [kDebugMode] is true.
+/// Previews of hard-to-trigger UI states and crash-reporting checks; reachable
+/// from Settings only when built with `ENABLE_DEBUG_TOOLS=true`.
 class DebugToolsPage extends StatelessWidget {
   const DebugToolsPage({super.key});
 
@@ -47,6 +48,34 @@ class DebugToolsPage extends StatelessWidget {
             summary: l10n.debugToolsComponentGallerySummary,
             child: Text(
               l10n.debugToolsComponentGallery,
+              style: AppTextStyle.bold16,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sectionSpacing),
+          AppListCard(
+            onTap: () => Future<void>.microtask(
+              () => throw StateError('Crashlytics test error'),
+            ),
+            leading: const Icon(
+              Icons.bug_report_outlined,
+              color: AppColors.icon,
+            ),
+            summary: l10n.debugToolsTestDartErrorSummary,
+            child: Text(
+              l10n.debugToolsTestDartError,
+              style: AppTextStyle.bold16,
+            ),
+          ),
+          const SizedBox(height: AppDimens.sectionSpacing),
+          AppListCard(
+            onTap: () => FirebaseCrashlytics.instance.crash(),
+            leading: const Icon(
+              Icons.warning_amber_outlined,
+              color: AppColors.icon,
+            ),
+            summary: l10n.debugToolsTestNativeCrashSummary,
+            child: Text(
+              l10n.debugToolsTestNativeCrash,
               style: AppTextStyle.bold16,
             ),
           ),

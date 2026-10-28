@@ -1522,6 +1522,19 @@ class AppLocalizationsZh extends AppLocalizations {
       '按钮、卡片、标签与状态，含 1.0 / 1.3 / 2.0 文字缩放';
 
   @override
+  String get debugToolsTestDartError => '发送测试错误';
+
+  @override
+  String get debugToolsTestDartErrorSummary =>
+      '抛出未捕获的 Dart 例外，下次启动后会出现在 Crashlytics（仅限非 debug build）';
+
+  @override
+  String get debugToolsTestNativeCrash => '强制原生闪退';
+
+  @override
+  String get debugToolsTestNativeCrashSummary => '立即关闭 App，用来测试闪退符号化';
+
+  @override
   String get createOutfitMissingItemsTitle => '还缺少单品';
 
   @override
@@ -3053,6 +3066,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String get debugToolsComponentGallerySummary =>
       '按鈕、卡片、標籤與狀態，含 1.0 / 1.3 / 2.0 文字縮放';
+
+  @override
+  String get debugToolsTestDartError => '送出測試錯誤';
+
+  @override
+  String get debugToolsTestDartErrorSummary =>
+      '拋出未捕捉的 Dart 例外，下次啟動後會出現在 Crashlytics（僅限非 debug build）';
+
+  @override
+  String get debugToolsTestNativeCrash => '強制原生閃退';
+
+  @override
+  String get debugToolsTestNativeCrashSummary => '立即關閉 App，用來測試閃退符號化';
 
   @override
   String get createOutfitMissingItemsTitle => '還缺少單品';

@@ -51,6 +51,11 @@ class _FakeWeatherNotifier extends WeatherNotifier {
     weeklyLows: const [],
     timestamp: DateTime.now().millisecondsSinceEpoch,
   );
+
+  static int staleChecks = 0;
+
+  @override
+  Future<void> refreshIfStale() async => staleChecks++;
 }
 
 const _topGarment = Garment(
@@ -310,6 +315,26 @@ void main() {
 
     expect(dailyOutfit.refreshCount, 0);
   });
+
+  testWidgets(
+    'weather is checked for staleness on resume and on every poll tick',
+    (tester) async {
+      _FakeWeatherNotifier.staleChecks = 0;
+      await pumpApp(
+        tester,
+        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        overrides: overridesWith(_FakeDailyOutfitNotifier(const [])),
+      );
+      await tester.pump();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(_FakeWeatherNotifier.staleChecks, 1);
+
+      await tester.pump(const Duration(minutes: 1));
+      expect(_FakeWeatherNotifier.staleChecks, 2);
+    },
+  );
 
   testWidgets(
     'a brand-new account (no reference photos, empty closet, no outfits) '

@@ -152,10 +152,10 @@ class _HomePageState extends ConsumerState<HomePage>
     super.initState();
     _lastSeenDate = _dateOnly(widget._now());
     WidgetsBinding.instance.addObserver(this);
-    _dateCheckTimer = Timer.periodic(
-      _dateCheckInterval,
-      (_) => _refreshIfDateChanged(),
-    );
+    _dateCheckTimer = Timer.periodic(_dateCheckInterval, (_) {
+      _refreshIfDateChanged();
+      ref.read(weatherProvider.notifier).refreshIfStale();
+    });
     // MainShellScope's lookup isn't safe during initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -206,6 +206,7 @@ class _HomePageState extends ConsumerState<HomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || !mounted) return;
     _refreshIfDateChanged();
+    ref.read(weatherProvider.notifier).refreshIfStale();
   }
 
   void _refreshIfDateChanged() {

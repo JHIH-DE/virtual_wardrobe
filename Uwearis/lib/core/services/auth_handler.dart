@@ -13,6 +13,7 @@ import '../providers/style_taste_provider.dart';
 import '../providers/trip_detail_provider.dart';
 import '../providers/trip_suggestion_provider.dart';
 import '../providers/trips_provider.dart';
+import '../utils/crash_handler.dart';
 import 'auth_storage.dart';
 import 'garment_service.dart';
 import 'outfit_service.dart';
@@ -28,6 +29,7 @@ class AuthExpiredException implements Exception {
 /// [invalidateSignedInProviders].
 Future<void> clearSignedInSession() async {
   await AuthStorage.clear();
+  await GlobalErrorHandler.setReportingUser(null);
   await GarmentService().clearClosetAnalysisCache();
   GarmentService().clearGarmentCache();
   OutfitService().clearGroupCache();
