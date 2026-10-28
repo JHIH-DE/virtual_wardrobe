@@ -1,0 +1,4 @@
+"NSCameraUsageDescription" = "Uwearis 会使用相机，让你拍摄衣物加入衣橱、拍摄个人头像、拍下想用 Match a Look 搭配的穿搭，以及拍摄用来生成虚拟试穿图的身形与脸部参考照。";
+"NSPhotoLibraryUsageDescription" = "Uwearis 会访问你所选的照片，让你将衣物加入衣橱、设置个人头像、选择想用 Match a Look 搭配的穿搭，以及选择用来生成虚拟试穿图的身形与脸部参考照。";
+"NSPhotoLibraryAddUsageDescription" = "当你分享穿搭或衣物图片并选择“存储图像”时，Uwearis 会将图片存到你的照片图库。";
+"NSLocationWhenInUseUsageDescription" = "Uwearis 会使用你的位置显示当地天气，并推荐合适的穿搭。";

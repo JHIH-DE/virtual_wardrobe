@@ -10,7 +10,7 @@ import 'app_colors.dart';
 ///    Latin text above centre.
 class AppTextStyle {
   /// The "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads the font
-  /// at call time.
+  /// at call time. Only the w700 file is bundled (assets/google_fonts/).
   static TextStyle get brandTitle => GoogleFonts.sora(
     fontSize: 22,
     fontWeight: FontWeight.w700,

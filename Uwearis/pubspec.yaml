@@ -94,6 +94,9 @@ flutter:
     - assets/images/
     # Meteocons (MIT, Bas Milius) — see assets/images/weather/LICENSE.
     - assets/images/weather/
+    # google_fonts resolves these by file name instead of downloading at
+    # runtime (fetching is disabled in main.dart). Only the weights in use.
+    - assets/google_fonts/
 
   # App-wide typeface. Noto Sans TC is a single variable font (wght axis
   # 100–900) covering Latin + Traditional Chinese, so iOS and Android

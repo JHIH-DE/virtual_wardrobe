@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -181,6 +182,7 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: AppColors.pageBackground,
       body: SafeArea(
         top: false,
+        bottom: false,
         child: CustomScrollView(
           slivers: [
             SliverFillRemaining(
@@ -238,7 +240,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLoginCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        math.max(MediaQuery.paddingOf(context).bottom - 8, 12),
+      ),
       decoration: BoxDecoration(
         color: AppColors.pageBackground,
         boxShadow: [
@@ -282,17 +289,18 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildAppleButton() {
     return SizedBox(
       width: double.infinity,
-      height: 50,
+      height: 54,
       child: OutlinedButton.icon(
         style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(27),
           ),
           side: const BorderSide(color: AppColors.borderSubtle),
         ),
         onPressed: _isLoading ? null : _loginWithApple,
-        icon: const Icon(Icons.apple, size: 28),
-        label: Text(_l10n.continueWithApple, style: AppTextStyle.semibold16),
+        icon: const Icon(Icons.apple, size: 28, color: AppColors.textPrimary),
+        label: Text(_l10n.continueWithApple, style: AppTextStyle.bold18),
       ),
     );
   }
@@ -310,10 +318,7 @@ class _LoginPageState extends State<LoginPage> {
           side: const BorderSide(color: AppColors.borderSubtle),
         ),
         onPressed: _isLoading ? null : _loginWithGoogle,
-        icon: Image.network(
-          'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png',
-          height: 24,
-        ),
+        icon: Image.asset('assets/images/google_g.png', height: 24),
         label: Text(
           _l10n.signInWithGoogle,
           style: GoogleFonts.roboto(
