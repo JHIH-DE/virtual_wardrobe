@@ -431,6 +431,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: _isAddMode ? _title : _l10n.clothingDetailsTitle,
+      showTitle: false,
       onBack: _leave,
       actions: [
         if (!_isAddMode)
@@ -532,7 +533,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _isAddMode
                   ? _buildNameField()
-                  : Text(_title, style: AppTextStyle.bold20),
+                  : Text(_title, style: AppTextStyle.bold22),
             ),
             const SizedBox(height: AppDimens.titleGap),
             Padding(

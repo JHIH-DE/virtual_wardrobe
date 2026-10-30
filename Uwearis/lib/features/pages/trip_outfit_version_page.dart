@@ -13,21 +13,26 @@ import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
 
-/// Pops with the version on screen to pack, or null. Deliberately read-only
-/// (no favourite / regenerate / cover / delete).
+/// Pops with the version on screen to add to the trip, or null. Deliberately
+/// read-only (no favourite / regenerate / cover / delete).
 class TripOutfitVersionPage extends ConsumerStatefulWidget {
   final Outfit outfit;
   final Set<int> packedGarmentIds;
+
+  /// Versions already in the trip can't be added again.
+  final Set<int> addedOutfitIds;
 
   const TripOutfitVersionPage({
     super.key,
     required this.outfit,
     this.packedGarmentIds = const {},
+    this.addedOutfitIds = const {},
   });
 
   @override
@@ -92,7 +97,7 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
     }
   }
 
-  void _addToSuitcase() {
+  void _addToTrip() {
     if (_popped) return;
     _popped = true;
     Navigator.pop(context, _current);
@@ -112,30 +117,38 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
     final hasUnpacked = garments.any(
       (g) => !widget.packedGarmentIds.contains(g.id),
     );
+    final alreadyAdded = widget.addedOutfitIds.contains(_current.id);
+    final notice = alreadyAdded
+        ? _l10n.tripOutfitAlreadyAdded
+        : garments.isNotEmpty && !hasUnpacked
+        ? _l10n.allItemsAlreadyInSuitcase
+        : null;
 
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       extendBody: true,
       appBar: AppToolBar(title: _l10n.selectVersionTitle),
-      bottomNavigationBar: _buildAddButton(hasUnpacked),
+      bottomNavigationBar: _buildAddButton(enabled: !alreadyAdded),
       body: Builder(
         builder: (bodyContext) => ListView(
           padding: EdgeInsets.fromLTRB(
             20,
             20,
             20,
-            BottomActionButton.scrollClearance(bodyContext),
+            alreadyAdded
+                ? 24 + MediaQuery.paddingOf(context).bottom
+                : BottomActionButton.scrollClearance(bodyContext),
           ),
           children: [
             _buildVersionCarousel(),
-            _buildVersionCounter(),
-            if (garments.isNotEmpty && !hasUnpacked)
+            _buildVersionIndicator(),
+            if (notice != null)
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppDimens.sectionSpacing,
                 ),
                 child: Text(
-                  _l10n.allItemsAlreadyInSuitcase,
+                  notice,
                   textAlign: TextAlign.center,
                   style: AppTextStyle.medium14.copyWith(
                     color: AppColors.textSecondary,
@@ -183,28 +196,23 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
     );
   }
 
-  Widget _buildVersionCounter() {
+  Widget _buildVersionIndicator() {
     if (!_versionsResolved || _versions.length < 2) {
       return const SizedBox(height: AppDimens.sectionSpacing);
     }
-    return SizedBox(
-      height: AppDimens.minTouchTarget,
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: Text(
-          '${_currentIndex + 1} / ${_versions.length}',
-          style: AppTextStyle.semibold14.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: AppDimens.sectionSpacing),
+      child: CarouselDotsIndicator(
+        count: _versions.length,
+        currentIndex: _currentIndex,
       ),
     );
   }
 
-  Widget _buildAddButton(bool hasUnpacked) {
+  Widget _buildAddButton({required bool enabled}) {
     return BottomActionButton(
-      label: _l10n.addToSuitcase,
-      onPressed: hasUnpacked ? _addToSuitcase : null,
+      label: _l10n.addToTrip,
+      onPressed: enabled ? _addToTrip : null,
       leading: const Icon(Icons.luggage_outlined),
     );
   }

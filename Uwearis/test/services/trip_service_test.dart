@@ -6,10 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
+import 'package:uwearis/core/services/api_exception.dart';
 import 'package:uwearis/core/services/trip_service.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
+import 'package:uwearis/data/trip_outfit.dart';
 
 import '../helpers/fake_auth.dart';
 
@@ -191,130 +193,119 @@ void main() {
     });
   });
 
-  group('getTrip / getTripPlan', () {
-    test('getTrip GETs /{id} and returns the raw data map', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({'id': 9, 'days': []}));
-      });
-
-      final data = await http.runWithClient(
-        () => TripService().getTrip(9),
-        () => client,
-      );
-
-      expect(captured.url.toString(), '$_base/9');
-      expect(data['id'], 9);
-    });
-
-    test('getTrip returns the nested days payload unchanged', () async {
-      final days = [
-        {
-          'id': 1,
-          'date': '2026-10-01',
-          'group_id': 42,
-          'outfits': [
-            {
-              'outfit_id': 7,
-              'option_type': 'ai',
-              'result_image_url': 'https://signed.example/x.jpg',
-            },
-          ],
-        },
-      ];
-      final client = MockClient(
-        (request) async => _jsonResponse(_envelope({'id': 9, 'days': days})),
-      );
-
-      final data = await http.runWithClient(
-        () => TripService().getTrip(9),
-        () => client,
-      );
-
-      expect(data['days'], days);
-    });
-
-    test('getTripPlan GETs /{id}/plan and parses a typed TripPlan', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(
-          _envelope({
-            'suitcase_items': [
-              {'garment_id': 5},
+  Map<String, dynamic> collection({List<Map<String, dynamic>>? outfits}) => {
+    'trip_id': 9,
+    'total_days': 3,
+    'suggested_outfit_count': {'min': 3, 'max': 3},
+    'suitcase_items': [
+      {'garment_id': 1, 'name': 'Tee', 'category': 'Top'},
+    ],
+    'outfits':
+        outfits ??
+        [
+          {
+            'id': 5,
+            'source': 'saved_outfit',
+            'source_outfit_id': 40,
+            'garments': [
+              {'garment_id': 1, 'category': 'Top'},
             ],
-            'days': [
-              {
-                'date': '2026-10-01',
-                'options': [
-                  {
-                    'id': 3,
-                    'order_index': 0,
-                    'outfit_id': 71,
-                    'items': [
-                      {'garment_id': 5, 'name': 'Tee', 'category': 'Top'},
-                    ],
-                  },
-                ],
-              },
-            ],
-          }),
-        );
-      });
+          },
+        ],
+    'saved_candidates': [],
+  };
 
-      final plan = await http.runWithClient(
-        () => TripService().getTripPlan(9),
-        () => client,
-      );
-
-      expect(captured.url.toString(), '$_base/9/plan');
-      expect(plan.suitcaseIds, {5});
-      expect(plan.days.single.optionId, 3);
-      expect(plan.days.single.outfitId, 71);
-    });
-  });
-
-  group('generateTripPlan', () {
-    test('omits days/alternatives_per_day when not passed', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
+  /// Captures the one request and answers with [collection].
+  Future<(http.Request, T)> capture<T>(
+    Future<T> Function() call, {
+    Map<String, dynamic>? body,
+  }) async {
+    late http.Request captured;
+    final result = await http.runWithClient(
+      call,
+      () => MockClient((request) async {
         captured = request;
-        return _jsonResponse(_envelope({'id': 9}));
-      });
+        return _jsonResponse(_envelope(body ?? collection()));
+      }),
+    );
+    return (captured, result);
+  }
 
-      await http.runWithClient(
-        () => TripService().generateTripPlan(9),
-        () => client,
+  group('trip outfit collection', () {
+    test(
+      'getTripOutfits GETs /{id}/outfits and parses the collection',
+      () async {
+        final (req, c) = await capture(() => TripService().getTripOutfits(9));
+        expect(req.method, 'GET');
+        expect(req.url.toString(), '$_base/9/outfits');
+        expect(c.outfits.single.sourceOutfitId, 40);
+        expect(c.suitcaseIds, {1});
+      },
+    );
+
+    test('addTripOutfitFromSaved POSTs the version id', () async {
+      final (req, c) = await capture(
+        () => TripService().addTripOutfitFromSaved(9, outfitId: 40),
       );
-
-      expect(captured.url.toString(), '$_base/9/generate');
-      expect(jsonDecode(captured.body), {});
+      expect(req.method, 'POST');
+      expect(req.url.toString(), '$_base/9/outfits/from-saved');
+      expect(jsonDecode(req.body), {'outfit_id': 40});
+      expect(c.outfits, hasLength(1));
     });
 
-    test('includes days and alternatives_per_day when passed', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({'id': 9}));
+    test('createTripOutfit POSTs garment_ids', () async {
+      final (req, _) = await capture(
+        () => TripService().createTripOutfit(9, garmentIds: [1, 2, 3]),
+      );
+      expect(req.method, 'POST');
+      expect(req.url.toString(), '$_base/9/outfits');
+      expect(jsonDecode(req.body), {
+        'garment_ids': [1, 2, 3],
       });
+    });
 
-      await http.runWithClient(
-        () => TripService().generateTripPlan(
+    test('updateTripOutfit PATCHes only the fields passed', () async {
+      final (pinReq, _) = await capture(
+        () =>
+            TripService().updateTripOutfit(9, tripOutfitId: 5, isPinned: true),
+      );
+      expect(pinReq.method, 'PATCH');
+      expect(pinReq.url.toString(), '$_base/9/outfits/5');
+      expect(jsonDecode(pinReq.body), {'is_pinned': true});
+
+      final (editReq, _) = await capture(
+        () => TripService().updateTripOutfit(
           9,
-          days: [
-            {'date': '2026-10-01'},
-          ],
-          alternativesPerDay: 3,
+          tripOutfitId: 5,
+          garmentIds: [1, 2],
         ),
-        () => client,
       );
+      expect(jsonDecode(editReq.body), {
+        'garment_ids': [1, 2],
+      });
+    });
 
-      final payload = jsonDecode(captured.body) as Map<String, dynamic>;
-      expect(payload['days'], [
-        {'date': '2026-10-01'},
-      ]);
-      expect(payload['alternatives_per_day'], 3);
+    test('removeTripOutfit DELETEs the trip outfit path', () async {
+      final (req, _) = await capture(
+        () => TripService().removeTripOutfit(9, tripOutfitId: 5),
+      );
+      expect(req.method, 'DELETE');
+      expect(req.url.toString(), '$_base/9/outfits/5');
+    });
+
+    test('generateTripOutfits sends the mode and reads the counts', () async {
+      final (req, result) = await capture(
+        () => TripService().generateTripOutfits(
+          9,
+          mode: TripOutfitGenerateMode.refresh,
+        ),
+        body: {...collection(), 'generated_count': 2, 'replaced_count': 2},
+      );
+      expect(req.method, 'POST');
+      expect(req.url.toString(), '$_base/9/outfits/generate');
+      expect(jsonDecode(req.body), {'mode': 'refresh'});
+      expect(result.generatedCount, 2);
+      expect(result.replacedCount, 2);
     });
 
     // Throwing TimeoutException from the MockClient stands in for .timeout()
@@ -322,7 +313,10 @@ void main() {
     test('surfaces a TimeoutException from a stalled generation', () async {
       await expectLater(
         http.runWithClient(
-          () => TripService().generateTripPlan(9),
+          () => TripService().generateTripOutfits(
+            9,
+            mode: TripOutfitGenerateMode.plan,
+          ),
           () => MockClient((request) async {
             throw TimeoutException('simulated slow generation');
           }),
@@ -330,25 +324,70 @@ void main() {
         throwsA(isA<TimeoutException>()),
       );
     });
+
+    test('tryOnTripOutfit POSTs the try-on path', () async {
+      final (req, _) = await capture(
+        () => TripService().tryOnTripOutfit(9, tripOutfitId: 5),
+      );
+      expect(req.method, 'POST');
+      expect(req.url.toString(), '$_base/9/outfits/5/try-on');
+    });
+
+    test('an error envelope surfaces as ApiException with its code', () async {
+      await expectLater(
+        http.runWithClient(
+          () => TripService().addTripOutfitFromSaved(9, outfitId: 40),
+          () => MockClient(
+            (request) async => _jsonResponse({
+              'success': false,
+              'message': 'dup',
+              'data': null,
+              'error_code': 'TRIP_OUTFIT_ALREADY_ADDED',
+            }, status: 409),
+          ),
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            'TRIP_OUTFIT_ALREADY_ADDED',
+          ),
+        ),
+      );
+    });
   });
 
   group('suitcase items', () {
-    test('addSuitcaseItem POSTs garment_id', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope(null));
-      });
+    test(
+      'addSuitcaseItems POSTs garment_ids and returns the suitcase',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(
+            _envelope({
+              'suitcase_items': [
+                {'garment_id': 55, 'name': 'Tee', 'category': 'Top'},
+                {'garment_id': 56, 'name': 'Jeans', 'category': 'Bottom'},
+              ],
+            }),
+          );
+        });
 
-      await http.runWithClient(
-        () => TripService().addSuitcaseItem(9, garmentId: 55),
-        () => client,
-      );
+        final suitcase = await http.runWithClient(
+          () => TripService().addSuitcaseItems(9, garmentIds: [55, 56]),
+          () => client,
+        );
 
-      expect(captured.method, 'POST');
-      expect(captured.url.toString(), '$_base/9/suitcase-items');
-      expect(jsonDecode(captured.body), {'garment_id': 55});
-    });
+        expect(captured.method, 'POST');
+        expect(captured.url.toString(), '$_base/9/suitcase-items');
+        expect(jsonDecode(captured.body), {
+          'garment_ids': [55, 56],
+        });
+        expect(suitcase.map((g) => g.id), [55, 56]);
+        expect(suitcase.first.category, GarmentCategory.top);
+      },
+    );
 
     test('removeSuitcaseItem DELETEs the garment-specific path', () async {
       late http.Request captured;
@@ -364,62 +403,6 @@ void main() {
 
       expect(captured.method, 'DELETE');
       expect(captured.url.toString(), '$_base/9/suitcase-items/55');
-    });
-
-    test(
-      'removeSuitcaseItem parses affected_options, empty when absent',
-      () async {
-        final client = MockClient(
-          (request) async => _jsonResponse(_envelope({})),
-        );
-
-        final result = await http.runWithClient(
-          () => TripService().removeSuitcaseItem(9, garmentId: 55),
-          () => client,
-        );
-
-        expect(result, isEmpty);
-      },
-    );
-
-    test('removeSuitcaseItem parses each affected option field', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(
-          _envelope({
-            'affected_options': [
-              {
-                'day_id': 311,
-                'date': '2026-10-01',
-                'option_id': 162,
-                'is_manually_edited': true,
-                'has_rendered_outfit': true,
-              },
-              {
-                'day_id': 312,
-                'date': '2026-10-02',
-                'option_id': 163,
-                'is_manually_edited': false,
-                'has_rendered_outfit': false,
-              },
-            ],
-          }),
-        ),
-      );
-
-      final result = await http.runWithClient(
-        () => TripService().removeSuitcaseItem(9, garmentId: 55),
-        () => client,
-      );
-
-      expect(result, hasLength(2));
-      expect(result[0].dayId, 311);
-      expect(result[0].date, DateTime(2026, 10, 1));
-      expect(result[0].optionId, 162);
-      expect(result[0].isManuallyEdited, isTrue);
-      expect(result[0].hasRenderedOutfit, isTrue);
-      expect(result[1].dayId, 312);
-      expect(result[1].isManuallyEdited, isFalse);
-      expect(result[1].hasRenderedOutfit, isFalse);
     });
   });
 
@@ -494,98 +477,5 @@ void main() {
       expect(analysis.categories, isEmpty);
       expect(analysis.recommendedTotal, 0);
     });
-  });
-
-  group('option outfit rendering', () {
-    test('generateOptionOutfit POSTs and parses the render result', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(
-          _envelope({'outfit_id': 3, 'result_image_url': 'https://img/3.png'}),
-        );
-      });
-
-      final render = await http.runWithClient(
-        () => TripService().generateOptionOutfit(9, optionId: 42),
-        () => client,
-      );
-
-      expect(captured.method, 'POST');
-      expect(captured.url.toString(), '$_base/9/options/42/outfit');
-      expect(render.outfitId, 3);
-      expect(render.resultImageUrl, 'https://img/3.png');
-    });
-
-    test('regenerateOptionOutfit omits background_id when null', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({'outfit_id': 3}));
-      });
-
-      await http.runWithClient(
-        () => TripService().regenerateOptionOutfit(9, optionId: 42),
-        () => client,
-      );
-
-      expect(captured.url.toString(), '$_base/9/options/42/outfit/regenerate');
-      expect(jsonDecode(captured.body), {});
-    });
-
-    test('regenerateOptionOutfit includes background_id when passed', () async {
-      late http.Request captured;
-      final client = MockClient((request) async {
-        captured = request;
-        return _jsonResponse(_envelope({'outfit_id': 3}));
-      });
-
-      await http.runWithClient(
-        () => TripService().regenerateOptionOutfit(
-          9,
-          optionId: 42,
-          backgroundId: 7,
-        ),
-        () => client,
-      );
-
-      expect(jsonDecode(captured.body), {'background_id': 7});
-    });
-
-    test(
-      'updateOptionItems PATCHes garment_ids and returns the new garments',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return _jsonResponse(
-            _envelope({
-              'option_id': 42,
-              'items': [
-                {'garment_id': 1, 'name': 'Tee', 'category': 'Top'},
-                {'garment_id': 2, 'name': 'Jeans', 'category': 'Bottom'},
-              ],
-            }),
-          );
-        });
-
-        final garments = await http.runWithClient(
-          () => TripService().updateOptionItems(
-            9,
-            optionId: 42,
-            garmentIds: [1, 2],
-          ),
-          () => client,
-        );
-
-        expect(captured.method, 'PATCH');
-        expect(captured.url.toString(), '$_base/9/options/42/items');
-        expect(jsonDecode(captured.body), {
-          'garment_ids': [1, 2],
-        });
-        expect(garments.map((g) => g.id), [1, 2]);
-        expect(garments.first.category, GarmentCategory.top);
-      },
-    );
   });
 }

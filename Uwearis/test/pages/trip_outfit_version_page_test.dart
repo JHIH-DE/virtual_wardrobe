@@ -7,6 +7,7 @@ import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/trip_outfit_version_page.dart';
+import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -59,6 +60,7 @@ void main() {
     WidgetTester tester,
     Outfit seed, {
     Set<int> packedGarmentIds = const {},
+    Set<int> addedOutfitIds = const {},
   }) async {
     tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1.0;
@@ -76,6 +78,7 @@ void main() {
                   builder: (_) => TripOutfitVersionPage(
                     outfit: seed,
                     packedGarmentIds: packedGarmentIds,
+                    addedOutfitIds: addedOutfitIds,
                   ),
                 ),
               );
@@ -92,8 +95,8 @@ void main() {
   }
 
   testWidgets(
-    'swiping between versions updates the counter and the garments to pack, '
-    'and Add to Suitcase pops with the version on screen',
+    'swiping between versions moves the carousel dots and updates the garments, '
+    'and Add to Trip pops with the version on screen',
     (tester) async {
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/outfit/40')) {
@@ -118,20 +121,32 @@ void main() {
         );
 
         expect(find.text('Select a Version'), findsOneWidget);
-        expect(find.text('1 / 2'), findsOneWidget);
+        expect(
+          tester.widget<CarouselDotsIndicator>(
+            find.byType(CarouselDotsIndicator),
+          ),
+          isA<CarouselDotsIndicator>()
+              .having((d) => d.count, 'count', 2)
+              .having((d) => d.currentIndex, 'currentIndex', 0),
+        );
         expect(find.text('Tee'), findsOneWidget);
         expect(find.text('Garments (1)'), findsOneWidget);
 
         await tester.drag(find.byType(PageView), const Offset(-800, 0));
         await tester.pumpAndSettle();
 
-        expect(find.text('2 / 2'), findsOneWidget);
+        expect(
+          tester
+              .widget<CarouselDotsIndicator>(find.byType(CarouselDotsIndicator))
+              .currentIndex,
+          1,
+        );
         expect(find.text('Tee'), findsNothing);
         expect(find.text('Jeans'), findsOneWidget);
         expect(find.text('Sneakers'), findsOneWidget);
         expect(find.text('Garments (2)'), findsOneWidget);
 
-        await tester.tap(find.text('Add to Suitcase'));
+        await tester.tap(find.text('Add to Trip'));
         await tester.pumpAndSettle();
 
         expect(find.byType(TripOutfitVersionPage), findsNothing);
@@ -141,8 +156,8 @@ void main() {
   );
 
   testWidgets(
-    'Add to Suitcase is hidden only for a version whose garments are all '
-    'already packed',
+    'a version whose garments are all packed can still be added (with a '
+    'note); only a version already in the trip hides Add to Trip',
     (tester) async {
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/outfit/40')) {
@@ -160,36 +175,38 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        await pumpPage(
+        final popped = await pumpPage(
           tester,
           Outfit(id: 65, groupId: 40, imageUrl: '', garmentIds: const [1, 2]),
           packedGarmentIds: {1, 2},
+          addedOutfitIds: {66},
         );
 
-        expect(find.text('Add to Suitcase'), findsNothing);
         expect(
           find.text(
             'All garments in this version are already in your Suitcase.',
           ),
           findsOneWidget,
         );
+        expect(find.text('Add to Trip'), findsOneWidget);
 
         await tester.drag(find.byType(PageView), const Offset(-800, 0));
         await tester.pumpAndSettle();
 
-        expect(find.text('Add to Suitcase'), findsOneWidget);
-        expect(
-          find.text(
-            'All garments in this version are already in your Suitcase.',
-          ),
-          findsNothing,
-        );
+        expect(find.text('Already added to this trip'), findsOneWidget);
+        expect(find.text('Add to Trip'), findsNothing);
+
+        await tester.drag(find.byType(PageView), const Offset(800, 0));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Add to Trip'));
+        await tester.pumpAndSettle();
+        expect(popped()?.id, 65);
       }, () => client);
     },
   );
 
   testWidgets('if the versions fail to load, the tapped outfit is still '
-      'offered on its own, without a counter', (tester) async {
+      'offered on its own, without carousel dots', (tester) async {
     final client = MockClient(
       (request) async => jsonResponse(envelope({}), status: 500),
     );
@@ -200,10 +217,10 @@ void main() {
         Outfit(id: 70, groupId: 41, imageUrl: '', garmentIds: const [3]),
       );
 
-      expect(find.textContaining(' / '), findsNothing);
+      expect(find.byType(CarouselDotsIndicator), findsNothing);
       expect(find.text('Sneakers'), findsOneWidget);
 
-      await tester.tap(find.text('Add to Suitcase'));
+      await tester.tap(find.text('Add to Trip'));
       await tester.pumpAndSettle();
 
       expect(popped()?.id, 70);

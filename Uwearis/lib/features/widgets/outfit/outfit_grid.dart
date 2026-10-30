@@ -8,6 +8,16 @@ import 'outfit_card.dart';
 
 /// Pull-to-refresh 2-column [OutfitCard] grid.
 class OutfitGrid extends StatelessWidget {
+  /// For a call site that lays outfit cards out inside another scroll view
+  /// (Trip Details) instead of using this widget's own scrolling grid.
+  static const SliverGridDelegateWithFixedCrossAxisCount gridDelegate =
+      SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: AppDimens.cardSpacing,
+        mainAxisSpacing: AppDimens.cardSpacing,
+        mainAxisExtent: AppDimens.outfitCardHeight,
+      );
+
   final List<Outfit> outfits;
   final Future<void> Function() onRefresh;
   final void Function(Outfit) onOutfitTap;
@@ -55,12 +65,7 @@ class OutfitGrid extends StatelessWidget {
           : GridView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: padding,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: AppDimens.cardSpacing,
-                mainAxisSpacing: AppDimens.cardSpacing,
-                mainAxisExtent: AppDimens.outfitCardHeight,
-              ),
+              gridDelegate: gridDelegate,
               itemCount: outfits.length,
               itemBuilder: (context, index) {
                 final outfit = outfits[index];

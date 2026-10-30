@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -17,9 +18,10 @@ import '../../core/utils/debug_log.dart';
 import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../data/trip.dart';
-import '../../data/trip_plan.dart';
+import '../../data/trip_outfit.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/trip_outfit_error_text.dart';
 import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
@@ -32,7 +34,6 @@ import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
-import '../widgets/trip/replan_confirm_dialog.dart';
 import 'trip_garment_selection_page.dart';
 import 'trip_outfit_selection_page.dart';
 
@@ -68,8 +69,12 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   final _deleteGroup = RemovableCardGroup();
 
   bool _generatingPlan = false;
-  // Covers the confirm dialog and commit too, not just the AI call.
+  // Covers the commit too, not just the AI call.
   bool _planActionInFlight = false;
+  // Covers the version picker too; [_addingOutfit] drives the overlay once
+  // the picker has returned.
+  bool _addOutfitInFlight = false;
+  bool _addingOutfit = false;
 
   Set<int> get _packedIds => {
     for (final g in _packedGarments)
@@ -83,7 +88,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   int get _tripId => int.parse(widget.trip.id);
 
-  AsyncValue<TripDetail> get _detailState =>
+  AsyncValue<TripOutfitCollection> get _detailState =>
       ref.read(tripDetailProvider(_tripId));
 
   bool get _hasCachedDetail => _detailState.hasValue && !_detailState.hasError;
@@ -91,31 +96,21 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   TripDetailNotifier get _detailNotifier =>
       ref.read(tripDetailProvider(_tripId).notifier);
 
-  bool get _hasTripPlan => _detailState.value?.hasTripPlan ?? false;
+  bool get _hasOutfits => _detailState.value?.outfits.isNotEmpty ?? false;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
-  /// Mirrors the backend's `/generate` minimum (top + bottom or one-piece,
-  /// plus shoes; else `SUITCASE_INCOMPLETE`). UX only — the backend decides.
-  bool _hasViableSuitcase(List<Garment> suitcase) {
-    final categories = suitcase.map((g) => g.category).toSet();
-    final hasTopAndBottom =
-        categories.contains(GarmentCategory.top) &&
-        categories.contains(GarmentCategory.bottom);
-    final hasOnePiece = categories.contains(GarmentCategory.onePiece);
-    final hasShoes = categories.contains(GarmentCategory.shoes);
-    return (hasTopAndBottom || hasOnePiece) && hasShoes;
-  }
-
   /// Staged pieces count: [_generatePlan] commits them before planning.
-  bool get _isSuitcaseViable => _hasViableSuitcase(_packedGarments);
+  bool get _isSuitcaseViable => isViableSuitcase(_packedGarments);
 
-  /// A replan is only offered once the suitcase changed since opening.
+  /// With outfits already planned, a suitcase change offers more outfits
+  /// that use it — existing ones are only re-checked for missing garments.
   bool get _showsBottomActionButton =>
       !_generatingPlan &&
       !_planActionInFlight &&
       !_committing &&
+      !_addOutfitInFlight &&
       _isSuitcaseViable &&
-      (!_hasTripPlan || _garmentsChangedSinceOpen);
+      (!_hasOutfits || _garmentsChangedSinceOpen);
 
   @override
   void initState() {
@@ -203,35 +198,87 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     });
   }
 
-  /// Stages a saved outfit's garments that are still in the closet and not
-  /// packed yet.
+  /// Adds the whole saved outfit to the trip and packs its missing garments
+  /// in one backend transaction — also when everything is packed already.
+  /// Staged picks are committed first so the server's suitcase matches what
+  /// the user sees before the outfit's garments are merged in.
   Future<void> _addFromOutfit() async {
-    await ref.read(garmentsProvider.notifier).refreshIfNeeded();
-    if (!mounted) return;
-    final outfit = await Navigator.push<Outfit>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TripOutfitSelectionPage(packedGarmentIds: _packedIds),
-      ),
-    );
-    if (outfit == null || !mounted) return;
+    if (_addOutfitInFlight) return;
+    setState(() => _addOutfitInFlight = true);
+    try {
+      await ref.read(garmentsProvider.notifier).refreshIfNeeded();
+      if (!mounted) return;
+      final outfit = await Navigator.push<Outfit>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TripOutfitSelectionPage(
+            packedGarmentIds: _packedIds,
+            addedOutfitIds:
+                _detailState.value?.addedSourceOutfitIds ?? const {},
+          ),
+        ),
+      );
+      if (outfit == null || !mounted) return;
+      if (_isDirty && !await _commitChanges()) return;
+      if (!mounted) return;
 
-    final closetById = _indexGarmentsById(
-      (ref.read(garmentsProvider).value ?? const <Garment>[]).active,
-    );
-    final packedIds = _packedIds;
-    final newGarments = [
-      for (final id in outfit.garmentIds.toSet())
-        if (!packedIds.contains(id) && closetById[id] != null) closetById[id]!,
-    ];
+      setState(() => _addingOutfit = true);
+      final packedBefore = _packedIds;
+      final detailNotifier = _detailNotifier;
+      final collection = await TripService().addTripOutfitFromSaved(
+        _tripId,
+        outfitId: outfit.id,
+      );
+      detailNotifier.setCollection(collection);
+      if (!mounted) return;
+      final packedCount = collection.suitcaseIds
+          .difference(packedBefore)
+          .length;
+      setState(() {
+        _packedGarments = List.of(collection.suitcase);
+        _committedIds = collection.suitcaseIds;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            packedCount > 0
+                ? _l10n.addedOutfitToTripPacked(packedCount)
+                : _l10n.addedOutfitToTrip,
+          ),
+        ),
+      );
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      debugLog('Failed to add outfit to trip: $e');
+      if (mounted) {
+        showErrorDialog(
+          context,
+          message: tripOutfitErrorMessage(
+            _l10n,
+            e,
+            fallback: _l10n.failedToAddTripOutfit,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _addOutfitInFlight = false;
+          _addingOutfit = false;
+        });
+      }
+    }
+  }
 
-    if (newGarments.isEmpty) return;
-    setState(() => _packedGarments = [..._packedGarments, ...newGarments]);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_l10n.addedItemsFromOutfitCount(newGarments.length)),
-      ),
-    );
+  /// Saved-outfit candidates depend on the suitcase; a failure just leaves
+  /// the cached ones until the next load.
+  Future<void> _reloadCollectionQuietly() async {
+    try {
+      await _detailNotifier.reloadTripDetail();
+    } catch (e) {
+      debugLog('Failed to reload trip outfits: $e');
+    }
   }
 
   /// Returns false on failure, leaving the changes staged.
@@ -250,10 +297,13 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     final detailNotifier = _detailNotifier;
     setState(() => _committing = true);
     try {
-      for (final id in toAdd) {
-        await TripService().addSuitcaseItem(_tripId, garmentId: id);
-        committedNow.add(id);
-        detailNotifier.addSuitcaseGarments([?byId[id]]);
+      if (toAdd.isNotEmpty) {
+        await TripService().addSuitcaseItems(
+          _tripId,
+          garmentIds: toAdd.toList(),
+        );
+        committedNow.addAll(toAdd);
+        detailNotifier.addSuitcaseGarments([for (final id in toAdd) ?byId[id]]);
       }
       for (final id in toRemove) {
         await TripService().removeSuitcaseItem(_tripId, garmentId: id);
@@ -261,6 +311,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         detailNotifier.removeSuitcaseGarment(id);
       }
       detailNotifier.setSuitcase(committed);
+      unawaited(_reloadCollectionQuietly());
       return true;
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
@@ -288,60 +339,57 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     if (mounted) Navigator.pop(context);
   }
 
-  /// First plan: generates every day. Replan: only the days
-  /// [daysToReplan] picks; nothing is called if none need it. On success,
-  /// reloads the plan before popping so Trip Details already shows it.
+  /// Plan (no outfits yet) or Find More (after a suitcase change). Never
+  /// replaces existing outfits, so there's no confirm. The response is the
+  /// whole collection, applied before popping so Trip Details shows it.
   Future<void> _generatePlan() async {
     if (_planActionInFlight) return;
     setState(() => _planActionInFlight = true);
     try {
-      if (_hasTripPlan) {
-        final confirmed = await showReplanConfirmDialog(context);
-        if (!confirmed || !mounted) return;
-      }
-
-      // Generation reads the server's suitcase, so commit first — but after
-      // the confirm, so a cancelled replan has no side effect.
+      // Generation reads the server's suitcase, so commit first.
       if (_isDirty && !await _commitChanges()) return;
       if (!mounted) return;
 
       setState(() => _generatingPlan = true);
       try {
-        List<Map<String, dynamic>>? days;
-        if (_hasTripPlan) {
-          days = daysToReplan(_detailState.requireValue.days, _committedIds);
-          if (days == null) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(_l10n.noOutfitsNeedReplan)),
-              );
-            }
-            return;
-          }
-        }
         final detailNotifier = _detailNotifier;
-        await TripService().generateTripPlan(
+        final messenger = ScaffoldMessenger.of(context);
+        final result = await TripService().generateTripOutfits(
           _tripId,
-          days: days,
-          alternativesPerDay: 0,
+          mode: _hasOutfits
+              ? TripOutfitGenerateMode.more
+              : TripOutfitGenerateMode.plan,
         );
-        try {
-          await detailNotifier.reloadPlan();
-        } on AuthExpiredException {
-          rethrow;
-        } catch (e) {
-          // The plan was generated; Trip Details just shows the old one
-          // until it's next re-fetched.
-          debugLog('Failed to refresh trip plan after generating: $e');
-        }
+        detailNotifier.setCollection(result.collection);
+        // Shown over Trip Details after the pop.
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              result.generatedCount > 0
+                  ? _l10n.addedTripOutfitsCount(result.generatedCount)
+                  : result.collection.savedCandidates.isNotEmpty
+                  ? _l10n.savedCandidatesAvailable(
+                      result.collection.savedCandidates.length,
+                    )
+                  : _l10n.noMoreTripOutfitCombinations,
+            ),
+          ),
+        );
         if (!mounted) return;
         Navigator.pop(context);
       } on AuthExpiredException {
         if (mounted) await AuthExpiredHandler.handle(context);
       } catch (e) {
-        debugLog('Failed to generate trip plan: $e');
+        debugLog('Failed to generate trip outfits: $e');
         if (mounted) {
-          showErrorDialog(context, message: _l10n.failedToGeneratePlan);
+          showErrorDialog(
+            context,
+            message: tripOutfitErrorMessage(
+              _l10n,
+              e,
+              fallback: _l10n.failedToGeneratePlan,
+            ),
+          );
         }
       } finally {
         if (mounted) setState(() => _generatingPlan = false);
@@ -382,6 +430,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       final detailNotifier = _detailNotifier;
       await TripService().removeSuitcaseItem(_tripId, garmentId: id);
       detailNotifier.removeSuitcaseGarment(id);
+      unawaited(_reloadCollectionQuietly());
       if (mounted) setState(() => _committedIds.remove(id));
     } on AuthExpiredException {
       if (!mounted) return;
@@ -418,7 +467,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   Widget _buildBottomBar() {
     return BottomActionButton(
-      label: _hasTripPlan ? _l10n.replanTripOutfits : _l10n.planTripOutfits,
+      label: _hasOutfits ? _l10n.findMoreOutfits : _l10n.planTripOutfits,
       onPressed: _showsBottomActionButton ? _generatePlan : null,
       isLoading: _generatingPlan,
       leading: const Icon(Icons.auto_awesome_outlined),
@@ -429,7 +478,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   Widget build(BuildContext context) {
     // Only for the "+" picker; the packed list doesn't wait on this.
     final closetGarments = (ref.watch(garmentsProvider).value ?? []).active;
-    // For [_hasTripPlan].
+    // For [_hasOutfits] and the saved-outfit count.
     ref.watch(tripDetailProvider(_tripId));
 
     return PopScope(
@@ -446,7 +495,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             bottomNavigationBar: _buildBottomBar(),
             body: _buildBody(closetGarments),
           ),
-          if (_committing)
+          if (_committing || _addingOutfit)
             Positioned.fill(
               child: LoadingOverlay(label: _l10n.updatingSuitcaseEllipsis),
             ),
@@ -459,36 +508,26 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     );
   }
 
-  /// Hidden until outfits and closet have loaded and some outfit has a
-  /// closet garment that isn't packed yet.
-  bool _hasOutfitToPack(List<Garment> closetGarments) {
-    final outfits = ref.watch(outfitsProvider).value ?? const <Outfit>[];
-    final closetIds = _indexGarmentsById(closetGarments).keys.toSet();
-    final packedIds = _packedIds;
-    return outfits.any(
-      (o) => o.garmentIds.any(
-        (id) => closetIds.contains(id) && !packedIds.contains(id),
-      ),
-    );
-  }
+  /// Hidden until the user's outfits have loaded and there is one; an
+  /// outfit whose garments are all packed can still be added to the trip.
+  bool get _hasSavedOutfits =>
+      (ref.watch(outfitsProvider).value ?? const <Outfit>[]).isNotEmpty;
 
   Widget _buildBody(List<Garment> closetGarments) {
     if (_loading) return const Center(child: AppSpinner());
-    final addFromOutfitCard = !_hasOutfitToPack(closetGarments)
+    final savedInTrip = _detailState.value?.savedOutfitCount ?? 0;
+    final addFromOutfitCard = !_hasSavedOutfits
         ? null
         : Padding(
             padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
             child: AppListCard(
-              title: _l10n.addFromOutfit,
               leading: const Icon(Icons.style_outlined, color: AppColors.icon),
               showArrow: true,
-              onTap: _addFromOutfit,
-              child: Text(
-                _l10n.addFromOutfitHint,
-                style: AppTextStyle.regular12.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
+              status: savedInTrip > 0
+                  ? _l10n.savedOutfitsInTripCount(savedInTrip)
+                  : null,
+              onTap: _addOutfitInFlight ? null : _addFromOutfit,
+              child: Text(_l10n.addFromOutfit, style: AppTextStyle.bold16),
             ),
           );
     return RefreshIndicator(

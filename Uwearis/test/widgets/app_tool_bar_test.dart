@@ -39,6 +39,18 @@ void main() {
     expect(find.byType(CountPill), findsNothing);
   });
 
+  testWidgets('showTitle: false hides the title but still announces it', (
+    tester,
+  ) async {
+    await pumpBar(
+      tester,
+      const AppToolBar(title: 'Outfit Details', showTitle: false),
+    );
+    expect(find.text('Outfit Details'), findsNothing);
+    expect(find.bySemanticsLabel('Outfit Details'), findsOneWidget);
+    expect(find.byType(ActionDiscButton), findsOneWidget);
+  });
+
   testWidgets('shows a back button by default, hidden when showBackButton is '
       'false', (tester) async {
     await pumpBar(tester, const AppToolBar(title: 'A'));

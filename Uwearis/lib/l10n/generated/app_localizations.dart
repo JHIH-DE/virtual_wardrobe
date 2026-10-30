@@ -1014,13 +1014,19 @@ abstract class AppLocalizations {
   /// No description provided for @finishOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Auto-Complete'**
+  /// **'AI Styling'**
   String get finishOutfit;
+
+  /// No description provided for @finishOutfitDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Let AI complete your outfit.'**
+  String get finishOutfitDescription;
 
   /// No description provided for @finishWithAi.
   ///
   /// In en, this message translates to:
-  /// **'Finish with AI'**
+  /// **'Go'**
   String get finishWithAi;
 
   /// No description provided for @temperatureFieldLabel.
@@ -1296,7 +1302,7 @@ abstract class AppLocalizations {
   /// No description provided for @letUwearisPlanOutfitsHint.
   ///
   /// In en, this message translates to:
-  /// **'Uwearis will build an outfit for every day using what\'s in your suitcase.'**
+  /// **'Uwearis will put together outfits from your suitcase — wear whichever suits the day.'**
   String get letUwearisPlanOutfitsHint;
 
   /// No description provided for @planTripOutfits.
@@ -1304,36 +1310,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plan Trip Outfits'**
   String get planTripOutfits;
-
-  /// No description provided for @replanTripOutfits.
-  ///
-  /// In en, this message translates to:
-  /// **'Replan Trip Outfits'**
-  String get replanTripOutfits;
-
-  /// No description provided for @replanTripOutfitsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Replan trip outfits?'**
-  String get replanTripOutfitsTitle;
-
-  /// No description provided for @replanTripOutfitsBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Outfits you\'ve adjusted by hand or that already have a photo will be kept. Outfits using an item that\'s no longer in your suitcase will be replanned.'**
-  String get replanTripOutfitsBody;
-
-  /// No description provided for @replan.
-  ///
-  /// In en, this message translates to:
-  /// **'Replan'**
-  String get replan;
-
-  /// No description provided for @noOutfitsNeedReplan.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing to replan — every outfit still fits your suitcase.'**
-  String get noOutfitsNeedReplan;
 
   /// No description provided for @failedToGeneratePlan.
   ///
@@ -1364,12 +1340,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Regenerate Outfit'**
   String get regenerateOutfit;
-
-  /// No description provided for @missingFromSuitcaseCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} items aren\'t packed yet.'**
-  String missingFromSuitcaseCount(int count);
 
   /// No description provided for @addToSuitcase.
   ///
@@ -2517,18 +2487,6 @@ abstract class AppLocalizations {
   /// **'Generating…'**
   String get generatingEllipsis;
 
-  /// No description provided for @dailyOutfitPlan.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily Outfit Plan'**
-  String get dailyOutfitPlan;
-
-  /// No description provided for @noItemsPlanned.
-  ///
-  /// In en, this message translates to:
-  /// **'No items planned'**
-  String get noItemsPlanned;
-
   /// No description provided for @thinkingEllipsis.
   ///
   /// In en, this message translates to:
@@ -2568,14 +2526,8 @@ abstract class AppLocalizations {
   /// No description provided for @addFromOutfit.
   ///
   /// In en, this message translates to:
-  /// **'Add from an Outfit'**
+  /// **'Add from a Saved Outfit'**
   String get addFromOutfit;
-
-  /// No description provided for @addFromOutfitHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Pack the garments from your outfit.'**
-  String get addFromOutfitHint;
 
   /// No description provided for @selectAnOutfitTitle.
   ///
@@ -2588,12 +2540,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select a Version'**
   String get selectVersionTitle;
-
-  /// No description provided for @addedItemsFromOutfitCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Added {count} items from this outfit.'**
-  String addedItemsFromOutfitCount(int count);
 
   /// No description provided for @allItemsAlreadyInSuitcase.
   ///
@@ -3212,6 +3158,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Change a garment or the background to create a new version.'**
   String get createVersionUnchangedBody;
+
+  /// No description provided for @yourTripOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit Planner'**
+  String get yourTripOutfits;
+
+  /// No description provided for @tripOutfitsSuggestedRange.
+  ///
+  /// In en, this message translates to:
+  /// **'About {min}–{max} outfits suit a {days}-day trip'**
+  String tripOutfitsSuggestedRange(int min, int max, int days);
+
+  /// No description provided for @findMoreOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'Add AI Outfits'**
+  String get findMoreOutfits;
+
+  /// No description provided for @refreshSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh AI Picks'**
+  String get refreshSuggestions;
+
+  /// No description provided for @refreshSuggestionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh AI picks?'**
+  String get refreshSuggestionsTitle;
+
+  /// No description provided for @refreshSuggestionsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Uwearis will replace {count} AI picks with new ones. Saved, edited, kept and tried-on outfits stay as they are.'**
+  String refreshSuggestionsBody(int count);
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @noMoreTripOutfitCombinations.
+  ///
+  /// In en, this message translates to:
+  /// **'No more suitable combinations found with your current suitcase.'**
+  String get noMoreTripOutfitCombinations;
+
+  /// No description provided for @addedTripOutfitsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {count} new outfits.'**
+  String addedTripOutfitsCount(int count);
+
+  /// No description provided for @savedCandidatesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of your outfits fit this suitcase — add them below.'**
+  String savedCandidatesAvailable(int count);
+
+  /// No description provided for @fromYourOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'From Your Outfits'**
+  String get fromYourOutfits;
+
+  /// No description provided for @fromYourOutfitsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything they need is already packed.'**
+  String get fromYourOutfitsHint;
+
+  /// No description provided for @addToTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Trip'**
+  String get addToTrip;
+
+  /// No description provided for @tripOutfitsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Start by adding garments or your saved outfits to the suitcase.'**
+  String get tripOutfitsEmptyHint;
+
+  /// No description provided for @openSuitcase.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Suitcase'**
+  String get openSuitcase;
+
+  /// No description provided for @tripOutfitSourceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get tripOutfitSourceSaved;
+
+  /// No description provided for @tripOutfitSourceSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Pick'**
+  String get tripOutfitSourceSuggested;
+
+  /// No description provided for @tripOutfitSourceManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get tripOutfitSourceManual;
+
+  /// No description provided for @tripOutfitKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept'**
+  String get tripOutfitKept;
+
+  /// No description provided for @keepOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Outfit'**
+  String get keepOutfit;
+
+  /// No description provided for @unkeepOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t Keep'**
+  String get unkeepOutfit;
+
+  /// No description provided for @removeFromTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from Trip'**
+  String get removeFromTrip;
+
+  /// No description provided for @removeTripOutfitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from trip?'**
+  String get removeTripOutfitTitle;
+
+  /// No description provided for @removeTripOutfitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This outfit leaves this trip. Your suitcase and saved outfits stay as they are.'**
+  String get removeTripOutfitBody;
+
+  /// No description provided for @tripOutfitFallbackName.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit {index}'**
+  String tripOutfitFallbackName(int index);
+
+  /// No description provided for @missingGarmentsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Missing 1 garment} other{Missing {count} garments}}'**
+  String missingGarmentsCount(int count);
+
+  /// No description provided for @missingGarmentsDeletedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A garment was deleted from your closet — edit this outfit to replace it.'**
+  String get missingGarmentsDeletedHint;
+
+  /// No description provided for @tripOutfitAlreadyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Already added to this trip'**
+  String get tripOutfitAlreadyAdded;
+
+  /// No description provided for @tripOutfitDuplicate.
+  ///
+  /// In en, this message translates to:
+  /// **'This trip already has an outfit with these garments.'**
+  String get tripOutfitDuplicate;
+
+  /// No description provided for @tripOutfitIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'An outfit needs a top and bottom (or a one-piece) plus one pair of shoes.'**
+  String get tripOutfitIncomplete;
+
+  /// No description provided for @tripOutfitGarmentNotPacked.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick garments that are in your suitcase.'**
+  String get tripOutfitGarmentNotPacked;
+
+  /// No description provided for @tripOutfitLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'This trip has reached its outfit limit.'**
+  String get tripOutfitLimitReached;
+
+  /// No description provided for @tripOutfitGenerationInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Uwearis is already putting outfits together for this trip.'**
+  String get tripOutfitGenerationInProgress;
+
+  /// No description provided for @savedOutfitUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Some garments in this outfit were deleted from your closet.'**
+  String get savedOutfitUnavailable;
+
+  /// No description provided for @tripOutfitMissingGarmentsTryOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Pack its missing garments or edit this outfit before trying it on.'**
+  String get tripOutfitMissingGarmentsTryOn;
+
+  /// No description provided for @failedToAddTripOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add this outfit. Please try again.'**
+  String get failedToAddTripOutfit;
+
+  /// No description provided for @failedToRemoveTripOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove this outfit. Please try again.'**
+  String get failedToRemoveTripOutfit;
+
+  /// No description provided for @addedOutfitToTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to this trip.'**
+  String get addedOutfitToTrip;
+
+  /// No description provided for @addedOutfitToTripPacked.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to this trip and packed {count} garments.'**
+  String addedOutfitToTripPacked(int count);
+
+  /// No description provided for @savedOutfitsInTripCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} in trip'**
+  String savedOutfitsInTripCount(int count);
+
+  /// No description provided for @tripOutfitEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get tripOutfitEdited;
+
+  /// No description provided for @itineraryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Itinerary'**
+  String get itineraryTitle;
+
+  /// No description provided for @tripOutfitsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfits ({count})'**
+  String tripOutfitsCount(int count);
+
+  /// No description provided for @addTripOutfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Manually'**
+  String get addTripOutfit;
+
+  /// No description provided for @refreshAiButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh AI Outfits'**
+  String get refreshAiButton;
+
+  /// No description provided for @tripOutfitsGoodVariety.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{Good outfit variety for 1 day} other{Good outfit variety for {days} days}}'**
+  String tripOutfitsGoodVariety(int days);
+
+  /// No description provided for @tripOutfitsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No trip outfits yet'**
+  String get tripOutfitsEmptyTitle;
 }
 
 class _AppLocalizationsDelegate

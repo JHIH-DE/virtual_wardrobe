@@ -85,7 +85,9 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Add Clothing'), findsWidgets);
+      // The toolbar title is hidden but still announced as the header.
+      expect(find.text('Add Clothing'), findsNothing);
+      expect(find.bySemanticsLabel('Add Clothing'), findsOneWidget);
       expect(find.text('Select Color'), findsOneWidget);
       // View Match sits in the image's bottom-left corner.
       final image = tester.getRect(find.byType(GarmentImage));

@@ -18,7 +18,6 @@ import '../widgets/common/fields/selectable_chip.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
-import '../widgets/common/section_title.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_tag_row.dart';
 
@@ -157,20 +156,11 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
     return [
       const _SectionHeader('AccentPillButton — hugs its content'),
       const _Spec('inline · normal, beside a section title (on surface)'),
-      // Mirrors Create Outfit's Auto-Complete header.
+      // Mirrors Create Outfit's AI Styling header.
       AppCardShell(
-        child: SizedBox(
-          width: double.infinity,
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 4,
-            children: [
-              SectionTitle(_l10n.finishOutfit),
-              AccentPillButton(label: _l10n.finishWithAi, onPressed: () {}),
-            ],
-          ),
-        ),
+        title: _l10n.finishOutfit,
+        subtitle: _l10n.finishOutfitDescription,
+        trailing: AccentPillButton(label: _l10n.finishWithAi, onPressed: () {}),
       ),
       const _Spec('inline · normal / disabled (on pageBackground)'),
       Wrap(
@@ -305,19 +295,8 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
       const _SectionHeader('Cards (on pageBackground)'),
       const _Spec('AppCardShell'),
       AppCardShell(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionTitle(_l10n.startPackingTripTitle),
-            const SizedBox(height: AppDimens.cardHeaderGap),
-            Text(
-              _l10n.startPackingTripHint,
-              style: AppTextStyle.regular14.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
+        title: _l10n.startPackingTripTitle,
+        subtitle: _l10n.startPackingTripHint,
       ),
       const _Spec('AppListCard · leading + summary + arrow'),
       AppListCard(

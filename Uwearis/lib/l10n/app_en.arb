@@ -206,8 +206,9 @@
   "exploreNavSearch": "Search",
   "exploreNavBag": "Bag",
   "exploreNavSaved": "Saved",
-  "finishOutfit": "Auto-Complete",
-  "finishWithAi": "Finish with AI",
+  "finishOutfit": "AI Styling",
+  "finishOutfitDescription": "Let AI complete your outfit.",
+  "finishWithAi": "Go",
   "@outfitIncompleteBody": {
     "placeholders": {
       "parts": {"type": "String", "example": "Bottom, Shoes"}
@@ -278,22 +279,13 @@
   "regenerateOutfitConfirmBody": "This replaces the current image with a new AI render of the same garments.",
   "setAsCover": "Set as Cover",
   "letUwearisPlanOutfits": "Let Uwearis Plan Your Trip",
-  "letUwearisPlanOutfitsHint": "Uwearis will build an outfit for every day using what's in your suitcase.",
+  "letUwearisPlanOutfitsHint": "Uwearis will put together outfits from your suitcase — wear whichever suits the day.",
   "planTripOutfits": "Plan Trip Outfits",
-  "replanTripOutfits": "Replan Trip Outfits",
-  "replanTripOutfitsTitle": "Replan trip outfits?",
-  "replanTripOutfitsBody": "Outfits you've adjusted by hand or that already have a photo will be kept. Outfits using an item that's no longer in your suitcase will be replanned.",
-  "replan": "Replan",
-  "noOutfitsNeedReplan": "Nothing to replan — every outfit still fits your suitcase.",
   "failedToGeneratePlan": "Failed to generate outfit plan",
   "generatingPlanEllipsis": "Planning your outfits…",
   "failedToUpdateDayOutfit": "Failed to update outfit",
   "failedToGenerateOutfit": "Failed to generate outfit",
   "regenerateOutfit": "Regenerate Outfit",
-  "missingFromSuitcaseCount": "{count} items aren't packed yet.",
-  "@missingFromSuitcaseCount": {
-    "placeholders": { "count": { "type": "int" } }
-  },
   "addToSuitcase": "Add to Suitcase",
   "loading": "Loading…",
   "tryAgain": "Try Again",
@@ -520,8 +512,6 @@
 
   "creatingEllipsis": "Creating…",
   "generatingEllipsis": "Generating…",
-  "dailyOutfitPlan": "Daily Outfit Plan",
-  "noItemsPlanned": "No items planned",
   "thinkingEllipsis": "Thinking…",
   "suitcaseLabel": "Suitcase",
   "packClothingHint": "Pack clothing for this trip",
@@ -529,14 +519,9 @@
   "selectGarmentsTitle": "Select Garments",
   "editOutfitTitle": "Edit Outfit",
   "editGarmentTitle": "Edit Garment",
-  "addFromOutfit": "Add from an Outfit",
-  "addFromOutfitHint": "Pack the garments from your outfit.",
+  "addFromOutfit": "Add from a Saved Outfit",
   "selectAnOutfitTitle": "Select an Outfit",
   "selectVersionTitle": "Select a Version",
-  "addedItemsFromOutfitCount": "Added {count} items from this outfit.",
-  "@addedItemsFromOutfitCount": {
-    "placeholders": { "count": { "type": "int" } }
-  },
   "allItemsAlreadyInSuitcase": "All garments in this version are already in your Suitcase.",
   "noGarmentsInCategory": "No garments in {category}",
   "@noGarmentsInCategory": {
@@ -675,5 +660,82 @@
   "createOutfitMissingItemsBody": "Add these to create your outfit.",
   "createOutfitMinGarmentsBody": "Pick at least 2 garments to create your outfit.",
   "createVersionUnchangedTitle": "Nothing Changed Yet",
-  "createVersionUnchangedBody": "Change a garment or the background to create a new version."
+  "createVersionUnchangedBody": "Change a garment or the background to create a new version.",
+  "yourTripOutfits": "Outfit Planner",
+  "tripOutfitsSuggestedRange": "About {min}–{max} outfits suit a {days}-day trip",
+  "@tripOutfitsSuggestedRange": {
+    "placeholders": { "min": { "type": "int" }, "max": { "type": "int" }, "days": { "type": "int" } }
+  },
+  "findMoreOutfits": "Add AI Outfits",
+  "refreshSuggestions": "Refresh AI Picks",
+  "refreshSuggestionsTitle": "Refresh AI picks?",
+  "refreshSuggestionsBody": "Uwearis will replace {count} AI picks with new ones. Saved, edited, kept and tried-on outfits stay as they are.",
+  "@refreshSuggestionsBody": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "refresh": "Refresh",
+  "noMoreTripOutfitCombinations": "No more suitable combinations found with your current suitcase.",
+  "addedTripOutfitsCount": "Added {count} new outfits.",
+  "@addedTripOutfitsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "savedCandidatesAvailable": "{count} of your outfits fit this suitcase — add them below.",
+  "@savedCandidatesAvailable": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "fromYourOutfits": "From Your Outfits",
+  "fromYourOutfitsHint": "Everything they need is already packed.",
+  "addToTrip": "Add to Trip",
+  "tripOutfitsEmptyHint": "Start by adding garments or your saved outfits to the suitcase.",
+  "openSuitcase": "Open Suitcase",
+  "tripOutfitSourceSaved": "Saved",
+  "tripOutfitSourceSuggested": "AI Pick",
+  "tripOutfitSourceManual": "Custom",
+  "tripOutfitKept": "Kept",
+  "keepOutfit": "Keep Outfit",
+  "unkeepOutfit": "Don't Keep",
+  "removeFromTrip": "Remove from Trip",
+  "removeTripOutfitTitle": "Remove from trip?",
+  "removeTripOutfitBody": "This outfit leaves this trip. Your suitcase and saved outfits stay as they are.",
+  "tripOutfitFallbackName": "Outfit {index}",
+  "@tripOutfitFallbackName": {
+    "placeholders": { "index": { "type": "int" } }
+  },
+  "missingGarmentsCount": "{count, plural, =1{Missing 1 garment} other{Missing {count} garments}}",
+  "@missingGarmentsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "missingGarmentsDeletedHint": "A garment was deleted from your closet — edit this outfit to replace it.",
+  "tripOutfitAlreadyAdded": "Already added to this trip",
+  "tripOutfitDuplicate": "This trip already has an outfit with these garments.",
+  "tripOutfitIncomplete": "An outfit needs a top and bottom (or a one-piece) plus one pair of shoes.",
+  "tripOutfitGarmentNotPacked": "Pick garments that are in your suitcase.",
+  "tripOutfitLimitReached": "This trip has reached its outfit limit.",
+  "tripOutfitGenerationInProgress": "Uwearis is already putting outfits together for this trip.",
+  "savedOutfitUnavailable": "Some garments in this outfit were deleted from your closet.",
+  "tripOutfitMissingGarmentsTryOn": "Pack its missing garments or edit this outfit before trying it on.",
+  "failedToAddTripOutfit": "Couldn't add this outfit. Please try again.",
+  "failedToRemoveTripOutfit": "Couldn't remove this outfit. Please try again.",
+  "addedOutfitToTrip": "Added to this trip.",
+  "addedOutfitToTripPacked": "Added to this trip and packed {count} garments.",
+  "@addedOutfitToTripPacked": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "savedOutfitsInTripCount": "{count} in trip",
+  "@savedOutfitsInTripCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "tripOutfitEdited": "Edited",
+  "itineraryTitle": "Itinerary",
+  "tripOutfitsCount": "Outfits ({count})",
+  "@tripOutfitsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addTripOutfit": "Add Manually",
+  "refreshAiButton": "Refresh AI Outfits",
+  "tripOutfitsGoodVariety": "{days, plural, =1{Good outfit variety for 1 day} other{Good outfit variety for {days} days}}",
+  "@tripOutfitsGoodVariety": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "tripOutfitsEmptyTitle": "No trip outfits yet"
 }

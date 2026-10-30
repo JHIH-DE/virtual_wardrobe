@@ -508,10 +508,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exploreNavSaved => 'Saved';
 
   @override
-  String get finishOutfit => 'Auto-Complete';
+  String get finishOutfit => 'AI Styling';
 
   @override
-  String get finishWithAi => 'Finish with AI';
+  String get finishOutfitDescription => 'Let AI complete your outfit.';
+
+  @override
+  String get finishWithAi => 'Go';
 
   @override
   String get temperatureFieldLabel => 'Temperature';
@@ -664,27 +667,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get letUwearisPlanOutfitsHint =>
-      'Uwearis will build an outfit for every day using what\'s in your suitcase.';
+      'Uwearis will put together outfits from your suitcase — wear whichever suits the day.';
 
   @override
   String get planTripOutfits => 'Plan Trip Outfits';
-
-  @override
-  String get replanTripOutfits => 'Replan Trip Outfits';
-
-  @override
-  String get replanTripOutfitsTitle => 'Replan trip outfits?';
-
-  @override
-  String get replanTripOutfitsBody =>
-      'Outfits you\'ve adjusted by hand or that already have a photo will be kept. Outfits using an item that\'s no longer in your suitcase will be replanned.';
-
-  @override
-  String get replan => 'Replan';
-
-  @override
-  String get noOutfitsNeedReplan =>
-      'Nothing to replan — every outfit still fits your suitcase.';
 
   @override
   String get failedToGeneratePlan => 'Failed to generate outfit plan';
@@ -700,11 +686,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get regenerateOutfit => 'Regenerate Outfit';
-
-  @override
-  String missingFromSuitcaseCount(int count) {
-    return '$count items aren\'t packed yet.';
-  }
 
   @override
   String get addToSuitcase => 'Add to Suitcase';
@@ -1303,12 +1284,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generatingEllipsis => 'Generating…';
 
   @override
-  String get dailyOutfitPlan => 'Daily Outfit Plan';
-
-  @override
-  String get noItemsPlanned => 'No items planned';
-
-  @override
   String get thinkingEllipsis => 'Thinking…';
 
   @override
@@ -1327,21 +1302,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editGarmentTitle => 'Edit Garment';
 
   @override
-  String get addFromOutfit => 'Add from an Outfit';
-
-  @override
-  String get addFromOutfitHint => 'Pack the garments from your outfit.';
+  String get addFromOutfit => 'Add from a Saved Outfit';
 
   @override
   String get selectAnOutfitTitle => 'Select an Outfit';
 
   @override
   String get selectVersionTitle => 'Select a Version';
-
-  @override
-  String addedItemsFromOutfitCount(int count) {
-    return 'Added $count items from this outfit.';
-  }
 
   @override
   String get allItemsAlreadyInSuitcase =>
@@ -1695,4 +1662,190 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get createVersionUnchangedBody =>
       'Change a garment or the background to create a new version.';
+
+  @override
+  String get yourTripOutfits => 'Outfit Planner';
+
+  @override
+  String tripOutfitsSuggestedRange(int min, int max, int days) {
+    return 'About $min–$max outfits suit a $days-day trip';
+  }
+
+  @override
+  String get findMoreOutfits => 'Add AI Outfits';
+
+  @override
+  String get refreshSuggestions => 'Refresh AI Picks';
+
+  @override
+  String get refreshSuggestionsTitle => 'Refresh AI picks?';
+
+  @override
+  String refreshSuggestionsBody(int count) {
+    return 'Uwearis will replace $count AI picks with new ones. Saved, edited, kept and tried-on outfits stay as they are.';
+  }
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get noMoreTripOutfitCombinations =>
+      'No more suitable combinations found with your current suitcase.';
+
+  @override
+  String addedTripOutfitsCount(int count) {
+    return 'Added $count new outfits.';
+  }
+
+  @override
+  String savedCandidatesAvailable(int count) {
+    return '$count of your outfits fit this suitcase — add them below.';
+  }
+
+  @override
+  String get fromYourOutfits => 'From Your Outfits';
+
+  @override
+  String get fromYourOutfitsHint => 'Everything they need is already packed.';
+
+  @override
+  String get addToTrip => 'Add to Trip';
+
+  @override
+  String get tripOutfitsEmptyHint =>
+      'Start by adding garments or your saved outfits to the suitcase.';
+
+  @override
+  String get openSuitcase => 'Open Suitcase';
+
+  @override
+  String get tripOutfitSourceSaved => 'Saved';
+
+  @override
+  String get tripOutfitSourceSuggested => 'AI Pick';
+
+  @override
+  String get tripOutfitSourceManual => 'Custom';
+
+  @override
+  String get tripOutfitKept => 'Kept';
+
+  @override
+  String get keepOutfit => 'Keep Outfit';
+
+  @override
+  String get unkeepOutfit => 'Don\'t Keep';
+
+  @override
+  String get removeFromTrip => 'Remove from Trip';
+
+  @override
+  String get removeTripOutfitTitle => 'Remove from trip?';
+
+  @override
+  String get removeTripOutfitBody =>
+      'This outfit leaves this trip. Your suitcase and saved outfits stay as they are.';
+
+  @override
+  String tripOutfitFallbackName(int index) {
+    return 'Outfit $index';
+  }
+
+  @override
+  String missingGarmentsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Missing $count garments',
+      one: 'Missing 1 garment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get missingGarmentsDeletedHint =>
+      'A garment was deleted from your closet — edit this outfit to replace it.';
+
+  @override
+  String get tripOutfitAlreadyAdded => 'Already added to this trip';
+
+  @override
+  String get tripOutfitDuplicate =>
+      'This trip already has an outfit with these garments.';
+
+  @override
+  String get tripOutfitIncomplete =>
+      'An outfit needs a top and bottom (or a one-piece) plus one pair of shoes.';
+
+  @override
+  String get tripOutfitGarmentNotPacked =>
+      'Pick garments that are in your suitcase.';
+
+  @override
+  String get tripOutfitLimitReached =>
+      'This trip has reached its outfit limit.';
+
+  @override
+  String get tripOutfitGenerationInProgress =>
+      'Uwearis is already putting outfits together for this trip.';
+
+  @override
+  String get savedOutfitUnavailable =>
+      'Some garments in this outfit were deleted from your closet.';
+
+  @override
+  String get tripOutfitMissingGarmentsTryOn =>
+      'Pack its missing garments or edit this outfit before trying it on.';
+
+  @override
+  String get failedToAddTripOutfit =>
+      'Couldn\'t add this outfit. Please try again.';
+
+  @override
+  String get failedToRemoveTripOutfit =>
+      'Couldn\'t remove this outfit. Please try again.';
+
+  @override
+  String get addedOutfitToTrip => 'Added to this trip.';
+
+  @override
+  String addedOutfitToTripPacked(int count) {
+    return 'Added to this trip and packed $count garments.';
+  }
+
+  @override
+  String savedOutfitsInTripCount(int count) {
+    return '$count in trip';
+  }
+
+  @override
+  String get tripOutfitEdited => 'Edited';
+
+  @override
+  String get itineraryTitle => 'Itinerary';
+
+  @override
+  String tripOutfitsCount(int count) {
+    return 'Outfits ($count)';
+  }
+
+  @override
+  String get addTripOutfit => 'Add Manually';
+
+  @override
+  String get refreshAiButton => 'Refresh AI Outfits';
+
+  @override
+  String tripOutfitsGoodVariety(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Good outfit variety for $days days',
+      one: 'Good outfit variety for 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tripOutfitsEmptyTitle => 'No trip outfits yet';
 }

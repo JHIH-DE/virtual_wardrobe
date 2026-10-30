@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../data/garment.dart';
 import '../../data/packing_analysis.dart';
 import '../../data/trip.dart';
-import '../../data/trip_plan.dart';
+import '../../data/trip_outfit.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
@@ -116,67 +116,13 @@ class TripService with BaseService {
         .toList();
   }
 
-  /// Each day's rendered outfits only (`days[].outfits[]`); an unrendered
-  /// planned day looks like a day with no plan. Use [getTripPlan] for options.
-  Future<Map<String, dynamic>> getTrip(int tripId) async {
-    debugLog('--- getTrip id=$tripId ---');
-    final uri = Uri.parse('$_baseUrl/$tripId');
-
-    final res = await withAuth(
-      (token) => http
-          .get(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
-      retryOnTimeout: true,
-    );
-
-    final data = _dataObject(res, op: 'getTrip');
-    return data;
-  }
-
-  /// Every day's `options[]`, including unrendered ones, plus the rendered
-  /// `outfit_id`/`result_image_url` (null if none).
-  Future<TripPlan> getTripPlan(int tripId) async {
-    debugLog('--- getTripPlan id=$tripId ---');
-    final uri = Uri.parse('$_baseUrl/$tripId/plan');
-
-    final res = await withAuth(
-      (token) => http
-          .get(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
-      retryOnTimeout: true,
-    );
-
-    return TripPlan.fromPlanResponse(_dataObject(res, op: 'getTripPlan'));
-  }
-
-  /// AI per-day options (not rendered). [days] limits it to existing dates
-  /// (`TRIP_TARGET_DATES_NOT_FOUND` otherwise) and leaves other days as-is;
-  /// omitting it regenerates every day, deleting rendered outfit groups.
-  Future<TripPlan> generateTripPlan(
+  /// Packs [garmentIds] in one transaction (already-packed ones are
+  /// skipped) and returns the resulting suitcase.
+  Future<List<Garment>> addSuitcaseItems(
     int tripId, {
-    List<Map<String, dynamic>>? days,
-    int? alternativesPerDay,
+    required List<int> garmentIds,
   }) async {
-    debugLog('--- generateTripPlan id=$tripId ---');
-    final uri = Uri.parse('$_baseUrl/$tripId/generate');
-
-    final body = <String, dynamic>{
-      'days': ?days,
-      'alternatives_per_day': ?alternativesPerDay,
-    };
-
-    final res = await withAuth(
-      (token) => http
-          .post(uri, headers: authHeaders(token), body: jsonEncode(body))
-          // AI generation — generous ceiling.
-          .timeout(const Duration(seconds: 90)),
-    );
-
-    return TripPlan.fromPlanResponse(_dataObject(res, op: 'generateTripPlan'));
-  }
-
-  Future<void> addSuitcaseItem(int tripId, {required int garmentId}) async {
-    debugLog('--- addSuitcaseItem tripId=$tripId garmentId=$garmentId ---');
+    debugLog('--- addSuitcaseItems: tripId=$tripId garmentIds=$garmentIds ---');
     final uri = Uri.parse('$_baseUrl/$tripId/suitcase-items');
 
     final res = await withAuth(
@@ -184,20 +130,22 @@ class TripService with BaseService {
           .post(
             uri,
             headers: authHeaders(token),
-            body: jsonEncode({'garment_id': garmentId}),
+            body: jsonEncode({'garment_ids': garmentIds}),
           )
           .timeout(const Duration(seconds: 15)),
     );
 
-    decodeMap(res, op: 'addSuitcaseItem');
+    final items =
+        (_dataObject(res, op: 'addSuitcaseItems')['suitcase_items'] as List?) ??
+        const [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(Garment.fromTripItemJson)
+        .toList();
   }
 
-  /// Returns the options that still reference [garmentId], for an
-  /// informational warning; they aren't changed.
-  Future<List<TripAffectedOption>> removeSuitcaseItem(
-    int tripId, {
-    required int garmentId,
-  }) async {
+  /// Trip outfits using [garmentId] are kept and marked missing.
+  Future<void> removeSuitcaseItem(int tripId, {required int garmentId}) async {
     debugLog('--- removeSuitcaseItem tripId=$tripId garmentId=$garmentId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/suitcase-items/$garmentId');
 
@@ -207,12 +155,7 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
 
-    final data = _dataObject(res, op: 'removeSuitcaseItem');
-    final affected = (data['affected_options'] as List?) ?? const [];
-    return affected
-        .whereType<Map<String, dynamic>>()
-        .map(TripAffectedOption.fromJson)
-        .toList();
+    decodeMap(res, op: 'removeSuitcaseItem');
   }
 
   Future<void> deleteTrip(int tripId) async {
@@ -257,16 +200,162 @@ class TripService with BaseService {
     return PackingAnalysis.fromJson(_dataObject(res, op: 'getTripSuggestion'));
   }
 
-  /// First render of [optionId] (background = the day's leg location). An
-  /// already-rendered option gets `409 OPTION_ALREADY_RENDERED`; use
-  /// [regenerateOptionOutfit]. All renders of a day share one `OutfitGroup`.
-  /// `result_image_url` is a short-lived signed URL.
-  Future<TripOptionRender> generateOptionOutfit(
+  // ---- Trip Outfit Collection: every call returns the whole collection ----
+
+  Future<TripOutfitCollection> getTripOutfits(int tripId) async {
+    debugLog('--- getTripOutfits: id=$tripId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits');
+
+    final res = await withAuth(
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
+    );
+
+    return TripOutfitCollection.fromJson(
+      _dataObject(res, op: 'getTripOutfits'),
+    );
+  }
+
+  /// Packs [outfitId]'s missing garments and adds the outfit, in one
+  /// transaction. `409 TRIP_OUTFIT_ALREADY_ADDED` for the same version,
+  /// `409 TRIP_OUTFIT_DUPLICATE` for the same garments.
+  Future<TripOutfitCollection> addTripOutfitFromSaved(
     int tripId, {
-    required int optionId,
+    required int outfitId,
   }) async {
-    debugLog('--- generateOptionOutfit tripId=$tripId optionId=$optionId ---');
-    final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/outfit');
+    debugLog(
+      '--- addTripOutfitFromSaved: tripId=$tripId outfitId=$outfitId ---',
+    );
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits/from-saved');
+
+    final res = await withAuth(
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'outfit_id': outfitId}),
+          )
+          .timeout(const Duration(seconds: 15)),
+    );
+
+    return TripOutfitCollection.fromJson(
+      _dataObject(res, op: 'addTripOutfitFromSaved'),
+    );
+  }
+
+  /// [garmentIds] must all be packed and form a complete outfit.
+  Future<TripOutfitCollection> createTripOutfit(
+    int tripId, {
+    required List<int> garmentIds,
+  }) async {
+    debugLog('--- createTripOutfit: tripId=$tripId garmentIds=$garmentIds ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits');
+
+    final res = await withAuth(
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'garment_ids': garmentIds}),
+          )
+          .timeout(const Duration(seconds: 15)),
+    );
+
+    return TripOutfitCollection.fromJson(
+      _dataObject(res, op: 'createTripOutfit'),
+    );
+  }
+
+  /// Changing [garmentIds] drops this trip outfit's own render (the saved
+  /// outfit it came from is never touched).
+  Future<TripOutfitCollection> updateTripOutfit(
+    int tripId, {
+    required int tripOutfitId,
+    List<int>? garmentIds,
+    bool? isPinned,
+  }) async {
+    debugLog(
+      '--- updateTripOutfit: tripId=$tripId tripOutfitId=$tripOutfitId ---',
+    );
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits/$tripOutfitId');
+
+    final res = await withAuth(
+      (token) => http
+          .patch(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({
+              'garment_ids': ?garmentIds,
+              'is_pinned': ?isPinned,
+            }),
+          )
+          .timeout(const Duration(seconds: 15)),
+    );
+
+    return TripOutfitCollection.fromJson(
+      _dataObject(res, op: 'updateTripOutfit'),
+    );
+  }
+
+  /// Leaves the suitcase and the source saved outfit as they are.
+  Future<TripOutfitCollection> removeTripOutfit(
+    int tripId, {
+    required int tripOutfitId,
+  }) async {
+    debugLog(
+      '--- removeTripOutfit: tripId=$tripId tripOutfitId=$tripOutfitId ---',
+    );
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits/$tripOutfitId');
+
+    final res = await withAuth(
+      (token) => http
+          .delete(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+    );
+
+    return TripOutfitCollection.fromJson(
+      _dataObject(res, op: 'removeTripOutfit'),
+    );
+  }
+
+  /// AI suggestions from the suitcase (no try-on). `409
+  /// TRIP_OUTFIT_GENERATION_IN_PROGRESS` while another run is going.
+  Future<TripOutfitGenerateResult> generateTripOutfits(
+    int tripId, {
+    required TripOutfitGenerateMode mode,
+  }) async {
+    debugLog(
+      '--- generateTripOutfits: tripId=$tripId mode=${mode.apiValue} ---',
+    );
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits/generate');
+
+    final res = await withAuth(
+      (token) => http
+          .post(
+            uri,
+            headers: authHeaders(token),
+            body: jsonEncode({'mode': mode.apiValue}),
+          )
+          // AI generation — generous ceiling.
+          .timeout(const Duration(seconds: 90)),
+    );
+
+    return TripOutfitGenerateResult.fromJson(
+      _dataObject(res, op: 'generateTripOutfits'),
+    );
+  }
+
+  /// First render or in-place re-render of [tripOutfitId]'s try-on.
+  Future<TripOutfitCollection> tryOnTripOutfit(
+    int tripId, {
+    required int tripOutfitId,
+  }) async {
+    debugLog(
+      '--- tryOnTripOutfit: tripId=$tripId tripOutfitId=$tripOutfitId ---',
+    );
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits/$tripOutfitId/try-on');
 
     final res = await withAuth(
       (token) => http
@@ -275,68 +364,8 @@ class TripService with BaseService {
           .timeout(const Duration(seconds: 90)),
     );
 
-    return TripOptionRender.fromJson(
-      _dataObject(res, op: 'generateOptionOutfit'),
+    return TripOutfitCollection.fromJson(
+      _dataObject(res, op: 'tryOnTripOutfit'),
     );
-  }
-
-  /// Re-renders in place (same `outfit_id`); [backgroundId] defaults to the
-  /// existing scene. A never-rendered option gets `400 OPTION_NOT_RENDERED`.
-  Future<TripOptionRender> regenerateOptionOutfit(
-    int tripId, {
-    required int optionId,
-    int? backgroundId,
-  }) async {
-    debugLog(
-      '--- regenerateOptionOutfit tripId=$tripId optionId=$optionId ---',
-    );
-    final uri = Uri.parse(
-      '$_baseUrl/$tripId/options/$optionId/outfit/regenerate',
-    );
-
-    final res = await withAuth(
-      (token) => http
-          .post(
-            uri,
-            headers: authHeaders(token),
-            body: jsonEncode({'background_id': ?backgroundId}),
-          )
-          // AI call — generous ceiling.
-          .timeout(const Duration(seconds: 90)),
-    );
-
-    return TripOptionRender.fromJson(
-      _dataObject(res, op: 'regenerateOptionOutfit'),
-    );
-  }
-
-  /// Replaces an option's garments (no AI) and clears its rendered outfit.
-  /// Returns the new garments from the response's `items[]`.
-  Future<List<Garment>> updateOptionItems(
-    int tripId, {
-    required int optionId,
-    required List<int> garmentIds,
-  }) async {
-    debugLog(
-      '--- updateOptionItems tripId=$tripId optionId=$optionId garmentIds=$garmentIds ---',
-    );
-    final uri = Uri.parse('$_baseUrl/$tripId/options/$optionId/items');
-
-    final res = await withAuth(
-      (token) => http
-          .patch(
-            uri,
-            headers: authHeaders(token),
-            body: jsonEncode({'garment_ids': garmentIds}),
-          )
-          .timeout(const Duration(seconds: 15)),
-    );
-
-    final items =
-        (_dataObject(res, op: 'updateOptionItems')['items'] as List?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map(Garment.fromTripItemJson)
-        .toList();
   }
 }

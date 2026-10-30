@@ -13,12 +13,17 @@ import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/outfit/outfit_grid.dart';
 import 'trip_outfit_version_page.dart';
 
-/// Pick an outfit, then a version ([TripOutfitVersionPage]), to pack its
-/// garments; pops with the chosen [Outfit] or null.
+/// Pick an outfit, then a version ([TripOutfitVersionPage]), to add to the
+/// trip; pops with the chosen [Outfit] or null.
 class TripOutfitSelectionPage extends ConsumerStatefulWidget {
   final Set<int> packedGarmentIds;
+  final Set<int> addedOutfitIds;
 
-  const TripOutfitSelectionPage({super.key, this.packedGarmentIds = const {}});
+  const TripOutfitSelectionPage({
+    super.key,
+    this.packedGarmentIds = const {},
+    this.addedOutfitIds = const {},
+  });
 
   @override
   ConsumerState<TripOutfitSelectionPage> createState() =>
@@ -47,6 +52,7 @@ class _TripOutfitSelectionPageState
         builder: (_) => TripOutfitVersionPage(
           outfit: outfit,
           packedGarmentIds: widget.packedGarmentIds,
+          addedOutfitIds: widget.addedOutfitIds,
         ),
       ),
     );

@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
+import '../../../../app/theme/app_text_styles.dart';
 
-/// Shared white-card chrome (radius, padding, resting shadow).
+/// Shared white-card chrome (radius, padding, resting shadow), with an
+/// optional header ([title], [subtitle], [trailing]) above [child].
 class AppCardShell extends StatelessWidget {
-  final Widget child;
+  final Widget? child;
+  final String? title;
+  final String? subtitle;
+
+  /// Sits to the right of [title] / [subtitle], vertically centered.
+  final Widget? trailing;
+
   final EdgeInsetsGeometry padding;
 
   final double blurRadius;
@@ -15,11 +23,14 @@ class AppCardShell extends StatelessWidget {
 
   const AppCardShell({
     super.key,
-    required this.child,
+    this.child,
+    this.title,
+    this.subtitle,
+    this.trailing,
     this.padding = const EdgeInsets.all(14),
     this.blurRadius = 8,
     this.clipBehavior = Clip.none,
-  });
+  }) : assert(child != null || title != null);
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +49,44 @@ class AppCardShell extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: title == null ? child : _buildWithHeader(),
+    );
+  }
+
+  Widget _buildWithHeader() {
+    final subtitle = this.subtitle;
+    final trailing = this.trailing;
+    final child = this.child;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title!, style: AppTextStyle.bold18.copyWith(height: 1)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      subtitle,
+                      style: AppTextStyle.regular14.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[const SizedBox(width: 12), trailing],
+          ],
+        ),
+        if (child != null) ...[
+          const SizedBox(height: AppDimens.cardHeaderGap),
+          child,
+        ],
+      ],
     );
   }
 }

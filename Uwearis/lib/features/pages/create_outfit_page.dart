@@ -755,8 +755,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         ),
         const SizedBox(height: AppDimens.sectionSpacing),
       ],
-      _hInset(FieldLabel(_l10n.finishOutfit.toUpperCase())),
-      const SizedBox(height: AppDimens.cardHeaderGap),
       _hInset(_buildFinishOutfitCard()),
       const SizedBox(height: AppDimens.sectionSpacing),
       _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
@@ -1272,82 +1270,76 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     final enabled =
         !isOutfitLoading && !_isCompletingWithAi && !_garmentPoolLoading;
     return AppCardShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final temperatureTile = _buildFinishOutfitTile(
-                label: _l10n.temperatureFieldLabel,
-                child: NumberStepper(
-                  variant: NumberStepperVariant.tile,
-                  valueLabel: '${tempC.round()}°C',
-                  onDecrement: () =>
-                      setState(() => _weatherTempOverrideC = tempC - 1),
-                  onIncrement: () =>
-                      setState(() => _weatherTempOverrideC = tempC + 1),
-                ),
-              );
-              final styleTile = _buildFinishOutfitTile(
-                label: _l10n.styleLabel,
-                onTap: _openStylePicker,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _completeWithAiStyle?.localizedName(context) ??
-                            _l10n.styleAuto,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyle.bold16,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 20,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
-                ),
-              );
-              // Side by side only while half the row still fits a typical
-              // temperature at full size (minus the tile's 12px padding).
-              final tileContentWidth =
-                  (constraints.maxWidth - AppDimens.cardSpacing) / 2 - 2 * 12;
-              final sideBySide =
-                  tileContentWidth >=
-                  NumberStepper.tileWidthFor(
-                    context,
-                    '${_defaultTemperatureC.round()}°C',
-                  );
-              if (!sideBySide) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    temperatureTile,
-                    const SizedBox(height: AppDimens.cardSpacing),
-                    styleTile,
-                  ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(child: temperatureTile),
-                  const SizedBox(width: AppDimens.cardSpacing),
-                  Expanded(child: styleTile),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: AppDimens.sectionSpacing),
-          Center(
-            child: AccentPillButton(
-              label: _l10n.finishWithAi,
-              enabled: enabled,
-              onPressed: _completeWithAi,
+      title: _l10n.finishOutfit,
+      subtitle: _l10n.finishOutfitDescription,
+      trailing: AccentPillButton(
+        label: _l10n.finishWithAi,
+        enabled: enabled,
+        onPressed: _completeWithAi,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final temperatureTile = _buildFinishOutfitTile(
+            label: _l10n.temperatureFieldLabel,
+            child: NumberStepper(
+              variant: NumberStepperVariant.tile,
+              valueLabel: '${tempC.round()}°C',
+              onDecrement: () =>
+                  setState(() => _weatherTempOverrideC = tempC - 1),
+              onIncrement: () =>
+                  setState(() => _weatherTempOverrideC = tempC + 1),
             ),
-          ),
-        ],
+          );
+          final styleTile = _buildFinishOutfitTile(
+            label: _l10n.styleLabel,
+            onTap: _openStylePicker,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _completeWithAiStyle?.localizedName(context) ??
+                        _l10n.styleAuto,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyle.bold16,
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          );
+          // Side by side only while half the row still fits a typical
+          // temperature at full size (minus the tile's 12px padding).
+          final tileContentWidth =
+              (constraints.maxWidth - AppDimens.cardSpacing) / 2 - 2 * 12;
+          final sideBySide =
+              tileContentWidth >=
+              NumberStepper.tileWidthFor(
+                context,
+                '${_defaultTemperatureC.round()}°C',
+              );
+          if (!sideBySide) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                temperatureTile,
+                const SizedBox(height: AppDimens.cardSpacing),
+                styleTile,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: temperatureTile),
+              const SizedBox(width: AppDimens.cardSpacing),
+              Expanded(child: styleTile),
+            ],
+          );
+        },
       ),
     );
   }

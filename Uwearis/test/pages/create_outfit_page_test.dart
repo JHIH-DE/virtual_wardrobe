@@ -20,7 +20,6 @@ import 'package:uwearis/features/pages/outfit_details_page.dart';
 import 'package:uwearis/features/pages/select_garment_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
-import 'package:uwearis/features/widgets/common/cards/app_card_shell.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
@@ -266,7 +265,7 @@ void main() {
       await tester.pump();
 
       final pill = tester.widget<AccentPillButton>(
-        find.widgetWithText(AccentPillButton, 'Finish with AI'),
+        find.widgetWithText(AccentPillButton, 'Go'),
       );
       expect(pill.enabled, isTrue);
     },
@@ -311,29 +310,22 @@ void main() {
       expect(find.text('20°C'), findsOneWidget); // fallback default
       expect(find.text('STYLE'), findsOneWidget);
       expect(find.text('Auto'), findsOneWidget);
-      final finish = find.widgetWithText(AccentPillButton, 'Finish with AI');
+      final finish = find.widgetWithText(AccentPillButton, 'Go');
       expect(finish, findsOneWidget);
-      // Title above the card; the pill centered under the tiles.
+      // Pill to the right of the title/description, all above the tiles.
+      expect(find.text('AI Styling'), findsOneWidget);
+      final description = find.text('Let AI complete your outfit.');
       expect(
-        tester.getRect(find.text('AUTO-COMPLETE')).bottom,
+        tester.getRect(description).bottom,
         lessThan(tester.getRect(find.text('TEMPERATURE')).top),
       );
       expect(
-        tester.getRect(finish).top,
-        greaterThan(tester.getRect(find.text('20°C')).bottom),
+        tester.getRect(finish).left,
+        greaterThan(tester.getRect(description).right),
       );
       expect(
-        tester.getCenter(finish).dx,
-        closeTo(
-          tester
-              .getCenter(
-                find
-                    .ancestor(of: finish, matching: find.byType(AppCardShell))
-                    .first,
-              )
-              .dx,
-          1,
-        ),
+        tester.getRect(finish).bottom,
+        lessThan(tester.getRect(find.text('TEMPERATURE')).top),
       );
       expect(
         tester.getCenter(find.text('STYLE')).dy,
@@ -379,9 +371,7 @@ void main() {
       // Plain pumps after the tap: _completeWithAi's LoadingOverlay spinner
       // animates forever, so pumpAndSettle would time out.
       Future<void> runFinishWithAi() async {
-        await tester.tap(
-          find.widgetWithText(AccentPillButton, 'Finish with AI'),
-        );
+        await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
         await tester.pump();
         await tester.pump(const Duration(seconds: 6));
         await tester.pump();
@@ -468,9 +458,7 @@ void main() {
         }
         expect(find.byIcon(Icons.lock), findsNWidgets(2));
 
-        await tester.tap(
-          find.widgetWithText(AccentPillButton, 'Finish with AI'),
-        );
+        await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
         await tester.pump();
         await tester.pump(const Duration(seconds: 6));
         await tester.pump();
@@ -501,7 +489,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.widgetWithText(AccentPillButton, 'Finish with AI'));
+      await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
       await tester.pump();
       await tester.pump(const Duration(seconds: 6));
       await tester.pump();

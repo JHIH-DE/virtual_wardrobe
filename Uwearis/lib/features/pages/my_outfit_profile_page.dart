@@ -23,7 +23,6 @@ import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/auto_save_prompts.dart';
 import '../widgets/common/overlays/error_state_widget.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
-import '../widgets/common/section_header.dart';
 import 'reference_photos_page.dart';
 
 /// Re-signs the base model's URL; it's cached in [profileProvider] for the
@@ -187,14 +186,11 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
     final profile = ref.watch(profileProvider);
     final data = profile.value;
     return AppCardShell(
+      title: _l10n.virtualModelSectionTitle,
+      subtitle: _l10n.virtualModelSectionSubtitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: _l10n.virtualModelSectionTitle,
-            subtitle: _l10n.virtualModelSectionSubtitle,
-          ),
-          const SizedBox(height: AppDimens.cardHeaderGap),
           if (data != null)
             _buildBaseModelPreview(data)
           else if (profile.hasError)
@@ -263,14 +259,11 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
   Widget _buildTemperatureCard() {
     final offset = _temperatureOffset;
     return AppCardShell(
+      title: _l10n.temperatureAdjustmentTitle,
+      subtitle: _l10n.temperatureAdjustmentDescription,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: _l10n.temperatureAdjustmentTitle,
-            subtitle: _l10n.temperatureAdjustmentDescription,
-          ),
-          const SizedBox(height: 8),
           // Same − / + spread as Create Outfit's half-width temperature tile.
           LayoutBuilder(
             builder: (context, constraints) {

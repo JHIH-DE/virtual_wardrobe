@@ -58,16 +58,13 @@ void main() {
     'openTripDetails loads a trip only on its first visit — reopening it '
     'pushes Trip Details straight from the cache',
     (tester) async {
-      var planRequests = 0;
-      var tripRequests = 0;
+      var outfitRequests = 0;
       final client = MockClient((request) async {
-        if (request.url.path.endsWith('/plan')) {
-          planRequests++;
-          return jsonResponse(envelope({'days': [], 'suitcase_items': []}));
-        }
-        if (request.url.path.endsWith('/trip_plans/7')) {
-          tripRequests++;
-          return jsonResponse(envelope({'suitcase_items': []}));
+        if (request.url.path.endsWith('/trip_plans/7/outfits')) {
+          outfitRequests++;
+          return jsonResponse(
+            envelope({'outfits': [], 'suitcase_items': [], 'total_days': 2}),
+          );
         }
         if (request.url.path.endsWith('/packing-analysis')) {
           return jsonResponse(
@@ -117,7 +114,7 @@ void main() {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
         expect(find.byType(TripDetailsPage), findsOneWidget);
-        expect((planRequests, tripRequests), (1, 1));
+        expect(outfitRequests, 1);
 
         Navigator.of(tester.element(find.byType(TripDetailsPage))).pop();
         await tester.pumpAndSettle();
@@ -130,7 +127,7 @@ void main() {
           findsOneWidget,
         );
         await tester.pumpAndSettle();
-        expect((planRequests, tripRequests), (1, 1));
+        expect(outfitRequests, 1);
       }, () => client);
     },
   );

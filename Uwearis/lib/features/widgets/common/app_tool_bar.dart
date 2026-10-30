@@ -13,6 +13,10 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   /// When set (and [titleWidget] is null), the title renders as
   /// `<title>  <CountPill>` — the My Closet / Outfits tab header shape.
   final int? titleCount;
+
+  /// False on a details page whose body opens with the item's name: the
+  /// title is only announced to screen readers, not drawn.
+  final bool showTitle;
   final VoidCallback? onBack;
   final bool showBackButton;
   final Widget? leading;
@@ -26,6 +30,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.titleWidget,
     this.titleCount,
+    this.showTitle = true,
     this.onBack,
     this.showBackButton = true,
     this.leading,
@@ -96,7 +101,9 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
             (_usesBackButton
                 ? ActionDisc.edgeInset + AppDimens.toolbarHeight
                 : null),
-        title: titleWidget != null
+        title: !showTitle
+            ? Semantics(header: true, label: title)
+            : titleWidget != null
             ? Semantics(header: true, label: title, child: titleWidget)
             : _buildTitle(),
         leading:

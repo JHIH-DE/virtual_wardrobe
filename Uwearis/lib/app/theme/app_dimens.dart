@@ -64,9 +64,7 @@ abstract class AppDimens {
 
   // ActionButton — the full-width pill CTA.
   static const double actionButtonHeight = 48;
-  // Half the height so a one-line button has round ends; a wrapped label
-  // keeps the same corner rather than a deeper semicircle eating the text.
-  static const double actionButtonRadius = actionButtonHeight / 2;
-  static const double actionButtonBorderWidth = 1.5;
+  // Matches the cards (AppCardShell) the buttons sit beside.
+  static const double actionButtonRadius = cardRadius;
   static const double actionButtonIconGap = 8;
 }

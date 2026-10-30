@@ -496,6 +496,7 @@ class Garment {
       uploadUrl: '',
       objectName: '',
       imageUrl: json['image_url'] as String?,
+      isDeleted: (json['is_deleted'] as bool?) ?? false,
     );
   }
 

@@ -145,32 +145,20 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     return AppCardShell(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       blurRadius: 16,
+      title: l10n.styleTasteRadarCardTitle,
+      subtitle: l10n.styleTasteRadarCardSubtitle,
+      trailing: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _showAllDescriptionsDialog,
+        child: const Icon(
+          Icons.info_outline,
+          size: 20,
+          color: AppColors.textSecondary,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(child: SectionTitle(l10n.styleTasteRadarCardTitle)),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _showAllDescriptionsDialog,
-                child: const Icon(
-                  Icons.info_outline,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.styleTasteRadarCardSubtitle,
-            style: AppTextStyle.regular14.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimens.cardHeaderGap),
           LayoutBuilder(
             builder: (context, constraints) => Center(
               child: StyleTasteRadarChart(
@@ -362,21 +350,9 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
     return AppCardShell(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       blurRadius: 16,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionTitle(l10n.styleProfileCardTitle),
-          const SizedBox(height: 4),
-          Text(
-            l10n.styleProfileCardSubtitle,
-            style: AppTextStyle.regular14.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimens.cardHeaderGap),
-          child,
-        ],
-      ),
+      title: l10n.styleProfileCardTitle,
+      subtitle: l10n.styleProfileCardSubtitle,
+      child: child,
     );
   }
 

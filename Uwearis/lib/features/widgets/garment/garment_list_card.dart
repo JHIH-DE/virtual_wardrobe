@@ -12,7 +12,16 @@ class GarmentListCard extends StatelessWidget {
   final Garment garment;
   final VoidCallback? onTap;
 
-  const GarmentListCard({super.key, required this.garment, this.onTap});
+  /// Flags a garment the context can't use right now (e.g. not in the trip's
+  /// suitcase) with the same badge as a soft-deleted one.
+  final bool isUnavailable;
+
+  const GarmentListCard({
+    super.key,
+    required this.garment,
+    this.onTap,
+    this.isUnavailable = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +31,7 @@ class GarmentListCard extends StatelessWidget {
         // Soft-deleted but still referenced by the outfit; restorable from
         // GarmentDetailDialog. IgnorePointer so the icon isn't a dead zone
         // over the card's tap target.
-        if (garment.isDeleted)
+        if (garment.isDeleted || isUnavailable)
           const Positioned(
             top: 6,
             right: 6,

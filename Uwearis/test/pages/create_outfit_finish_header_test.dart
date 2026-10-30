@@ -24,11 +24,10 @@ void main() {
     setUpFakeAuth();
   });
 
-  // Create Outfit's Auto-Complete section: a FieldLabel above the card,
-  // a temperature stepper tile and a style tile, then Finish with AI
-  // centered at the card's bottom.
+  // Create Outfit's AI Styling card: title and description with the Go pill
+  // on their right, then a temperature stepper tile and a style tile.
   for (final c in layoutCases) {
-    testWidgets('the Auto-Complete card stays readable '
+    testWidgets('the AI Styling card stays readable '
         'at ${describeCase(c)}', (tester) async {
       applyLayoutCase(tester, c, height: 3000);
       await pumpApp(
@@ -41,7 +40,7 @@ void main() {
       final l10n = AppLocalizations.of(
         tester.element(find.byType(CreateOutfitPage)),
       );
-      final title = find.text(l10n.finishOutfit.toUpperCase());
+      final title = find.text(l10n.finishOutfit);
       final pill = find.widgetWithText(AccentPillButton, l10n.finishWithAi);
       final pillLabel = find.descendant(
         of: pill,
@@ -52,16 +51,23 @@ void main() {
           .first;
 
       expect(isTruncated(tester, pillLabel), isFalse);
+      final description = find.text(l10n.finishOutfitDescription);
       expectNoBrokenWords(tester, title);
+      expectNoBrokenWords(tester, description);
+      expectWithin(tester, title, card);
+      expectWithin(tester, description, card);
       expect(
-        tester.getRect(title).bottom,
-        lessThanOrEqualTo(tester.getRect(card).top),
+        tester.getRect(description).bottom,
+        lessThanOrEqualTo(tester.getRect(find.text('20°C')).top),
       );
       expectWithin(tester, pill, card);
-      expect(tester.getCenter(pill).dx, closeTo(tester.getCenter(card).dx, 1));
       expect(
-        tester.getRect(pill).top,
-        greaterThan(tester.getRect(find.text(l10n.styleAuto)).bottom),
+        tester.getRect(pill).left,
+        greaterThanOrEqualTo(tester.getRect(description).right),
+      );
+      expect(
+        tester.getRect(pill).bottom,
+        lessThanOrEqualTo(tester.getRect(find.text('20°C')).top),
       );
 
       // The temperature reads at full size inside its tile — not clipped

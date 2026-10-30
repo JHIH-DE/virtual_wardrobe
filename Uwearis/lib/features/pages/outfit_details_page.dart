@@ -201,7 +201,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                       : 30 + MediaQuery.paddingOf(context).bottom,
                 ),
                 children: [
-                  Text(_title, style: AppTextStyle.bold20),
+                  Text(_title, style: AppTextStyle.bold22),
                   const SizedBox(height: 8),
                   _buildInfoCard(),
                   const SizedBox(height: AppDimens.cardHeaderGap),
@@ -258,6 +258,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     ];
     return AppToolBar(
       title: _l10n.outfitDetailsTitle,
+      showTitle: false,
       onBack: widget.isNew ? _leaveNewOutfit : null,
       actions: [
         if (items.isNotEmpty)

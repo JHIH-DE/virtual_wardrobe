@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -10,33 +12,33 @@ import '../../core/providers/trip_suggestion_provider.dart';
 import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
-import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
-import '../../data/garment.dart';
+import '../../data/outfit.dart';
 import '../../data/trip.dart';
-import '../../data/trip_plan.dart';
+import '../../data/trip_outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/circle_icon_button.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
+import '../widgets/common/buttons/action_button.dart';
+import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/app_list_card.dart';
-import '../widgets/common/cards/generated_image_card.dart';
-import '../widgets/common/edge_fade_scrim.dart';
-import '../widgets/common/field_label.dart';
+import '../widgets/common/labeled_divider.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
-import '../widgets/common/section_title.dart';
-import '../widgets/garment/garment_detail_dialog.dart';
-import '../widgets/garment/garment_image.dart';
-import '../widgets/trip/replan_confirm_dialog.dart';
-import '../widgets/trip/trip_day_card.dart';
+import '../widgets/common/section_header.dart';
+import '../widgets/outfit/outfit_card.dart';
+import '../widgets/outfit/outfit_grid.dart';
 import '../widgets/trip/trip_legs_editor.dart';
+import '../widgets/trip/trip_collection_actions.dart';
+import '../widgets/trip/trip_outfit_tile.dart';
 import 'outfit_edit_page.dart';
+import 'trip_outfit_detail_page.dart';
+import 'trip_outfit_version_page.dart';
 import 'trip_suitcase_page.dart';
 import '../../core/utils/date_locale.dart';
 
@@ -53,122 +55,64 @@ class TripDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<TripDetailsPage> createState() => _TripDetailsPageState();
 }
 
-class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
-  // Must match TripDayCard's width (used for scroll-into-view math).
-  static const double _dayCardWidth = 95;
-  static const double _dayCardGap = 8;
-  // Fits TripDayCard's tallest state so days with/without a temperature
-  // line stay the same height.
-  static const double _dayCardHeight = 78;
-
-  int _selectedDayIndex = 0;
-  final ScrollController _dayScrollController = ScrollController();
-
-  // Corrected by the first ScrollMetricsNotification, which also fires on
-  // initial layout.
-  bool _daySelectorFadeLeftVisible = true;
-  bool _daySelectorFadeRightVisible = true;
-  bool _wardrobeFadeLeftVisible = true;
-  bool _wardrobeFadeRightVisible = true;
-
+class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
+    with TripCollectionActions {
   // Local copy so name/itinerary edits show immediately; [_updateTrip]
   // keeps [tripsProvider] in sync.
   late Trip _trip = widget.trip;
 
   int get _tripId => int.parse(_trip.id);
 
-  TripDetail get _detail =>
-      ref.read(tripDetailProvider(_tripId)).value ?? const TripDetail();
+  @override
+  int get tripId => _tripId;
+
+  TripOutfitCollection get _detail =>
+      ref.read(tripDetailProvider(_tripId)).value ??
+      const TripOutfitCollection();
 
   TripDetailNotifier get _detailNotifier =>
       ref.read(tripDetailProvider(_tripId).notifier);
 
-  List<TripDayOutfit> get _dayOutfits => _detail.days;
-  Set<int> get _suitcaseIds => _detail.suitcaseIds;
-
-  // Display-only ("Recommended N · Selected M" on the Suitcase card), not a
-  // plan-generation gate.
-  bool _generatingOutfit = false;
-  bool _dayOutfitActionInFlight = false;
-  bool _replanActionInFlight = false;
-  bool _replanningPlan = false;
+  bool _generatingOutfits = false;
   bool _editLegsActionInFlight = false;
-  // Overlay spans the PATCH, plan refetch and AI reanalysis together, so
-  // there's no feedback gap after Save.
+  // Overlay spans the PATCH, collection refetch and AI reanalysis together,
+  // so there's no feedback gap after Save.
   bool _updatingTripLegs = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
-  TripDayOutfit? get _currentDayOutfit => _selectedDayIndex < _dayOutfits.length
-      ? _dayOutfits[_selectedDayIndex]
-      : null;
-
-  List<Garment> get _todayGarments => _currentDayOutfit?.garments ?? const [];
-
-  /// Some of the selected day's garments are no longer in the suitcase.
-  bool get _hasMissingSuitcaseItems =>
-      _todayGarments.any((g) => g.id != null && !_suitcaseIds.contains(g.id));
-
-  bool get _hasTripPlan => _detail.hasTripPlan;
-
-  /// Per day, unlike [_hasTripPlan]: a leg added after planning has no
-  /// option even though other days do.
-  bool get _selectedDayHasOption => _currentDayOutfit?.optionId != null;
-
-  /// Top + Bottom + Shoes (a one-piece covers Top and Bottom). Gates whether
-  /// the Generate Outfit button is enabled.
-  bool get _hasCoreOutfit {
-    bool hasCategory(GarmentCategory c) =>
-        _todayGarments.any((g) => g.category == c);
-    final hasOnePiece = hasCategory(GarmentCategory.onePiece);
-    return (hasOnePiece || hasCategory(GarmentCategory.top)) &&
-        (hasOnePiece || hasCategory(GarmentCategory.bottom)) &&
-        hasCategory(GarmentCategory.shoes);
-  }
+  bool get _actionsLocked =>
+      isCollectionActionInFlight || _editLegsActionInFlight;
 
   @override
   void initState() {
     super.initState();
     _loadPackingAnalysis();
-    // A reload can shrink the day list (an itinerary edit) out from under
-    // the selected index.
-    ref.listenManual(tripDetailProvider(_tripId), (_, next) {
-      final dayCount = next.value?.days.length ?? 0;
-      final clamped = dayCount == 0
-          ? 0
-          : _selectedDayIndex.clamp(0, dayCount - 1);
-      if (clamped != _selectedDayIndex) {
-        setState(() => _selectedDayIndex = clamped);
-      }
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _revalidateIfStale());
-  }
-
-  @override
-  void dispose() {
-    _dayScrollController.dispose();
-    super.dispose();
   }
 
   /// Once the cached detail's signed image URLs expire, re-fetch it in the
   /// background so images don't each re-sign one by one.
   Future<void> _revalidateIfStale() async {
     if (!_detail.hasStaleImages) return;
+    await _reloadCollection();
+  }
+
+  /// A failure keeps the cached collection rather than wiping it.
+  Future<void> _reloadCollection() async {
     try {
       await _detailNotifier.reloadTripDetail();
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
     } catch (e) {
-      // Keep the cached detail; each image still refreshes its own URL on
-      // failure.
-      debugLog('Failed to revalidate trip detail: $e');
+      debugLog('Failed to reload trip outfits: $e');
     }
   }
 
   Future<void> _loadPackingAnalysis() async {
     try {
       // Warms the cached provider the suitcase page and garment picker read.
-      await ref.read(tripSuggestionProvider(int.parse(_trip.id)).future);
+      await ref.read(tripSuggestionProvider(_tripId).future);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -183,79 +127,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   /// a plain re-read would return the pre-edit result.
   Future<void> _analyzeTrip() async {
     try {
-      await TripService().analyzeTrip(int.parse(_trip.id));
+      await TripService().analyzeTrip(_tripId);
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
       debugLog('Failed to analyze trip: $e');
-    }
-  }
-
-  /// Re-fetches this trip's plan after a `generate` changed it server-side.
-  /// A failure keeps the cached plan rather than wiping it.
-  Future<void> _reloadPlan() async {
-    try {
-      await _detailNotifier.reloadPlan();
-    } on AuthExpiredException {
-      if (mounted) await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      debugLog('Failed to refresh trip plan: $e');
-    }
-  }
-
-  /// Replan without a suitcase change ("I just don't like what Uwearis
-  /// picked"); TripSuitcasePage's Replan only shows after a suitcase change.
-  Future<void> _replanPlan() async {
-    if (_replanActionInFlight ||
-        _dayOutfitActionInFlight ||
-        _editLegsActionInFlight) {
-      return;
-    }
-    setState(() => _replanActionInFlight = true);
-    try {
-      final confirmed = await showReplanConfirmDialog(context);
-      if (!confirmed || !mounted) return;
-
-      final days = daysToReplan(_dayOutfits, _suitcaseIds);
-      if (days == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(_l10n.noOutfitsNeedReplan)));
-        }
-        return;
-      }
-
-      setState(() => _replanningPlan = true);
-      try {
-        await TripService().generateTripPlan(
-          int.parse(_trip.id),
-          days: days,
-          alternativesPerDay: 0,
-        );
-        if (!mounted) return;
-        await _reloadPlan();
-      } on AuthExpiredException {
-        if (mounted) await AuthExpiredHandler.handle(context);
-      } catch (e) {
-        debugLog('Failed to replan trip: $e');
-        if (mounted) {
-          showErrorDialog(
-            context,
-            message: apiErrorMessage(
-              _l10n,
-              e,
-              fallback: _l10n.failedToGeneratePlan,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _replanningPlan = false);
-      }
-    } finally {
-      if (mounted) setState(() => _replanActionInFlight = false);
     }
   }
 
@@ -268,164 +146,148 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  /// First render vs. re-render are separate endpoints (generate 409s if
-  /// already rendered, regenerate 400s if never rendered), so branch on
-  /// `outfitId`. The result is applied by option id, so a slow response
-  /// after a day switch can't clobber another day.
-  Future<void> _generateSelectedDayOutfit() async {
-    if (_dayOutfitActionInFlight || _editLegsActionInFlight) return;
-    setState(() => _dayOutfitActionInFlight = true);
-    try {
-      final before = _dayOutfits[_selectedDayIndex];
-      final optionId = before.optionId;
-      if (optionId == null) return;
-      final isRegenerate = before.outfitId != null;
-
-      // Regenerating discards the current render for a new paid one.
-      if (isRegenerate) {
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AppDialog(
-            title: _l10n.regenerateOutfitConfirmTitle,
-            body: _l10n.regenerateOutfitConfirmBody,
-            primaryLabel: _l10n.regenerate,
-            onPrimary: () => Navigator.pop(ctx, true),
-            secondaryLabel: _l10n.cancel,
-            onSecondary: () => Navigator.pop(ctx, false),
-          ),
-        );
-        if (ok != true || !mounted) return;
-      }
-
-      setState(() => _generatingOutfit = true);
-      // Read before the await — the result is written back even if the
-      // user has left the page by the time the render lands.
-      final detailNotifier = _detailNotifier;
-      try {
-        final result = isRegenerate
-            ? await TripService().regenerateOptionOutfit(
-                int.parse(_trip.id),
-                optionId: optionId,
-              )
-            : await TripService().generateOptionOutfit(
-                int.parse(_trip.id),
-                optionId: optionId,
-              );
-        detailNotifier.updateDayOutfit(
-          optionId,
-          (current) => TripDayOutfit(
-            date: current.date,
-            optionId: optionId,
-            garments: current.garments,
-            outfitId: result.outfitId,
-            resultImageUrl: result.resultImageUrl,
-            temperatureMaxC: current.temperatureMaxC,
-            temperatureMinC: current.temperatureMinC,
-            everHadOutfit: true,
-            isManuallyEdited: current.isManuallyEdited,
-          ),
-        );
-      } on AuthExpiredException {
-        if (mounted) await AuthExpiredHandler.handle(context);
-        return;
-      } catch (e) {
-        debugLog('Failed to generate day outfit: $e');
-        if (mounted) {
-          showErrorDialog(
-            context,
-            message: apiErrorMessage(
-              _l10n,
-              e,
-              fallback: _l10n.failedToGenerateOutfit,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _generatingOutfit = false);
-      }
-    } finally {
-      if (mounted) setState(() => _dayOutfitActionInFlight = false);
-    }
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// Needs an existing option to PATCH.
-  Future<void> _openDayOutfitEditor() async {
-    final optionId = _currentDayOutfit?.optionId;
-    if (optionId == null) return;
+  /// Plan / Find More / Refresh. A result with nothing new is a normal
+  /// outcome, not an error.
+  Future<void> _generateOutfits(TripOutfitGenerateMode mode) async {
+    if (_editLegsActionInFlight) return;
+    final replaceable = _detail.replaceableOutfits.length;
+    await runCollectionAction(
+      fallback: _l10n.failedToGeneratePlan,
+      request: () async {
+        if (mode == TripOutfitGenerateMode.refresh &&
+            !await _confirmRefresh(replaceable)) {
+          return null;
+        }
+        if (!mounted) return null;
+        setState(() => _generatingOutfits = true);
+        final TripOutfitGenerateResult result;
+        try {
+          result = await TripService().generateTripOutfits(_tripId, mode: mode);
+        } finally {
+          if (mounted) setState(() => _generatingOutfits = false);
+        }
+        if (mounted) {
+          if (result.generatedCount > 0) {
+            _showSnackBar(_l10n.addedTripOutfitsCount(result.generatedCount));
+          } else if (mode != TripOutfitGenerateMode.refresh &&
+              result.collection.savedCandidates.isNotEmpty) {
+            _showSnackBar(
+              _l10n.savedCandidatesAvailable(
+                result.collection.savedCandidates.length,
+              ),
+            );
+          } else {
+            _showSnackBar(_l10n.noMoreTripOutfitCombinations);
+          }
+        }
+        return result.collection;
+      },
+    );
+  }
 
+  Future<bool> _confirmRefresh(int count) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.refreshSuggestionsTitle,
+        body: _l10n.refreshSuggestionsBody(count),
+        primaryLabel: _l10n.refresh,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _createOutfit() async {
+    if (_actionsLocked) return;
+    final suitcase = _detail.suitcase.where((g) => !g.isDeleted).toList();
     final garmentIds = await Navigator.push<Set<int>>(
       context,
       MaterialPageRoute(
         builder: (_) => OutfitEditPage(
-          initialGarments: _todayGarments,
-          preloadedGarments: _detail.suitcase,
-          validGarmentIds: _suitcaseIds,
-          title: _l10n.editOutfitTitle,
+          preloadedGarments: suitcase,
+          validGarmentIds: {
+            for (final g in suitcase)
+              if (g.id != null) g.id!,
+          },
+          title: _l10n.createOutfit,
         ),
       ),
     );
-    if (garmentIds == null || !mounted) return;
-
-    final detailNotifier = _detailNotifier;
-    try {
-      final newGarments = await TripService().updateOptionItems(
+    if (garmentIds == null || garmentIds.isEmpty || !mounted) return;
+    await runCollectionAction(
+      fallback: _l10n.failedToAddTripOutfit,
+      request: () => TripService().createTripOutfit(
         _tripId,
-        optionId: optionId,
         garmentIds: garmentIds.toList(),
-      );
-      // The backend clears the option's rendered outfit, so drop
-      // outfitId/resultImageUrl; everHadOutfit stays so the CTA reads
-      // "Regenerate".
-      detailNotifier.updateDayOutfit(
-        optionId,
-        (current) => TripDayOutfit(
-          date: current.date,
-          optionId: optionId,
-          temperatureMaxC: current.temperatureMaxC,
-          temperatureMinC: current.temperatureMinC,
-          garments: newGarments,
-          everHadOutfit: current.everHadOutfit,
-          isManuallyEdited: true,
-        ),
-      );
-    } on AuthExpiredException {
-      if (mounted) await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      debugLog('Failed to update day outfit: $e');
-      if (mounted) {
-        showErrorDialog(context, message: _l10n.failedToUpdateDayOutfit);
-      }
-    }
+      ),
+    );
   }
 
-  /// Re-packs the day's garments that are missing from the suitcase.
-  Future<void> _fixMissingSuitcaseItems() async {
-    final missing = _todayGarments
-        .where((g) => g.id != null && !_suitcaseIds.contains(g.id))
-        .toList();
-    if (missing.isEmpty) return;
+  Future<void> _openOutfit(TripOutfit outfit, int index) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TripOutfitDetailPage(
+          tripId: _tripId,
+          tripOutfitId: outfit.id,
+          index: index,
+        ),
+      ),
+    );
+  }
 
-    final detailNotifier = _detailNotifier;
+  Future<void> _addSavedOutfit(Outfit outfit) async {
+    if (_editLegsActionInFlight) return;
+    final added = await runCollectionAction(
+      fallback: _l10n.failedToAddTripOutfit,
+      request: () =>
+          TripService().addTripOutfitFromSaved(_tripId, outfitId: outfit.id),
+    );
+    if (added && mounted) _showSnackBar(_l10n.addedOutfitToTrip);
+  }
+
+  /// Lets the user look at (and switch) versions before adding one.
+  Future<void> _previewSavedOutfit(Outfit outfit) async {
+    if (_actionsLocked) return;
+    final version = await Navigator.push<Outfit>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TripOutfitVersionPage(
+          outfit: outfit,
+          packedGarmentIds: _detail.suitcaseIds,
+          addedOutfitIds: _detail.addedSourceOutfitIds,
+        ),
+      ),
+    );
+    if (version != null && mounted) await _addSavedOutfit(version);
+  }
+
+  /// Re-fetches the collection for a freshly signed image URL.
+  Future<String?> _refreshOutfitImageUrl(int tripOutfitId) async {
     try {
-      for (final g in missing) {
-        await TripService().addSuitcaseItem(_tripId, garmentId: g.id!);
-        detailNotifier.addSuitcaseGarments([g]);
+      final collection = await TripService().getTripOutfits(_tripId);
+      for (final o in collection.outfits) {
+        if (o.id == tripOutfitId) return o.resultImageUrl;
       }
-    } on AuthExpiredException {
-      if (mounted) await AuthExpiredHandler.handle(context);
-      return;
-    } catch (e) {
-      debugLog('Failed to re-add missing suitcase items: $e');
-      if (mounted) {
-        showErrorDialog(context, message: _l10n.failedToUpdateSuitcase);
-      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: _l10n.tripDetailsTitle,
+      showTitle: false,
       actions: [
         AppPopupMenu<_TripMenuAction>(
           variant: AppPopupMenuVariant.toolbar,
@@ -488,11 +350,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   }
 
   Future<void> _editTripLegs() async {
-    if (_editLegsActionInFlight ||
-        _replanActionInFlight ||
-        _dayOutfitActionInFlight) {
-      return;
-    }
+    if (_actionsLocked) return;
     setState(() => _editLegsActionInFlight = true);
     try {
       final initialLegs = List<TripLeg>.unmodifiable(_trip.legs);
@@ -546,8 +404,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     return true;
   }
 
-  /// Optimistic update with rollback. A legs edit changes the covered dates,
-  /// so the plan is re-fetched rather than patched.
+  /// Optimistic update with rollback. A legs edit changes the trip's days
+  /// (the suggested outfit count and saved-outfit weather matching), so the
+  /// collection is re-fetched; existing outfits aren't touched.
   Future<void> _updateTrip(Trip updated) async {
     final previous = _trip;
     final legsChanged = !identical(updated.legs, previous.legs);
@@ -557,8 +416,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     ref.invalidate(tripSuggestionProvider(int.parse(previous.id)));
     try {
       // The backend doesn't resize `days` from `legs`, so resend the dates.
-      // Omitting `activity` keeps each day's value; temperature is filled in
-      // server-side.
+      // Temperature is filled in server-side.
       final days = legsChanged
           ? updated.coveredDates
                 .map((d) => {'date': DateFormat('yyyy-MM-dd').format(d)})
@@ -571,7 +429,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         days: days,
       );
       if (legsChanged && mounted) {
-        await _reloadPlan();
+        await _reloadCollection();
         if (mounted) await _analyzeTrip();
       }
     } on AuthExpiredException {
@@ -629,7 +487,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Helpers read the detail through [_detail].
+    // Helpers read the collection through [_detail].
     ref.watch(tripDetailProvider(_tripId));
     return Stack(
       children: [
@@ -637,24 +495,29 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           backgroundColor: AppColors.pageBackground,
           appBar: _buildAppBar(),
           body: ListView(
-            padding: const EdgeInsets.only(bottom: 32),
+            padding: EdgeInsets.only(
+              bottom: 32 + MediaQuery.paddingOf(context).bottom,
+            ),
             children: [
               const SizedBox(height: 20),
-              _paddedSection(Text(_trip.name, style: AppTextStyle.bold20)),
+              _paddedSection(Text(_trip.name, style: AppTextStyle.bold22)),
               const SizedBox(height: AppDimens.titleGap),
-              _paddedSection(_TripItineraryHeader(trip: _trip)),
-              const SizedBox(height: 24),
+              _paddedSection(
+                AppCardShell(
+                  title: _l10n.itineraryTitle,
+                  child: _TripItineraryHeader(trip: _trip),
+                ),
+              ),
+              const SizedBox(height: AppDimens.sectionSpacing),
               _paddedSection(_buildSuitcaseSection()),
               const SizedBox(height: AppDimens.sectionSpacing),
-              _paddedSection(_buildDayPlanCard()),
+              _paddedSection(_buildOutfitsHeader()),
+              const SizedBox(height: AppDimens.sectionSpacing),
+              ..._buildOutfitsBody(),
             ],
           ),
         ),
-        if (_generatingOutfit)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.generatingOutfitEllipsis),
-          ),
-        if (_replanningPlan)
+        if (_generatingOutfits)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
           ),
@@ -673,345 +536,204 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
     );
   }
 
-  Widget _buildDayPlanCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        border: Border.all(color: AppColors.borderSubtle),
+  Widget _buildOutfitsHeader() {
+    final detail = _detail;
+    final viable = isViableSuitcase(detail.suitcase);
+    final locked = _actionsLocked;
+    final canAdd = viable;
+    final canRefresh = detail.replaceableOutfits.isNotEmpty;
+    final showsStatus = detail.totalDays > 0;
+    final showsFindMore = detail.outfits.isNotEmpty && viable;
+    final showsTextActions = canAdd || canRefresh;
+    return AppCardShell(
+      title: _l10n.yourTripOutfits,
+      child: !showsStatus && !showsFindMore && !showsTextActions
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (showsStatus) _buildVarietyStatus(detail),
+                if (showsFindMore) ...[
+                  if (showsStatus)
+                    const AppDivider(spacing: AppDimens.sectionSpacing),
+                  ActionButton(
+                    label: _l10n.findMoreOutfits,
+                    leading: const Icon(Icons.auto_awesome_outlined),
+                    onPressed: locked
+                        ? null
+                        : () => _generateOutfits(TripOutfitGenerateMode.more),
+                  ),
+                ],
+                if (showsTextActions) ...[
+                  if (showsStatus || showsFindMore) const SizedBox(height: 4),
+                  Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (canAdd)
+                          _OutfitPlannerTextAction(
+                            icon: Icons.add,
+                            label: _l10n.addTripOutfit,
+                            onPressed: locked ? null : _createOutfit,
+                          ),
+                        if (canAdd && canRefresh)
+                          Container(
+                            width: 1,
+                            height: 20,
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            color: AppColors.borderSubtle,
+                          ),
+                        if (canRefresh)
+                          _OutfitPlannerTextAction(
+                            icon: Icons.autorenew,
+                            label: _l10n.refreshAiButton,
+                            onPressed: locked
+                                ? null
+                                : () => _generateOutfits(
+                                    TripOutfitGenerateMode.refresh,
+                                  ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+    );
+  }
+
+  /// Enough outfits for the trip earns the check; below the suggested
+  /// minimum it states the range to aim for instead.
+  Widget _buildVarietyStatus(TripOutfitCollection detail) {
+    final enough =
+        detail.outfits.isNotEmpty &&
+        detail.outfits.length >= detail.suggestedMin;
+    final text = Text(
+      enough
+          ? _l10n.tripOutfitsGoodVariety(detail.totalDays)
+          : _l10n.tripOutfitsSuggestedRange(
+              detail.suggestedMin,
+              detail.suggestedMax,
+              detail.totalDays,
+            ),
+      style: AppTextStyle.regular14.copyWith(color: AppColors.textSecondary),
+    );
+    if (!enough) return text;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.check_circle_outline,
+          size: 20,
+          color: AppColors.success,
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: text),
+      ],
+    );
+  }
+
+  List<Widget> _buildOutfitsBody() {
+    final detail = _detail;
+    final viable = isViableSuitcase(detail.suitcase);
+    return [
+      _paddedSection(
+        LabeledDivider(label: _l10n.tripOutfitsCount(detail.outfits.length)),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
+      const SizedBox(height: AppDimens.cardHeaderGap),
+      if (detail.outfits.isEmpty)
+        _paddedSection(
+          viable
+              ? EmptyStatePlaceholder(
+                  icon: Icons.style_outlined,
+                  title: _l10n.letUwearisPlanOutfits,
+                  message: _l10n.letUwearisPlanOutfitsHint,
+                  actionLabel: _l10n.planTripOutfits,
+                  // _generateOutfits guards re-entry itself.
+                  onAction: () => _generateOutfits(TripOutfitGenerateMode.plan),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                )
+              : EmptyStatePlaceholder(
+                  icon: Icons.style_outlined,
+                  title: _l10n.tripOutfitsEmptyTitle,
+                  message: _l10n.tripOutfitsEmptyHint,
+                  actionLabel: _l10n.openSuitcase,
+                  onAction: _openSuitcase,
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                ),
+        )
+      else
+        _buildOutfitGrid(detail),
+      if (detail.savedCandidates.isNotEmpty) ...[
+        const SizedBox(height: AppDimens.titleGap),
+        _paddedSection(
+          SectionHeader(
+            title: _l10n.fromYourOutfits,
+            subtitle: _l10n.fromYourOutfitsHint,
+          ),
+        ),
+        const SizedBox(height: AppDimens.cardHeaderGap),
+        _buildSavedCandidates(detail.savedCandidates),
+      ],
+    ];
+  }
+
+  Widget _buildOutfitGrid(TripOutfitCollection detail) {
+    final suitcaseIds = detail.suitcaseIds;
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      gridDelegate: OutfitGrid.gridDelegate,
+      itemCount: detail.outfits.length,
+      itemBuilder: (context, i) => TripOutfitTile(
+        outfit: detail.outfits[i],
+        index: i + 1,
+        suitcaseIds: suitcaseIds,
+        onTap: () => _openOutfit(detail.outfits[i], i + 1),
+        onRefreshImageUrl: () => _refreshOutfitImageUrl(detail.outfits[i].id),
+      ),
+    );
+  }
+
+  static const double _candidateCardWidth = 150;
+
+  Widget _buildSavedCandidates(List<Outfit> candidates) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.centerLeft,
+          for (var i = 0; i < candidates.length; i++) ...[
+            if (i > 0) const SizedBox(width: AppDimens.cardSpacing),
+            SizedBox(
+              width: _candidateCardWidth,
+              child: Column(
                 children: [
-                  SectionTitle(_l10n.dailyOutfitPlan),
-                  if (_hasTripPlan)
-                    Positioned(
-                      right: 0,
-                      child: CircleIconButton(
-                        icon: Icons.autorenew,
-                        tooltip: _l10n.replanTripOutfits,
-                        discAlignment: Alignment.centerRight,
-                        onPressed:
-                            (_replanActionInFlight ||
-                                _dayOutfitActionInFlight ||
-                                _editLegsActionInFlight)
-                            ? null
-                            : _replanPlan,
-                      ),
-                    ),
+                  OutfitCard(
+                    outfit: candidates[i],
+                    onTap: () => _previewSavedOutfit(candidates[i]),
+                  ),
+                  const SizedBox(height: 8),
+                  AccentPillButton(
+                    label: _l10n.addToTrip,
+                    onPressed: _actionsLocked
+                        ? null
+                        : () => _addSavedOutfit(candidates[i]),
+                  ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: AppDimens.sectionSpacing),
-          _buildTripDaySelector(),
-          _paddedSection(
-            AppDivider(
-              topSpacing: AppDimens.sectionSpacing,
-              bottomSpacing: _selectedDayHasOption
-                  ? 8
-                  : AppDimens.sectionSpacing,
-            ),
-          ),
-          _buildWardrobeSection(),
-          if (_hasOutfitImage) ...[
-            const SizedBox(height: AppDimens.sectionSpacing),
-            _paddedSection(_buildOutfitSection()),
           ],
-        ],
-      ),
-    );
-  }
-
-  bool get _hasOutfitImage =>
-      _currentDayOutfit?.resultImageUrl?.isNotEmpty ?? false;
-
-  Widget _buildOutfitSection() {
-    final outfitId = _currentDayOutfit?.outfitId;
-    return GeneratedImageCard(
-      imageUrl: _currentDayOutfit?.resultImageUrl,
-      isLoading: _generatingOutfit,
-      jobStatus: _l10n.generatingOutfitEllipsis,
-      errorLabel: _l10n.generatingOutfitEllipsis,
-      cacheKey: outfitId == null ? null : 'trip-outfit-$outfitId',
-      onRefreshUrl: outfitId == null ? null : _refreshOutfitImageUrl,
-      onRegenerate:
-          (outfitId == null ||
-              _dayOutfitActionInFlight ||
-              _editLegsActionInFlight)
-          ? null
-          : _generateSelectedDayOutfit,
-    );
-  }
-
-  /// Shown once the day has an option but no render; disabled with an
-  /// explanation while [_hasCoreOutfit] is false.
-  Widget _buildGenerateOutfitButton() {
-    final hasCoreOutfit = _hasCoreOutfit;
-    return AccentPillButton(
-      label: (_currentDayOutfit?.everHadOutfit ?? false)
-          ? _l10n.regenerateOutfit
-          : _l10n.generateOutfit,
-      enabled: hasCoreOutfit,
-      disabledMessage: hasCoreOutfit
-          ? null
-          : _l10n.dayOutfitMissingCoreItemsMessage,
-      onPressed: (_dayOutfitActionInFlight || _editLegsActionInFlight)
-          ? null
-          : _generateSelectedDayOutfit,
-    );
-  }
-
-  /// Re-fetches the trip for a freshly signed `result_image_url`.
-  Future<String?> _refreshOutfitImageUrl() async {
-    final outfitId = _currentDayOutfit?.outfitId;
-    if (outfitId == null) return null;
-    try {
-      final tripData = await TripService().getTrip(int.parse(_trip.id));
-      final rawDays = (tripData['days'] as List?) ?? [];
-      if (_selectedDayIndex >= rawDays.length) return null;
-      final day = rawDays[_selectedDayIndex];
-      if (day is! Map<String, dynamic>) return null;
-      final outfits = ((day['outfits'] as List?) ?? [])
-          .whereType<Map<String, dynamic>>();
-      for (final o in outfits) {
-        if ((o['outfit_id'] as num?)?.toInt() == outfitId) {
-          return o['result_image_url'] as String?;
-        }
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Widget _buildTripDaySelector() {
-    // Uses the actual days[], not the dateRange span: multi-leg trips can
-    // have gaps between legs.
-    final int totalDays = _dayOutfits.length;
-    return EdgeFadeScrim(
-      leftVisible: _daySelectorFadeLeftVisible,
-      rightVisible: _daySelectorFadeRightVisible,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          _applyEdgeFadeVisibility(
-            notification.metrics,
-            _daySelectorFadeLeftVisible,
-            _daySelectorFadeRightVisible,
-            (left, right) {
-              _daySelectorFadeLeftVisible = left;
-              _daySelectorFadeRightVisible = right;
-            },
-          );
-          return false;
-        },
-        child: SizedBox(
-          height: _dayCardHeight,
-          child: ListView.separated(
-            controller: _dayScrollController,
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: totalDays,
-            separatorBuilder: (_, _) => const SizedBox(width: _dayCardGap),
-            itemBuilder: (context, index) {
-              final dayOutfit = index < _dayOutfits.length
-                  ? _dayOutfits[index]
-                  : null;
-              final date =
-                  dayOutfit?.date ??
-                  _trip.dateRange.start.add(Duration(days: index));
-              return TripDayCard(
-                date: date,
-                isSelected: index == _selectedDayIndex,
-                temperatureMaxC: dayOutfit?.temperatureMaxC,
-                temperatureMinC: dayOutfit?.temperatureMinC,
-                onTap: () => _selectDay(index),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _selectDay(int index) {
-    setState(() => _selectedDayIndex = index);
-    _scrollDayIntoView(index);
-  }
-
-  /// Scrolls the minimum needed to bring [index] fully on screen; a fully
-  /// visible card doesn't move.
-  void _scrollDayIntoView(int index) {
-    if (!_dayScrollController.hasClients) return;
-    final position = _dayScrollController.position;
-    const double leadingPadding = 16;
-    const double slotWidth = _dayCardWidth + _dayCardGap;
-    final itemStart = leadingPadding + index * slotWidth;
-    final itemEnd = itemStart + _dayCardWidth;
-    final viewStart = position.pixels;
-    final viewEnd = viewStart + position.viewportDimension;
-
-    double? target;
-    if (itemStart < viewStart) {
-      target = itemStart - leadingPadding;
-    } else if (itemEnd > viewEnd) {
-      target = itemEnd - position.viewportDimension + leadingPadding;
-    }
-    if (target == null) return;
-    _dayScrollController.animateTo(
-      target.clamp(0.0, position.maxScrollExtent),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-  }
-
-  /// Updates an [EdgeFadeScrim] row's edge flags from [metrics] via [apply].
-  void _applyEdgeFadeVisibility(
-    ScrollMetrics metrics,
-    bool currentLeft,
-    bool currentRight,
-    void Function(bool left, bool right) apply,
-  ) {
-    final left = metrics.pixels > metrics.minScrollExtent;
-    final right = metrics.pixels < metrics.maxScrollExtent;
-    if (left != currentLeft || right != currentRight) {
-      setState(() => apply(left, right));
-    }
-  }
-
-  Widget _buildWardrobeSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_selectedDayHasOption || _todayGarments.isNotEmpty) ...[
-          _paddedSection(_buildOutfitItemsHeader()),
-          SizedBox(height: _selectedDayHasOption ? 4 : AppDimens.cardHeaderGap),
-        ],
-        if (_todayGarments.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _selectedDayHasOption
-                ? EmptyStatePlaceholder(
-                    message: _l10n.noItemsPlanned,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.all(Radius.circular(16)),
-                      border: Border.fromBorderSide(
-                        BorderSide(color: AppColors.borderSubtle),
-                      ),
-                    ),
-                  )
-                : _GeneratePlanCta(onTap: _openSuitcase),
-          )
-        else ...[
-          EdgeFadeScrim(
-            leftVisible: _wardrobeFadeLeftVisible,
-            rightVisible: _wardrobeFadeRightVisible,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                _applyEdgeFadeVisibility(
-                  notification.metrics,
-                  _wardrobeFadeLeftVisible,
-                  _wardrobeFadeRightVisible,
-                  (left, right) {
-                    _wardrobeFadeLeftVisible = left;
-                    _wardrobeFadeRightVisible = right;
-                  },
-                );
-                return false;
-              },
-              child: SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _todayGarments.length,
-                  itemBuilder: (context, index) {
-                    final g = _todayGarments[index];
-                    return _TripGarmentThumb(
-                      garment: g,
-                      isMissing: g.id != null && !_suitcaseIds.contains(g.id),
-                      onTap: () => GarmentDetailDialog.show(context, g),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-          if (_hasMissingSuitcaseItems) ...[
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildMissingItemsWarning(),
-            ),
-          ],
-        ],
-        if (_selectedDayHasOption && _currentDayOutfit?.outfitId == null) ...[
-          const SizedBox(height: AppDimens.sectionSpacing),
-          Center(child: _buildGenerateOutfitButton()),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildOutfitItemsHeader() {
-    return Row(
-      children: [
-        Expanded(child: FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
-        if (_selectedDayHasOption)
-          AccentPillButton(label: _l10n.edit, onPressed: _openDayOutfitEditor),
-      ],
-    );
-  }
-
-  Widget _buildMissingItemsWarning() {
-    final missingCount = _todayGarments
-        .where((g) => g.id != null && !_suitcaseIds.contains(g.id))
-        .length;
-    if (missingCount == 0) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              _l10n.missingFromSuitcaseCount(missingCount),
-              style: AppTextStyle.regular13.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _fixMissingSuitcaseItems,
-            child: Text(
-              _l10n.addToSuitcase,
-              style: AppTextStyle.semibold14.copyWith(color: AppColors.accent),
-            ),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildSuitcaseSection() {
-    final packedCount = _suitcaseIds.length;
+    final packedCount = _detail.suitcaseIds.length;
     const leading = Icon(Icons.luggage_outlined, color: AppColors.icon);
     if (packedCount == 0) {
       return AppListCard(
@@ -1037,134 +759,108 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   }
 }
 
+/// The trip's legs as a timeline: a ring-and-dot marker per stop, joined by
+/// a line through every stop but the ends.
 class _TripItineraryHeader extends StatelessWidget {
   final Trip trip;
 
   const _TripItineraryHeader({required this.trip});
 
+  static const double _markerSize = 18;
+  static const double _lineWidth = 2;
+
   @override
   Widget build(BuildContext context) {
+    final legs = trip.legs;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (int i = 0; i < trip.legs.length; i++) ...[
-          if (i > 0) const SizedBox(height: 14),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: AppColors.icon, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  trip.legs[i].location.name,
-                  style: AppTextStyle.bold16,
+        for (int i = 0; i < legs.length; i++)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: _markerSize,
+                  child: Column(
+                    children: [
+                      Expanded(child: _buildLine(visible: i > 0)),
+                      const Icon(
+                        Icons.radio_button_checked,
+                        size: _markerSize,
+                        color: AppColors.accent,
+                      ),
+                      Expanded(child: _buildLine(visible: i < legs.length - 1)),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                "${DateFormat.MMMd(dateLocaleOf(context)).format(trip.legs[i].dateRange.start)} - "
-                "${DateFormat.MMMd(dateLocaleOf(context)).format(trip.legs[i].dateRange.end)}",
-                style: AppTextStyle.regular14.copyWith(
-                  color: AppColors.textSecondary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            legs[i].location.name,
+                            style: AppTextStyle.regular16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "${DateFormat.MMMd(dateLocaleOf(context)).format(legs[i].dateRange.start)} - "
+                          "${DateFormat.MMMd(dateLocaleOf(context)).format(legs[i].dateRange.end)}",
+                          style: AppTextStyle.regular14.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
       ],
     );
   }
-}
 
-/// Shown while the day has no plan; opens [TripSuitcasePage], where plans
-/// are generated.
-class _GeneratePlanCta extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _GeneratePlanCta({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: Column(
-        children: [
-          SectionTitle(l10n.letUwearisPlanOutfits),
-          const SizedBox(height: 4),
-          Text(
-            l10n.letUwearisPlanOutfitsHint,
-            textAlign: TextAlign.center,
-            style: AppTextStyle.regular13.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          AccentPillButton(label: l10n.planTripOutfits, onPressed: onTap),
-        ],
+  Widget _buildLine({required bool visible}) {
+    return Center(
+      child: Container(
+        width: _lineWidth,
+        color: visible ? AppColors.borderSubtle : Colors.transparent,
       ),
     );
   }
 }
 
-/// [isMissing]: the garment is no longer in the suitcase.
-class _TripGarmentThumb extends StatelessWidget {
-  final Garment garment;
-  final bool isMissing;
-  final VoidCallback? onTap;
+/// A low-emphasis Outfit Planner action under its primary button: icon +
+/// label in secondary text, full touch target.
+class _OutfitPlannerTextAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
 
-  const _TripGarmentThumb({
-    required this.garment,
-    required this.isMissing,
-    this.onTap,
+  const _OutfitPlannerTextAction({
+    required this.icon,
+    required this.label,
+    this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 80,
-        margin: const EdgeInsets.only(right: 10),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderSubtle),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Padding(
-                // contain: cover would crop wide photos (e.g. shoes).
-                padding: const EdgeInsets.all(6),
-                child: GarmentImage(
-                  url: garment.imageUrl,
-                  garmentId: garment.id,
-                  memCacheWidth: 160,
-                  fit: BoxFit.contain,
-                  borderRadius: 0,
-                ),
-              ),
-            ),
-            if (isMissing)
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Icon(
-                  Icons.error,
-                  size: 16,
-                  color: AppColors.error,
-                  shadows: [Shadow(color: AppColors.surface, blurRadius: 3)],
-                ),
-              ),
-          ],
-        ),
+    final color = onPressed == null
+        ? AppColors.hintText
+        : AppColors.textSecondary;
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20, color: color),
+      label: Text(label, style: AppTextStyle.medium14.copyWith(color: color)),
+      style: TextButton.styleFrom(
+        minimumSize: const Size(0, AppDimens.minTouchTarget),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        foregroundColor: AppColors.textSecondary,
       ),
     );
   }

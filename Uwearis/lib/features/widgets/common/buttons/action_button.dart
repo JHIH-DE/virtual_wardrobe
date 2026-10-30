@@ -73,10 +73,7 @@ class ActionButton extends StatelessWidget {
       ActionButtonVariant.primary => (
         AppColors.accent,
         AppColors.textOnPrimary,
-        const BorderSide(
-          color: AppColors.borderOnDark,
-          width: AppDimens.actionButtonBorderWidth,
-        ),
+        BorderSide.none,
       ),
       ActionButtonVariant.secondary => (
         AppColors.accentTint,

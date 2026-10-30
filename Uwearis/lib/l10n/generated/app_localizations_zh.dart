@@ -480,10 +480,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exploreNavSaved => '收藏';
 
   @override
-  String get finishOutfit => '完成穿搭';
+  String get finishOutfit => 'AI 造型';
 
   @override
-  String get finishWithAi => '使用 AI 完成';
+  String get finishOutfitDescription => '讓 AI 幫你完成穿搭。';
+
+  @override
+  String get finishWithAi => '開始';
 
   @override
   String get temperatureFieldLabel => '溫度';
@@ -625,25 +628,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get letUwearisPlanOutfits => '讓 Uwearis 規劃你的行程穿搭';
 
   @override
-  String get letUwearisPlanOutfitsHint => 'Uwearis 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
+  String get letUwearisPlanOutfitsHint =>
+      'Uwearis 会用行李箱里的衣物搭出几套穿搭，旅途中依当天心情自由挑选。';
 
   @override
   String get planTripOutfits => '規劃行程穿搭';
-
-  @override
-  String get replanTripOutfits => '重新規劃行程穿搭';
-
-  @override
-  String get replanTripOutfitsTitle => '要重新規劃行程穿搭嗎？';
-
-  @override
-  String get replanTripOutfitsBody => '手動調整過或已經有照片的穿搭會保留；使用了已移出行李箱衣物的穿搭則會重新規劃。';
-
-  @override
-  String get replan => '重新規劃';
-
-  @override
-  String get noOutfitsNeedReplan => '沒有需要重新規劃的穿搭——目前的行李箱內容都還適用。';
 
   @override
   String get failedToGeneratePlan => '規劃穿搭失敗';
@@ -659,11 +648,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get regenerateOutfit => '重新產生穿搭';
-
-  @override
-  String missingFromSuitcaseCount(int count) {
-    return '還有 $count 件尚未打包。';
-  }
 
   @override
   String get addToSuitcase => '加入行李箱';
@@ -1245,12 +1229,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get generatingEllipsis => '產生中…';
 
   @override
-  String get dailyOutfitPlan => '每日穿搭規劃';
-
-  @override
-  String get noItemsPlanned => '尚無規劃項目';
-
-  @override
   String get thinkingEllipsis => '思考中…';
 
   @override
@@ -1269,21 +1247,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editGarmentTitle => '編輯衣物';
 
   @override
-  String get addFromOutfit => '從穿搭新增';
-
-  @override
-  String get addFromOutfitHint => '一次打包已儲存穿搭裡的所有衣物。';
+  String get addFromOutfit => '从已保存的穿搭新增';
 
   @override
   String get selectAnOutfitTitle => '選擇穿搭';
 
   @override
   String get selectVersionTitle => '選擇版本';
-
-  @override
-  String addedItemsFromOutfitCount(int count) {
-    return '已從此穿搭新增 $count 件單品。';
-  }
 
   @override
   String get allItemsAlreadyInSuitcase => '此版本的單品都已在行李箱中。';
@@ -1613,6 +1583,167 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get createVersionUnchangedBody => '更换衣物或背景后，才能创建新版本。';
+
+  @override
+  String get yourTripOutfits => '你的旅行穿搭';
+
+  @override
+  String tripOutfitsSuggestedRange(int min, int max, int days) {
+    return '$days 天的行程约需 $min–$max 套';
+  }
+
+  @override
+  String get findMoreOutfits => 'AI 新增穿搭';
+
+  @override
+  String get refreshSuggestions => '更新 AI 推荐';
+
+  @override
+  String get refreshSuggestionsTitle => '要更新 AI 推荐吗？';
+
+  @override
+  String refreshSuggestionsBody(int count) {
+    return 'Uwearis 会用新的组合取代 $count 套 AI 推荐。已保存、改过、保留或已试穿的穿搭都不会变动。';
+  }
+
+  @override
+  String get refresh => '更新';
+
+  @override
+  String get noMoreTripOutfitCombinations => '目前的行李箱找不到更多合适的组合了。';
+
+  @override
+  String addedTripOutfitsCount(int count) {
+    return '新增了 $count 套穿搭。';
+  }
+
+  @override
+  String savedCandidatesAvailable(int count) {
+    return '你有 $count 套穿搭适合这个行李箱，可以在下方加入。';
+  }
+
+  @override
+  String get fromYourOutfits => '你的穿搭也适合';
+
+  @override
+  String get fromYourOutfitsHint => '需要的衣物都已经在行李箱里。';
+
+  @override
+  String get addToTrip => '加入旅行';
+
+  @override
+  String get tripOutfitsEmptyHint => '先把衣物或已保存的穿搭放进行李箱吧。';
+
+  @override
+  String get openSuitcase => '打开行李箱';
+
+  @override
+  String get tripOutfitSourceSaved => '已保存';
+
+  @override
+  String get tripOutfitSourceSuggested => 'AI 推荐';
+
+  @override
+  String get tripOutfitSourceManual => '自定义';
+
+  @override
+  String get tripOutfitKept => '已保留';
+
+  @override
+  String get keepOutfit => '保留穿搭';
+
+  @override
+  String get unkeepOutfit => '取消保留';
+
+  @override
+  String get removeFromTrip => '从旅行移除';
+
+  @override
+  String get removeTripOutfitTitle => '要从旅行移除吗？';
+
+  @override
+  String get removeTripOutfitBody => '这套穿搭会从这趟旅行移除，行李箱与已保存的穿搭都不会变动。';
+
+  @override
+  String tripOutfitFallbackName(int index) {
+    return '穿搭 $index';
+  }
+
+  @override
+  String missingGarmentsCount(int count) {
+    return '缺少 $count 件衣物';
+  }
+
+  @override
+  String get missingGarmentsDeletedHint => '有衣物已从衣柜删除，请编辑这套穿搭来替换。';
+
+  @override
+  String get tripOutfitAlreadyAdded => '已经加入这趟旅行';
+
+  @override
+  String get tripOutfitDuplicate => '这趟旅行已经有相同衣物的穿搭。';
+
+  @override
+  String get tripOutfitIncomplete => '穿搭需要上衣和下身（或连身服装），加上一双鞋。';
+
+  @override
+  String get tripOutfitGarmentNotPacked => '请选择行李箱里的衣物。';
+
+  @override
+  String get tripOutfitLimitReached => '这趟旅行的穿搭已达上限。';
+
+  @override
+  String get tripOutfitGenerationInProgress => 'Uwearis 正在为这趟旅行搭配穿搭，请稍候。';
+
+  @override
+  String get savedOutfitUnavailable => '这套穿搭有衣物已从衣柜删除。';
+
+  @override
+  String get tripOutfitMissingGarmentsTryOn => '请先把缺少的衣物放回行李箱或编辑穿搭，再进行试穿。';
+
+  @override
+  String get failedToAddTripOutfit => '无法加入这套穿搭，请再试一次。';
+
+  @override
+  String get failedToRemoveTripOutfit => '无法移除这套穿搭，请再试一次。';
+
+  @override
+  String get addedOutfitToTrip => '已加入这趟旅行。';
+
+  @override
+  String addedOutfitToTripPacked(int count) {
+    return '已加入这趟旅行，并打包了 $count 件衣物。';
+  }
+
+  @override
+  String savedOutfitsInTripCount(int count) {
+    return '已加入 $count 套';
+  }
+
+  @override
+  String get tripOutfitEdited => '已编辑';
+
+  @override
+  String get itineraryTitle => '行程';
+
+  @override
+  String tripOutfitsCount(int count) {
+    return '穿搭（$count）';
+  }
+
+  @override
+  String get addTripOutfit => '手动新增';
+
+  @override
+  String get refreshAiButton => '更新 AI 穿搭';
+
+  @override
+  String tripOutfitsGoodVariety(int days) {
+    return '$days 天的穿搭选择很充足';
+  }
+
+  @override
+  String get tripOutfitsEmptyTitle => '还没有旅行穿搭';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -2091,10 +2222,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exploreNavSaved => '收藏';
 
   @override
-  String get finishOutfit => '完成穿搭';
+  String get finishOutfit => 'AI 造型';
 
   @override
-  String get finishWithAi => '使用 AI 完成';
+  String get finishOutfitDescription => '讓 AI 幫你完成穿搭。';
+
+  @override
+  String get finishWithAi => '開始';
 
   @override
   String get temperatureFieldLabel => '溫度';
@@ -2236,25 +2370,11 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get letUwearisPlanOutfits => '讓 Uwearis 規劃你的行程穿搭';
 
   @override
-  String get letUwearisPlanOutfitsHint => 'Uwearis 會根據你行李箱裡的衣物，為每一天安排一套穿搭。';
+  String get letUwearisPlanOutfitsHint =>
+      'Uwearis 會用行李箱裡的衣物搭出幾套穿搭，旅途中依當天心情自由挑選。';
 
   @override
   String get planTripOutfits => '規劃行程穿搭';
-
-  @override
-  String get replanTripOutfits => '重新規劃行程穿搭';
-
-  @override
-  String get replanTripOutfitsTitle => '要重新規劃行程穿搭嗎？';
-
-  @override
-  String get replanTripOutfitsBody => '手動調整過或已經有照片的穿搭會保留；使用了已移出行李箱衣物的穿搭則會重新規劃。';
-
-  @override
-  String get replan => '重新規劃';
-
-  @override
-  String get noOutfitsNeedReplan => '沒有需要重新規劃的穿搭——目前的行李箱內容都還適用。';
 
   @override
   String get failedToGeneratePlan => '規劃穿搭失敗';
@@ -2270,11 +2390,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get regenerateOutfit => '重新產生穿搭';
-
-  @override
-  String missingFromSuitcaseCount(int count) {
-    return '還有 $count 件尚未打包。';
-  }
 
   @override
   String get addToSuitcase => '加入行李箱';
@@ -2856,12 +2971,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get generatingEllipsis => '產生中…';
 
   @override
-  String get dailyOutfitPlan => '每日穿搭規劃';
-
-  @override
-  String get noItemsPlanned => '尚無規劃項目';
-
-  @override
   String get thinkingEllipsis => '思考中…';
 
   @override
@@ -2880,21 +2989,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get editGarmentTitle => '編輯衣物';
 
   @override
-  String get addFromOutfit => '從穿搭新增';
-
-  @override
-  String get addFromOutfitHint => '一次打包已儲存穿搭裡的所有衣物。';
+  String get addFromOutfit => '從已儲存的穿搭新增';
 
   @override
   String get selectAnOutfitTitle => '選擇穿搭';
 
   @override
   String get selectVersionTitle => '選擇版本';
-
-  @override
-  String addedItemsFromOutfitCount(int count) {
-    return '已從此穿搭新增 $count 件單品。';
-  }
 
   @override
   String get allItemsAlreadyInSuitcase => '此版本的單品都已在行李箱中。';
@@ -3224,4 +3325,165 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get createVersionUnchangedBody => '更換衣物或背景後，才能建立新版本。';
+
+  @override
+  String get yourTripOutfits => '你的旅行穿搭';
+
+  @override
+  String tripOutfitsSuggestedRange(int min, int max, int days) {
+    return '$days 天的行程約需 $min–$max 套';
+  }
+
+  @override
+  String get findMoreOutfits => 'AI 新增穿搭';
+
+  @override
+  String get refreshSuggestions => '更新 AI 推薦';
+
+  @override
+  String get refreshSuggestionsTitle => '要更新 AI 推薦嗎？';
+
+  @override
+  String refreshSuggestionsBody(int count) {
+    return 'Uwearis 會用新的組合取代 $count 套 AI 推薦。已儲存、改過、保留或已試穿的穿搭都不會變動。';
+  }
+
+  @override
+  String get refresh => '更新';
+
+  @override
+  String get noMoreTripOutfitCombinations => '目前的行李箱找不到更多合適的組合了。';
+
+  @override
+  String addedTripOutfitsCount(int count) {
+    return '新增了 $count 套穿搭。';
+  }
+
+  @override
+  String savedCandidatesAvailable(int count) {
+    return '你有 $count 套穿搭適合這個行李箱，可以在下方加入。';
+  }
+
+  @override
+  String get fromYourOutfits => '你的穿搭也適合';
+
+  @override
+  String get fromYourOutfitsHint => '需要的衣物都已經在行李箱裡。';
+
+  @override
+  String get addToTrip => '加入旅行';
+
+  @override
+  String get tripOutfitsEmptyHint => '先把衣物或已儲存的穿搭放進行李箱吧。';
+
+  @override
+  String get openSuitcase => '打開行李箱';
+
+  @override
+  String get tripOutfitSourceSaved => '已儲存';
+
+  @override
+  String get tripOutfitSourceSuggested => 'AI 推薦';
+
+  @override
+  String get tripOutfitSourceManual => '自訂';
+
+  @override
+  String get tripOutfitKept => '已保留';
+
+  @override
+  String get keepOutfit => '保留穿搭';
+
+  @override
+  String get unkeepOutfit => '取消保留';
+
+  @override
+  String get removeFromTrip => '從旅行移除';
+
+  @override
+  String get removeTripOutfitTitle => '要從旅行移除嗎？';
+
+  @override
+  String get removeTripOutfitBody => '這套穿搭會從這趟旅行移除，行李箱與已儲存的穿搭都不會變動。';
+
+  @override
+  String tripOutfitFallbackName(int index) {
+    return '穿搭 $index';
+  }
+
+  @override
+  String missingGarmentsCount(int count) {
+    return '缺少 $count 件衣物';
+  }
+
+  @override
+  String get missingGarmentsDeletedHint => '有衣物已從衣櫃刪除，請編輯這套穿搭來替換。';
+
+  @override
+  String get tripOutfitAlreadyAdded => '已經加入這趟旅行';
+
+  @override
+  String get tripOutfitDuplicate => '這趟旅行已經有相同衣物的穿搭。';
+
+  @override
+  String get tripOutfitIncomplete => '穿搭需要上衣和下身（或連身服裝），加上一雙鞋。';
+
+  @override
+  String get tripOutfitGarmentNotPacked => '請選擇行李箱裡的衣物。';
+
+  @override
+  String get tripOutfitLimitReached => '這趟旅行的穿搭已達上限。';
+
+  @override
+  String get tripOutfitGenerationInProgress => 'Uwearis 正在為這趟旅行搭配穿搭，請稍候。';
+
+  @override
+  String get savedOutfitUnavailable => '這套穿搭有衣物已從衣櫃刪除。';
+
+  @override
+  String get tripOutfitMissingGarmentsTryOn => '請先把缺少的衣物放回行李箱或編輯穿搭，再進行試穿。';
+
+  @override
+  String get failedToAddTripOutfit => '無法加入這套穿搭，請再試一次。';
+
+  @override
+  String get failedToRemoveTripOutfit => '無法移除這套穿搭，請再試一次。';
+
+  @override
+  String get addedOutfitToTrip => '已加入這趟旅行。';
+
+  @override
+  String addedOutfitToTripPacked(int count) {
+    return '已加入這趟旅行，並打包了 $count 件衣物。';
+  }
+
+  @override
+  String savedOutfitsInTripCount(int count) {
+    return '已加入 $count 套';
+  }
+
+  @override
+  String get tripOutfitEdited => '已編輯';
+
+  @override
+  String get itineraryTitle => '行程';
+
+  @override
+  String tripOutfitsCount(int count) {
+    return '穿搭（$count）';
+  }
+
+  @override
+  String get addTripOutfit => '手動新增';
+
+  @override
+  String get refreshAiButton => '更新 AI 穿搭';
+
+  @override
+  String tripOutfitsGoodVariety(int days) {
+    return '$days 天的穿搭選擇很充足';
+  }
+
+  @override
+  String get tripOutfitsEmptyTitle => '還沒有旅行穿搭';
 }
