@@ -40,13 +40,6 @@ void main() {
           },
           {'id': 10, 'source': 'suggested', 'is_replaceable': true},
         ],
-        'saved_candidates': [
-          {
-            'outfit_id': 77,
-            'group_id': 7,
-            'garment_ids': [1, 2],
-          },
-        ],
       });
 
       expect(c.totalDays, 5);
@@ -55,7 +48,6 @@ void main() {
       expect(c.addedSourceOutfitIds, {55});
       expect(c.savedOutfitCount, 1);
       expect(c.replaceableOutfits.map((o) => o.id), [10]);
-      expect(c.savedCandidates.single.id, 77);
 
       final saved = c.outfits.first;
       expect(saved.source, TripOutfitSource.savedOutfit);
@@ -85,17 +77,33 @@ void main() {
     });
   });
 
-  test('TripOutfitGenerateResult reads the counts next to the collection', () {
+  test('TripOutfitGenerateResult reads each source\'s count and the AI '
+      'status next to the collection', () {
     final r = TripOutfitGenerateResult.fromJson({
       'outfits': [
         {'id': 1, 'source': 'suggested'},
       ],
-      'generated_count': 2,
+      'refresh_batch_size': 1,
+      'saved_added_count': 4,
+      'ai_added_count': 2,
       'replaced_count': 1,
+      'ai_status': 'rate_limited',
     });
-    expect(r.generatedCount, 2);
-    expect(r.replacedCount, 1);
+    expect((r.savedAddedCount, r.aiAddedCount, r.replacedCount), (4, 2, 1));
+    expect(r.aiStatus, TripOutfitAiStatus.rateLimited);
     expect(r.collection.outfits, hasLength(1));
+    expect(r.collection.refreshBatchSize, 1);
+  });
+
+  test('an unknown or missing AI status reads as no new outfits', () {
+    expect(
+      TripOutfitGenerateResult.fromJson({}).aiStatus,
+      TripOutfitAiStatus.noNew,
+    );
+    expect(
+      TripOutfitAiStatusApi.fromApiValue('something_new'),
+      TripOutfitAiStatus.noNew,
+    );
   });
 
   group('isViableSuitcase', () {

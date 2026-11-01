@@ -635,6 +635,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this trip?';
 
   @override
+  String get clearTrip => 'Clear Trip';
+
+  @override
+  String get clearTripConfirmation =>
+      'Remove every outfit and packed garment from this trip? Your closet and saved outfits stay as they are. This can\'t be undone.';
+
+  @override
+  String get clearingTripEllipsis => 'Clearing Trip…';
+
+  @override
+  String get failedToClearTrip => 'Failed to clear trip';
+
+  @override
   String get viewPlan => 'View Plan';
 
   @override
@@ -1690,23 +1703,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noMoreTripOutfitCombinations =>
-      'No more suitable combinations found with your current suitcase.';
-
-  @override
-  String addedTripOutfitsCount(int count) {
-    return 'Added $count new outfits.';
-  }
-
-  @override
-  String savedCandidatesAvailable(int count) {
-    return '$count of your outfits fit this suitcase — add them below.';
-  }
-
-  @override
-  String get fromYourOutfits => 'From Your Outfits';
-
-  @override
-  String get fromYourOutfitsHint => 'Everything they need is already packed.';
+      'No new outfit combinations found with your current suitcase.';
 
   @override
   String get addToTrip => 'Add to Trip';
@@ -1782,10 +1779,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pick garments that are in your suitcase.';
 
   @override
-  String get tripOutfitLimitReached =>
-      'This trip has reached its outfit limit.';
-
-  @override
   String get tripOutfitGenerationInProgress =>
       'Uwearis is already putting outfits together for this trip.';
 
@@ -1848,4 +1841,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripOutfitsEmptyTitle => 'No trip outfits yet';
+
+  @override
+  String addedSavedAndAiOutfits(int saved, int ai) {
+    String _temp0 = intl.Intl.pluralLogic(
+      saved,
+      locale: localeName,
+      other: 'Added $saved saved outfits',
+      one: 'Added 1 saved outfit',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      ai,
+      locale: localeName,
+      other: '$ai AI outfits',
+      one: '1 AI outfit',
+    );
+    return '$_temp0 and $_temp1.';
+  }
+
+  @override
+  String addedSavedOutfitsOnly(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count outfits from your saved looks.',
+      one: 'Added 1 outfit from your saved looks.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String addedAiOutfitsOnly(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count new AI outfits.',
+      one: 'Added 1 new AI outfit.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String refreshedAiOutfitsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Refreshed $count AI outfits.',
+      one: 'Refreshed 1 AI outfit.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get tripAiPartialFailure =>
+      'Saved outfits were added, but AI styling couldn\'t be completed.';
+
+  @override
+  String get tripAiRateLimited =>
+      'You\'ve made a lot of AI outfit requests. Please try again later.';
 }

@@ -17,6 +17,7 @@ import '../../data/trip_outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/fading_toolbar_title.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/cards/generated_image_card.dart';
 import '../widgets/common/labeled_divider.dart';
@@ -52,7 +53,7 @@ class TripOutfitDetailPage extends ConsumerStatefulWidget {
 }
 
 class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
-    with TripCollectionActions {
+    with TripCollectionActions, FadingToolbarTitle {
   bool _renderingOutfit = false;
   // The outfit leaving the collection (removed here, or replaced by a
   // Refresh elsewhere) pops this page once.
@@ -204,7 +205,7 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
 
   Future<void> _reloadQuietly(TripDetailNotifier notifier) async {
     try {
-      await notifier.reloadTripDetail();
+      await notifier.reloadTripDetail(syncSavedOutfits: true);
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
     } catch (e) {
@@ -232,6 +233,9 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
       WidgetsBinding.instance.addPostFrameCallback((_) => _popOnce());
       return const Scaffold(backgroundColor: AppColors.pageBackground);
     }
+    final name = (outfit.name?.trim().isNotEmpty ?? false)
+        ? outfit.name!
+        : _l10n.tripOutfitFallbackName(widget.index);
     final missing = outfit.missingGarments(detail.suitcaseIds);
     final missingIds = {for (final g in missing) g.id};
     final canTryOn = missing.isEmpty && outfit.isComplete;
@@ -243,10 +247,11 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
           backgroundColor: AppColors.pageBackground,
           appBar: AppToolBar(
             title: _l10n.outfitDetailsTitle,
-            showTitle: false,
+            titleWidget: buildFadingToolbarTitle(name),
             actions: [_buildMenu(outfit, locked)],
           ),
           body: ListView(
+            controller: toolbarTitleScrollController,
             padding: EdgeInsets.fromLTRB(
               20,
               20,
@@ -256,9 +261,8 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
             children: [
               // Same header shape as Outfit Details: name, then the image.
               Text(
-                (outfit.name?.trim().isNotEmpty ?? false)
-                    ? outfit.name!
-                    : _l10n.tripOutfitFallbackName(widget.index),
+                name,
+                key: toolbarTitleAnchorKey,
                 style: AppTextStyle.bold22,
               ),
               const SizedBox(height: AppDimens.cardHeaderGap),

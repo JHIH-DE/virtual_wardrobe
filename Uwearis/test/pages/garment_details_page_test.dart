@@ -85,8 +85,19 @@ void main() {
       );
       await tester.pump();
 
-      // The toolbar title is hidden but still announced as the header.
-      expect(find.text('Add Clothing'), findsNothing);
+      // The toolbar title is hidden (faded out until the name scrolls away)
+      // but still announced as the header.
+      expect(
+        tester
+            .widget<AnimatedOpacity>(
+              find.ancestor(
+                of: find.text('Add Clothing'),
+                matching: find.byType(AnimatedOpacity),
+              ),
+            )
+            .opacity,
+        0,
+      );
       expect(find.bySemanticsLabel('Add Clothing'), findsOneWidget);
       expect(find.text('Select Color'), findsOneWidget);
       // View Match sits in the image's bottom-left corner.
@@ -1439,7 +1450,13 @@ void main() {
         await pump500(tester);
 
         expect(patches.single['name'], 'Blue Oxford');
-        expect(find.text('Blue Oxford'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(ListView),
+            matching: find.text('Blue Oxford'),
+          ),
+          findsOneWidget,
+        );
       }, () => _garmentBackend(shirt, patches));
     });
 

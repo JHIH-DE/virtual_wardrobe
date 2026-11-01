@@ -598,6 +598,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteTripConfirmation => '確定要刪除這個行程嗎？';
 
   @override
+  String get clearTrip => '清空行程';
+
+  @override
+  String get clearTripConfirmation =>
+      '要移除这趟行程的所有穿搭和行李箱衣物吗？你的衣橱和已保存的穿搭不会受影响。此操作无法撤销。';
+
+  @override
+  String get clearingTripEllipsis => '清空行程中…';
+
+  @override
+  String get failedToClearTrip => '清空行程失败';
+
+  @override
   String get viewPlan => '查看行程';
 
   @override
@@ -1610,23 +1623,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refresh => '更新';
 
   @override
-  String get noMoreTripOutfitCombinations => '目前的行李箱找不到更多合适的组合了。';
-
-  @override
-  String addedTripOutfitsCount(int count) {
-    return '新增了 $count 套穿搭。';
-  }
-
-  @override
-  String savedCandidatesAvailable(int count) {
-    return '你有 $count 套穿搭适合这个行李箱，可以在下方加入。';
-  }
-
-  @override
-  String get fromYourOutfits => '你的穿搭也适合';
-
-  @override
-  String get fromYourOutfitsHint => '需要的衣物都已经在行李箱里。';
+  String get noMoreTripOutfitCombinations => '目前的行李箱找不到新的穿搭组合。';
 
   @override
   String get addToTrip => '加入旅行';
@@ -1690,9 +1687,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tripOutfitGarmentNotPacked => '请选择行李箱里的衣物。';
 
   @override
-  String get tripOutfitLimitReached => '这趟旅行的穿搭已达上限。';
-
-  @override
   String get tripOutfitGenerationInProgress => 'Uwearis 正在为这趟旅行搭配穿搭，请稍候。';
 
   @override
@@ -1744,6 +1738,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tripOutfitsEmptyTitle => '还没有旅行穿搭';
+
+  @override
+  String addedSavedAndAiOutfits(int saved, int ai) {
+    return '已加入 $saved 套已保存穿搭和 $ai 套 AI 穿搭。';
+  }
+
+  @override
+  String addedSavedOutfitsOnly(int count) {
+    return '已从你的穿搭加入 $count 套。';
+  }
+
+  @override
+  String addedAiOutfitsOnly(int count) {
+    return '新增了 $count 套 AI 穿搭。';
+  }
+
+  @override
+  String refreshedAiOutfitsCount(int count) {
+    return '已更新 $count 套 AI 穿搭。';
+  }
+
+  @override
+  String get tripAiPartialFailure => '已加入你的穿搭，但 AI 搭配没有完成。';
+
+  @override
+  String get tripAiRateLimited => 'AI 穿搭请求次数较多，请稍后再试。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -2338,6 +2358,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deleteTripConfirmation => '確定要刪除這個行程嗎？';
+
+  @override
+  String get clearTrip => '清空行程';
+
+  @override
+  String get clearTripConfirmation =>
+      '要移除這趟行程的所有穿搭和行李箱衣物嗎？你的衣櫃和已儲存的穿搭不會受影響。此動作無法復原。';
+
+  @override
+  String get clearingTripEllipsis => '清空行程中…';
+
+  @override
+  String get failedToClearTrip => '清空行程失敗';
 
   @override
   String get viewPlan => '查看行程';
@@ -3352,23 +3385,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get refresh => '更新';
 
   @override
-  String get noMoreTripOutfitCombinations => '目前的行李箱找不到更多合適的組合了。';
-
-  @override
-  String addedTripOutfitsCount(int count) {
-    return '新增了 $count 套穿搭。';
-  }
-
-  @override
-  String savedCandidatesAvailable(int count) {
-    return '你有 $count 套穿搭適合這個行李箱，可以在下方加入。';
-  }
-
-  @override
-  String get fromYourOutfits => '你的穿搭也適合';
-
-  @override
-  String get fromYourOutfitsHint => '需要的衣物都已經在行李箱裡。';
+  String get noMoreTripOutfitCombinations => '目前的行李箱找不到新的穿搭組合。';
 
   @override
   String get addToTrip => '加入旅行';
@@ -3432,9 +3449,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get tripOutfitGarmentNotPacked => '請選擇行李箱裡的衣物。';
 
   @override
-  String get tripOutfitLimitReached => '這趟旅行的穿搭已達上限。';
-
-  @override
   String get tripOutfitGenerationInProgress => 'Uwearis 正在為這趟旅行搭配穿搭，請稍候。';
 
   @override
@@ -3486,4 +3500,30 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get tripOutfitsEmptyTitle => '還沒有旅行穿搭';
+
+  @override
+  String addedSavedAndAiOutfits(int saved, int ai) {
+    return '已加入 $saved 套已儲存穿搭和 $ai 套 AI 穿搭。';
+  }
+
+  @override
+  String addedSavedOutfitsOnly(int count) {
+    return '已從你的穿搭加入 $count 套。';
+  }
+
+  @override
+  String addedAiOutfitsOnly(int count) {
+    return '新增了 $count 套 AI 穿搭。';
+  }
+
+  @override
+  String refreshedAiOutfitsCount(int count) {
+    return '已更新 $count 套 AI 穿搭。';
+  }
+
+  @override
+  String get tripAiPartialFailure => '已加入你的穿搭，但 AI 搭配沒有完成。';
+
+  @override
+  String get tripAiRateLimited => 'AI 穿搭請求次數較多，請稍後再試。';
 }

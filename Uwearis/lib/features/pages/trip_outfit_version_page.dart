@@ -12,12 +12,14 @@ import '../../data/garment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/fading_toolbar_title.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/labeled_divider.dart';
 import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/outfit/outfit_image.dart';
+import '../widgets/outfit/outfit_title.dart';
 
 /// Pops with the version on screen to add to the trip, or null. Deliberately
 /// read-only (no favourite / regenerate / cover / delete).
@@ -40,7 +42,8 @@ class TripOutfitVersionPage extends ConsumerStatefulWidget {
       _TripOutfitVersionPageState();
 }
 
-class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
+class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
+    with FadingToolbarTitle {
   // Just the tapped outfit until [_loadVersions] resolves.
   late final List<Outfit> _versions = [widget.outfit];
   int _currentIndex = 0;
@@ -118,6 +121,13 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
       (g) => !widget.packedGarmentIds.contains(g.id),
     );
     final alreadyAdded = widget.addedOutfitIds.contains(_current.id);
+    final name = outfitDisplayTitle(
+      _l10n,
+      groupName: widget.outfit.groupName ?? _current.groupName,
+      name: _current.name,
+      seasons: _current.seasons,
+      style: _current.style,
+    );
     final notice = alreadyAdded
         ? _l10n.tripOutfitAlreadyAdded
         : garments.isNotEmpty && !hasUnpacked
@@ -127,10 +137,15 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       extendBody: true,
-      appBar: AppToolBar(title: _l10n.selectVersionTitle),
+      // Like Outfit Details: the body opens with the outfit's name.
+      appBar: AppToolBar(
+        title: _l10n.selectVersionTitle,
+        titleWidget: buildFadingToolbarTitle(name),
+      ),
       bottomNavigationBar: _buildAddButton(enabled: !alreadyAdded),
       body: Builder(
         builder: (bodyContext) => ListView(
+          controller: toolbarTitleScrollController,
           padding: EdgeInsets.fromLTRB(
             20,
             20,
@@ -140,6 +155,8 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage> {
                 : BottomActionButton.scrollClearance(bodyContext),
           ),
           children: [
+            Text(name, key: toolbarTitleAnchorKey, style: AppTextStyle.bold22),
+            const SizedBox(height: AppDimens.cardHeaderGap),
             _buildVersionCarousel(),
             _buildVersionIndicator(),
             if (notice != null)

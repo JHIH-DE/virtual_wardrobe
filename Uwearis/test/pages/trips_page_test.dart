@@ -60,7 +60,7 @@ void main() {
     (tester) async {
       var outfitRequests = 0;
       final client = MockClient((request) async {
-        if (request.url.path.endsWith('/trip_plans/7/outfits')) {
+        if (request.url.path.endsWith('/trip_plans/7/outfits/sync')) {
           outfitRequests++;
           return jsonResponse(
             envelope({'outfits': [], 'suitcase_items': [], 'total_days': 2}),

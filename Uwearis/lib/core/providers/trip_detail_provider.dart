@@ -24,7 +24,7 @@ class TripDetailNotifier extends AsyncNotifier<TripOutfitCollection> {
   int _mutationCount = 0;
 
   @override
-  Future<TripOutfitCollection> build() => TripService().getTripOutfits(tripId);
+  Future<TripOutfitCollection> build() => TripService().syncTripOutfits(tripId);
 
   TripOutfitCollection get _current =>
       state.value ?? const TripOutfitCollection();
@@ -37,9 +37,13 @@ class TripDetailNotifier extends AsyncNotifier<TripOutfitCollection> {
   /// Re-fetches in place. Unlike a `refresh()` this never drops to
   /// [AsyncLoading] (the pages keep showing what they have), and errors
   /// propagate to the caller instead of replacing the cached data.
-  Future<void> reloadTripDetail() async {
+  /// [syncSavedOutfits] after a suitcase or itinerary change, so saved
+  /// outfits that now fit get added; a plain re-read doesn't add any.
+  Future<void> reloadTripDetail({bool syncSavedOutfits = false}) async {
     final startedAt = _mutationCount;
-    final fresh = await TripService().getTripOutfits(tripId);
+    final fresh = syncSavedOutfits
+        ? await TripService().syncTripOutfits(tripId)
+        : await TripService().getTripOutfits(tripId);
     if (startedAt == _mutationCount) state = AsyncData(fresh);
   }
 

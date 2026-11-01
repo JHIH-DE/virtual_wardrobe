@@ -23,6 +23,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/carousel_dots_indicator.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/fading_toolbar_title.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/card_corner_badge.dart';
@@ -70,7 +71,8 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<OutfitDetailsPage> createState() => _OutfitDetailsPageState();
 }
 
-class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
+class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
+    with FadingToolbarTitle {
   bool _isDeleting = false;
   // Discarding a new outfit (deleting its group) on leave.
   bool _isLeaving = false;
@@ -192,6 +194,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
             appBar: _buildAppBar(),
             body: Builder(
               builder: (bodyContext) => ListView(
+                controller: toolbarTitleScrollController,
                 padding: EdgeInsets.fromLTRB(
                   20,
                   20,
@@ -201,7 +204,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                       : 30 + MediaQuery.paddingOf(context).bottom,
                 ),
                 children: [
-                  Text(_title, style: AppTextStyle.bold22),
+                  Text(
+                    _title,
+                    key: toolbarTitleAnchorKey,
+                    style: AppTextStyle.bold22,
+                  ),
                   const SizedBox(height: 8),
                   _buildInfoCard(),
                   const SizedBox(height: AppDimens.cardHeaderGap),
@@ -258,7 +265,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     ];
     return AppToolBar(
       title: _l10n.outfitDetailsTitle,
-      showTitle: false,
+      titleWidget: buildFadingToolbarTitle(_title),
       onBack: widget.isNew ? _leaveNewOutfit : null,
       actions: [
         if (items.isNotEmpty)

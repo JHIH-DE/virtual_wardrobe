@@ -93,8 +93,7 @@ Map<String, dynamic> _outfitJson(
 Map<String, dynamic> _collectionJson({
   List<Garment>? suitcase,
   List<Map<String, dynamic>> outfits = const [],
-  List<Map<String, dynamic>> candidates = const [],
-  int generatedCount = 0,
+  int aiAdded = 0,
 }) => {
   'trip_id': 7,
   'total_days': 4,
@@ -103,17 +102,20 @@ Map<String, dynamic> _collectionJson({
     for (final g in suitcase ?? _viableSuitcase) _garmentJson(g),
   ],
   'outfits': outfits,
-  'saved_candidates': candidates,
-  'generated_count': generatedCount,
+  'refresh_batch_size': [
+    for (final o in outfits)
+      if (o['is_replaceable'] == true) o,
+  ].length.clamp(0, 3),
+  'ai_added_count': aiAdded,
+  'ai_status': aiAdded > 0 ? 'ok' : 'no_new',
 };
 
 TripOutfitCollection _collection({
   List<Garment>? suitcase,
   List<Map<String, dynamic>> outfits = const [],
-  List<Map<String, dynamic>> candidates = const [],
 }) {
   final parsed = TripOutfitCollection.fromJson(
-    _collectionJson(outfits: outfits, candidates: candidates),
+    _collectionJson(outfits: outfits),
   );
   // Keep the given Garment objects (isDeleted etc.) for the suitcase.
   return parsed.copyWith(suitcase: suitcase ?? _viableSuitcase);
@@ -214,7 +216,13 @@ void main() {
       // heads the body.
       expect(find.text('Outfit Details'), findsNothing);
       expect(find.bySemanticsLabel('Outfit Details'), findsOneWidget);
-      expect(find.text('Museum Day'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.text('Museum Day'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('AI Pick'), findsNothing);
       expect(find.text('Garments (3)'), findsOneWidget);
       expect(find.text('Item 1'), findsOneWidget);
@@ -230,7 +238,14 @@ void main() {
       await pumpDetails(tester);
       await settle(tester);
 
-      expect(find.text('Kyoto Autumn'), findsOneWidget);
+      // In the page body; the toolbar's copy stays invisible at the top.
+      expect(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.text('Kyoto Autumn'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Itinerary'), findsOneWidget);
       expect(
         find.ancestor(
@@ -244,6 +259,73 @@ void main() {
       expect(find.text('Daily Outfit Plan'), findsNothing);
       expect(log, isEmpty, reason: 'the cached collection is not re-fetched');
     }, tripClient(log));
+  });
+
+  testWidgets('the toolbar fades the trip name in once the in-page name '
+      'scrolls away, and out again back at the top', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const longName =
+        'Kyoto Autumn Leaves and Osaka Street Food Grand Tour 2026';
+    await http.runWithClient(() async {
+      await pumpDetails(
+        tester,
+        trip: Trip(
+          id: '7',
+          name: longName,
+          activities: const [],
+          legs: _trip().legs,
+        ),
+        detail: _collection(
+          outfits: [for (var i = 1; i <= 8; i++) _outfitJson(i)],
+        ),
+      );
+      await settle(tester);
+
+      final toolbarTitle = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text(longName),
+      );
+      double opacity() => tester
+          .widget<AnimatedOpacity>(
+            find.ancestor(
+              of: toolbarTitle,
+              matching: find.byType(AnimatedOpacity),
+            ),
+          )
+          .opacity;
+
+      expect(opacity(), 0);
+
+      // Not past the name yet: still hidden.
+      await tester.drag(find.byType(ListView), const Offset(0, -20));
+      await tester.pumpAndSettle();
+      expect(opacity(), 0);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(opacity(), 1);
+      // One line, ellipsized, never wider than the space between the
+      // toolbar's back button and menu.
+      final text = tester.widget<Text>(toolbarTitle);
+      expect((text.maxLines, text.overflow), (1, TextOverflow.ellipsis));
+      expect(
+        tester.getRect(toolbarTitle).left,
+        greaterThan(
+          tester.getRect(find.byIcon(Icons.arrow_back_ios_new_rounded)).right,
+        ),
+      );
+      expect(
+        tester.getRect(toolbarTitle).right,
+        lessThan(tester.getRect(find.byIcon(Icons.more_vert)).left),
+      );
+
+      await tester.drag(find.byType(ListView), const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(opacity(), 0);
+    }, tripClient([]));
   });
 
   testWidgets('the Suitcase card shows the packed count as its status', (
@@ -318,7 +400,7 @@ void main() {
           expect(log.single.toString(), 'POST /outfits/generate');
           expect(log.single.body, {'mode': 'plan'});
           expect(find.byType(TripOutfitTile), findsNWidgets(2));
-          expect(find.text('Added 2 new outfits.'), findsOneWidget);
+          expect(find.text('Added 2 new AI outfits.'), findsOneWidget);
         },
         tripClient(
           log,
@@ -327,7 +409,7 @@ void main() {
               _outfitJson(1, name: 'Airport Layers', replaceable: true),
               _outfitJson(2, replaceable: true),
             ],
-            generatedCount: 2,
+            aiAdded: 2,
           ),
         ),
       );
@@ -406,6 +488,27 @@ void main() {
     }, tripClient([]));
   });
 
+  testWidgets('Refresh confirms with the backend batch size, not every '
+      'replaceable outfit', (tester) async {
+    final log = <_Recorded>[];
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpDetails(
+        tester,
+        detail: _collection(
+          outfits: [
+            for (var i = 1; i <= 5; i++) _outfitJson(i, replaceable: true),
+          ],
+        ),
+      );
+      await settle(tester);
+
+      await tester.tap(find.text('Refresh AI Outfits'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('replace 3 AI picks'), findsOneWidget);
+    }, tripClient(log));
+  });
+
   testWidgets(
     'Refresh confirms with the number of suggestions it replaces, and does '
     'nothing on Cancel',
@@ -447,7 +550,7 @@ void main() {
               _outfitJson(4, replaceable: true),
               _outfitJson(5, replaceable: true),
             ],
-            generatedCount: 2,
+            aiAdded: 2,
           ),
         ),
       );
@@ -470,7 +573,7 @@ void main() {
         expect(log.single.body, {'mode': 'more'});
         expect(
           find.text(
-            'No more suitable combinations found with your current suitcase.',
+            'No new outfit combinations found with your current suitcase.',
           ),
           findsOneWidget,
         );
@@ -531,7 +634,7 @@ void main() {
                 ],
               };
             }
-            if (r.method == 'GET' && r.path == '/outfits') {
+            if (r.method == 'POST' && r.path == '/outfits/sync') {
               return _collectionJson(
                 suitcase: [..._viableSuitcase, away],
                 outfits: [
@@ -585,52 +688,6 @@ void main() {
       }, tripClient([]));
     },
   );
-
-  testWidgets('a saved outfit that fits the suitcase is suggested, and Add to '
-      'Trip adds that version', (tester) async {
-    final log = <_Recorded>[];
-    final candidate = {
-      'outfit_id': 77,
-      'group_id': 7,
-      'group_type': 'general',
-      'status': 'completed',
-      'name': 'City Walk',
-      'garment_ids': [1, 2, 3],
-      'result_image_url': '',
-    };
-    await http.runWithClient(
-      () async {
-        useTallSurface(tester);
-        await pumpDetails(
-          tester,
-          detail: _collection(
-            outfits: [_outfitJson(1, replaceable: true)],
-            candidates: [candidate],
-          ),
-        );
-        await settle(tester);
-
-        expect(find.text('From Your Outfits'), findsOneWidget);
-        await tester.tap(find.text('Add to Trip'));
-        await tester.pumpAndSettle();
-
-        expect(log.single.toString(), 'POST /outfits/from-saved');
-        expect(log.single.body, {'outfit_id': 77});
-        expect(find.text('From Your Outfits'), findsNothing);
-        expect(find.byType(TripOutfitTile), findsNWidgets(2));
-        expect(find.text('Added to this trip.'), findsOneWidget);
-      },
-      tripClient(
-        log,
-        respond: (_) => _collectionJson(
-          outfits: [
-            _outfitJson(1, replaceable: true),
-            _outfitJson(2, source: 'saved_outfit', name: 'City Walk'),
-          ],
-        ),
-      ),
-    );
-  });
 
   testWidgets('Keep and Remove from Trip go through the outfit page menu, '
       'and removing returns to the grid', (tester) async {
@@ -716,6 +773,89 @@ void main() {
     );
   });
 
+  group('Clear Trip', () {
+    Future<void> chooseClearTrip(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Clear Trip'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('confirming empties the outfits and suitcase in one request', (
+      tester,
+    ) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(
+        () async {
+          useTallSurface(tester);
+          await pumpDetails(
+            tester,
+            detail: _collection(outfits: [_outfitJson(1), _outfitJson(2)]),
+          );
+          await settle(tester);
+          expect(find.byType(TripOutfitTile), findsNWidgets(2));
+
+          await chooseClearTrip(tester);
+          expect(
+            find.textContaining('Remove every outfit and packed garment'),
+            findsOneWidget,
+          );
+          await tester.tap(find.text('Clear'));
+          await tester.pumpAndSettle();
+
+          expect(log.map((r) => r.toString()), ['POST /clear']);
+          expect(find.byType(TripOutfitTile), findsNothing);
+        },
+        tripClient(
+          log,
+          respond: (r) => r.method == 'POST' && r.path == '/clear'
+              ? _collectionJson(suitcase: const [])
+              : null,
+        ),
+      );
+    });
+
+    testWidgets('cancelling sends nothing', (tester) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: _collection(outfits: [_outfitJson(1)]),
+        );
+        await settle(tester);
+
+        await chooseClearTrip(tester);
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+
+        expect(log, isEmpty);
+        expect(find.byType(TripOutfitTile), findsOneWidget);
+      }, tripClient(log));
+    });
+
+    testWidgets('is unavailable when the trip has nothing to clear', (
+      tester,
+    ) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: TripOutfitCollection.fromJson(
+            _collectionJson(suitcase: const []),
+          ),
+        );
+        await settle(tester);
+
+        await chooseClearTrip(tester);
+
+        expect(find.textContaining('Remove every outfit'), findsNothing);
+        expect(log, isEmpty);
+      }, tripClient(log));
+    });
+  });
+
   testWidgets('Edit Itinerary: Save starts disabled, enables once a leg is '
       'removed, persists the change and re-reads the collection', (
     tester,
@@ -778,13 +918,13 @@ void main() {
         final legs = (patch.body as Map)['legs'] as List;
         expect(legs, hasLength(1));
         expect(legs.single['location'], 'Kyoto');
-        expect(log.map((r) => r.toString()), contains('GET /outfits'));
+        expect(log.map((r) => r.toString()), contains('POST /outfits/sync'));
       },
       tripClient(
         log,
         respond: (r) => switch ((r.method, r.path)) {
           ('PATCH', '') => {},
-          ('GET', '/outfits') => _collectionJson(),
+          ('POST', '/outfits/sync') => _collectionJson(),
           _ => null,
         },
       ),
@@ -820,7 +960,7 @@ void main() {
           expect(find.byType(TripOutfitTile), findsOneWidget);
           expect(find.text('Let Uwearis Plan Your Trip'), findsNothing);
           expect(
-            log.where((r) => r.method == 'GET' && r.path == '/outfits'),
+            log.where((r) => r.path == '/outfits' || r.path == '/outfits/sync'),
             isEmpty,
             reason: 'both pages render from the cached collection',
           );
@@ -830,7 +970,7 @@ void main() {
           respond: (r) => r.path == '/outfits/generate'
               ? _collectionJson(
                   outfits: [_outfitJson(1, replaceable: true)],
-                  generatedCount: 1,
+                  aiAdded: 1,
                 )
               : null,
         ),

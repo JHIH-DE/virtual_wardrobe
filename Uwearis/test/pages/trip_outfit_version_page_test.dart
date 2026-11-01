@@ -117,10 +117,27 @@ void main() {
       await http.runWithClient(() async {
         final popped = await pumpPage(
           tester,
-          Outfit(id: 65, groupId: 40, imageUrl: '', garmentIds: const [1]),
+          Outfit(
+            id: 65,
+            groupId: 40,
+            groupName: 'Weekend Layers',
+            imageUrl: '',
+            garmentIds: const [1],
+          ),
         );
 
-        expect(find.text('Select a Version'), findsOneWidget);
+        // Like Outfit Details: no visible toolbar title, the name opens the
+        // body above the image.
+        expect(find.text('Select a Version'), findsNothing);
+        final name = find.descendant(
+          of: find.byType(ListView),
+          matching: find.text('Weekend Layers'),
+        );
+        expect(name, findsOneWidget);
+        expect(
+          tester.getBottomLeft(name).dy,
+          lessThan(tester.getTopLeft(find.byType(PageView)).dy),
+        );
         expect(
           tester.widget<CarouselDotsIndicator>(
             find.byType(CarouselDotsIndicator),

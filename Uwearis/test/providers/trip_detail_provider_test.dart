@@ -48,23 +48,50 @@ Garment _garment(int id) => Garment(
 void main() {
   setUp(setUpFakeAuth);
 
-  /// Serves `GET /outfits` from [collection], counting calls; [gate] holds
-  /// it open until completed.
-  ({MockClient client, int Function() calls}) mockCollection(
+  /// Serves `GET /outfits` and `POST /outfits/sync` from [collection],
+  /// counting calls (each logged as `METHOD path`); [gate] holds it open
+  /// until completed.
+  ({MockClient client, int Function() calls, List<String> log}) mockCollection(
     Map<String, dynamic> Function() collection, {
     Future<void> Function()? gate,
   }) {
     var calls = 0;
+    final log = <String>[];
     final client = MockClient((request) async {
-      if (request.url.path.endsWith('/trip_plans/7/outfits')) {
+      final path = request.url.path.split('/trip_plans/7').last;
+      if ((request.method == 'GET' && path == '/outfits') ||
+          (request.method == 'POST' && path == '/outfits/sync')) {
         calls++;
+        log.add('${request.method} $path');
         await gate?.call();
         return jsonResponse(envelope(collection()));
       }
       return jsonResponse(envelope({}), status: 404);
     });
-    return (client: client, calls: () => calls);
+    return (client: client, calls: () => calls, log: log);
   }
+
+  test('the first load adds fitting saved outfits; a plain reload only '
+      're-reads, a sync reload adds them again', () {
+    final mock = mockCollection(() => _collection(suitcase: [1]));
+    return http.runWithClient(() async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final sub = container.listen(tripDetailProvider(7), (_, _) {});
+      addTearDown(sub.close);
+      await container.read(tripDetailProvider(7).future);
+
+      final notifier = container.read(tripDetailProvider(7).notifier);
+      await notifier.reloadTripDetail();
+      await notifier.reloadTripDetail(syncSavedOutfits: true);
+
+      expect(mock.log, [
+        'POST /outfits/sync',
+        'GET /outfits',
+        'POST /outfits/sync',
+      ]);
+    }, () => mock.client);
+  });
 
   test('build() loads the collection and suitcase in one request', () {
     final mock = mockCollection(

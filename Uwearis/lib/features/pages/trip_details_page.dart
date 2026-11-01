@@ -13,14 +13,14 @@ import '../../core/providers/trips_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/trip_service.dart';
 import '../../core/utils/debug_log.dart';
-import '../../data/outfit.dart';
 import '../../data/trip.dart';
 import '../../data/trip_outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/trip_outfit_generate_text.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
-import '../widgets/common/buttons/accent_pill_button.dart';
+import '../widgets/common/fading_toolbar_title.dart';
 import '../widgets/common/buttons/action_button.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -30,19 +30,16 @@ import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/text_input_dialog.dart';
-import '../widgets/common/section_header.dart';
-import '../widgets/outfit/outfit_card.dart';
 import '../widgets/outfit/outfit_grid.dart';
 import '../widgets/trip/trip_legs_editor.dart';
 import '../widgets/trip/trip_collection_actions.dart';
 import '../widgets/trip/trip_outfit_tile.dart';
 import 'outfit_edit_page.dart';
 import 'trip_outfit_detail_page.dart';
-import 'trip_outfit_version_page.dart';
 import 'trip_suitcase_page.dart';
 import '../../core/utils/date_locale.dart';
 
-enum _TripMenuAction { editName, editLegs, delete }
+enum _TripMenuAction { editName, editLegs, clear, delete }
 
 /// Renders from [tripDetailProvider]; `openTripDetails` loads it before
 /// pushing, so only a trip's first visit waits on the network.
@@ -56,7 +53,7 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
-    with TripCollectionActions {
+    with TripCollectionActions, FadingToolbarTitle {
   // Local copy so name/itinerary edits show immediately; [_updateTrip]
   // keeps [tripsProvider] in sync.
   late Trip _trip = widget.trip;
@@ -74,6 +71,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       ref.read(tripDetailProvider(_tripId).notifier);
 
   bool _generatingOutfits = false;
+  bool _clearingTrip = false;
   bool _editLegsActionInFlight = false;
   // Overlay spans the PATCH, collection refetch and AI reanalysis together,
   // so there's no feedback gap after Save.
@@ -99,9 +97,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   /// A failure keeps the cached collection rather than wiping it.
-  Future<void> _reloadCollection() async {
+  Future<void> _reloadCollection({bool syncSavedOutfits = false}) async {
     try {
-      await _detailNotifier.reloadTripDetail();
+      await _detailNotifier.reloadTripDetail(
+        syncSavedOutfits: syncSavedOutfits,
+      );
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
     } catch (e) {
@@ -156,7 +156,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   /// outcome, not an error.
   Future<void> _generateOutfits(TripOutfitGenerateMode mode) async {
     if (_editLegsActionInFlight) return;
-    final replaceable = _detail.replaceableOutfits.length;
+    // The backend caps each refresh; show what this one will actually touch.
+    final replaceable = _detail.refreshBatchSize;
     await runCollectionAction(
       fallback: _l10n.failedToGeneratePlan,
       request: () async {
@@ -173,18 +174,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           if (mounted) setState(() => _generatingOutfits = false);
         }
         if (mounted) {
-          if (result.generatedCount > 0) {
-            _showSnackBar(_l10n.addedTripOutfitsCount(result.generatedCount));
-          } else if (mode != TripOutfitGenerateMode.refresh &&
-              result.collection.savedCandidates.isNotEmpty) {
-            _showSnackBar(
-              _l10n.savedCandidatesAvailable(
-                result.collection.savedCandidates.length,
-              ),
-            );
-          } else {
-            _showSnackBar(_l10n.noMoreTripOutfitCombinations);
-          }
+          _showSnackBar(tripOutfitGenerateMessage(_l10n, result, mode: mode));
         }
         return result.collection;
       },
@@ -245,32 +235,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
-  Future<void> _addSavedOutfit(Outfit outfit) async {
-    if (_editLegsActionInFlight) return;
-    final added = await runCollectionAction(
-      fallback: _l10n.failedToAddTripOutfit,
-      request: () =>
-          TripService().addTripOutfitFromSaved(_tripId, outfitId: outfit.id),
-    );
-    if (added && mounted) _showSnackBar(_l10n.addedOutfitToTrip);
-  }
-
-  /// Lets the user look at (and switch) versions before adding one.
-  Future<void> _previewSavedOutfit(Outfit outfit) async {
-    if (_actionsLocked) return;
-    final version = await Navigator.push<Outfit>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TripOutfitVersionPage(
-          outfit: outfit,
-          packedGarmentIds: _detail.suitcaseIds,
-          addedOutfitIds: _detail.addedSourceOutfitIds,
-        ),
-      ),
-    );
-    if (version != null && mounted) await _addSavedOutfit(version);
-  }
-
   /// Re-fetches the collection for a freshly signed image URL.
   Future<String?> _refreshOutfitImageUrl(int tripOutfitId) async {
     try {
@@ -287,7 +251,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: _l10n.tripDetailsTitle,
-      showTitle: false,
+      titleWidget: buildFadingToolbarTitle(_trip.name),
       actions: [
         AppPopupMenu<_TripMenuAction>(
           variant: AppPopupMenuVariant.toolbar,
@@ -312,6 +276,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               label: _l10n.editItinerary,
             ),
             AppPopupMenu.item(
+              value: _TripMenuAction.clear,
+              icon: const Icon(
+                Icons.cleaning_services_outlined,
+                size: 20,
+                color: AppColors.icon,
+              ),
+              label: _l10n.clearTrip,
+              isDestructive: true,
+              enabled:
+                  !_actionsLocked &&
+                  (_detail.outfits.isNotEmpty || _detail.suitcase.isNotEmpty),
+            ),
+            AppPopupMenu.item(
               value: _TripMenuAction.delete,
               icon: const Icon(
                 Icons.delete_outline,
@@ -333,6 +310,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         _editTripName();
       case _TripMenuAction.editLegs:
         _editTripLegs();
+      case _TripMenuAction.clear:
+        _clearTrip();
       case _TripMenuAction.delete:
         _confirmDeleteTrip();
     }
@@ -429,7 +408,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         days: days,
       );
       if (legsChanged && mounted) {
-        await _reloadCollection();
+        // New weather can make other saved outfits fit.
+        await _reloadCollection(syncSavedOutfits: true);
         if (mounted) await _analyzeTrip();
       }
     } on AuthExpiredException {
@@ -444,6 +424,32 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       debugLog('Failed to update trip: $e');
       showErrorDialog(context, message: _l10n.failedToUpdateTrip);
     }
+  }
+
+  Future<void> _clearTrip() async {
+    await runCollectionAction(
+      fallback: _l10n.failedToClearTrip,
+      request: () async {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AppDialog(
+            title: _l10n.clearTrip,
+            body: _l10n.clearTripConfirmation,
+            primaryLabel: _l10n.clear,
+            onPrimary: () => Navigator.pop(ctx, true),
+            secondaryLabel: _l10n.cancel,
+            onSecondary: () => Navigator.pop(ctx, false),
+          ),
+        );
+        if (confirmed != true || !mounted) return null;
+        setState(() => _clearingTrip = true);
+        try {
+          return await TripService().clearTrip(_tripId);
+        } finally {
+          if (mounted) setState(() => _clearingTrip = false);
+        }
+      },
+    );
   }
 
   Future<void> _confirmDeleteTrip() async {
@@ -495,12 +501,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           backgroundColor: AppColors.pageBackground,
           appBar: _buildAppBar(),
           body: ListView(
+            controller: toolbarTitleScrollController,
             padding: EdgeInsets.only(
               bottom: 32 + MediaQuery.paddingOf(context).bottom,
             ),
             children: [
               const SizedBox(height: 20),
-              _paddedSection(Text(_trip.name, style: AppTextStyle.bold22)),
+              _paddedSection(
+                Text(
+                  _trip.name,
+                  key: toolbarTitleAnchorKey,
+                  style: AppTextStyle.bold22,
+                ),
+              ),
               const SizedBox(height: AppDimens.titleGap),
               _paddedSection(
                 AppCardShell(
@@ -524,6 +537,10 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         if (_updatingTripLegs)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.updatingTripEllipsis),
+          ),
+        if (_clearingTrip)
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.clearingTripEllipsis),
           ),
       ],
     );
@@ -665,17 +682,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         )
       else
         _buildOutfitGrid(detail),
-      if (detail.savedCandidates.isNotEmpty) ...[
-        const SizedBox(height: AppDimens.titleGap),
-        _paddedSection(
-          SectionHeader(
-            title: _l10n.fromYourOutfits,
-            subtitle: _l10n.fromYourOutfitsHint,
-          ),
-        ),
-        const SizedBox(height: AppDimens.cardHeaderGap),
-        _buildSavedCandidates(detail.savedCandidates),
-      ],
     ];
   }
 
@@ -693,41 +699,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         suitcaseIds: suitcaseIds,
         onTap: () => _openOutfit(detail.outfits[i], i + 1),
         onRefreshImageUrl: () => _refreshOutfitImageUrl(detail.outfits[i].id),
-      ),
-    );
-  }
-
-  static const double _candidateCardWidth = 150;
-
-  Widget _buildSavedCandidates(List<Outfit> candidates) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < candidates.length; i++) ...[
-            if (i > 0) const SizedBox(width: AppDimens.cardSpacing),
-            SizedBox(
-              width: _candidateCardWidth,
-              child: Column(
-                children: [
-                  OutfitCard(
-                    outfit: candidates[i],
-                    onTap: () => _previewSavedOutfit(candidates[i]),
-                  ),
-                  const SizedBox(height: 8),
-                  AccentPillButton(
-                    label: _l10n.addToTrip,
-                    onPressed: _actionsLocked
-                        ? null
-                        : () => _addSavedOutfit(candidates[i]),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

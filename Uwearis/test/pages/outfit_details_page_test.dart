@@ -120,7 +120,13 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Weekend Look'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.text('Weekend Look'),
+        ),
+        findsOneWidget,
+      );
     }, stubClient);
   });
 

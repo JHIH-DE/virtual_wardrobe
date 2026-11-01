@@ -1,6 +1,5 @@
 import '../core/utils/signed_url.dart';
 import 'garment.dart';
-import 'outfit.dart';
 
 /// Backend `TripOutfitSource`: how a trip outfit came to exist. Whether
 /// Refresh may replace it is a separate flag ([TripOutfit.isReplaceable]).
@@ -33,6 +32,21 @@ bool isViableSuitcase(Iterable<Garment> suitcase) {
       categories.contains(GarmentCategory.bottom);
   return (hasTopAndBottom || categories.contains(GarmentCategory.onePiece)) &&
       categories.contains(GarmentCategory.shoes);
+}
+
+/// Backend `TripOutfitAiStatus`: how the AI step of a generate request went.
+/// `failed` / `rateLimited` only come back with saved outfits added (else
+/// the request errors instead).
+enum TripOutfitAiStatus { ok, noNew, skippedRecentEmpty, failed, rateLimited }
+
+extension TripOutfitAiStatusApi on TripOutfitAiStatus {
+  static TripOutfitAiStatus fromApiValue(String? value) => switch (value) {
+    'ok' => TripOutfitAiStatus.ok,
+    'skipped_recent_empty' => TripOutfitAiStatus.skippedRecentEmpty,
+    'failed' => TripOutfitAiStatus.failed,
+    'rate_limited' => TripOutfitAiStatus.rateLimited,
+    _ => TripOutfitAiStatus.noNew,
+  };
 }
 
 /// Backend `TripOutfitGenerateMode`.
@@ -122,21 +136,20 @@ class TripOutfit {
 class TripOutfitCollection {
   final List<TripOutfit> outfits;
   final List<Garment> suitcase;
-
-  /// The user's own outfits whose garments are all packed but that aren't in
-  /// the trip yet. Suggestions only — never added automatically.
-  final List<Outfit> savedCandidates;
   final int totalDays;
   final int suggestedMin;
   final int suggestedMax;
 
+  /// How many AI picks a Refresh would replace right now (backend-decided).
+  final int refreshBatchSize;
+
   const TripOutfitCollection({
     this.outfits = const [],
     this.suitcase = const [],
-    this.savedCandidates = const [],
     this.totalDays = 0,
     this.suggestedMin = 0,
     this.suggestedMax = 0,
+    this.refreshBatchSize = 0,
   });
 
   Set<int> get suitcaseIds => {
@@ -161,17 +174,16 @@ class TripOutfitCollection {
       for (final g in o.garments) g.imageUrl,
     ],
     for (final g in suitcase) g.imageUrl,
-    for (final o in savedCandidates) o.imageUrl,
   ]);
 
   TripOutfitCollection copyWith({List<Garment>? suitcase}) =>
       TripOutfitCollection(
         outfits: outfits,
         suitcase: suitcase ?? this.suitcase,
-        savedCandidates: savedCandidates,
         totalDays: totalDays,
         suggestedMin: suggestedMin,
         suggestedMax: suggestedMax,
+        refreshBatchSize: refreshBatchSize,
       );
 
   factory TripOutfitCollection.fromJson(Map<String, dynamic> json) {
@@ -185,35 +197,40 @@ class TripOutfitCollection {
           .whereType<Map<String, dynamic>>()
           .map(Garment.fromTripItemJson)
           .toList(),
-      savedCandidates: ((json['saved_candidates'] as List?) ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(Outfit.fromJson)
-          .toList(),
       totalDays: (json['total_days'] as num?)?.toInt() ?? 0,
       suggestedMin: count is Map ? (count['min'] as num?)?.toInt() ?? 0 : 0,
       suggestedMax: count is Map ? (count['max'] as num?)?.toInt() ?? 0 : 0,
+      refreshBatchSize: (json['refresh_batch_size'] as num?)?.toInt() ?? 0,
     );
   }
 }
 
-/// `POST .../outfits/generate`: [generatedCount] 0 means no more suitable
+/// `POST .../outfits/generate`: nothing added (both counts 0) means no new
 /// combinations, not an error.
 class TripOutfitGenerateResult {
   final TripOutfitCollection collection;
-  final int generatedCount;
+  final int savedAddedCount;
+  final int aiAddedCount;
   final int replacedCount;
+  final TripOutfitAiStatus aiStatus;
 
   const TripOutfitGenerateResult({
     required this.collection,
-    this.generatedCount = 0,
+    this.savedAddedCount = 0,
+    this.aiAddedCount = 0,
     this.replacedCount = 0,
+    this.aiStatus = TripOutfitAiStatus.noNew,
   });
 
   factory TripOutfitGenerateResult.fromJson(Map<String, dynamic> json) {
     return TripOutfitGenerateResult(
       collection: TripOutfitCollection.fromJson(json),
-      generatedCount: (json['generated_count'] as num?)?.toInt() ?? 0,
+      savedAddedCount: (json['saved_added_count'] as num?)?.toInt() ?? 0,
+      aiAddedCount: (json['ai_added_count'] as num?)?.toInt() ?? 0,
       replacedCount: (json['replaced_count'] as num?)?.toInt() ?? 0,
+      aiStatus: TripOutfitAiStatusApi.fromApiValue(
+        json['ai_status'] as String?,
+      ),
     );
   }
 }

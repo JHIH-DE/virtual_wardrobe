@@ -19,6 +19,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_divider.dart';
 import '../widgets/common/app_popup_menu.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/fading_toolbar_title.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
 import '../widgets/common/cards/app_list_card.dart';
@@ -62,7 +63,8 @@ class GarmentDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<GarmentDetailsPage> createState() => _GarmentDetailsPageState();
 }
 
-class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
+class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
+    with FadingToolbarTitle {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _subCategory = TextEditingController();
@@ -431,7 +433,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: _isAddMode ? _title : _l10n.clothingDetailsTitle,
-      showTitle: false,
+      titleWidget: buildFadingToolbarTitle(_title),
       onBack: _leave,
       actions: [
         if (!_isAddMode)
@@ -522,6 +524,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           : AutovalidateMode.onUserInteraction,
       child: Builder(
         builder: (bodyContext) => ListView(
+          controller: toolbarTitleScrollController,
           padding: EdgeInsets.only(
             bottom: _showsBottomActionButton
                 ? BottomActionButton.scrollClearance(bodyContext)
@@ -530,6 +533,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
           children: [
             const SizedBox(height: 20),
             Padding(
+              key: toolbarTitleAnchorKey,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _isAddMode
                   ? _buildNameField()

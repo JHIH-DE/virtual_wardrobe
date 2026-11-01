@@ -218,6 +218,25 @@ class TripService with BaseService {
     );
   }
 
+  /// Adds every saved outfit that now fits the trip (all garments packed,
+  /// suits the weather, not removed before), then returns the collection.
+  /// `GET` never does this. No AI; safe to repeat.
+  Future<TripOutfitCollection> syncTripOutfits(int tripId) async {
+    debugLog('--- syncTripOutfits: id=$tripId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/outfits/sync');
+
+    final res = await withAuth(
+      (token) => http
+          .post(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
+    );
+
+    return TripOutfitCollection.fromJson(
+      _dataObject(res, op: 'syncTripOutfits'),
+    );
+  }
+
   /// Packs [outfitId]'s missing garments and adds the outfit, in one
   /// transaction. `409 TRIP_OUTFIT_ALREADY_ADDED` for the same version,
   /// `409 TRIP_OUTFIT_DUPLICATE` for the same garments.
@@ -318,6 +337,22 @@ class TripService with BaseService {
     return TripOutfitCollection.fromJson(
       _dataObject(res, op: 'removeTripOutfit'),
     );
+  }
+
+  /// Removes every trip outfit (protected ones too) and the whole suitcase;
+  /// the trip, its legs, the closet and saved outfits stay. `409
+  /// TRIP_OUTFIT_GENERATION_IN_PROGRESS` while AI is generating.
+  Future<TripOutfitCollection> clearTrip(int tripId) async {
+    debugLog('--- clearTrip: id=$tripId ---');
+    final uri = Uri.parse('$_baseUrl/$tripId/clear');
+
+    final res = await withAuth(
+      (token) => http
+          .post(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 30)),
+    );
+
+    return TripOutfitCollection.fromJson(_dataObject(res, op: 'clearTrip'));
   }
 
   /// AI suggestions from the suitcase (no try-on). `409

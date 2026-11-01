@@ -243,6 +243,23 @@ void main() {
       },
     );
 
+    test(
+      'syncTripOutfits POSTs /{id}/outfits/sync and parses the collection',
+      () async {
+        final (req, c) = await capture(() => TripService().syncTripOutfits(9));
+        expect(req.method, 'POST');
+        expect(req.url.toString(), '$_base/9/outfits/sync');
+        expect(c.outfits.single.sourceOutfitId, 40);
+      },
+    );
+
+    test('clearTrip POSTs /{id}/clear and parses the collection', () async {
+      final (req, c) = await capture(() => TripService().clearTrip(9));
+      expect(req.method, 'POST');
+      expect(req.url.toString(), '$_base/9/clear');
+      expect(c.outfits, hasLength(1));
+    });
+
     test('addTripOutfitFromSaved POSTs the version id', () async {
       final (req, c) = await capture(
         () => TripService().addTripOutfitFromSaved(9, outfitId: 40),
@@ -299,12 +316,18 @@ void main() {
           9,
           mode: TripOutfitGenerateMode.refresh,
         ),
-        body: {...collection(), 'generated_count': 2, 'replaced_count': 2},
+        body: {
+          ...collection(),
+          'ai_added_count': 2,
+          'replaced_count': 2,
+          'ai_status': 'ok',
+        },
       );
       expect(req.method, 'POST');
       expect(req.url.toString(), '$_base/9/outfits/generate');
       expect(jsonDecode(req.body), {'mode': 'refresh'});
-      expect(result.generatedCount, 2);
+      expect(result.aiAddedCount, 2);
+      expect(result.aiStatus, TripOutfitAiStatus.ok);
       expect(result.replacedCount, 2);
     });
 

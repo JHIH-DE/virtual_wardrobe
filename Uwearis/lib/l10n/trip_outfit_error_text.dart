@@ -16,7 +16,7 @@ String tripOutfitErrorMessage(
       'TRIP_OUTFIT_INCOMPLETE' => l10n.tripOutfitIncomplete,
       'TRIP_OUTFIT_GARMENT_NOT_IN_SUITCASE' => l10n.tripOutfitGarmentNotPacked,
       'TRIP_OUTFIT_GARMENTS_MISSING' => l10n.tripOutfitMissingGarmentsTryOn,
-      'TRIP_OUTFIT_LIMIT_REACHED' => l10n.tripOutfitLimitReached,
+      'TRIP_AI_RATE_LIMITED' => l10n.tripAiRateLimited,
       'TRIP_OUTFIT_GENERATION_IN_PROGRESS' =>
         l10n.tripOutfitGenerationInProgress,
       'SAVED_OUTFIT_UNAVAILABLE' => l10n.savedOutfitUnavailable,

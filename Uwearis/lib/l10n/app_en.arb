@@ -268,6 +268,10 @@
   "enterTripName": "Enter trip name",
   "deleteTrip": "Delete Trip",
   "deleteTripConfirmation": "Are you sure you want to delete this trip?",
+  "clearTrip": "Clear Trip",
+  "clearTripConfirmation": "Remove every outfit and packed garment from this trip? Your closet and saved outfits stay as they are. This can't be undone.",
+  "clearingTripEllipsis": "Clearing Trip…",
+  "failedToClearTrip": "Failed to clear trip",
   "viewPlan": "View Plan",
   "tripNameLabel": "Trip Name",
   "tripNameHint": "e.g. Japan Spring Trip",
@@ -674,17 +678,7 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "refresh": "Refresh",
-  "noMoreTripOutfitCombinations": "No more suitable combinations found with your current suitcase.",
-  "addedTripOutfitsCount": "Added {count} new outfits.",
-  "@addedTripOutfitsCount": {
-    "placeholders": { "count": { "type": "int" } }
-  },
-  "savedCandidatesAvailable": "{count} of your outfits fit this suitcase — add them below.",
-  "@savedCandidatesAvailable": {
-    "placeholders": { "count": { "type": "int" } }
-  },
-  "fromYourOutfits": "From Your Outfits",
-  "fromYourOutfitsHint": "Everything they need is already packed.",
+  "noMoreTripOutfitCombinations": "No new outfit combinations found with your current suitcase.",
   "addToTrip": "Add to Trip",
   "tripOutfitsEmptyHint": "Start by adding garments or your saved outfits to the suitcase.",
   "openSuitcase": "Open Suitcase",
@@ -710,7 +704,6 @@
   "tripOutfitDuplicate": "This trip already has an outfit with these garments.",
   "tripOutfitIncomplete": "An outfit needs a top and bottom (or a one-piece) plus one pair of shoes.",
   "tripOutfitGarmentNotPacked": "Pick garments that are in your suitcase.",
-  "tripOutfitLimitReached": "This trip has reached its outfit limit.",
   "tripOutfitGenerationInProgress": "Uwearis is already putting outfits together for this trip.",
   "savedOutfitUnavailable": "Some garments in this outfit were deleted from your closet.",
   "tripOutfitMissingGarmentsTryOn": "Pack its missing garments or edit this outfit before trying it on.",
@@ -737,5 +730,23 @@
   "@tripOutfitsGoodVariety": {
     "placeholders": { "days": { "type": "int" } }
   },
-  "tripOutfitsEmptyTitle": "No trip outfits yet"
+  "tripOutfitsEmptyTitle": "No trip outfits yet",
+  "addedSavedAndAiOutfits": "{saved, plural, =1{Added 1 saved outfit} other{Added {saved} saved outfits}} and {ai, plural, =1{1 AI outfit} other{{ai} AI outfits}}.",
+  "@addedSavedAndAiOutfits": {
+    "placeholders": { "saved": { "type": "int" }, "ai": { "type": "int" } }
+  },
+  "addedSavedOutfitsOnly": "{count, plural, =1{Added 1 outfit from your saved looks.} other{Added {count} outfits from your saved looks.}}",
+  "@addedSavedOutfitsOnly": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addedAiOutfitsOnly": "{count, plural, =1{Added 1 new AI outfit.} other{Added {count} new AI outfits.}}",
+  "@addedAiOutfitsOnly": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "refreshedAiOutfitsCount": "{count, plural, =1{Refreshed 1 AI outfit.} other{Refreshed {count} AI outfits.}}",
+  "@refreshedAiOutfitsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "tripAiPartialFailure": "Saved outfits were added, but AI styling couldn't be completed.",
+  "tripAiRateLimited": "You've made a lot of AI outfit requests. Please try again later."
 }

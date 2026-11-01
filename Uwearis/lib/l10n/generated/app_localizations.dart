@@ -1239,6 +1239,30 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete this trip?'**
   String get deleteTripConfirmation;
 
+  /// No description provided for @clearTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Trip'**
+  String get clearTrip;
+
+  /// No description provided for @clearTripConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove every outfit and packed garment from this trip? Your closet and saved outfits stay as they are. This can\'t be undone.'**
+  String get clearTripConfirmation;
+
+  /// No description provided for @clearingTripEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearing Trip…'**
+  String get clearingTripEllipsis;
+
+  /// No description provided for @failedToClearTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear trip'**
+  String get failedToClearTrip;
+
   /// No description provided for @viewPlan.
   ///
   /// In en, this message translates to:
@@ -3204,32 +3228,8 @@ abstract class AppLocalizations {
   /// No description provided for @noMoreTripOutfitCombinations.
   ///
   /// In en, this message translates to:
-  /// **'No more suitable combinations found with your current suitcase.'**
+  /// **'No new outfit combinations found with your current suitcase.'**
   String get noMoreTripOutfitCombinations;
-
-  /// No description provided for @addedTripOutfitsCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Added {count} new outfits.'**
-  String addedTripOutfitsCount(int count);
-
-  /// No description provided for @savedCandidatesAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} of your outfits fit this suitcase — add them below.'**
-  String savedCandidatesAvailable(int count);
-
-  /// No description provided for @fromYourOutfits.
-  ///
-  /// In en, this message translates to:
-  /// **'From Your Outfits'**
-  String get fromYourOutfits;
-
-  /// No description provided for @fromYourOutfitsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Everything they need is already packed.'**
-  String get fromYourOutfitsHint;
 
   /// No description provided for @addToTrip.
   ///
@@ -3345,12 +3345,6 @@ abstract class AppLocalizations {
   /// **'Pick garments that are in your suitcase.'**
   String get tripOutfitGarmentNotPacked;
 
-  /// No description provided for @tripOutfitLimitReached.
-  ///
-  /// In en, this message translates to:
-  /// **'This trip has reached its outfit limit.'**
-  String get tripOutfitLimitReached;
-
   /// No description provided for @tripOutfitGenerationInProgress.
   ///
   /// In en, this message translates to:
@@ -3440,6 +3434,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No trip outfits yet'**
   String get tripOutfitsEmptyTitle;
+
+  /// No description provided for @addedSavedAndAiOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'{saved, plural, =1{Added 1 saved outfit} other{Added {saved} saved outfits}} and {ai, plural, =1{1 AI outfit} other{{ai} AI outfits}}.'**
+  String addedSavedAndAiOutfits(int saved, int ai);
+
+  /// No description provided for @addedSavedOutfitsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 outfit from your saved looks.} other{Added {count} outfits from your saved looks.}}'**
+  String addedSavedOutfitsOnly(int count);
+
+  /// No description provided for @addedAiOutfitsOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 new AI outfit.} other{Added {count} new AI outfits.}}'**
+  String addedAiOutfitsOnly(int count);
+
+  /// No description provided for @refreshedAiOutfitsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Refreshed 1 AI outfit.} other{Refreshed {count} AI outfits.}}'**
+  String refreshedAiOutfitsCount(int count);
+
+  /// No description provided for @tripAiPartialFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved outfits were added, but AI styling couldn\'t be completed.'**
+  String get tripAiPartialFailure;
+
+  /// No description provided for @tripAiRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve made a lot of AI outfit requests. Please try again later.'**
+  String get tripAiRateLimited;
 }
 
 class _AppLocalizationsDelegate

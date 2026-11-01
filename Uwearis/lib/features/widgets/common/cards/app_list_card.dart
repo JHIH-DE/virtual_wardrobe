@@ -39,13 +39,11 @@ class AppListCard extends StatelessWidget {
   });
 
   static const double _disabledOpacity = 0.4;
+  static const double _leadingGap = 18;
 
   @override
   Widget build(BuildContext context) {
     final tap = enabled ? onTap : null;
-    // Enlarged text: [status] moves under the title instead of squeezing it
-    // into a sliver.
-    final textEnlarged = MediaQuery.textScalerOf(context).scale(1) > 1;
     final statusText = status == null
         ? null
         : Text(
@@ -65,61 +63,82 @@ class AppListCard extends StatelessWidget {
                 width: leadingSize,
                 height: leadingSize,
               ));
-    final textColumn = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (title != null) ...[
-          Text(title!, style: AppTextStyle.bold16),
-          const SizedBox(height: 2),
-        ],
-        child,
-        if (statusText != null && textEnlarged) ...[
-          const SizedBox(height: 2),
-          statusText,
-        ],
-        if (summary != null) ...[
-          const SizedBox(height: 2),
-          Text(
-            summary!,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyle.regular12.copyWith(
-              color: AppColors.textSecondary,
+    Widget buildContent(bool statusBelow) {
+      final textColumn = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (title != null) ...[
+            Text(title!, style: AppTextStyle.bold16),
+            const SizedBox(height: 2),
+          ],
+          child,
+          if (statusText != null && statusBelow) ...[
+            const SizedBox(height: 2),
+            statusText,
+          ],
+          if (summary != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              summary!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyle.regular12.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
+          ],
+        ],
+      );
+      final content = Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: leadingWidget == null
+                ? textColumn
+                : AdaptiveSideLayout(
+                    sideEdge: AdaptiveSide.leading,
+                    side: leadingWidget,
+                    content: textColumn,
+                    gap: _leadingGap,
+                    stackedGap: 8,
+                  ),
           ),
+          if (statusText != null && !statusBelow) ...[
+            const SizedBox(width: 8),
+            statusText,
+          ],
+          if (showArrow && tap != null) ...[
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: AppDimens.iconSmallSize,
+              color: AppColors.hintText,
+            ),
+          ],
+          if (trailing != null) ...[const SizedBox(width: 8), trailing!],
         ],
-      ],
-    );
-    final content = Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: leadingWidget == null
-              ? textColumn
-              : AdaptiveSideLayout(
-                  sideEdge: AdaptiveSide.leading,
-                  side: leadingWidget,
-                  content: textColumn,
-                  gap: 18,
-                  stackedGap: 8,
-                ),
-        ),
-        if (statusText != null && !textEnlarged) ...[
-          const SizedBox(width: 8),
-          statusText,
-        ],
-        if (showArrow && tap != null) ...[
-          const SizedBox(width: 4),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: AppDimens.iconSmallSize,
-            color: AppColors.hintText,
-          ),
-        ],
-        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-      ],
-    );
+      );
+      return content;
+    }
+
+    // [status] sits beside the label while the label still fits on one line
+    // next to it at the current text size; otherwise it moves under the label
+    // instead of squeezing it.
+    final layout = status == null
+        ? buildContent(false)
+        : LayoutBuilder(
+            builder: (context, constraints) => buildContent(
+              !_statusFitsBeside(
+                context,
+                constraints.maxWidth,
+                leadingWidth: leadingWidget == null
+                    ? 0
+                    : _leadingWidth(context, leadingWidget),
+                hasArrow: showArrow && tap != null,
+              ),
+            ),
+          );
 
     final card = Container(
       constraints: BoxConstraints(minHeight: minHeight),
@@ -136,8 +155,8 @@ class AppListCard extends StatelessWidget {
         ],
       ),
       child: enabled
-          ? content
-          : Opacity(opacity: _disabledOpacity, child: content),
+          ? layout
+          : Opacity(opacity: _disabledOpacity, child: layout),
     );
 
     if (!enabled) return Semantics(enabled: false, child: card);
@@ -149,5 +168,55 @@ class AppListCard extends StatelessWidget {
       );
     }
     return card;
+  }
+
+  /// An [Icon] or sized box reports its own width; anything else is
+  /// assumed to fill [leadingSize].
+  double _leadingWidth(BuildContext context, Widget leading) =>
+      switch (leading) {
+        Icon(:final size) => size ?? IconTheme.of(context).size ?? 24,
+        SizedBox(:final width?) => width,
+        _ => leadingSize,
+      };
+
+  /// The label is [title] or a plain [Text] [child]; anything else can't be
+  /// measured here, so it falls back to moving [status] under it as soon as
+  /// text is enlarged at all.
+  bool _statusFitsBeside(
+    BuildContext context,
+    double maxWidth, {
+    required double leadingWidth,
+    required bool hasArrow,
+  }) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final label = title != null
+        ? TextSpan(text: title, style: AppTextStyle.bold16)
+        : child is Text && (child as Text).data != null
+        ? TextSpan(text: (child as Text).data, style: (child as Text).style)
+        : null;
+    if (label == null) return scaler.scale(1) <= 1;
+    if (trailing != null) return scaler.scale(1) <= 1;
+
+    double widthOf(InlineSpan span) {
+      final painter = TextPainter(
+        text: span,
+        textDirection: Directionality.of(context),
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final width = painter.width;
+      painter.dispose();
+      return width;
+    }
+
+    final statusWidth = widthOf(
+      TextSpan(text: status, style: AppTextStyle.regular14),
+    );
+    final reserved =
+        (leadingWidth > 0 ? leadingWidth + _leadingGap : 0) +
+        8 +
+        statusWidth +
+        (hasArrow ? 4 + AppDimens.iconSmallSize : 0);
+    return widthOf(label) <= maxWidth - reserved;
   }
 }

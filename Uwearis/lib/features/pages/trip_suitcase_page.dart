@@ -22,6 +22,7 @@ import '../../data/trip_outfit.dart';
 import '../../l10n/garment_localization.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/trip_outfit_error_text.dart';
+import '../../l10n/trip_outfit_generate_text.dart';
 import '../widgets/common/buttons/action_disc_button.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
@@ -271,11 +272,11 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     }
   }
 
-  /// Saved-outfit candidates depend on the suitcase; a failure just leaves
-  /// the cached ones until the next load.
+  /// Adds saved outfits the new suitcase completes; a failure just leaves
+  /// the cached collection until the next load.
   Future<void> _reloadCollectionQuietly() async {
     try {
-      await _detailNotifier.reloadTripDetail();
+      await _detailNotifier.reloadTripDetail(syncSavedOutfits: true);
     } catch (e) {
       debugLog('Failed to reload trip outfits: $e');
     }
@@ -354,25 +355,18 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       try {
         final detailNotifier = _detailNotifier;
         final messenger = ScaffoldMessenger.of(context);
+        final mode = _hasOutfits
+            ? TripOutfitGenerateMode.more
+            : TripOutfitGenerateMode.plan;
         final result = await TripService().generateTripOutfits(
           _tripId,
-          mode: _hasOutfits
-              ? TripOutfitGenerateMode.more
-              : TripOutfitGenerateMode.plan,
+          mode: mode,
         );
         detailNotifier.setCollection(result.collection);
         // Shown over Trip Details after the pop.
         messenger.showSnackBar(
           SnackBar(
-            content: Text(
-              result.generatedCount > 0
-                  ? _l10n.addedTripOutfitsCount(result.generatedCount)
-                  : result.collection.savedCandidates.isNotEmpty
-                  ? _l10n.savedCandidatesAvailable(
-                      result.collection.savedCandidates.length,
-                    )
-                  : _l10n.noMoreTripOutfitCombinations,
-            ),
+            content: Text(tripOutfitGenerateMessage(_l10n, result, mode: mode)),
           ),
         );
         if (!mounted) return;

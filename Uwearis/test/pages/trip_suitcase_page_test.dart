@@ -77,15 +77,19 @@ const _cap = {'garment_id': 4, 'name': 'Cap', 'category': 'accessory'};
 Map<String, dynamic> _collection({
   List<Map<String, dynamic>> suitcase = const [],
   List<Map<String, dynamic>> outfits = const [],
-  int generatedCount = 0,
+  int aiAdded = 0,
 }) => {
   'trip_id': 7,
   'total_days': 4,
   'suggested_outfit_count': {'min': 4, 'max': 6},
   'suitcase_items': suitcase,
   'outfits': outfits,
-  'saved_candidates': [],
-  'generated_count': generatedCount,
+  'refresh_batch_size': [
+    for (final o in outfits)
+      if (o['is_replaceable'] == true) o,
+  ].length.clamp(0, 3),
+  'ai_added_count': aiAdded,
+  'ai_status': aiAdded > 0 ? 'ok' : 'no_new',
 };
 
 Map<String, dynamic> _tripOutfit(
@@ -110,6 +114,14 @@ Garment _closetGarment(int id, String name, GarmentCategory category) =>
       uploadUrl: '',
       objectName: '',
     );
+
+/// Either way of reading the collection: `GET /outfits`, or the
+/// `POST /outfits/sync` that also adds fitting saved outfits.
+bool _loadsCollection(http.BaseRequest request) {
+  final path = request.url.path;
+  return (request.method == 'GET' && path.endsWith('/trip_plans/7/outfits')) ||
+      (request.method == 'POST' && path.endsWith('/trip_plans/7/outfits/sync'));
+}
 
 void main() {
   setUp(setUpFakeAuth);
@@ -137,7 +149,7 @@ void main() {
     final client = MockClient((request) async {
       final path = request.url.path;
       requestLog?.add('${request.method} ${path.split('/trip_plans/7').last}');
-      if (request.method == 'GET' && path.endsWith('/trip_plans/7/outfits')) {
+      if (_loadsCollection(request)) {
         await tripLoaded;
         return jsonResponse(
           envelope(_collection(suitcase: packed, outfits: outfits)),
@@ -263,7 +275,12 @@ void main() {
 
         expect(find.byType(AppSpinner), findsNothing);
         expect(find.text('Tee'), findsOneWidget);
-        expect(requests.where((r) => r == 'GET /outfits'), isEmpty);
+        expect(
+          requests.where(
+            (r) => r == 'GET /outfits' || r == 'POST /outfits/sync',
+          ),
+          isEmpty,
+        );
 
         await removePackedCard(tester, at: 1);
 
@@ -493,7 +510,9 @@ void main() {
 
             await pickTheOutfit(tester);
 
-            final posts = requests.where((r) => r.startsWith('POST')).toList();
+            final posts = requests
+                .where((r) => r.startsWith('POST') && r != 'POST /outfits/sync')
+                .toList();
             expect(posts, ['POST /suitcase-items', 'POST /outfits/from-saved']);
           },
           suitcaseClient(
@@ -604,7 +623,7 @@ void main() {
             expect(modes, ['plan']);
             expect(find.byType(TripSuitcasePage), findsNothing);
             expect(find.text('Behind the Suitcase page'), findsOneWidget);
-            expect(find.text('Added 2 new outfits.'), findsOneWidget);
+            expect(find.text('Added 2 new AI outfits.'), findsOneWidget);
             final detail = ProviderScope.containerOf(
               tester.element(find.text('Behind the Suitcase page')),
             ).read(tripDetailProvider(7)).value!;
@@ -620,7 +639,7 @@ void main() {
                   _tripOutfit(1, const [_tee, _jeans, _sneakers]),
                   _tripOutfit(2, const [_tee, _jeans]),
                 ],
-                generatedCount: 2,
+                aiAdded: 2,
               );
             },
           ),
@@ -651,8 +670,7 @@ void main() {
           expect(modes, ['more']);
           expect(
             find.text(
-              'No more suitable combinations found with your current '
-              'suitcase.',
+              'No new outfit combinations found with your current suitcase.',
             ),
             findsOneWidget,
           );
@@ -722,8 +740,7 @@ void main() {
       final jeansDelete = Completer<http.Response>();
       final packed = [_tee, _jeans, _sneakers];
       final client = MockClient((request) async {
-        if (request.method == 'GET' &&
-            request.url.path.endsWith('/trip_plans/7/outfits')) {
+        if (_loadsCollection(request)) {
           return jsonResponse(envelope(_collection(suitcase: packed)));
         }
         if (request.method == 'DELETE' &&
@@ -770,8 +787,7 @@ void main() {
       final posted = <List<int>>[];
       var failNext = true;
       final client = MockClient((request) async {
-        if (request.method == 'GET' &&
-            request.url.path.endsWith('/trip_plans/7/outfits')) {
+        if (_loadsCollection(request)) {
           return jsonResponse(envelope(_collection(suitcase: const [_tee])));
         }
         if (request.method == 'POST' &&

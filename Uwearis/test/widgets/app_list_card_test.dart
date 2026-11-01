@@ -37,6 +37,39 @@ void main() {
     );
   });
 
+  // Trip Details' Suitcase row: a short label keeps its count beside it at a
+  // moderately enlarged size instead of moving it under as soon as text grows.
+  testWidgets('a short label keeps its status beside it at 1.3×', (
+    tester,
+  ) async {
+    applyLayoutCase(tester, (
+      width: 390.0,
+      scale: 1.3,
+      locale: const Locale('en'),
+    ));
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            AppListCard(
+              onTap: () {},
+              leading: const Icon(Icons.luggage_outlined),
+              showArrow: true,
+              status: '18 items',
+              child: Text('Suitcase', style: AppTextStyle.bold16),
+            ),
+          ],
+        ),
+      ),
+    );
+    final title = tester.getRect(find.text('Suitcase'));
+    final status = tester.getRect(find.text('18 items'));
+    expect(status.top, lessThan(title.bottom));
+    expect(status.left, greaterThan(title.right));
+  });
+
   // Settings' Temperature Preference row: title + summary + a trailing
   // status, the tightest AppListCard shape in the app.
   for (final c in layoutCases) {
@@ -95,11 +128,13 @@ void main() {
 
       final titleRect = tester.getRect(title);
       final statusRect = tester.getRect(statusText);
-      if (c.scale == 1.0) {
-        // Default size: the status trails the title on the same row.
+      final beside = statusRect.top < titleRect.bottom;
+      if (beside) {
+        // Only while the title still fits on one line next to it.
         expect(statusRect.left, greaterThan(titleRect.right));
+        expect(renderedLineCount(tester, title), 1);
       } else {
-        // Enlarged: the status moves under the title, so the title keeps
+        // Doesn't fit: the status moves under the title, so the title keeps
         // the row's full text width instead of a squeezed sliver.
         expect(statusRect.top, greaterThanOrEqualTo(titleRect.bottom));
         expect(
@@ -113,6 +148,7 @@ void main() {
           greaterThanOrEqualTo(_textColumnWidth(tester, card) - 0.5),
         );
       }
+      if (c.scale == 1.0 && c.width == 390) expect(beside, isTrue);
     });
   }
 }
