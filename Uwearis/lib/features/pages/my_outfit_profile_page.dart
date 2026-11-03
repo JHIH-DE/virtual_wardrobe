@@ -173,10 +173,12 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
           ),
           if (generatingBaseModel)
             Positioned.fill(
-              child: LoadingOverlay(label: _l10n.generatingEllipsis),
+              child: LoadingOverlay(label: _l10n.creatingModelEllipsis),
             ),
           if (_savingBeforeLeave)
-            Positioned.fill(child: LoadingOverlay(label: _l10n.savingEllipsis)),
+            Positioned.fill(
+              child: LoadingOverlay(label: _l10n.savingChangesEllipsis),
+            ),
         ],
       ),
     );

@@ -27,6 +27,11 @@ import '../widgets/garment/garment_detail_dialog.dart';
 import '../widgets/garment/garment_list_card.dart';
 import '../widgets/trip/trip_collection_actions.dart';
 import 'outfit_edit_page.dart';
+import '../../core/utils/remaining_try_ons.dart';
+import '../../core/services/pending_try_on_store.dart';
+import '../../core/utils/try_on_request.dart';
+import '../widgets/common/overlays/try_on_dialogs.dart';
+import '../widgets/common/overlays/error_dialog.dart';
 
 enum _TripOutfitMenuAction { edit, keep, unkeep, remove }
 
@@ -55,6 +60,10 @@ class TripOutfitDetailPage extends ConsumerStatefulWidget {
 class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
     with TripCollectionActions, FadingToolbarTitle {
   bool _renderingOutfit = false;
+  // A try-on whose outcome is unknown, by trip outfit id → its image before
+  // the try-on. This endpoint takes no key, so a retry first re-reads the
+  // trip, then asks before rendering (and charging) again.
+  final Map<int, String> _unknownTryOns = {};
   // The outfit leaving the collection (removed here, or replaced by a
   // Refresh elsewhere) pops this page once.
   bool _popped = false;
@@ -88,8 +97,24 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
     await runCollectionAction(
       fallback: _l10n.failedToGenerateOutfit,
       request: () async {
-        // A re-render spends a generation on top of the image already shown.
-        if (outfit.hasImage) {
+        final unknownMarker = _unknownTryOns[outfit.id];
+        if (unknownMarker != null) {
+          final landed = await landedTripTryOn(
+            tripId: tripId,
+            tripOutfitId: outfit.id,
+            beforeMarker: unknownMarker,
+          );
+          if (landed != null) {
+            _unknownTryOns.remove(outfit.id);
+            _bumpImage(outfit);
+            return landed;
+          }
+          if (!mounted || !await showRetryWhileUnknownDialog(context)) {
+            return null;
+          }
+          if (!mounted) return null;
+        } else if (outfit.hasImage) {
+          // A re-render spends a generation on top of the image shown.
           final ok = await showDialog<bool>(
             context: context,
             builder: (ctx) => AppDialog(
@@ -103,21 +128,48 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
           );
           if (ok != true || !mounted) return null;
         }
+        // Read before the await: the page may be gone when it lands.
+        final overlay = Overlay.of(context, rootOverlay: true);
+        final l10n = _l10n;
+        final session = PendingTryOnStore.session;
         setState(() => _renderingOutfit = true);
         try {
-          final collection = await TripService().tryOnTripOutfit(
-            tripId,
-            tripOutfitId: outfit.id,
+          final collection = await sendTripTryOn(
+            tripId: tripId,
+            before: outfit,
+            session: session,
+            send: () =>
+                TripService().tryOnTripOutfit(tripId, tripOutfitId: outfit.id),
           );
-          if (outfit.outfitId != null) {
-            ImageCacheBust.bump(outfitImageCacheKey(outfit.outfitId!));
-          }
+          _unknownTryOns.remove(outfit.id);
+          if (PendingTryOnStore.session != session) return null;
+          unawaited(announceRemainingTryOns(overlay, l10n));
+          _bumpImage(outfit);
           return collection;
+        } on TryOnStillRunning {
+          _unknownTryOns[outfit.id] = tripOutfitImageMarker(outfit);
+          if (mounted) {
+            showErrorDialog(context, message: _l10n.tryOnOutcomeUnknown);
+          }
+          return null;
         } finally {
           if (mounted) setState(() => _renderingOutfit = false);
         }
       },
     );
+  }
+
+  void _bumpImage(TripOutfit outfit) {
+    if (outfit.outfitId != null) {
+      ImageCacheBust.bump(outfitImageCacheKey(outfit.outfitId!));
+    }
+  }
+
+  /// Leaves mid-render; the render goes on and is applied if it lands.
+  Future<void> _stopWaitingForTryOn() async {
+    final stop = await showStopWaitingDialog(context);
+    if (!stop || !mounted || !_renderingOutfit) return;
+    Navigator.pop(context);
   }
 
   /// Picks from the packed, still-existing garments only.
@@ -241,96 +293,109 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
     final canTryOn = missing.isEmpty && outfit.isComplete;
     final locked = isCollectionActionInFlight;
 
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: AppColors.pageBackground,
-          appBar: AppToolBar(
-            title: _l10n.outfitDetailsTitle,
-            titleWidget: buildFadingToolbarTitle(name),
-            actions: [_buildMenu(outfit, locked)],
-          ),
-          body: ListView(
-            controller: toolbarTitleScrollController,
-            padding: EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              24 + MediaQuery.paddingOf(context).bottom,
+    // A system back mid-render takes the same Stop Waiting confirm.
+    return PopScope(
+      canPop: !_renderingOutfit,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _stopWaitingForTryOn();
+      },
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: AppColors.pageBackground,
+            appBar: AppToolBar(
+              title: _l10n.outfitDetailsTitle,
+              titleWidget: buildFadingToolbarTitle(name),
+              actions: [_buildMenu(outfit, locked)],
             ),
-            children: [
-              // Same header shape as Outfit Details: name, then the image.
-              Text(
-                name,
-                key: toolbarTitleAnchorKey,
-                style: AppTextStyle.bold22,
+            body: ListView(
+              controller: toolbarTitleScrollController,
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                24 + MediaQuery.paddingOf(context).bottom,
               ),
-              const SizedBox(height: AppDimens.cardHeaderGap),
-              GeneratedImageCard(
-                imageUrl: outfit.resultImageUrl,
-                hasAssignment: true,
-                isLoading: _renderingOutfit,
-                jobStatus: _l10n.generatingOutfitEllipsis,
-                errorLabel: _l10n.failedToLoadImage,
-                cacheKey: outfit.imageOutfitId == null
-                    ? null
-                    : outfitImageVersionedCacheKey(outfit.imageOutfitId!),
-                onRefreshUrl: _refreshImageUrl,
-                onRegenerate: canTryOn && !locked ? () => _tryOn(outfit) : null,
-                onGenerate: () => _tryOn(outfit),
-                generateLabel: _l10n.generateOutfit,
-                generateEnabled: canTryOn && !locked,
-                generateDisabledMessage: canTryOn
-                    ? null
-                    : missing.isNotEmpty
-                    ? _l10n.tripOutfitMissingGarmentsTryOn
-                    : _l10n.tripOutfitIncomplete,
-              ),
-              if (missing.isNotEmpty) ...[
-                const SizedBox(height: AppDimens.cardSpacing),
-                _MissingGarmentsNotice(
-                  missing: missing,
-                  onPackMissing: locked ? null : () => _packMissing(outfit),
-                  onEdit: locked ? null : () => _edit(outfit),
+              children: [
+                // Same header shape as Outfit Details: name, then the image.
+                Text(
+                  name,
+                  key: toolbarTitleAnchorKey,
+                  style: AppTextStyle.bold22,
                 ),
-              ],
-              if (outfit.reasoning.isNotEmpty) ...[
-                const SizedBox(height: AppDimens.sectionSpacing),
-                for (final line in outfit.reasoning)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      line,
-                      style: AppTextStyle.regular14.copyWith(
-                        color: AppColors.textSecondary,
+                const SizedBox(height: AppDimens.cardHeaderGap),
+                GeneratedImageCard(
+                  imageUrl: outfit.resultImageUrl,
+                  hasAssignment: true,
+                  isLoading: _renderingOutfit,
+                  jobStatus: _l10n.generatingTryOnEllipsis,
+                  errorLabel: _l10n.failedToLoadImage,
+                  cacheKey: outfit.imageOutfitId == null
+                      ? null
+                      : outfitImageVersionedCacheKey(outfit.imageOutfitId!),
+                  onRefreshUrl: _refreshImageUrl,
+                  onRegenerate: canTryOn && !locked
+                      ? () => _tryOn(outfit)
+                      : null,
+                  onGenerate: () => _tryOn(outfit),
+                  generateLabel: _l10n.generateOutfit,
+                  generateEnabled: canTryOn && !locked,
+                  generateDisabledMessage: canTryOn
+                      ? null
+                      : missing.isNotEmpty
+                      ? _l10n.tripOutfitMissingGarmentsTryOn
+                      : _l10n.tripOutfitIncomplete,
+                ),
+                if (missing.isNotEmpty) ...[
+                  const SizedBox(height: AppDimens.cardSpacing),
+                  _MissingGarmentsNotice(
+                    missing: missing,
+                    onPackMissing: locked ? null : () => _packMissing(outfit),
+                    onEdit: locked ? null : () => _edit(outfit),
+                  ),
+                ],
+                if (outfit.reasoning.isNotEmpty) ...[
+                  const SizedBox(height: AppDimens.sectionSpacing),
+                  for (final line in outfit.reasoning)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        line,
+                        style: AppTextStyle.regular14.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
+                    ),
+                ],
+                const SizedBox(height: AppDimens.sectionSpacing),
+                LabeledDivider(
+                  label: _l10n.garmentsCount(outfit.garments.length),
+                ),
+                const SizedBox(height: AppDimens.cardHeaderGap),
+                for (final g in outfit.garments)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppDimens.sectionSpacing,
+                    ),
+                    child: GarmentListCard(
+                      garment: g,
+                      isUnavailable: missingIds.contains(g.id),
+                      onTap: () => GarmentDetailDialog.show(context, g),
                     ),
                   ),
               ],
-              const SizedBox(height: AppDimens.sectionSpacing),
-              LabeledDivider(
-                label: _l10n.garmentsCount(outfit.garments.length),
+            ),
+          ),
+          if (_renderingOutfit)
+            Positioned.fill(
+              child: LoadingOverlay(
+                label: _l10n.generatingTryOnEllipsis,
+                actionLabel: _l10n.stopWaiting,
+                onAction: _stopWaitingForTryOn,
               ),
-              const SizedBox(height: AppDimens.cardHeaderGap),
-              for (final g in outfit.garments)
-                Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppDimens.sectionSpacing,
-                  ),
-                  child: GarmentListCard(
-                    garment: g,
-                    isUnavailable: missingIds.contains(g.id),
-                    onTap: () => GarmentDetailDialog.show(context, g),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        if (_renderingOutfit)
-          Positioned.fill(
-            child: LoadingOverlay(label: _l10n.generatingOutfitEllipsis),
-          ),
-      ],
+            ),
+        ],
+      ),
     );
   }
 

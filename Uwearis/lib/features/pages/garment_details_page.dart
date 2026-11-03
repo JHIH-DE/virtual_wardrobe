@@ -34,6 +34,7 @@ import '../widgets/common/overlays/ai_consent_dialog.dart';
 import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/auto_save_prompts.dart';
 import '../widgets/common/overlays/error_dialog.dart';
+import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/page_sheet.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
@@ -47,7 +48,7 @@ import '../widgets/garment/garment_share_sheet.dart';
 import 'create_outfit_page.dart';
 import 'garment_outfits_page.dart';
 
-enum _GarmentMenuAction { rename, share, delete }
+enum _GarmentMenuAction { rename, reanalyze, share, delete }
 
 class GarmentDetailsPage extends ConsumerStatefulWidget {
   final Garment initialGarment;
@@ -77,6 +78,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   bool _isFavorite = false;
   bool _isTogglingFavorite = false;
   bool _openingAddOutfit = false;
+  // Covers the confirm dialog and consent prompt, before the overlay shows.
+  bool _reanalyzeInFlight = false;
+  bool _isReanalyzing = false;
+  // Bumped by a start or a Cancel, so a stale reply can't land.
+  int _reanalysisRun = 0;
   int? _id;
   String? _imagePathOrUrl;
   GarmentColor? _selectedColor;
@@ -86,6 +92,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   GarmentCropLength? _selectedCropLength;
   GarmentCategory _category = GarmentCategory.top;
   DateTime? _purchaseDate;
+  // Not on the form; only a re-analysis changes them.
+  int _thickness = 0;
+  int _formality = 0;
   Garment? _editingGarment;
   Map<String, dynamic>? _metaData;
   // ValueNotifiers, not setState fields: the analysis is shown in a modal
@@ -181,6 +190,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       _brandCtrl.text = _editingGarment!.brand ?? '';
       _priceCtrl.text = _editingGarment!.price?.toString() ?? '';
       _purchaseDate = _editingGarment!.purchaseDate;
+      _thickness = _editingGarment!.thickness;
+      _formality = _editingGarment!.formality;
       _selectedColor ??= _initialColor;
       _selectedFit ??= _initialFit;
       _selectedSilhouette ??= _initialSilhouette;
@@ -310,6 +321,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     switch (action) {
       case _GarmentMenuAction.rename:
         _showRenameDialog();
+        break;
+      case _GarmentMenuAction.reanalyze:
+        _reanalyzeGarment();
         break;
       case _GarmentMenuAction.share:
         _shareGarment();
@@ -451,6 +465,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
                 label: _l10n.rename,
               ),
               AppPopupMenu.item(
+                value: _GarmentMenuAction.reanalyze,
+                icon: const Icon(
+                  Icons.auto_awesome_outlined,
+                  size: 20,
+                  color: AppColors.icon,
+                ),
+                label: _l10n.reanalyze,
+              ),
+              AppPopupMenu.item(
                 value: _GarmentMenuAction.share,
                 icon: const Icon(
                   Icons.share_outlined,
@@ -498,7 +521,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
               const Positioned.fill(child: Center(child: AppSpinner())),
             if (_savingBeforeLeave)
               Positioned.fill(
-                child: LoadingOverlay(label: _l10n.savingEllipsis),
+                child: LoadingOverlay(label: _l10n.savingChangesEllipsis),
+              ),
+            if (_isReanalyzing)
+              Positioned.fill(
+                child: LoadingOverlay(
+                  label: _l10n.analyzingGarmentEllipsis,
+                  actionLabel: _l10n.cancel,
+                  onAction: _cancelReanalysis,
+                ),
               ),
           ],
         ),
@@ -909,6 +940,75 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     }
   }
 
+  /// Edit mode only. Paid AI call, hence the synchronous guard.
+  Future<void> _reanalyzeGarment() async {
+    if (_id == null || _reanalyzeInFlight || _isReanalyzing) return;
+    _reanalyzeInFlight = true;
+    bool confirmed;
+    try {
+      confirmed =
+          await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AppDialog(
+              title: _l10n.reanalyzeGarmentTitle,
+              body: _l10n.reanalyzeGarmentBody,
+              primaryLabel: _l10n.reanalyze,
+              onPrimary: () => Navigator.pop(ctx, true),
+              secondaryLabel: _l10n.cancel,
+              onSecondary: () => Navigator.pop(ctx, false),
+            ),
+          ) ==
+          true;
+      confirmed = confirmed && mounted && await ensureAiConsent(context);
+    } finally {
+      _reanalyzeInFlight = false;
+    }
+    if (confirmed && mounted) _runReanalysis();
+  }
+
+  /// Keeps the name (the user may have renamed it); the result auto-saves
+  /// like any other edit. Also the error dialog's retry.
+  Future<void> _runReanalysis() async {
+    final id = _id;
+    if (id == null || _isReanalyzing || !mounted) return;
+    final run = ++_reanalysisRun;
+    setState(() => _isReanalyzing = true);
+    try {
+      final metadata = await GarmentService().reanalyzeGarment(id);
+      if (!mounted || run != _reanalysisRun) return;
+      setState(() {
+        _applyAnalysisData({...metadata}..remove('name'));
+        _thickness = (metadata['thickness'] as num?)?.toInt() ?? _thickness;
+        _formality = (metadata['formality'] as num?)?.toInt() ?? _formality;
+      });
+      _onEdited();
+      showFeedbackOverlay(context, message: _l10n.garmentReanalyzed);
+    } on AuthExpiredException {
+      if (!mounted || run != _reanalysisRun) return;
+      await AuthExpiredHandler.handle(context);
+    } catch (e) {
+      debugLog('GarmentDetailsPage._runReanalysis failed: $e');
+      if (!mounted || run != _reanalysisRun) return;
+      showErrorDialog(
+        context,
+        title: _l10n.analysisFailedTitle,
+        message: apiErrorMessage(_l10n, e, fallback: _l10n.analysisFailedBody),
+        onRetry: _runReanalysis,
+      );
+    } finally {
+      if (mounted && run == _reanalysisRun) {
+        setState(() => _isReanalyzing = false);
+      }
+    }
+  }
+
+  /// The request can't be aborted; its reply is ignored when it lands, so
+  /// the form keeps what the user had.
+  void _cancelReanalysis() {
+    _reanalysisRun++;
+    setState(() => _isReanalyzing = false);
+  }
+
   /// Paid AI call, hence the synchronous guard. Add mode (no [_id]) runs a
   /// preview against the current form fields.
   Future<void> _runClosetAnalysis() async {
@@ -1065,7 +1165,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
               ),
             if (_isAnalyzingCloset.value || _isRefreshingAnalysis.value)
               Positioned.fill(
-                child: LoadingOverlay(label: _l10n.analyzingEllipsis),
+                child: LoadingOverlay(label: _l10n.findingMatchesEllipsis),
               ),
           ],
         ),
@@ -1311,7 +1411,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-              child: LoadingOverlay(label: _l10n.analyzingClothingEllipsis),
+              child: LoadingOverlay(label: _l10n.analyzingGarmentEllipsis),
             ),
           ),
       ],
@@ -1510,6 +1610,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       clearPrice: priceText.isEmpty,
       purchaseDate: _purchaseDate,
       clearPurchaseDate: _purchaseDate == null,
+      thickness: _thickness,
+      formality: _formality,
     );
     return GarmentService().updateGarment(updated);
   }

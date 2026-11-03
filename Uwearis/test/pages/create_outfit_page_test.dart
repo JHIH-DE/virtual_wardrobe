@@ -22,6 +22,7 @@ import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
+import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 
 import '../helpers/fake_auth.dart';
@@ -689,13 +690,17 @@ void main() {
     },
   );
 
-  testWidgets('cancelling mid-render leaves at once and discards the result '
-      'when it lands', (tester) async {
+  testWidgets('Stop Waiting asks first, then leaves; the render that lands '
+      'afterwards is kept and refreshes Outfits', (tester) async {
     useTallSurface(tester);
     final pending = Completer<http.Response>();
     final deleted = <String>[];
+    final outfitListFetches = <DateTime>[];
     final client = MockClient((request) async {
       final path = request.url.path;
+      if (request.method == 'GET' && path.endsWith('/outfit')) {
+        outfitListFetches.add(DateTime.now());
+      }
       if (request.method == 'POST' && path.endsWith('/outfit')) {
         return jsonResponse(envelope({'group_id': 42}));
       }
@@ -735,11 +740,28 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.text('Cancel'));
+      Finder dialogButton(String label) => find.descendant(
+        of: find.byType(AppDialog),
+        matching: find.text(label),
+      );
+
+      await tester.tap(find.text('Stop Waiting'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Stop Waiting?'), findsOneWidget);
+      await tester.tap(dialogButton('Keep Waiting'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(CreateOutfitPage), findsOneWidget);
+
+      await tester.tap(find.text('Stop Waiting'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(dialogButton('Stop Waiting'));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(CreateOutfitPage), findsNothing);
-      expect(deleted, isEmpty, reason: 'the render is still running');
+      final fetchesBeforeLanding = outfitListFetches.length;
 
       pending.complete(
         jsonResponse(
@@ -753,8 +775,325 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
-      expect(deleted, [contains('/outfit/42')]);
+      expect(deleted, isEmpty, reason: 'a finished render is never discarded');
+      expect(outfitListFetches.length, greaterThan(fetchesBeforeLanding));
     }, () => client);
+  });
+
+  group('remaining try-ons', () {
+    Map<String, dynamic> quota({int? limit = 10, int? remaining}) => {
+      'limit': limit,
+      'used': limit == null ? 3 : limit - (remaining ?? 0),
+      'remaining': remaining,
+      'resets_at': '2026-11-03T00:00:00+08:00',
+    };
+
+    /// Renders a version (it pops back on success, so the message shows on
+    /// the host page). [quotaReply] null = never asked.
+    Future<int> renderVersion(
+      WidgetTester tester, {
+      required bool succeed,
+      http.Response Function()? quotaReply,
+    }) async {
+      useTallSurface(tester);
+      var quotaReads = 0;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith('/generation-quota')) {
+          quotaReads++;
+          return quotaReply!();
+        }
+        if (path.endsWith('/generate')) {
+          return succeed
+              ? jsonResponse(
+                  envelope({
+                    'outfit_id': 77,
+                    'group_id': 40,
+                    'result_image_url': '',
+                    'garment_ids': [1, 2, 3],
+                  }),
+                )
+              : jsonResponse({
+                  'success': false,
+                  'error_code': 'LOOK_GENERATION_FAILED',
+                }, status: 500);
+        }
+        return jsonResponse(envelope(null), status: 404);
+      });
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => Navigator.push<Outfit>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateOutfitPage(
+                      initialGarments: [closet[0], closet[1], closet[2]],
+                      targetGroupId: 40,
+                      initialBackgroundId: 7,
+                    ),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+          overrides: closetOverride(),
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(
+            of: find.byType(BottomActionButton),
+            matching: find.textContaining('left'),
+          ),
+          findsNothing,
+          reason: 'no count on the button',
+        );
+        // A version identical to its source isn't rendered.
+        await tester.ensureVisible(find.text('Tokyo Street'));
+        await tester.tap(find.text('Tokyo Street'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Paris Street'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(BottomActionButton, 'Create Version'),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pump(const Duration(seconds: 1));
+      }, () => client);
+      return quotaReads;
+    }
+
+    testWidgets('a render that used a try-on is followed by the count left', (
+      tester,
+    ) async {
+      final reads = await renderVersion(
+        tester,
+        succeed: true,
+        quotaReply: () => jsonResponse(envelope(quota(remaining: 2))),
+      );
+      expect(reads, 1);
+      expect(find.byType(CreateOutfitPage), findsNothing);
+      expect(find.text('2 AI try-ons left today'), findsOneWidget);
+    });
+
+    testWidgets('the last one says so', (tester) async {
+      await renderVersion(
+        tester,
+        succeed: true,
+        quotaReply: () => jsonResponse(envelope(quota(remaining: 0))),
+      );
+      expect(find.text('That was your last AI try-on today'), findsOneWidget);
+    });
+
+    testWidgets('nothing after a failed render (nothing was used)', (
+      tester,
+    ) async {
+      final reads = await renderVersion(tester, succeed: false);
+      expect(reads, 0);
+      expect(find.textContaining('AI try-on'), findsNothing);
+    });
+
+    testWidgets('nothing for an unlimited tier or when the count can\'t be '
+        'read', (tester) async {
+      for (final reply in [
+        () => jsonResponse(envelope(quota(limit: null))),
+        () => jsonResponse({'success': false, 'message': 'x'}, status: 503),
+      ]) {
+        await renderVersion(tester, succeed: true, quotaReply: reply);
+        expect(find.textContaining('AI try-on'), findsNothing);
+        expect(find.byType(CreateOutfitPage), findsNothing);
+      }
+    });
+  });
+
+  group('try-on', () {
+    Future<void> openFromRoute(WidgetTester tester) async {
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CreateOutfitPage(initialGarments: closet),
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+        overrides: closetOverride(closet),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    Finder createButton() =>
+        find.widgetWithText(BottomActionButton, 'Create Outfit');
+
+    testWidgets('a rapid double tap sends one generate', (tester) async {
+      useTallSurface(tester);
+      final pending = Completer<http.Response>();
+      var generates = 0;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/outfit')) {
+          return jsonResponse(envelope({'group_id': 42}));
+        }
+        if (request.method == 'POST' && path.endsWith('/generate')) {
+          generates++;
+          return pending.future;
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+      await http.runWithClient(() async {
+        await openFromRoute(tester);
+        await tester.tap(createButton());
+        await tester.tap(createButton(), warnIfMissed: false);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(generates, 1);
+        pending.complete(jsonResponse(envelope(null), status: 500));
+        await tester.pump(const Duration(seconds: 1));
+      }, () => client);
+    });
+
+    testWidgets('a system back mid-render asks before leaving', (tester) async {
+      useTallSurface(tester);
+      final pending = Completer<http.Response>();
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/outfit')) {
+          return jsonResponse(envelope({'group_id': 42}));
+        }
+        if (request.method == 'POST' && path.endsWith('/generate')) {
+          return pending.future;
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+      await http.runWithClient(() async {
+        await openFromRoute(tester);
+        await tester.tap(createButton());
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('Stop Waiting?'), findsOneWidget);
+        expect(find.byType(CreateOutfitPage), findsOneWidget);
+
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AppDialog),
+            matching: find.text('Keep Waiting'),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.byType(CreateOutfitPage), findsOneWidget);
+
+        pending.complete(jsonResponse(envelope(null), status: 500));
+        await tester.pump(const Duration(seconds: 1));
+      }, () => client);
+    });
+
+    testWidgets('iOS: the edge swipe is held mid-render (Stop Waiting is the '
+        'way out) and works again once it is done', (tester) async {
+      useTallSurface(tester);
+      final pending = Completer<http.Response>();
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/outfit')) {
+          return jsonResponse(envelope({'group_id': 42}));
+        }
+        if (request.method == 'POST' && path.endsWith('/generate')) {
+          return pending.future;
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+      await http.runWithClient(() async {
+        await openFromRoute(tester);
+        await tester.tap(createButton());
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await tester.dragFrom(const Offset(2, 600), const Offset(600, 0));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.byType(CreateOutfitPage), findsOneWidget);
+        expect(find.text('Stop Waiting?'), findsNothing);
+
+        pending.complete(jsonResponse(envelope(null), status: 500));
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.text('OK'));
+        await tester.pump(const Duration(milliseconds: 300));
+
+        await tester.dragFrom(const Offset(2, 600), const Offset(600, 0));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(find.byType(CreateOutfitPage), findsNothing);
+      }, () => client);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+    testWidgets('when status can\'t be checked, Create Outfit again asks '
+        'first and sends nothing if declined', (tester) async {
+      useTallSurface(tester);
+      var generates = 0;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/outfit')) {
+          return jsonResponse(envelope({'group_id': 42}));
+        }
+        if (request.method == 'POST' && path.endsWith('/generate')) {
+          generates++;
+          throw TimeoutException('slow');
+        }
+        if (path.contains('/outfit/generations/')) {
+          return jsonResponse({'success': false, 'message': 'x'}, status: 422);
+        }
+        if (path.endsWith('/outfit/42')) {
+          return jsonResponse(
+            envelope({'group_id': 42, 'outfits': <Object>[]}),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+      await http.runWithClient(() async {
+        await openFromRoute(tester);
+        await tester.tap(createButton());
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          find.text(
+            "We couldn't confirm whether this try-on finished. If it did, "
+            'it will appear in Outfits.',
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(find.text('OK'));
+        await tester.pump(const Duration(milliseconds: 300));
+
+        await tester.tap(createButton());
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('Try Again?'), findsOneWidget);
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AppDialog),
+            matching: find.text('Cancel'),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(generates, 1);
+      }, () => client);
+    });
   });
 
   testWidgets(
@@ -1186,6 +1525,115 @@ void main() {
       expect(find.byType(OutfitDetailsPage), findsNothing);
       expect(popped?.id, 77);
       expect(popped?.groupId, 40);
+    });
+  });
+  group('Finish with AI Cancel', () {
+    final pool = [
+      ...closet,
+      _garment(id: 4, category: GarmentCategory.top, name: 'Polo'),
+    ];
+
+    Map<String, dynamic> advice(int topId) => {
+      'outfit_name': 'AI Pick',
+      'selected_garment_ids': [topId, 2, 3],
+      'items': [
+        {'garment_id': topId, 'role': 'top', 'order': 0, 'reason': null},
+        {'garment_id': 2, 'role': 'bottom', 'order': 1, 'reason': null},
+        {'garment_id': 3, 'role': 'shoes', 'order': 2, 'reason': null},
+      ],
+      'styling_tips': null,
+      'reasoning': null,
+    };
+
+    /// Each advice call waits on its own gate (completed with the top's
+    /// id), so a test decides the order replies land in.
+    MockClient gatedClient(List<Completer<int>> gates) {
+      return MockClient((request) async {
+        if (request.url.path.endsWith('/outfit/advice')) {
+          final gate = Completer<int>();
+          gates.add(gate);
+          return jsonResponse(envelope(advice(await gate.future)));
+        }
+        return jsonResponse(envelope(null), status: 500);
+      });
+    }
+
+    List<Override> overrides() => [
+      ...closetOverride(pool),
+      weatherProvider.overrideWith(_FakeWeather.new),
+    ];
+
+    Future<void> startFinishWithAi(WidgetTester tester) async {
+      await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    Future<void> land(
+      WidgetTester tester,
+      Completer<int> gate,
+      int topId,
+    ) async {
+      gate.complete(topId);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    Finder overlay() => find.byType(LoadingOverlay);
+
+    testWidgets('Cancel closes the overlay; a reply landing afterwards '
+        'fills nothing in', (tester) async {
+      useTallSurface(tester);
+      final gates = <Completer<int>>[];
+      await http.runWithClient(() async {
+        await pumpApp(tester, const CreateOutfitPage(), overrides: overrides());
+        await tester.pump();
+
+        await startFinishWithAi(tester);
+        expect(overlay(), findsOneWidget);
+        expect(gates, hasLength(1));
+
+        await tester.tap(find.text('Cancel'));
+        await tester.pump();
+        expect(overlay(), findsNothing);
+
+        await land(tester, gates.single, 1);
+        expect(find.text('Tee'), findsNothing);
+        expect(find.byIcon(Icons.lock_open), findsNothing);
+        expect(
+          find.text(
+            "Couldn't complete your outfit with AI — please try "
+            'again.',
+          ),
+          findsNothing,
+        );
+      }, () => gatedClient(gates));
+    });
+
+    testWidgets('a cancelled run that lands after a newer one can\'t '
+        'overwrite it', (tester) async {
+      useTallSurface(tester);
+      final gates = <Completer<int>>[];
+      await http.runWithClient(() async {
+        await pumpApp(tester, const CreateOutfitPage(), overrides: overrides());
+        await tester.pump();
+
+        await startFinishWithAi(tester);
+        await tester.tap(find.text('Cancel'));
+        await tester.pump();
+
+        // Restartable at once, without waiting for the cancelled request.
+        await startFinishWithAi(tester);
+        expect(gates, hasLength(2));
+
+        await land(tester, gates[1], 4);
+        expect(overlay(), findsNothing);
+        expect(find.text('Polo'), findsOneWidget);
+
+        await land(tester, gates[0], 1);
+        expect(find.text('Polo'), findsOneWidget);
+        expect(find.text('Tee'), findsNothing);
+      }, () => gatedClient(gates));
     });
   });
 }

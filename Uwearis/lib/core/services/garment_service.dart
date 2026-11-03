@@ -295,28 +295,14 @@ class GarmentService with BaseService {
 
   Future<AnalyzeGarmentResult> analyzeGarment(String localPath) async {
     debugLog('--- analyzeGarment ---');
-    final uri = Uri.parse('$_baseUrl/analyze-instant');
-    final res = await withAuth((token) async {
-      final request = http.MultipartRequest('POST', uri);
-      request.headers['Authorization'] = 'Bearer $token';
-      final mimeType = lookupMimeType(localPath) ?? 'image/jpeg';
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          localPath,
-          contentType: MediaType.parse(mimeType),
-        ),
-      );
-      // Backend caps analysis at 100s (AI_ANALYSIS_TIMEOUT); the headroom
-      // lets the server's own error arrive before a client timeout.
-      final streamedRes = await request.send().timeout(
-        const Duration(seconds: 110),
-      );
-      return http.Response.fromStream(streamedRes);
-    });
-
-    final envelope = decodeMap(res, op: 'analyzeInstantGarment');
-    final data = (envelope['data'] as Map<String, dynamic>?) ?? {};
+    final mimeType = lookupMimeType(localPath) ?? 'image/jpeg';
+    final data = await _analyzeInstant(
+      () => http.MultipartFile.fromPath(
+        'file',
+        localPath,
+        contentType: MediaType.parse(mimeType),
+      ),
+    );
     final metadata = (data['metadata'] as Map<String, dynamic>?) ?? {};
 
     String? processedImagePath;
@@ -335,6 +321,60 @@ class GarmentService with BaseService {
       metadata: metadata,
       processedImagePath: processedImagePath,
     );
+  }
+
+  /// Re-runs analyze-instant on a saved garment's stored photo. Only the
+  /// metadata comes back — PATCH can't replace an existing garment's image.
+  Future<Map<String, dynamic>> reanalyzeGarment(int garmentId) async {
+    final garment = await getGarment(garmentId);
+    debugLog('--- reanalyzeGarment: $garmentId ---');
+    final imageUrl = garment.imageUrl;
+    if (imageUrl == null || imageUrl.isEmpty) {
+      throw Exception('reanalyzeGarment: garment has no image');
+    }
+    final imageRes = await http
+        .get(Uri.parse(imageUrl))
+        .timeout(const Duration(seconds: 30));
+    if (imageRes.statusCode != 200) {
+      throw Exception(
+        'reanalyzeGarment: image download failed (${imageRes.statusCode})',
+      );
+    }
+    final bytes = imageRes.bodyBytes;
+    final mimeType =
+        lookupMimeType('', headerBytes: bytes) ??
+        imageRes.headers['content-type'] ??
+        'image/jpeg';
+    final data = await _analyzeInstant(
+      () async => http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: 'garment.${extensionFromMime(mimeType) ?? 'jpg'}',
+        contentType: MediaType.parse(mimeType),
+      ),
+    );
+    return (data['metadata'] as Map<String, dynamic>?) ?? {};
+  }
+
+  /// [buildFile] runs per attempt: a MultipartFile can be sent only once,
+  /// and [withAuth] may retry after a token refresh.
+  Future<Map<String, dynamic>> _analyzeInstant(
+    Future<http.MultipartFile> Function() buildFile,
+  ) async {
+    final uri = Uri.parse('$_baseUrl/analyze-instant');
+    final res = await withAuth((token) async {
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await buildFile());
+      // Backend caps analysis at 100s (AI_ANALYSIS_TIMEOUT); the headroom
+      // lets the server's own error arrive before a client timeout.
+      final streamedRes = await request.send().timeout(
+        const Duration(seconds: 110),
+      );
+      return http.Response.fromStream(streamedRes);
+    });
+    final envelope = decodeMap(res, op: 'analyzeInstantGarment');
+    return (envelope['data'] as Map<String, dynamic>?) ?? {};
   }
 
   Map<String, dynamic> _decodeClosetAnalysis(

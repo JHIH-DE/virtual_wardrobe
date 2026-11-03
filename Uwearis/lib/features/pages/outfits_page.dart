@@ -61,9 +61,11 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
 
   Future<void> _openAddOutfit() async {
     final l10n = AppLocalizations.of(context);
-    MainShellScope.of(
-      context,
-    )?.setLoading(true, label: l10n.loadingGarments, tab: MainTab.outfits);
+    MainShellScope.of(context)?.setLoading(
+      true,
+      label: l10n.loadingGarmentsEllipsis,
+      tab: MainTab.outfits,
+    );
     try {
       await ref.read(garmentsProvider.future);
       if (!mounted) return;

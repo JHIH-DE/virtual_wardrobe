@@ -37,6 +37,7 @@ import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
 import 'trip_garment_selection_page.dart';
 import 'trip_outfit_selection_page.dart';
+import '../widgets/common/overlays/app_snack_bar.dart';
 
 class TripSuitcasePage extends ConsumerStatefulWidget {
   final Trip trip;
@@ -239,14 +240,11 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         _packedGarments = List.of(collection.suitcase);
         _committedIds = collection.suitcaseIds;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            packedCount > 0
-                ? _l10n.addedOutfitToTripPacked(packedCount)
-                : _l10n.addedOutfitToTrip,
-          ),
-        ),
+      showAppSnackBar(
+        context,
+        packedCount > 0
+            ? _l10n.addedOutfitToTripPacked(packedCount)
+            : _l10n.addedOutfitToTrip,
       );
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
@@ -354,7 +352,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       setState(() => _generatingPlan = true);
       try {
         final detailNotifier = _detailNotifier;
-        final messenger = ScaffoldMessenger.of(context);
+        final overlay = Overlay.of(context, rootOverlay: true);
         final mode = _hasOutfits
             ? TripOutfitGenerateMode.more
             : TripOutfitGenerateMode.plan;
@@ -364,10 +362,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         );
         detailNotifier.setCollection(result.collection);
         // Shown over Trip Details after the pop.
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(tripOutfitGenerateMessage(_l10n, result, mode: mode)),
-          ),
+        showAppSnackBarOn(
+          overlay,
+          tripOutfitGenerateMessage(_l10n, result, mode: mode),
         );
         if (!mounted) return;
         Navigator.pop(context);
@@ -491,11 +488,15 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
           ),
           if (_committing || _addingOutfit)
             Positioned.fill(
-              child: LoadingOverlay(label: _l10n.updatingSuitcaseEllipsis),
+              child: LoadingOverlay(
+                label: _addingOutfit
+                    ? _l10n.addingOutfitEllipsis
+                    : _l10n.updatingSuitcaseEllipsis,
+              ),
             ),
           if (_generatingPlan)
             Positioned.fill(
-              child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
+              child: LoadingOverlay(label: _l10n.generatingOutfitsEllipsis),
             ),
         ],
       ),

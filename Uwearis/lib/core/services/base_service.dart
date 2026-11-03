@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../utils/crash_handler.dart';
 import '../utils/debug_log.dart';
 import 'api_exception.dart';
 import 'auth_handler.dart';
@@ -119,12 +120,31 @@ mixin BaseService {
         '<<< ${req?.method ?? 'HTTP'} ${req?.url.path ?? '?'} '
         '-> ${res.statusCode} in ${sw.elapsedMilliseconds}ms',
       );
+      _reportServerFailure(res);
       return res;
     } catch (e) {
       sw.stop();
       debugLog('<<< HTTP failed in ${sw.elapsedMilliseconds}ms: $e');
       rethrow;
     }
+  }
+
+  /// 5xx is a backend fault and 422 means the app sent a request the
+  /// backend's schema rejects; both are bugs whatever the caller does with
+  /// them. The request id lets the report be matched to api_logs. Only the
+  /// URL path is sent, never the query string or body.
+  void _reportServerFailure(http.Response res) {
+    if (res.statusCode < 500 && res.statusCode != 422) return;
+    final error = ApiException.fromResponse(res);
+    final req = res.request;
+    GlobalErrorHandler.recordNonFatal(
+      error,
+      StackTrace.current,
+      reason:
+          'HTTP ${res.statusCode} ${req?.method ?? '?'} '
+          '${req?.url.path ?? '?'}',
+      keys: {'request_id': error.requestId ?? 'none'},
+    );
   }
 
   /// Decodes a JSON object response. Every failure (non-2xx, malformed

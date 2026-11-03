@@ -47,7 +47,9 @@ class App extends ConsumerWidget {
           if (!snapshot.hasData) {
             return Scaffold(
               backgroundColor: AppColors.pageBackground,
-              body: LoadingOverlay(label: AppLocalizations.of(context).loading),
+              body: LoadingOverlay(
+                label: AppLocalizations.of(context).loadingAppEllipsis,
+              ),
             );
           }
           return snapshot.data!;

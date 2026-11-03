@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uwearis/core/utils/ai_consent.dart';
+import 'package:uwearis/core/utils/user_acknowledgement.dart';
 import 'package:uwearis/features/widgets/common/overlays/ai_consent_dialog.dart';
 
 import '../helpers/fake_auth.dart';
@@ -18,11 +18,11 @@ String _jwt(String sub) {
 
 void main() {
   setUp(() {
-    AiConsent.debugGrantedOverride = null;
+    UserAcknowledgement.debugGrantedOverride = null;
     SharedPreferences.setMockInitialValues({});
     setUpFakeAuth(accessToken: _jwt('7'));
   });
-  tearDown(() => AiConsent.debugGrantedOverride = true);
+  tearDown(() => UserAcknowledgement.debugGrantedOverride = true);
 
   /// Pumps a button that runs [ensureAiConsent]; results land in [results].
   /// [calls] concurrent [ensureAiConsent] calls per tap, as a double tap
@@ -56,7 +56,7 @@ void main() {
     await tester.tap(find.text('Not Now'));
     await tester.pumpAndSettle();
     expect(results, [false]);
-    expect(await AiConsent.isGranted(), isFalse);
+    expect(await UserAcknowledgement.aiConsent.isGranted(), isFalse);
 
     await tester.tap(find.text('go'));
     await tester.pumpAndSettle();
@@ -78,7 +78,7 @@ void main() {
     expect(results, [true, true]);
 
     setUpFakeAuth(accessToken: _jwt('8'));
-    expect(await AiConsent.isGranted(), isFalse);
+    expect(await UserAcknowledgement.aiConsent.isGranted(), isFalse);
   });
 
   testWidgets('concurrent calls share one dialog', (tester) async {

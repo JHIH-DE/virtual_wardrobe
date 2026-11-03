@@ -13,7 +13,11 @@ class AppConfig {
   static const String supportEmail = 'support@uwearis.com';
 
   /// Named in the AI consent disclosure. Changing it changes who receives
-  /// user data: bump `AiConsent._version` in the same change so everyone is
-  /// asked again.
+  /// user data: bump `UserAcknowledgement.aiConsent`'s version in the same
+  /// change so everyone is asked again.
   static const String aiProviderName = 'Google Gemini';
+
+  /// Minimum age to add face/body reference photos; the Terms of Service and
+  /// the App Store age rating must state the same age.
+  static const int minimumAge = 13;
 }

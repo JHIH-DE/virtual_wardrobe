@@ -3,7 +3,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../data/generation_quota.dart';
 import '../../data/outfit.dart';
+import '../../data/try_on_generation.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
@@ -109,6 +111,10 @@ class OutfitService with BaseService {
     return outfits;
   }
 
+  static const _renderTimeout = Duration(seconds: 180);
+  static const tryOnProtocolHeader = 'X-Try-On-Protocol';
+  static const tryOnProtocolVersion = '2';
+
   /// Creates and renders in one call (no separate save step). Pass
   /// [groupId] to add a version to an existing group; omit it to create a
   /// new [type] group.
@@ -135,11 +141,17 @@ class OutfitService with BaseService {
       (token) => http
           .post(
             uri,
-            headers: _withIdempotencyKey(authHeaders(token), idempotencyKey),
+            headers: {
+              ..._withIdempotencyKey(authHeaders(token), idempotencyKey),
+              // Tells the backend this client recovers lost replies by key
+              // and mints a new key after a definitive failure.
+              tryOnProtocolHeader: tryOnProtocolVersion,
+            },
             body: jsonEncode(payload),
           )
-          // Synchronous AI render; backend rate-limit retries can stack.
-          .timeout(const Duration(seconds: 90)),
+          // Above the backend's worst case (150s AI deadline + saving), so a
+          // normal reply isn't mistaken for a lost one.
+          .timeout(_renderTimeout),
     );
     final envelope = decodeMap(res, op: 'generateOutfit');
     final data = envelope['data'];
@@ -171,8 +183,9 @@ class OutfitService with BaseService {
             headers: _withIdempotencyKey(authHeaders(token), idempotencyKey),
             body: jsonEncode(payload),
           )
-          // Synchronous AI render; backend rate-limit retries can stack.
-          .timeout(const Duration(seconds: 90)),
+          // Above the backend's worst case (150s AI deadline + saving), so a
+          // normal reply isn't mistaken for a lost one.
+          .timeout(_renderTimeout),
     );
     final envelope = decodeMap(res, op: 'regenerateOutfit');
     final data = envelope['data'];
@@ -181,6 +194,46 @@ class OutfitService with BaseService {
     }
     _groupCache.remove(groupId);
     return Outfit.fromJson(data);
+  }
+
+  Future<GenerationQuota> getGenerationQuota() async {
+    debugLog('--- getGenerationQuota ---');
+    final uri = Uri.parse('$_baseUrl/generation-quota');
+    final res = await withAuth(
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
+    );
+    final envelope = decodeMap(res, op: 'getGenerationQuota');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('getGenerationQuota: response missing data object');
+    }
+    return GenerationQuota.fromJson(data);
+  }
+
+  /// Status of a generate/regenerate sent with [idempotencyKey], for when its
+  /// response never arrived. Throws [ApiException] 404
+  /// `TRY_ON_GENERATION_NOT_FOUND` when the request never reached the server.
+  Future<TryOnGeneration> getGeneration(String idempotencyKey) async {
+    debugLog('--- getGeneration ---');
+    final uri = Uri.parse('$_baseUrl/generations/$idempotencyKey');
+    final res = await withAuth(
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
+    );
+    final envelope = decodeMap(res, op: 'getGeneration');
+    final data = envelope['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('getGeneration: response missing data object');
+    }
+    final generation = TryOnGeneration.fromJson(data);
+    final groupId = generation.outfit?.groupId;
+    if (groupId != null) _groupCache.remove(groupId);
+    return generation;
   }
 
   Future<Outfit> getOutfit(int groupId, int outfitId) async {

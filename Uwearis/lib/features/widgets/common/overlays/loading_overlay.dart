@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
@@ -132,21 +131,10 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
                 widthFactor: 1,
                 child: ActionDisc(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          widget.actionLabel!,
-                          style: AppTextStyle.semibold14,
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          LucideIcons400.x,
-                          size: 16,
-                          color: AppColors.icon,
-                        ),
-                      ],
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      widget.actionLabel!,
+                      style: AppTextStyle.semibold14,
                     ),
                   ),
                 ),

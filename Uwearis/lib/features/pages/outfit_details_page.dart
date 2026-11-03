@@ -44,6 +44,10 @@ import '../widgets/outfit/outfit_tag_row.dart';
 import '../widgets/outfit/outfit_tags_sheet.dart';
 import '../widgets/outfit/outfit_title.dart';
 import 'create_outfit_page.dart';
+import '../../core/utils/remaining_try_ons.dart';
+import '../../core/services/pending_try_on_store.dart';
+import '../../core/utils/try_on_request.dart';
+import '../widgets/common/overlays/try_on_dialogs.dart';
 
 enum _OutfitMenuAction { rename, share, delete }
 
@@ -88,6 +92,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
   // [isNew] only: Save was tapped, so leaving no longer prompts.
   bool _saved = false;
   bool _isRegenerating = false;
+  // The last regenerate's key while its outcome is unknown: retrying the same
+  // outfit reuses it, so a backend that honours keys replays instead of
+  // rendering again.
+  String? _regenerateKey;
+  int? _regenerateKeyOutfitId;
+  bool _regenerateStatusUnavailable = false;
   bool _isSettingCover = false;
   bool _isTogglingFavorite = false;
   // Keeps the tag button disabled so two tag saves can't race.
@@ -183,10 +193,15 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
     return Stack(
       children: [
         PopScope(
-          canPop: !widget.isNew || _saved,
+          canPop: (!widget.isNew || _saved) && !_isRegenerating,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            _leaveNewOutfit();
+            // A system back mid-render takes the same Stop Waiting confirm.
+            if (_isRegenerating) {
+              _stopWaitingForRegenerate();
+            } else {
+              _leaveNewOutfit();
+            }
           },
           child: Scaffold(
             backgroundColor: AppColors.pageBackground,
@@ -223,7 +238,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
           ),
         ),
         if (_isLeaving)
-          Positioned.fill(child: LoadingOverlay(label: _l10n.loading)),
+          Positioned.fill(
+            child: LoadingOverlay(label: _l10n.deletingOutfitEllipsis),
+          ),
       ],
     );
   }
@@ -557,40 +574,79 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
   /// AI call.
   Future<void> _regenerateImage() async {
     if (_isRegenerating) return;
+    final target = _current;
+    final retryingUnknown = _regenerateKeyOutfitId == target.id;
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.regenerateOutfitConfirmTitle,
-        body: _l10n.regenerateOutfitConfirmBody,
-        primaryLabel: _l10n.regenerate,
-        onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
-      ),
-    );
-    if (ok != true || !mounted) return;
+    // Re-asking a backend that can't report status may render again; that
+    // dialog already says so, in place of the plain confirm.
+    final ok = retryingUnknown && _regenerateStatusUnavailable
+        ? await showRetryWhileUnknownDialog(context)
+        : await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AppDialog(
+                  title: _l10n.regenerateOutfitConfirmTitle,
+                  body: _l10n.regenerateOutfitConfirmBody,
+                  primaryLabel: _l10n.regenerate,
+                  onPrimary: () => Navigator.pop(ctx, true),
+                  secondaryLabel: _l10n.cancel,
+                  onSecondary: () => Navigator.pop(ctx, false),
+                ),
+              ) ==
+              true;
+    if (!ok || !mounted) return;
     if (!await ensureAiConsent(context) || !mounted || _isRegenerating) return;
 
-    final target = _current;
+    final key = retryingUnknown && !_regenerateStatusUnavailable
+        ? _regenerateKey!
+        : newIdempotencyKey();
     final index = _currentIndex;
+    // All read before the await: the page may be gone when it lands.
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final l10n = _l10n;
+    final outfits = ref.read(outfitsProvider.notifier);
+    final session = PendingTryOnStore.session;
     setState(() => _isRegenerating = true);
     try {
-      final outfit = await OutfitService().regenerateOutfit(
-        target.groupId,
-        target.id,
-        idempotencyKey: newIdempotencyKey(),
+      final outfit = await sendKeyedTryOn(
+        key: key,
+        session: session,
+        regeneratedOutfitId: target.id,
+        send: () => OutfitService().regenerateOutfit(
+          target.groupId,
+          target.id,
+          idempotencyKey: key,
+        ),
       );
+      _regenerateKey = null;
+      _regenerateKeyOutfitId = null;
+      if (PendingTryOnStore.session == session) {
+        // The image is overwritten at the same URL, so bump the cache key
+        // every consumer reads or they keep serving the old bytes.
+        ImageCacheBust.bump(outfitImageCacheKey(target.id));
+        unawaited(outfits.refresh());
+        unawaited(announceRemainingTryOns(overlay, l10n));
+      }
       if (!mounted) return;
       setState(() => _versions[index] = outfit);
-      // The image is overwritten at the same URL, so bump the cache key
-      // every consumer reads or they keep serving the old bytes.
-      ImageCacheBust.bump(outfitImageCacheKey(target.id));
-      unawaited(ref.read(outfitsProvider.notifier).refresh());
+    } on TryOnStillRunning catch (e) {
+      _regenerateKey = key;
+      _regenerateKeyOutfitId = target.id;
+      _regenerateStatusUnavailable = e.statusUnavailable;
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        message: e.statusUnavailable
+            ? _l10n.tryOnOutcomeUnknown
+            : _l10n.tryOnStillRendering(_l10n.regenerate),
+      );
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
+      // Definitive: the next attempt is a new request (its quota was
+      // released).
+      _regenerateKey = null;
+      _regenerateKeyOutfitId = null;
       if (!mounted) return;
       debugLog('OutfitDetailsPage._regenerateImage failed: $e');
       showErrorDialog(
@@ -604,6 +660,13 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
     } finally {
       if (mounted) setState(() => _isRegenerating = false);
     }
+  }
+
+  /// Leaves mid-regenerate; the render goes on and is applied if it lands.
+  Future<void> _stopWaitingForRegenerate() async {
+    final stop = await showStopWaitingDialog(context);
+    if (!stop || !mounted || !_isRegenerating) return;
+    Navigator.pop(context);
   }
 
   Widget _buildOutfitImage() {
@@ -691,7 +754,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
                       borderRadius: BorderRadius.circular(
                         AppDimens.outfitPhotoRadius,
                       ),
-                      child: LoadingOverlay(label: _l10n.generatingEllipsis),
+                      child: LoadingOverlay(
+                        label: _l10n.generatingTryOnEllipsis,
+                        actionLabel: _l10n.stopWaiting,
+                        onAction: _stopWaitingForRegenerate,
+                      ),
                     ),
                   ),
               ],

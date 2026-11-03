@@ -191,7 +191,7 @@ class _HomePageState extends ConsumerState<HomePage>
     final loading = states.any((s) => s.isLoading);
     MainShellScope.of(context)?.setLoading(
       loading,
-      label: AppLocalizations.of(context).loading,
+      label: AppLocalizations.of(context).loadingHomeEllipsis,
       tab: MainTab.home,
     );
   }
@@ -326,7 +326,7 @@ class _HomePageState extends ConsumerState<HomePage>
     final l10n = AppLocalizations.of(context);
     MainShellScope.of(
       context,
-    )?.setLoading(true, label: l10n.loadingGarments, tab: MainTab.home);
+    )?.setLoading(true, label: l10n.loadingGarmentsEllipsis, tab: MainTab.home);
     try {
       await ref.read(garmentsProvider.future);
       if (!mounted) return;

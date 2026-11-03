@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/garments_provider.dart';
+import '../../core/providers/outfits_provider.dart';
 import '../../core/providers/weather_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/garment_recommendation_service.dart';
@@ -50,6 +52,8 @@ import '../widgets/outfit/outfit_background_field.dart';
 import 'camera_capture_page.dart' show CameraFrameRatio;
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
+import '../../core/utils/remaining_try_ons.dart';
+import '../widgets/common/overlays/try_on_dialogs.dart';
 
 /// Garment slots. [top] holds up to [_maxTops] garments
 /// ([_OutfitSelection.tops]); the rest hold one each.
@@ -183,6 +187,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   // stepper (this outfit only, not persisted).
   double? _weatherTempOverrideC;
   bool _isCompletingWithAi = false;
+  // Bumped by a start or a Cancel, so a stale reply can't land.
+  int _completeWithAiRun = 0;
   // Create Outfit's re-entrancy guard; Finish Outfit's is
   // [_isCompletingWithAi].
   bool _tryOnRequested = false;
@@ -598,6 +604,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   Future<void> _startTryOn() async {
     if (_tryOnRequested || isOutfitLoading || _isCompletingWithAi) return;
     setState(() => _tryOnRequested = true);
+    // The result screen (or the outfit a version returns to) shows the count.
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final l10n = _l10n;
     try {
       if (!await ensureAiConsent(context) || !mounted) return;
       final ids = _selectedGarmentIds();
@@ -607,13 +616,20 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         await deleteOutfitJob(tryOnGroupId, tryOnOutfitId);
       }
 
+      // Read before the await: the page may be gone when the render lands.
+      final outfits = ref.read(outfitsProvider.notifier);
       final outfit = await performTryOn(
         ids,
         groupId: widget.targetGroupId,
         backgroundId: _backgroundCustomized || _initialBackground != null
             ? _background.backgroundId
             : null,
+        onLandedAfterLeave: (_) => unawaited(outfits.refresh()),
+        confirmRetryWhileUnknown: () => showRetryWhileUnknownDialog(context),
       );
+      if (outfit != null) {
+        unawaited(announceRemainingTryOns(overlay, l10n));
+      }
       if (!mounted) return;
 
       if (outfit != null && _isVersionMode) {
@@ -652,9 +668,11 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     }
   }
 
-  /// Leaves mid-render; [TryOnMixin] discards the result when it lands (it
-  /// still counts toward the daily quota).
-  void _cancelRender() {
+  /// Leaves mid-render. The render keeps going on the backend and, if it
+  /// finishes, is kept and counted ([TryOnMixin]), so the user confirms.
+  Future<void> _stopWaitingForRender() async {
+    final stop = await showStopWaitingDialog(context);
+    if (!stop || !mounted || !isOutfitLoading) return;
     final onBack = widget.onBack;
     if (onBack != null) {
       onBack();
@@ -698,6 +716,17 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   Widget build(BuildContext context) {
     // _garmentPool / _garmentPoolLoading read it via ref.read.
     ref.watch(garmentsProvider);
+    // A system back mid-render takes the same Stop Waiting confirm.
+    return PopScope(
+      canPop: !isOutfitLoading,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _stopWaitingForRender();
+      },
+      child: _buildPageStack(),
+    );
+  }
+
+  Widget _buildPageStack() {
     return Stack(
       children: [
         Scaffold(
@@ -721,11 +750,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         if (isOutfitLoading)
           Positioned.fill(
             child: LoadingOverlay(
-              label: _isVersionMode
-                  ? _l10n.generatingEllipsis
-                  : _l10n.creatingOutfitsEllipsis,
-              actionLabel: _l10n.cancel,
-              onAction: _cancelRender,
+              label: _l10n.generatingTryOnEllipsis,
+              actionLabel: _l10n.stopWaiting,
+              onAction: _stopWaitingForRender,
             ),
           ),
         if (_garmentPoolLoading)
@@ -737,7 +764,13 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
             child: LoadingOverlay(label: _l10n.matchingLookEllipsis),
           ),
         if (_isCompletingWithAi)
-          Positioned.fill(child: LoadingOverlay(label: _l10n.thinkingEllipsis)),
+          Positioned.fill(
+            child: LoadingOverlay(
+              label: _l10n.completingOutfitEllipsis,
+              actionLabel: _l10n.cancel,
+              onAction: _cancelCompleteWithAi,
+            ),
+          ),
       ],
     );
   }
@@ -1410,6 +1443,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     if (_isCompletingWithAi) return;
     if (!await ensureAiConsent(context)) return;
     if (!mounted || _isCompletingWithAi) return;
+    final run = ++_completeWithAiRun;
     setState(() => _isCompletingWithAi = true);
     try {
       // null lets the backend decide.
@@ -1423,18 +1457,26 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         style: _completeWithAiStyle,
         temperatureC: temperatureC,
       );
-      if (!mounted) return;
+      if (!mounted || run != _completeWithAiRun) return;
       _applyCompletedOutfit(ids, keepGarmentIds: keep);
     } on AuthExpiredException {
-      if (!mounted) return;
+      if (!mounted || run != _completeWithAiRun) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       debugLog('Complete with AI failed: $e');
-      if (!mounted) return;
+      if (!mounted || run != _completeWithAiRun) return;
       showErrorDialog(context, message: _l10n.completeWithAiUnavailable);
     } finally {
-      if (mounted) setState(() => _isCompletingWithAi = false);
+      if (mounted && run == _completeWithAiRun) {
+        setState(() => _isCompletingWithAi = false);
+      }
     }
+  }
+
+  /// The request can't be aborted; its reply is ignored when it lands.
+  void _cancelCompleteWithAi() {
+    _completeWithAiRun++;
+    setState(() => _isCompletingWithAi = false);
   }
 
   /// The button stays visible; a tap that can't create explains why

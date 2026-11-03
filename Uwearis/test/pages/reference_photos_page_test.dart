@@ -12,6 +12,7 @@ import 'package:image_picker_platform_interface/image_picker_platform_interface.
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:uwearis/core/providers/profile_provider.dart';
 import 'package:uwearis/core/utils/base_model_generation_mixin.dart';
+import 'package:uwearis/core/utils/user_acknowledgement.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
 import 'package:uwearis/features/pages/image_editor_page.dart';
@@ -404,6 +405,79 @@ void main() {
       );
     },
   );
+
+  group('reference photo terms', () {
+    setUp(() async {
+      UserAcknowledgement.debugGrantedOverride = null;
+      await UserAcknowledgement.aiConsent.grant();
+    });
+    tearDown(() => UserAcknowledgement.debugGrantedOverride = true);
+
+    Future<void> pumpAndTapChangeBody(
+      WidgetTester tester, {
+      void Function()? onDownload,
+    }) async {
+      _useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const ReferencePhotosPage(),
+        overrides: [
+          profileProvider.overrideWith(() => _FakeProfileNotifier()),
+          downloadReferencePhotoOriginalProvider.overrideWithValue(({
+            required url,
+            required fileNamePrefix,
+            required onRefreshUrl,
+            required onUrlRefreshed,
+          }) async {
+            onDownload?.call();
+            return null;
+          }),
+        ],
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('updatePhotoAction-body')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('cancelling stops before any photo work and asks again', (
+      tester,
+    ) async {
+      var downloads = 0;
+      await pumpAndTapChangeBody(tester, onDownload: () => downloads++);
+      expect(find.text(_l10n.referencePhotoTermsTitle), findsOneWidget);
+      expect(find.text(_l10n.referencePhotoTermsBody(13)), findsOneWidget);
+
+      await tester.tap(find.text(_l10n.cancel));
+      await tester.pumpAndSettle();
+      expect(downloads, 0);
+      expect(find.byType(ImageEditorPage), findsNothing);
+      expect(
+        await UserAcknowledgement.referencePhotoTerms.isGranted(),
+        isFalse,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('updatePhotoAction-body')));
+      await tester.pumpAndSettle();
+      expect(find.text(_l10n.referencePhotoTermsTitle), findsOneWidget);
+    });
+
+    testWidgets('confirming continues and is not asked again', (tester) async {
+      var downloads = 0;
+      await pumpAndTapChangeBody(tester, onDownload: () => downloads++);
+      await tester.tap(find.text(_l10n.referencePhotoTermsConfirm));
+      await tester.pumpAndSettle();
+      expect(downloads, 1);
+      expect(await UserAcknowledgement.referencePhotoTerms.isGranted(), isTrue);
+
+      // The fake download fails, which leaves an error dialog up.
+      await tester.tap(find.text(_l10n.ok));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('updatePhotoAction-body')));
+      await tester.pumpAndSettle();
+      expect(find.text(_l10n.referencePhotoTermsTitle), findsNothing);
+      expect(downloads, 2);
+    });
+  });
 
   group('upload commit and rollback (fake upload/download/verify — no real '
       'network or flutter_cache_manager)', () {

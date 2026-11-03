@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/garments_provider.dart';
+import '../core/providers/outfits_provider.dart';
+import '../core/providers/trip_detail_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/shared_media_handler.dart';
 import '../core/utils/debug_log.dart';
+import '../core/utils/pending_try_on_recovery.dart';
 import '../features/pages/create_outfit_page.dart';
 import '../features/pages/closet_page.dart';
 import '../features/pages/home_page.dart';
@@ -25,19 +30,60 @@ class MainShell extends ConsumerStatefulWidget {
   ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends ConsumerState<MainShell>
+    with WidgetsBindingObserver {
   MainTab _current = MainTab.home;
   // Keyed by tab so a hidden tab's background fetch never shows the overlay
   // over the visible tab.
   final Map<MainTab, String?> _loadingLabelByTab = {};
 
+  bool _recoveringTryOns = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Post-frame: inherited-widget lookups aren't safe during initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) SharedMediaHandler.listen(context, ref);
+      _recoverPendingTryOns();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _recoverPendingTryOns();
+  }
+
+  /// Try-ons whose outcome the app lost (killed or backgrounded mid-render):
+  /// Create Outfit, regenerate, and trip outfit try-ons.
+  Future<void> _recoverPendingTryOns() async {
+    if (_recoveringTryOns) return;
+    _recoveringTryOns = true;
+    // Read before the await: the shell may be gone by then.
+    final outfits = ref.read(outfitsProvider.notifier);
+    try {
+      final found = await recoverPendingTryOns();
+      if (found.outfitsLanded > 0) unawaited(outfits.refresh());
+      for (final MapEntry(key: tripId, value: collection)
+          in found.trips.entries) {
+        // A trip nobody has open fetches fresh when it's next opened.
+        final trip = tripDetailProvider(tripId);
+        if (mounted && ref.exists(trip)) {
+          ref.read(trip.notifier).setCollection(collection);
+        }
+      }
+    } catch (e) {
+      debugLog('MainShell: try-on recovery failed: $e');
+    } finally {
+      _recoveringTryOns = false;
+    }
   }
 
   void _select(MainTab tab) {
@@ -137,8 +183,9 @@ Future<void> openAddOutfit(
     barrierDismissible: false,
     barrierColor: Colors.transparent,
     useSafeArea: false,
-    builder: (_) =>
-        LoadingOverlay(label: AppLocalizations.of(context).loadingGarments),
+    builder: (_) => LoadingOverlay(
+      label: AppLocalizations.of(context).loadingGarmentsEllipsis,
+    ),
   );
   try {
     // Also lets an expired session surface here.

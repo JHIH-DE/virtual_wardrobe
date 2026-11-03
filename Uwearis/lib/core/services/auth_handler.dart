@@ -17,6 +17,7 @@ import '../utils/crash_handler.dart';
 import 'auth_storage.dart';
 import 'garment_service.dart';
 import 'outfit_service.dart';
+import 'pending_try_on_store.dart';
 
 class AuthExpiredException implements Exception {
   final String _message;
@@ -33,6 +34,7 @@ Future<void> clearSignedInSession() async {
   await GarmentService().clearClosetAnalysisCache();
   GarmentService().clearGarmentCache();
   OutfitService().clearGroupCache();
+  await PendingTryOnStore.clear();
 }
 
 /// Providers outlive the Navigator, so without this a new sign-in would see

@@ -243,6 +243,12 @@ abstract class AppLocalizations {
   /// **'You\'ve used all of today\'s AI try-ons. Your limit resets at {time}.'**
   String dailyGenerationLimitReached(String time);
 
+  /// SnackBar after a render that used a try-on: what is left today
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{That was your last AI try-on today} =1{1 AI try-on left today} other{{count} AI try-ons left today}}'**
+  String generationQuotaRemaining(int count);
+
   /// No description provided for @errorNoConnection.
   ///
   /// In en, this message translates to:
@@ -258,8 +264,56 @@ abstract class AppLocalizations {
   /// Generate timed out; {action} is the createOutfit button label
   ///
   /// In en, this message translates to:
-  /// **'This is taking longer than usual and may still be in progress. Tap {action} again in a moment — if it has finished, you\'ll see the result without generating another.'**
+  /// **'Still in progress. Tap {action} again shortly to check — it won\'t start another try-on.'**
   String tryOnStillRendering(String action);
+
+  /// No description provided for @stopWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop Waiting'**
+  String get stopWaiting;
+
+  /// No description provided for @keepWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep Waiting'**
+  String get keepWaiting;
+
+  /// No description provided for @stopWaitingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop Waiting?'**
+  String get stopWaitingTitle;
+
+  /// No description provided for @stopWaitingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving won\'t cancel this try-on. If it finishes, it will appear in Outfits and count toward today\'s limit.'**
+  String get stopWaitingBody;
+
+  /// No description provided for @tryOnOutcomeUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t confirm whether this try-on finished. If it did, it will appear in Outfits.'**
+  String get tryOnOutcomeUnknown;
+
+  /// No description provided for @tryOnRetryUnknownTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Again?'**
+  String get tryOnRetryUnknownTitle;
+
+  /// No description provided for @tryOnRetryUnknownBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The last try-on may still finish and appear in Outfits. Trying again may use another try-on.'**
+  String get tryOnRetryUnknownBody;
+
+  /// No description provided for @tryOnNotCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'The try-on didn\'t finish in time and wasn\'t counted toward today\'s limit. Please try again.'**
+  String get tryOnNotCounted;
 
   /// No description provided for @facePhotoLoadFailedTitle.
   ///
@@ -459,11 +513,11 @@ abstract class AppLocalizations {
   /// **'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone.'**
   String get deleteAccountConfirmBody;
 
-  /// No description provided for @deletingAccount.
+  /// No description provided for @deletingAccountEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Deleting your account…'**
-  String get deletingAccount;
+  /// **'Deleting Account…'**
+  String get deletingAccountEllipsis;
 
   /// No description provided for @deleteAccountFailed.
   ///
@@ -663,11 +717,11 @@ abstract class AppLocalizations {
   /// **'Not selected'**
   String get notSelected;
 
-  /// No description provided for @loadingGarments.
+  /// No description provided for @loadingGarmentsEllipsis.
   ///
   /// In en, this message translates to:
   /// **'Loading Garments…'**
-  String get loadingGarments;
+  String get loadingGarmentsEllipsis;
 
   /// No description provided for @myCollection.
   ///
@@ -1128,7 +1182,7 @@ abstract class AppLocalizations {
   /// No description provided for @matchingLookEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Matching your look...'**
+  /// **'Matching Your Look…'**
   String get matchingLookEllipsis;
 
   /// No description provided for @matchALookFailed.
@@ -1341,11 +1395,11 @@ abstract class AppLocalizations {
   /// **'Failed to generate outfit plan'**
   String get failedToGeneratePlan;
 
-  /// No description provided for @generatingPlanEllipsis.
+  /// No description provided for @generatingOutfitsEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Planning your outfits…'**
-  String get generatingPlanEllipsis;
+  /// **'Generating Outfits…'**
+  String get generatingOutfitsEllipsis;
 
   /// No description provided for @failedToUpdateDayOutfit.
   ///
@@ -1371,23 +1425,29 @@ abstract class AppLocalizations {
   /// **'Add to Suitcase'**
   String get addToSuitcase;
 
-  /// No description provided for @loading.
+  /// No description provided for @loadingAppEllipsis.
   ///
   /// In en, this message translates to:
   /// **'Loading…'**
-  String get loading;
+  String get loadingAppEllipsis;
+
+  /// No description provided for @loadingHomeEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Home…'**
+  String get loadingHomeEllipsis;
+
+  /// No description provided for @loadingStyleTasteEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Style Taste…'**
+  String get loadingStyleTasteEllipsis;
 
   /// No description provided for @tryAgain.
   ///
   /// In en, this message translates to:
   /// **'Try Again'**
   String get tryAgain;
-
-  /// No description provided for @generatingOutfitEllipsis.
-  ///
-  /// In en, this message translates to:
-  /// **'Generating your outfit…'**
-  String get generatingOutfitEllipsis;
 
   /// No description provided for @noOutfitImageYet.
   ///
@@ -1719,6 +1779,30 @@ abstract class AppLocalizations {
   /// **'Delete Garment'**
   String get deleteGarment;
 
+  /// No description provided for @reanalyzeGarmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-analyze This Item?'**
+  String get reanalyzeGarmentTitle;
+
+  /// No description provided for @reanalyzeGarmentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'AI will re-read the photo and replace the category, product type, color and fit details. Name, brand, price and purchase date stay as they are.'**
+  String get reanalyzeGarmentBody;
+
+  /// No description provided for @reanalyze.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-analyze'**
+  String get reanalyze;
+
+  /// No description provided for @garmentReanalyzed.
+  ///
+  /// In en, this message translates to:
+  /// **'Details Updated'**
+  String get garmentReanalyzed;
+
   /// No description provided for @deleteGarmentConfirmation.
   ///
   /// In en, this message translates to:
@@ -1755,11 +1839,11 @@ abstract class AppLocalizations {
   /// **'Your latest changes couldn\'t be saved. If you leave now, they\'ll be lost.'**
   String get autoSaveFailedLeaveBody;
 
-  /// No description provided for @savingEllipsis.
+  /// No description provided for @savingChangesEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Saving…'**
-  String get savingEllipsis;
+  /// **'Saving Changes…'**
+  String get savingChangesEllipsis;
 
   /// No description provided for @dontSave.
   ///
@@ -2253,11 +2337,11 @@ abstract class AppLocalizations {
   /// **'Outerwear'**
   String get outerwear;
 
-  /// No description provided for @creatingOutfitsEllipsis.
+  /// No description provided for @generatingTryOnEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Creating Outfits…'**
-  String get creatingOutfitsEllipsis;
+  /// **'Generating Try-On…'**
+  String get generatingTryOnEllipsis;
 
   /// No description provided for @loadingClosetEllipsis.
   ///
@@ -2409,6 +2493,12 @@ abstract class AppLocalizations {
   /// **'Deleting Trip…'**
   String get deletingTripEllipsis;
 
+  /// No description provided for @deletingOutfitEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting Outfit…'**
+  String get deletingOutfitEllipsis;
+
   /// No description provided for @updatingTripEllipsis.
   ///
   /// In en, this message translates to:
@@ -2505,17 +2595,17 @@ abstract class AppLocalizations {
   /// **'Creating…'**
   String get creatingEllipsis;
 
-  /// No description provided for @generatingEllipsis.
+  /// No description provided for @creatingModelEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Generating…'**
-  String get generatingEllipsis;
+  /// **'Creating Your Model…'**
+  String get creatingModelEllipsis;
 
-  /// No description provided for @thinkingEllipsis.
+  /// No description provided for @completingOutfitEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Thinking…'**
-  String get thinkingEllipsis;
+  /// **'Completing Outfit…'**
+  String get completingOutfitEllipsis;
 
   /// No description provided for @suitcaseLabel.
   ///
@@ -2630,6 +2720,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Updating Suitcase…'**
   String get updatingSuitcaseEllipsis;
+
+  /// No description provided for @addingOutfitEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding Outfit…'**
+  String get addingOutfitEllipsis;
 
   /// No description provided for @addGarment.
   ///
@@ -2883,6 +2979,54 @@ abstract class AppLocalizations {
   /// **'Not Now'**
   String get aiConsentDecline;
 
+  /// No description provided for @withdrawAiConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw AI Consent'**
+  String get withdrawAiConsent;
+
+  /// No description provided for @withdrawAiConsentConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw AI Consent?'**
+  String get withdrawAiConsentConfirmTitle;
+
+  /// No description provided for @withdrawAiConsentConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features will ask for your consent again before sending anything. Photos and details you already added are not deleted — to remove them, delete the photos or your account.'**
+  String get withdrawAiConsentConfirmBody;
+
+  /// No description provided for @withdrawAiConsentConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get withdrawAiConsentConfirm;
+
+  /// No description provided for @aiConsentWithdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'AI consent withdrawn'**
+  String get aiConsentWithdrawn;
+
+  /// No description provided for @referencePhotoTermsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Before You Add Reference Photos'**
+  String get referencePhotoTermsTitle;
+
+  /// {age} is AppConfig.minimumAge
+  ///
+  /// In en, this message translates to:
+  /// **'You must be at least {age} years old to add reference photos. Only add photos of yourself, never of anyone else.'**
+  String referencePhotoTermsBody(int age);
+
+  /// No description provided for @referencePhotoTermsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'I Confirm'**
+  String get referencePhotoTermsConfirm;
+
   /// No description provided for @continueWithApple.
   ///
   /// In en, this message translates to:
@@ -2925,17 +3069,17 @@ abstract class AppLocalizations {
   /// **'Edit'**
   String get edit;
 
-  /// No description provided for @analyzingClothingEllipsis.
+  /// No description provided for @analyzingGarmentEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Analyzing Clothing…'**
-  String get analyzingClothingEllipsis;
+  /// **'Analyzing Garment…'**
+  String get analyzingGarmentEllipsis;
 
-  /// No description provided for @analyzingEllipsis.
+  /// No description provided for @findingMatchesEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Analyzing…'**
-  String get analyzingEllipsis;
+  /// **'Finding Matches…'**
+  String get findingMatchesEllipsis;
 
   /// No description provided for @analysisFailedTitle.
   ///

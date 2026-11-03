@@ -18,6 +18,7 @@ import '../widgets/common/overlays/empty_state_placeholder.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
+import '../widgets/common/overlays/app_snack_bar.dart';
 
 class TripGarmentSelectionPage extends ConsumerStatefulWidget {
   final int tripId;
@@ -221,14 +222,10 @@ class _TripGarmentSelectionPageState
       top: 8,
       left: 8,
       child: GestureDetector(
-        onTap: () {
-          final snackBar = SnackBar(
-            content: Text(
-              advice?.reasoning ?? AppLocalizations.of(context).suggestedByAi,
-            ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-        },
+        onTap: () => showAppSnackBar(
+          context,
+          advice?.reasoning ?? AppLocalizations.of(context).suggestedByAi,
+        ),
         child: const Icon(Icons.auto_awesome, size: 18, color: AppColors.icon),
       ),
     );

@@ -38,6 +38,7 @@ import 'outfit_edit_page.dart';
 import 'trip_outfit_detail_page.dart';
 import 'trip_suitcase_page.dart';
 import '../../core/utils/date_locale.dart';
+import '../widgets/common/overlays/app_snack_bar.dart';
 
 enum _TripMenuAction { editName, editLegs, clear, delete }
 
@@ -146,11 +147,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     );
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _showSnackBar(String message) => showAppSnackBar(context, message);
 
   /// Plan / Find More / Refresh. A result with nothing new is a normal
   /// outcome, not an error.
@@ -532,7 +529,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         ),
         if (_generatingOutfits)
           Positioned.fill(
-            child: LoadingOverlay(label: _l10n.generatingPlanEllipsis),
+            child: LoadingOverlay(label: _l10n.generatingOutfitsEllipsis),
           ),
         if (_updatingTripLegs)
           Positioned.fill(

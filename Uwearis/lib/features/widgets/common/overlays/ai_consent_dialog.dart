@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../core/config/app_config.dart';
-import '../../../../core/utils/ai_consent.dart';
+import '../../../../core/utils/user_acknowledgement.dart';
 import '../../../../core/utils/external_links.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import 'app_dialog.dart';
@@ -20,14 +20,14 @@ Future<bool> ensureAiConsent(BuildContext context) {
 Future<bool>? _pending;
 
 Future<bool> _ask(BuildContext context) async {
-  if (await AiConsent.isGranted()) return true;
+  if (await UserAcknowledgement.aiConsent.isGranted()) return true;
   if (!context.mounted) return false;
   final agreed = await showDialog<bool>(
     context: context,
     builder: (_) => const _AiConsentDialog(),
   );
   if (agreed != true) return false;
-  await AiConsent.grant();
+  await UserAcknowledgement.aiConsent.grant();
   return true;
 }
 

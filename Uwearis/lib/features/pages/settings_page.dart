@@ -17,6 +17,7 @@ import '../../core/services/profile_service.dart';
 import '../../core/utils/api_error_text.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/external_links.dart';
+import '../../core/utils/user_acknowledgement.dart';
 import '../../data/profile_data.dart';
 import '../../data/user_tier.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -26,6 +27,7 @@ import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/ai_consent_dialog.dart';
 import '../widgets/common/overlays/app_dialog.dart';
+import '../widgets/common/overlays/app_snack_bar.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
@@ -38,7 +40,12 @@ import 'style_taste_page.dart';
 
 /// Tells a chosen `null` locale (System Default) apart from a dismissed
 /// sheet, which also pops `null`.
-enum _HelpAction { privacyPolicy, termsOfService, contactSupport }
+enum _HelpAction {
+  privacyPolicy,
+  termsOfService,
+  contactSupport,
+  withdrawAiConsent,
+}
 
 class _LanguageChoice {
   final Locale? locale;
@@ -205,7 +212,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
           if (_deletingAccount)
             Positioned.fill(
-              child: LoadingOverlay(label: _l10n.deletingAccount),
+              child: LoadingOverlay(label: _l10n.deletingAccountEllipsis),
             ),
         ],
       ),
@@ -379,6 +386,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _openHelpAndLegal() async {
+    final aiConsentGranted = await UserAcknowledgement.aiConsent.isGranted();
+    if (!mounted) return;
     Widget option(
       BuildContext sheetContext,
       _HelpAction action,
@@ -416,6 +425,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             LucideIcons300.mail,
             _l10n.contactSupport,
           ),
+          if (aiConsentGranted)
+            option(
+              sheetContext,
+              _HelpAction.withdrawAiConsent,
+              LucideIcons300.sparkles,
+              _l10n.withdrawAiConsent,
+            ),
         ],
       ),
     );
@@ -427,7 +443,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         await openTermsOfService(context);
       case _HelpAction.contactSupport:
         await contactSupport(context);
+      case _HelpAction.withdrawAiConsent:
+        await _withdrawAiConsent();
     }
+  }
+
+  Future<void> _withdrawAiConsent() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.withdrawAiConsentConfirmTitle,
+        body: _l10n.withdrawAiConsentConfirmBody,
+        primaryLabel: _l10n.withdrawAiConsentConfirm,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await UserAcknowledgement.aiConsent.revoke();
+    if (!mounted) return;
+    showAppSnackBar(context, _l10n.aiConsentWithdrawn);
   }
 
   Widget _buildDebugToolsCard() {

@@ -52,10 +52,10 @@ void main() {
       find.descendant(of: button, matching: find.byType(DecoratedBox)).first,
     );
     final card = tester.getRect(find.byType(TripCard));
-    expect(card.right - disc.right, 17);
+    expect(card.right - disc.right, 12);
     // Centred on the title.
     expect(disc.center.dy, tester.getCenter(find.text('Kyoto Autumn')).dy);
-    expect(disc.top - card.top, 17);
+    expect(disc.top - card.top, 12);
 
     await tester.tap(button);
     await tester.pumpAndSettle();

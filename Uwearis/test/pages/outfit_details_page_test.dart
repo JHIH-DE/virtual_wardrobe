@@ -911,4 +911,212 @@ void main() {
       expect(patches, 1);
     }, () => client);
   });
+
+  group('regenerate', () {
+    Future<int> regenerate(WidgetTester tester, {required bool succeed}) async {
+      useTallSurface(tester);
+      var quotaReads = 0;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith('/generation-quota')) {
+          quotaReads++;
+          return jsonResponse(
+            envelope({
+              'limit': 10,
+              'used': 7,
+              'remaining': 3,
+              'resets_at': '2026-11-04T00:00:00+08:00',
+            }),
+          );
+        }
+        if (path.endsWith('/regenerate')) {
+          return succeed
+              ? jsonResponse(
+                  envelope({
+                    'outfit_id': 1,
+                    'group_id': 3,
+                    'result_image_url': 'https://img.example/1b.png',
+                    'garment_ids': <int>[],
+                  }),
+                )
+              : jsonResponse({
+                  'success': false,
+                  'error_code': 'LOOK_GENERATION_FAILED',
+                }, status: 500);
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+      await http.runWithClient(() async {
+        await pumpApp(tester, OutfitDetailsPage(outfit: _outfit()));
+        await tester.pump();
+        await tester.pump();
+        await tester.tap(find.byIcon(Icons.refresh).first);
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.text('Regenerate').last);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+      }, () => client);
+      return quotaReads;
+    }
+
+    /// Records each regenerate's Idempotency-Key; [onRegenerate] answers it,
+    /// [onStatus] answers `GET /outfit/generations/{key}`.
+    MockClient recordingClient(
+      List<String?> keys, {
+      required Future<http.Response> Function() onRegenerate,
+      Future<http.Response> Function()? onStatus,
+    }) {
+      return MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith('/regenerate')) {
+          keys.add(request.headers['Idempotency-Key']);
+          return onRegenerate();
+        }
+        if (path.contains('/outfit/generations/') && onStatus != null) {
+          return onStatus();
+        }
+        if (path.endsWith('/generation-quota')) {
+          return jsonResponse(
+            envelope({
+              'limit': 10,
+              'used': 7,
+              'remaining': 3,
+              'resets_at': '2026-11-04T00:00:00+08:00',
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+    }
+
+    Map<String, dynamic> regenerated() => {
+      'outfit_id': 1,
+      'group_id': 3,
+      'result_image_url': 'https://img.example/1b.png',
+      'garment_ids': <int>[],
+    };
+
+    Future<void> openAndRegenerate(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(tester, OutfitDetailsPage(outfit: _outfit()));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.refresh).first);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Regenerate').last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    Future<void> pumpFor(WidgetTester tester, int seconds) async {
+      for (var i = 0; i < seconds; i++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+    }
+
+    testWidgets('mid-render: Stop Waiting is offered and a back asks first', (
+      tester,
+    ) async {
+      final pending = Completer<http.Response>();
+      final keys = <String?>[];
+      await http.runWithClient(() async {
+        await openAndRegenerate(tester);
+        expect(find.text('Stop Waiting'), findsOneWidget);
+
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('Stop Waiting?'), findsOneWidget);
+        await tester.tap(find.text('Keep Waiting'));
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.byType(OutfitDetailsPage), findsOneWidget);
+
+        pending.complete(jsonResponse(envelope(regenerated())));
+        await pumpFor(tester, 1);
+      }, () => recordingClient(keys, onRegenerate: () => pending.future));
+    });
+
+    testWidgets('a lost reply is recovered by status, not by regenerating '
+        'again', (tester) async {
+      final keys = <String?>[];
+      await http.runWithClient(
+        () async {
+          await openAndRegenerate(tester);
+          // The count shows for 4s once the status read finds the result.
+          await pumpFor(tester, 2);
+          expect(keys, hasLength(1));
+          expect(find.text('3 AI try-ons left today'), findsOneWidget);
+          await pumpFor(tester, 5);
+        },
+        () => recordingClient(
+          keys,
+          onRegenerate: () async => throw TimeoutException('slow'),
+          onStatus: () async => jsonResponse(
+            envelope({
+              'status': 'succeeded',
+              'outfit': {...regenerated(), 'group_type': 'general'},
+            }),
+          ),
+        ),
+      );
+    });
+
+    testWidgets('when status can\'t be checked: says so, then asks before '
+        'regenerating again — as a new request', (tester) async {
+      final keys = <String?>[];
+      var timeOut = true;
+      await http.runWithClient(
+        () async {
+          await openAndRegenerate(tester);
+          await pumpFor(tester, 2);
+          expect(
+            find.text(
+              "We couldn't confirm whether this try-on finished. If it did, "
+              'it will appear in Outfits.',
+            ),
+            findsOneWidget,
+          );
+          await tester.tap(find.text('OK'));
+          await tester.pump(const Duration(milliseconds: 300));
+
+          await tester.tap(find.byIcon(Icons.refresh).first);
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(find.text('Try Again?'), findsOneWidget);
+          await tester.tap(find.text('Cancel'));
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(keys, hasLength(1));
+
+          timeOut = false;
+          await tester.tap(find.byIcon(Icons.refresh).first);
+          await tester.pump(const Duration(milliseconds: 300));
+          await tester.tap(find.text('Retry'));
+          await pumpFor(tester, 2);
+          expect(keys, hasLength(2));
+          expect(keys[1], isNot(keys[0]));
+        },
+        () => recordingClient(
+          keys,
+          onRegenerate: () async => timeOut
+              ? throw TimeoutException('slow')
+              : jsonResponse(envelope(regenerated())),
+          onStatus: () async =>
+              jsonResponse({'success': false, 'message': 'x'}, status: 422),
+        ),
+      );
+    });
+
+    testWidgets('a successful regenerate re-reads the count and shows it', (
+      tester,
+    ) async {
+      expect(await regenerate(tester, succeed: true), 1);
+      expect(find.text('3 AI try-ons left today'), findsOneWidget);
+    });
+
+    testWidgets('a failed regenerate reads nothing and shows nothing', (
+      tester,
+    ) async {
+      expect(await regenerate(tester, succeed: false), 0);
+      expect(find.textContaining('AI try-on'), findsNothing);
+    });
+  });
 }

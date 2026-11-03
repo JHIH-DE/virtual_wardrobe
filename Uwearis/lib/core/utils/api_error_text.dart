@@ -39,14 +39,23 @@ String? _messageForErrorCode(AppLocalizations l10n, String? errorCode) {
       return l10n.fullBodyPhotoNotFound;
     case 'FILE_NOT_FOUND':
       return l10n.fileNotFound;
+    case 'TRY_ON_GENERATION_EXPIRED':
+    case 'TRY_ON_GENERATION_TIMED_OUT':
+      return l10n.tryOnNotCounted;
     case 'DAILY_GENERATION_LIMIT_EXCEEDED':
-      final reset = nextGenerationQuotaReset(DateTime.now());
-      final hh = reset.hour.toString().padLeft(2, '0');
-      final mm = reset.minute.toString().padLeft(2, '0');
-      return l10n.dailyGenerationLimitReached('$hh:$mm');
+      return l10n.dailyGenerationLimitReached(
+        quotaResetClock(nextGenerationQuotaReset(DateTime.now())),
+      );
     default:
       return null;
   }
+}
+
+/// `HH:mm` of a try-on quota reset, for the copy that names it.
+String quotaResetClock(DateTime reset) {
+  final hh = reset.hour.toString().padLeft(2, '0');
+  final mm = reset.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
 }
 
 /// When the daily try-on quota resets, in the device's time zone. Mirrors

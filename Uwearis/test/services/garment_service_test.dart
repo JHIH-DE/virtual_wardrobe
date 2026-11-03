@@ -934,6 +934,79 @@ void main() {
     });
   });
 
+  group('reanalyzeGarment', () {
+    test(
+      'downloads the stored photo and posts it to analyze-instant',
+      () async {
+        final imageUrl = _freshSignedUrl();
+        final pngHeader = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          if (request.url.toString() == '$_base/9201') {
+            return _jsonResponse(
+              _envelope(_garmentJson(9201, imageUrl: imageUrl)),
+            );
+          }
+          if (request.url.toString() == imageUrl) {
+            return http.Response.bytes(pngHeader, 200);
+          }
+          return _jsonResponse(
+            _envelope({
+              'metadata': {'category': 'Bottom', 'thickness': 3},
+              'processed_image_base64': '',
+            }),
+          );
+        });
+
+        final metadata = await http.runWithClient(
+          () => GarmentService().reanalyzeGarment(9201),
+          () => client,
+        );
+
+        expect(requests.map((r) => r.url.toString()), [
+          '$_base/9201',
+          imageUrl,
+          '$_base/analyze-instant',
+        ]);
+        expect(requests[1].headers.containsKey('Authorization'), isFalse);
+        final upload = requests[2];
+        expect(upload.method, 'POST');
+        expect(upload.headers['content-type'], startsWith('multipart/'));
+        final body = latin1.decode(upload.bodyBytes);
+        expect(body, contains('filename="garment.png"'));
+        expect(body, contains('content-type: image/png'));
+        expect(metadata, {'category': 'Bottom', 'thickness': 3});
+      },
+    );
+
+    test('throws when the photo download fails', () async {
+      final imageUrl = _freshSignedUrl();
+      var analyzed = false;
+      final client = MockClient((request) async {
+        if (request.url.toString() == '$_base/9202') {
+          return _jsonResponse(
+            _envelope(_garmentJson(9202, imageUrl: imageUrl)),
+          );
+        }
+        if (request.url.toString() == imageUrl) {
+          return http.Response('', 403);
+        }
+        analyzed = true;
+        return _jsonResponse(_envelope({'metadata': {}}));
+      });
+
+      await expectLater(
+        http.runWithClient(
+          () => GarmentService().reanalyzeGarment(9202),
+          () => client,
+        ),
+        throwsException,
+      );
+      expect(analyzed, isFalse);
+    });
+  });
+
   group('putJpegToSignedUrl', () {
     test('PUTs the file bytes as image/jpeg to the signed url', () async {
       final tempFile = await _writeTempJpeg();

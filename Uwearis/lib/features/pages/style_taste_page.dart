@@ -86,7 +86,9 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
           body: body,
         ),
         if (isInitialLoading)
-          Positioned.fill(child: LoadingOverlay(label: l10n.loading)),
+          Positioned.fill(
+            child: LoadingOverlay(label: l10n.loadingStyleTasteEllipsis),
+          ),
       ],
     );
   }

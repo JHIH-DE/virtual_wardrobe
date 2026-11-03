@@ -461,7 +461,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
             ),
             if (_savingBeforeLeave)
               Positioned.fill(
-                child: LoadingOverlay(label: _l10n.savingEllipsis),
+                child: LoadingOverlay(label: _l10n.savingChangesEllipsis),
               ),
           ],
         ),

@@ -83,6 +83,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String generationQuotaRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今日剩餘 $count 次 AI 試穿',
+      zero: '今日 AI 試穿次數已用完',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get errorNoConnection => '目前没有网络连接，请检查网络后重试。';
 
   @override
@@ -90,8 +101,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String tryOnStillRendering(String action) {
-    return '这次生成比平常久，可能还在处理中。稍等一下再按一次「$action」；如果已经完成，会直接显示结果，不会再生成一次。';
+    return '仍在處理中。稍後再按一次「$action」即可查看，不會重新生成。';
   }
+
+  @override
+  String get stopWaiting => '停止等待';
+
+  @override
+  String get keepWaiting => '繼續等待';
+
+  @override
+  String get stopWaitingTitle => '要停止等待嗎？';
+
+  @override
+  String get stopWaitingBody => '離開不會取消這次試穿。若順利完成，會出現在「穿搭」中並計入今日次數。';
+
+  @override
+  String get tryOnOutcomeUnknown => '無法確認這次試穿是否完成。若已完成，會出現在「穿搭」中。';
+
+  @override
+  String get tryOnRetryUnknownTitle => '要再試一次嗎？';
+
+  @override
+  String get tryOnRetryUnknownBody => '上一次試穿可能仍會完成並出現在「穿搭」中，再試一次可能會多用一次試穿次數。';
+
+  @override
+  String get tryOnNotCounted => '這次試穿沒有在時限內完成，未計入今日次數，請再試一次。';
 
   @override
   String get facePhotoLoadFailedTitle => '脸部照片无法加载';
@@ -196,7 +231,7 @@ class AppLocalizationsZh extends AppLocalizations {
       '這將永久刪除您的帳號與所有資料——穿搭、衣物、照片與偏好設定，且無法復原。';
 
   @override
-  String get deletingAccount => '正在刪除帳號…';
+  String get deletingAccountEllipsis => '刪除帳號中…';
 
   @override
   String get deleteAccountFailed => '刪除帳號失敗，請稍後再試。';
@@ -300,7 +335,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notSelected => '尚未選擇';
 
   @override
-  String get loadingGarments => '載入服飾中…';
+  String get loadingGarmentsEllipsis => '載入衣物中…';
 
   @override
   String get myCollection => '我的收藏';
@@ -537,7 +572,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get matchALookSubtitle => '上傳一張照片，讓我們從你的衣櫃中找出相似的單品。';
 
   @override
-  String get matchingLookEllipsis => '正在比對你的穿搭...';
+  String get matchingLookEllipsis => '比對穿搭中…';
 
   @override
   String get matchALookFailed => '無法比對這張照片，請再試一次。';
@@ -651,7 +686,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToGeneratePlan => '規劃穿搭失敗';
 
   @override
-  String get generatingPlanEllipsis => '規劃穿搭中…';
+  String get generatingOutfitsEllipsis => '生成穿搭中…';
 
   @override
   String get failedToUpdateDayOutfit => '更新穿搭失敗';
@@ -666,13 +701,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addToSuitcase => '加入行李箱';
 
   @override
-  String get loading => '載入中…';
+  String get loadingAppEllipsis => '載入中…';
+
+  @override
+  String get loadingHomeEllipsis => '載入首頁中…';
+
+  @override
+  String get loadingStyleTasteEllipsis => '載入風格品味中…';
 
   @override
   String get tryAgain => '再試一次';
-
-  @override
-  String get generatingOutfitEllipsis => '正在產生你的穿搭…';
 
   @override
   String get noOutfitImageYet => '尚無穿搭圖片';
@@ -842,6 +880,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteGarment => '刪除衣物';
 
   @override
+  String get reanalyzeGarmentTitle => '要重新分析这件衣物吗？';
+
+  @override
+  String get reanalyzeGarmentBody =>
+      'AI 会重新识别照片，并取代类别、品项、颜色与版型等信息。名称、品牌、价格与购买日期不会变更。';
+
+  @override
+  String get reanalyze => '重新分析';
+
+  @override
+  String get garmentReanalyzed => '已更新衣物信息';
+
+  @override
   String get deleteGarmentConfirmation => '確定要刪除這件衣物嗎？';
 
   @override
@@ -860,7 +911,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoSaveFailedLeaveBody => '最新的變更未能儲存。如果現在離開，這些變更將會遺失。';
 
   @override
-  String get savingEllipsis => '儲存中…';
+  String get savingChangesEllipsis => '儲存變更中…';
 
   @override
   String get dontSave => '不要儲存';
@@ -1113,7 +1164,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outerwear => '外套';
 
   @override
-  String get creatingOutfitsEllipsis => '建立穿搭中…';
+  String get generatingTryOnEllipsis => '生成試穿圖中…';
 
   @override
   String get loadingClosetEllipsis => '載入衣櫃中…';
@@ -1191,6 +1242,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deletingTripEllipsis => '刪除行程中…';
 
   @override
+  String get deletingOutfitEllipsis => '刪除穿搭中…';
+
+  @override
   String get updatingTripEllipsis => '更新行程中…';
 
   @override
@@ -1239,10 +1293,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creatingEllipsis => '建立中…';
 
   @override
-  String get generatingEllipsis => '產生中…';
+  String get creatingModelEllipsis => '建立虛擬模特兒中…';
 
   @override
-  String get thinkingEllipsis => '思考中…';
+  String get completingOutfitEllipsis => '補齊穿搭中…';
 
   @override
   String get suitcaseLabel => '行李箱';
@@ -1306,6 +1360,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updatingSuitcaseEllipsis => '更新行李箱中…';
+
+  @override
+  String get addingOutfitEllipsis => '加入穿搭中…';
 
   @override
   String get addGarment => '新增衣物';
@@ -1446,6 +1503,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiConsentDecline => '暂不使用';
 
   @override
+  String get withdrawAiConsent => '撤回 AI 同意';
+
+  @override
+  String get withdrawAiConsentConfirmTitle => '要撤回 AI 同意吗？';
+
+  @override
+  String get withdrawAiConsentConfirmBody =>
+      '之后使用 AI 功能前，会再次询问你是否同意。已上传的照片和数据不会因此删除；如要删除，请删除照片或账号。';
+
+  @override
+  String get withdrawAiConsentConfirm => '撤回';
+
+  @override
+  String get aiConsentWithdrawn => '已撤回 AI 同意';
+
+  @override
+  String get referencePhotoTermsTitle => '上传参考照之前';
+
+  @override
+  String referencePhotoTermsBody(int age) {
+    return '你必须年满 $age 岁才能上传参考照。请只上传你本人的照片，不要上传其他人的照片。';
+  }
+
+  @override
+  String get referencePhotoTermsConfirm => '我确认';
+
+  @override
   String get continueWithApple => '使用 Apple 繼續';
 
   @override
@@ -1467,10 +1551,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get edit => '編輯';
 
   @override
-  String get analyzingClothingEllipsis => '分析衣物中…';
+  String get analyzingGarmentEllipsis => '分析衣物中…';
 
   @override
-  String get analyzingEllipsis => '分析中…';
+  String get findingMatchesEllipsis => '尋找搭配中…';
 
   @override
   String get analysisFailedTitle => '无法分析这张照片';
@@ -1845,6 +1929,17 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String generationQuotaRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今日剩餘 $count 次 AI 試穿',
+      zero: '今日 AI 試穿次數已用完',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get errorNoConnection => '目前沒有網路連線，請確認網路後再試一次。';
 
   @override
@@ -1852,8 +1947,32 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String tryOnStillRendering(String action) {
-    return '這次生成比平常久，可能還在處理中。稍等一下再按一次「$action」；如果已經完成，會直接顯示結果，不會再生成一次。';
+    return '仍在處理中。稍後再按一次「$action」即可查看，不會重新生成。';
   }
+
+  @override
+  String get stopWaiting => '停止等待';
+
+  @override
+  String get keepWaiting => '繼續等待';
+
+  @override
+  String get stopWaitingTitle => '要停止等待嗎？';
+
+  @override
+  String get stopWaitingBody => '離開不會取消這次試穿。若順利完成，會出現在「穿搭」中並計入今日次數。';
+
+  @override
+  String get tryOnOutcomeUnknown => '無法確認這次試穿是否完成。若已完成，會出現在「穿搭」中。';
+
+  @override
+  String get tryOnRetryUnknownTitle => '要再試一次嗎？';
+
+  @override
+  String get tryOnRetryUnknownBody => '上一次試穿可能仍會完成並出現在「穿搭」中，再試一次可能會多用一次試穿次數。';
+
+  @override
+  String get tryOnNotCounted => '這次試穿沒有在時限內完成，未計入今日次數，請再試一次。';
 
   @override
   String get facePhotoLoadFailedTitle => '臉部照片無法載入';
@@ -1958,7 +2077,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
       '這將永久刪除您的帳號與所有資料——穿搭、衣物、照片與偏好設定，且無法復原。';
 
   @override
-  String get deletingAccount => '正在刪除帳號…';
+  String get deletingAccountEllipsis => '刪除帳號中…';
 
   @override
   String get deleteAccountFailed => '刪除帳號失敗，請稍後再試。';
@@ -2062,7 +2181,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get notSelected => '尚未選擇';
 
   @override
-  String get loadingGarments => '載入服飾中…';
+  String get loadingGarmentsEllipsis => '載入衣物中…';
 
   @override
   String get myCollection => '我的收藏';
@@ -2299,7 +2418,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get matchALookSubtitle => '上傳一張照片，讓我們從你的衣櫃中找出相似的單品。';
 
   @override
-  String get matchingLookEllipsis => '正在比對你的穿搭...';
+  String get matchingLookEllipsis => '比對穿搭中…';
 
   @override
   String get matchALookFailed => '無法比對這張照片，請再試一次。';
@@ -2413,7 +2532,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get failedToGeneratePlan => '規劃穿搭失敗';
 
   @override
-  String get generatingPlanEllipsis => '規劃穿搭中…';
+  String get generatingOutfitsEllipsis => '生成穿搭中…';
 
   @override
   String get failedToUpdateDayOutfit => '更新穿搭失敗';
@@ -2428,13 +2547,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get addToSuitcase => '加入行李箱';
 
   @override
-  String get loading => '載入中…';
+  String get loadingAppEllipsis => '載入中…';
+
+  @override
+  String get loadingHomeEllipsis => '載入首頁中…';
+
+  @override
+  String get loadingStyleTasteEllipsis => '載入風格品味中…';
 
   @override
   String get tryAgain => '再試一次';
-
-  @override
-  String get generatingOutfitEllipsis => '正在產生你的穿搭…';
 
   @override
   String get noOutfitImageYet => '尚無穿搭圖片';
@@ -2604,6 +2726,19 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deleteGarment => '刪除衣物';
 
   @override
+  String get reanalyzeGarmentTitle => '要重新分析這件衣物嗎？';
+
+  @override
+  String get reanalyzeGarmentBody =>
+      'AI 會重新辨識照片，並取代類別、品項、顏色與版型等資訊。名稱、品牌、價格與購買日期不會變更。';
+
+  @override
+  String get reanalyze => '重新分析';
+
+  @override
+  String get garmentReanalyzed => '已更新衣物資訊';
+
+  @override
   String get deleteGarmentConfirmation => '確定要刪除這件衣物嗎？';
 
   @override
@@ -2622,7 +2757,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get autoSaveFailedLeaveBody => '最新的變更未能儲存。如果現在離開，這些變更將會遺失。';
 
   @override
-  String get savingEllipsis => '儲存中…';
+  String get savingChangesEllipsis => '儲存變更中…';
 
   @override
   String get dontSave => '不要儲存';
@@ -2875,7 +3010,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get outerwear => '外套';
 
   @override
-  String get creatingOutfitsEllipsis => '建立穿搭中…';
+  String get generatingTryOnEllipsis => '生成試穿圖中…';
 
   @override
   String get loadingClosetEllipsis => '載入衣櫃中…';
@@ -2953,6 +3088,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get deletingTripEllipsis => '刪除行程中…';
 
   @override
+  String get deletingOutfitEllipsis => '刪除穿搭中…';
+
+  @override
   String get updatingTripEllipsis => '更新行程中…';
 
   @override
@@ -3001,10 +3139,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get creatingEllipsis => '建立中…';
 
   @override
-  String get generatingEllipsis => '產生中…';
+  String get creatingModelEllipsis => '建立虛擬模特兒中…';
 
   @override
-  String get thinkingEllipsis => '思考中…';
+  String get completingOutfitEllipsis => '補齊穿搭中…';
 
   @override
   String get suitcaseLabel => '行李箱';
@@ -3068,6 +3206,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get updatingSuitcaseEllipsis => '更新行李箱中…';
+
+  @override
+  String get addingOutfitEllipsis => '加入穿搭中…';
 
   @override
   String get addGarment => '新增衣物';
@@ -3208,6 +3349,33 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get aiConsentDecline => '暫不使用';
 
   @override
+  String get withdrawAiConsent => '撤回 AI 同意';
+
+  @override
+  String get withdrawAiConsentConfirmTitle => '要撤回 AI 同意嗎？';
+
+  @override
+  String get withdrawAiConsentConfirmBody =>
+      '之後使用 AI 功能前，會再次詢問你是否同意。已上傳的照片和資料不會因此刪除；如要刪除，請刪除照片或帳號。';
+
+  @override
+  String get withdrawAiConsentConfirm => '撤回';
+
+  @override
+  String get aiConsentWithdrawn => '已撤回 AI 同意';
+
+  @override
+  String get referencePhotoTermsTitle => '上傳參考照之前';
+
+  @override
+  String referencePhotoTermsBody(int age) {
+    return '你必須年滿 $age 歲才能上傳參考照。請只上傳你本人的照片，不要上傳其他人的照片。';
+  }
+
+  @override
+  String get referencePhotoTermsConfirm => '我確認';
+
+  @override
   String get continueWithApple => '使用 Apple 繼續';
 
   @override
@@ -3229,10 +3397,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get edit => '編輯';
 
   @override
-  String get analyzingClothingEllipsis => '分析衣物中…';
+  String get analyzingGarmentEllipsis => '分析衣物中…';
 
   @override
-  String get analyzingEllipsis => '分析中…';
+  String get findingMatchesEllipsis => '尋找搭配中…';
 
   @override
   String get analysisFailedTitle => '無法分析這張照片';

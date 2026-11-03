@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/services/garment_service.dart';
-import 'package:uwearis/core/utils/ai_consent.dart';
+import 'package:uwearis/core/utils/user_acknowledgement.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/style_taste_page.dart';
 import 'package:uwearis/features/widgets/common/profile_avatar.dart';
@@ -284,9 +284,59 @@ void main() {
     });
   });
 
+  group('withdraw AI consent', () {
+    setUp(() => UserAcknowledgement.debugGrantedOverride = null);
+    tearDown(() => UserAcknowledgement.debugGrantedOverride = true);
+
+    Future<void> openHelpAndLegal(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(tester, const SettingsPage());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Help & Legal'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('hidden until consent was given', (tester) async {
+      await runWithProfile(() async {
+        await openHelpAndLegal(tester);
+        expect(find.text('Contact Support'), findsOneWidget);
+        expect(find.text('Withdraw AI Consent'), findsNothing);
+      });
+    });
+
+    testWidgets('confirming clears the stored consent', (tester) async {
+      await runWithProfile(() async {
+        await UserAcknowledgement.aiConsent.grant();
+        await openHelpAndLegal(tester);
+
+        await tester.tap(find.text('Withdraw AI Consent'));
+        await tester.pumpAndSettle();
+        expect(find.text('Withdraw AI Consent?'), findsOneWidget);
+
+        await tester.tap(find.text('Withdraw'));
+        await tester.pumpAndSettle();
+        expect(await UserAcknowledgement.aiConsent.isGranted(), isFalse);
+        expect(find.text('AI consent withdrawn'), findsOneWidget);
+      });
+    });
+
+    testWidgets('cancelling keeps it', (tester) async {
+      await runWithProfile(() async {
+        await UserAcknowledgement.aiConsent.grant();
+        await openHelpAndLegal(tester);
+
+        await tester.tap(find.text('Withdraw AI Consent'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+        expect(await UserAcknowledgement.aiConsent.isGranted(), isTrue);
+      });
+    });
+  });
+
   testWidgets('declining AI consent keeps Style Taste closed', (tester) async {
-    AiConsent.debugGrantedOverride = false;
-    addTearDown(() => AiConsent.debugGrantedOverride = true);
+    UserAcknowledgement.debugGrantedOverride = false;
+    addTearDown(() => UserAcknowledgement.debugGrantedOverride = true);
     await runWithProfile(() async {
       useTallSurface(tester);
       await pumpApp(tester, const SettingsPage());

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ import 'package:uwearis/features/widgets/common/cards/generated_image_card.dart'
 import 'package:uwearis/features/widgets/common/overlays/empty_state_placeholder.dart';
 import 'package:uwearis/features/pages/trip_outfit_detail_page.dart';
 import 'package:uwearis/features/widgets/trip/trip_outfit_tile.dart';
+import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -170,6 +172,17 @@ void main() {
       if (path == '/packing-analysis') {
         return jsonResponse(
           envelope({'overall_advice': null, 'categories': []}),
+        );
+      }
+      // Read after a try-on to show what's left; not a trip call.
+      if (path.endsWith('/outfit/generation-quota')) {
+        return jsonResponse(
+          envelope({
+            'limit': 10,
+            'used': 6,
+            'remaining': 4,
+            'resets_at': '2026-11-04T00:00:00+08:00',
+          }),
         );
       }
       log.add(recorded);
@@ -762,6 +775,7 @@ void main() {
 
         expect(log.single.toString(), 'POST /outfits/1/try-on');
         expect(find.byType(GeneratedImageCard), findsOneWidget);
+        expect(find.text('4 AI try-ons left today'), findsOneWidget);
         expect(find.text('Generate Outfit'), findsNothing);
       },
       tripClient(
@@ -1010,5 +1024,156 @@ void main() {
             _collectionJson(outfits: [_outfitJson(1, name: 'Fresh')]),
       ),
     );
+  });
+
+  group('a trip outfit try-on that loses its reply', () {
+    const tryOnPath = '/trip_plans/7/outfits/1/try-on';
+
+    /// [onTryOn] answers the render; [trip] what re-reading the trip shows.
+    http.Client Function() client({
+      required Future<http.Response> Function() onTryOn,
+      required Map<String, dynamic> Function() trip,
+      List<String>? posts,
+    }) {
+      final c = MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith(tryOnPath)) {
+          posts?.add(path);
+          return onTryOn();
+        }
+        if (path.endsWith('/generation-quota')) {
+          return jsonResponse(
+            envelope({
+              'limit': 10,
+              'used': 6,
+              'remaining': 4,
+              'resets_at': '2026-11-04T00:00:00+08:00',
+            }),
+          );
+        }
+        if (request.method == 'GET' && path.endsWith('/trip_plans/7/outfits')) {
+          return jsonResponse(envelope(trip()));
+        }
+        return jsonResponse(envelope({}), status: 404);
+      });
+      return () => c;
+    }
+
+    Map<String, dynamic> withImage() => _collectionJson(
+      outfits: [_outfitJson(1, imageUrl: 'https://example.com/new.jpg')],
+    );
+    Map<String, dynamic> withoutImage() =>
+        _collectionJson(outfits: [_outfitJson(1, replaceable: true)]);
+
+    Future<void> open(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpDetails(
+        tester,
+        detail: _collection(outfits: [_outfitJson(1, replaceable: true)]),
+      );
+      await settle(tester);
+      await openTile(tester);
+    }
+
+    Future<void> pumpUntil(WidgetTester tester, bool Function() done) async {
+      for (var i = 0; i < 80 && !done(); i++) {
+        await tester.pump(const Duration(seconds: 5));
+      }
+    }
+
+    // Once the image is in, the page no longer offers to generate it.
+    bool rendered() =>
+        find.text('Generate Outfit').evaluate().isEmpty &&
+        find.byType(LoadingOverlay).evaluate().isEmpty;
+
+    testWidgets('mid-render: Stop Waiting is offered and a back asks first', (
+      tester,
+    ) async {
+      final pending = Completer<http.Response>();
+      await http.runWithClient(() async {
+        await open(tester);
+        await tester.tap(find.text('Generate Outfit'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(find.text('Stop Waiting'), findsOneWidget);
+
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('Stop Waiting?'), findsOneWidget);
+        await tester.tap(find.text('Keep Waiting'));
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.byType(TripOutfitDetailPage), findsOneWidget);
+
+        pending.complete(jsonResponse(envelope(withImage())));
+        await tester.pump(const Duration(seconds: 1));
+      }, client(onTryOn: () => pending.future, trip: withoutImage));
+    });
+
+    testWidgets('recovered from the trip once its image appears, without a '
+        'second render', (tester) async {
+      final posts = <String>[];
+      var reads = 0;
+      await http.runWithClient(
+        () async {
+          await open(tester);
+          await tester.tap(find.text('Generate Outfit'));
+          await tester.pump();
+          await pumpUntil(tester, rendered);
+          expect(rendered(), isTrue);
+          expect(posts, hasLength(1));
+        },
+        client(
+          onTryOn: () async =>
+              jsonResponse({'success': false, 'message': 'x'}, status: 504),
+          trip: () => ++reads < 3 ? withoutImage() : withImage(),
+          posts: posts,
+        ),
+      );
+    });
+
+    testWidgets('unknown: says so; the next tap re-reads, then asks before '
+        'rendering again', (tester) async {
+      final posts = <String>[];
+      var landed = false;
+      await http.runWithClient(
+        () async {
+          await open(tester);
+          await tester.tap(find.text('Generate Outfit'));
+          await tester.pump();
+          final unknown = find.text(
+            "We couldn't confirm whether this try-on finished. If it did, it "
+            'will appear in Outfits.',
+          );
+          await pumpUntil(tester, () => unknown.evaluate().isNotEmpty);
+          expect(unknown, findsOneWidget);
+          await tester.tap(find.text('OK'));
+          await tester.pump(const Duration(milliseconds: 300));
+
+          // Still nothing: ask first; Cancel sends nothing.
+          await tester.tap(find.text('Generate Outfit'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(find.text('Try Again?'), findsOneWidget);
+          await tester.tap(find.text('Cancel'));
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(posts, hasLength(1));
+
+          // It landed meanwhile: shown without asking or rendering.
+          landed = true;
+          await tester.tap(find.text('Generate Outfit'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(find.text('Try Again?'), findsNothing);
+          expect(rendered(), isTrue);
+          expect(posts, hasLength(1));
+        },
+        client(
+          onTryOn: () async => throw TimeoutException('slow'),
+          trip: () => landed ? withImage() : withoutImage(),
+          posts: posts,
+        ),
+      );
+    });
   });
 }

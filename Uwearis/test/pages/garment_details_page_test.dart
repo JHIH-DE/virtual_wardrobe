@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -1630,6 +1631,140 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
       expect(find.byType(InteractiveViewer), findsNothing);
     }, () => _garmentBackend(withPhoto, []));
+  });
+  group('Re-analyze Cancel', () {
+    const imageUrl = 'https://example.com/garment.png';
+    const pngHeader = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+
+    Map<String, dynamic> garmentJson(int id) => {
+      'id': id,
+      'garment_id': id,
+      'name': 'Plain Tee',
+      'category': 'Top',
+      'sub_category': 'Tee',
+      'image_url': imageUrl,
+    };
+
+    /// Each analyze-instant call waits on its own gate, so a test decides
+    /// the order replies land in.
+    MockClient gatedClient({
+      required int id,
+      required List<Completer<String>> gates,
+      required List<http.Request> patches,
+    }) {
+      return MockClient((request) async {
+        final path = request.url.path;
+        if (request.url.toString() == imageUrl) {
+          return http.Response.bytes(pngHeader, 200);
+        }
+        if (path.endsWith('/analyze-instant')) {
+          final gate = Completer<String>();
+          gates.add(gate);
+          final subCategory = await gate.future;
+          return jsonResponse(
+            envelope({
+              'metadata': {'category': 'Top', 'sub_category': subCategory},
+            }),
+          );
+        }
+        if (request.method == 'PATCH') {
+          patches.add(request);
+          return jsonResponse(envelope(garmentJson(id)));
+        }
+        if (path.endsWith('/garments/$id')) {
+          return jsonResponse(envelope(garmentJson(id)));
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+    }
+
+    Future<void> openPage(WidgetTester tester, int id) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        GarmentDetailsPage(
+          initialGarment: Garment(
+            id: id,
+            name: 'Plain Tee',
+            category: GarmentCategory.top,
+            subCategory: 'Tee',
+            uploadUrl: '',
+            objectName: '',
+            imageUrl: '',
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    Future<void> startReanalysis(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text('Re-analyze'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Re-analyze'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    Finder overlay() => find.byType(LoadingOverlay);
+
+    testWidgets('Cancel closes the overlay; a reply landing afterwards '
+        'leaves the form untouched and saves nothing', (tester) async {
+      final gates = <Completer<String>>[];
+      final patches = <http.Request>[];
+      await http.runWithClient(() async {
+        await openPage(tester, 7701);
+        await startReanalysis(tester);
+        expect(overlay(), findsOneWidget);
+        expect(gates, hasLength(1));
+
+        await tester.tap(find.text('Cancel'));
+        await tester.pump();
+        expect(overlay(), findsNothing);
+
+        gates.single.complete('Late Hoodie');
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 3));
+
+        expect(find.text('Late Hoodie'), findsNothing);
+        expect(find.text('Tee'), findsOneWidget);
+        expect(find.text('Details Updated'), findsNothing);
+        expect(patches, isEmpty);
+      }, () => gatedClient(id: 7701, gates: gates, patches: patches));
+    });
+
+    testWidgets('a cancelled run that lands after a newer one can\'t '
+        'overwrite it', (tester) async {
+      final gates = <Completer<String>>[];
+      final patches = <http.Request>[];
+      await http.runWithClient(() async {
+        await openPage(tester, 7702);
+        await startReanalysis(tester);
+        await tester.tap(find.text('Cancel'));
+        await tester.pump();
+
+        // Restartable at once, without waiting for the cancelled request.
+        await startReanalysis(tester);
+        expect(gates, hasLength(2));
+
+        gates[1].complete('Fresh Polo');
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 3));
+        expect(overlay(), findsNothing);
+        expect(find.text('Fresh Polo'), findsOneWidget);
+        expect(patches, hasLength(1));
+
+        gates[0].complete('Stale Hoodie');
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 3));
+        expect(find.text('Stale Hoodie'), findsNothing);
+        expect(find.text('Fresh Polo'), findsOneWidget);
+        expect(patches, hasLength(1));
+        expect(jsonDecode(patches.single.body)['sub_category'], 'Fresh Polo');
+      }, () => gatedClient(id: 7702, gates: gates, patches: patches));
+    });
   });
 }
 

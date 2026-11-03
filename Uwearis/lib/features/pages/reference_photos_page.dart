@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
+import '../../core/config/app_config.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/services/auth_handler.dart';
 import '../../core/services/profile_service.dart';
@@ -14,6 +15,7 @@ import '../../core/utils/api_error_text.dart';
 import '../../core/utils/base_model_generation_mixin.dart';
 import '../../core/utils/debug_log.dart';
 import '../../core/utils/reference_photo_download.dart';
+import '../../core/utils/user_acknowledgement.dart';
 import '../../data/image_edit_result.dart';
 import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -24,6 +26,7 @@ import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/images/app_image.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/ai_consent_dialog.dart';
+import '../widgets/common/overlays/app_dialog.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/section_title.dart';
@@ -205,6 +208,28 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
     );
   }
 
+  /// Asked once per user: these photos are of a face and body and are used
+  /// to generate images, so minors and other people's photos are excluded.
+  Future<bool> _confirmReferencePhotoTerms() async {
+    final terms = UserAcknowledgement.referencePhotoTerms;
+    if (await terms.isGranted()) return true;
+    if (!mounted) return false;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AppDialog(
+        title: _l10n.referencePhotoTermsTitle,
+        body: _l10n.referencePhotoTermsBody(AppConfig.minimumAge),
+        primaryLabel: _l10n.referencePhotoTermsConfirm,
+        onPrimary: () => Navigator.pop(ctx, true),
+        secondaryLabel: _l10n.cancel,
+        onSecondary: () => Navigator.pop(ctx, false),
+      ),
+    );
+    if (confirmed != true) return false;
+    await terms.grant();
+    return true;
+  }
+
   Future<void> _changePhoto(ReferencePhotoKind kind) async {
     final slot = _slotFor(kind);
     if (slot.busy) return;
@@ -213,6 +238,7 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
     try {
       // Asked before picking: these photos exist only to be sent to the AI.
       if (!await ensureAiConsent(context) || !mounted) return;
+      if (!await _confirmReferencePhotoTerms() || !mounted) return;
       final data = ref.read(profileProvider).value;
       final committedUrl = _resolvedUrl(_committedUrlOf(kind, data));
 
@@ -373,7 +399,7 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
         ),
         if (generatingBaseModel)
           Positioned.fill(
-            child: LoadingOverlay(label: _l10n.generatingEllipsis),
+            child: LoadingOverlay(label: _l10n.creatingModelEllipsis),
           ),
       ],
     );

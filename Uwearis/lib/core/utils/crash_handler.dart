@@ -72,6 +72,23 @@ class GlobalErrorHandler {
     _recordFatal(error, stack);
   }
 
+  /// Reports a handled error without crashing; [reason] becomes the
+  /// Crashlytics event's context line.
+  static void recordNonFatal(
+    Object error,
+    StackTrace? stack, {
+    String? reason,
+    Map<String, String> keys = const {},
+  }) {
+    if (!_reporting) return;
+    FirebaseCrashlytics.instance.recordError(
+      error,
+      stack,
+      reason: reason,
+      information: [for (final e in keys.entries) '${e.key}: ${e.value}'],
+    );
+  }
+
   static void _recordFatal(Object error, StackTrace stack) {
     if (!_reporting) return;
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);

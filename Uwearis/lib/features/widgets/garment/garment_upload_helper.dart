@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/services/auth_handler.dart';
@@ -99,26 +101,58 @@ class GarmentUploadHelper {
 
     while (true) {
       if (!context.mounted) return null;
+      // The request can't be aborted: Cancel (or system back) closes the
+      // overlay and this attempt's reply is ignored when it lands.
+      var settled = false;
+      final cancelled = Completer<AnalyzeGarmentResult?>();
+      void cancel() {
+        if (settled) return;
+        settled = true;
+        navigator.pop();
+        cancelled.complete(null);
+      }
+
+      // Pops the overlay unless Cancel already did; false once cancelled.
+      bool settle() {
+        if (settled) return false;
+        settled = true;
+        navigator.pop();
+        return true;
+      }
+
       showDialog(
         context: context,
         barrierDismissible: false,
         barrierColor: Colors.transparent,
         useSafeArea: false,
-        builder: (_) => LoadingOverlay(label: l10n.analyzingClothingEllipsis),
+        builder: (_) => PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) cancel();
+          },
+          child: LoadingOverlay(
+            label: l10n.analyzingGarmentEllipsis,
+            actionLabel: l10n.cancel,
+            onAction: cancel,
+          ),
+        ),
       );
       try {
-        final result = await GarmentService().analyzeGarment(imagePath);
-        navigator.pop();
+        final result = await Future.any([
+          GarmentService().analyzeGarment(imagePath),
+          cancelled.future,
+        ]);
+        if (result == null || !settle()) return null;
         return ImageEditResult(
           imagePath: result.processedImagePath ?? imagePath,
           analysisData: result.metadata,
         );
       } on AuthExpiredException {
-        navigator.pop();
+        if (!settle()) return null;
         if (context.mounted) await AuthExpiredHandler.handle(context);
         return null;
       } catch (e) {
-        navigator.pop();
+        if (!settle()) return null;
         debugLog('GarmentUploadHelper.analyzePhoto: $e');
         if (!context.mounted) return null;
         final retry = await showDialog<bool>(

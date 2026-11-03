@@ -54,7 +54,7 @@ class TripCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 5, 20, 10),
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -62,12 +62,11 @@ class TripCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(child: SectionTitle(trip.name)),
-                    // Lands the disc 17 from the card edge, like Trip
-                    // Details' discs (16 padding + 1px border).
+                    // Lands the disc 12 from the card's top and right edges.
                     Transform.translate(
-                      offset: const Offset(3, 0),
+                      offset: const Offset(8, 0),
                       child: SizedBox(
-                        height: AppDimens.toolbarHeight,
+                        height: AppDimens.minTouchTarget,
                         child: Center(
                           child: AppPopupMenu<_TripCardAction>(
                             onSelected: (action) =>

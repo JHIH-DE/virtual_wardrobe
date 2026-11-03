@@ -89,6 +89,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String generationQuotaRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count AI try-ons left today',
+      one: '1 AI try-on left today',
+      zero: 'That was your last AI try-on today',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get errorNoConnection =>
       'No internet connection. Check your connection and try again.';
 
@@ -98,8 +110,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tryOnStillRendering(String action) {
-    return 'This is taking longer than usual and may still be in progress. Tap $action again in a moment — if it has finished, you\'ll see the result without generating another.';
+    return 'Still in progress. Tap $action again shortly to check — it won\'t start another try-on.';
   }
+
+  @override
+  String get stopWaiting => 'Stop Waiting';
+
+  @override
+  String get keepWaiting => 'Keep Waiting';
+
+  @override
+  String get stopWaitingTitle => 'Stop Waiting?';
+
+  @override
+  String get stopWaitingBody =>
+      'Leaving won\'t cancel this try-on. If it finishes, it will appear in Outfits and count toward today\'s limit.';
+
+  @override
+  String get tryOnOutcomeUnknown =>
+      'We couldn\'t confirm whether this try-on finished. If it did, it will appear in Outfits.';
+
+  @override
+  String get tryOnRetryUnknownTitle => 'Try Again?';
+
+  @override
+  String get tryOnRetryUnknownBody =>
+      'The last try-on may still finish and appear in Outfits. Trying again may use another try-on.';
+
+  @override
+  String get tryOnNotCounted =>
+      'The try-on didn\'t finish in time and wasn\'t counted toward today\'s limit. Please try again.';
 
   @override
   String get facePhotoLoadFailedTitle => 'Face photo unavailable';
@@ -212,7 +252,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone.';
 
   @override
-  String get deletingAccount => 'Deleting your account…';
+  String get deletingAccountEllipsis => 'Deleting Account…';
 
   @override
   String get deleteAccountFailed =>
@@ -318,7 +358,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notSelected => 'Not selected';
 
   @override
-  String get loadingGarments => 'Loading Garments…';
+  String get loadingGarmentsEllipsis => 'Loading Garments…';
 
   @override
   String get myCollection => 'My Collection';
@@ -568,7 +608,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Upload a photo and we\'ll find similar pieces from your closet.';
 
   @override
-  String get matchingLookEllipsis => 'Matching your look...';
+  String get matchingLookEllipsis => 'Matching Your Look…';
 
   @override
   String get matchALookFailed =>
@@ -689,7 +729,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToGeneratePlan => 'Failed to generate outfit plan';
 
   @override
-  String get generatingPlanEllipsis => 'Planning your outfits…';
+  String get generatingOutfitsEllipsis => 'Generating Outfits…';
 
   @override
   String get failedToUpdateDayOutfit => 'Failed to update outfit';
@@ -704,13 +744,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToSuitcase => 'Add to Suitcase';
 
   @override
-  String get loading => 'Loading…';
+  String get loadingAppEllipsis => 'Loading…';
+
+  @override
+  String get loadingHomeEllipsis => 'Loading Home…';
+
+  @override
+  String get loadingStyleTasteEllipsis => 'Loading Style Taste…';
 
   @override
   String get tryAgain => 'Try Again';
-
-  @override
-  String get generatingOutfitEllipsis => 'Generating your outfit…';
 
   @override
   String get noOutfitImageYet => 'No outfit image yet';
@@ -881,6 +924,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteGarment => 'Delete Garment';
 
   @override
+  String get reanalyzeGarmentTitle => 'Re-analyze This Item?';
+
+  @override
+  String get reanalyzeGarmentBody =>
+      'AI will re-read the photo and replace the category, product type, color and fit details. Name, brand, price and purchase date stay as they are.';
+
+  @override
+  String get reanalyze => 'Re-analyze';
+
+  @override
+  String get garmentReanalyzed => 'Details Updated';
+
+  @override
   String get deleteGarmentConfirmation =>
       'Are you sure you want to delete this garment?';
 
@@ -903,7 +959,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your latest changes couldn\'t be saved. If you leave now, they\'ll be lost.';
 
   @override
-  String get savingEllipsis => 'Saving…';
+  String get savingChangesEllipsis => 'Saving Changes…';
 
   @override
   String get dontSave => 'Don\'t Save';
@@ -1164,7 +1220,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outerwear => 'Outerwear';
 
   @override
-  String get creatingOutfitsEllipsis => 'Creating Outfits…';
+  String get generatingTryOnEllipsis => 'Generating Try-On…';
 
   @override
   String get loadingClosetEllipsis => 'Loading Closet…';
@@ -1245,6 +1301,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deletingTripEllipsis => 'Deleting Trip…';
 
   @override
+  String get deletingOutfitEllipsis => 'Deleting Outfit…';
+
+  @override
   String get updatingTripEllipsis => 'Updating Trip…';
 
   @override
@@ -1294,10 +1353,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatingEllipsis => 'Creating…';
 
   @override
-  String get generatingEllipsis => 'Generating…';
+  String get creatingModelEllipsis => 'Creating Your Model…';
 
   @override
-  String get thinkingEllipsis => 'Thinking…';
+  String get completingOutfitEllipsis => 'Completing Outfit…';
 
   @override
   String get suitcaseLabel => 'Suitcase';
@@ -1369,6 +1428,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatingSuitcaseEllipsis => 'Updating Suitcase…';
+
+  @override
+  String get addingOutfitEllipsis => 'Adding Outfit…';
 
   @override
   String get addGarment => 'Add Garment';
@@ -1514,6 +1576,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiConsentDecline => 'Not Now';
 
   @override
+  String get withdrawAiConsent => 'Withdraw AI Consent';
+
+  @override
+  String get withdrawAiConsentConfirmTitle => 'Withdraw AI Consent?';
+
+  @override
+  String get withdrawAiConsentConfirmBody =>
+      'AI features will ask for your consent again before sending anything. Photos and details you already added are not deleted — to remove them, delete the photos or your account.';
+
+  @override
+  String get withdrawAiConsentConfirm => 'Withdraw';
+
+  @override
+  String get aiConsentWithdrawn => 'AI consent withdrawn';
+
+  @override
+  String get referencePhotoTermsTitle => 'Before You Add Reference Photos';
+
+  @override
+  String referencePhotoTermsBody(int age) {
+    return 'You must be at least $age years old to add reference photos. Only add photos of yourself, never of anyone else.';
+  }
+
+  @override
+  String get referencePhotoTermsConfirm => 'I Confirm';
+
+  @override
   String get continueWithApple => 'Continue with Apple';
 
   @override
@@ -1535,10 +1624,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get edit => 'Edit';
 
   @override
-  String get analyzingClothingEllipsis => 'Analyzing Clothing…';
+  String get analyzingGarmentEllipsis => 'Analyzing Garment…';
 
   @override
-  String get analyzingEllipsis => 'Analyzing…';
+  String get findingMatchesEllipsis => 'Finding Matches…';
 
   @override
   String get analysisFailedTitle => 'Couldn\'t analyze this photo';
