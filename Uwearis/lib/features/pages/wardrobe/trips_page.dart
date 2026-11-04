@@ -12,12 +12,12 @@ import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/labeled_divider.dart';
-import '../../widgets/common/main_nav_bar.dart';
-import '../../widgets/common/main_tab_async.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/empty_state_placeholder.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
+import '../../widgets/common/wardrobe_nav_bar.dart';
+import '../../widgets/common/wardrobe_tab_async.dart';
 import '../../widgets/trip/trip_card.dart';
 import '../../widgets/trip/trip_create_dialog.dart';
 import 'trip_details_page.dart';
@@ -186,7 +186,7 @@ Future<void> openTripDetails(
   BuildContext context,
   WidgetRef ref,
   Trip trip, {
-  required MainTab tab,
+  required WardrobeTab tab,
 }) async {
   // Trip Details' load runs the AI packing analysis when none exists yet.
   if (!await ensureAiConsent(context) || !context.mounted) return;
@@ -194,25 +194,25 @@ Future<void> openTripDetails(
   final cached = ref.read(tripDetailProvider(int.parse(trip.id)));
   final needsLoad = !cached.hasValue || cached.hasError;
   if (needsLoad) {
-    MainShellScope.of(
+    WardrobeShellScope.of(
       context,
     )?.setLoading(true, label: l10n.loadingTripEllipsis, tab: tab);
   }
   try {
     if (needsLoad) await _loadTripDetail(ref, trip);
     if (!context.mounted) return;
-    MainShellScope.of(context)?.setLoading(false, tab: tab);
+    WardrobeShellScope.of(context)?.setLoading(false, tab: tab);
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => TripDetailsPage(trip: trip)),
     );
   } on AuthExpiredException {
     if (!context.mounted) return;
-    MainShellScope.of(context)?.setLoading(false, tab: tab);
+    WardrobeShellScope.of(context)?.setLoading(false, tab: tab);
     await AuthExpiredHandler.handle(context);
   } catch (e) {
     if (!context.mounted) return;
-    MainShellScope.of(context)?.setLoading(false, tab: tab);
+    WardrobeShellScope.of(context)?.setLoading(false, tab: tab);
     debugLog('Failed to load trip details: $e');
     showErrorDialog(context, message: l10n.failedToLoadTripDetails);
   }
@@ -238,10 +238,10 @@ class _TripsPageState extends ConsumerState<TripsPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final report = mainTabReporter(
+      final report = wardrobeTabReporter(
         context,
         loadingLabel: AppLocalizations.of(context).loadingTripsEllipsis,
-        tab: MainTab.tripPlanner,
+        tab: WardrobeTab.tripPlanner,
       );
       report(ref.read(tripsProvider));
       ref.listenManual(tripsProvider, (_, next) => report(next));
@@ -263,7 +263,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(tripsAsync),
-      body: tripsAsync.mainTabBody(
+      body: tripsAsync.wardrobeTabBody(
         data: _buildTripList,
         onRetry: () => ref.read(tripsProvider.notifier).refresh(),
       ),
@@ -280,7 +280,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
                 16,
                 16,
                 16,
-                AppDimens.mainNavBarClearance,
+                AppDimens.navBarClearance,
               ),
               children: _buildGroupedTripItems(trips),
             ),
@@ -337,7 +337,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
       onAction: () => handleCreateTrip(context, ref),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       fillAvailableSpace: true,
-      bottomInset: AppDimens.mainNavBarClearance,
+      bottomInset: AppDimens.navBarClearance,
     );
   }
 
@@ -348,7 +348,7 @@ class _TripsPageState extends ConsumerState<TripsPage> {
         key: ValueKey(trip.id),
         trip: trip,
         onTap: () =>
-            openTripDetails(context, ref, trip, tab: MainTab.tripPlanner),
+            openTripDetails(context, ref, trip, tab: WardrobeTab.tripPlanner),
         onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
         onDelete: () => handleDeleteTrip(context, ref, trip),
       ),

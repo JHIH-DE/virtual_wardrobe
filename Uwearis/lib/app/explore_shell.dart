@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../features/pages/explore/bag_page.dart';
-import '../features/pages/explore/explore_page.dart';
+import '../features/pages/explore/explore_home_page.dart';
 import '../features/pages/explore/inbox_page.dart';
 import '../features/pages/explore/saved_page.dart';
 import '../features/pages/explore/search_page.dart';
 import '../features/widgets/common/explore_nav_bar.dart';
 
-/// Explore's counterpart to `MainShell`, pushed from Home: keeps its tabs
+/// Explore's counterpart to `WardrobeShell`, pushed from Home: keeps its tabs
 /// alive in an [IndexedStack] (state survives tab switches) and owns
 /// [ExploreNavBar].
 class ExploreShell extends StatefulWidget {
@@ -18,13 +18,13 @@ class ExploreShell extends StatefulWidget {
 }
 
 class _ExploreShellState extends State<ExploreShell> {
-  ExploreTab _current = ExploreTab.explore;
+  ExploreTab _current = ExploreTab.home;
 
   void _select(ExploreTab tab) {
     if (tab != _current) setState(() => _current = tab);
   }
 
-  /// Swipe left/right anywhere to cycle tabs (wrapping), as in `MainShell`.
+  /// Swipe left/right anywhere to cycle tabs (wrapping), as in `WardrobeShell`.
   void _handleSwipe(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     const threshold = 200.0;
@@ -47,7 +47,7 @@ class _ExploreShellState extends State<ExploreShell> {
           child: IndexedStack(
             index: ExploreTab.values.indexOf(_current),
             children: const [
-              ExplorePage(),
+              ExploreHomePage(),
               SearchPage(),
               BagPage(),
               SavedPage(),

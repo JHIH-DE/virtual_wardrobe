@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/app/explore_shell.dart';
 import 'package:uwearis/features/pages/explore/bag_page.dart';
-import 'package:uwearis/features/pages/explore/explore_page.dart';
+import 'package:uwearis/features/pages/explore/explore_home_page.dart';
 import 'package:uwearis/features/pages/explore/inbox_page.dart';
 import 'package:uwearis/features/pages/explore/saved_page.dart';
 import 'package:uwearis/features/pages/explore/search_page.dart';
@@ -29,14 +29,14 @@ void main() {
     tester,
   ) async {
     await _pumpShell(tester);
-    expect(find.byType(ExplorePage), findsOneWidget);
+    expect(find.byType(ExploreHomePage), findsOneWidget);
 
     for (final (label, type) in [
       ('Search', SearchPage),
       ('Bag', BagPage),
       ('Saved', SavedPage),
       ('Inbox', InboxPage),
-      ('Home', ExplorePage),
+      ('Home', ExploreHomePage),
     ]) {
       await _tapTab(tester, label);
       expect(find.byType(type), findsOneWidget, reason: label);
@@ -80,13 +80,21 @@ void main() {
   testWidgets('swiping cycles through the tabs', (tester) async {
     await _pumpShell(tester);
 
-    await tester.fling(find.byType(ExplorePage), const Offset(-300, 0), 1000);
+    await tester.fling(
+      find.byType(ExploreHomePage),
+      const Offset(-300, 0),
+      1000,
+    );
     await tester.pump();
     expect(find.byType(SearchPage), findsOneWidget);
 
     await tester.fling(find.byType(SearchPage), const Offset(300, 0), 1000);
     await tester.pump();
-    await tester.fling(find.byType(ExplorePage), const Offset(300, 0), 1000);
+    await tester.fling(
+      find.byType(ExploreHomePage),
+      const Offset(300, 0),
+      1000,
+    );
     await tester.pump();
     expect(find.byType(InboxPage), findsOneWidget);
   });

@@ -32,8 +32,8 @@ import '../../widgets/common/carousel_dots_indicator.dart';
 import '../../widgets/common/home_getting_started_view.dart';
 import '../../widgets/common/images/refreshable_network_image.dart';
 import '../../widgets/common/labeled_divider.dart';
-import '../../widgets/common/main_nav_bar.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
+import '../../widgets/common/wardrobe_nav_bar.dart';
 import '../../widgets/garment/garment_card.dart';
 import '../../widgets/garment/garment_upload_helper.dart';
 import '../../widgets/outfit/outfit_image.dart';
@@ -46,18 +46,20 @@ import 'outfit_details_page.dart';
 import 'today_outfit_page.dart';
 import 'trips_page.dart';
 
-class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key, @visibleForTesting DateTime Function()? now})
-    : _now = now ?? DateTime.now;
+class WardrobeHomePage extends ConsumerStatefulWidget {
+  const WardrobeHomePage({
+    super.key,
+    @visibleForTesting DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
 
   /// Test seam for simulating a day boundary; [DateTime.now] otherwise.
   final DateTime Function() _now;
 
   @override
-  ConsumerState<HomePage> createState() => _HomePageState();
+  ConsumerState<WardrobeHomePage> createState() => _WardrobeHomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage>
+class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
     with WidgetsBindingObserver {
   int _todayOutfitIndex = 0;
   final PageController _todayOutfitPageController = PageController();
@@ -156,7 +158,7 @@ class _HomePageState extends ConsumerState<HomePage>
       _refreshIfDateChanged();
       ref.read(weatherProvider.notifier).refreshIfStale();
     });
-    // MainShellScope's lookup isn't safe during initState.
+    // WardrobeShellScope's lookup isn't safe during initState.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _reportHomeLoading();
@@ -170,7 +172,7 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   /// One shell-level loading state over every provider the body reads.
-  /// No other main tab watches [profileProvider], so its auth expiry is
+  /// No other wardrobe tab watches [profileProvider], so its auth expiry is
   /// routed to [AuthExpiredHandler] here.
   void _reportHomeLoading() {
     final states = [
@@ -188,10 +190,10 @@ class _HomePageState extends ConsumerState<HomePage>
     }
     // Plain isLoading — see [_gettingStartedDataReady].
     final loading = states.any((s) => s.isLoading);
-    MainShellScope.of(context)?.setLoading(
+    WardrobeShellScope.of(context)?.setLoading(
       loading,
       label: AppLocalizations.of(context).loadingHomeEllipsis,
-      tab: MainTab.home,
+      tab: WardrobeTab.home,
     );
   }
 
@@ -243,7 +245,7 @@ class _HomePageState extends ConsumerState<HomePage>
   Widget _buildBody() {
     if (!_gettingStartedDataReady) return const SizedBox.shrink();
     final bottomClearance =
-        AppDimens.mainNavBarClearance + MediaQuery.of(context).padding.bottom;
+        AppDimens.navBarClearance + MediaQuery.of(context).padding.bottom;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,25 +325,27 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Future<void> _openAddOutfit() async {
     final l10n = AppLocalizations.of(context);
-    MainShellScope.of(
-      context,
-    )?.setLoading(true, label: l10n.loadingGarmentsEllipsis, tab: MainTab.home);
+    WardrobeShellScope.of(context)?.setLoading(
+      true,
+      label: l10n.loadingGarmentsEllipsis,
+      tab: WardrobeTab.home,
+    );
     try {
       await ref.read(garmentsProvider.future);
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
+      WardrobeShellScope.of(context)?.setLoading(false, tab: WardrobeTab.home);
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const CreateOutfitPage()),
       );
     } on AuthExpiredException {
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
+      WardrobeShellScope.of(context)?.setLoading(false, tab: WardrobeTab.home);
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: MainTab.home);
-      debugLog('HomePage._openAddOutfit: $e');
+      WardrobeShellScope.of(context)?.setLoading(false, tab: WardrobeTab.home);
+      debugLog('WardrobeHomePage._openAddOutfit: $e');
       showErrorDialog(context, message: l10n.failedToLoadGarments);
     }
   }
@@ -607,7 +611,7 @@ class _HomePageState extends ConsumerState<HomePage>
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      debugLog('HomePage._toggleFavorite: $e');
+      debugLog('WardrobeHomePage._toggleFavorite: $e');
       showErrorDialog(context, message: l10n.failedToUpdateFavorite);
     }
   }
@@ -686,7 +690,7 @@ class _HomePageState extends ConsumerState<HomePage>
     return TripCard(
       key: ValueKey(trip.id),
       trip: trip,
-      onTap: () => openTripDetails(context, ref, trip, tab: MainTab.home),
+      onTap: () => openTripDetails(context, ref, trip, tab: WardrobeTab.home),
       onNameChanged: (name) => handleRenameTrip(context, ref, trip, name),
       onDelete: () => handleDeleteTrip(context, ref, trip),
     );

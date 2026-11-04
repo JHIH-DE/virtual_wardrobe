@@ -8,7 +8,7 @@ import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_details_page.dart';
 import 'package:uwearis/features/pages/wardrobe/trips_page.dart';
-import 'package:uwearis/features/widgets/common/main_nav_bar.dart';
+import 'package:uwearis/features/widgets/common/wardrobe_nav_bar.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
@@ -103,7 +103,7 @@ void main() {
                   context,
                   ref,
                   trip,
-                  tab: MainTab.tripPlanner,
+                  tab: WardrobeTab.tripPlanner,
                 ),
                 child: const Text('open'),
               ),

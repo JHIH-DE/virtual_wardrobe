@@ -39,7 +39,7 @@ Future<void> clearSignedInSession() async {
 
 /// Providers outlive the Navigator, so without this a new sign-in would see
 /// the previous account's data. Call on successful login, NOT at logout:
-/// the old MainShell's tabs still watch these providers until its route is
+/// the old WardrobeShell's tabs still watch these providers until its route is
 /// disposed (~300ms after `pushAndRemoveUntil`), and invalidating then makes
 /// them refetch with no token and raise a spurious "Session Expired" dialog.
 void invalidateSignedInProviders(BuildContext context) {

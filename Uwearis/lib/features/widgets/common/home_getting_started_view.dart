@@ -10,7 +10,7 @@ import 'buttons/accent_pill_button.dart';
 import 'cards/app_card_shell.dart';
 
 /// Home's setup checklist for a user who hasn't finished onboarding (see
-/// `HomePage._isGettingStarted`). Rendered inside Home's scroll body, so it
+/// `WardrobeHomePage._isGettingStarted`). Rendered inside Home's scroll body, so it
 /// owns no scroll container, page padding or nav-bar clearance.
 class HomeGettingStartedView extends StatelessWidget {
   /// Name, gender, birthday and home location are all filled in.

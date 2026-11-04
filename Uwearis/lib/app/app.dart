@@ -8,9 +8,9 @@ import '../core/utils/route_observer.dart';
 import '../features/pages/common/login_page.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../l10n/generated/app_localizations.dart';
-import 'main_shell.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'wardrobe_shell.dart';
 
 class App extends ConsumerWidget {
   const App({super.key});
@@ -19,7 +19,7 @@ class App extends ConsumerWidget {
     final token = await AuthStorage.getAccessToken();
     if (token != null && token.isNotEmpty) {
       await GlobalErrorHandler.setReportingUser(token);
-      return const MainShell();
+      return const WardrobeShell();
     }
     return const LoginPage();
   }

@@ -11,10 +11,10 @@ import '../../../data/outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/outfit_season_style_filter.dart';
-import '../../widgets/common/main_nav_bar.dart';
-import '../../widgets/common/main_tab_async.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
+import '../../widgets/common/wardrobe_nav_bar.dart';
+import '../../widgets/common/wardrobe_tab_async.dart';
 import '../../widgets/outfit/outfit_grid.dart';
 import 'create_outfit_page.dart';
 import 'outfit_details_page.dart';
@@ -34,10 +34,10 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final report = mainTabReporter(
+      final report = wardrobeTabReporter(
         context,
         loadingLabel: AppLocalizations.of(context).loadingOutfitsEllipsis,
-        tab: MainTab.outfits,
+        tab: WardrobeTab.outfits,
       );
       report(ref.read(outfitsProvider));
       ref.listenManual(outfitsProvider, (_, next) => report(next));
@@ -61,26 +61,32 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
 
   Future<void> _openAddOutfit() async {
     final l10n = AppLocalizations.of(context);
-    MainShellScope.of(context)?.setLoading(
+    WardrobeShellScope.of(context)?.setLoading(
       true,
       label: l10n.loadingGarmentsEllipsis,
-      tab: MainTab.outfits,
+      tab: WardrobeTab.outfits,
     );
     try {
       await ref.read(garmentsProvider.future);
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
+      WardrobeShellScope.of(
+        context,
+      )?.setLoading(false, tab: WardrobeTab.outfits);
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const CreateOutfitPage()),
       );
     } on AuthExpiredException {
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
+      WardrobeShellScope.of(
+        context,
+      )?.setLoading(false, tab: WardrobeTab.outfits);
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       if (!mounted) return;
-      MainShellScope.of(context)?.setLoading(false, tab: MainTab.outfits);
+      WardrobeShellScope.of(
+        context,
+      )?.setLoading(false, tab: WardrobeTab.outfits);
       debugLog('Failed to load garments: $e');
       showErrorDialog(context, message: l10n.failedToLoadGarments);
     }
@@ -105,7 +111,7 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(outfitsAsync.value ?? []),
-      body: outfitsAsync.mainTabBody(
+      body: outfitsAsync.wardrobeTabBody(
         onRetry: () => ref.read(outfitsProvider.notifier).refresh(),
         data: (all) => OutfitGrid(
           outfits: _filter.apply(all),
@@ -115,12 +121,12 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
           emptyMessage: AppLocalizations.of(context).outfitsEmptyHint,
           emptyActionLabel: AppLocalizations.of(context).createOutfit,
           onEmptyAction: _openAddOutfit,
-          emptyBottomInset: AppDimens.mainNavBarClearance,
+          emptyBottomInset: AppDimens.navBarClearance,
           padding: const EdgeInsets.fromLTRB(
             16,
             16,
             16,
-            AppDimens.mainNavBarClearance,
+            AppDimens.navBarClearance,
           ),
           onOutfitTap: (outfit) => Navigator.push(
             context,

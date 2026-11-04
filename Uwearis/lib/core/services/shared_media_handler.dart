@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
-import '../../app/main_shell.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
-import '../../features/widgets/common/main_nav_bar.dart';
+import '../../app/wardrobe_shell.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../features/widgets/common/overlays/dialog_option_card.dart';
+import '../../features/widgets/common/wardrobe_nav_bar.dart';
 import '../../features/widgets/garment/garment_upload_helper.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers/garments_provider.dart';
@@ -86,7 +86,9 @@ class SharedMediaHandler {
                         imagePath: imagePath,
                         onAdded: (g) {
                           ref.read(garmentsProvider.notifier).addGarment(g);
-                          MainShellScope.of(context)?.selectTab(MainTab.closet);
+                          WardrobeShellScope.of(
+                            context,
+                          )?.selectTab(WardrobeTab.closet);
                         },
                       );
                     },

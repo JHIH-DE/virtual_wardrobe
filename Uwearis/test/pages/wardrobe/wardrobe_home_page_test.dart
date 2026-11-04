@@ -16,8 +16,8 @@ import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/user_profile.dart';
-import 'package:uwearis/features/pages/wardrobe/home_page.dart';
 import 'package:uwearis/features/pages/wardrobe/today_outfit_page.dart';
+import 'package:uwearis/features/pages/wardrobe/wardrobe_home_page.dart';
 import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 
 import '../../helpers/widget_harness.dart';
@@ -220,7 +220,7 @@ void main() {
 
       await pumpApp(
         tester,
-        HomePage(now: () => now),
+        WardrobeHomePage(now: () => now),
         overrides: overridesWith(dailyOutfit),
       );
       await tester.pump();
@@ -274,7 +274,7 @@ void main() {
 
       await pumpApp(
         tester,
-        HomePage(now: () => now),
+        WardrobeHomePage(now: () => now),
         overrides: overridesWith(dailyOutfit),
       );
       await tester.pump();
@@ -304,7 +304,7 @@ void main() {
 
     await pumpApp(
       tester,
-      HomePage(now: () => now),
+      WardrobeHomePage(now: () => now),
       overrides: overridesWith(dailyOutfit),
     );
     await tester.pump();
@@ -322,7 +322,7 @@ void main() {
       _FakeWeatherNotifier.staleChecks = 0;
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(_FakeDailyOutfitNotifier(const [])),
       );
       await tester.pump();
@@ -343,7 +343,7 @@ void main() {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           garments: _FakeGarmentsNotifier(garments: const []),
@@ -372,7 +372,7 @@ void main() {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           garments: _FakeGarmentsNotifier(garments: const []),
@@ -394,7 +394,7 @@ void main() {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           garments: _FakeGarmentsNotifier(
@@ -416,7 +416,7 @@ void main() {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           outfits: _FakeOutfitsNotifier(outfits: const []),
@@ -443,7 +443,7 @@ void main() {
       ]);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(dailyOutfit),
       );
       await tester.pump();
@@ -465,7 +465,7 @@ void main() {
       ]);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           profile: _FakeProfileNotifier(
@@ -489,7 +489,7 @@ void main() {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           garments: _FakeGarmentsNotifier(garments: const []),
@@ -523,7 +523,7 @@ void main() {
       ]);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           outfits: _FakeOutfitsNotifier(outfits: const []),
@@ -548,7 +548,7 @@ void main() {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(dailyOutfit),
       );
       await tester.pump();
@@ -568,7 +568,7 @@ void main() {
     final dailyOutfit = _FakeDailyOutfitNotifier(const []);
     await pumpApp(
       tester,
-      HomePage(now: () => DateTime(2026, 9, 17, 10)),
+      WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
       overrides: overridesWith(
         dailyOutfit,
         outfits: _FakeOutfitsNotifier(outfits: const []),
@@ -593,7 +593,7 @@ void main() {
       final dailyOutfit = _FakeDailyOutfitNotifier(const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(
           dailyOutfit,
           garments: _FakeGarmentsNotifier(
@@ -607,7 +607,7 @@ void main() {
 
       // Simulates GarmentUploadHelper's onAdded callback.
       final container = ProviderScope.containerOf(
-        tester.element(find.byType(HomePage)),
+        tester.element(find.byType(WardrobeHomePage)),
       );
       container.read(garmentsProvider.notifier).addGarment(_shoesGarment);
       await tester.pump();
@@ -627,7 +627,7 @@ void main() {
       final outfits = _FakeOutfitsNotifier(outfits: const []);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(dailyOutfit, outfits: outfits),
       );
       await tester.pump();
@@ -660,7 +660,7 @@ void main() {
     const delay = Duration(milliseconds: 50);
     await pumpApp(
       tester,
-      HomePage(now: () => DateTime(2026, 9, 17, 10)),
+      WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
       overrides: overridesWith(
         dailyOutfit,
         garments: _DelayedGarmentsNotifier(const [
@@ -679,7 +679,7 @@ void main() {
     // What invalidateSignedInProviders does on login: the AsyncLoading
     // still carries account A's value via copyWithPrevious.
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(HomePage)),
+      tester.element(find.byType(WardrobeHomePage)),
     );
     container.invalidate(garmentsProvider);
     await tester.pump();
@@ -706,7 +706,7 @@ void main() {
       ]);
       await pumpApp(
         tester,
-        HomePage(now: () => DateTime(2026, 9, 17, 10)),
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
         overrides: overridesWith(dailyOutfit),
       );
       await tester.pump();

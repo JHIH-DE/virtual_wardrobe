@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 
-/// One tab of the frosted bottom nav bars ([MainNavBar], [ExploreNavBar]).
+/// One tab of the frosted bottom nav bars ([WardrobeNavBar], [ExploreNavBar]).
 class NavBarTab extends StatelessWidget {
   final IconData activeIcon;
   final IconData inactiveIcon;
@@ -236,7 +236,7 @@ class NavBarTabRow extends StatelessWidget {
   }
 }
 
-/// The frosted-glass surface of the bottom nav bars and [MainNavBar]'s
+/// The frosted-glass surface of the bottom nav bars and [WardrobeNavBar]'s
 /// quick-action menu, in [clipper]'s outline: blurred page behind a tinted
 /// fill with a top sheen, a lit top edge and shaded bottom edge for
 /// thickness, a hairline rim, and a soft shadow.

@@ -58,8 +58,8 @@ abstract class AppDimens {
   // Matches [toolbarActionIconSize] so both sides of the camera header match.
   static const double backArrowIconSize = 26;
 
-  // Bottom padding so a main tab's last row scrolls clear of the nav bar overlay.
-  static const double mainNavBarClearance = 95;
+  // Bottom padding so a tab's last row scrolls clear of the nav bar overlay.
+  static const double navBarClearance = 95;
   static const double bottomActionBtnClearance = 85;
 
   // ActionButton — the full-width pill CTA.

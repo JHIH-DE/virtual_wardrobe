@@ -9,9 +9,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-import '../../../app/main_shell.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../app/wardrobe_shell.dart';
 import '../../../core/config/env.dart';
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/auth_service.dart';
@@ -58,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
     invalidateSignedInProviders(context);
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const MainShell()),
+      MaterialPageRoute(builder: (_) => const WardrobeShell()),
     );
   }
 

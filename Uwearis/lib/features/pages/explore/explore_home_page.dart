@@ -8,9 +8,9 @@ import '../../widgets/common/buttons/accent_pill_button.dart';
 import '../../widgets/common/buttons/settings_button.dart';
 
 /// `ExploreShell`'s first tab, mirroring Home: brand title, a
-/// "Wardrobe" pill back to `MainShell`, Settings. The body is empty for now.
-class ExplorePage extends StatelessWidget {
-  const ExplorePage({super.key});
+/// "Wardrobe" pill back to `WardrobeShell`, Settings. The body is empty for now.
+class ExploreHomePage extends StatelessWidget {
+  const ExploreHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {

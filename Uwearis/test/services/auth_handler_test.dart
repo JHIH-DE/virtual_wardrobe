@@ -8,7 +8,7 @@ void main() {
     'invalidateSignedInProviders runs without throwing when none of the '
     "per-user providers it invalidates have been read yet — the actual "
     "effect of container.invalidate on an already-mounted, still-watched "
-    "provider is covered by home_page_test.dart's own regression test",
+    "provider is covered by wardrobe_home_page_test.dart's own regression test",
     (tester) async {
       late BuildContext capturedContext;
       await tester.pumpWidget(

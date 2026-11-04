@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/features/widgets/common/explore_nav_bar.dart';
-import 'package:uwearis/features/widgets/common/main_nav_bar.dart';
 import 'package:uwearis/features/widgets/common/nav_bar_tab.dart';
+import 'package:uwearis/features/widgets/common/wardrobe_nav_bar.dart';
 
 import '../helpers/text_scale_harness.dart';
 import '../helpers/widget_harness.dart';
@@ -102,25 +102,27 @@ void _expectNothingClipped(WidgetTester tester) {
   }
 }
 
-Future<void> _pumpMain(WidgetTester tester, {MainTab current = MainTab.home}) =>
-    pumpApp(
-      tester,
-      Scaffold(
-        body: Stack(
-          children: [
-            MainNavBar(
-              current: current,
-              onSelect: (_) {},
-              onQuickAction: (_) {},
-            ),
-          ],
+Future<void> _pumpMain(
+  WidgetTester tester, {
+  WardrobeTab current = WardrobeTab.home,
+}) => pumpApp(
+  tester,
+  Scaffold(
+    body: Stack(
+      children: [
+        WardrobeNavBar(
+          current: current,
+          onSelect: (_) {},
+          onQuickAction: (_) {},
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
 
 Future<void> _pumpExplore(
   WidgetTester tester, {
-  ExploreTab current = ExploreTab.explore,
+  ExploreTab current = ExploreTab.home,
 }) => pumpApp(
   tester,
   Scaffold(
@@ -150,7 +152,7 @@ void main() {
       tester,
     ) async {
       applyLayoutCase(tester, c);
-      for (final tab in [MainTab.home, MainTab.tripPlanner]) {
+      for (final tab in [WardrobeTab.home, WardrobeTab.tripPlanner]) {
         await _pumpMain(tester, current: tab);
         await tester.pumpAndSettle();
         _tabWidths(tester, 4);
@@ -158,7 +160,7 @@ void main() {
         _expectNothingClipped(tester);
         _expectHighlightCentered(tester);
       }
-      for (final tab in [ExploreTab.explore, ExploreTab.inbox]) {
+      for (final tab in [ExploreTab.home, ExploreTab.inbox]) {
         await _pumpExplore(tester, current: tab);
         await tester.pumpAndSettle();
         _tabWidths(tester, 5);

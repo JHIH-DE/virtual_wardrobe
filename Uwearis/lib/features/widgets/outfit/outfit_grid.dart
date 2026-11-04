@@ -30,7 +30,7 @@ class OutfitGrid extends StatelessWidget {
   final String? emptyActionLabel;
   final VoidCallback? onEmptyAction;
 
-  // Clears the floating MainNavBar on a main tab.
+  // Clears the floating WardrobeNavBar on a wardrobe tab.
   final double emptyBottomInset;
 
   const OutfitGrid({

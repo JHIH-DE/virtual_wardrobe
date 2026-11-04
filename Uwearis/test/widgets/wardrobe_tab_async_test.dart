@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
-import 'package:uwearis/features/widgets/common/main_tab_async.dart';
 import 'package:uwearis/features/widgets/common/overlays/error_state_widget.dart';
+import 'package:uwearis/features/widgets/common/wardrobe_tab_async.dart';
 
 import '../helpers/widget_harness.dart';
 
 void main() {
   Widget bodyFor(AsyncValue<List<int>> state, {VoidCallback? onRetry}) {
     return Scaffold(
-      body: state.mainTabBody(
+      body: state.wardrobeTabBody(
         onRetry: onRetry ?? () {},
         data: (value) => Text('data: ${value.join(",")}'),
       ),

@@ -2,37 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/auth_handler.dart';
-import 'main_nav_bar.dart';
 import 'overlays/error_state_widget.dart';
+import 'wardrobe_nav_bar.dart';
 
-/// Returns the report callback for a main-tab list provider (My Closet /
+/// Returns the report callback for a wardrobe-tab list provider (My Closet /
 /// Outfits / Trips): mirrors loading to the shell overlay and routes auth
 /// expiry to [AuthExpiredHandler]. Wire it in `initState`'s post-frame
 /// callback:
 /// ```dart
-/// final report = mainTabReporter(context,
-///     loadingLabel: l10n.loadingXEllipsis, tab: MainTab.x);
+/// final report = wardrobeTabReporter(context,
+///     loadingLabel: l10n.loadingXEllipsis, tab: WardrobeTab.x);
 /// report(ref.read(myProvider));
 /// ref.listenManual(myProvider, (_, next) => report(next));
 /// ```
-void Function(AsyncValue<Object?>) mainTabReporter(
+void Function(AsyncValue<Object?>) wardrobeTabReporter(
   BuildContext context, {
   required String loadingLabel,
-  required MainTab tab,
+  required WardrobeTab tab,
 }) {
   return (state) {
     if (state.hasError && state.error is AuthExpiredException) {
       AuthExpiredHandler.handle(context);
     }
-    MainShellScope.of(
+    WardrobeShellScope.of(
       context,
     )?.setLoading(state.isLoading, label: loadingLabel, tab: tab);
   };
 }
 
-extension MainTabAsyncBody<T> on AsyncValue<T> {
+extension WardrobeTabAsyncBody<T> on AsyncValue<T> {
   /// Empty while loading — the shell overlay covers the screen.
-  Widget mainTabBody({
+  Widget wardrobeTabBody({
     required Widget Function(T value) data,
     required VoidCallback onRetry,
   }) {

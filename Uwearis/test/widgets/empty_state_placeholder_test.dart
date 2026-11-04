@@ -46,7 +46,7 @@ void main() {
 
   testWidgets(
     'bottomInset excludes that much space from the bottom of the centering '
-    'area (e.g. a floating MainNavBar the Scaffold.body does not shrink for)',
+    'area (e.g. a floating WardrobeNavBar the Scaffold.body does not shrink for)',
     (tester) async {
       useTallSurface(tester);
       const height = 800.0;

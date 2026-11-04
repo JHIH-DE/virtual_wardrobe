@@ -9,9 +9,9 @@ import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/filter_button.dart';
-import '../../widgets/common/main_nav_bar.dart';
-import '../../widgets/common/main_tab_async.dart';
 import '../../widgets/common/overlays/empty_state_placeholder.dart';
+import '../../widgets/common/wardrobe_nav_bar.dart';
+import '../../widgets/common/wardrobe_tab_async.dart';
 import '../../widgets/garment/category_selector.dart';
 import '../../widgets/garment/garment_card.dart';
 import '../../widgets/garment/garment_grid.dart';
@@ -38,10 +38,10 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final report = mainTabReporter(
+      final report = wardrobeTabReporter(
         context,
         loadingLabel: AppLocalizations.of(context).loadingClosetEllipsis,
-        tab: MainTab.closet,
+        tab: WardrobeTab.closet,
       );
       report(ref.read(garmentsProvider));
       ref.listenManual(garmentsProvider, (_, next) => report(next));
@@ -171,7 +171,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: _buildAppBar(garmentsAsync),
-      body: garmentsAsync.mainTabBody(
+      body: garmentsAsync.wardrobeTabBody(
         data: _buildBody,
         onRetry: () => ref.read(garmentsProvider.notifier).refresh(),
       ),
@@ -231,7 +231,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
         onAction: _addGarment,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         fillAvailableSpace: true,
-        bottomInset: AppDimens.mainNavBarClearance,
+        bottomInset: AppDimens.navBarClearance,
       );
     }
 
@@ -240,7 +240,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
         16,
         AppDimens.cardSpacing,
         16,
-        AppDimens.mainNavBarClearance,
+        AppDimens.navBarClearance,
       ),
       itemCount: garments.length,
       itemBuilder: (context, index) => _buildGarmentCard(garments[index]),

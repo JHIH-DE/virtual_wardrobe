@@ -12,30 +12,30 @@ import '../core/utils/debug_log.dart';
 import '../core/utils/pending_try_on_recovery.dart';
 import '../features/pages/wardrobe/closet_page.dart';
 import '../features/pages/wardrobe/create_outfit_page.dart';
-import '../features/pages/wardrobe/home_page.dart';
 import '../features/pages/wardrobe/outfits_page.dart';
 import '../features/pages/wardrobe/trips_page.dart';
-import '../features/widgets/common/main_nav_bar.dart';
+import '../features/pages/wardrobe/wardrobe_home_page.dart';
 import '../features/widgets/common/overlays/error_dialog.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
+import '../features/widgets/common/wardrobe_nav_bar.dart';
 import '../features/widgets/garment/garment_upload_helper.dart';
 import '../l10n/generated/app_localizations.dart';
 
-/// Keeps the 4 main tabs alive in an [IndexedStack] (scroll position and
+/// Keeps the 4 wardrobe tabs alive in an [IndexedStack] (scroll position and
 /// filters survive tab switches) and owns the nav bar and its quick actions.
-class MainShell extends ConsumerStatefulWidget {
-  const MainShell({super.key});
+class WardrobeShell extends ConsumerStatefulWidget {
+  const WardrobeShell({super.key});
 
   @override
-  ConsumerState<MainShell> createState() => _MainShellState();
+  ConsumerState<WardrobeShell> createState() => _WardrobeShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell>
+class _WardrobeShellState extends ConsumerState<WardrobeShell>
     with WidgetsBindingObserver {
-  MainTab _current = MainTab.home;
+  WardrobeTab _current = WardrobeTab.home;
   // Keyed by tab so a hidden tab's background fetch never shows the overlay
   // over the visible tab.
-  final Map<MainTab, String?> _loadingLabelByTab = {};
+  final Map<WardrobeTab, String?> _loadingLabelByTab = {};
 
   bool _recoveringTryOns = false;
 
@@ -80,17 +80,21 @@ class _MainShellState extends ConsumerState<MainShell>
         }
       }
     } catch (e) {
-      debugLog('MainShell: try-on recovery failed: $e');
+      debugLog('WardrobeShell: try-on recovery failed: $e');
     } finally {
       _recoveringTryOns = false;
     }
   }
 
-  void _select(MainTab tab) {
+  void _select(WardrobeTab tab) {
     if (tab != _current) setState(() => _current = tab);
   }
 
-  void _setGlobalLoading(bool loading, {String? label, required MainTab tab}) {
+  void _setGlobalLoading(
+    bool loading, {
+    String? label,
+    required WardrobeTab tab,
+  }) {
     final next = loading ? (label ?? '') : null;
     if (_loadingLabelByTab[tab] == next) return;
     setState(() {
@@ -107,7 +111,7 @@ class _MainShellState extends ConsumerState<MainShell>
   void _handleSwipe(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     const threshold = 200.0;
-    final tabs = MainTab.values;
+    final tabs = WardrobeTab.values;
     final i = tabs.indexOf(_current);
     if (velocity < -threshold) {
       _select(tabs[(i + 1) % tabs.length]);
@@ -123,7 +127,7 @@ class _MainShellState extends ConsumerState<MainShell>
           context,
           onAdded: (g) {
             ref.read(garmentsProvider.notifier).addGarment(g);
-            _select(MainTab.closet);
+            _select(WardrobeTab.closet);
           },
         );
       case QuickAction.addOutfit:
@@ -132,14 +136,14 @@ class _MainShellState extends ConsumerState<MainShell>
         await handleCreateTrip(
           context,
           ref,
-          onCreated: () => _select(MainTab.tripPlanner),
+          onCreated: () => _select(WardrobeTab.tripPlanner),
         );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return MainShellScope(
+    return WardrobeShellScope(
       selectTab: _select,
       setLoading: _setGlobalLoading,
       child: Stack(
@@ -148,21 +152,21 @@ class _MainShellState extends ConsumerState<MainShell>
             behavior: HitTestBehavior.translucent,
             onHorizontalDragEnd: _handleSwipe,
             child: IndexedStack(
-              index: MainTab.values.indexOf(_current),
+              index: WardrobeTab.values.indexOf(_current),
               children: const [
-                HomePage(),
+                WardrobeHomePage(),
                 ClosetPage(),
                 OutfitsPage(),
                 TripsPage(),
               ],
             ),
           ),
-          MainNavBar(
+          WardrobeNavBar(
             current: _current,
             onSelect: _select,
             onQuickAction: _handleQuickAction,
           ),
-          // Painted last so it also covers MainNavBar.
+          // Painted last so it also covers WardrobeNavBar.
           if (_loadingLabelByTab[_current] != null)
             LoadingOverlay(label: _loadingLabelByTab[_current]!),
         ],

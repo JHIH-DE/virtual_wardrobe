@@ -28,7 +28,7 @@ class EmptyStatePlaceholder extends StatelessWidget {
   /// changing never shifts the centered content.
   final Widget? pinnedTop;
 
-  /// Main tabs pass [AppDimens.mainNavBarClearance]: the floating nav bar
+  /// Wardrobe tabs pass [AppDimens.navBarClearance]: the floating nav bar
   /// doesn't shorten their body, so content would center too low.
   final double bottomInset;
 

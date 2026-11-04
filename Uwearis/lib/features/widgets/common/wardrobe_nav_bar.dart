@@ -6,43 +6,43 @@ import '../../../l10n/generated/app_localizations.dart';
 import 'nav_bar_tab.dart';
 import 'pressed_state_mixin.dart';
 
-enum MainTab { home, closet, outfits, tripPlanner }
+enum WardrobeTab { home, closet, outfits, tripPlanner }
 
 enum QuickAction { addClothing, addOutfit, newTrip }
 
-/// Lets a descendant page switch `MainShell`'s tab or show its loading
+/// Lets a descendant page switch `WardrobeShell`'s tab or show its loading
 /// overlay.
-class MainShellScope extends InheritedWidget {
-  final ValueChanged<MainTab> selectTab;
+class WardrobeShellScope extends InheritedWidget {
+  final ValueChanged<WardrobeTab> selectTab;
 
-  /// A shell-level overlay, since a tab body sits below [MainNavBar] and
+  /// A shell-level overlay, since a tab body sits below [WardrobeNavBar] and
   /// can't cover it. Shown only while [tab] is active — every tab stays
   /// mounted, so a background tab's fetch must not mask the screen.
-  final void Function(bool loading, {String? label, required MainTab tab})
+  final void Function(bool loading, {String? label, required WardrobeTab tab})
   setLoading;
 
-  const MainShellScope({
+  const WardrobeShellScope({
     super.key,
     required this.selectTab,
     required this.setLoading,
     required super.child,
   });
-  static MainShellScope? of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<MainShellScope>();
+  static WardrobeShellScope? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<WardrobeShellScope>();
 
   @override
-  bool updateShouldNotify(MainShellScope oldWidget) =>
+  bool updateShouldNotify(WardrobeShellScope oldWidget) =>
       selectTab != oldWidget.selectTab || setLoading != oldWidget.setLoading;
 }
 
 /// Floating bottom nav bar with a raised center quick-action button.
 /// Presentational only; the host handles [onSelect] / [onQuickAction].
-class MainNavBar extends StatefulWidget {
-  final MainTab current;
-  final ValueChanged<MainTab> onSelect;
+class WardrobeNavBar extends StatefulWidget {
+  final WardrobeTab current;
+  final ValueChanged<WardrobeTab> onSelect;
   final ValueChanged<QuickAction> onQuickAction;
 
-  const MainNavBar({
+  const WardrobeNavBar({
     super.key,
     required this.current,
     required this.onSelect,
@@ -50,10 +50,10 @@ class MainNavBar extends StatefulWidget {
   });
 
   @override
-  State<MainNavBar> createState() => _MainNavBarState();
+  State<WardrobeNavBar> createState() => _WardrobeNavBarState();
 }
 
-class _MainNavBarState extends State<MainNavBar> {
+class _WardrobeNavBarState extends State<WardrobeNavBar> {
   static const double _centerButtonSize = 56;
   static const double _notchRadius = 34;
 
@@ -86,26 +86,26 @@ class _MainNavBarState extends State<MainNavBar> {
                     child: NavBarTabRow(
                       children: [
                         _tab(
-                          MainTab.home,
+                          WardrobeTab.home,
                           activeIcon: Icons.home_rounded,
                           inactiveIcon: Icons.home_outlined,
                           label: l10n.navHome,
                         ),
                         _tab(
-                          MainTab.closet,
+                          WardrobeTab.closet,
                           activeIcon: Icons.checkroom_rounded,
                           inactiveIcon: Icons.checkroom_outlined,
                           label: l10n.navCloset,
                         ),
                         const SizedBox(width: _centerButtonSize),
                         _tab(
-                          MainTab.outfits,
+                          WardrobeTab.outfits,
                           activeIcon: Icons.style_rounded,
                           inactiveIcon: Icons.style_outlined,
                           label: l10n.navOutfits,
                         ),
                         _tab(
-                          MainTab.tripPlanner,
+                          WardrobeTab.tripPlanner,
                           activeIcon: Icons.luggage_rounded,
                           inactiveIcon: Icons.luggage_outlined,
                           label: l10n.navTrips,
@@ -130,7 +130,7 @@ class _MainNavBarState extends State<MainNavBar> {
   }
 
   Widget _tab(
-    MainTab tab, {
+    WardrobeTab tab, {
     required IconData activeIcon,
     required IconData inactiveIcon,
     required String label,
@@ -145,7 +145,7 @@ class _MainNavBarState extends State<MainNavBar> {
   }
 
   Widget _buildQuickActionButton(BuildContext context) {
-    final showClose = widget.current == MainTab.home && _menuOpen;
+    final showClose = widget.current == WardrobeTab.home && _menuOpen;
     return _QuickActionButton(
       size: _centerButtonSize,
       icon: showClose ? Icons.close : Icons.add,
@@ -158,10 +158,10 @@ class _MainNavBarState extends State<MainNavBar> {
   /// Non-Home tabs imply their action; only Home shows the menu.
   void _handleQuickActionTap(BuildContext context) {
     final directAction = switch (widget.current) {
-      MainTab.closet => QuickAction.addClothing,
-      MainTab.outfits => QuickAction.addOutfit,
-      MainTab.tripPlanner => QuickAction.newTrip,
-      MainTab.home => null,
+      WardrobeTab.closet => QuickAction.addClothing,
+      WardrobeTab.outfits => QuickAction.addOutfit,
+      WardrobeTab.tripPlanner => QuickAction.newTrip,
+      WardrobeTab.home => null,
     };
     if (directAction != null) {
       widget.onQuickAction(directAction);
