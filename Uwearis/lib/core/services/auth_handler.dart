@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/pages/login_page.dart';
+import '../../features/pages/common/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers/daily_outfit_provider.dart';

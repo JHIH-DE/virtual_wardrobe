@@ -1053,12 +1053,6 @@ abstract class AppLocalizations {
   /// **'Explore'**
   String get explore;
 
-  /// No description provided for @notifications.
-  ///
-  /// In en, this message translates to:
-  /// **'Notifications'**
-  String get notifications;
-
   /// No description provided for @exploreNavSearch.
   ///
   /// In en, this message translates to:
@@ -1076,6 +1070,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved'**
   String get exploreNavSaved;
+
+  /// No description provided for @exploreNavInbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get exploreNavInbox;
 
   /// No description provided for @finishOutfit.
   ///

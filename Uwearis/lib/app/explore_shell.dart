@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../features/pages/account_page.dart';
-import '../features/pages/bag_page.dart';
-import '../features/pages/explore_page.dart';
-import '../features/pages/saved_page.dart';
-import '../features/pages/search_page.dart';
+import '../features/pages/explore/bag_page.dart';
+import '../features/pages/explore/explore_page.dart';
+import '../features/pages/explore/inbox_page.dart';
+import '../features/pages/explore/saved_page.dart';
+import '../features/pages/explore/search_page.dart';
 import '../features/widgets/common/explore_nav_bar.dart';
 
 /// Explore's counterpart to `MainShell`, pushed from Home: keeps its tabs
@@ -51,7 +51,7 @@ class _ExploreShellState extends State<ExploreShell> {
               SearchPage(),
               BagPage(),
               SavedPage(),
-              AccountPage(),
+              InboxPage(),
             ],
           ),
         ),

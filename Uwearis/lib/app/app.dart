@@ -5,7 +5,7 @@ import '../core/providers/locale_provider.dart';
 import '../core/services/auth_storage.dart';
 import '../core/utils/crash_handler.dart';
 import '../core/utils/route_observer.dart';
-import '../features/pages/login_page.dart';
+import '../features/pages/common/login_page.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'main_shell.dart';

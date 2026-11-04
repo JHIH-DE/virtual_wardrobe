@@ -158,7 +158,7 @@ void main() {
         _expectNothingClipped(tester);
         _expectHighlightCentered(tester);
       }
-      for (final tab in [ExploreTab.explore, ExploreTab.account]) {
+      for (final tab in [ExploreTab.explore, ExploreTab.inbox]) {
         await _pumpExplore(tester, current: tab);
         await tester.pumpAndSettle();
         _tabWidths(tester, 5);

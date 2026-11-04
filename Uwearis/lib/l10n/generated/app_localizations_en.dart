@@ -543,9 +543,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get explore => 'Explore';
 
   @override
-  String get notifications => 'Notifications';
-
-  @override
   String get exploreNavSearch => 'Search';
 
   @override
@@ -553,6 +550,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exploreNavSaved => 'Saved';
+
+  @override
+  String get exploreNavInbox => 'Inbox';
 
   @override
   String get finishOutfit => 'AI Styling';

@@ -7,7 +7,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/location_result.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../pages/location_picker_page.dart';
+import '../../pages/common/location_picker_page.dart';
 import '../common/buttons/accent_pill_button.dart';
 import '../common/cards/card_corner_badge.dart';
 import '../common/field_label.dart';

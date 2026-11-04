@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:uwearis/features/pages/location_picker_page.dart';
+import 'package:uwearis/features/pages/common/location_picker_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/trip/trip_create_dialog.dart';
 

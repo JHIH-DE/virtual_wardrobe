@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_text_styles.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../pages/camera_capture_page.dart';
+import '../../../pages/common/camera_capture_page.dart';
 import 'app_dialog.dart';
 import 'dialog_option_card.dart';
 

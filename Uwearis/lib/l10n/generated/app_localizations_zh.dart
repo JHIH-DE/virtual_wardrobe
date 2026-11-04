@@ -509,9 +509,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get explore => '探索';
 
   @override
-  String get notifications => '通知';
-
-  @override
   String get exploreNavSearch => '搜尋';
 
   @override
@@ -519,6 +516,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exploreNavSaved => '收藏';
+
+  @override
+  String get exploreNavInbox => '通知';
 
   @override
   String get finishOutfit => 'AI 造型';
@@ -2361,9 +2361,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get explore => '探索';
 
   @override
-  String get notifications => '通知';
-
-  @override
   String get exploreNavSearch => '搜尋';
 
   @override
@@ -2371,6 +2368,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exploreNavSaved => '收藏';
+
+  @override
+  String get exploreNavInbox => '通知';
 
   @override
   String get finishOutfit => 'AI 造型';

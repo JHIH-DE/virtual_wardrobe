@@ -8,7 +8,7 @@ import '../../../core/utils/debug_log.dart';
 import '../../../data/garment.dart';
 import '../../../data/image_edit_result.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../pages/garment_details_page.dart';
+import '../../pages/wardrobe/garment_details_page.dart';
 import '../common/overlays/ai_consent_dialog.dart';
 import '../common/overlays/app_dialog.dart';
 import '../common/overlays/feedback_overlay.dart';
