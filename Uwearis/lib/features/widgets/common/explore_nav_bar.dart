@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'nav_bar_tab.dart';
 
-enum ExploreTab { forYou, search, bag, saved, account }
+enum ExploreTab { explore, search, bag, saved, account }
 
-/// [ExplorePage]'s bottom nav: [MainNavBar]'s frosted pill and tab sizing
+/// `ExploreShell`'s bottom nav: [MainNavBar]'s frosted pill and tab sizing
 /// with five tabs and no raised center button. Purely presentational.
 class ExploreNavBar extends StatelessWidget {
   final ExploreTab current;
@@ -32,10 +32,10 @@ class ExploreNavBar extends StatelessWidget {
             child: NavBarTabRow(
               children: [
                 _tab(
-                  ExploreTab.forYou,
-                  activeIcon: Icons.auto_awesome,
-                  inactiveIcon: Icons.auto_awesome_outlined,
-                  label: l10n.exploreNavForYou,
+                  ExploreTab.explore,
+                  activeIcon: Icons.home_rounded,
+                  inactiveIcon: Icons.home_outlined,
+                  label: l10n.navHome,
                 ),
                 _tab(
                   ExploreTab.search,

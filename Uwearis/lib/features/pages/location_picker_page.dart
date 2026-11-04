@@ -8,6 +8,7 @@ import '../../core/utils/debug_log.dart';
 import '../../data/location_result.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/app_tool_bar.dart';
+import '../widgets/common/fields/app_search_bar.dart';
 import '../widgets/common/images/app_spinner.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 
@@ -131,18 +132,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Widget _buildSearchField() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: TextField(
+      child: AppSearchBar(
         controller: _controller,
-        decoration: InputDecoration(
-          hintText: _l10n.cityNameHint,
-          prefixIcon: const Icon(Icons.search),
-          filled: true,
-          fillColor: AppColors.surface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
+        hint: _l10n.cityNameHint,
         onSubmitted: (_) => _search(),
       ),
     );

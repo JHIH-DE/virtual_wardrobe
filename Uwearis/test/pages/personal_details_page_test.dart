@@ -9,7 +9,7 @@ import 'package:uwearis/core/providers/profile_provider.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
 import 'package:uwearis/data/image_edit_result.dart';
-import 'package:uwearis/features/pages/account_page.dart';
+import 'package:uwearis/features/pages/personal_details_page.dart';
 import 'package:uwearis/features/pages/image_editor_page.dart';
 import 'package:uwearis/features/widgets/common/profile_avatar.dart';
 import 'package:uwearis/features/pages/my_outfit_profile_page.dart';
@@ -59,7 +59,7 @@ void main() {
     (tester) async {
       await pumpApp(
         tester,
-        const AccountPage(),
+        const PersonalDetailsPage(),
         overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
       );
       await tester.pump();
@@ -95,7 +95,7 @@ void main() {
     useTallSurface(tester);
     await pumpApp(
       tester,
-      AccountPage(completingOnboarding: completingOnboarding),
+      PersonalDetailsPage(completingOnboarding: completingOnboarding),
       overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
     );
     await tester.pump();
@@ -112,7 +112,7 @@ void main() {
           builder: (context) => TextButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AccountPage()),
+              MaterialPageRoute(builder: (_) => const PersonalDetailsPage()),
             ),
             child: const Text('open'),
           ),
@@ -226,7 +226,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(patches.single['weight'], 72);
-      expect(find.byType(AccountPage), findsNothing);
+      expect(find.byType(PersonalDetailsPage), findsNothing);
     }, backend);
   });
 
@@ -304,7 +304,7 @@ void main() {
     await http.runWithClient(() async {
       await pumpApp(
         tester,
-        const AccountPage(),
+        const PersonalDetailsPage(),
         overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
       );
       await tester.pump();

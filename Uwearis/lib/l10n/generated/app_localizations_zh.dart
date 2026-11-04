@@ -18,6 +18,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get account => '帳號';
 
   @override
+  String get personalDetails => '個人資料';
+
+  @override
   String get accountSummary => '個人資料與安全性';
 
   @override
@@ -51,10 +54,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get facePhotoLabel => '脸部照片';
 
   @override
+  String get facePhotoGuidance => '正面朝前，光线充足。';
+
+  @override
   String get faceReferenceComingSoon => '即將推出';
 
   @override
   String get fullBodyPhotoLabel => '全身照片';
+
+  @override
+  String get fullBodyPhotoGuidance => '从头到脚完整入镜。';
 
   @override
   String get bodyMeasurementsLabel => '身形數據';
@@ -494,16 +503,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navHome => '首頁';
 
   @override
+  String get wardrobe => '衣櫥';
+
+  @override
   String get explore => '探索';
 
   @override
-  String get exploreComingSoon => '即將推出';
-
-  @override
   String get notifications => '通知';
-
-  @override
-  String get exploreNavForYou => '為你推薦';
 
   @override
   String get exploreNavSearch => '搜尋';
@@ -1864,6 +1870,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get account => '帳號';
 
   @override
+  String get personalDetails => '個人資料';
+
+  @override
   String get accountSummary => '個人資料與安全性';
 
   @override
@@ -1897,10 +1906,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get facePhotoLabel => '臉部照片';
 
   @override
+  String get facePhotoGuidance => '正面朝前，光線充足。';
+
+  @override
   String get faceReferenceComingSoon => '即將推出';
 
   @override
   String get fullBodyPhotoLabel => '全身照片';
+
+  @override
+  String get fullBodyPhotoGuidance => '從頭到腳完整入鏡。';
 
   @override
   String get bodyMeasurementsLabel => '身形數據';
@@ -2340,16 +2355,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get navHome => '首頁';
 
   @override
+  String get wardrobe => '衣櫥';
+
+  @override
   String get explore => '探索';
 
   @override
-  String get exploreComingSoon => '即將推出';
-
-  @override
   String get notifications => '通知';
-
-  @override
-  String get exploreNavForYou => '為你推薦';
 
   @override
   String get exploreNavSearch => '搜尋';

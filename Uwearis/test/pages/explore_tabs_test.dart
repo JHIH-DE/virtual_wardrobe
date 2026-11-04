@@ -1,0 +1,93 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/app/explore_shell.dart';
+import 'package:uwearis/features/pages/account_page.dart';
+import 'package:uwearis/features/pages/bag_page.dart';
+import 'package:uwearis/features/pages/explore_page.dart';
+import 'package:uwearis/features/pages/saved_page.dart';
+import 'package:uwearis/features/pages/search_page.dart';
+import 'package:uwearis/features/widgets/common/app_tool_bar.dart';
+import 'package:uwearis/features/widgets/common/explore_nav_bar.dart';
+
+import '../helpers/widget_harness.dart';
+
+Future<void> _pumpShell(WidgetTester tester) async {
+  await pumpApp(tester, const ExploreShell());
+  await tester.pump();
+}
+
+Future<void> _tapTab(WidgetTester tester, String label) async {
+  await tester.tap(
+    find.descendant(of: find.byType(ExploreNavBar), matching: find.text(label)),
+  );
+  await tester.pump();
+  await tester.pump();
+}
+
+void main() {
+  testWidgets('opens on the Explore page and switches tabs from the nav bar', (
+    tester,
+  ) async {
+    await _pumpShell(tester);
+    expect(find.byType(ExplorePage), findsOneWidget);
+
+    for (final (label, type) in [
+      ('Search', SearchPage),
+      ('Bag', BagPage),
+      ('Saved', SavedPage),
+      ('Account', AccountPage),
+      ('Home', ExplorePage),
+    ]) {
+      await _tapTab(tester, label);
+      expect(find.byType(type), findsOneWidget, reason: label);
+    }
+  });
+
+  testWidgets('Bag, Saved and Account carry a title bar named after the tab', (
+    tester,
+  ) async {
+    await _pumpShell(tester);
+
+    for (final (label, type) in [
+      ('Bag', BagPage),
+      ('Saved', SavedPage),
+      ('Account', AccountPage),
+    ]) {
+      await _tapTab(tester, label);
+      final bar = tester.widget<AppToolBar>(
+        find.descendant(
+          of: find.byType(type),
+          matching: find.byType(AppToolBar),
+        ),
+      );
+      expect(bar.title, label);
+      expect(bar.centerTitle, isFalse);
+      expect(bar.showBackButton, isFalse);
+    }
+  });
+
+  testWidgets('a tab keeps its state across tab switches', (tester) async {
+    await _pumpShell(tester);
+
+    await _tapTab(tester, 'Search');
+    await tester.enterText(find.byType(TextField), 'denim');
+    await _tapTab(tester, 'Bag');
+    await _tapTab(tester, 'Search');
+
+    expect(find.text('denim'), findsOneWidget);
+  });
+
+  testWidgets('swiping cycles through the tabs', (tester) async {
+    await _pumpShell(tester);
+
+    await tester.fling(find.byType(ExplorePage), const Offset(-300, 0), 1000);
+    await tester.pump();
+    expect(find.byType(SearchPage), findsOneWidget);
+
+    await tester.fling(find.byType(SearchPage), const Offset(300, 0), 1000);
+    await tester.pump();
+    await tester.fling(find.byType(ExplorePage), const Offset(300, 0), 1000);
+    await tester.pump();
+    expect(find.byType(AccountPage), findsOneWidget);
+  });
+}

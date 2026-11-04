@@ -274,7 +274,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
           icon: const Icon(
             Icons.delete_outline,
             size: 20,
-            color: AppColors.icon,
+            color: AppColors.error,
           ),
           label: _l10n.deleteOutfitTitle,
           isDestructive: true,
@@ -830,7 +830,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
             icon: const Icon(
               Icons.delete_outline,
               size: 20,
-              color: AppColors.icon,
+              color: AppColors.error,
             ),
             label: _l10n.deleteThisVersion,
             isDestructive: true,

@@ -12,7 +12,6 @@ import '../widgets/common/buttons/filter_button.dart';
 import '../widgets/common/main_nav_bar.dart';
 import '../widgets/common/main_tab_async.dart';
 import '../widgets/common/overlays/empty_state_placeholder.dart';
-import '../widgets/common/overlays/feedback_overlay.dart';
 import '../widgets/garment/category_selector.dart';
 import '../widgets/garment/garment_card.dart';
 import '../widgets/garment/garment_grid.dart';
@@ -263,24 +262,6 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
     );
   }
 
-  Future<void> _editGarment(Garment garment) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => GarmentDetailsPage(initialGarment: garment),
-      ),
-    );
-
-    if (result == 'deleted') {
-      ref.read(garmentsProvider.notifier).removeGarment(garment.id!);
-      if (mounted) {
-        showFeedbackOverlay(
-          context,
-          message: AppLocalizations.of(context).itemDeleted,
-          imagePath: 'assets/images/delete_success.png',
-        );
-      }
-    }
-    // Edits sync garmentsProvider from inside GarmentDetailsPage.
-  }
+  Future<void> _editGarment(Garment garment) =>
+      GarmentDetailsPage.open(context, ref, garment, announceDelete: true);
 }

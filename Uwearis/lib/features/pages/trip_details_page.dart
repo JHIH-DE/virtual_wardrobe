@@ -280,7 +280,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                 color: AppColors.icon,
               ),
               label: _l10n.clearTrip,
-              isDestructive: true,
               enabled:
                   !_actionsLocked &&
                   (_detail.outfits.isNotEmpty || _detail.suitcase.isNotEmpty),
@@ -290,7 +289,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               icon: const Icon(
                 Icons.delete_outline,
                 size: 20,
-                color: AppColors.icon,
+                color: AppColors.error,
               ),
               label: _l10n.deleteTrip,
               isDestructive: true,

@@ -120,7 +120,7 @@ Future<void> _pumpMain(WidgetTester tester, {MainTab current = MainTab.home}) =>
 
 Future<void> _pumpExplore(
   WidgetTester tester, {
-  ExploreTab current = ExploreTab.forYou,
+  ExploreTab current = ExploreTab.explore,
 }) => pumpApp(
   tester,
   Scaffold(
@@ -158,7 +158,7 @@ void main() {
         _expectNothingClipped(tester);
         _expectHighlightCentered(tester);
       }
-      for (final tab in [ExploreTab.forYou, ExploreTab.account]) {
+      for (final tab in [ExploreTab.explore, ExploreTab.account]) {
         await _pumpExplore(tester, current: tab);
         await tester.pumpAndSettle();
         _tabWidths(tester, 5);

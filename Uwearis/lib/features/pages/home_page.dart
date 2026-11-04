@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/explore_shell.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_dimens.dart';
 import '../../app/theme/app_text_styles.dart';
@@ -36,9 +37,8 @@ import '../widgets/garment/garment_upload_helper.dart';
 import '../widgets/home/home_getting_started_view.dart';
 import '../widgets/outfit/outfit_image.dart';
 import '../widgets/trip/trip_card.dart';
-import 'account_page.dart';
+import 'personal_details_page.dart';
 import 'create_outfit_page.dart';
-import 'explore_page.dart';
 import 'garment_details_page.dart';
 import 'my_outfit_profile_page.dart';
 import 'outfit_details_page.dart';
@@ -288,7 +288,7 @@ class _HomePageState extends ConsumerState<HomePage>
             hasBottom: _hasBottom,
             hasShoes: _hasShoes,
             hasCreatedOutfit: _hasCreatedOutfit,
-            onGetStarted: _openAccountPageForOnboarding,
+            onGetStarted: _openPersonalDetailsForOnboarding,
             onSetUpVirtualModel: _openMyOutfitProfile,
             onAddClothing: _addGarment,
             onCreateOutfit: _openAddOutfit,
@@ -298,12 +298,12 @@ class _HomePageState extends ConsumerState<HomePage>
     ),
   ];
 
-  /// AccountPage continues on to MyOutfitProfilePage in onboarding mode.
-  void _openAccountPageForOnboarding() {
+  /// PersonalDetailsPage continues on to MyOutfitProfilePage in onboarding mode.
+  void _openPersonalDetailsForOnboarding() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const AccountPage(completingOnboarding: true),
+        builder: (_) => const PersonalDetailsPage(completingOnboarding: true),
       ),
     );
   }
@@ -385,7 +385,7 @@ class _HomePageState extends ConsumerState<HomePage>
           variant: AccentPillButtonVariant.toolbar,
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ExplorePage()),
+            MaterialPageRoute(builder: (_) => const ExploreShell()),
           ),
         ),
       ),
@@ -748,18 +748,6 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  Future<void> _openGarment(Garment garment) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => GarmentDetailsPage(initialGarment: garment),
-      ),
-    );
-    if (!mounted) return;
-    // Edits auto-save and sync garmentsProvider from inside the page; only
-    // a delete comes back as a result.
-    if (result == 'deleted' && garment.id != null) {
-      ref.read(garmentsProvider.notifier).removeGarment(garment.id!);
-    }
-  }
+  Future<void> _openGarment(Garment garment) =>
+      GarmentDetailsPage.open(context, ref, garment);
 }

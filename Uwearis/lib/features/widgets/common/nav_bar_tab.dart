@@ -126,7 +126,7 @@ class NavBarTab extends StatelessWidget {
 /// own widths, and only if even those don't fit do they shrink in
 /// proportion with ellipsized labels.
 class NavBarTabRow extends StatelessWidget {
-  /// Fits the widest current label (為你推薦) at the default text size.
+  /// Fits the widest current label at the default text size.
   static const double tabWidth = 60;
 
   final List<Widget> children;

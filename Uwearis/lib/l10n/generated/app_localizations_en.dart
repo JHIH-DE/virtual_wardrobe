@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get account => 'Account';
 
   @override
+  String get personalDetails => 'Personal Details';
+
+  @override
   String get accountSummary => 'Personal details & security';
 
   @override
@@ -53,10 +56,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get facePhotoLabel => 'Face Photo';
 
   @override
+  String get facePhotoGuidance => 'Face forward in good lighting.';
+
+  @override
   String get faceReferenceComingSoon => 'Coming soon';
 
   @override
   String get fullBodyPhotoLabel => 'Full-Body Photo';
+
+  @override
+  String get fullBodyPhotoGuidance =>
+      'Keep your full body visible, head to toe.';
 
   @override
   String get bodyMeasurementsLabel => 'Body Measurements';
@@ -527,16 +537,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navHome => 'Home';
 
   @override
+  String get wardrobe => 'Wardrobe';
+
+  @override
   String get explore => 'Explore';
 
   @override
-  String get exploreComingSoon => 'Coming soon';
-
-  @override
   String get notifications => 'Notifications';
-
-  @override
-  String get exploreNavForYou => 'For you';
 
   @override
   String get exploreNavSearch => 'Search';

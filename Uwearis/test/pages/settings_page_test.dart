@@ -141,7 +141,7 @@ void main() {
         expect(find.text('My Virtual Model'), findsNothing);
         expect(find.text('Temperature Preference'), findsNothing);
         expect(find.text('Lifestyle'), findsNothing);
-        expect(find.text('Account'), findsOneWidget);
+        expect(find.text('Personal Details'), findsOneWidget);
         expect(find.text('Style Taste'), findsOneWidget);
         expect(find.text('Language'), findsOneWidget);
       });

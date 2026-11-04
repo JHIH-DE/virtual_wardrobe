@@ -91,7 +91,7 @@ class TripCard extends StatelessWidget {
                                 icon: const Icon(
                                   Icons.delete_outline,
                                   size: 20,
-                                  color: AppColors.icon,
+                                  color: AppColors.error,
                                 ),
                                 label: l10n.deleteTrip,
                                 isDestructive: true,

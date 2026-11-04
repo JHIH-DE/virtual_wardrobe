@@ -21,6 +21,9 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
   final bool centerTitle;
 
+  /// Gap on both sides of the title; defaults per [leading] below.
+  final double? titleSpacing;
+
   const AppToolBar({
     super.key,
     required this.title,
@@ -33,6 +36,7 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.bottom,
     this.centerTitle = true,
+    this.titleSpacing,
   });
 
   static const Object _backButtonHeroTag = 'appToolBarBackButton';
@@ -75,6 +79,9 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       child: AppBar(
+        // The back button is ours to draw; AppBar would add its own on any
+        // pushed route, even with showBackButton false.
+        automaticallyImplyLeading: false,
         backgroundColor: AppColors.toolbarBackground,
         foregroundColor: AppColors.textPrimary,
         toolbarHeight: AppDimens.toolbarHeight,
@@ -88,9 +95,11 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
         centerTitle: centerTitle,
         // With nothing leading, the title's own inset lines it up with the
         // discs' 20 from the edge.
-        titleSpacing: leading == null && !showBackButton
-            ? 20
-            : NavigationToolbar.kMiddleSpacing,
+        titleSpacing:
+            titleSpacing ??
+            (leading == null && !showBackButton
+                ? 20
+                : NavigationToolbar.kMiddleSpacing),
         leadingWidth:
             leadingWidth ??
             (_usesBackButton

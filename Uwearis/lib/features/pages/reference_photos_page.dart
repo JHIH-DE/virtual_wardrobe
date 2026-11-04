@@ -21,6 +21,7 @@ import '../../data/profile_data.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../widgets/common/buttons/accent_pill_button.dart';
 import '../widgets/common/buttons/bottom_action_button.dart';
+import '../widgets/common/adaptive_side_layout.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_card_shell.dart';
 import '../widgets/common/images/app_image.dart';
@@ -374,24 +375,9 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
                     ),
                   ),
                   const SizedBox(height: AppDimens.sectionSpacing),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _buildReferenceCardFor(
-                          ReferencePhotoKind.face,
-                          profileData,
-                        ),
-                      ),
-                      const SizedBox(width: AppDimens.cardSpacing),
-                      Expanded(
-                        child: _buildReferenceCardFor(
-                          ReferencePhotoKind.body,
-                          profileData,
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildReferenceCardFor(ReferencePhotoKind.face, profileData),
+                  const SizedBox(height: AppDimens.cardSpacing),
+                  _buildReferenceCardFor(ReferencePhotoKind.body, profileData),
                 ],
               ),
             ),
@@ -406,25 +392,26 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
   }
 
   /// Only the [actionLabel] pill is tappable, so a stray tap on the photo
-  /// doesn't open the picker; a null [onTap] disables it. [subtitle] is only
-  /// used in the load-failed state.
+  /// doesn't open the picker; a null [onTap] disables it.
   Widget _buildReferenceCard({
     required String title,
     required Widget photo,
-    String? subtitle,
+    required String subtitle,
     required String actionLabel,
     required VoidCallback? onTap,
     Key? actionKey,
   }) {
     return AppCardShell(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          photo,
-          const SizedBox(height: 10),
-          SectionTitle(title),
-          if (subtitle != null) ...[
+      child: AdaptiveSideLayout(
+        sideEdge: AdaptiveSide.leading,
+        gap: AppDimens.sectionSpacing,
+        stackedGap: 12,
+        side: SizedBox(width: 140, child: photo),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SectionTitle(title, style: AppTextStyle.bold18),
             const SizedBox(height: 6),
             Text(
               subtitle,
@@ -433,18 +420,15 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
                 height: 1.3,
               ),
             ),
-          ],
-          const SizedBox(height: 2),
-          Align(
-            alignment: Alignment.centerRight,
-            child: AccentPillButton(
+            const SizedBox(height: 8),
+            AccentPillButton(
               key: actionKey,
               label: actionLabel,
               enabled: onTap != null,
               onPressed: onTap,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -527,7 +511,9 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
             ? Icons.error_outline
             : (isFace ? Icons.face_outlined : Icons.accessibility_new_outlined),
       ),
-      subtitle: failed ? _l10n.photoLoadFailedSubtitle : null,
+      subtitle: failed
+          ? _l10n.photoLoadFailedSubtitle
+          : (isFace ? _l10n.facePhotoGuidance : _l10n.fullBodyPhotoGuidance),
       actionLabel: failed
           ? _l10n.reuploadPhotoAction
           : (url != null ? _l10n.edit : _l10n.addPhotoAction),

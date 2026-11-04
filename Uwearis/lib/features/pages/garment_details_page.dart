@@ -60,6 +60,33 @@ class GarmentDetailsPage extends ConsumerStatefulWidget {
     this.initialAnalysisData,
   });
 
+  /// Opens an existing garment. Edits auto-save and sync garmentsProvider
+  /// from inside the page; only a delete comes back as a result, applied
+  /// here (with an "Item deleted" overlay when [announceDelete]).
+  static Future<void> open(
+    BuildContext context,
+    WidgetRef ref,
+    Garment garment, {
+    bool announceDelete = false,
+  }) async {
+    final garments = ref.read(garmentsProvider.notifier);
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GarmentDetailsPage(initialGarment: garment),
+      ),
+    );
+    if (result != 'deleted' || garment.id == null) return;
+    garments.removeGarment(garment.id!);
+    if (announceDelete && context.mounted) {
+      showFeedbackOverlay(
+        context,
+        message: AppLocalizations.of(context).itemDeleted,
+        imagePath: 'assets/images/delete_success.png',
+      );
+    }
+  }
+
   @override
   ConsumerState<GarmentDetailsPage> createState() => _GarmentDetailsPageState();
 }
@@ -487,7 +514,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
                 icon: const Icon(
                   Icons.delete_outline,
                   size: 20,
-                  color: AppColors.icon,
+                  color: AppColors.error,
                 ),
                 label: _l10n.deleteGarment,
                 isDestructive: true,

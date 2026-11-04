@@ -19,9 +19,7 @@ import '../../core/utils/debug_log.dart';
 import '../../core/utils/external_links.dart';
 import '../../core/utils/user_acknowledgement.dart';
 import '../../data/profile_data.dart';
-import '../../data/user_tier.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../l10n/user_tier_localization.dart';
 import '../widgets/common/app_tool_bar.dart';
 import '../widgets/common/cards/app_list_card.dart';
 import '../widgets/common/images/app_spinner.dart';
@@ -31,8 +29,8 @@ import '../widgets/common/overlays/app_snack_bar.dart';
 import '../widgets/common/overlays/error_dialog.dart';
 import '../widgets/common/overlays/loading_overlay.dart';
 import '../widgets/common/overlays/picker_sheet.dart';
-import '../widgets/common/profile_avatar.dart';
-import 'account_page.dart';
+import '../widgets/common/profile_summary_header.dart';
+import 'personal_details_page.dart';
 import 'debug_tools_page.dart';
 import 'login_page.dart';
 import 'my_outfit_profile_page.dart';
@@ -86,14 +84,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   ProfileData? get _data => ref.watch(profileProvider).value;
   bool get _loading => ref.watch(profileProvider).isLoading && _data == null;
 
-  String? get _name => _data?.profile.name;
-  String? get _email => _data?.profile.email;
-  String? get _avatarUrl => _data?.profile.avatarObjectUrl;
-  void _openAccount() {
+  void _openPersonalDetails() {
     // Those pages update profileProvider themselves — no reload on return.
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const AccountPage()),
+      MaterialPageRoute(builder: (_) => const PersonalDetailsPage()),
     );
   }
 
@@ -180,7 +175,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final cards = [
-      _buildAccountCard(),
+      _buildPersonalDetailsCard(),
       _buildOutfitProfileCard(),
       _buildStyleTasteCard(),
       _buildLanguageCard(),
@@ -197,7 +192,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ? const Center(child: AppSpinner())
               : ListView(
                   children: [
-                    _buildProfileCard(),
+                    ProfileSummaryHeader(data: _data),
                     for (final card in cards) ...[
                       const SizedBox(height: AppDimens.sectionSpacing),
                       Padding(
@@ -219,55 +214,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildProfileCard() {
-    final url =
-        (_avatarUrl != null && _avatarUrl!.isNotEmpty && _avatarUrl != 'string')
-        ? _avatarUrl
-        : null;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-      child: Row(
-        children: [
-          ProfileAvatar(
-            url: url,
-            onRefreshUrl: () => ProfileService().getMyAvatar(),
-            size: 96,
-            showEditLabel: false,
-            fallbackIconSize: 52,
-            ringColor: _data?.profile.tier.colors.fill,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  (_name != null && _name!.isNotEmpty) ? _name! : '---',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.bold20,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  (_email != null && _email!.isNotEmpty) ? _email! : '---',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyle.regular14.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                if (_data != null) ...[
-                  const SizedBox(height: 8),
-                  _TierBadge(tier: _data!.profile.tier),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLeadingIcon(IconData icon) {
     return SizedBox.square(
       dimension: 40,
@@ -275,13 +221,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildAccountCard() {
+  Widget _buildPersonalDetailsCard() {
     return AppListCard(
-      onTap: _openAccount,
+      onTap: _openPersonalDetails,
       leading: _buildLeadingIcon(LucideIcons300.user),
       showArrow: true,
       summary: _l10n.accountSummary,
-      child: Text(_l10n.account, style: AppTextStyle.bold16),
+      child: Text(_l10n.personalDetails, style: AppTextStyle.bold16),
     );
   }
 
@@ -496,47 +442,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _l10n.deleteAccount,
           style: AppTextStyle.medium16.copyWith(color: AppColors.error),
         ),
-      ),
-    );
-  }
-}
-
-extension on UserTier {
-  ({Color fill, Color text}) get colors {
-    switch (this) {
-      case UserTier.gold:
-        return (fill: AppColors.tierGold, text: AppColors.tierGoldText);
-      case UserTier.silver:
-        return (fill: AppColors.tierSilver, text: AppColors.tierSilverText);
-      case UserTier.bronze:
-        return (fill: AppColors.tierBronze, text: AppColors.tierBronzeText);
-    }
-  }
-}
-
-class _TierBadge extends StatelessWidget {
-  final UserTier tier;
-  const _TierBadge({required this.tier});
-
-  @override
-  Widget build(BuildContext context) {
-    final (:fill, :text) = tier.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.stars, size: 18, color: text),
-          const SizedBox(width: 4),
-          Text(
-            tier.localizedLabel(context),
-            style: AppTextStyle.bold12.copyWith(color: text),
-          ),
-        ],
       ),
     );
   }

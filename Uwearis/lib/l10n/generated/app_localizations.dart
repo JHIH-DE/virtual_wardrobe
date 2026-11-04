@@ -117,6 +117,12 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get account;
 
+  /// No description provided for @personalDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Details'**
+  String get personalDetails;
+
   /// No description provided for @accountSummary.
   ///
   /// In en, this message translates to:
@@ -183,6 +189,12 @@ abstract class AppLocalizations {
   /// **'Face Photo'**
   String get facePhotoLabel;
 
+  /// No description provided for @facePhotoGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'Face forward in good lighting.'**
+  String get facePhotoGuidance;
+
   /// No description provided for @faceReferenceComingSoon.
   ///
   /// In en, this message translates to:
@@ -194,6 +206,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Full-Body Photo'**
   String get fullBodyPhotoLabel;
+
+  /// No description provided for @fullBodyPhotoGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your full body visible, head to toe.'**
+  String get fullBodyPhotoGuidance;
 
   /// No description provided for @bodyMeasurementsLabel.
   ///
@@ -1023,29 +1041,23 @@ abstract class AppLocalizations {
   /// **'Home'**
   String get navHome;
 
+  /// No description provided for @wardrobe.
+  ///
+  /// In en, this message translates to:
+  /// **'Wardrobe'**
+  String get wardrobe;
+
   /// No description provided for @explore.
   ///
   /// In en, this message translates to:
   /// **'Explore'**
   String get explore;
 
-  /// No description provided for @exploreComingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get exploreComingSoon;
-
   /// No description provided for @notifications.
   ///
   /// In en, this message translates to:
   /// **'Notifications'**
   String get notifications;
-
-  /// No description provided for @exploreNavForYou.
-  ///
-  /// In en, this message translates to:
-  /// **'For you'**
-  String get exploreNavForYou;
 
   /// No description provided for @exploreNavSearch.
   ///
