@@ -22,6 +22,43 @@ class AppTextStyle {
   /// [brandTitle] at AppToolBar size (Home / Explore).
   static TextStyle get brandTitleToolbar => brandTitle.copyWith(fontSize: 24);
 
+  /// Explore's editorial serif. Only the w400 and w600 files are bundled;
+  /// Chinese falls back to NotoSansTC at the same weight.
+  static TextStyle _editorial(
+    double size,
+    FontWeight weight, {
+    double? height,
+    double letterSpacing = 0,
+    Color color = AppColors.textPrimary,
+  }) =>
+      GoogleFonts.newsreader(
+        fontSize: size,
+        fontWeight: weight,
+        height: height,
+        letterSpacing: letterSpacing,
+        color: color,
+      ).copyWith(
+        fontFamilyFallback: const ['NotoSansTC'],
+        fontVariations: [FontVariation('wght', weight.value.toDouble())],
+        leadingDistribution: TextLeadingDistribution.even,
+      );
+
+  static TextStyle get editorialHeadline =>
+      _editorial(34, FontWeight.w600, height: 1.1, letterSpacing: -0.5);
+
+  static TextStyle get editorialSectionTitle =>
+      _editorial(24, FontWeight.w600, height: 1.15, letterSpacing: -0.3);
+
+  static TextStyle get editorialSubtitle => _editorial(
+    18,
+    FontWeight.w400,
+    height: 1.25,
+    color: AppColors.textSecondary,
+  );
+
+  static TextStyle get editorialCardTitle =>
+      _editorial(16, FontWeight.w600, height: 1.2);
+
   // ── Bold (w700) ────────────────────────────────────────────────────────
 
   static const TextStyle bold24 = TextStyle(

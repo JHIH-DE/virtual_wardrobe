@@ -1077,6 +1077,66 @@ abstract class AppLocalizations {
   /// **'Inbox'**
   String get exploreNavInbox;
 
+  /// No description provided for @exploreEditLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'The Edit'**
+  String get exploreEditLabel;
+
+  /// No description provided for @exploreEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One blazer, three ways'**
+  String get exploreEditTitle;
+
+  /// No description provided for @exploreEditSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A smarter way to dress for the week.'**
+  String get exploreEditSubtitle;
+
+  /// No description provided for @exploreReadStory.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the story'**
+  String get exploreReadStory;
+
+  /// No description provided for @exploreWorksWithWardrobe.
+  ///
+  /// In en, this message translates to:
+  /// **'Works with your wardrobe'**
+  String get exploreWorksWithWardrobe;
+
+  /// No description provided for @seeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get seeAll;
+
+  /// No description provided for @exploreNavyBlazer.
+  ///
+  /// In en, this message translates to:
+  /// **'Navy Blazer'**
+  String get exploreNavyBlazer;
+
+  /// No description provided for @exploreNavyBlazerPairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairs with your grey trousers.'**
+  String get exploreNavyBlazerPairing;
+
+  /// No description provided for @exploreIvorySneakers.
+  ///
+  /// In en, this message translates to:
+  /// **'Ivory Sneakers'**
+  String get exploreIvorySneakers;
+
+  /// No description provided for @exploreIvorySneakersPairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairs with your straight jeans.'**
+  String get exploreIvorySneakersPairing;
+
   /// No description provided for @finishOutfit.
   ///
   /// In en, this message translates to:

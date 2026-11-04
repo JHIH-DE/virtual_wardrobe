@@ -8,6 +8,8 @@ class AppColors {
   // Surfaces
   static const Color pageBackground = Color(0xFFEFECEB); // warm cream wash
   static const Color surface = Color(0xFFFFFFFF); // cards, toolbars, sheets
+  // Backdrop behind a product photo shot on white (Explore's cards).
+  static const Color productPhotoBackdrop = Color(0xFFDAD6D0);
   static const Color placeholderSurface = Color(
     0xFFEDEAE3,
   ); // empty photo/avatar wells

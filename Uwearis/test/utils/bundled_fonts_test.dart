@@ -17,6 +17,13 @@ void main() {
     await expectLater(GoogleFonts.pendingFonts(), completes);
   });
 
+  test('Explore editorial serif (Newsreader w400, w600) loads from bundled '
+      'assets', () async {
+    AppTextStyle.editorialHeadline;
+    AppTextStyle.editorialSubtitle;
+    await expectLater(GoogleFonts.pendingFonts(), completes);
+  });
+
   test('login button labels (Roboto w700) load from bundled assets', () async {
     GoogleFonts.roboto(fontWeight: FontWeight.w700);
     await expectLater(GoogleFonts.pendingFonts(), completes);

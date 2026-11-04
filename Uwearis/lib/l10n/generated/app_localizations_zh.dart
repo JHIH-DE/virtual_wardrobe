@@ -521,6 +521,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exploreNavInbox => '通知';
 
   @override
+  String get exploreEditLabel => '本週精選';
+
+  @override
+  String get exploreEditTitle => '一件外套，三種穿法';
+
+  @override
+  String get exploreEditSubtitle => '更聰明地打理一週穿搭。';
+
+  @override
+  String get exploreReadStory => '閱讀全文';
+
+  @override
+  String get exploreWorksWithWardrobe => '與你的衣櫥相配';
+
+  @override
+  String get seeAll => '查看全部';
+
+  @override
+  String get exploreNavyBlazer => '海軍藍西裝外套';
+
+  @override
+  String get exploreNavyBlazerPairing => '可搭配你的灰色長褲。';
+
+  @override
+  String get exploreIvorySneakers => '象牙白球鞋';
+
+  @override
+  String get exploreIvorySneakersPairing => '可搭配你的直筒牛仔褲。';
+
+  @override
   String get finishOutfit => 'AI 造型';
 
   @override
@@ -2371,6 +2401,36 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exploreNavInbox => '通知';
+
+  @override
+  String get exploreEditLabel => '本週精選';
+
+  @override
+  String get exploreEditTitle => '一件外套，三種穿法';
+
+  @override
+  String get exploreEditSubtitle => '更聰明地打理一週穿搭。';
+
+  @override
+  String get exploreReadStory => '閱讀全文';
+
+  @override
+  String get exploreWorksWithWardrobe => '與你的衣櫥相配';
+
+  @override
+  String get seeAll => '查看全部';
+
+  @override
+  String get exploreNavyBlazer => '海軍藍西裝外套';
+
+  @override
+  String get exploreNavyBlazerPairing => '可搭配你的灰色長褲。';
+
+  @override
+  String get exploreIvorySneakers => '象牙白球鞋';
+
+  @override
+  String get exploreIvorySneakersPairing => '可搭配你的直筒牛仔褲。';
 
   @override
   String get finishOutfit => 'AI 造型';

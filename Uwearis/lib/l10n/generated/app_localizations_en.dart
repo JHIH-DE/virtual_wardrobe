@@ -555,6 +555,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exploreNavInbox => 'Inbox';
 
   @override
+  String get exploreEditLabel => 'The Edit';
+
+  @override
+  String get exploreEditTitle => 'One blazer, three ways';
+
+  @override
+  String get exploreEditSubtitle => 'A smarter way to dress for the week.';
+
+  @override
+  String get exploreReadStory => 'Read the story';
+
+  @override
+  String get exploreWorksWithWardrobe => 'Works with your wardrobe';
+
+  @override
+  String get seeAll => 'See all';
+
+  @override
+  String get exploreNavyBlazer => 'Navy Blazer';
+
+  @override
+  String get exploreNavyBlazerPairing => 'Pairs with your grey trousers.';
+
+  @override
+  String get exploreIvorySneakers => 'Ivory Sneakers';
+
+  @override
+  String get exploreIvorySneakersPairing => 'Pairs with your straight jeans.';
+
+  @override
   String get finishOutfit => 'AI Styling';
 
   @override
