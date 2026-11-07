@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import 'package:lucide_icons_flutter/lucide_icons_300.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -34,6 +35,7 @@ import '../common/debug_tools_page.dart';
 import '../common/login_page.dart';
 import 'my_outfit_profile_page.dart';
 import 'personal_details_page.dart';
+import 'points_page.dart';
 import 'style_taste_page.dart';
 
 /// Tells a chosen `null` locale (System Default) apart from a dismissed
@@ -175,6 +177,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final cards = [
+      _buildPointsCard(),
       _buildPersonalDetailsCard(),
       _buildOutfitProfileCard(),
       _buildStyleTasteCard(),
@@ -182,6 +185,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _buildHelpAndLegalCard(),
       if (Env.enableDebugTools) _buildDebugToolsCard(),
       _buildLogoutCard(),
+      _buildDeleteAccountCard(),
     ];
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
@@ -200,8 +204,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         child: card,
                       ),
                     ],
-                    const SizedBox(height: AppDimens.sectionSpacing),
-                    _buildDeleteAccountButton(),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -221,12 +223,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildPointsCard() {
+    // Placeholder: there is no credit balance API yet.
+    const credits = 10000;
+    return AppListCard(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PointsPage()),
+      ),
+      leading: _buildLeadingIcon(LucideIcons300.coins),
+      showArrow: true,
+      summary: NumberFormat.decimalPattern(_l10n.localeName).format(credits),
+      child: Text(_l10n.uwearisPoints, style: AppTextStyle.bold16),
+    );
+  }
+
   Widget _buildPersonalDetailsCard() {
     return AppListCard(
       onTap: _openPersonalDetails,
       leading: _buildLeadingIcon(LucideIcons300.user),
       showArrow: true,
-      summary: _l10n.accountSummary,
       child: Text(_l10n.personalDetails, style: AppTextStyle.bold16),
     );
   }
@@ -236,7 +252,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       onTap: _openMyOutfitProfile,
       leading: _buildLeadingIcon(LucideIcons300.personStanding),
       showArrow: true,
-      summary: _l10n.myOutfitProfileSummary,
       child: Text(_l10n.myOutfitProfileTitle, style: AppTextStyle.bold16),
     );
   }
@@ -250,9 +265,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       onTap: _openStyleTaste,
       leading: _buildLeadingIcon(LucideIcons300.sparkles),
       showArrow: true,
-      summary: hasOutfits
-          ? _l10n.styleTasteSummary
-          : _l10n.styleTasteLockedSummary,
       child: Text(_l10n.styleTaste, style: AppTextStyle.bold16),
     );
   }
@@ -272,7 +284,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       onTap: _openLanguagePicker,
       leading: _buildLeadingIcon(LucideIcons300.globe),
       showArrow: true,
-      status: _localeDisplayLabel(locale),
+      summary: _localeDisplayLabel(locale),
       child: Text(_l10n.language, style: AppTextStyle.bold16),
     );
   }
@@ -428,21 +440,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return AppListCard(
       onTap: _logout,
       leading: _buildLeadingIcon(LucideIcons300.logOut),
+      showArrow: true,
       child: Text(_l10n.logout, style: AppTextStyle.bold16),
     );
   }
 
-  Widget _buildDeleteAccountButton() {
-    return Center(
-      child: TextButton.icon(
-        onPressed: _deletingAccount ? null : _deleteAccount,
-        style: TextButton.styleFrom(foregroundColor: AppColors.error),
-        icon: const Icon(LucideIcons300.trash2),
-        label: Text(
-          _l10n.deleteAccount,
-          style: AppTextStyle.medium16.copyWith(color: AppColors.error),
-        ),
-      ),
+  Widget _buildDeleteAccountCard() {
+    return AppListCard(
+      onTap: _deleteAccount,
+      leading: _buildLeadingIcon(LucideIcons300.trash2),
+      showArrow: true,
+      child: Text(_l10n.deleteAccount, style: AppTextStyle.bold16),
     );
   }
 }

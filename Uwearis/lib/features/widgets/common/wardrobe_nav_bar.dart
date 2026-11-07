@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
@@ -42,11 +45,15 @@ class WardrobeNavBar extends StatefulWidget {
   final ValueChanged<WardrobeTab> onSelect;
   final ValueChanged<QuickAction> onQuickAction;
 
+  /// The user's AI credit balance, shown under the center button.
+  final int credits;
+
   const WardrobeNavBar({
     super.key,
     required this.current,
     required this.onSelect,
     required this.onQuickAction,
+    required this.credits,
   });
 
   @override
@@ -97,7 +104,14 @@ class _WardrobeNavBarState extends State<WardrobeNavBar> {
                           inactiveIcon: Icons.checkroom_outlined,
                           label: l10n.navCloset,
                         ),
-                        const SizedBox(width: _centerButtonSize),
+                        SizedBox(
+                          width: _CreditsBalance.slotWidthFor(
+                            context,
+                            minWidth: _centerButtonSize,
+                          ),
+                          height: NavBarTab.heightFor(context),
+                          child: _CreditsBalance(credits: widget.credits),
+                        ),
                         _tab(
                           WardrobeTab.outfits,
                           activeIcon: Icons.style_rounded,
@@ -265,6 +279,68 @@ class _WardrobeNavBarState extends State<WardrobeNavBar> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The AI credit balance on the tabs' label line, under the center button.
+class _CreditsBalance extends StatelessWidget {
+  final int credits;
+
+  const _CreditsBalance({required this.credits});
+
+  /// The slot is sized for this, so the tabs don't shift as the balance
+  /// changes.
+  static const _maxCredits = 10000;
+
+  static TextSpan _span(BuildContext context, int amount) {
+    final l10n = AppLocalizations.of(context);
+    return TextSpan(
+      style: NavBarTab.labelStyle.copyWith(color: AppColors.textSecondary),
+      children: [
+        TextSpan(
+          text: '${l10n.aiCreditsSymbol} ',
+          style: const TextStyle(color: AppColors.accent),
+        ),
+        TextSpan(
+          text: NumberFormat.decimalPattern(l10n.localeName).format(amount),
+        ),
+      ],
+    );
+  }
+
+  /// At least [minWidth], and wide enough for [_maxCredits] at [context]'s
+  /// text scale.
+  static double slotWidthFor(BuildContext context, {required double minWidth}) {
+    final painter = TextPainter(
+      text: _span(context, _maxCredits),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width.ceilToDouble();
+    painter.dispose();
+    return math.max(minWidth, width);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final amount = NumberFormat.decimalPattern(l10n.localeName).format(credits);
+    return Semantics(
+      label: '${l10n.aiCreditsLabel} $amount',
+      excludeSemantics: true,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: NavBarTab.labelBottomPadding),
+          child: Text.rich(
+            _span(context, credits),
+            maxLines: 1,
+            softWrap: false,
+          ),
         ),
       ),
     );

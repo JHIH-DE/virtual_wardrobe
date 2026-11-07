@@ -102,6 +102,30 @@ void _expectNothingClipped(WidgetTester tester) {
   }
 }
 
+/// The whole balance, centered under the button, on the tabs' label line.
+void _expectCreditsOnLabelLine(WidgetTester tester) {
+  final credits = find.text('P 10,000', findRichText: true);
+  expect(credits, findsOneWidget);
+  expect(isTruncated(tester, credits), isFalse);
+
+  final bar = tester.getRect(find.byType(NavBarGlass));
+  final rect = tester.getRect(credits);
+  // Narrow or enlarged, the outer tabs' end insets differ, so the row's
+  // middle slot sits a couple of px off the bar's center.
+  expect(rect.center.dx, moreOrLessEquals(bar.center.dx, epsilon: 2.5));
+  expect(rect.top, greaterThan(tester.getRect(find.byIcon(Icons.add)).bottom));
+  _expectInsideStadium(tester, bar, credits);
+
+  final label = find.descendant(
+    of: find.byType(NavBarTab).first,
+    matching: find.byType(Text),
+  );
+  expect(
+    rect.bottom,
+    moreOrLessEquals(tester.getRect(label).bottom, epsilon: 1),
+  );
+}
+
 Future<void> _pumpMain(
   WidgetTester tester, {
   WardrobeTab current = WardrobeTab.home,
@@ -114,6 +138,7 @@ Future<void> _pumpMain(
           current: current,
           onSelect: (_) {},
           onQuickAction: (_) {},
+          credits: 10000,
         ),
       ],
     ),
@@ -159,6 +184,7 @@ void main() {
         _expectWholeLabels(tester);
         _expectNothingClipped(tester);
         _expectHighlightCentered(tester);
+        _expectCreditsOnLabelLine(tester);
       }
       for (final tab in [ExploreTab.home, ExploreTab.inbox]) {
         await _pumpExplore(tester, current: tab);

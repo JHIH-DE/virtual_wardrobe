@@ -21,9 +21,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get personalDetails => 'Personal Details';
 
   @override
-  String get accountSummary => 'Personal details & security';
-
-  @override
   String get profilePhotoTitle => 'Profile Photo';
 
   @override
@@ -35,9 +32,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myOutfitProfileTitle => 'My Outfit Profile';
-
-  @override
-  String get myOutfitProfileSummary => 'Virtual model & temperature comfort';
 
   @override
   String get temperatureAdjustmentTitle => 'Outfit Warmth';
@@ -198,12 +192,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteDetailsLabel => 'Style Insights';
 
   @override
-  String get styleTasteSummary => 'Your outfit preferences';
-
-  @override
-  String get styleTasteLockedSummary => 'Create an outfit to unlock';
-
-  @override
   String get styleTasteHeroSubtitle =>
       'Based on your saved outfits and feedback, Uwearis is learning your style taste.';
 
@@ -243,7 +231,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'You\'ll need to sign in again to use Uwearis.';
 
   @override
-  String get deleteAccount => 'Delete account';
+  String get deleteAccount => 'Delete My Account';
 
   @override
   String get tierGold => 'Gold';
@@ -1757,10 +1745,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debugToolsErrorDialogButton => 'Show Backend Error Dialog';
 
   @override
-  String get debugToolsErrorDialogSummary =>
-      'Preview the dialog shown for a backend error';
-
-  @override
   String get debugToolsSampleErrorMessage =>
       'This is a simulated backend error message, shown to preview the error dialog design.';
 
@@ -1768,22 +1752,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debugToolsComponentGallery => 'Component Gallery';
 
   @override
-  String get debugToolsComponentGallerySummary =>
-      'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale';
-
-  @override
   String get debugToolsTestDartError => 'Send Test Error';
 
   @override
-  String get debugToolsTestDartErrorSummary =>
-      'Throws an uncaught Dart exception — appears in Crashlytics on next launch (non-debug builds only)';
-
-  @override
   String get debugToolsTestNativeCrash => 'Force Native Crash';
-
-  @override
-  String get debugToolsTestNativeCrashSummary =>
-      'Closes the app immediately to test crash symbolication';
 
   @override
   String get createOutfitMissingItemsTitle => 'Missing Items';
@@ -2025,4 +1997,52 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tripAiRateLimited =>
       'You\'ve made a lot of AI outfit requests. Please try again later.';
+
+  @override
+  String get aiCreditsLabel => 'AI Credits';
+
+  @override
+  String get aiCreditsSymbol => 'P';
+
+  @override
+  String get uwearisPoints => 'Uwearis Points';
+
+  @override
+  String get pointsAvailable => 'Available points';
+
+  @override
+  String get pointsBalanceHint =>
+      'Use points for AI styling and virtual try-on.';
+
+  @override
+  String get pointsViewActivity => 'View activity';
+
+  @override
+  String get pointsAddTitle => 'Add points';
+
+  @override
+  String get pointsAddSubtitle => 'Choose a one-time top-up.';
+
+  @override
+  String get pointsIllustrativeNote => 'Illustrative plans and prices';
+
+  @override
+  String get pointsOneTimeNote => 'One-time purchase. No subscription.';
+
+  @override
+  String get pointsHowItWorks => 'How points work';
+
+  @override
+  String get pointsHowItWorksBody =>
+      'Each AI styling or virtual try-on uses points from your balance. Top up anytime with a one-time purchase.';
+
+  @override
+  String pointsPrice(int amount) {
+    return 'NT\$$amount';
+  }
+
+  @override
+  String pointsContinue(String price) {
+    return 'Continue · $price';
+  }
 }

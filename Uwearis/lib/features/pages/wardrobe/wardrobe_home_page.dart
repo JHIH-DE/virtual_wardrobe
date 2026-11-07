@@ -25,8 +25,9 @@ import '../../../data/profile_data.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
-import '../../widgets/common/buttons/accent_pill_button.dart';
+import '../../widgets/common/buttons/action_disc_button.dart';
 import '../../widgets/common/buttons/settings_button.dart';
+import '../../widgets/common/buttons/space_switch_button.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
 import '../../widgets/common/carousel_dots_indicator.dart';
 import '../../widgets/common/home_getting_started_view.dart';
@@ -360,19 +361,18 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
       ),
       showBackButton: false,
       leading: _buildExploreButton(),
-      leadingWidth: 136,
+      leadingWidth: 148,
       actions: const [SettingsButton()],
     );
   }
 
   Widget _buildExploreButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 20),
+      padding: const EdgeInsets.only(left: ActionDisc.edgeInset),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: AccentPillButton(
+        child: SpaceSwitchButton(
           label: AppLocalizations.of(context).explore,
-          variant: AccentPillButtonVariant.toolbar,
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const ExploreShell()),

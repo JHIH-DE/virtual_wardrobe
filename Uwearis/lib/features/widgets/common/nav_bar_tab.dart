@@ -34,21 +34,23 @@ class NavBarTab extends StatelessWidget {
   static const double _labelGap = 3;
 
   /// Under the label.
-  static const double _labelBottomPadding = 1;
+  static const double labelBottomPadding = 1;
 
-  static TextStyle get _labelStyle =>
+  /// The active label's style; text set on the label line beside the tabs
+  /// uses it too.
+  static TextStyle get labelStyle =>
       AppTextStyle.regular13.copyWith(fontWeight: FontWeight.w700);
 
   /// This tab's height at [context]'s text scale.
   static double heightFor(BuildContext context) {
     final painter = TextPainter(
-      text: TextSpan(text: 'Ag', style: _labelStyle),
+      text: TextSpan(text: 'Ag', style: labelStyle),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
     )..layout();
     final height =
-        _iconTop + _iconSize + _labelGap + painter.height + _labelBottomPadding;
+        _iconTop + _iconSize + _labelGap + painter.height + labelBottomPadding;
     painter.dispose();
     return height;
   }
@@ -57,7 +59,7 @@ class NavBarTab extends StatelessWidget {
   /// constrains it — measured with the active (bold) label, the wider one.
   static double naturalWidthFor(BuildContext context, String label) {
     final painter = TextPainter(
-      text: TextSpan(text: label, style: _labelStyle),
+      text: TextSpan(text: label, style: labelStyle),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
@@ -86,7 +88,7 @@ class NavBarTab extends StatelessWidget {
               _horizontalPadding,
               _iconTop - _highlightInset,
               _horizontalPadding,
-              _labelBottomPadding,
+              labelBottomPadding,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -147,7 +149,7 @@ class NavBarTabRow extends StatelessWidget {
         radius -
         math.sqrt(math.max(0, radius * radius - fromCenter * fromCenter));
     final labelBottomCurve = curveAt(
-      radius - NavBarTab._highlightInset - NavBarTab._labelBottomPadding,
+      radius - NavBarTab._highlightInset - NavBarTab.labelBottomPadding,
     );
     final iconTopCurve = curveAt(radius - NavBarTab._iconTop);
 

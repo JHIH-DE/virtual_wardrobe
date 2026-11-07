@@ -134,10 +134,6 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('My Outfit Profile'), findsOneWidget);
-        expect(
-          find.text('Virtual model & temperature comfort'),
-          findsOneWidget,
-        );
         expect(find.text('My Virtual Model'), findsNothing);
         expect(find.text('Temperature Preference'), findsNothing);
         expect(find.text('Lifestyle'), findsNothing);
@@ -181,12 +177,15 @@ void main() {
       });
     }
 
-    testWidgets('is locked with a reason when the user has no outfits', (
-      tester,
-    ) async {
+    Finder dimmedStyleTaste() => find.ancestor(
+      of: find.text('Style Taste'),
+      matching: find.byType(Opacity),
+    );
+
+    testWidgets('is locked when the user has no outfits', (tester) async {
       await pumpWithOutfits(tester, const []);
 
-      expect(find.text('Create an outfit to unlock'), findsOneWidget);
+      expect(dimmedStyleTaste(), findsOneWidget);
       await tester.tap(find.text('Style Taste'));
       await tester.pumpAndSettle();
       expect(find.byType(StyleTastePage), findsNothing);
@@ -197,8 +196,7 @@ void main() {
         Outfit(id: 1, imageUrl: '', garmentIds: const [1]),
       ]);
 
-      expect(find.text('Your outfit preferences'), findsOneWidget);
-      expect(find.text('Create an outfit to unlock'), findsNothing);
+      expect(dimmedStyleTaste(), findsNothing);
     });
   });
 

@@ -165,6 +165,8 @@ class _WardrobeShellState extends ConsumerState<WardrobeShell>
             current: _current,
             onSelect: _select,
             onQuickAction: _handleQuickAction,
+            // Placeholder: there is no credit balance API yet.
+            credits: 10000,
           ),
           // Painted last so it also covers WardrobeNavBar.
           if (_loadingLabelByTab[_current] != null)

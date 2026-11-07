@@ -7,12 +7,13 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/adaptive_side_layout.dart';
 import '../../widgets/common/app_divider.dart';
 import '../../widgets/common/app_tool_bar.dart';
-import '../../widgets/common/buttons/accent_pill_button.dart';
+import '../../widgets/common/buttons/action_disc_button.dart';
 import '../../widgets/common/buttons/settings_button.dart';
+import '../../widgets/common/buttons/space_switch_button.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
 
 /// `ExploreShell`'s first tab, mirroring Home: brand title, a
-/// "Wardrobe" pill back to `WardrobeShell`, Settings. The body is a static
+/// "Wardrobe" switch back to `WardrobeShell`, Settings. The body is a static
 /// editorial mock-up (no content backend yet), so its links and hearts are
 /// visual only.
 class ExploreHomePage extends StatelessWidget {
@@ -31,14 +32,13 @@ class ExploreHomePage extends StatelessWidget {
           style: AppTextStyle.brandTitleToolbar,
         ),
         showBackButton: false,
-        leadingWidth: 136,
+        leadingWidth: 148,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: ActionDisc.edgeInset),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: AccentPillButton(
+            child: SpaceSwitchButton(
               label: l10n.wardrobe,
-              variant: AccentPillButtonVariant.toolbar,
               onPressed: () => Navigator.pop(context),
             ),
           ),

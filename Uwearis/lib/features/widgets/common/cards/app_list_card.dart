@@ -12,14 +12,12 @@ class AppListCard extends StatelessWidget {
   final bool showArrow;
   final String? leadingAsset;
   final Widget? leading;
-  final String? status;
   final String? summary;
   final double minHeight;
   final double leadingSize;
   final Widget? trailing;
 
-  /// Disabled: not tappable, no arrow, content dimmed. Put the reason in
-  /// [summary] so the user knows what unlocks it.
+  /// Disabled: not tappable, no arrow, content dimmed.
   final bool enabled;
 
   const AppListCard({
@@ -30,7 +28,6 @@ class AppListCard extends StatelessWidget {
     this.showArrow = false,
     this.leadingAsset,
     this.leading,
-    this.status,
     this.summary,
     this.minHeight = 54,
     this.leadingSize = 40,
@@ -44,10 +41,10 @@ class AppListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tap = enabled ? onTap : null;
-    final statusText = status == null
+    final summaryText = summary == null
         ? null
         : Text(
-            status!,
+            summary!,
             style: AppTextStyle.regular14.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -63,7 +60,7 @@ class AppListCard extends StatelessWidget {
                 width: leadingSize,
                 height: leadingSize,
               ));
-    Widget buildContent(bool statusBelow) {
+    Widget buildContent(bool summaryBelow) {
       final textColumn = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -73,20 +70,9 @@ class AppListCard extends StatelessWidget {
             const SizedBox(height: 2),
           ],
           child,
-          if (statusText != null && statusBelow) ...[
+          if (summaryText != null && summaryBelow) ...[
             const SizedBox(height: 2),
-            statusText,
-          ],
-          if (summary != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              summary!,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyle.regular12.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+            summaryText,
           ],
         ],
       );
@@ -104,9 +90,9 @@ class AppListCard extends StatelessWidget {
                     stackedGap: 8,
                   ),
           ),
-          if (statusText != null && !statusBelow) ...[
+          if (summaryText != null && !summaryBelow) ...[
             const SizedBox(width: 8),
-            statusText,
+            summaryText,
           ],
           if (showArrow && tap != null) ...[
             const SizedBox(width: 4),
@@ -122,14 +108,14 @@ class AppListCard extends StatelessWidget {
       return content;
     }
 
-    // [status] sits beside the label while the label still fits on one line
+    // [summary] sits beside the label while the label still fits on one line
     // next to it at the current text size; otherwise it moves under the label
     // instead of squeezing it.
-    final layout = status == null
+    final layout = summary == null
         ? buildContent(false)
         : LayoutBuilder(
             builder: (context, constraints) => buildContent(
-              !_statusFitsBeside(
+              !_summaryFitsBeside(
                 context,
                 constraints.maxWidth,
                 leadingWidth: leadingWidget == null
@@ -180,9 +166,9 @@ class AppListCard extends StatelessWidget {
       };
 
   /// The label is [title] or a plain [Text] [child]; anything else can't be
-  /// measured here, so it falls back to moving [status] under it as soon as
+  /// measured here, so it falls back to moving [summary] under it as soon as
   /// text is enlarged at all.
-  bool _statusFitsBeside(
+  bool _summaryFitsBeside(
     BuildContext context,
     double maxWidth, {
     required double leadingWidth,
@@ -209,13 +195,13 @@ class AppListCard extends StatelessWidget {
       return width;
     }
 
-    final statusWidth = widthOf(
-      TextSpan(text: status, style: AppTextStyle.regular14),
+    final summaryWidth = widthOf(
+      TextSpan(text: summary, style: AppTextStyle.regular14),
     );
     final reserved =
         (leadingWidth > 0 ? leadingWidth + _leadingGap : 0) +
         8 +
-        statusWidth +
+        summaryWidth +
         (hasArrow ? 4 + AppDimens.iconSmallSize : 0);
     return widthOf(label) <= maxWidth - reserved;
   }

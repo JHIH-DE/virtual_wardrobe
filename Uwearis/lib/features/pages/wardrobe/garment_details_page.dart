@@ -1273,7 +1273,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       onTap: _openUsedInOutfits,
       showArrow: true,
       leading: const Icon(Icons.checkroom_outlined, color: AppColors.icon),
-      status: _l10n.usedInOutfitsCount(count),
+      summary: _l10n.usedInOutfitsCount(count),
       child: Text(_l10n.usedInOutfits, style: AppTextStyle.bold16),
     );
   }

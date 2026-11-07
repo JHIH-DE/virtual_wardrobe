@@ -10,6 +10,7 @@ import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/accent_pill_button.dart';
 import '../../widgets/common/buttons/action_button.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
+import '../../widgets/common/buttons/space_switch_button.dart';
 import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/cards/app_list_card.dart';
 import '../../widgets/common/cards/category_tag.dart';
@@ -176,14 +177,10 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         enabled: false,
         disabledMessage: _l10n.dayOutfitMissingCoreItemsMessage,
       ),
-      const _Spec('toolbar variant'),
+      const _Spec('SpaceSwitchButton (toolbar leading · tap to expand)'),
       Align(
         alignment: Alignment.centerLeft,
-        child: AccentPillButton(
-          label: _l10n.explore,
-          variant: AccentPillButtonVariant.toolbar,
-          onPressed: () {},
-        ),
+        child: SpaceSwitchButton(label: _l10n.explore, onPressed: () {}),
       ),
     ];
   }
@@ -298,12 +295,11 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         title: _l10n.startPackingTripTitle,
         subtitle: _l10n.startPackingTripHint,
       ),
-      const _Spec('AppListCard · leading + summary + arrow'),
+      const _Spec('AppListCard · leading + arrow'),
       AppListCard(
         onTap: () {},
         leading: const Icon(Icons.person_outline, color: AppColors.icon),
         showArrow: true,
-        summary: _l10n.accountSummary,
         child: Text(_l10n.account, style: AppTextStyle.bold16),
       ),
       const _Spec('AppListCard · disabled'),
@@ -312,7 +308,6 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         onTap: () {},
         leading: const Icon(Icons.auto_awesome_outlined, color: AppColors.icon),
         showArrow: true,
-        summary: _l10n.styleTasteLockedSummary,
         child: Text(_l10n.styleTaste, style: AppTextStyle.bold16),
       ),
       const _Spec('GarmentListCard · minimum height, long name'),

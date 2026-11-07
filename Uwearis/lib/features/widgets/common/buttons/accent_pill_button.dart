@@ -10,16 +10,14 @@ import '../../../../app/theme/app_text_styles.dart';
 /// The tap target is padded to [AppDimens.minTouchTarget] beyond the
 /// [pillHeight] pill, since several call sites are AI triggers.
 ///
-/// [disabledMessage] shows above a disabled pill; inline variant only, as
-/// it's taller than a toolbar slot.
+/// [disabledMessage] shows above a disabled pill.
 class AccentPillButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool enabled;
-  final AccentPillButtonVariant variant;
   final String? disabledMessage;
 
-  /// Visible pill height at default text scale (both variants).
+  /// Visible pill height at default text scale.
   static const double pillHeight = 36;
 
   const AccentPillButton({
@@ -27,17 +25,13 @@ class AccentPillButton extends StatelessWidget {
     required this.label,
     this.onPressed,
     this.enabled = true,
-    this.variant = AccentPillButtonVariant.inline,
     this.disabledMessage,
-  }) : assert(
-         disabledMessage == null || variant == AccentPillButtonVariant.inline,
-       );
+  });
 
   @override
   Widget build(BuildContext context) {
     final background = enabled ? AppColors.accent : AppColors.borderSubtle;
     final foreground = enabled ? AppColors.textOnPrimary : AppColors.hintText;
-    final onToolbar = variant == AccentPillButtonVariant.toolbar;
     final pill = TextButton(
       onPressed: enabled ? onPressed : null,
       style: TextButton.styleFrom(
@@ -52,9 +46,7 @@ class AccentPillButton extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: (onToolbar ? AppTextStyle.bold15 : AppTextStyle.bold14).copyWith(
-          color: foreground,
-        ),
+        style: AppTextStyle.bold14.copyWith(color: foreground),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -90,13 +82,4 @@ class AccentPillButton extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Where an [AccentPillButton] sits.
-enum AccentPillButtonVariant {
-  /// Beside a section header or in page content.
-  inline,
-
-  /// In an AppToolBar's leading slot (Home's "Explore", Explore's "Home").
-  toolbar,
 }

@@ -123,12 +123,6 @@ abstract class AppLocalizations {
   /// **'Personal Details'**
   String get personalDetails;
 
-  /// No description provided for @accountSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal details & security'**
-  String get accountSummary;
-
   /// No description provided for @profilePhotoTitle.
   ///
   /// In en, this message translates to:
@@ -152,12 +146,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My Outfit Profile'**
   String get myOutfitProfileTitle;
-
-  /// No description provided for @myOutfitProfileSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Virtual model & temperature comfort'**
-  String get myOutfitProfileSummary;
 
   /// No description provided for @temperatureAdjustmentTitle.
   ///
@@ -417,18 +405,6 @@ abstract class AppLocalizations {
   /// **'Style Insights'**
   String get styleTasteDetailsLabel;
 
-  /// No description provided for @styleTasteSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Your outfit preferences'**
-  String get styleTasteSummary;
-
-  /// No description provided for @styleTasteLockedSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Create an outfit to unlock'**
-  String get styleTasteLockedSummary;
-
   /// No description provided for @styleTasteHeroSubtitle.
   ///
   /// In en, this message translates to:
@@ -498,7 +474,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccount.
   ///
   /// In en, this message translates to:
-  /// **'Delete account'**
+  /// **'Delete My Account'**
   String get deleteAccount;
 
   /// No description provided for @tierGold.
@@ -3321,12 +3297,6 @@ abstract class AppLocalizations {
   /// **'Show Backend Error Dialog'**
   String get debugToolsErrorDialogButton;
 
-  /// No description provided for @debugToolsErrorDialogSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Preview the dialog shown for a backend error'**
-  String get debugToolsErrorDialogSummary;
-
   /// No description provided for @debugToolsSampleErrorMessage.
   ///
   /// In en, this message translates to:
@@ -3339,35 +3309,17 @@ abstract class AppLocalizations {
   /// **'Component Gallery'**
   String get debugToolsComponentGallery;
 
-  /// No description provided for @debugToolsComponentGallerySummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Buttons, cards, tags and states at 1.0 / 1.3 / 2.0 text scale'**
-  String get debugToolsComponentGallerySummary;
-
   /// No description provided for @debugToolsTestDartError.
   ///
   /// In en, this message translates to:
   /// **'Send Test Error'**
   String get debugToolsTestDartError;
 
-  /// No description provided for @debugToolsTestDartErrorSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Throws an uncaught Dart exception — appears in Crashlytics on next launch (non-debug builds only)'**
-  String get debugToolsTestDartErrorSummary;
-
   /// No description provided for @debugToolsTestNativeCrash.
   ///
   /// In en, this message translates to:
   /// **'Force Native Crash'**
   String get debugToolsTestNativeCrash;
-
-  /// No description provided for @debugToolsTestNativeCrashSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Closes the app immediately to test crash symbolication'**
-  String get debugToolsTestNativeCrashSummary;
 
   /// No description provided for @createOutfitMissingItemsTitle.
   ///
@@ -3686,6 +3638,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'ve made a lot of AI outfit requests. Please try again later.'**
   String get tripAiRateLimited;
+
+  /// No description provided for @aiCreditsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Credits'**
+  String get aiCreditsLabel;
+
+  /// No description provided for @aiCreditsSymbol.
+  ///
+  /// In en, this message translates to:
+  /// **'P'**
+  String get aiCreditsSymbol;
+
+  /// No description provided for @uwearisPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Uwearis Points'**
+  String get uwearisPoints;
+
+  /// No description provided for @pointsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available points'**
+  String get pointsAvailable;
+
+  /// No description provided for @pointsBalanceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use points for AI styling and virtual try-on.'**
+  String get pointsBalanceHint;
+
+  /// No description provided for @pointsViewActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'View activity'**
+  String get pointsViewActivity;
+
+  /// No description provided for @pointsAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add points'**
+  String get pointsAddTitle;
+
+  /// No description provided for @pointsAddSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a one-time top-up.'**
+  String get pointsAddSubtitle;
+
+  /// No description provided for @pointsIllustrativeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Illustrative plans and prices'**
+  String get pointsIllustrativeNote;
+
+  /// No description provided for @pointsOneTimeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'One-time purchase. No subscription.'**
+  String get pointsOneTimeNote;
+
+  /// No description provided for @pointsHowItWorks.
+  ///
+  /// In en, this message translates to:
+  /// **'How points work'**
+  String get pointsHowItWorks;
+
+  /// No description provided for @pointsHowItWorksBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each AI styling or virtual try-on uses points from your balance. Top up anytime with a one-time purchase.'**
+  String get pointsHowItWorksBody;
+
+  /// No description provided for @pointsPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'NT\${amount}'**
+  String pointsPrice(int amount);
+
+  /// No description provided for @pointsContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue · {price}'**
+  String pointsContinue(String price);
 }
 
 class _AppLocalizationsDelegate

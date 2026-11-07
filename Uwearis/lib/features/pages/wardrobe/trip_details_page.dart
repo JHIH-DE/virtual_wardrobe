@@ -720,7 +720,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       leading: leading,
       showArrow: true,
       onTap: _openSuitcase,
-      status: _l10n.suitcaseItemsCount(packedCount),
+      summary: _l10n.suitcaseItemsCount(packedCount),
       child: Text(_l10n.suitcaseLabel, style: AppTextStyle.bold16),
     );
   }

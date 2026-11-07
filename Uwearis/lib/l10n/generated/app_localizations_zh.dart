@@ -21,9 +21,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get personalDetails => '個人資料';
 
   @override
-  String get accountSummary => '個人資料與安全性';
-
-  @override
   String get profilePhotoTitle => '個人頭像';
 
   @override
@@ -34,9 +31,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get myOutfitProfileTitle => '个人穿搭档案';
-
-  @override
-  String get myOutfitProfileSummary => '试穿模特与体感温度';
 
   @override
   String get temperatureAdjustmentTitle => '穿搭保暖度';
@@ -180,12 +174,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteSummary => '你的穿搭偏好';
-
-  @override
-  String get styleTasteLockedSummary => '建立穿搭後即可使用';
-
-  @override
   String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
 
   @override
@@ -221,7 +209,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get logoutConfirmBody => '登出後需要重新登入才能使用 Uwearis。';
 
   @override
-  String get deleteAccount => '刪除帳號';
+  String get deleteAccount => '删除我的账号';
 
   @override
   String get tierGold => '金牌';
@@ -1677,30 +1665,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get debugToolsErrorDialogButton => '显示后端错误弹窗';
 
   @override
-  String get debugToolsErrorDialogSummary => '预览收到后端错误时的弹窗';
-
-  @override
   String get debugToolsSampleErrorMessage => '这是一条模拟的后端错误消息，用于预览错误弹窗的设计。';
 
   @override
   String get debugToolsComponentGallery => '组件展示';
 
   @override
-  String get debugToolsComponentGallerySummary =>
-      '按钮、卡片、标签与状态，含 1.0 / 1.3 / 2.0 文字缩放';
-
-  @override
   String get debugToolsTestDartError => '发送测试错误';
 
   @override
-  String get debugToolsTestDartErrorSummary =>
-      '抛出未捕获的 Dart 例外，下次启动后会出现在 Crashlytics（仅限非 debug build）';
-
-  @override
   String get debugToolsTestNativeCrash => '强制原生闪退';
-
-  @override
-  String get debugToolsTestNativeCrashSummary => '立即关闭 App，用来测试闪退符号化';
 
   @override
   String get createOutfitMissingItemsTitle => '还缺少单品';
@@ -1884,6 +1858,52 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tripAiRateLimited => 'AI 穿搭请求次数较多，请稍后再试。';
+
+  @override
+  String get aiCreditsLabel => 'AI 点数';
+
+  @override
+  String get aiCreditsSymbol => 'P';
+
+  @override
+  String get uwearisPoints => 'Uwearis 点数';
+
+  @override
+  String get pointsAvailable => '可用点数';
+
+  @override
+  String get pointsBalanceHint => '点数可用于 AI 穿搭与虚拟试穿。';
+
+  @override
+  String get pointsViewActivity => '查看记录';
+
+  @override
+  String get pointsAddTitle => '充值点数';
+
+  @override
+  String get pointsAddSubtitle => '选择单次充值方案。';
+
+  @override
+  String get pointsIllustrativeNote => '方案与价格仅供示意';
+
+  @override
+  String get pointsOneTimeNote => '单次购买，非订阅制。';
+
+  @override
+  String get pointsHowItWorks => '点数如何运作';
+
+  @override
+  String get pointsHowItWorksBody => '每次使用 AI 穿搭或虚拟试穿都会扣除点数，随时可以单次购买充值。';
+
+  @override
+  String pointsPrice(int amount) {
+    return 'NT\$$amount';
+  }
+
+  @override
+  String pointsContinue(String price) {
+    return '继续 · $price';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -1903,9 +1923,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get personalDetails => '個人資料';
 
   @override
-  String get accountSummary => '個人資料與安全性';
-
-  @override
   String get profilePhotoTitle => '個人頭像';
 
   @override
@@ -1916,9 +1933,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get myOutfitProfileTitle => '個人穿搭檔案';
-
-  @override
-  String get myOutfitProfileSummary => '試穿模特兒與體感溫度';
 
   @override
   String get temperatureAdjustmentTitle => '穿搭保暖度';
@@ -2062,12 +2076,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteSummary => '你的穿搭偏好';
-
-  @override
-  String get styleTasteLockedSummary => '建立穿搭後即可使用';
-
-  @override
   String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
 
   @override
@@ -2103,7 +2111,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get logoutConfirmBody => '登出後需要重新登入才能使用 Uwearis。';
 
   @override
-  String get deleteAccount => '刪除帳號';
+  String get deleteAccount => '刪除我的帳號';
 
   @override
   String get tierGold => '金牌';
@@ -3559,30 +3567,16 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get debugToolsErrorDialogButton => '顯示後端錯誤彈窗';
 
   @override
-  String get debugToolsErrorDialogSummary => '預覽收到後端錯誤時的彈窗';
-
-  @override
   String get debugToolsSampleErrorMessage => '這是一則模擬的後端錯誤訊息，用於預覽錯誤彈窗的設計。';
 
   @override
   String get debugToolsComponentGallery => '元件展示';
 
   @override
-  String get debugToolsComponentGallerySummary =>
-      '按鈕、卡片、標籤與狀態，含 1.0 / 1.3 / 2.0 文字縮放';
-
-  @override
   String get debugToolsTestDartError => '送出測試錯誤';
 
   @override
-  String get debugToolsTestDartErrorSummary =>
-      '拋出未捕捉的 Dart 例外，下次啟動後會出現在 Crashlytics（僅限非 debug build）';
-
-  @override
   String get debugToolsTestNativeCrash => '強制原生閃退';
-
-  @override
-  String get debugToolsTestNativeCrashSummary => '立即關閉 App，用來測試閃退符號化';
 
   @override
   String get createOutfitMissingItemsTitle => '還缺少單品';
@@ -3766,4 +3760,50 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get tripAiRateLimited => 'AI 穿搭請求次數較多，請稍後再試。';
+
+  @override
+  String get aiCreditsLabel => 'AI 點數';
+
+  @override
+  String get aiCreditsSymbol => 'P';
+
+  @override
+  String get uwearisPoints => 'Uwearis 點數';
+
+  @override
+  String get pointsAvailable => '可用點數';
+
+  @override
+  String get pointsBalanceHint => '點數可用於 AI 穿搭與虛擬試穿。';
+
+  @override
+  String get pointsViewActivity => '查看紀錄';
+
+  @override
+  String get pointsAddTitle => '加值點數';
+
+  @override
+  String get pointsAddSubtitle => '選擇單次加值方案。';
+
+  @override
+  String get pointsIllustrativeNote => '方案與價格僅供示意';
+
+  @override
+  String get pointsOneTimeNote => '單次購買，非訂閱制。';
+
+  @override
+  String get pointsHowItWorks => '點數如何運作';
+
+  @override
+  String get pointsHowItWorksBody => '每次使用 AI 穿搭或虛擬試穿都會扣除點數，隨時可以單次購買加值。';
+
+  @override
+  String pointsPrice(int amount) {
+    return 'NT\$$amount';
+  }
+
+  @override
+  String pointsContinue(String price) {
+    return '繼續 · $price';
+  }
 }

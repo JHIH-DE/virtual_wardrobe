@@ -31,7 +31,6 @@ class DebugToolsPage extends StatelessWidget {
           AppListCard(
             onTap: () => _showSampleErrorDialog(context, l10n),
             leading: const Icon(Icons.error_outline, color: AppColors.icon),
-            summary: l10n.debugToolsErrorDialogSummary,
             child: Text(
               l10n.debugToolsErrorDialogButton,
               style: AppTextStyle.bold16,
@@ -45,7 +44,6 @@ class DebugToolsPage extends StatelessWidget {
             ),
             leading: const Icon(Icons.widgets_outlined, color: AppColors.icon),
             showArrow: true,
-            summary: l10n.debugToolsComponentGallerySummary,
             child: Text(
               l10n.debugToolsComponentGallery,
               style: AppTextStyle.bold16,
@@ -60,7 +58,6 @@ class DebugToolsPage extends StatelessWidget {
               Icons.bug_report_outlined,
               color: AppColors.icon,
             ),
-            summary: l10n.debugToolsTestDartErrorSummary,
             child: Text(
               l10n.debugToolsTestDartError,
               style: AppTextStyle.bold16,
@@ -73,7 +70,6 @@ class DebugToolsPage extends StatelessWidget {
               Icons.warning_amber_outlined,
               color: AppColors.icon,
             ),
-            summary: l10n.debugToolsTestNativeCrashSummary,
             child: Text(
               l10n.debugToolsTestNativeCrash,
               style: AppTextStyle.bold16,

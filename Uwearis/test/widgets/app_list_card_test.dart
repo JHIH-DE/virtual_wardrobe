@@ -21,7 +21,6 @@ void main() {
           enabled: false,
           onTap: () => taps++,
           showArrow: true,
-          summary: 'Locked',
           child: const Text('Title'),
         ),
       ),
@@ -39,7 +38,7 @@ void main() {
 
   // Trip Details' Suitcase row: a short label keeps its count beside it at a
   // moderately enlarged size instead of moving it under as soon as text grows.
-  testWidgets('a short label keeps its status beside it at 1.3×', (
+  testWidgets('a short label keeps its summary beside it at 1.3×', (
     tester,
   ) async {
     applyLayoutCase(tester, (
@@ -57,7 +56,7 @@ void main() {
               onTap: () {},
               leading: const Icon(Icons.luggage_outlined),
               showArrow: true,
-              status: '18 items',
+              summary: '18 items',
               child: Text('Suitcase', style: AppTextStyle.bold16),
             ),
           ],
@@ -65,18 +64,17 @@ void main() {
       ),
     );
     final title = tester.getRect(find.text('Suitcase'));
-    final status = tester.getRect(find.text('18 items'));
-    expect(status.top, lessThan(title.bottom));
-    expect(status.left, greaterThan(title.right));
+    final summary = tester.getRect(find.text('18 items'));
+    expect(summary.top, lessThan(title.bottom));
+    expect(summary.left, greaterThan(title.right));
   });
 
-  // Settings' Temperature Preference row: title + summary + a trailing
-  // status, the tightest AppListCard shape in the app.
+  // Settings' Language row: a title with a trailing summary.
   for (final c in layoutCases) {
-    testWidgets('title, summary and status stay readable at '
+    testWidgets('title and summary stay readable at '
         '${describeCase(c)}', (tester) async {
       applyLayoutCase(tester, c);
-      final status = c.locale.languageCode == 'zh' ? '繁體中文' : 'English';
+      final summary = c.locale.languageCode == 'zh' ? '繁體中文' : 'English';
       late AppLocalizations l10n;
       await pumpApp(
         tester,
@@ -94,8 +92,7 @@ void main() {
                       child: Icon(Icons.thermostat, size: 32),
                     ),
                     showArrow: true,
-                    summary: l10n.styleTasteSummary,
-                    status: status,
+                    summary: summary,
                     child: Text(
                       l10n.myOutfitProfileTitle,
                       style: AppTextStyle.bold16,
@@ -110,39 +107,30 @@ void main() {
 
       final card = find.byType(AppListCard);
       final title = find.text(l10n.myOutfitProfileTitle);
-      final summary = find.text(l10n.styleTasteSummary);
-      final statusText = find.text(status);
-      for (final part in [title, summary, statusText]) {
+      final summaryText = find.text(summary);
+      for (final part in [title, summaryText]) {
         expectWithin(tester, part, card);
       }
-      expect(isTruncated(tester, summary), isFalse);
       expectNoBrokenWords(tester, title);
-      expectNoBrokenWords(tester, summary);
       // A long word that can't fit beside the leading icon moves the icon
       // above the text rather than splitting the word.
       final icon = tester.getRect(find.byIcon(Icons.thermostat));
       if (icon.bottom <= tester.getRect(title).top) {
         expect(c.scale, greaterThan(1.0));
       }
-      expect(renderedLineCount(tester, statusText), 1);
+      expect(renderedLineCount(tester, summaryText), 1);
 
       final titleRect = tester.getRect(title);
-      final statusRect = tester.getRect(statusText);
-      final beside = statusRect.top < titleRect.bottom;
+      final summaryRect = tester.getRect(summaryText);
+      final beside = summaryRect.top < titleRect.bottom;
       if (beside) {
         // Only while the title still fits on one line next to it.
-        expect(statusRect.left, greaterThan(titleRect.right));
+        expect(summaryRect.left, greaterThan(titleRect.right));
         expect(renderedLineCount(tester, title), 1);
       } else {
-        // Doesn't fit: the status moves under the title, so the title keeps
+        // Doesn't fit: the summary moves under the title, so the title keeps
         // the row's full text width instead of a squeezed sliver.
-        expect(statusRect.top, greaterThanOrEqualTo(titleRect.bottom));
-        expect(
-          tester.getSize(summary).width,
-          lessThanOrEqualTo(
-            tester.getSize(card).width - 2 * 16 - (4 + 20) + 0.5,
-          ),
-        );
+        expect(summaryRect.top, greaterThanOrEqualTo(titleRect.bottom));
         expect(
           tester.renderObject<RenderBox>(title).constraints.maxWidth,
           greaterThanOrEqualTo(_textColumnWidth(tester, card) - 0.5),
