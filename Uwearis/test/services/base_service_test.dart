@@ -105,33 +105,30 @@ void main() {
       expect(refreshHits, 0);
     });
 
-    test(
-      'two concurrent 401s share a single refresh call — a losing racer '
-      'must not clear tokens the winner just saved',
-      () async {
-        var refreshHits = 0;
-        Future<http.Response> makeCall() {
-          var calls = 0;
-          Future<http.Response> request(String token) async {
-            calls++;
-            return http.Response('', calls == 1 ? 401 : 200);
-          }
-
-          return _TestService().withAuth(request);
+    test('two concurrent 401s share a single refresh call — a losing racer '
+        'must not clear tokens the winner just saved', () async {
+      var refreshHits = 0;
+      Future<http.Response> makeCall() {
+        var calls = 0;
+        Future<http.Response> request(String token) async {
+          calls++;
+          return http.Response('', calls == 1 ? 401 : 200);
         }
 
-        final results = await http.runWithClient(
-          () => Future.wait([makeCall(), makeCall()]),
-          () => MockClient((_) async {
-            refreshHits++;
-            return _refreshOk();
-          }),
-        );
+        return _TestService().withAuth(request);
+      }
 
-        expect(results.map((r) => r.statusCode), [200, 200]);
-        expect(refreshHits, 1);
-      },
-    );
+      final results = await http.runWithClient(
+        () => Future.wait([makeCall(), makeCall()]),
+        () => MockClient((_) async {
+          refreshHits++;
+          return _refreshOk();
+        }),
+      );
+
+      expect(results.map((r) => r.statusCode), [200, 200]);
+      expect(refreshHits, 1);
+    });
 
     test('a non-200 from the refresh endpoint throws AuthExpiredException '
         'and does not retry', () async {
@@ -220,7 +217,11 @@ void main() {
           isA<ApiException>()
               .having((e) => e.statusCode, 'statusCode', 404)
               .having((e) => e.errorCode, 'errorCode', 'GARMENT_NOT_FOUND')
-              .having((e) => e.message, 'message', 'That garment could not be found.')
+              .having(
+                (e) => e.message,
+                'message',
+                'That garment could not be found.',
+              )
               .having(
                 (e) => e.toString(),
                 'toString()',
@@ -269,7 +270,9 @@ void main() {
 
       expect(
         () => _TestService().decodeMap(res, op: 'getGarment'),
-        throwsA(isA<ApiException>().having((e) => e.statusCode, 'statusCode', 200)),
+        throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 200),
+        ),
       );
     });
 
@@ -300,22 +303,25 @@ void main() {
   });
 
   group('retryOnTimeout', () {
-    test('retries once after a TimeoutException and returns the retry', () async {
-      var attempts = 0;
-      Future<http.Response> request(String token) async {
-        attempts++;
-        if (attempts == 1) throw TimeoutException('cold start');
-        return http.Response('body', 200);
-      }
+    test(
+      'retries once after a TimeoutException and returns the retry',
+      () async {
+        var attempts = 0;
+        Future<http.Response> request(String token) async {
+          attempts++;
+          if (attempts == 1) throw TimeoutException('cold start');
+          return http.Response('body', 200);
+        }
 
-      final res = await http.runWithClient(
-        () => _TestService().withAuth(request, retryOnTimeout: true),
-        () => MockClient((_) async => _refreshOk()),
-      );
+        final res = await http.runWithClient(
+          () => _TestService().withAuth(request, retryOnTimeout: true),
+          () => MockClient((_) async => _refreshOk()),
+        );
 
-      expect(res.statusCode, 200);
-      expect(attempts, 2);
-    });
+        expect(res.statusCode, 200);
+        expect(attempts, 2);
+      },
+    );
 
     test('a second TimeoutException propagates', () async {
       var attempts = 0;

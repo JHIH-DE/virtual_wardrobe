@@ -19,11 +19,16 @@ class LoadingOverlay extends StatefulWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Adds a white wash over the blur, for an overlay on a busy photo where
+  /// the blur alone leaves the label and action hard to read.
+  final bool frosted;
+
   const LoadingOverlay({
     super.key,
     required this.label,
     this.actionLabel,
     this.onAction,
+    this.frosted = false,
   }) : assert((actionLabel == null) == (onAction == null));
 
   @override
@@ -70,7 +75,7 @@ class _LoadingOverlayState extends State<LoadingOverlay> {
       filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
       child: Container(
         // Non-null color makes it a hit target, blocking taps underneath.
-        color: Colors.transparent,
+        color: widget.frosted ? AppColors.scrimFrost : Colors.transparent,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(

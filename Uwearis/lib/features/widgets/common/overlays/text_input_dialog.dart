@@ -35,8 +35,6 @@ Future<String?> showTextInputDialog(
           ),
           primaryLabel: confirmLabel ?? l10n.save,
           onPrimary: hasChange ? () => Navigator.pop(ctx, trimmed) : null,
-          secondaryLabel: l10n.cancel,
-          onSecondary: () => Navigator.pop(ctx),
         );
       },
     ),

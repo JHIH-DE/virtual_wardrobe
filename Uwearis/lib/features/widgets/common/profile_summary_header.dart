@@ -4,11 +4,10 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../data/profile_data.dart';
-import '../../../data/user_tier.dart';
-import '../../../l10n/user_tier_localization.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'profile_avatar.dart';
 
-/// Avatar, name, email and tier badge at the top of Settings and Explore's
+/// Avatar, name, email and (for subscribers) a Plus badge at the top of Settings and Explore's
 /// Account tab. [data] is null while the profile is still loading.
 class ProfileSummaryHeader extends StatelessWidget {
   final ProfileData? data;
@@ -35,7 +34,9 @@ class ProfileSummaryHeader extends StatelessWidget {
             size: 96,
             showEditLabel: false,
             fallbackIconSize: 52,
-            ringColor: profile?.tier.colors.fill,
+            ringColor: (profile?.isSubscribed ?? false)
+                ? AppColors.accent
+                : null,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -57,9 +58,9 @@ class ProfileSummaryHeader extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                if (profile != null) ...[
+                if (profile?.isSubscribed ?? false) ...[
                   const SizedBox(height: 8),
-                  _TierBadge(tier: profile.tier),
+                  const _PlusBadge(),
                 ],
               ],
             ),
@@ -70,43 +71,30 @@ class ProfileSummaryHeader extends StatelessWidget {
   }
 }
 
-class _TierBadge extends StatelessWidget {
-  final UserTier tier;
-  const _TierBadge({required this.tier});
+class _PlusBadge extends StatelessWidget {
+  const _PlusBadge();
 
   @override
   Widget build(BuildContext context) {
-    final (:fill, :text) = tier.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: fill,
+        color: AppColors.accentTint,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.stars, size: 18, color: text),
+          const Icon(Icons.stars, size: 18, color: AppColors.accent),
           const SizedBox(width: 4),
-          Text(
-            tier.localizedLabel(context),
-            style: AppTextStyle.bold12.copyWith(color: text),
+          Flexible(
+            child: Text(
+              AppLocalizations.of(context).pointsPlusTitle,
+              style: AppTextStyle.bold12.copyWith(color: AppColors.accent),
+            ),
           ),
         ],
       ),
     );
-  }
-}
-
-extension on UserTier {
-  ({Color fill, Color text}) get colors {
-    switch (this) {
-      case UserTier.gold:
-        return (fill: AppColors.tierGold, text: AppColors.tierGoldText);
-      case UserTier.silver:
-        return (fill: AppColors.tierSilver, text: AppColors.tierSilverText);
-      case UserTier.bronze:
-        return (fill: AppColors.tierBronze, text: AppColors.tierBronzeText);
-    }
   }
 }

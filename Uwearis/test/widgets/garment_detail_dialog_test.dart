@@ -98,9 +98,7 @@ void main() {
     },
   );
 
-  testWidgets('only the price row shows when brand is missing', (
-    tester,
-  ) async {
+  testWidgets('only the price row shows when brand is missing', (tester) async {
     useTallSurface(tester);
     await http.runWithClient(() async {
       await _pumpOpener(tester, _garment(id: 6, price: 1490), (_) {});

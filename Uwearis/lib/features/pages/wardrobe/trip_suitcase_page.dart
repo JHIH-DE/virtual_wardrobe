@@ -518,9 +518,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
             child: AppListCard(
               leading: const Icon(Icons.style_outlined, color: AppColors.icon),
               showArrow: true,
-              summary: savedInTrip > 0
-                  ? _l10n.savedOutfitsInTripCount(savedInTrip)
-                  : null,
+              summary: savedInTrip > 0 ? '$savedInTrip' : null,
               onTap: _addOutfitInFlight ? null : _addFromOutfit,
               child: Text(_l10n.addFromOutfit, style: AppTextStyle.bold16),
             ),

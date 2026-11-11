@@ -12,7 +12,7 @@ import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/garment_color_type_filter.dart';
-import '../../widgets/common/cards/uwearis_insight_card.dart';
+import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/expandable_insight_body.dart';
 import '../../widgets/common/overlays/app_snack_bar.dart';
 import '../../widgets/common/overlays/empty_state_placeholder.dart';
@@ -162,7 +162,7 @@ class _TripGarmentSelectionPageState
           slivers: [
             if (_loadingAdvice || advice != null)
               SliverToBoxAdapter(
-                child: _buildUwearisInsightCard(advice, selectedInCategory),
+                child: _buildSelectionTipsCard(advice, selectedInCategory),
               ),
             _buildGridSliver(items, advice),
           ],
@@ -231,18 +231,21 @@ class _TripGarmentSelectionPageState
     );
   }
 
-  Widget _buildUwearisInsightCard(
+  Widget _buildSelectionTipsCard(
     PackingCategory? advice,
     int selectedInCategory,
   ) {
-    return UwearisInsightCard(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: _loadingAdvice
-          ? Text(
-              AppLocalizations.of(context).loadingPackingSuggestions,
-              style: AppTextStyle.insightCardBody,
-            )
-          : _buildAdviceContent(advice!, selectedInCategory),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: AppCardShell(
+        title: AppLocalizations.of(context).selectionTips,
+        child: _loadingAdvice
+            ? Text(
+                AppLocalizations.of(context).loadingPackingSuggestions,
+                style: AppTextStyle.insightCardBody,
+              )
+            : _buildAdviceContent(advice!, selectedInCategory),
+      ),
     );
   }
 
@@ -253,7 +256,7 @@ class _TripGarmentSelectionPageState
           advice.recommendedQuantity,
           selectedInCategory,
         ),
-        style: AppTextStyle.insightCardTitle,
+        style: AppTextStyle.insightCardBody,
       ),
       detail: advice.reasoning,
       showToggle: advice.reasoning.isNotEmpty,

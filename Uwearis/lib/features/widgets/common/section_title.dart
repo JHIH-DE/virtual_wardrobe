@@ -7,11 +7,16 @@ import '../../../app/theme/app_text_styles.dart';
 class SectionTitle extends StatelessWidget {
   final String title;
   final TextStyle? style;
+  final TextAlign? textAlign;
 
-  const SectionTitle(this.title, {super.key, this.style});
+  const SectionTitle(this.title, {super.key, this.style, this.textAlign});
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: style ?? AppTextStyle.bold16);
+    return Text(
+      title,
+      style: style ?? AppTextStyle.bold16,
+      textAlign: textAlign,
+    );
   }
 }

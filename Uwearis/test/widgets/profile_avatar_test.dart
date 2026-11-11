@@ -43,14 +43,14 @@ void main() {
           child: ProfileAvatar(
             size: 96,
             showEditLabel: false,
-            ringColor: AppColors.tierGold,
+            ringColor: AppColors.accent,
           ),
         ),
       ),
     );
 
     final border = outerDecoration(tester).border! as Border;
-    expect(border.top.color, AppColors.tierGold);
+    expect(border.top.color, AppColors.accent);
     expect(tester.getSize(find.byType(ProfileAvatar)), const Size.square(96));
     expect(
       tester.getSize(find.byType(ClipOval)).width,

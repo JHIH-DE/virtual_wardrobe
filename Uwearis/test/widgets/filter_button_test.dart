@@ -7,10 +7,7 @@ import '../helpers/widget_harness.dart';
 void main() {
   group('FilterButton.toggleWithAll', () {
     test('selecting "All" clears everything else', () {
-      expect(
-        FilterButton.toggleWithAll({'Summer', 'Winter'}, 'All'),
-        {'All'},
-      );
+      expect(FilterButton.toggleWithAll({'Summer', 'Winter'}, 'All'), {'All'});
     });
 
     test('selecting a value drops "All" and adds it', () {
@@ -22,10 +19,10 @@ void main() {
     });
 
     test('adds a second value alongside the first', () {
-      expect(
-        FilterButton.toggleWithAll({'Summer'}, 'Winter'),
-        {'Summer', 'Winter'},
-      );
+      expect(FilterButton.toggleWithAll({'Summer'}, 'Winter'), {
+        'Summer',
+        'Winter',
+      });
     });
   });
 

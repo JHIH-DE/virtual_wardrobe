@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_text_styles.dart';
 import 'expand_arrow_icon.dart';
 
-/// Tap-to-expand body for a [UwearisInsightCard]: a [title] row and a
+/// Tap-to-expand body for an AI insight card: a [title] row and a
 /// detail paragraph that cross-fades in/out.
 class ExpandableInsightBody extends StatelessWidget {
   final Widget title;

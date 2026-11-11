@@ -10,6 +10,7 @@ import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/accent_pill_button.dart';
 import '../../widgets/common/buttons/action_button.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
+import '../../widgets/common/buttons/pill_button.dart';
 import '../../widgets/common/buttons/space_switch_button.dart';
 import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/cards/app_list_card.dart';
@@ -177,6 +178,21 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         enabled: false,
         disabledMessage: _l10n.dayOutfitMissingCoreItemsMessage,
       ),
+      const _SectionHeader('PillButton — white pill on a photo'),
+      const _Spec('inline · normal / disabled (on scrimBackdrop)'),
+      ColoredBox(
+        color: AppColors.scrimBackdrop,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Wrap(
+            spacing: 12,
+            children: [
+              PillButton(label: _l10n.exploreRead, onPressed: () {}),
+              PillButton(label: _l10n.exploreRead, enabled: false),
+            ],
+          ),
+        ),
+      ),
       const _Spec('SpaceSwitchButton (toolbar leading · tap to expand)'),
       Align(
         alignment: Alignment.centerLeft,
@@ -294,6 +310,13 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
       AppCardShell(
         title: _l10n.startPackingTripTitle,
         subtitle: _l10n.startPackingTripHint,
+      ),
+      const _Spec('AppCardShell · actionIcon'),
+      AppCardShell(
+        title: _l10n.startPackingTripTitle,
+        subtitle: _l10n.startPackingTripHint,
+        actionIcon: Icons.info_outline,
+        onAction: () {},
       ),
       const _Spec('AppListCard · leading + arrow'),
       AppListCard(

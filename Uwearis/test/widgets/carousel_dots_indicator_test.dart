@@ -36,4 +36,16 @@ void main() {
         .toList();
     expect(widths, [18.0, 6.0, 6.0]);
   });
+  testWidgets('the onPhoto variant drops the counter', (tester) async {
+    await pumpApp(
+      tester,
+      const CarouselDotsIndicator(
+        count: 3,
+        currentIndex: 1,
+        variant: CarouselDotsVariant.onPhoto,
+      ),
+    );
+    expect(find.byType(AnimatedContainer), findsNWidgets(3));
+    expect(find.textContaining('/'), findsNothing);
+  });
 }

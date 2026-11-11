@@ -38,39 +38,42 @@ void main() {
   setUp(setUpFakeAuth);
 
   group('uploadReference', () {
-    test('inits the upload, PUTs the file, then POSTs the object_name', () async {
-      final tempFile = await _writeTempJpeg();
-      addTearDown(() => tempFile.delete());
+    test(
+      'inits the upload, PUTs the file, then POSTs the object_name',
+      () async {
+        final tempFile = await _writeTempJpeg();
+        addTearDown(() => tempFile.delete());
 
-      final requestedUrls = <String>[];
-      final client = MockClient((request) async {
-        requestedUrls.add('${request.method} ${request.url}');
-        if (request.url.path.endsWith('/reference/init-upload')) {
-          return _jsonResponse(
-            _envelope({
-              'upload_url': 'https://upload.example.com/signed',
-              'object_name': 'refs/1.jpg',
-            }),
-          );
-        }
-        if (request.url.toString() == 'https://upload.example.com/signed') {
-          return http.Response('', 200);
-        }
-        // POST /reference (the analyze call)
-        return _jsonResponse(_envelope(null));
-      });
+        final requestedUrls = <String>[];
+        final client = MockClient((request) async {
+          requestedUrls.add('${request.method} ${request.url}');
+          if (request.url.path.endsWith('/reference/init-upload')) {
+            return _jsonResponse(
+              _envelope({
+                'upload_url': 'https://upload.example.com/signed',
+                'object_name': 'refs/1.jpg',
+              }),
+            );
+          }
+          if (request.url.toString() == 'https://upload.example.com/signed') {
+            return http.Response('', 200);
+          }
+          // POST /reference (the analyze call)
+          return _jsonResponse(_envelope(null));
+        });
 
-      await http.runWithClient(
-        () => MatchLookService().uploadReference(tempFile.path),
-        () => client,
-      );
+        await http.runWithClient(
+          () => MatchLookService().uploadReference(tempFile.path),
+          () => client,
+        );
 
-      expect(requestedUrls, [
-        'POST $_base/reference/init-upload',
-        'PUT https://upload.example.com/signed',
-        'POST $_base/reference',
-      ]);
-    });
+        expect(requestedUrls, [
+          'POST $_base/reference/init-upload',
+          'PUT https://upload.example.com/signed',
+          'POST $_base/reference',
+        ]);
+      },
+    );
   });
 
   group('matchLook', () {
@@ -100,39 +103,52 @@ void main() {
       expect(result.roles, hasLength(1));
     });
 
-    test('throws MatchLookException carrying the backend error_code on failure', () async {
-      final client = MockClient(
-        (request) async => _jsonResponse(
-          {
+    test(
+      'throws MatchLookException carrying the backend error_code on failure',
+      () async {
+        final client = MockClient(
+          (request) async => _jsonResponse({
             'success': false,
             'message': 'No person detected in the photo.',
             'data': null,
             'error_code': 'NO_PERSON_DETECTED',
-          },
-          status: 400,
-        ),
-      );
+          }, status: 400),
+        );
 
-      await expectLater(
-        http.runWithClient(() => MatchLookService().matchLook(), () => client),
-        throwsA(
-          isA<MatchLookException>()
-              .having((e) => e.errorCode, 'errorCode', 'NO_PERSON_DETECTED')
-              .having((e) => e.message, 'message', 'No person detected in the photo.'),
-        ),
-      );
-    });
+        await expectLater(
+          http.runWithClient(
+            () => MatchLookService().matchLook(),
+            () => client,
+          ),
+          throwsA(
+            isA<MatchLookException>()
+                .having((e) => e.errorCode, 'errorCode', 'NO_PERSON_DETECTED')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'No person detected in the photo.',
+                ),
+          ),
+        );
+      },
+    );
 
-    test('throws MatchLookException when the response body is not valid JSON', () async {
-      final client = MockClient(
-        (request) async => http.Response('not json', 200),
-      );
+    test(
+      'throws MatchLookException when the response body is not valid JSON',
+      () async {
+        final client = MockClient(
+          (request) async => http.Response('not json', 200),
+        );
 
-      await expectLater(
-        http.runWithClient(() => MatchLookService().matchLook(), () => client),
-        throwsA(isA<MatchLookException>()),
-      );
-    });
+        await expectLater(
+          http.runWithClient(
+            () => MatchLookService().matchLook(),
+            () => client,
+          ),
+          throwsA(isA<MatchLookException>()),
+        );
+      },
+    );
   });
 
   group('removeReference', () {
@@ -153,9 +169,7 @@ void main() {
     });
 
     test('treats a 404 as success rather than throwing', () async {
-      final client = MockClient(
-        (request) async => http.Response('', 404),
-      );
+      final client = MockClient((request) async => http.Response('', 404));
 
       await http.runWithClient(
         () => MatchLookService().removeReference(),
@@ -167,10 +181,10 @@ void main() {
     // deleteIdempotent routes failures through MatchLookService's _decode.
     test('a 500 still surfaces a MatchLookException', () async {
       final client = MockClient(
-        (request) async => _jsonResponse(
-          {'error_code': 'INTERNAL_SERVER_ERROR', 'message': 'boom'},
-          status: 500,
-        ),
+        (request) async => _jsonResponse({
+          'error_code': 'INTERNAL_SERVER_ERROR',
+          'message': 'boom',
+        }, status: 500),
       );
 
       await expectLater(

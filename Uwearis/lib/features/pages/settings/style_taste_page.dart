@@ -18,7 +18,6 @@ import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/cards/style_profile_pie_chart.dart';
 import '../../widgets/common/cards/style_taste_radar_chart.dart';
-import '../../widgets/common/cards/uwearis_insight_card.dart';
 import '../../widgets/common/expand_arrow_icon.dart';
 import '../../widgets/common/images/app_spinner.dart';
 import '../../widgets/common/overlays/app_dialog.dart';
@@ -105,40 +104,10 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
           ),
         ),
         const SizedBox(height: AppDimens.sectionSpacing),
-        _buildAnalysisCard(profile.summary),
-        const SizedBox(height: AppDimens.sectionSpacing),
         _buildRadarCard(profile.preferences),
         const SizedBox(height: AppDimens.sectionSpacing),
         _buildStyleProfileCard(),
       ],
-    );
-  }
-
-  Widget _buildAnalysisCard(String summary) {
-    final l10n = AppLocalizations.of(context);
-    final outfitsAsync = ref.watch(outfitsProvider);
-
-    return UwearisInsightCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(summary, style: AppTextStyle.insightCardBody),
-          const SizedBox(height: 10),
-          outfitsAsync.when(
-            data: (outfits) => Text(
-              l10n.styleTasteAnalysisStats(
-                outfits.fold<int>(0, (sum, o) => sum + o.versionCount),
-                outfits.where((o) => o.isFavorite).length,
-              ),
-              style: AppTextStyle.regular12.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            loading: () => const SizedBox.shrink(),
-            error: (_, _) => const SizedBox.shrink(),
-          ),
-        ],
-      ),
     );
   }
 
@@ -149,15 +118,8 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
       blurRadius: 16,
       title: l10n.styleTasteRadarCardTitle,
       subtitle: l10n.styleTasteRadarCardSubtitle,
-      trailing: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _showAllDescriptionsDialog,
-        child: const Icon(
-          Icons.info_outline,
-          size: 20,
-          color: AppColors.textSecondary,
-        ),
-      ),
+      actionIcon: Icons.info_outline,
+      onAction: _showAllDescriptionsDialog,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -414,8 +376,6 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
             ],
           ),
         ),
-        primaryLabel: l10n.close,
-        onPrimary: () => Navigator.pop(ctx),
       ),
     );
   }

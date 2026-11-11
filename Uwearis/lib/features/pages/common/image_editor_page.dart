@@ -18,7 +18,7 @@ import '../../../data/image_edit_result.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
-import '../../widgets/common/buttons/pill_button.dart';
+import '../../widgets/common/buttons/common_button.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
 import '../../widgets/common/images/app_spinner.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
@@ -496,7 +496,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     return Row(
       children: [
         Expanded(
-          child: PillButton(
+          child: CommonButton(
             label: Text(_l10n.retake, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/camera.png', height: 32),
             onPressed: _handleRetake,
@@ -504,7 +504,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: PillButton(
+          child: CommonButton(
             label: Text(_l10n.album, style: AppTextStyle.bold16),
             icon: Image.asset('assets/images/album.png', height: 32),
             onPressed: _handleAlbum,

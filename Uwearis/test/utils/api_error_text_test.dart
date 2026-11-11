@@ -128,17 +128,22 @@ void main() {
     String msg(Object e) =>
         apiErrorMessage(l10n, e, fallback: l10n.garmentSaveFailed);
 
-    test('daily try-on limit names the local reset time', () {
+    test('insufficient points names the local time of the next grant', () {
       const error = ApiException(
-        statusCode: 429,
-        errorCode: 'DAILY_GENERATION_LIMIT_EXCEEDED',
-        message: 'limit',
+        statusCode: 402,
+        errorCode: 'INSUFFICIENT_POINTS',
+        message: 'not enough',
       );
-      final reset = nextGenerationQuotaReset(DateTime.now());
+      final grant = nextDailyPointsGrant(DateTime.now());
       final hhmm =
-          '${reset.hour.toString().padLeft(2, '0')}:'
-          '${reset.minute.toString().padLeft(2, '0')}';
-      expect(msg(error), l10n.dailyGenerationLimitReached(hhmm));
+          '${grant.hour.toString().padLeft(2, '0')}:'
+          '${grant.minute.toString().padLeft(2, '0')}';
+      expect(msg(error), l10n.insufficientPoints(hhmm));
+      expect(isInsufficientPoints(error), isTrue);
+      expect(
+        isInsufficientPoints(const ApiException(statusCode: 402, message: 'x')),
+        isFalse,
+      );
     });
 
     test('any other 429 is a rate limit', () {
@@ -169,19 +174,19 @@ void main() {
     });
   });
 
-  group('nextGenerationQuotaReset', () {
+  group('nextDailyPointsGrant', () {
     test('is the next 00:00 Taipei (16:00 UTC)', () {
-      final reset = nextGenerationQuotaReset(DateTime.utc(2026, 10, 28, 3));
+      final reset = nextDailyPointsGrant(DateTime.utc(2026, 10, 28, 3));
       expect(reset.toUtc(), DateTime.utc(2026, 10, 28, 16));
     });
 
     test('rolls to the following day once Taipei has passed midnight', () {
-      final reset = nextGenerationQuotaReset(DateTime.utc(2026, 10, 28, 16, 1));
+      final reset = nextDailyPointsGrant(DateTime.utc(2026, 10, 28, 16, 1));
       expect(reset.toUtc(), DateTime.utc(2026, 10, 29, 16));
     });
 
     test('handles month ends', () {
-      final reset = nextGenerationQuotaReset(DateTime.utc(2026, 12, 31, 17));
+      final reset = nextDailyPointsGrant(DateTime.utc(2026, 12, 31, 17));
       expect(reset.toUtc(), DateTime.utc(2027, 1, 1, 16));
     });
   });

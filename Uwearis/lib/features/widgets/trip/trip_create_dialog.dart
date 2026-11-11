@@ -65,8 +65,6 @@ class _TripCreateDialogState extends State<TripCreateDialog> {
       ),
       primaryLabel: l10n.create,
       onPrimary: _canCreate ? _submit : null,
-      secondaryLabel: l10n.cancel,
-      onSecondary: () => Navigator.pop(context),
     );
   }
 

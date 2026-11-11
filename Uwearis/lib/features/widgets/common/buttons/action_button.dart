@@ -64,7 +64,6 @@ class ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final disabled = onPressed == null;
     final (background, foreground, border) = switch (variant) {
-      // Disabled matches AppDialog's disabled primary.
       ActionButtonVariant.primary when disabled => (
         AppColors.borderSubtle,
         AppColors.hintText,

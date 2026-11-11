@@ -9,10 +9,8 @@ import '../helpers/widget_harness.dart';
 
 void main() {
   // The visible pill (the decorated Container) inside a chip.
-  Finder pillOf(Finder chip) => find.descendant(
-    of: chip,
-    matching: find.byType(Container),
-  );
+  Finder pillOf(Finder chip) =>
+      find.descendant(of: chip, matching: find.byType(Container));
 
   group('SelectableChip tap target', () {
     testWidgets('is at least AppDimens.minTouchTarget tall while the visible '
@@ -20,9 +18,7 @@ void main() {
       await pumpApp(
         tester,
         const Scaffold(
-          body: Center(
-            child: SelectableChip(label: 'Summer', selected: false),
-          ),
+          body: Center(child: SelectableChip(label: 'Summer', selected: false)),
         ),
       );
 
@@ -40,10 +36,7 @@ void main() {
         reason: 'the visible pill is not stretched — only the hit area grows',
       );
       // pill stays vertically centred in the band
-      expect(
-        (pillRect.center.dy - chipRect.center.dy).abs(),
-        lessThan(0.5),
-      );
+      expect((pillRect.center.dy - chipRect.center.dy).abs(), lessThan(0.5));
     });
 
     testWidgets('a near-miss tap in the transparent band above the pill still '
@@ -104,7 +97,10 @@ void main() {
       // chip width == pill width (no transparent horizontal padding added)
       expect((firstChip.width - firstPill.width).abs(), lessThan(0.5));
       // exactly the Wrap spacing between the two chips
-      expect(secondChip.left - firstChip.right, moreOrLessEquals(10, epsilon: 0.5));
+      expect(
+        secondChip.left - firstChip.right,
+        moreOrLessEquals(10, epsilon: 0.5),
+      );
     });
   });
 

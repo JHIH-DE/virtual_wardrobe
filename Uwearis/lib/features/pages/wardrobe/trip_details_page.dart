@@ -124,20 +124,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     }
   }
 
-  /// Asks the backend to recompute the packing analysis after a legs edit;
-  /// a plain re-read would return the pre-edit result.
-  Future<void> _analyzeTrip() async {
-    try {
-      await TripService().analyzeTrip(_tripId);
-    } on AuthExpiredException {
-      if (!mounted) return;
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      debugLog('Failed to analyze trip: $e');
-    }
-  }
-
   // The Suitcase page writes its changes back to tripDetailProvider, which
   // this page watches — nothing to re-fetch on return.
   Future<void> _openSuitcase() async {
@@ -186,8 +172,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         body: _l10n.refreshSuggestionsBody(count),
         primaryLabel: _l10n.refresh,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
     return confirmed ?? false;
@@ -341,8 +325,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
               content: TripLegsEditor(legsNotifier: legsNotifier),
               primaryLabel: _l10n.save,
               onPrimary: hasChange ? () => Navigator.pop(ctx, legs) : null,
-              secondaryLabel: _l10n.cancel,
-              onSecondary: () => Navigator.pop(ctx),
             );
           },
         ),
@@ -406,7 +388,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       if (legsChanged && mounted) {
         // New weather can make other saved outfits fit.
         await _reloadCollection(syncSavedOutfits: true);
-        if (mounted) await _analyzeTrip();
+        // The PATCH re-ran the packing analysis (free, unlike a manual
+        // POST), so the earlier invalidate may have read the old one.
+        if (mounted) {
+          ref.invalidate(tripSuggestionProvider(int.parse(previous.id)));
+        }
       }
     } on AuthExpiredException {
       if (!mounted) return;
@@ -433,8 +419,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             body: _l10n.clearTripConfirmation,
             primaryLabel: _l10n.clear,
             onPrimary: () => Navigator.pop(ctx, true),
-            secondaryLabel: _l10n.cancel,
-            onSecondary: () => Navigator.pop(ctx, false),
           ),
         );
         if (confirmed != true || !mounted) return null;
@@ -456,8 +440,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         body: _l10n.deleteTripConfirmation,
         primaryLabel: _l10n.delete,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
     if (confirmed != true || !mounted) return;

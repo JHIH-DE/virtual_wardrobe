@@ -33,10 +33,7 @@ void main() {
 
   testWidgets('tapping toggles', (tester) async {
     var toggles = 0;
-    await pumpApp(
-      tester,
-      Scaffold(body: body(onToggle: () => toggles++)),
-    );
+    await pumpApp(tester, Scaffold(body: body(onToggle: () => toggles++)));
     await tester.tap(find.byType(ExpandableInsightBody));
     expect(toggles, 1);
   });

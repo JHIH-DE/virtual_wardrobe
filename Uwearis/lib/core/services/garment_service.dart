@@ -14,12 +14,40 @@ import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
 import 'base_service.dart';
+import 'points_service.dart';
+
+/// analyze-instant's `flat_lay_status`: whether a garment photographed on a
+/// person was turned into a flat-lay image (a separately charged step).
+enum FlatLayStatus {
+  notNeeded('not_needed'),
+  generated('generated'),
+
+  /// Not enough points; the preview is the original photo, background removed.
+  insufficientPoints('insufficient_points'),
+  failed('failed'),
+  skipped('skipped');
+
+  final String apiValue;
+  const FlatLayStatus(this.apiValue);
+
+  static FlatLayStatus fromApiValue(String? value) {
+    for (final status in values) {
+      if (status.apiValue == value) return status;
+    }
+    return notNeeded;
+  }
+}
 
 class AnalyzeGarmentResult {
   final Map<String, dynamic> metadata;
   final String? processedImagePath;
+  final FlatLayStatus flatLayStatus;
 
-  const AnalyzeGarmentResult({required this.metadata, this.processedImagePath});
+  const AnalyzeGarmentResult({
+    required this.metadata,
+    this.processedImagePath,
+    this.flatLayStatus = FlatLayStatus.notNeeded,
+  });
 }
 
 /// Non-2xx, non-401 `closet-analysis` response, carrying the backend's
@@ -320,6 +348,9 @@ class GarmentService with BaseService {
     return AnalyzeGarmentResult(
       metadata: metadata,
       processedImagePath: processedImagePath,
+      flatLayStatus: FlatLayStatus.fromApiValue(
+        data['flat_lay_status'] as String?,
+      ),
     );
   }
 
@@ -362,17 +393,19 @@ class GarmentService with BaseService {
     Future<http.MultipartFile> Function() buildFile,
   ) async {
     final uri = Uri.parse('$_baseUrl/analyze-instant');
-    final res = await withAuth((token) async {
-      final request = http.MultipartRequest('POST', uri);
-      request.headers['Authorization'] = 'Bearer $token';
-      request.files.add(await buildFile());
-      // Backend caps analysis at 100s (AI_ANALYSIS_TIMEOUT); the headroom
-      // lets the server's own error arrive before a client timeout.
-      final streamedRes = await request.send().timeout(
-        const Duration(seconds: 110),
-      );
-      return http.Response.fromStream(streamedRes);
-    });
+    final res = await PointsService.charged(
+      () => withAuth((token) async {
+        final request = http.MultipartRequest('POST', uri);
+        request.headers['Authorization'] = 'Bearer $token';
+        request.files.add(await buildFile());
+        // Backend caps analysis at 100s (AI_ANALYSIS_TIMEOUT); the headroom
+        // lets the server's own error arrive before a client timeout.
+        final streamedRes = await request.send().timeout(
+          const Duration(seconds: 110),
+        );
+        return http.Response.fromStream(streamedRes);
+      }),
+    );
     final envelope = decodeMap(res, op: 'analyzeInstantGarment');
     return (envelope['data'] as Map<String, dynamic>?) ?? {};
   }
@@ -409,16 +442,18 @@ class GarmentService with BaseService {
   ]) async {
     debugLog('--- closetAnalysis: $garmentId ---');
     final uri = Uri.parse('$_baseUrl/closet-analysis');
-    final res = await withAuth(
-      (token) => http
-          .post(
-            uri,
-            headers: authHeaders(token),
-            body: jsonEncode(
-              garmentId != null ? {'garment_id': garmentId} : {...?fields},
-            ),
-          )
-          .timeout(const Duration(seconds: 45)),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(
+              uri,
+              headers: authHeaders(token),
+              body: jsonEncode(
+                garmentId != null ? {'garment_id': garmentId} : {...?fields},
+              ),
+            )
+            .timeout(const Duration(seconds: 45)),
+      ),
     );
     final data = _decodeClosetAnalysis(res, op: 'closetAnalysis')['data'];
     if (data is! Map<String, dynamic>) {

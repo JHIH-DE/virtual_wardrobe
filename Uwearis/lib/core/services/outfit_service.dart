@@ -3,13 +3,13 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../data/generation_quota.dart';
 import '../../data/outfit.dart';
 import '../../data/try_on_generation.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
 import 'base_service.dart';
+import 'points_service.dart';
 
 /// OutfitGroup + Outfit API. Every outfit lives in a group; `generate`
 /// creates and renders in one synchronous call. [getAllOutfits] and
@@ -137,21 +137,23 @@ class OutfitService with BaseService {
       'background_id': ?backgroundId,
       'is_favorite': isFavorite,
     };
-    final res = await withAuth(
-      (token) => http
-          .post(
-            uri,
-            headers: {
-              ..._withIdempotencyKey(authHeaders(token), idempotencyKey),
-              // Tells the backend this client recovers lost replies by key
-              // and mints a new key after a definitive failure.
-              tryOnProtocolHeader: tryOnProtocolVersion,
-            },
-            body: jsonEncode(payload),
-          )
-          // Above the backend's worst case (150s AI deadline + saving), so a
-          // normal reply isn't mistaken for a lost one.
-          .timeout(_renderTimeout),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(
+              uri,
+              headers: {
+                ..._withIdempotencyKey(authHeaders(token), idempotencyKey),
+                // Tells the backend this client recovers lost replies by key
+                // and mints a new key after a definitive failure.
+                tryOnProtocolHeader: tryOnProtocolVersion,
+              },
+              body: jsonEncode(payload),
+            )
+            // Above the backend's worst case (150s AI deadline + saving), so a
+            // normal reply isn't mistaken for a lost one.
+            .timeout(_renderTimeout),
+      ),
     );
     final envelope = decodeMap(res, op: 'generateOutfit');
     final data = envelope['data'];
@@ -176,16 +178,18 @@ class OutfitService with BaseService {
     );
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId/regenerate');
     final payload = <String, dynamic>{'background_id': ?backgroundId};
-    final res = await withAuth(
-      (token) => http
-          .post(
-            uri,
-            headers: _withIdempotencyKey(authHeaders(token), idempotencyKey),
-            body: jsonEncode(payload),
-          )
-          // Above the backend's worst case (150s AI deadline + saving), so a
-          // normal reply isn't mistaken for a lost one.
-          .timeout(_renderTimeout),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(
+              uri,
+              headers: _withIdempotencyKey(authHeaders(token), idempotencyKey),
+              body: jsonEncode(payload),
+            )
+            // Above the backend's worst case (150s AI deadline + saving), so a
+            // normal reply isn't mistaken for a lost one.
+            .timeout(_renderTimeout),
+      ),
     );
     final envelope = decodeMap(res, op: 'regenerateOutfit');
     final data = envelope['data'];
@@ -194,23 +198,6 @@ class OutfitService with BaseService {
     }
     _groupCache.remove(groupId);
     return Outfit.fromJson(data);
-  }
-
-  Future<GenerationQuota> getGenerationQuota() async {
-    debugLog('--- getGenerationQuota ---');
-    final uri = Uri.parse('$_baseUrl/generation-quota');
-    final res = await withAuth(
-      (token) => http
-          .get(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
-      retryOnTimeout: true,
-    );
-    final envelope = decodeMap(res, op: 'getGenerationQuota');
-    final data = envelope['data'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('getGenerationQuota: response missing data object');
-    }
-    return GenerationQuota.fromJson(data);
   }
 
   /// Status of a generate/regenerate sent with [idempotencyKey], for when its

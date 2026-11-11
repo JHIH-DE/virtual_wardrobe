@@ -5,10 +5,7 @@ void main() {
   group('StyleTasteDimension', () {
     test('apiValue round-trips through styleTasteDimensionFromApiValue', () {
       for (final dimension in StyleTasteDimension.values) {
-        expect(
-          styleTasteDimensionFromApiValue(dimension.apiValue),
-          dimension,
-        );
+        expect(styleTasteDimensionFromApiValue(dimension.apiValue), dimension);
       }
     });
 
@@ -18,9 +15,12 @@ void main() {
       expect(StyleTasteDimension.fitPreference.apiValue, 'fit_preference');
     });
 
-    test('styleTasteDimensionFromApiValue returns null for an unknown value', () {
-      expect(styleTasteDimensionFromApiValue('mystery'), isNull);
-    });
+    test(
+      'styleTasteDimensionFromApiValue returns null for an unknown value',
+      () {
+        expect(styleTasteDimensionFromApiValue('mystery'), isNull);
+      },
+    );
   });
 
   group('StyleTastePreference', () {
@@ -38,10 +38,13 @@ void main() {
       expect(pref.description, 'You like to layer.');
     });
 
-    test('falls back to styleBalance for an unrecognized/missing dimension', () {
-      final pref = StyleTastePreference.fromJson({'score': 0.5});
-      expect(pref.dimension, StyleTasteDimension.styleBalance);
-    });
+    test(
+      'falls back to styleBalance for an unrecognized/missing dimension',
+      () {
+        final pref = StyleTastePreference.fromJson({'score': 0.5});
+        expect(pref.dimension, StyleTasteDimension.styleBalance);
+      },
+    );
 
     test('defaults score to 0.5 and confidence to 1.0 when missing', () {
       final pref = StyleTastePreference.fromJson({'dimension': 'layering'});
@@ -81,8 +84,16 @@ void main() {
       final profile = StyleTasteProfile.fromApi({
         'status': 'ready',
         'summary': 'You lean minimal.',
-        'style_balance': {'score': 0.2, 'confidence': 0.8, 'insight': 'Consistent.'},
-        'color_pairing': {'score': 0.6, 'confidence': 0.5, 'insight': 'Balanced.'},
+        'style_balance': {
+          'score': 0.2,
+          'confidence': 0.8,
+          'insight': 'Consistent.',
+        },
+        'color_pairing': {
+          'score': 0.6,
+          'confidence': 0.5,
+          'insight': 'Balanced.',
+        },
       });
 
       expect(profile.status, 'ready');
@@ -95,25 +106,34 @@ void main() {
       expect(styleBalance.description, 'Consistent.');
     });
 
-    test('skips dimensions the response omits, rather than defaulting them in', () {
-      final profile = StyleTasteProfile.fromApi({
-        'status': 'learning',
-        'summary': '',
-        'layering': {'score': 0.5},
-      });
+    test(
+      'skips dimensions the response omits, rather than defaulting them in',
+      () {
+        final profile = StyleTasteProfile.fromApi({
+          'status': 'learning',
+          'summary': '',
+          'layering': {'score': 0.5},
+        });
 
-      expect(profile.preferences, hasLength(1));
-      expect(profile.preferences.single.dimension, StyleTasteDimension.layering);
-    });
+        expect(profile.preferences, hasLength(1));
+        expect(
+          profile.preferences.single.dimension,
+          StyleTasteDimension.layering,
+        );
+      },
+    );
 
-    test('ignores a non-map value under a dimension key instead of throwing', () {
-      final profile = StyleTasteProfile.fromApi({
-        'status': 'learning',
-        'summary': '',
-        'accessories': 'not-an-object',
-      });
-      expect(profile.preferences, isEmpty);
-    });
+    test(
+      'ignores a non-map value under a dimension key instead of throwing',
+      () {
+        final profile = StyleTasteProfile.fromApi({
+          'status': 'learning',
+          'summary': '',
+          'accessories': 'not-an-object',
+        });
+        expect(profile.preferences, isEmpty);
+      },
+    );
 
     test('defaults status/summary when missing', () {
       final profile = StyleTasteProfile.fromApi({});

@@ -9,6 +9,7 @@ import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/providers/weather_provider.dart';
@@ -16,7 +17,7 @@ import '../../../core/services/auth_handler.dart';
 import '../../../core/services/garment_recommendation_service.dart';
 import '../../../core/services/match_look_service.dart';
 import '../../../core/utils/debug_log.dart';
-import '../../../core/utils/remaining_try_ons.dart';
+import '../../../core/utils/remaining_points.dart';
 import '../../../core/utils/try_on_mixin.dart';
 import '../../../data/background_option.dart';
 import '../../../data/garment.dart';
@@ -42,6 +43,7 @@ import '../../widgets/common/fields/number_stepper.dart';
 import '../../widgets/common/images/dashed_border_painter.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/app_dialog.dart';
+import '../../../core/utils/api_error_text.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
@@ -512,7 +514,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       case 'INSUFFICIENT_WARDROBE_DATA':
         return _l10n.matchALookInsufficientCloset;
       default:
-        return _l10n.matchALookFailed;
+        return sharedErrorCodeMessage(_l10n, e.errorCode) ??
+            _l10n.matchALookFailed;
     }
   }
 
@@ -604,8 +607,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   Future<void> _startTryOn() async {
     if (_tryOnRequested || isOutfitLoading || _isCompletingWithAi) return;
     setState(() => _tryOnRequested = true);
-    // The result screen (or the outfit a version returns to) shows the count.
+    // The result screen (or the outfit a version returns to) shows the balance.
     final overlay = Overlay.of(context, rootOverlay: true);
+    final points = ref.read(pointsProvider.notifier);
     final l10n = _l10n;
     try {
       if (!await ensureAiConsent(context) || !mounted) return;
@@ -628,7 +632,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         confirmRetryWhileUnknown: () => showRetryWhileUnknownDialog(context),
       );
       if (outfit != null) {
-        unawaited(announceRemainingTryOns(overlay, l10n));
+        unawaited(announceRemainingPoints(overlay, l10n, points));
       }
       if (!mounted) return;
 
@@ -857,7 +861,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         title: _l10n.addGarment,
         child: Text(
           _l10n.browseYourClosetHint,
-          style: AppTextStyle.regular12.copyWith(
+          style: AppTextStyle.regular14.copyWith(
             color: AppColors.textSecondary,
           ),
         ),
@@ -1465,7 +1469,14 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     } catch (e) {
       debugLog('Complete with AI failed: $e');
       if (!mounted || run != _completeWithAiRun) return;
-      showErrorDialog(context, message: _l10n.completeWithAiUnavailable);
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(
+          _l10n,
+          e,
+          fallback: _l10n.completeWithAiUnavailable,
+        ),
+      );
     } finally {
       if (mounted && run == _completeWithAiRun) {
         setState(() => _isCompletingWithAi = false);
@@ -1538,8 +1549,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
               ),
         primaryLabel: _l10n.addGarment,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx),
       ),
     );
     if (addGarment != true || !mounted) return;
@@ -1554,9 +1563,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       builder: (ctx) => AppDialog(
         title: _l10n.createVersionUnchangedTitle,
         body: _l10n.createVersionUnchangedBody,
-        primaryLabel: _l10n.ok,
-        onPrimary: () => Navigator.pop(ctx),
-        primaryIsTextButton: true,
       ),
     );
   }

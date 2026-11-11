@@ -67,7 +67,6 @@ class _AiConsentDialog extends StatelessWidget {
       onPrimary: () => Navigator.of(context).pop(true),
       secondaryLabel: l10n.aiConsentDecline,
       onSecondary: () => Navigator.of(context).pop(false),
-      secondaryIsTextButton: true,
     );
   }
 }

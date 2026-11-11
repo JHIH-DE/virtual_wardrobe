@@ -10,6 +10,7 @@ import '../../data/trip_outfit.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
+import 'points_service.dart';
 
 class TripService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/trip_plans';
@@ -176,11 +177,13 @@ class TripService with BaseService {
     debugLog('--- analyzeTrip id=$tripId ---');
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
-    final res = await withAuth(
-      (token) => http
-          .post(uri, headers: authHeaders(token))
-          // AI call — generous ceiling.
-          .timeout(const Duration(seconds: 90)),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(uri, headers: authHeaders(token))
+            // AI call — generous ceiling.
+            .timeout(const Duration(seconds: 90)),
+      ),
     );
 
     return PackingAnalysis.fromJson(_dataObject(res, op: 'analyzeTrip'));
@@ -366,15 +369,17 @@ class TripService with BaseService {
     );
     final uri = Uri.parse('$_baseUrl/$tripId/outfits/generate');
 
-    final res = await withAuth(
-      (token) => http
-          .post(
-            uri,
-            headers: authHeaders(token),
-            body: jsonEncode({'mode': mode.apiValue}),
-          )
-          // AI generation — generous ceiling.
-          .timeout(const Duration(seconds: 90)),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(
+              uri,
+              headers: authHeaders(token),
+              body: jsonEncode({'mode': mode.apiValue}),
+            )
+            // AI generation — generous ceiling.
+            .timeout(const Duration(seconds: 90)),
+      ),
     );
 
     return TripOutfitGenerateResult.fromJson(
@@ -392,11 +397,13 @@ class TripService with BaseService {
     );
     final uri = Uri.parse('$_baseUrl/$tripId/outfits/$tripOutfitId/try-on');
 
-    final res = await withAuth(
-      (token) => http
-          .post(uri, headers: authHeaders(token))
-          // AI call — generous ceiling.
-          .timeout(const Duration(seconds: 90)),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(uri, headers: authHeaders(token))
+            // AI call — generous ceiling.
+            .timeout(const Duration(seconds: 90)),
+      ),
     );
 
     return TripOutfitCollection.fromJson(

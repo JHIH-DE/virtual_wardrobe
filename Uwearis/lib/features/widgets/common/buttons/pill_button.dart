@@ -1,65 +1,60 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
+import '../../../../app/theme/app_text_styles.dart';
 
-/// White bordered pill with a label and icon (Image Editor's Retake /
-/// Album).
+/// White pill with a dark label, for a call-out sitting on a photo (Explore's
+/// Read), where the accent fill of [AccentPillButton] would clash.
+///
+/// The tap target is padded to [AppDimens.minTouchTarget] beyond the
+/// [pillHeight] pill.
 class PillButton extends StatelessWidget {
-  final Widget label;
-  final Widget icon;
-  final VoidCallback onPressed;
-  final double? height;
-  final EdgeInsetsGeometry padding;
-  final MainAxisAlignment mainAxisAlignment;
-  final double gap;
-  final BoxBorder? border;
-  final List<BoxShadow> boxShadow;
-  final Color color;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool enabled;
+
+  /// Visible pill height at default text scale.
+  static const double pillHeight = 36;
 
   const PillButton({
     super.key,
     required this.label,
-    required this.icon,
-    required this.onPressed,
-    this.height = 64,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16),
-    this.mainAxisAlignment = MainAxisAlignment.spaceBetween,
-    this.gap = 0,
-    this.border = const Border.fromBorderSide(
-      BorderSide(color: AppColors.borderSubtle),
-    ),
-    this.boxShadow = const [
-      BoxShadow(
-        color: AppColors.shadowResting,
-        blurRadius: 8,
-        offset: Offset(0, 4),
-      ),
-    ],
-    this.color = AppColors.surface,
+    this.onPressed,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: height,
-        padding: padding,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-          border: border,
-          boxShadow: boxShadow,
-        ),
-        child: Row(
-          mainAxisAlignment: mainAxisAlignment,
-          children: [
-            label,
-            if (gap > 0) SizedBox(width: gap),
-            icon,
-          ],
-        ),
+    final background = enabled ? AppColors.surface : AppColors.borderSubtle;
+    final foreground = enabled ? AppColors.textPrimary : AppColors.hintText;
+    final pill = TextButton(
+      onPressed: enabled ? onPressed : null,
+      style: TextButton.styleFrom(
+        foregroundColor: foreground,
+        backgroundColor: background,
+        disabledForegroundColor: foreground,
+        disabledBackgroundColor: background,
+        minimumSize: const Size(0, pillHeight),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyle.bold14.copyWith(color: foreground),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+
+    return GestureDetector(
+      // Near-misses around the pill; direct hits still go to the button.
+      behavior: HitTestBehavior.opaque,
+      onTap: enabled ? onPressed : null,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
+        child: Center(widthFactor: 1, child: pill),
       ),
     );
   }

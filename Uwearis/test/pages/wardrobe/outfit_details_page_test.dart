@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/daily_outfit_provider.dart';
@@ -18,6 +19,7 @@ import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 import 'package:uwearis/features/widgets/common/images/refreshable_network_image.dart';
 import 'package:uwearis/features/widgets/common/labeled_divider.dart';
 
+import '../../helpers/points_fixture.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
@@ -571,7 +573,7 @@ void main() {
           findsOneWidget,
         );
         // Dismiss, then confirm the picker never opened underneath.
-        await tester.tap(find.text('OK'));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pump();
         await tester.pump();
         expect(find.byType(CreateOutfitPage), findsNothing);
@@ -918,16 +920,9 @@ void main() {
       var quotaReads = 0;
       final client = MockClient((request) async {
         final path = request.url.path;
-        if (path.endsWith('/generation-quota')) {
+        if (isPointsSummaryPath(path)) {
           quotaReads++;
-          return jsonResponse(
-            envelope({
-              'limit': 10,
-              'used': 7,
-              'remaining': 3,
-              'resets_at': '2026-11-04T00:00:00+08:00',
-            }),
-          );
+          return jsonResponse(envelope(pointsSummaryJson(balance: 3)));
         }
         if (path.endsWith('/regenerate')) {
           return succeed
@@ -975,15 +970,8 @@ void main() {
         if (path.contains('/outfit/generations/') && onStatus != null) {
           return onStatus();
         }
-        if (path.endsWith('/generation-quota')) {
-          return jsonResponse(
-            envelope({
-              'limit': 10,
-              'used': 7,
-              'remaining': 3,
-              'resets_at': '2026-11-04T00:00:00+08:00',
-            }),
-          );
+        if (isPointsSummaryPath(path)) {
+          return jsonResponse(envelope(pointsSummaryJson(balance: 3)));
         }
         return jsonResponse(envelope({'items': []}));
       });
@@ -1042,10 +1030,10 @@ void main() {
       await http.runWithClient(
         () async {
           await openAndRegenerate(tester);
-          // The count shows for 4s once the status read finds the result.
+          // The balance shows for 4s once the status read finds the result.
           await pumpFor(tester, 2);
           expect(keys, hasLength(1));
-          expect(find.text('3 AI try-ons left today'), findsOneWidget);
+          expect(find.text('3 points left'), findsOneWidget);
           await pumpFor(tester, 5);
         },
         () => recordingClient(
@@ -1076,13 +1064,13 @@ void main() {
             ),
             findsOneWidget,
           );
-          await tester.tap(find.text('OK'));
+          await tester.tap(find.byKey(AppDialog.closeButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
 
           await tester.tap(find.byIcon(Icons.refresh).first);
           await tester.pump(const Duration(milliseconds: 300));
           expect(find.text('Try Again?'), findsOneWidget);
-          await tester.tap(find.text('Cancel'));
+          await tester.tap(find.byKey(AppDialog.closeButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
           expect(keys, hasLength(1));
 
@@ -1105,18 +1093,16 @@ void main() {
       );
     });
 
-    testWidgets('a successful regenerate re-reads the count and shows it', (
+    testWidgets('a successful regenerate re-reads the balance and shows it', (
       tester,
     ) async {
-      expect(await regenerate(tester, succeed: true), 1);
-      expect(find.text('3 AI try-ons left today'), findsOneWidget);
+      expect(await regenerate(tester, succeed: true), greaterThan(0));
+      expect(find.text('3 points left'), findsOneWidget);
     });
 
-    testWidgets('a failed regenerate reads nothing and shows nothing', (
-      tester,
-    ) async {
-      expect(await regenerate(tester, succeed: false), 0);
-      expect(find.textContaining('AI try-on'), findsNothing);
+    testWidgets('a failed regenerate shows no balance', (tester) async {
+      await regenerate(tester, succeed: false);
+      expect(find.textContaining('points left'), findsNothing);
     });
   });
 }

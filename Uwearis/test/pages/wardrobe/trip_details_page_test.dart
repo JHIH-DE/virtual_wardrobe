@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/trip/trip_legs_editor.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/trip_detail_provider.dart';
@@ -23,6 +25,7 @@ import 'package:uwearis/features/widgets/common/overlays/empty_state_placeholder
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/trip/trip_outfit_tile.dart';
 
+import '../../helpers/points_fixture.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
@@ -174,16 +177,9 @@ void main() {
           envelope({'overall_advice': null, 'categories': []}),
         );
       }
-      // Read after a try-on to show what's left; not a trip call.
-      if (path.endsWith('/outfit/generation-quota')) {
-        return jsonResponse(
-          envelope({
-            'limit': 10,
-            'used': 6,
-            'remaining': 4,
-            'resets_at': '2026-11-04T00:00:00+08:00',
-          }),
-        );
+      // Read after a try-on to show the balance; not a trip call.
+      if (isPointsSummaryPath(path)) {
+        return jsonResponse(envelope(pointsSummaryJson(balance: 4)));
       }
       log.add(recorded);
       final data = respond?.call(recorded);
@@ -545,7 +541,7 @@ void main() {
           await tester.tap(find.text('Refresh AI Outfits'));
           await tester.pumpAndSettle();
           expect(find.textContaining('replace 2 AI picks'), findsOneWidget);
-          await tester.tap(find.text('Cancel'));
+          await tester.tap(find.byKey(AppDialog.closeButtonKey));
           await tester.pumpAndSettle();
           expect(log, isEmpty);
 
@@ -775,7 +771,7 @@ void main() {
 
         expect(log.single.toString(), 'POST /outfits/1/try-on');
         expect(find.byType(GeneratedImageCard), findsOneWidget);
-        expect(find.text('4 AI try-ons left today'), findsOneWidget);
+        expect(find.text('4 points left'), findsOneWidget);
         expect(find.text('Generate Outfit'), findsNothing);
       },
       tripClient(
@@ -840,7 +836,7 @@ void main() {
         await settle(tester);
 
         await chooseClearTrip(tester);
-        await tester.tap(find.text('Cancel'));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pumpAndSettle();
 
         expect(log, isEmpty);
@@ -921,7 +917,14 @@ void main() {
         expect(saveButton().onPressed, isNull);
 
         // Remove Osaka; remove badges are disabled only for a single leg.
-        await tester.tap(find.byIcon(Icons.close).last);
+        await tester.tap(
+          find
+              .descendant(
+                of: find.byType(TripLegsEditor),
+                matching: find.byIcon(Icons.close),
+              )
+              .last,
+        );
         await tester.pump();
         expect(saveButton().onPressed, isNotNull);
 
@@ -1041,15 +1044,8 @@ void main() {
           posts?.add(path);
           return onTryOn();
         }
-        if (path.endsWith('/generation-quota')) {
-          return jsonResponse(
-            envelope({
-              'limit': 10,
-              'used': 6,
-              'remaining': 4,
-              'resets_at': '2026-11-04T00:00:00+08:00',
-            }),
-          );
+        if (isPointsSummaryPath(path)) {
+          return jsonResponse(envelope(pointsSummaryJson(balance: 4)));
         }
         if (request.method == 'GET' && path.endsWith('/trip_plans/7/outfits')) {
           return jsonResponse(envelope(trip()));
@@ -1147,7 +1143,7 @@ void main() {
           );
           await pumpUntil(tester, () => unknown.evaluate().isNotEmpty);
           expect(unknown, findsOneWidget);
-          await tester.tap(find.text('OK'));
+          await tester.tap(find.byKey(AppDialog.closeButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
 
           // Still nothing: ask first; Cancel sends nothing.
@@ -1155,7 +1151,7 @@ void main() {
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
           expect(find.text('Try Again?'), findsOneWidget);
-          await tester.tap(find.text('Cancel'));
+          await tester.tap(find.byKey(AppDialog.closeButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
           expect(posts, hasLength(1));
 

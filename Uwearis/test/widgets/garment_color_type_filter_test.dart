@@ -29,7 +29,13 @@ void main() {
   test('available lists are sorted and prefixed with "All"', () {
     final f = GarmentColorTypeFilter();
     expect(f.availableColors(pool), ['All', 'Blue', 'Red']);
-    expect(f.availableTypes(pool), ['All', 'Shirt', 'Sweater', 'T-Shirt', 'Tank']);
+    expect(f.availableTypes(pool), [
+      'All',
+      'Shirt',
+      'Sweater',
+      'T-Shirt',
+      'Tank',
+    ]);
   });
 
   test('filtering by colour is case-insensitive', () {

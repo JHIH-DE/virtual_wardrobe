@@ -67,15 +67,6 @@ class AppColors {
   static const Color statusUpcoming = Color(0xFF4F7FFF);
   static const Color statusPast = Color(0xFF9E9E9E);
 
-  // Settings' plan badge (UserTier) — metallic tones, each paired with a
-  // text color that keeps >= 4.5:1 contrast on its own fill.
-  static const Color tierGold = Color(0xFFE9C46A);
-  static const Color tierGoldText = Color(0xFF5C4300);
-  static const Color tierSilver = Color(0xFFD6D8DB);
-  static const Color tierSilverText = Color(0xFF3F4347);
-  static const Color tierBronze = Color(0xFFE2B48C);
-  static const Color tierBronzeText = Color(0xFF5A3214);
-
   // Disc behind Home's weather illustration, so its pale clouds don't
   // sink into the cream page background: a daytime sky and a night sky.
   static const Color weatherBadgeDay = Color(0xFFDCE5EA);
@@ -87,7 +78,7 @@ class AppColors {
   static const Color headerChipText = Color(0xFF514D49);
   static const Color headerChipIcon = Color(0xFF817A73);
 
-  // AI-output call-out background (UwearisInsightCard).
+  // AI call-out background.
   static const Color uwearisCardTint = Color(0xFFF3EFE6);
   static const LinearGradient uwearisGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -138,9 +129,18 @@ class AppColors {
   static const Color scrimStrong = Color(
     0x99000000,
   ); // strong full-screen scrim (e.g. camera cutout mask), black @60%
+  static const Color mastheadSky = Color(
+    0xFFF4EEED,
+  ); // explore_00.png's sky, so a scrim over it blends in
+  static const Color onPhotoMuted = Color(
+    0x80FFFFFF,
+  ); // white @50%, e.g. an inactive carousel dot on a photo
   static const Color surfaceTranslucentMedium = Color(
     0xA6FFFFFF,
   ); // white @65%, e.g. a badge sitting on top of a photo (slightly lighter than surfaceTranslucent)
+  static const Color scrimFrost = Color(
+    0x99FFFFFF,
+  ); // white @60%, a frosted LoadingOverlay's wash over a photo
   // Nav bar frosted glass: a warm-grey sheen fading down over the blurred
   // page, tinted so it stays distinct from white cards under it.
   static const Color navBarGlassTop = Color(0xBFF7F5F2); // warm white @75%

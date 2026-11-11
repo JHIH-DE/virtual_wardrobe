@@ -58,8 +58,6 @@ mixin BaseModelGenerationMixin<T extends ConsumerStatefulWidget>
             body: l10n.virtualModelGenerateConfirmBody,
             primaryLabel: l10n.virtualModelGenerateAction,
             onPrimary: () => Navigator.pop(ctx, true),
-            secondaryLabel: l10n.cancel,
-            onSecondary: () => Navigator.pop(ctx, false),
           ),
         );
         if (ok != true || !mounted) return false;

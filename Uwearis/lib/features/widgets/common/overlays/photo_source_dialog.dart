@@ -59,9 +59,6 @@ Future<String?> showPhotoSourceDialog(
             ),
           ],
         ),
-        primaryLabel: l10n.cancel,
-        primaryIsTextButton: true,
-        onPrimary: () => Navigator.pop(dialogCtx),
       );
     },
   );

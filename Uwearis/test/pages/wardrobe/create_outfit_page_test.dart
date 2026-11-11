@@ -25,6 +25,7 @@ import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 
+import '../../helpers/points_fixture.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
@@ -780,16 +781,9 @@ void main() {
     }, () => client);
   });
 
-  group('remaining try-ons', () {
-    Map<String, dynamic> quota({int? limit = 10, int? remaining}) => {
-      'limit': limit,
-      'used': limit == null ? 3 : limit - (remaining ?? 0),
-      'remaining': remaining,
-      'resets_at': '2026-11-03T00:00:00+08:00',
-    };
-
+  group('remaining points', () {
     /// Renders a version (it pops back on success, so the message shows on
-    /// the host page). [quotaReply] null = never asked.
+    /// the host page). [quotaReply] answers `GET /points`.
     Future<int> renderVersion(
       WidgetTester tester, {
       required bool succeed,
@@ -799,9 +793,10 @@ void main() {
       var quotaReads = 0;
       final client = MockClient((request) async {
         final path = request.url.path;
-        if (path.endsWith('/generation-quota')) {
+        if (isPointsSummaryPath(path)) {
           quotaReads++;
-          return quotaReply!();
+          return quotaReply?.call() ??
+              jsonResponse(envelope(pointsSummaryJson()));
         }
         if (path.endsWith('/generate')) {
           return succeed
@@ -868,46 +863,33 @@ void main() {
       return quotaReads;
     }
 
-    testWidgets('a render that used a try-on is followed by the count left', (
+    testWidgets('a render that used a try-on is followed by the balance', (
       tester,
     ) async {
       final reads = await renderVersion(
         tester,
         succeed: true,
-        quotaReply: () => jsonResponse(envelope(quota(remaining: 2))),
+        quotaReply: () => jsonResponse(envelope(pointsSummaryJson(balance: 2))),
       );
-      expect(reads, 1);
+      expect(reads, greaterThan(0));
       expect(find.byType(CreateOutfitPage), findsNothing);
-      expect(find.text('2 AI try-ons left today'), findsOneWidget);
+      expect(find.text('2 points left'), findsOneWidget);
     });
 
-    testWidgets('the last one says so', (tester) async {
+    testWidgets('nothing after a failed render', (tester) async {
+      await renderVersion(tester, succeed: false);
+      expect(find.textContaining('points left'), findsNothing);
+    });
+
+    testWidgets('nothing when the balance can\'t be read', (tester) async {
       await renderVersion(
         tester,
         succeed: true,
-        quotaReply: () => jsonResponse(envelope(quota(remaining: 0))),
+        quotaReply: () =>
+            jsonResponse({'success': false, 'message': 'x'}, status: 503),
       );
-      expect(find.text('That was your last AI try-on today'), findsOneWidget);
-    });
-
-    testWidgets('nothing after a failed render (nothing was used)', (
-      tester,
-    ) async {
-      final reads = await renderVersion(tester, succeed: false);
-      expect(reads, 0);
-      expect(find.textContaining('AI try-on'), findsNothing);
-    });
-
-    testWidgets('nothing for an unlimited tier or when the count can\'t be '
-        'read', (tester) async {
-      for (final reply in [
-        () => jsonResponse(envelope(quota(limit: null))),
-        () => jsonResponse({'success': false, 'message': 'x'}, status: 503),
-      ]) {
-        await renderVersion(tester, succeed: true, quotaReply: reply);
-        expect(find.textContaining('AI try-on'), findsNothing);
-        expect(find.byType(CreateOutfitPage), findsNothing);
-      }
+      expect(find.textContaining('points left'), findsNothing);
+      expect(find.byType(CreateOutfitPage), findsNothing);
     });
   });
 
@@ -1031,7 +1013,7 @@ void main() {
 
         pending.complete(jsonResponse(envelope(null), status: 500));
         await tester.pump(const Duration(seconds: 1));
-        await tester.tap(find.text('OK'));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pump(const Duration(milliseconds: 300));
 
         await tester.dragFrom(const Offset(2, 600), const Offset(600, 0));
@@ -1076,19 +1058,14 @@ void main() {
           ),
           findsOneWidget,
         );
-        await tester.tap(find.text('OK'));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pump(const Duration(milliseconds: 300));
 
         await tester.tap(createButton());
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         expect(find.text('Try Again?'), findsOneWidget);
-        await tester.tap(
-          find.descendant(
-            of: find.byType(AppDialog),
-            matching: find.text('Cancel'),
-          ),
-        );
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         expect(generates, 1);
@@ -1434,9 +1411,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Nothing Changed Yet'), findsOneWidget);
-      await tester.tap(
-        find.descendant(of: find.byType(AppDialog), matching: find.text('OK')),
-      );
+      await tester.tap(find.byKey(AppDialog.closeButtonKey));
       await tester.pumpAndSettle();
       expect(find.text('Nothing Changed Yet'), findsNothing);
 

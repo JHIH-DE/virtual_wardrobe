@@ -17,9 +17,10 @@ class SectionHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionTitle(title),
+        // Trimmed line height so a card's top inset matches its sides.
+        SectionTitle(title, style: AppTextStyle.bold16.copyWith(height: 1)),
         if (subtitle != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
             subtitle,
             style: AppTextStyle.regular14.copyWith(

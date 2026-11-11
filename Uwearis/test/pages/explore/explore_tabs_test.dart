@@ -80,21 +80,14 @@ void main() {
   testWidgets('swiping cycles through the tabs', (tester) async {
     await _pumpShell(tester);
 
-    await tester.fling(
-      find.byType(ExploreHomePage),
-      const Offset(-300, 0),
-      1000,
-    );
+    // Off the edit carousel, which takes its own horizontal swipes.
+    await tester.fling(find.text('THE EDIT'), const Offset(-300, 0), 1000);
     await tester.pump();
     expect(find.byType(SearchPage), findsOneWidget);
 
     await tester.fling(find.byType(SearchPage), const Offset(300, 0), 1000);
     await tester.pump();
-    await tester.fling(
-      find.byType(ExploreHomePage),
-      const Offset(300, 0),
-      1000,
-    );
+    await tester.fling(find.text('THE EDIT'), const Offset(300, 0), 1000);
     await tester.pump();
     expect(find.byType(InboxPage), findsOneWidget);
   });

@@ -402,7 +402,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         title: _l10n.addGarment,
         child: Text(
           _l10n.browseYourClosetHint,
-          style: AppTextStyle.regular12.copyWith(
+          style: AppTextStyle.regular14.copyWith(
             color: AppColors.textSecondary,
           ),
         ),

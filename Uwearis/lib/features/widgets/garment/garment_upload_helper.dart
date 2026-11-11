@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/garment_service.dart';
+import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../data/garment.dart';
 import '../../../data/image_edit_result.dart';
@@ -11,6 +12,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/wardrobe/garment_details_page.dart';
 import '../common/overlays/ai_consent_dialog.dart';
 import '../common/overlays/app_dialog.dart';
+import '../common/overlays/app_snack_bar.dart';
+import '../common/overlays/error_dialog.dart';
 import '../common/overlays/feedback_overlay.dart';
 import '../common/overlays/loading_overlay.dart';
 import '../common/overlays/photo_source_dialog.dart';
@@ -143,6 +146,10 @@ class GarmentUploadHelper {
           cancelled.future,
         ]);
         if (result == null || !settle()) return null;
+        if (result.flatLayStatus == FlatLayStatus.insufficientPoints &&
+            context.mounted) {
+          showAppSnackBar(context, l10n.flatLayInsufficientPoints);
+        }
         return ImageEditResult(
           imagePath: result.processedImagePath ?? imagePath,
           analysisData: result.metadata,
@@ -155,6 +162,18 @@ class GarmentUploadHelper {
         if (!settle()) return null;
         debugLog('GarmentUploadHelper.analyzePhoto: $e');
         if (!context.mounted) return null;
+        // Retrying can't help until more points arrive.
+        if (isInsufficientPoints(e)) {
+          showErrorDialog(
+            context,
+            message: apiErrorMessage(
+              l10n,
+              e,
+              fallback: l10n.analysisFailedBody,
+            ),
+          );
+          return null;
+        }
         final retry = await showDialog<bool>(
           context: context,
           builder: (ctx) => AppDialog(
@@ -162,8 +181,6 @@ class GarmentUploadHelper {
             body: l10n.analysisFailedBody,
             primaryLabel: l10n.retry,
             onPrimary: () => Navigator.pop(ctx, true),
-            secondaryLabel: l10n.cancel,
-            onSecondary: () => Navigator.pop(ctx, false),
           ),
         );
         if (retry != true || !context.mounted) return null;

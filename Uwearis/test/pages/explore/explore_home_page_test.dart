@@ -18,6 +18,9 @@ Future<void> _loadSerif() async {
   }
 }
 
+Finder _inCarousel(Finder finder) =>
+    find.descendant(of: find.byType(PageView), matching: finder);
+
 void main() {
   setUp(setUpFakeAuth);
 
@@ -30,12 +33,21 @@ void main() {
     await pumpApp(tester, const ExploreHomePage());
 
     for (final text in [
-      'THE EDIT',
       'One blazer, three ways',
       'A smarter way to dress for the week.',
-      'Read the story',
-      'Works with your wardrobe',
-      'See all',
+      'Read',
+    ]) {
+      expect(_inCarousel(find.text(text)), findsOneWidget, reason: text);
+    }
+    for (final text in [
+      'THE EDIT',
+      'ISSUE 014 — NOV 2026',
+      'The Outdoor Issue',
+      'Outdoor style for everyday life.',
+      'Style Guide',
+      'The Selection',
+      'Lifestyle',
+      'Match Your Wardrobe',
       'Navy Blazer',
       'Pairs with your grey trousers.',
       'Ivory Sneakers',
@@ -44,12 +56,31 @@ void main() {
       expect(find.text(text), findsOneWidget, reason: text);
     }
     for (final asset in [
-      'assets/images/explore_01.jpg',
-      'assets/images/explore_02.jpg',
-      'assets/images/explore_03.png',
+      'assets/images/explore_00.png',
+      'assets/images/explore_01.png',
+      'assets/images/explore_04.png',
+      'assets/images/explore_05.png',
     ]) {
       expect(find.image(AssetImage(asset)), findsOneWidget, reason: asset);
     }
+  });
+
+  testWidgets('swiping the edit moves to the next story', (tester) async {
+    applyLayoutCase(tester, (
+      width: 390,
+      scale: 1,
+      locale: const Locale('en'),
+    ), height: 1400);
+    await pumpApp(tester, const ExploreHomePage());
+
+    await tester.fling(find.byType(PageView), const Offset(-300, 0), 1000);
+    await tester.pumpAndSettle();
+
+    expect(_inCarousel(find.text('Rugged meets relaxed')), findsOneWidget);
+    expect(
+      find.image(const AssetImage('assets/images/explore_02.png')),
+      findsOneWidget,
+    );
   });
 
   group('layout', () {

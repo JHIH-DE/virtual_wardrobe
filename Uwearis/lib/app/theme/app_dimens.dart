@@ -26,6 +26,10 @@ abstract class AppDimens {
   // Today's Outfit.
   static const double outfitPhotoRadius = 20;
 
+  // Corner radius of Explore's full-bleed editorial photos (the issue
+  // masthead and the Style Guide carousel).
+  static const double editorialPhotoRadius = 12;
+
   // Garment Card
   static const double garmentCardWidth = 165;
   static const double garmentCardHeight = 230;

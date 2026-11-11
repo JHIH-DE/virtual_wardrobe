@@ -10,6 +10,7 @@ import '../../data/user_profile.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
+import 'points_service.dart';
 
 class ProfileService with BaseService {
   static final String _baseUrl = '${AppConfig.fullApiUrl}/users/me';
@@ -137,16 +138,18 @@ class ProfileService with BaseService {
 
   /// Generates from the body reference (required) and face reference
   /// (optional); uploads don't trigger it. A failure keeps the previous
-  /// model. Not counted against the daily try-on quota.
+  /// model.
   Future<String> generateBaseModel() async {
     debugLog('--- generateBaseModel ---');
-    final res = await withAuth(
-      (token) => http
-          .post(
-            Uri.parse('$_baseModelUrl/generate'),
-            headers: authHeaders(token),
-          )
-          .timeout(_generateTimeout),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(
+              Uri.parse('$_baseModelUrl/generate'),
+              headers: authHeaders(token),
+            )
+            .timeout(_generateTimeout),
+      ),
     );
     final url = _data(
       decodeMap(res, op: 'generateBaseModel'),

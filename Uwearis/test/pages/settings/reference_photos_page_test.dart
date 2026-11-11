@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
@@ -447,7 +448,7 @@ void main() {
       expect(find.text(_l10n.referencePhotoTermsTitle), findsOneWidget);
       expect(find.text(_l10n.referencePhotoTermsBody(13)), findsOneWidget);
 
-      await tester.tap(find.text(_l10n.cancel));
+      await tester.tap(find.byKey(AppDialog.closeButtonKey));
       await tester.pumpAndSettle();
       expect(downloads, 0);
       expect(find.byType(ImageEditorPage), findsNothing);
@@ -470,7 +471,7 @@ void main() {
       expect(await UserAcknowledgement.referencePhotoTerms.isGranted(), isTrue);
 
       // The fake download fails, which leaves an error dialog up.
-      await tester.tap(find.text(_l10n.ok));
+      await tester.tap(find.byKey(AppDialog.closeButtonKey));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('updatePhotoAction-body')));
       await tester.pumpAndSettle();
@@ -999,7 +1000,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(_l10n.virtualModelGenerateFailed), findsOneWidget);
-      await tester.tap(find.text(_l10n.ok));
+      await tester.tap(find.byKey(AppDialog.closeButtonKey));
       await tester.pumpAndSettle();
       expect(find.byType(ReferencePhotosPage), findsOneWidget);
       final container = ProviderScope.containerOf(

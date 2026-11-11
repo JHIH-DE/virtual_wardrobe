@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
@@ -80,5 +81,32 @@ void main() {
 
     await tester.tap(find.text('Cancel'));
     expect(cancelled, 1);
+  });
+
+  testWidgets('frosted adds the white wash; the default stays clear', (
+    tester,
+  ) async {
+    Color? washOf() => tester
+        .widget<Container>(
+          find
+              .descendant(
+                of: find.byType(LoadingOverlay),
+                matching: find.byType(Container),
+              )
+              .first,
+        )
+        .color;
+
+    await tester.pumpWidget(
+      const MaterialApp(home: LoadingOverlay(label: 'Generating…')),
+    );
+    expect(washOf(), Colors.transparent);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: LoadingOverlay(label: 'Generating…', frosted: true),
+      ),
+    );
+    expect(washOf(), AppColors.scrimFrost);
   });
 }

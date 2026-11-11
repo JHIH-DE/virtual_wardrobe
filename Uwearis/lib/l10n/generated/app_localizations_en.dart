@@ -88,23 +88,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'The required file is no longer available. Please upload it again or try again.';
 
   @override
-  String dailyGenerationLimitReached(String time) {
-    return 'You\'ve used all of today\'s AI try-ons. Your limit resets at $time.';
-  }
-
-  @override
-  String generationQuotaRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count AI try-ons left today',
-      one: '1 AI try-on left today',
-      zero: 'That was your last AI try-on today',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get errorNoConnection =>
       'No internet connection. Check your connection and try again.';
 
@@ -216,11 +199,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleProfileOther => 'Other';
 
   @override
-  String styleTasteAnalysisStats(int count, int favoriteCount) {
-    return 'Analyzed $count outfits · $favoriteCount favorites';
-  }
-
-  @override
   String get logout => 'Log out';
 
   @override
@@ -232,15 +210,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAccount => 'Delete My Account';
-
-  @override
-  String get tierGold => 'Gold';
-
-  @override
-  String get tierSilver => 'Silver';
-
-  @override
-  String get tierBronze => 'Bronze';
 
   @override
   String get deleteAccountConfirmTitle => 'Delete your account?';
@@ -546,19 +515,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exploreEditLabel => 'The Edit';
 
   @override
-  String get exploreEditTitle => 'One blazer, three ways';
+  String get exploreMen => 'Men';
 
   @override
-  String get exploreEditSubtitle => 'A smarter way to dress for the week.';
+  String get exploreWomen => 'Women';
 
   @override
-  String get exploreReadStory => 'Read the story';
+  String get exploreIssueKicker => 'Issue 014 — Nov 2026';
 
   @override
-  String get exploreWorksWithWardrobe => 'Works with your wardrobe';
+  String get exploreIssueTitle => 'The Outdoor Issue';
 
   @override
-  String get seeAll => 'See all';
+  String get exploreIssueSubtitle => 'Outdoor style for everyday life.';
+
+  @override
+  String get exploreStyleGuide => 'Style Guide';
+
+  @override
+  String get exploreTheSelection => 'The Selection';
+
+  @override
+  String get exploreLifestyle => 'Lifestyle';
+
+  @override
+  String get exploreEditBlazerTitle => 'One blazer, three ways';
+
+  @override
+  String get exploreEditBlazerSubtitle =>
+      'A smarter way to dress for the week.';
+
+  @override
+  String get exploreEditTrailKicker => 'Trail Ready';
+
+  @override
+  String get exploreEditTrailTitle => 'Layers for the trail';
+
+  @override
+  String get exploreEditTrailSubtitle =>
+      'Light shells and soft fleece that move with you.';
+
+  @override
+  String get exploreEditWorkwearKicker => 'Weekend Look';
+
+  @override
+  String get exploreEditWorkwearTitle => 'Rugged meets relaxed';
+
+  @override
+  String get exploreEditWorkwearSubtitle =>
+      'Earthy tones and rugged boots for slow weekends.';
+
+  @override
+  String get exploreRead => 'Read';
+
+  @override
+  String get exploreMatchYourWardrobe => 'Match Your Wardrobe';
 
   @override
   String get exploreNavyBlazer => 'Navy Blazer';
@@ -621,9 +632,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Retry';
-
-  @override
-  String get aiTag => 'AI';
 
   @override
   String get matchALookTitle => 'Match a Look';
@@ -1427,6 +1435,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get suggestedByAi => 'Suggested by AI';
 
   @override
+  String get selectionTips => 'Selection tips';
+
+  @override
   String get loadingPackingSuggestions => 'Loading packing suggestions…';
 
   @override
@@ -1905,11 +1916,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String savedOutfitsInTripCount(int count) {
-    return '$count in trip';
-  }
-
-  @override
   String get tripOutfitEdited => 'Edited';
 
   @override
@@ -2011,30 +2017,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pointsAvailable => 'Available points';
 
   @override
-  String get pointsBalanceHint =>
-      'Use points for AI styling and virtual try-on.';
-
-  @override
   String get pointsViewActivity => 'View activity';
 
   @override
-  String get pointsAddTitle => 'Add points';
+  String get pointsAddTitle => 'Point packs';
 
   @override
-  String get pointsAddSubtitle => 'Choose a one-time top-up.';
+  String get pointsAddSubtitle => 'One-time purchase. Top up anytime.';
 
   @override
   String get pointsIllustrativeNote => 'Illustrative plans and prices';
 
   @override
-  String get pointsOneTimeNote => 'One-time purchase. No subscription.';
+  String get pointsOneTimeNote =>
+      'Plus renews monthly until you cancel. Cancel anytime.';
 
   @override
   String get pointsHowItWorks => 'How points work';
 
   @override
   String get pointsHowItWorksBody =>
-      'Each AI styling or virtual try-on uses points from your balance. Top up anytime with a one-time purchase.';
+      'Each AI feature uses points from your balance — see the list above. You get free points every day at 00:00 (Taiwan time), and Plus subscribers get more. If an AI feature fails, its points are refunded automatically.';
 
   @override
   String pointsPrice(int amount) {
@@ -2044,5 +2047,155 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String pointsContinue(String price) {
     return 'Continue · $price';
+  }
+
+  @override
+  String get pointsPlusSectionTitle => 'Subscription';
+
+  @override
+  String get pointsPlusSectionSubtitle => 'Get points automatically every day.';
+
+  @override
+  String get pointsPlusTitle => 'Uwearis Plus';
+
+  @override
+  String get pointsPlusDetail => 'Points added to your balance daily.';
+
+  @override
+  String get pointsPerDay => '/day';
+
+  @override
+  String get pointsPerMonth => '/mo';
+
+  @override
+  String get pointsPackSmall => 'Small pack';
+
+  @override
+  String get pointsPackStandard => 'Standard pack';
+
+  @override
+  String get pointsPackLarge => 'Large pack';
+
+  @override
+  String get pointsBadgePopular => 'Most popular';
+
+  @override
+  String get pointsBadgeBestValue => 'Best value';
+
+  @override
+  String pointsBonus(int percent) {
+    return '$percent% more points';
+  }
+
+  @override
+  String pointsSubscribe(String price) {
+    return 'Subscribe · $price';
+  }
+
+  @override
+  String insufficientPoints(String time) {
+    return 'Not enough points. You\'ll get more at $time.';
+  }
+
+  @override
+  String pointsRemaining(String balance) {
+    return '$balance points left';
+  }
+
+  @override
+  String pointsDailyGranted(int count) {
+    return 'You got today\'s $count points';
+  }
+
+  @override
+  String get flatLayInsufficientPoints =>
+      'Not enough points to make a flat-lay photo, so the original photo is used.';
+
+  @override
+  String get tripAiInsufficientPoints =>
+      'Saved outfits were added, but there weren\'t enough points for AI styling.';
+
+  @override
+  String pointsDailyGrantHint(int count, String time) {
+    return 'You get $count points every day · next at $time';
+  }
+
+  @override
+  String pointsPlusActiveUntil(String date) {
+    return 'Uwearis Plus · until $date';
+  }
+
+  @override
+  String get pointsCostsTitle => 'Points per feature';
+
+  @override
+  String get pointsCostsSubtitle =>
+      'Points are deducted when an AI feature starts. Automatically refunded if it fails.';
+
+  @override
+  String get pointsCostsGroupImages => 'IMAGES';
+
+  @override
+  String get pointsCostsGroupWardrobe => 'WARDROBE & STYLING';
+
+  @override
+  String get pointsCostsGroupMatchTrips => 'MATCH A LOOK & TRIPS';
+
+  @override
+  String get pointsActionTryOn => 'Virtual try-on';
+
+  @override
+  String get pointsActionGarmentAnalysis => 'Garment analysis';
+
+  @override
+  String get pointsActionFlatLay => 'Flat-lay photo';
+
+  @override
+  String get pointsActionBaseModel => 'Model generation';
+
+  @override
+  String get pointsActionClosetAnalysis => 'Closet analysis';
+
+  @override
+  String get pointsActionOutfitAdvice => 'Outfit suggestion';
+
+  @override
+  String get pointsActionMatchLookReference => 'Match a Look photo analysis';
+
+  @override
+  String get pointsActionMatchLookMatch => 'Match a Look matching';
+
+  @override
+  String get pointsActionTripOutfits => 'Trip outfit suggestions';
+
+  @override
+  String get pointsActionTripPacking => 'Trip packing analysis';
+
+  @override
+  String get pointsActionOther => 'AI feature';
+
+  @override
+  String get pointsKindDailyGrant => 'Daily points';
+
+  @override
+  String pointsKindRefund(String action) {
+    return 'Refund · $action';
+  }
+
+  @override
+  String get pointsKindAdjust => 'Adjustment';
+
+  @override
+  String get pointsKindOther => 'Points change';
+
+  @override
+  String get pointsActivityTitle => 'Points activity';
+
+  @override
+  String get pointsActivityEmpty => 'No points activity yet';
+
+  @override
+  String pointsBalanceAfter(String balance) {
+    return 'Balance $balance';
   }
 }

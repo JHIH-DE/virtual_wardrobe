@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +17,6 @@ import 'package:uwearis/features/pages/wardrobe/garment_details_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
-import 'package:uwearis/features/widgets/common/cards/uwearis_insight_card.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/common/section_title.dart';
 import 'package:uwearis/features/widgets/garment/garment_image.dart';
@@ -612,7 +612,6 @@ void main() {
 
       // No analysis until asked.
       expect(find.text('View Match'), findsOneWidget);
-      expect(find.byType(UwearisInsightCard), findsNothing);
       expect(
         find.text('How well this piece works with your closet.'),
         findsNothing,
@@ -1489,7 +1488,7 @@ void main() {
           find.text("Couldn't save this item. Please try again."),
           findsOneWidget,
         );
-        await tester.tap(find.text('Cancel'));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await pump500(tester);
 
         await tester.tap(backButton);

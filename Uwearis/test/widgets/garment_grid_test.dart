@@ -22,8 +22,9 @@ void main() {
     expect(find.text('tile 0'), findsOneWidget);
     expect(find.text('tile 3'), findsOneWidget);
 
-    final delegate = tester.widget<GridView>(find.byType(GridView)).gridDelegate
-        as SliverGridDelegateWithFixedCrossAxisCount;
+    final delegate =
+        tester.widget<GridView>(find.byType(GridView)).gridDelegate
+            as SliverGridDelegateWithFixedCrossAxisCount;
     expect(delegate.crossAxisCount, 2);
     expect(delegate.mainAxisExtent, AppDimens.garmentCardHeight);
   });

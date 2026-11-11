@@ -6,6 +6,7 @@ import '../../data/style_type.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
+import 'points_service.dart';
 
 /// Add Outfit's "Complete with AI": the backend fills in the rest of an
 /// outfit around the picked garments. Text-only — no try-on image, no
@@ -37,10 +38,12 @@ class GarmentRecommendationService with BaseService {
       'garment_ids': garmentIds,
       'exclude_garment_ids': excludeGarmentIds,
     };
-    final res = await withAuth(
-      (token) => http
-          .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
-          .timeout(const Duration(seconds: 45)),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(uri, headers: authHeaders(token), body: jsonEncode(payload))
+            .timeout(const Duration(seconds: 45)),
+      ),
     );
     final envelope = decodeMap(res, op: 'completeOutfit');
     final data = envelope['data'];

@@ -81,22 +81,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileNotFound => '所需文件已不存在，请重新上传或再试一次。';
 
   @override
-  String dailyGenerationLimitReached(String time) {
-    return '今天的 AI 试穿次数已经用完，将在 $time 重置。';
-  }
-
-  @override
-  String generationQuotaRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '今日剩餘 $count 次 AI 試穿',
-      zero: '今日 AI 試穿次數已用完',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get errorNoConnection => '目前没有网络连接，请检查网络后重试。';
 
   @override
@@ -195,11 +179,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleProfileOther => '其他';
 
   @override
-  String styleTasteAnalysisStats(int count, int favoriteCount) {
-    return '已分析 $count 套穿搭．$favoriteCount 套收藏';
-  }
-
-  @override
   String get logout => '登出';
 
   @override
@@ -210,15 +189,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteAccount => '删除我的账号';
-
-  @override
-  String get tierGold => '金牌';
-
-  @override
-  String get tierSilver => '銀牌';
-
-  @override
-  String get tierBronze => '銅牌';
 
   @override
   String get deleteAccountConfirmTitle => '確定要刪除帳號嗎？';
@@ -509,22 +479,61 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exploreNavInbox => '通知';
 
   @override
-  String get exploreEditLabel => '本週精選';
+  String get exploreEditLabel => 'The Edit';
 
   @override
-  String get exploreEditTitle => '一件外套，三種穿法';
+  String get exploreMen => '男裝';
 
   @override
-  String get exploreEditSubtitle => '更聰明地打理一週穿搭。';
+  String get exploreWomen => '女裝';
 
   @override
-  String get exploreReadStory => '閱讀全文';
+  String get exploreIssueKicker => '第 014 期 — 2026 年 11 月';
 
   @override
-  String get exploreWorksWithWardrobe => '與你的衣櫥相配';
+  String get exploreIssueTitle => '戶外特輯';
 
   @override
-  String get seeAll => '查看全部';
+  String get exploreIssueSubtitle => '日常也能穿的戶外風格。';
+
+  @override
+  String get exploreStyleGuide => '穿搭指南';
+
+  @override
+  String get exploreTheSelection => '精選單品';
+
+  @override
+  String get exploreLifestyle => '生活風格';
+
+  @override
+  String get exploreEditBlazerTitle => '一件外套，三種穿法';
+
+  @override
+  String get exploreEditBlazerSubtitle => '更聰明地打理一週穿搭。';
+
+  @override
+  String get exploreEditTrailKicker => '山徑出發';
+
+  @override
+  String get exploreEditTrailTitle => '山徑的層次穿搭';
+
+  @override
+  String get exploreEditTrailSubtitle => '輕量外套配上刷毛，跟著你一起移動。';
+
+  @override
+  String get exploreEditWorkwearKicker => '週末穿搭';
+
+  @override
+  String get exploreEditWorkwearTitle => '粗獷也能很放鬆';
+
+  @override
+  String get exploreEditWorkwearSubtitle => '大地色系配上粗獷靴款，適合悠閒的週末。';
+
+  @override
+  String get exploreRead => '閱讀';
+
+  @override
+  String get exploreMatchYourWardrobe => '搭配你的衣櫥';
 
   @override
   String get exploreNavyBlazer => '海軍藍西裝外套';
@@ -585,9 +594,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get retry => '重試';
-
-  @override
-  String get aiTag => 'AI';
 
   @override
   String get matchALookTitle => '比對穿搭';
@@ -1364,6 +1370,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get suggestedByAi => 'AI 建議';
 
   @override
+  String get selectionTips => '挑选建议';
+
+  @override
   String get loadingPackingSuggestions => '載入打包建議中…';
 
   @override
@@ -1804,11 +1813,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String savedOutfitsInTripCount(int count) {
-    return '已加入 $count 套';
-  }
-
-  @override
   String get tripOutfitEdited => '已编辑';
 
   @override
@@ -1872,28 +1876,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pointsAvailable => '可用点数';
 
   @override
-  String get pointsBalanceHint => '点数可用于 AI 穿搭与虚拟试穿。';
-
-  @override
   String get pointsViewActivity => '查看记录';
 
   @override
-  String get pointsAddTitle => '充值点数';
+  String get pointsAddTitle => '点数包';
 
   @override
-  String get pointsAddSubtitle => '选择单次充值方案。';
+  String get pointsAddSubtitle => '单次购买，随时充值。';
 
   @override
   String get pointsIllustrativeNote => '方案与价格仅供示意';
 
   @override
-  String get pointsOneTimeNote => '单次购买，非订阅制。';
+  String get pointsOneTimeNote => 'Plus 每月自动续订，可随时取消。';
 
   @override
   String get pointsHowItWorks => '点数如何运作';
 
   @override
-  String get pointsHowItWorksBody => '每次使用 AI 穿搭或虚拟试穿都会扣除点数，随时可以单次购买充值。';
+  String get pointsHowItWorksBody =>
+      '每次使用 AI 功能都会扣除点数，各功能点数见上方列表。每天 00:00（台湾时间）自动发放免费点数，Plus 订阅者每天获得更多点数。AI 功能失败时，点数会自动退回。';
 
   @override
   String pointsPrice(int amount) {
@@ -1903,6 +1905,153 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String pointsContinue(String price) {
     return '继续 · $price';
+  }
+
+  @override
+  String get pointsPlusSectionTitle => '订阅方案';
+
+  @override
+  String get pointsPlusSectionSubtitle => '每天自动获得点数。';
+
+  @override
+  String get pointsPlusTitle => 'Uwearis Plus';
+
+  @override
+  String get pointsPlusDetail => '点数每天自动存入账户。';
+
+  @override
+  String get pointsPerDay => '／天';
+
+  @override
+  String get pointsPerMonth => '／月';
+
+  @override
+  String get pointsPackSmall => '小额包';
+
+  @override
+  String get pointsPackStandard => '标准包';
+
+  @override
+  String get pointsPackLarge => '大额包';
+
+  @override
+  String get pointsBadgePopular => '最受欢迎';
+
+  @override
+  String get pointsBadgeBestValue => '最划算';
+
+  @override
+  String pointsBonus(int percent) {
+    return '多 $percent% 点数';
+  }
+
+  @override
+  String pointsSubscribe(String price) {
+    return '订阅 · $price';
+  }
+
+  @override
+  String insufficientPoints(String time) {
+    return '点数不足，$time 会发放新的点数。';
+  }
+
+  @override
+  String pointsRemaining(String balance) {
+    return '剩余 $balance 点';
+  }
+
+  @override
+  String pointsDailyGranted(int count) {
+    return '今日已获得 $count 点';
+  }
+
+  @override
+  String get flatLayInsufficientPoints => '点数不足，没有转成平铺图，先使用原图。';
+
+  @override
+  String get tripAiInsufficientPoints => '已加入你的穿搭，但点数不足，没有进行 AI 搭配。';
+
+  @override
+  String pointsDailyGrantHint(int count, String time) {
+    return '每天获得 $count 点 · 下次发放 $time';
+  }
+
+  @override
+  String pointsPlusActiveUntil(String date) {
+    return 'Uwearis Plus · 到期日 $date';
+  }
+
+  @override
+  String get pointsCostsTitle => '各功能点数';
+
+  @override
+  String get pointsCostsSubtitle => 'AI 功能开始时扣点，失败会自动退回。';
+
+  @override
+  String get pointsCostsGroupImages => '图片';
+
+  @override
+  String get pointsCostsGroupWardrobe => '衣橱与穿搭';
+
+  @override
+  String get pointsCostsGroupMatchTrips => '比对穿搭与旅行';
+
+  @override
+  String get pointsActionTryOn => '虚拟试穿';
+
+  @override
+  String get pointsActionGarmentAnalysis => '衣物分析';
+
+  @override
+  String get pointsActionFlatLay => '平铺图生成';
+
+  @override
+  String get pointsActionBaseModel => '模特儿生成';
+
+  @override
+  String get pointsActionClosetAnalysis => '衣柜分析';
+
+  @override
+  String get pointsActionOutfitAdvice => '穿搭建议';
+
+  @override
+  String get pointsActionMatchLookReference => 'Match a Look 参考照分析';
+
+  @override
+  String get pointsActionMatchLookMatch => 'Match a Look 配对';
+
+  @override
+  String get pointsActionTripOutfits => '旅行穿搭推荐';
+
+  @override
+  String get pointsActionTripPacking => '旅行行李分析';
+
+  @override
+  String get pointsActionOther => 'AI 功能';
+
+  @override
+  String get pointsKindDailyGrant => '每日点数';
+
+  @override
+  String pointsKindRefund(String action) {
+    return '退回 · $action';
+  }
+
+  @override
+  String get pointsKindAdjust => '点数调整';
+
+  @override
+  String get pointsKindOther => '点数变动';
+
+  @override
+  String get pointsActivityTitle => '点数记录';
+
+  @override
+  String get pointsActivityEmpty => '还没有点数记录';
+
+  @override
+  String pointsBalanceAfter(String balance) {
+    return '余额 $balance';
   }
 }
 
@@ -1981,22 +2130,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get fileNotFound => '所需的檔案已不存在，請重新上傳或再試一次。';
-
-  @override
-  String dailyGenerationLimitReached(String time) {
-    return '今天的 AI 試穿次數已經用完，將在 $time 重置。';
-  }
-
-  @override
-  String generationQuotaRemaining(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '今日剩餘 $count 次 AI 試穿',
-      zero: '今日 AI 試穿次數已用完',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get errorNoConnection => '目前沒有網路連線，請確認網路後再試一次。';
@@ -2097,11 +2230,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleProfileOther => '其他';
 
   @override
-  String styleTasteAnalysisStats(int count, int favoriteCount) {
-    return '已分析 $count 套穿搭．$favoriteCount 套收藏';
-  }
-
-  @override
   String get logout => '登出';
 
   @override
@@ -2112,15 +2240,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deleteAccount => '刪除我的帳號';
-
-  @override
-  String get tierGold => '金牌';
-
-  @override
-  String get tierSilver => '銀牌';
-
-  @override
-  String get tierBronze => '銅牌';
 
   @override
   String get deleteAccountConfirmTitle => '確定要刪除帳號嗎？';
@@ -2411,22 +2530,61 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exploreNavInbox => '通知';
 
   @override
-  String get exploreEditLabel => '本週精選';
+  String get exploreEditLabel => 'The Edit';
 
   @override
-  String get exploreEditTitle => '一件外套，三種穿法';
+  String get exploreMen => '男裝';
 
   @override
-  String get exploreEditSubtitle => '更聰明地打理一週穿搭。';
+  String get exploreWomen => '女裝';
 
   @override
-  String get exploreReadStory => '閱讀全文';
+  String get exploreIssueKicker => '第 014 期 — 2026 年 11 月';
 
   @override
-  String get exploreWorksWithWardrobe => '與你的衣櫥相配';
+  String get exploreIssueTitle => '戶外特輯';
 
   @override
-  String get seeAll => '查看全部';
+  String get exploreIssueSubtitle => '日常也能穿的戶外風格。';
+
+  @override
+  String get exploreStyleGuide => '穿搭指南';
+
+  @override
+  String get exploreTheSelection => '精選單品';
+
+  @override
+  String get exploreLifestyle => '生活風格';
+
+  @override
+  String get exploreEditBlazerTitle => '一件外套，三種穿法';
+
+  @override
+  String get exploreEditBlazerSubtitle => '更聰明地打理一週穿搭。';
+
+  @override
+  String get exploreEditTrailKicker => '山徑出發';
+
+  @override
+  String get exploreEditTrailTitle => '山徑的層次穿搭';
+
+  @override
+  String get exploreEditTrailSubtitle => '輕量外套配上刷毛，跟著你一起移動。';
+
+  @override
+  String get exploreEditWorkwearKicker => '週末穿搭';
+
+  @override
+  String get exploreEditWorkwearTitle => '粗獷也能很放鬆';
+
+  @override
+  String get exploreEditWorkwearSubtitle => '大地色系配上粗獷靴款，適合悠閒的週末。';
+
+  @override
+  String get exploreRead => '閱讀';
+
+  @override
+  String get exploreMatchYourWardrobe => '搭配你的衣櫥';
 
   @override
   String get exploreNavyBlazer => '海軍藍西裝外套';
@@ -2487,9 +2645,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get retry => '重試';
-
-  @override
-  String get aiTag => 'AI';
 
   @override
   String get matchALookTitle => '比對穿搭';
@@ -3266,6 +3421,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get suggestedByAi => 'AI 建議';
 
   @override
+  String get selectionTips => '挑選建議';
+
+  @override
   String get loadingPackingSuggestions => '載入打包建議中…';
 
   @override
@@ -3706,11 +3864,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String savedOutfitsInTripCount(int count) {
-    return '已加入 $count 套';
-  }
-
-  @override
   String get tripOutfitEdited => '已編輯';
 
   @override
@@ -3774,28 +3927,26 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get pointsAvailable => '可用點數';
 
   @override
-  String get pointsBalanceHint => '點數可用於 AI 穿搭與虛擬試穿。';
-
-  @override
   String get pointsViewActivity => '查看紀錄';
 
   @override
-  String get pointsAddTitle => '加值點數';
+  String get pointsAddTitle => '點數包';
 
   @override
-  String get pointsAddSubtitle => '選擇單次加值方案。';
+  String get pointsAddSubtitle => '單次購買，隨時加值。';
 
   @override
   String get pointsIllustrativeNote => '方案與價格僅供示意';
 
   @override
-  String get pointsOneTimeNote => '單次購買，非訂閱制。';
+  String get pointsOneTimeNote => 'Plus 每月自動續訂，可隨時取消。';
 
   @override
   String get pointsHowItWorks => '點數如何運作';
 
   @override
-  String get pointsHowItWorksBody => '每次使用 AI 穿搭或虛擬試穿都會扣除點數，隨時可以單次購買加值。';
+  String get pointsHowItWorksBody =>
+      '每次使用 AI 功能都會扣除點數，各功能點數見上方列表。每天 00:00（台灣時間）自動發放免費點數，Plus 訂閱者每天獲得更多點數。AI 功能失敗時，點數會自動退回。';
 
   @override
   String pointsPrice(int amount) {
@@ -3805,5 +3956,152 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   @override
   String pointsContinue(String price) {
     return '繼續 · $price';
+  }
+
+  @override
+  String get pointsPlusSectionTitle => '訂閱方案';
+
+  @override
+  String get pointsPlusSectionSubtitle => '每天自動獲得點數。';
+
+  @override
+  String get pointsPlusTitle => 'Uwearis Plus';
+
+  @override
+  String get pointsPlusDetail => '點數每天自動存入帳戶。';
+
+  @override
+  String get pointsPerDay => '／天';
+
+  @override
+  String get pointsPerMonth => '／月';
+
+  @override
+  String get pointsPackSmall => '小額包';
+
+  @override
+  String get pointsPackStandard => '標準包';
+
+  @override
+  String get pointsPackLarge => '大額包';
+
+  @override
+  String get pointsBadgePopular => '最受歡迎';
+
+  @override
+  String get pointsBadgeBestValue => '最划算';
+
+  @override
+  String pointsBonus(int percent) {
+    return '多 $percent% 點數';
+  }
+
+  @override
+  String pointsSubscribe(String price) {
+    return '訂閱 · $price';
+  }
+
+  @override
+  String insufficientPoints(String time) {
+    return '點數不足，$time 會發放新的點數。';
+  }
+
+  @override
+  String pointsRemaining(String balance) {
+    return '剩餘 $balance 點';
+  }
+
+  @override
+  String pointsDailyGranted(int count) {
+    return '今日已獲得 $count 點';
+  }
+
+  @override
+  String get flatLayInsufficientPoints => '點數不足，沒有轉成平放圖，先使用原圖。';
+
+  @override
+  String get tripAiInsufficientPoints => '已加入你的穿搭，但點數不足，沒有進行 AI 搭配。';
+
+  @override
+  String pointsDailyGrantHint(int count, String time) {
+    return '每天獲得 $count 點 · 下次發放 $time';
+  }
+
+  @override
+  String pointsPlusActiveUntil(String date) {
+    return 'Uwearis Plus · 到期日 $date';
+  }
+
+  @override
+  String get pointsCostsTitle => '各功能點數';
+
+  @override
+  String get pointsCostsSubtitle => 'AI 功能開始時扣點，失敗會自動退回。';
+
+  @override
+  String get pointsCostsGroupImages => '圖片';
+
+  @override
+  String get pointsCostsGroupWardrobe => '衣櫥與穿搭';
+
+  @override
+  String get pointsCostsGroupMatchTrips => '比對穿搭與旅行';
+
+  @override
+  String get pointsActionTryOn => '虛擬試穿';
+
+  @override
+  String get pointsActionGarmentAnalysis => '衣物分析';
+
+  @override
+  String get pointsActionFlatLay => '平放圖生成';
+
+  @override
+  String get pointsActionBaseModel => '模特兒生成';
+
+  @override
+  String get pointsActionClosetAnalysis => '衣櫃分析';
+
+  @override
+  String get pointsActionOutfitAdvice => '穿搭建議';
+
+  @override
+  String get pointsActionMatchLookReference => 'Match a Look 參考照分析';
+
+  @override
+  String get pointsActionMatchLookMatch => 'Match a Look 配對';
+
+  @override
+  String get pointsActionTripOutfits => '旅行穿搭推薦';
+
+  @override
+  String get pointsActionTripPacking => '旅行行李分析';
+
+  @override
+  String get pointsActionOther => 'AI 功能';
+
+  @override
+  String get pointsKindDailyGrant => '每日點數';
+
+  @override
+  String pointsKindRefund(String action) {
+    return '退回 · $action';
+  }
+
+  @override
+  String get pointsKindAdjust => '點數調整';
+
+  @override
+  String get pointsKindOther => '點數變動';
+
+  @override
+  String get pointsActivityTitle => '點數紀錄';
+
+  @override
+  String get pointsActivityEmpty => '還沒有點數紀錄';
+
+  @override
+  String pointsBalanceAfter(String balance) {
+    return '餘額 $balance';
   }
 }

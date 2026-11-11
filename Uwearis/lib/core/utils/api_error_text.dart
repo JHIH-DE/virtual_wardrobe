@@ -17,7 +17,7 @@ String apiErrorMessage(
   required String fallback,
 }) {
   if (error is ApiException) {
-    final mapped = _messageForErrorCode(l10n, error.errorCode);
+    final mapped = sharedErrorCodeMessage(l10n, error.errorCode);
     if (mapped != null) return mapped;
     if (error.statusCode == 429) return l10n.errorTooManyRequests;
     return fallback;
@@ -28,10 +28,17 @@ String apiErrorMessage(
   return fallback;
 }
 
-/// Only cross-cutting codes confirmed against the backend's `ErrorCode`;
-/// feature-scoped codes belong in that feature's own exception path.
+/// 402: not enough points for an AI feature; nothing was charged.
+const insufficientPointsErrorCode = 'INSUFFICIENT_POINTS';
+
+bool isInsufficientPoints(Object error) =>
+    error is ApiException && error.errorCode == insufficientPointsErrorCode;
+
+/// Only cross-cutting codes confirmed against the backend's `ErrorCode`.
+/// Feature-scoped codes belong in that feature's own exception path, which
+/// falls back to this for the cross-cutting ones (e.g. a Match a Look 402).
 /// `OBJECT_NAME_REQUIRED` is unmapped on purpose — a client bug, not user-facing.
-String? _messageForErrorCode(AppLocalizations l10n, String? errorCode) {
+String? sharedErrorCodeMessage(AppLocalizations l10n, String? errorCode) {
   switch (errorCode) {
     case 'FACE_REFERENCE_NOT_FOUND':
       return l10n.facePhotoNotFound;
@@ -42,26 +49,26 @@ String? _messageForErrorCode(AppLocalizations l10n, String? errorCode) {
     case 'TRY_ON_GENERATION_EXPIRED':
     case 'TRY_ON_GENERATION_TIMED_OUT':
       return l10n.tryOnNotCounted;
-    case 'DAILY_GENERATION_LIMIT_EXCEEDED':
-      return l10n.dailyGenerationLimitReached(
-        quotaResetClock(nextGenerationQuotaReset(DateTime.now())),
+    case insufficientPointsErrorCode:
+      return l10n.insufficientPoints(
+        clockLabel(nextDailyPointsGrant(DateTime.now())),
       );
     default:
       return null;
   }
 }
 
-/// `HH:mm` of a try-on quota reset, for the copy that names it.
-String quotaResetClock(DateTime reset) {
-  final hh = reset.hour.toString().padLeft(2, '0');
-  final mm = reset.minute.toString().padLeft(2, '0');
+/// `HH:mm` in the device's time zone.
+String clockLabel(DateTime time) {
+  final hh = time.hour.toString().padLeft(2, '0');
+  final mm = time.minute.toString().padLeft(2, '0');
   return '$hh:$mm';
 }
 
-/// When the daily try-on quota resets, in the device's time zone. Mirrors
-/// the backend (`resets_at`): 00:00 Asia/Taipei, a fixed UTC+8 with no DST.
+/// The next daily points grant, in the device's time zone. Mirrors the
+/// backend (`next_claim_at`): 00:00 Asia/Taipei, a fixed UTC+8 with no DST.
 @visibleForTesting
-DateTime nextGenerationQuotaReset(DateTime now) {
+DateTime nextDailyPointsGrant(DateTime now) {
   const taipeiOffset = Duration(hours: 8);
   final taipei = now.toUtc().add(taipeiOffset);
   final nextMidnight = DateTime.utc(taipei.year, taipei.month, taipei.day + 1);

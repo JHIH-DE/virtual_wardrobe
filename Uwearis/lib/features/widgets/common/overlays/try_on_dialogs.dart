@@ -34,8 +34,6 @@ Future<bool> showRetryWhileUnknownDialog(BuildContext context) async {
       body: l10n.tryOnRetryUnknownBody,
       primaryLabel: l10n.retry,
       onPrimary: () => Navigator.pop(ctx, true),
-      secondaryLabel: l10n.cancel,
-      onSecondary: () => Navigator.pop(ctx, false),
     ),
   );
   return retry == true;

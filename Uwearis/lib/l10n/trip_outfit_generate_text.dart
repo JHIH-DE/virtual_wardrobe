@@ -19,6 +19,9 @@ String tripOutfitGenerateMessage(
   final aiIncomplete =
       result.aiStatus == TripOutfitAiStatus.failed ||
       result.aiStatus == TripOutfitAiStatus.rateLimited;
+  if (saved > 0 && result.aiStatus == TripOutfitAiStatus.insufficientPoints) {
+    return l10n.tripAiInsufficientPoints;
+  }
   if (saved > 0 && aiIncomplete) return l10n.tripAiPartialFailure;
   if (saved > 0 && ai > 0) return l10n.addedSavedAndAiOutfits(saved, ai);
   if (saved > 0) return l10n.addedSavedOutfitsOnly(saved);

@@ -7,6 +7,7 @@ import '../../data/match_a_look.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
+import 'points_service.dart';
 
 /// Non-2xx, non-401 Match a Look response, carrying the backend's
 /// `error_code` (no person detected, multiple people, closet too small, ...).
@@ -66,14 +67,16 @@ class MatchLookService with BaseService {
     await putJpegToSignedUrl(init.uploadUrl, localImagePath);
 
     final uri = Uri.parse('$_baseUrl/reference');
-    final res = await withAuth(
-      (token) => http
-          .post(
-            uri,
-            headers: authHeaders(token),
-            body: jsonEncode({'object_name': init.objectName}),
-          )
-          .timeout(const Duration(seconds: 45)),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(
+              uri,
+              headers: authHeaders(token),
+              body: jsonEncode({'object_name': init.objectName}),
+            )
+            .timeout(const Duration(seconds: 45)),
+      ),
     );
     _decode(res, op: 'matchLookReference');
   }
@@ -83,10 +86,12 @@ class MatchLookService with BaseService {
   Future<MatchALookResult> matchLook() async {
     debugLog('--- matchLook ---');
     final uri = Uri.parse('$_baseUrl/match');
-    final res = await withAuth(
-      (token) => http
-          .post(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 30)),
+    final res = await PointsService.charged(
+      () => withAuth(
+        (token) => http
+            .post(uri, headers: authHeaders(token))
+            .timeout(const Duration(seconds: 30)),
+      ),
     );
     final data = _decode(res, op: 'matchLookMatch')['data'];
     if (data is! Map<String, dynamic>) {

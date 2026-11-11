@@ -222,8 +222,6 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
         body: _l10n.referencePhotoTermsBody(AppConfig.minimumAge),
         primaryLabel: _l10n.referencePhotoTermsConfirm,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
     if (confirmed != true) return false;

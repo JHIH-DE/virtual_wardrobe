@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -70,7 +71,7 @@ void main() {
     });
   });
 
-  testWidgets('Cancel on the logout confirmation keeps the user on Settings', (
+  testWidgets('Closing the logout confirmation keeps the user on Settings', (
     tester,
   ) async {
     await runWithProfile(() async {
@@ -80,7 +81,7 @@ void main() {
 
       await tester.tap(find.text('Log out'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancel'));
+      await tester.tap(find.byKey(AppDialog.closeButtonKey));
       await tester.pumpAndSettle();
 
       expect(find.text('Log out?'), findsNothing);
@@ -200,8 +201,8 @@ void main() {
     });
   });
 
-  group('tier badge', () {
-    Future<void> pumpWithTier(WidgetTester tester, String? tier) {
+  group('Plus badge', () {
+    Future<void> pumpWithExpiry(WidgetTester tester, String? expiresAt) {
       return http.runWithClient(
         () async {
           useTallSurface(tester);
@@ -213,39 +214,36 @@ void main() {
             envelope({
               'name': 'Test User',
               'email': 'test@example.com',
-              'tier': ?tier,
+              'subscription_expires_at': ?expiresAt,
             }),
           ),
         ),
       );
     }
 
-    testWidgets('tier_1 shows Gold', (tester) async {
-      await pumpWithTier(tester, 'tier_1');
-      expect(find.text('Gold'), findsOneWidget);
-    });
+    ProfileAvatar avatar(WidgetTester tester) =>
+        tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
 
-    testWidgets('tier_2 shows Silver', (tester) async {
-      await pumpWithTier(tester, 'tier_2');
-      expect(find.text('Silver'), findsOneWidget);
-    });
+    testWidgets(
+      'an active subscription shows Uwearis Plus and an accent ring',
+      (tester) async {
+        await pumpWithExpiry(
+          tester,
+          DateTime.now().add(const Duration(days: 10)).toIso8601String(),
+        );
+        expect(find.text('Uwearis Plus'), findsOneWidget);
+        expect(avatar(tester).ringColor, AppColors.accent);
+      },
+    );
 
-    testWidgets('a missing tier falls back to Bronze', (tester) async {
-      await pumpWithTier(tester, null);
-      expect(find.text('Bronze'), findsOneWidget);
-    });
-
-    for (final (tier, color) in [
-      ('tier_1', AppColors.tierGold),
-      ('tier_2', AppColors.tierSilver),
-      (null, AppColors.tierBronze),
+    for (final (label, expiresAt) in [
+      ('never subscribed', null),
+      ('expired', '2020-01-01T00:00:00+08:00'),
     ]) {
-      testWidgets('the avatar ring matches the ${tier ?? 'default'} badge', (
-        tester,
-      ) async {
-        await pumpWithTier(tester, tier);
-        final avatar = tester.widget<ProfileAvatar>(find.byType(ProfileAvatar));
-        expect(avatar.ringColor, color);
+      testWidgets('$label: no badge, no ring', (tester) async {
+        await pumpWithExpiry(tester, expiresAt);
+        expect(find.text('Uwearis Plus'), findsNothing);
+        expect(avatar(tester).ringColor, isNull);
       });
     }
   });
@@ -325,7 +323,7 @@ void main() {
 
         await tester.tap(find.text('Withdraw AI Consent'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Cancel'));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pumpAndSettle();
         expect(await UserAcknowledgement.aiConsent.isGranted(), isTrue);
       });

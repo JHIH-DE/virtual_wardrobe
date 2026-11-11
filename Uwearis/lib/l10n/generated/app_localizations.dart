@@ -243,18 +243,6 @@ abstract class AppLocalizations {
   /// **'The required file is no longer available. Please upload it again or try again.'**
   String get fileNotFound;
 
-  /// 429 DAILY_GENERATION_LIMIT_EXCEEDED; {time} is the local HH:mm the quota resets
-  ///
-  /// In en, this message translates to:
-  /// **'You\'ve used all of today\'s AI try-ons. Your limit resets at {time}.'**
-  String dailyGenerationLimitReached(String time);
-
-  /// SnackBar after a render that used a try-on: what is left today
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{That was your last AI try-on today} =1{1 AI try-on left today} other{{count} AI try-ons left today}}'**
-  String generationQuotaRemaining(int count);
-
   /// No description provided for @errorNoConnection.
   ///
   /// In en, this message translates to:
@@ -447,12 +435,6 @@ abstract class AppLocalizations {
   /// **'Other'**
   String get styleProfileOther;
 
-  /// Style Taste insight card's stat line — how many saved outfits were analyzed and how many of those are favorites
-  ///
-  /// In en, this message translates to:
-  /// **'Analyzed {count} outfits · {favoriteCount} favorites'**
-  String styleTasteAnalysisStats(int count, int favoriteCount);
-
   /// No description provided for @logout.
   ///
   /// In en, this message translates to:
@@ -476,24 +458,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete My Account'**
   String get deleteAccount;
-
-  /// No description provided for @tierGold.
-  ///
-  /// In en, this message translates to:
-  /// **'Gold'**
-  String get tierGold;
-
-  /// No description provided for @tierSilver.
-  ///
-  /// In en, this message translates to:
-  /// **'Silver'**
-  String get tierSilver;
-
-  /// No description provided for @tierBronze.
-  ///
-  /// In en, this message translates to:
-  /// **'Bronze'**
-  String get tierBronze;
 
   /// No description provided for @deleteAccountConfirmTitle.
   ///
@@ -1059,35 +1023,113 @@ abstract class AppLocalizations {
   /// **'The Edit'**
   String get exploreEditLabel;
 
-  /// No description provided for @exploreEditTitle.
+  /// No description provided for @exploreMen.
+  ///
+  /// In en, this message translates to:
+  /// **'Men'**
+  String get exploreMen;
+
+  /// No description provided for @exploreWomen.
+  ///
+  /// In en, this message translates to:
+  /// **'Women'**
+  String get exploreWomen;
+
+  /// No description provided for @exploreIssueKicker.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue 014 — Nov 2026'**
+  String get exploreIssueKicker;
+
+  /// No description provided for @exploreIssueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The Outdoor Issue'**
+  String get exploreIssueTitle;
+
+  /// No description provided for @exploreIssueSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Outdoor style for everyday life.'**
+  String get exploreIssueSubtitle;
+
+  /// No description provided for @exploreStyleGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Style Guide'**
+  String get exploreStyleGuide;
+
+  /// No description provided for @exploreTheSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'The Selection'**
+  String get exploreTheSelection;
+
+  /// No description provided for @exploreLifestyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifestyle'**
+  String get exploreLifestyle;
+
+  /// No description provided for @exploreEditBlazerTitle.
   ///
   /// In en, this message translates to:
   /// **'One blazer, three ways'**
-  String get exploreEditTitle;
+  String get exploreEditBlazerTitle;
 
-  /// No description provided for @exploreEditSubtitle.
+  /// No description provided for @exploreEditBlazerSubtitle.
   ///
   /// In en, this message translates to:
   /// **'A smarter way to dress for the week.'**
-  String get exploreEditSubtitle;
+  String get exploreEditBlazerSubtitle;
 
-  /// No description provided for @exploreReadStory.
+  /// No description provided for @exploreEditTrailKicker.
   ///
   /// In en, this message translates to:
-  /// **'Read the story'**
-  String get exploreReadStory;
+  /// **'Trail Ready'**
+  String get exploreEditTrailKicker;
 
-  /// No description provided for @exploreWorksWithWardrobe.
+  /// No description provided for @exploreEditTrailTitle.
   ///
   /// In en, this message translates to:
-  /// **'Works with your wardrobe'**
-  String get exploreWorksWithWardrobe;
+  /// **'Layers for the trail'**
+  String get exploreEditTrailTitle;
 
-  /// No description provided for @seeAll.
+  /// No description provided for @exploreEditTrailSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'See all'**
-  String get seeAll;
+  /// **'Light shells and soft fleece that move with you.'**
+  String get exploreEditTrailSubtitle;
+
+  /// No description provided for @exploreEditWorkwearKicker.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekend Look'**
+  String get exploreEditWorkwearKicker;
+
+  /// No description provided for @exploreEditWorkwearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rugged meets relaxed'**
+  String get exploreEditWorkwearTitle;
+
+  /// No description provided for @exploreEditWorkwearSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Earthy tones and rugged boots for slow weekends.'**
+  String get exploreEditWorkwearSubtitle;
+
+  /// No description provided for @exploreRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get exploreRead;
+
+  /// No description provided for @exploreMatchYourWardrobe.
+  ///
+  /// In en, this message translates to:
+  /// **'Match Your Wardrobe'**
+  String get exploreMatchYourWardrobe;
 
   /// No description provided for @exploreNavyBlazer.
   ///
@@ -1208,12 +1250,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get retry;
-
-  /// No description provided for @aiTag.
-  ///
-  /// In en, this message translates to:
-  /// **'AI'**
-  String get aiTag;
 
   /// No description provided for @matchALookTitle.
   ///
@@ -2733,6 +2769,12 @@ abstract class AppLocalizations {
   /// **'Suggested by AI'**
   String get suggestedByAi;
 
+  /// No description provided for @selectionTips.
+  ///
+  /// In en, this message translates to:
+  /// **'Selection tips'**
+  String get selectionTips;
+
   /// No description provided for @loadingPackingSuggestions.
   ///
   /// In en, this message translates to:
@@ -3555,12 +3597,6 @@ abstract class AppLocalizations {
   /// **'Added to this trip and packed {count} garments.'**
   String addedOutfitToTripPacked(int count);
 
-  /// No description provided for @savedOutfitsInTripCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} in trip'**
-  String savedOutfitsInTripCount(int count);
-
   /// No description provided for @tripOutfitEdited.
   ///
   /// In en, this message translates to:
@@ -3663,12 +3699,6 @@ abstract class AppLocalizations {
   /// **'Available points'**
   String get pointsAvailable;
 
-  /// No description provided for @pointsBalanceHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Use points for AI styling and virtual try-on.'**
-  String get pointsBalanceHint;
-
   /// No description provided for @pointsViewActivity.
   ///
   /// In en, this message translates to:
@@ -3678,13 +3708,13 @@ abstract class AppLocalizations {
   /// No description provided for @pointsAddTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add points'**
+  /// **'Point packs'**
   String get pointsAddTitle;
 
   /// No description provided for @pointsAddSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Choose a one-time top-up.'**
+  /// **'One-time purchase. Top up anytime.'**
   String get pointsAddSubtitle;
 
   /// No description provided for @pointsIllustrativeNote.
@@ -3696,7 +3726,7 @@ abstract class AppLocalizations {
   /// No description provided for @pointsOneTimeNote.
   ///
   /// In en, this message translates to:
-  /// **'One-time purchase. No subscription.'**
+  /// **'Plus renews monthly until you cancel. Cancel anytime.'**
   String get pointsOneTimeNote;
 
   /// No description provided for @pointsHowItWorks.
@@ -3708,7 +3738,7 @@ abstract class AppLocalizations {
   /// No description provided for @pointsHowItWorksBody.
   ///
   /// In en, this message translates to:
-  /// **'Each AI styling or virtual try-on uses points from your balance. Top up anytime with a one-time purchase.'**
+  /// **'Each AI feature uses points from your balance — see the list above. You get free points every day at 00:00 (Taiwan time), and Plus subscribers get more. If an AI feature fails, its points are refunded automatically.'**
   String get pointsHowItWorksBody;
 
   /// No description provided for @pointsPrice.
@@ -3722,6 +3752,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue · {price}'**
   String pointsContinue(String price);
+
+  /// No description provided for @pointsPlusSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get pointsPlusSectionTitle;
+
+  /// No description provided for @pointsPlusSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get points automatically every day.'**
+  String get pointsPlusSectionSubtitle;
+
+  /// No description provided for @pointsPlusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Uwearis Plus'**
+  String get pointsPlusTitle;
+
+  /// No description provided for @pointsPlusDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Points added to your balance daily.'**
+  String get pointsPlusDetail;
+
+  /// No description provided for @pointsPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'/day'**
+  String get pointsPerDay;
+
+  /// No description provided for @pointsPerMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'/mo'**
+  String get pointsPerMonth;
+
+  /// No description provided for @pointsPackSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small pack'**
+  String get pointsPackSmall;
+
+  /// No description provided for @pointsPackStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard pack'**
+  String get pointsPackStandard;
+
+  /// No description provided for @pointsPackLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large pack'**
+  String get pointsPackLarge;
+
+  /// No description provided for @pointsBadgePopular.
+  ///
+  /// In en, this message translates to:
+  /// **'Most popular'**
+  String get pointsBadgePopular;
+
+  /// No description provided for @pointsBadgeBestValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Best value'**
+  String get pointsBadgeBestValue;
+
+  /// No description provided for @pointsBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% more points'**
+  String pointsBonus(int percent);
+
+  /// No description provided for @pointsSubscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe · {price}'**
+  String pointsSubscribe(String price);
+
+  /// 402 INSUFFICIENT_POINTS; {time} is the local HH:mm of the next daily grant
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points. You\'ll get more at {time}.'**
+  String insufficientPoints(String time);
+
+  /// SnackBar after a try-on: the balance now
+  ///
+  /// In en, this message translates to:
+  /// **'{balance} points left'**
+  String pointsRemaining(String balance);
+
+  /// No description provided for @pointsDailyGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'You got today\'s {count} points'**
+  String pointsDailyGranted(int count);
+
+  /// No description provided for @flatLayInsufficientPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points to make a flat-lay photo, so the original photo is used.'**
+  String get flatLayInsufficientPoints;
+
+  /// No description provided for @tripAiInsufficientPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved outfits were added, but there weren\'t enough points for AI styling.'**
+  String get tripAiInsufficientPoints;
+
+  /// No description provided for @pointsDailyGrantHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You get {count} points every day · next at {time}'**
+  String pointsDailyGrantHint(int count, String time);
+
+  /// No description provided for @pointsPlusActiveUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Uwearis Plus · until {date}'**
+  String pointsPlusActiveUntil(String date);
+
+  /// No description provided for @pointsCostsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Points per feature'**
+  String get pointsCostsTitle;
+
+  /// No description provided for @pointsCostsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Points are deducted when an AI feature starts. Automatically refunded if it fails.'**
+  String get pointsCostsSubtitle;
+
+  /// No description provided for @pointsCostsGroupImages.
+  ///
+  /// In en, this message translates to:
+  /// **'IMAGES'**
+  String get pointsCostsGroupImages;
+
+  /// No description provided for @pointsCostsGroupWardrobe.
+  ///
+  /// In en, this message translates to:
+  /// **'WARDROBE & STYLING'**
+  String get pointsCostsGroupWardrobe;
+
+  /// No description provided for @pointsCostsGroupMatchTrips.
+  ///
+  /// In en, this message translates to:
+  /// **'MATCH A LOOK & TRIPS'**
+  String get pointsCostsGroupMatchTrips;
+
+  /// No description provided for @pointsActionTryOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Virtual try-on'**
+  String get pointsActionTryOn;
+
+  /// No description provided for @pointsActionGarmentAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Garment analysis'**
+  String get pointsActionGarmentAnalysis;
+
+  /// No description provided for @pointsActionFlatLay.
+  ///
+  /// In en, this message translates to:
+  /// **'Flat-lay photo'**
+  String get pointsActionFlatLay;
+
+  /// No description provided for @pointsActionBaseModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model generation'**
+  String get pointsActionBaseModel;
+
+  /// No description provided for @pointsActionClosetAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Closet analysis'**
+  String get pointsActionClosetAnalysis;
+
+  /// No description provided for @pointsActionOutfitAdvice.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit suggestion'**
+  String get pointsActionOutfitAdvice;
+
+  /// No description provided for @pointsActionMatchLookReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Match a Look photo analysis'**
+  String get pointsActionMatchLookReference;
+
+  /// No description provided for @pointsActionMatchLookMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Match a Look matching'**
+  String get pointsActionMatchLookMatch;
+
+  /// No description provided for @pointsActionTripOutfits.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip outfit suggestions'**
+  String get pointsActionTripOutfits;
+
+  /// No description provided for @pointsActionTripPacking.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip packing analysis'**
+  String get pointsActionTripPacking;
+
+  /// No description provided for @pointsActionOther.
+  ///
+  /// In en, this message translates to:
+  /// **'AI feature'**
+  String get pointsActionOther;
+
+  /// No description provided for @pointsKindDailyGrant.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily points'**
+  String get pointsKindDailyGrant;
+
+  /// No description provided for @pointsKindRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund · {action}'**
+  String pointsKindRefund(String action);
+
+  /// No description provided for @pointsKindAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustment'**
+  String get pointsKindAdjust;
+
+  /// No description provided for @pointsKindOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Points change'**
+  String get pointsKindOther;
+
+  /// No description provided for @pointsActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Points activity'**
+  String get pointsActivityTitle;
+
+  /// No description provided for @pointsActivityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No points activity yet'**
+  String get pointsActivityEmpty;
+
+  /// No description provided for @pointsBalanceAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance {balance}'**
+  String pointsBalanceAfter(String balance);
 }
 
 class _AppLocalizationsDelegate

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
@@ -365,7 +366,7 @@ void main() {
               find.text('Added to this trip and packed 1 garments.'),
               findsOneWidget,
             );
-            expect(find.text('1 in trip'), findsOneWidget);
+            expect(find.text('1'), findsOneWidget);
 
             final detail = ProviderScope.containerOf(
               tester.element(find.byType(TripSuitcasePage)),
@@ -848,7 +849,7 @@ void main() {
         );
         expect(container.read(tripDetailProvider(7)).value!.suitcaseIds, {1});
         expect(find.text('Jeans'), findsOneWidget);
-        await tester.tap(find.text('OK'));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pumpAndSettle();
 
         await tester.binding.handlePopRoute();

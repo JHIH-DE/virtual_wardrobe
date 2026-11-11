@@ -37,7 +37,16 @@ bool isViableSuitcase(Iterable<Garment> suitcase) {
 /// Backend `TripOutfitAiStatus`: how the AI step of a generate request went.
 /// `failed` / `rateLimited` only come back with saved outfits added (else
 /// the request errors instead).
-enum TripOutfitAiStatus { ok, noNew, skippedRecentEmpty, failed, rateLimited }
+enum TripOutfitAiStatus {
+  ok,
+  noNew,
+  skippedRecentEmpty,
+  failed,
+  rateLimited,
+
+  /// Only with saved outfits added; with none the request is a 402.
+  insufficientPoints,
+}
 
 extension TripOutfitAiStatusApi on TripOutfitAiStatus {
   static TripOutfitAiStatus fromApiValue(String? value) => switch (value) {
@@ -45,6 +54,7 @@ extension TripOutfitAiStatusApi on TripOutfitAiStatus {
     'skipped_recent_empty' => TripOutfitAiStatus.skippedRecentEmpty,
     'failed' => TripOutfitAiStatus.failed,
     'rate_limited' => TripOutfitAiStatus.rateLimited,
+    'insufficient_points' => TripOutfitAiStatus.insufficientPoints,
     _ => TripOutfitAiStatus.noNew,
   };
 }

@@ -10,6 +10,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../core/config/env.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
+import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/auth_service.dart';
@@ -109,8 +110,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         body: _l10n.logoutConfirmBody,
         primaryLabel: _l10n.logout,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -139,8 +138,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         body: _l10n.deleteAccountConfirmBody,
         primaryLabel: _l10n.deleteAccount,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
     if (confirmed != true || _deletingAccount) return;
@@ -177,8 +174,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final cards = [
-      _buildPointsCard(),
       _buildPersonalDetailsCard(),
+      _buildPointsCard(),
       _buildOutfitProfileCard(),
       _buildStyleTasteCard(),
       _buildLanguageCard(),
@@ -224,8 +221,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildPointsCard() {
-    // Placeholder: there is no credit balance API yet.
-    const credits = 10000;
+    final balance = ref.watch(pointsProvider).value?.balance;
     return AppListCard(
       onTap: () => Navigator.push(
         context,
@@ -233,7 +229,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       leading: _buildLeadingIcon(LucideIcons300.coins),
       showArrow: true,
-      summary: NumberFormat.decimalPattern(_l10n.localeName).format(credits),
+      summary: balance == null
+          ? null
+          : NumberFormat.decimalPattern(_l10n.localeName).format(balance),
       child: Text(_l10n.uwearisPoints, style: AppTextStyle.bold16),
     );
   }
@@ -414,8 +412,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         body: _l10n.withdrawAiConsentConfirmBody,
         primaryLabel: _l10n.withdrawAiConsentConfirm,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
     if (confirmed != true || !mounted) return;

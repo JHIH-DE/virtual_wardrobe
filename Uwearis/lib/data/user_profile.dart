@@ -1,5 +1,3 @@
-import 'user_tier.dart';
-
 /// The signed-in user's profile (`/users/me`). Write-only fields
 /// (`temperature_offset_c`, `locale`) are only `updateMyProfile` arguments.
 class UserProfile {
@@ -19,8 +17,8 @@ class UserProfile {
   final double? weight;
   final String? unitSystem;
 
-  /// Read-only on the backend; defaults to bronze.
-  final UserTier tier;
+  /// Uwearis Plus end; null if never subscribed. Read-only on the backend.
+  final DateTime? subscriptionExpiresAt;
 
   const UserProfile({
     this.name = '',
@@ -32,8 +30,13 @@ class UserProfile {
     this.height,
     this.weight,
     this.unitSystem,
-    this.tier = UserTier.bronze,
+    this.subscriptionExpiresAt,
   });
+
+  bool get isSubscribed {
+    final expiresAt = subscriptionExpiresAt;
+    return expiresAt != null && expiresAt.isAfter(DateTime.now());
+  }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final rawBirthday = json['birthday'] as String?;
@@ -49,7 +52,9 @@ class UserProfile {
       height: (json['height'] as num?)?.toDouble(),
       weight: (json['weight'] as num?)?.toDouble(),
       unitSystem: json['unit_system'] as String?,
-      tier: userTierFromApiValue(json['tier'] as String?),
+      subscriptionExpiresAt: DateTime.tryParse(
+        (json['subscription_expires_at'] as String?) ?? '',
+      )?.toLocal(),
     );
   }
 }

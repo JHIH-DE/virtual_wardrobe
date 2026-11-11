@@ -7,6 +7,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../providers/daily_outfit_provider.dart';
 import '../providers/garments_provider.dart';
 import '../providers/outfits_provider.dart';
+import '../providers/points_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/style_profile_provider.dart';
 import '../providers/style_taste_provider.dart';
@@ -14,6 +15,7 @@ import '../providers/trip_detail_provider.dart';
 import '../providers/trip_suggestion_provider.dart';
 import '../providers/trips_provider.dart';
 import '../utils/crash_handler.dart';
+import '../utils/daily_points_notice.dart';
 import 'auth_storage.dart';
 import 'garment_service.dart';
 import 'outfit_service.dart';
@@ -35,6 +37,7 @@ Future<void> clearSignedInSession() async {
   GarmentService().clearGarmentCache();
   OutfitService().clearGroupCache();
   await PendingTryOnStore.clear();
+  await DailyPointsNotice.clear();
 }
 
 /// Providers outlive the Navigator, so without this a new sign-in would see
@@ -45,6 +48,7 @@ Future<void> clearSignedInSession() async {
 void invalidateSignedInProviders(BuildContext context) {
   final container = ProviderScope.containerOf(context, listen: false);
   container.invalidate(profileProvider);
+  container.invalidate(pointsProvider);
   container.invalidate(garmentsProvider);
   container.invalidate(outfitsProvider);
   container.invalidate(tripsProvider);
@@ -73,8 +77,6 @@ class AuthExpiredHandler {
         builder: (ctx) => AppDialog(
           title: l10n.sessionExpiredTitle,
           body: l10n.sessionExpiredMessage,
-          primaryLabel: l10n.ok,
-          onPrimary: () => Navigator.of(ctx).pop(),
         ),
       );
 

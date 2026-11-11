@@ -9,29 +9,27 @@ void main() {
   Finder discOf(Finder badge) =>
       find.descendant(of: badge, matching: find.byType(Container));
 
-  testWidgets('default: >=44px hit target while the visible disc stays "size"', (
-    tester,
-  ) async {
-    await pumpApp(
-      tester,
-      Scaffold(
-        body: Center(
-          child: CardCornerBadge(
-            icon: Icons.favorite_border,
-            onTap: () {},
+  testWidgets(
+    'default: >=44px hit target while the visible disc stays "size"',
+    (tester) async {
+      await pumpApp(
+        tester,
+        Scaffold(
+          body: Center(
+            child: CardCornerBadge(icon: Icons.favorite_border, onTap: () {}),
           ),
         ),
-      ),
-    );
+      );
 
-    final badge = tester.getSize(find.byType(CardCornerBadge));
-    final disc = tester.getSize(discOf(find.byType(CardCornerBadge)));
+      final badge = tester.getSize(find.byType(CardCornerBadge));
+      final disc = tester.getSize(discOf(find.byType(CardCornerBadge)));
 
-    expect(badge.width, greaterThanOrEqualTo(AppDimens.minTouchTarget));
-    expect(badge.height, greaterThanOrEqualTo(AppDimens.minTouchTarget));
-    expect(disc.width, 24);
-    expect(disc.height, 24);
-  });
+      expect(badge.width, greaterThanOrEqualTo(AppDimens.minTouchTarget));
+      expect(badge.height, greaterThanOrEqualTo(AppDimens.minTouchTarget));
+      expect(disc.width, 24);
+      expect(disc.height, 24);
+    },
+  );
 
   testWidgets('a tap in the transparent band (outside the disc) fires onTap', (
     tester,

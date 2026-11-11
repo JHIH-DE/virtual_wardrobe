@@ -6,13 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/trip_detail_provider.dart';
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/pending_try_on_store.dart';
 import '../../../core/services/trip_service.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../core/utils/image_cache_bust.dart';
-import '../../../core/utils/remaining_try_ons.dart';
+import '../../../core/utils/remaining_points.dart';
 import '../../../core/utils/try_on_request.dart';
 import '../../../data/garment.dart';
 import '../../../data/outfit.dart';
@@ -122,14 +123,13 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
               body: _l10n.regenerateOutfitConfirmBody,
               primaryLabel: _l10n.regenerate,
               onPrimary: () => Navigator.pop(ctx, true),
-              secondaryLabel: _l10n.cancel,
-              onSecondary: () => Navigator.pop(ctx, false),
             ),
           );
           if (ok != true || !mounted) return null;
         }
         // Read before the await: the page may be gone when it lands.
         final overlay = Overlay.of(context, rootOverlay: true);
+        final points = ref.read(pointsProvider.notifier);
         final l10n = _l10n;
         final session = PendingTryOnStore.session;
         setState(() => _renderingOutfit = true);
@@ -143,7 +143,7 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
           );
           _unknownTryOns.remove(outfit.id);
           if (PendingTryOnStore.session != session) return null;
-          unawaited(announceRemainingTryOns(overlay, l10n));
+          unawaited(announceRemainingPoints(overlay, l10n, points));
           _bumpImage(outfit);
           return collection;
         } on TryOnStillRunning {
@@ -221,8 +221,6 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
             body: _l10n.removeTripOutfitBody,
             primaryLabel: _l10n.remove,
             onPrimary: () => Navigator.pop(ctx, true),
-            secondaryLabel: _l10n.cancel,
-            onSecondary: () => Navigator.pop(ctx, false),
           ),
         );
         if (confirmed != true) return null;

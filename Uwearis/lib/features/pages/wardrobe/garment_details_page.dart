@@ -33,6 +33,7 @@ import '../../widgets/common/images/fullscreen_image_viewer.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/app_dialog.dart';
 import '../../widgets/common/overlays/auto_save_prompts.dart';
+import '../../widgets/common/overlays/app_snack_bar.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
@@ -409,8 +410,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
         body: _l10n.deleteGarmentConfirmation,
         primaryLabel: _l10n.delete,
         onPrimary: () => Navigator.pop(ctx, true),
-        secondaryLabel: _l10n.cancel,
-        onSecondary: () => Navigator.pop(ctx, false),
       ),
     );
 
@@ -957,11 +956,24 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
           processedImagePath: result.processedImagePath,
         ),
       );
+      if (result.flatLayStatus == FlatLayStatus.insufficientPoints) {
+        showAppSnackBar(context, _l10n.flatLayInsufficientPoints);
+      }
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
     } catch (e) {
       debugLog('AI Analysis failed: $e');
+      if (mounted && isInsufficientPoints(e)) {
+        showErrorDialog(
+          context,
+          message: apiErrorMessage(
+            _l10n,
+            e,
+            fallback: _l10n.analysisFailedBody,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
     }
@@ -981,8 +993,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
               body: _l10n.reanalyzeGarmentBody,
               primaryLabel: _l10n.reanalyze,
               onPrimary: () => Navigator.pop(ctx, true),
-              secondaryLabel: _l10n.cancel,
-              onSecondary: () => Navigator.pop(ctx, false),
             ),
           ) ==
           true;
@@ -1060,7 +1070,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       debugLog('closetAnalysis failed: ${e.errorCode}');
       _closetAnalysisError.value = e.errorCode == 'GARMENT_NOT_FOUND'
           ? _l10n.closetAnalysisGarmentNotFound
-          : _l10n.closetAnalysisFailed;
+          : sharedErrorCodeMessage(_l10n, e.errorCode) ??
+                _l10n.closetAnalysisFailed;
     } catch (e) {
       if (!mounted) return;
       debugLog('closetAnalysis failed: $e');

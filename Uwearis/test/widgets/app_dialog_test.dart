@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
+import 'package:uwearis/app/theme/app_text_styles.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 
 void main() {
@@ -52,4 +53,36 @@ void main() {
       );
     },
   );
+
+  testWidgets('the top-right X pops the dialog with null', (tester) async {
+    Future<bool?>? result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => result = showDialog<bool>(
+              context: context,
+              builder: (_) => const AppDialog(
+                title: 'Title',
+                body: 'Body',
+                secondaryLabel: 'Decline',
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final label = tester.widget<Text>(find.text('Decline'));
+    expect(label.style!.fontSize, AppTextStyle.medium14.fontSize);
+    expect(label.style!.color, AppColors.textSecondary);
+
+    await tester.tap(find.byKey(AppDialog.closeButtonKey));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsNothing);
+    expect(await result, isNull);
+  });
 }

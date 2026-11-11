@@ -5,16 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/garments_provider.dart';
 import '../core/providers/outfits_provider.dart';
+import '../core/providers/points_provider.dart';
 import '../core/providers/trip_detail_provider.dart';
 import '../core/services/auth_handler.dart';
 import '../core/services/shared_media_handler.dart';
+import '../core/utils/daily_points_notice.dart';
 import '../core/utils/debug_log.dart';
 import '../core/utils/pending_try_on_recovery.dart';
+import '../data/points.dart';
 import '../features/pages/wardrobe/closet_page.dart';
 import '../features/pages/wardrobe/create_outfit_page.dart';
 import '../features/pages/wardrobe/outfits_page.dart';
 import '../features/pages/wardrobe/trips_page.dart';
 import '../features/pages/wardrobe/wardrobe_home_page.dart';
+import '../features/widgets/common/overlays/app_snack_bar.dart';
 import '../features/widgets/common/overlays/error_dialog.dart';
 import '../features/widgets/common/overlays/loading_overlay.dart';
 import '../features/widgets/common/wardrobe_nav_bar.dart';
@@ -58,7 +62,19 @@ class _WardrobeShellState extends ConsumerState<WardrobeShell>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _recoverPendingTryOns();
+    if (state == AppLifecycleState.resumed) {
+      _recoverPendingTryOns();
+      // Another device may have spent points, or a new day's grant landed.
+      unawaited(ref.read(pointsProvider.notifier).reloadPoints());
+    }
+  }
+
+  Future<void> _showDailyPointsNotice(PointsSummary summary) async {
+    if (!await DailyPointsNotice.takeIfDue(summary) || !mounted) return;
+    showAppSnackBar(
+      context,
+      AppLocalizations.of(context).pointsDailyGranted(summary.dailyGrant),
+    );
   }
 
   /// Try-ons whose outcome the app lost (killed or backgrounded mid-render):
@@ -143,6 +159,12 @@ class _WardrobeShellState extends ConsumerState<WardrobeShell>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(pointsProvider, (_, next) {
+      final summary = next.value;
+      if (summary != null && next is AsyncData) {
+        unawaited(_showDailyPointsNotice(summary));
+      }
+    });
     return WardrobeShellScope(
       selectTab: _select,
       setLoading: _setGlobalLoading,
@@ -165,8 +187,7 @@ class _WardrobeShellState extends ConsumerState<WardrobeShell>
             current: _current,
             onSelect: _select,
             onQuickAction: _handleQuickAction,
-            // Placeholder: there is no credit balance API yet.
-            credits: 10000,
+            credits: ref.watch(pointsProvider).value?.balance,
           ),
           // Painted last so it also covers WardrobeNavBar.
           if (_loadingLabelByTab[_current] != null)

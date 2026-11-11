@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -390,7 +391,7 @@ void main() {
         await tester.tap(find.byIcon(Icons.add_circle_outline));
         await tester.pumpAndSettle();
         expect(find.text(_l10n.retry), findsOneWidget);
-        await tester.tap(find.text(_l10n.cancel));
+        await tester.tap(find.byKey(AppDialog.closeButtonKey));
         await tester.pumpAndSettle();
         expect(find.text('+1°C'), findsOneWidget);
 

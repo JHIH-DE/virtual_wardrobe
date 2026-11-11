@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'nav_bar_tab.dart';
+import 'points_amount.dart';
 import 'pressed_state_mixin.dart';
 
 enum WardrobeTab { home, closet, outfits, tripPlanner }
@@ -45,15 +46,16 @@ class WardrobeNavBar extends StatefulWidget {
   final ValueChanged<WardrobeTab> onSelect;
   final ValueChanged<QuickAction> onQuickAction;
 
-  /// The user's AI credit balance, shown under the center button.
-  final int credits;
+  /// The user's points balance, shown under the center button; null while
+  /// it hasn't loaded (the slot stays reserved).
+  final int? credits;
 
   const WardrobeNavBar({
     super.key,
     required this.current,
     required this.onSelect,
     required this.onQuickAction,
-    required this.credits,
+    this.credits,
   });
 
   @override
@@ -110,7 +112,9 @@ class _WardrobeNavBarState extends State<WardrobeNavBar> {
                             minWidth: _centerButtonSize,
                           ),
                           height: NavBarTab.heightFor(context),
-                          child: _CreditsBalance(credits: widget.credits),
+                          child: widget.credits == null
+                              ? null
+                              : _CreditsBalance(credits: widget.credits!),
                         ),
                         _tab(
                           WardrobeTab.outfits,
@@ -291,23 +295,14 @@ class _CreditsBalance extends StatelessWidget {
 
   const _CreditsBalance({required this.credits});
 
-  /// The slot is sized for this, so the tabs don't shift as the balance
-  /// changes.
-  static const _maxCredits = 10000;
+  /// The slot is sized for this (the backend's grant cap), so the tabs
+  /// don't shift as the balance changes.
+  static const _maxCredits = 30000;
 
   static TextSpan _span(BuildContext context, int amount) {
-    final l10n = AppLocalizations.of(context);
     return TextSpan(
       style: NavBarTab.labelStyle.copyWith(color: AppColors.textSecondary),
-      children: [
-        TextSpan(
-          text: '${l10n.aiCreditsSymbol} ',
-          style: const TextStyle(color: AppColors.accent),
-        ),
-        TextSpan(
-          text: NumberFormat.decimalPattern(l10n.localeName).format(amount),
-        ),
-      ],
+      children: [PointsAmount.span(context, amount)],
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/overlays/text_input_dialog.dart';
 
 import '../helpers/widget_harness.dart';
@@ -71,7 +72,7 @@ void main() {
     expect(saveButton(tester).onPressed, isNull);
   });
 
-  testWidgets('Cancel returns null regardless of the field value', (
+  testWidgets('The close button returns null regardless of the field value', (
     tester,
   ) async {
     await pumpAndOpen(tester);
@@ -79,7 +80,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Osaka Trip');
     await tester.pump();
 
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.byKey(AppDialog.closeButtonKey));
     await tester.pumpAndSettle();
 
     expect(await resultFuture, isNull);

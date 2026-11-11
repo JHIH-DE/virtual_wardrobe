@@ -54,7 +54,9 @@ void main() {
     expect(tapped?.id, 1);
   });
 
-  testWidgets('is wrapped in a RefreshIndicator in both states', (tester) async {
+  testWidgets('is wrapped in a RefreshIndicator in both states', (
+    tester,
+  ) async {
     await pumpApp(tester, grid([_outfit(1)]));
     expect(find.byType(RefreshIndicator), findsOneWidget);
 
