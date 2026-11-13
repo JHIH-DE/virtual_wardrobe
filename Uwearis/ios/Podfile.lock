@@ -1,16 +1,5 @@
 PODS:
-  - FBAEMKit (18.0.2):
-    - FBSDKCoreKit_Basics (= 18.0.2)
-  - FBSDKCoreKit (18.0.2):
-    - FBAEMKit (= 18.0.2)
-    - FBSDKCoreKit_Basics (= 18.0.2)
-  - FBSDKCoreKit_Basics (18.0.2)
-  - FBSDKLoginKit (18.0.2):
-    - FBSDKCoreKit (= 18.0.2)
   - Flutter (1.0.0)
-  - flutter_facebook_auth (7.1.5):
-    - FBSDKLoginKit (= 18.0.2)
-    - Flutter
   - fluttertoast (0.0.2):
     - Flutter
   - sign_in_with_apple (0.0.1):
@@ -18,34 +7,19 @@ PODS:
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_facebook_auth (from `.symlinks/plugins/flutter_facebook_auth/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - sign_in_with_apple (from `.symlinks/plugins/sign_in_with_apple/ios`)
-
-SPEC REPOS:
-  trunk:
-    - FBAEMKit
-    - FBSDKCoreKit
-    - FBSDKCoreKit_Basics
-    - FBSDKLoginKit
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_facebook_auth:
-    :path: ".symlinks/plugins/flutter_facebook_auth/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
   sign_in_with_apple:
     :path: ".symlinks/plugins/sign_in_with_apple/ios"
 
 SPEC CHECKSUMS:
-  FBAEMKit: 56a4f5a9607957b547b6458b17a98c5bb2736367
-  FBSDKCoreKit: 54f1240567e16862ab71c53c33dc347db5c524c5
-  FBSDKCoreKit_Basics: eb530cd6a79030dbb11df460aafb2767bcad9028
-  FBSDKLoginKit: 6a70798793e499335a98fab1a758d7da34af196e
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
-  flutter_facebook_auth: fa3b69b1df0831d2178fe87a05ee2d7d0156db70
   fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1
   sign_in_with_apple: c5dcc141574c8c54d5ac99dd2163c0c72ad22418
 

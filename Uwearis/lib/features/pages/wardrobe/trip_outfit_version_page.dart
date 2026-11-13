@@ -121,6 +121,8 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
       (g) => !widget.packedGarmentIds.contains(g.id),
     );
     final alreadyAdded = widget.addedOutfitIds.contains(_current.id);
+    final hasNotOwned = garments.any((g) => !g.isOwned);
+    final canAdd = !alreadyAdded && !hasNotOwned;
     final name = outfitDisplayTitle(
       _l10n,
       groupName: widget.outfit.groupName ?? _current.groupName,
@@ -130,6 +132,8 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
     );
     final notice = alreadyAdded
         ? _l10n.tripOutfitAlreadyAdded
+        : hasNotOwned
+        ? _l10n.tripOutfitHasNotOwned
         : garments.isNotEmpty && !hasUnpacked
         ? _l10n.allItemsAlreadyInSuitcase
         : null;
@@ -142,7 +146,7 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
         title: _l10n.selectVersionTitle,
         titleWidget: buildFadingToolbarTitle(name),
       ),
-      bottomNavigationBar: _buildAddButton(enabled: !alreadyAdded),
+      bottomNavigationBar: _buildAddButton(enabled: canAdd),
       body: Builder(
         builder: (bodyContext) => ListView(
           controller: toolbarTitleScrollController,
@@ -150,9 +154,9 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
             20,
             20,
             20,
-            alreadyAdded
-                ? 24 + MediaQuery.paddingOf(context).bottom
-                : BottomActionButton.scrollClearance(bodyContext),
+            canAdd
+                ? BottomActionButton.scrollClearance(bodyContext)
+                : 24 + MediaQuery.paddingOf(context).bottom,
           ),
           children: [
             Text(name, key: toolbarTitleAnchorKey, style: AppTextStyle.bold22),

@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -12,11 +13,13 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../app/wardrobe_shell.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/config/env.dart';
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/auth_storage.dart';
 import '../../../core/utils/api_error_text.dart';
+import '../../../core/utils/analytics.dart';
 import '../../../core/utils/crash_handler.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../core/utils/external_links.dart';
@@ -50,9 +53,9 @@ class _LoginPageState extends State<LoginPage> {
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   Future<void> _goHome() async {
-    await GlobalErrorHandler.setReportingUser(
-      await AuthStorage.getAccessToken(),
-    );
+    final token = await AuthStorage.getAccessToken();
+    await GlobalErrorHandler.setReportingUser(token);
+    await Analytics.setUser(token);
     if (!mounted) return;
     // Here, not at logout — see invalidateSignedInProviders.
     invalidateSignedInProviders(context);
@@ -86,6 +89,7 @@ class _LoginPageState extends State<LoginPage> {
       await AuthStorage.saveAccessToken(tokens.accessToken);
       await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
+      Analytics.login('google');
       Fluttertoast.showToast(msg: _l10n.googleLoginSuccess);
       await _goHome();
     } on GoogleSignInException catch (e) {
@@ -102,14 +106,39 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _loginWithApple() async {
     if (_isLoading) return;
+    if (Platform.isAndroid && Env.appleServiceId.isEmpty) {
+      _showErrorDialog(_l10n.appleLoginNotConfiguredAndroid);
+      return;
+    }
     setState(() => _isLoading = true);
+    // Apple gets sha256(rawNonce); the backend gets rawNonce, so a token
+    // injected into or replayed from the Android callback URL won't verify.
+    final rawNonce = _randomToken();
+    final state = _randomToken();
     try {
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
+        nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+        state: state,
+        // Android: Apple form-posts to the backend, which redirects back
+        // into the app via the signinwithapple:// intent.
+        webAuthenticationOptions: Platform.isAndroid
+            ? WebAuthenticationOptions(
+                clientId: Env.appleServiceId,
+                redirectUri: Uri.parse(
+                  '${AppConfig.fullApiUrl}/auth/apple/callback',
+                ),
+              )
+            : null,
       );
+
+      if (credential.state != null && credential.state != state) {
+        _showErrorDialog(_l10n.loginFailed);
+        return;
+      }
 
       final idToken = credential.identityToken;
       if (idToken == null) {
@@ -126,10 +155,12 @@ class _LoginPageState extends State<LoginPage> {
       final tokens = await AuthService().loginWithAppleIdToken(
         idToken,
         name: name.isNotEmpty ? name : null,
+        nonce: rawNonce,
       );
       await AuthStorage.saveAccessToken(tokens.accessToken);
       await AuthStorage.saveRefreshToken(tokens.refreshToken);
 
+      Analytics.login('apple');
       Fluttertoast.showToast(msg: _l10n.appleLoginSuccess);
       await _goHome();
     } catch (e) {
@@ -144,38 +175,14 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _loginWithFacebook() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    try {
-      debugLog('--- _loginWithFacebook - Start ---');
-      final LoginResult result = await FacebookAuth.instance.login();
-      debugLog('--- _loginWithFacebook - Status: ${result.status} ---');
-
-      if (result.status == LoginStatus.success) {
-        final AccessToken accessToken = result.accessToken!;
-        final tokens = await AuthService().loginWithFacebookAccessToken(
-          accessToken.tokenString,
-        );
-        await AuthStorage.saveAccessToken(tokens.accessToken);
-        await AuthStorage.saveRefreshToken(tokens.refreshToken);
-
-        Fluttertoast.showToast(msg: _l10n.facebookLoginSuccess);
-        await _goHome();
-      } else if (result.status == LoginStatus.cancelled) {
-        return;
-      } else {
-        debugLog(
-          '--- _loginWithFacebook - Failed: ${result.status} ${result.message} ---',
-        );
-        _showErrorDialog(_l10n.loginFailed);
-      }
-    } catch (e) {
-      debugLog('--- _loginWithFacebook - Error: $e ---');
-      _showErrorDialog(apiErrorMessage(_l10n, e, fallback: _l10n.loginFailed));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  static String _randomToken([int length = 32]) {
+    const chars =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
+    final rand = math.Random.secure();
+    return List.generate(
+      length,
+      (_) => chars[rand.nextInt(chars.length)],
+    ).join();
   }
 
   @override
@@ -264,13 +271,9 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           _buildHeading(),
           const SizedBox(height: 20),
-          if (Platform.isIOS) ...[
-            _buildAppleButton(),
-            const SizedBox(height: 15),
-          ],
-          _buildGoogleButton(),
+          _buildAppleButton(),
           const SizedBox(height: 15),
-          _buildFacebookButton(),
+          _buildGoogleButton(),
           const SizedBox(height: 20),
           const _TermsNotice(),
           const SizedBox(height: 12),
@@ -326,38 +329,6 @@ class _LoginPageState extends State<LoginPage> {
           style: GoogleFonts.roboto(
             fontSize: 18,
             color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
-            height: 22 / 16,
-            letterSpacing: 16 * 0.02,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFacebookButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          backgroundColor: AppColors.facebook,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(27),
-          ),
-          side: const BorderSide(color: AppColors.borderSubtle),
-        ),
-        onPressed: _isLoading ? null : _loginWithFacebook,
-        icon: const Icon(
-          Icons.facebook,
-          size: 28,
-          color: AppColors.textOnPrimary,
-        ),
-        label: Text(
-          _l10n.signInWithFacebook,
-          style: GoogleFonts.roboto(
-            fontSize: 18,
-            color: AppColors.textOnPrimary,
             fontWeight: FontWeight.w700,
             height: 22 / 16,
             letterSpacing: 16 * 0.02,

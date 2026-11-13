@@ -170,7 +170,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   Future<void> _handleAddGarment(List<Garment> allGarments) async {
     await ref.read(garmentsProvider.notifier).refreshIfNeeded();
     if (!mounted) return;
-    final garments = (ref.read(garmentsProvider).value ?? allGarments).active;
+    final garments = (ref.read(garmentsProvider).value ?? allGarments).packable;
 
     final result = await Navigator.push<Set<int>>(
       context,
@@ -468,7 +468,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   @override
   Widget build(BuildContext context) {
     // Only for the "+" picker; the packed list doesn't wait on this.
-    final closetGarments = (ref.watch(garmentsProvider).value ?? []).active;
+    final closetGarments = (ref.watch(garmentsProvider).value ?? []).packable;
     // For [_hasOutfits] and the saved-outfit count.
     ref.watch(tripDetailProvider(_tripId));
 

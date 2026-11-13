@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../data/style_type.dart';
 import '../config/app_config.dart';
+import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 import 'points_service.dart';
@@ -39,6 +40,7 @@ class GarmentRecommendationService with BaseService {
       'exclude_garment_ids': excludeGarmentIds,
     };
     final res = await PointsService.charged(
+      feature: ChargedFeature.completeOutfit,
       () => withAuth(
         (token) => http
             .post(uri, headers: authHeaders(token), body: jsonEncode(payload))

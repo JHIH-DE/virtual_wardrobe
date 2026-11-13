@@ -1018,6 +1018,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nameTheClothingHint => '為這件衣物命名';
 
   @override
+  String get ownershipQuestion => '你擁有這件衣物嗎？';
+
+  @override
+  String get ownershipOwned => '是，我已擁有';
+
+  @override
+  String get ownershipNotYet => '還沒有';
+
+  @override
+  String get notOwnedTag => '未擁有';
+
+  @override
   String get pleaseEnterNameError => '請輸入名稱';
 
   @override
@@ -1148,11 +1160,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get usedInOutfits => '已用於穿搭';
-
-  @override
-  String usedInOutfitsCount(int count) {
-    return '$count 套穿搭';
-  }
 
   @override
   String get selectAColor => '選擇顏色';
@@ -1381,11 +1388,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String suitcaseItemsCount(int count) {
-    return '$count 件';
-  }
-
-  @override
   String get failedToUpdateSuitcase => '更新行李箱失敗';
 
   @override
@@ -1469,13 +1471,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get googleLoginNotConfiguredIOS => 'iOS 尚未設定 Google 登入。';
 
   @override
+  String get appleLoginNotConfiguredAndroid => 'Android 尚未設定 Apple 登入。';
+
+  @override
   String get googleLoginSuccess => 'Google 登入成功';
 
   @override
   String get appleLoginSuccess => 'Apple 登入成功';
-
-  @override
-  String get facebookLoginSuccess => 'Facebook 登入成功';
 
   @override
   String get loginHeading => '登入 / 註冊，開始穿搭吧！';
@@ -1567,9 +1569,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get signInWithGoogle => '使用 Google 登入';
-
-  @override
-  String get signInWithFacebook => '使用 Facebook 登入';
 
   @override
   String get loginFailed => '登录失败，请再试一次。';
@@ -1794,6 +1793,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get savedOutfitUnavailable => '这套穿搭有衣物已从衣柜删除。';
+
+  @override
+  String get tripOutfitHasNotOwned => '這套穿搭有你還沒擁有的衣物，無法加入旅行。';
+
+  @override
+  String get notOwnedCannotBePacked => '還沒擁有的衣物無法放進行李箱。';
 
   @override
   String get tripOutfitMissingGarmentsTryOn => '请先把缺少的衣物放回行李箱或编辑穿搭，再进行试穿。';
@@ -3069,6 +3074,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get nameTheClothingHint => '為這件衣物命名';
 
   @override
+  String get ownershipQuestion => '你擁有這件衣物嗎？';
+
+  @override
+  String get ownershipOwned => '是，我已擁有';
+
+  @override
+  String get ownershipNotYet => '還沒有';
+
+  @override
+  String get notOwnedTag => '未擁有';
+
+  @override
   String get pleaseEnterNameError => '請輸入名稱';
 
   @override
@@ -3199,11 +3216,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get usedInOutfits => '已用於穿搭';
-
-  @override
-  String usedInOutfitsCount(int count) {
-    return '$count 套穿搭';
-  }
 
   @override
   String get selectAColor => '選擇顏色';
@@ -3432,11 +3444,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
-  String suitcaseItemsCount(int count) {
-    return '$count 件';
-  }
-
-  @override
   String get failedToUpdateSuitcase => '更新行李箱失敗';
 
   @override
@@ -3520,13 +3527,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get googleLoginNotConfiguredIOS => 'iOS 尚未設定 Google 登入。';
 
   @override
+  String get appleLoginNotConfiguredAndroid => 'Android 尚未設定 Apple 登入。';
+
+  @override
   String get googleLoginSuccess => 'Google 登入成功';
 
   @override
   String get appleLoginSuccess => 'Apple 登入成功';
-
-  @override
-  String get facebookLoginSuccess => 'Facebook 登入成功';
 
   @override
   String get loginHeading => '登入 / 註冊，開始穿搭吧！';
@@ -3618,9 +3625,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get signInWithGoogle => '使用 Google 登入';
-
-  @override
-  String get signInWithFacebook => '使用 Facebook 登入';
 
   @override
   String get loginFailed => '登入失敗，請再試一次。';
@@ -3845,6 +3849,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get savedOutfitUnavailable => '這套穿搭有衣物已從衣櫃刪除。';
+
+  @override
+  String get tripOutfitHasNotOwned => '這套穿搭有你還沒擁有的衣物，無法加入旅行。';
+
+  @override
+  String get notOwnedCannotBePacked => '還沒擁有的衣物無法放進行李箱。';
 
   @override
   String get tripOutfitMissingGarmentsTryOn => '請先把缺少的衣物放回行李箱或編輯穿搭，再進行試穿。';

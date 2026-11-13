@@ -2073,6 +2073,30 @@ abstract class AppLocalizations {
   /// **'Name the clothing'**
   String get nameTheClothingHint;
 
+  /// No description provided for @ownershipQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you own this item?'**
+  String get ownershipQuestion;
+
+  /// No description provided for @ownershipOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, I own it'**
+  String get ownershipOwned;
+
+  /// No description provided for @ownershipNotYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet'**
+  String get ownershipNotYet;
+
+  /// No description provided for @notOwnedTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Owned'**
+  String get notOwnedTag;
+
   /// No description provided for @pleaseEnterNameError.
   ///
   /// In en, this message translates to:
@@ -2336,12 +2360,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Used in Outfits'**
   String get usedInOutfits;
-
-  /// No description provided for @usedInOutfitsCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 Outfit} other{{count} Outfits}}'**
-  String usedInOutfitsCount(int count);
 
   /// No description provided for @selectAColor.
   ///
@@ -2787,12 +2805,6 @@ abstract class AppLocalizations {
   /// **'Recommended {recommended} · Selected {selected}'**
   String recommendedSelectedCount(int recommended, int selected);
 
-  /// Trip Details' Suitcase card status: how many garments are packed
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 item} other{{count} items}}'**
-  String suitcaseItemsCount(int count);
-
   /// No description provided for @failedToUpdateSuitcase.
   ///
   /// In en, this message translates to:
@@ -2955,6 +2967,12 @@ abstract class AppLocalizations {
   /// **'Google login is not configured for iOS yet.'**
   String get googleLoginNotConfiguredIOS;
 
+  /// No description provided for @appleLoginNotConfiguredAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple login is not configured for Android yet.'**
+  String get appleLoginNotConfiguredAndroid;
+
   /// No description provided for @googleLoginSuccess.
   ///
   /// In en, this message translates to:
@@ -2966,12 +2984,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Apple login success'**
   String get appleLoginSuccess;
-
-  /// No description provided for @facebookLoginSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Facebook login success'**
-  String get facebookLoginSuccess;
 
   /// No description provided for @loginHeading.
   ///
@@ -3128,12 +3140,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in with Google'**
   String get signInWithGoogle;
-
-  /// No description provided for @signInWithFacebook.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in with Facebook'**
-  String get signInWithFacebook;
 
   /// No description provided for @loginFailed.
   ///
@@ -3566,6 +3572,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Some garments in this outfit were deleted from your closet.'**
   String get savedOutfitUnavailable;
+
+  /// No description provided for @tripOutfitHasNotOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'This outfit includes items you don\'t own yet, so it can\'t be added to a trip.'**
+  String get tripOutfitHasNotOwned;
+
+  /// No description provided for @notOwnedCannotBePacked.
+  ///
+  /// In en, this message translates to:
+  /// **'Items you don\'t own yet can\'t be packed.'**
+  String get notOwnedCannotBePacked;
 
   /// No description provided for @tripOutfitMissingGarmentsTryOn.
   ///

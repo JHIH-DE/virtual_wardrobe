@@ -8,6 +8,7 @@ import '../../../core/providers/daily_outfit_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/utils/analytics.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../core/utils/outfit_garments.dart';
@@ -59,6 +60,12 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
   bool _isSavingTags = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
+
+  @override
+  void initState() {
+    super.initState();
+    Analytics.todayOutfitView();
+  }
 
   @override
   void dispose() {

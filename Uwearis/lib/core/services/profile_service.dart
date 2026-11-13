@@ -8,6 +8,7 @@ import '../../data/style_profile.dart';
 import '../../data/style_taste.dart';
 import '../../data/user_profile.dart';
 import '../config/app_config.dart';
+import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 import 'points_service.dart';
@@ -142,6 +143,7 @@ class ProfileService with BaseService {
   Future<String> generateBaseModel() async {
     debugLog('--- generateBaseModel ---');
     final res = await PointsService.charged(
+      feature: ChargedFeature.baseModel,
       () => withAuth(
         (token) => http
             .post(
@@ -157,6 +159,7 @@ class ProfileService with BaseService {
     if (url == null) {
       throw Exception('generateBaseModel: response missing object_url');
     }
+    Analytics.baseModelCreated();
     return url;
   }
 

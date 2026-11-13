@@ -52,9 +52,6 @@ class AppColors {
   // Attention outline (a highlighted AppListCard).
   static const Color accentOutline = Color(0x8C9966CC); // accent @55%
 
-  // Social sign-in (fixed brand color, do not retint)
-  static const Color facebook = Color(0xFF1877F2);
-
   // State
   static const Color error = Color(0xFFE4483F);
   static const Color success = Color(0xFF4CAF50); // e.g. a completed step

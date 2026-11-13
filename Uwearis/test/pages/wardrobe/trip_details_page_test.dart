@@ -350,7 +350,7 @@ void main() {
         matching: find.byType(AppListCard),
       );
       expect(
-        find.descendant(of: card, matching: find.text('3 items')),
+        find.descendant(of: card, matching: find.text('3')),
         findsOneWidget,
       );
       expect(find.text('About 4–6 outfits suit a 4-day trip'), findsOneWidget);

@@ -339,6 +339,10 @@ class Garment {
   final Map<String, dynamic>? metadata;
   final bool isFavorite;
 
+  /// False = "Not yet": kept for try-on/styling; the backend leaves outfits
+  /// containing it out of daily suggestions.
+  final bool isOwned;
+
   /// Soft-deleted: the backend keeps the row because an outfit/trip item
   /// still references it. See [ActiveGarmentsX.active].
   final bool isDeleted;
@@ -352,6 +356,7 @@ class Garment {
     this.thickness = 0,
     this.formality = 0,
     this.isFavorite = false,
+    this.isOwned = true,
     this.isDeleted = false,
     this.id,
     this.garmentId,
@@ -388,6 +393,7 @@ class Garment {
     String? imageUrl,
     Map<String, dynamic>? metadata,
     bool? isFavorite,
+    bool? isOwned,
     bool? isDeleted,
     bool clearId = false,
     bool clearGarmentId = false,
@@ -426,6 +432,7 @@ class Garment {
           : (purchaseDate ?? this.purchaseDate),
       metadata: clearMetadata ? null : (metadata ?? this.metadata),
       isFavorite: isFavorite ?? this.isFavorite,
+      isOwned: isOwned ?? this.isOwned,
       isDeleted: isDeleted ?? this.isDeleted,
     );
   }
@@ -478,6 +485,7 @@ class Garment {
       imageUrl: (json['image_url'] as String?) ?? '',
       metadata: json['metadata'] as Map<String, dynamic>?,
       isFavorite: (json['is_favorite'] as bool?) ?? false,
+      isOwned: (json['is_owned'] as bool?) ?? true,
       isDeleted: (json['is_deleted'] as bool?) ?? false,
     );
   }
@@ -526,6 +534,7 @@ class Garment {
       'object_name': objectName,
       'image_url': imageUrl,
       'metadata': metadata,
+      'is_owned': isOwned,
     };
   }
 }
@@ -542,4 +551,8 @@ class SelectGarmentResult {
 /// existing outfit's `garment_ids`, where deleted ones must still resolve.
 extension ActiveGarmentsX on List<Garment> {
   List<Garment> get active => where((g) => !g.isDeleted).toList();
+
+  /// Garments a trip may use: not-yet-owned ones can't be packed.
+  List<Garment> get packable =>
+      where((g) => !g.isDeleted && g.isOwned).toList();
 }

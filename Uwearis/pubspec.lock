@@ -194,7 +194,7 @@ packages:
     source: hosted
     version: "0.3.5+2"
   crypto:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
@@ -233,14 +233,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  facebook_auth_desktop:
-    dependency: transitive
-    description:
-      name: facebook_auth_desktop
-      sha256: "9fcde1146914e9f46497d2b6053ea5865828b576a258be4e0193635f52176712"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.3"
   fake_async:
     dependency: transitive
     description:
@@ -297,6 +289,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+5"
+  firebase_analytics:
+    dependency: "direct main"
+    description:
+      name: firebase_analytics
+      sha256: a75501500b7a49755d5d40f968ccb4cedec392a96590a0ab3e1060390302d455
+      url: "https://pub.dev"
+    source: hosted
+    version: "12.6.1"
+  firebase_analytics_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_analytics_platform_interface
+      sha256: "5c3ab4b681c837afd71f0abf77c7485f51c7b645d4ae77b96f9ed54779ff4126"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.7"
+  firebase_analytics_web:
+    dependency: transitive
+    description:
+      name: firebase_analytics_web
+      sha256: "09eb4d0ce4c9a16efbc277ac709a90eb197d5512592215a73c6a302ab1ab6c3a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.1+13"
   firebase_core:
     dependency: "direct main"
     description:
@@ -358,30 +374,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.2"
-  flutter_facebook_auth:
-    dependency: "direct main"
-    description:
-      name: flutter_facebook_auth
-      sha256: c9e5c412ce784955019393ff65a537541cf695598b64fd9a411ef9cd04bb1c9e
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.1.6"
-  flutter_facebook_auth_platform_interface:
-    dependency: transitive
-    description:
-      name: flutter_facebook_auth_platform_interface
-      sha256: e04b8dbfa77702bea45a79993163ad5d20b2c0084109bec591fdc2b9ee505779
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.2"
-  flutter_facebook_auth_web:
-    dependency: transitive
-    description:
-      name: flutter_facebook_auth_web
-      sha256: f682400d61cf8d52dd8b6458b5ee106ed57e95309a117dc32875d3da129ce47c
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.2"
   flutter_image_compress:
     dependency: "direct main"
     description:

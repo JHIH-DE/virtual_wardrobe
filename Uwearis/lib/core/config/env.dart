@@ -4,8 +4,8 @@ class Env {
   /// `--dart-define=BASE_URL=…`.
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    //defaultValue: 'https://vw-backend-staging-662955046370.asia-east1.run.app',
-    defaultValue: 'http://10.0.2.2:8000',
+    defaultValue: 'https://vw-backend-staging-662955046370.asia-east1.run.app',
+    //defaultValue: 'http://10.0.2.2:8000',
   );
 
   static const String googleClientId = String.fromEnvironment(
@@ -16,8 +16,8 @@ class Env {
     'GOOGLE_IOS_CLIENT_ID',
   );
 
-  static const bool enableDebugTools = bool.fromEnvironment(
-    'ENABLE_DEBUG_TOOLS',
-    defaultValue: false,
+  /// Apple Services ID for the web flow Android uses (iOS signs in natively).
+  static const String appleServiceId = String.fromEnvironment(
+    'APPLE_SERVICE_ID',
   );
 }

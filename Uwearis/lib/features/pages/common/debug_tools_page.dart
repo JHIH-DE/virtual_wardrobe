@@ -11,7 +11,7 @@ import '../../widgets/common/overlays/error_dialog.dart';
 import 'component_gallery_page.dart';
 
 /// Previews of hard-to-trigger UI states and crash-reporting checks; reachable
-/// from Settings only when built with `ENABLE_DEBUG_TOOLS=true`.
+/// from Settings only when `AppConfig.enableDebugTools` is true.
 class DebugToolsPage extends StatelessWidget {
   const DebugToolsPage({super.key});
 

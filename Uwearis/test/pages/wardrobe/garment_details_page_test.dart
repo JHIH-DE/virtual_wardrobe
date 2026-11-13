@@ -25,6 +25,7 @@ import 'package:uwearis/l10n/generated/app_localizations.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
+import '../../helpers/text_scale_harness.dart';
 import '../../helpers/widget_harness.dart';
 
 // What GarmentUploadHelper.startAddClothingFlow builds for an unsaved
@@ -86,20 +87,17 @@ void main() {
       );
       await tester.pump();
 
-      // The toolbar title is hidden (faded out until the name scrolls away)
-      // but still announced as the header.
+      // Add mode's toolbar title is always shown, not faded in on scroll.
       expect(
-        tester
-            .widget<AnimatedOpacity>(
-              find.ancestor(
-                of: find.text('Add Clothing'),
-                matching: find.byType(AnimatedOpacity),
-              ),
-            )
-            .opacity,
-        0,
+        find.ancestor(
+          of: find.text('Add Clothing'),
+          matching: find.byType(AnimatedOpacity),
+        ),
+        findsNothing,
       );
-      expect(find.bySemanticsLabel('Add Clothing'), findsOneWidget);
+      expect(find.text('Add Clothing'), findsOneWidget);
+      expect(find.text('NAME'), findsOneWidget);
+      expect(find.text('Do you own this item?'), findsOneWidget);
       expect(find.text('Select Color'), findsOneWidget);
       // View Match sits in the image's bottom-left corner.
       final image = tester.getRect(find.byType(GarmentImage));
@@ -121,7 +119,7 @@ void main() {
     });
   });
 
-  testWidgets('add mode: the divider above Category stays, with an even '
+  testWidgets('add mode: the divider above Name stays, with an even '
       'gap on both sides — no extra section gap stacked above it', (
     tester,
   ) async {
@@ -134,19 +132,80 @@ void main() {
       await tester.pump();
 
       final image = tester.getRect(find.byType(GarmentImage));
-      final category = tester.getRect(find.text('CATEGORY'));
+      final name = tester.getRect(find.text('NAME'));
       final divider = tester
           .widgetList<Divider>(find.byType(Divider))
           .map((d) => tester.getRect(find.byWidget(d)))
-          .singleWhere((r) => r.top > image.bottom && r.top < category.top);
+          .singleWhere((r) => r.top > image.bottom && r.top < name.top);
 
       // +1 for the image frame's border.
       expect(
         divider.top - image.bottom,
         closeTo(AppDimens.cardHeaderGap + 1, 0.01),
       );
-      expect(category.top - divider.bottom, AppDimens.cardHeaderGap);
+      expect(name.top - divider.bottom, AppDimens.cardHeaderGap);
     });
+  });
+
+  testWidgets(
+    'add mode: ownership defaults to owned and can switch to Not yet',
+    (tester) async {
+      await runWithEmptyCloset(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          const GarmentDetailsPage(initialGarment: _draftGarment),
+        );
+        await tester.pump();
+
+        bool? groupValue() => tester
+            .widget<RadioGroup<bool>>(find.byType(RadioGroup<bool>))
+            .groupValue;
+        expect(groupValue(), isTrue);
+        await tester.tap(find.text('Not yet'));
+        await tester.pump();
+        expect(groupValue(), isFalse);
+      });
+    },
+  );
+
+  group('add mode: ownership options', () {
+    setUpAll(loadAppFont);
+
+    for (final c in layoutCases) {
+      testWidgets('${describeCase(c)}: side by side when both fit, '
+          'stacked otherwise, never cut', (tester) async {
+        await runWithEmptyCloset(() async {
+          applyLayoutCase(tester, c, height: 2400);
+          await pumpApp(
+            tester,
+            const GarmentDetailsPage(initialGarment: _draftGarment),
+          );
+          await tester.pump();
+
+          final radios = find.byType(Radio<bool>);
+          final labels = find.descendant(
+            of: find.byType(RadioGroup<bool>),
+            matching: find.byType(Text),
+          );
+          expect(labels, findsNWidgets(2));
+          for (var i = 0; i < 2; i++) {
+            expect(renderedLineCount(tester, labels.at(i)), 1);
+            expectNoBrokenWords(tester, labels.at(i));
+          }
+          final sideBySide =
+              tester.getTopLeft(radios.at(0)).dy ==
+              tester.getTopLeft(radios.at(1)).dy;
+          if (c.width == 390 && c.scale == 1.0) expect(sideBySide, isTrue);
+          if (!sideBySide) {
+            expect(
+              tester.getTopLeft(radios.at(1)).dy,
+              greaterThan(tester.getBottomLeft(radios.at(0)).dy - 0.5),
+            );
+          }
+        });
+      });
+    }
   });
 
   group('garment attributes (fit / silhouette / sleeve / crop length)', () {
@@ -1498,6 +1557,56 @@ void main() {
         await pump500(tester);
         expect(find.byType(GarmentDetailsPage), findsNothing);
       }, () => _garmentBackend(shirt, patches, fail: true));
+    });
+  });
+
+  group('edit mode ownership', () {
+    const notYet = Garment(
+      id: 9501,
+      name: 'Wishlist Bomber',
+      category: GarmentCategory.outer,
+      subCategory: 'Bomber jacket',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: '',
+      isOwned: false,
+    );
+
+    testWidgets('an owned garment doesn\'t ask', (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          GarmentDetailsPage(initialGarment: notYet.copyWith(isOwned: true)),
+        );
+        await tester.pump();
+        expect(find.text('Do you own this item?'), findsNothing);
+      }, () => _garmentBackend(notYet, []));
+    });
+
+    testWidgets('a Not-yet garment asks below the image, saves the answer at '
+        'once, and keeps asking', (tester) async {
+      final patches = <Map<String, dynamic>>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const GarmentDetailsPage(initialGarment: notYet));
+        await tester.pump();
+
+        final question = find.text('Do you own this item?');
+        expect(question, findsOneWidget);
+        expect(
+          tester.getTopLeft(question).dy,
+          greaterThan(tester.getBottomLeft(find.byType(GarmentImage)).dy),
+        );
+
+        await tester.tap(find.text('Yes, I own it'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(patches, hasLength(1));
+        expect(patches.single['is_owned'], isTrue);
+        expect(question, findsOneWidget);
+      }, () => _garmentBackend(notYet, patches));
     });
   });
 

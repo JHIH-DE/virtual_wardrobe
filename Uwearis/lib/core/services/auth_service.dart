@@ -66,30 +66,22 @@ class AuthService with BaseService {
 
   /// [name]: Apple only provides it on the first authorization, so omit it
   /// on repeat logins rather than sending an empty string.
+  /// [nonce]: the raw value whose SHA-256 hex was given to Apple; required by
+  /// the backend for Android, optional on iOS.
   Future<({String accessToken, String refreshToken})> loginWithAppleIdToken(
     String idToken, {
     String? name,
+    String? nonce,
   }) async {
     debugLog('--- loginWithAppleIdToken ---');
     final res = await _postJson('/apple', {
       'id_token': idToken,
       if (name != null && name.isNotEmpty) 'name': name,
+      'nonce': ?nonce,
     });
     return _tokenPair(
       _decodeLogin(res, op: 'loginWithApple'),
       label: 'Apple login',
-    );
-  }
-
-  /// Facebook gives an access token, not an id token, hence the
-  /// `access_token` body key.
-  Future<({String accessToken, String refreshToken})>
-  loginWithFacebookAccessToken(String accessToken) async {
-    debugLog('--- loginWithFacebookAccessToken ---');
-    final res = await _postJson('/facebook', {'access_token': accessToken});
-    return _tokenPair(
-      _decodeLogin(res, op: 'loginWithFacebook'),
-      label: 'Facebook login',
     );
   }
 

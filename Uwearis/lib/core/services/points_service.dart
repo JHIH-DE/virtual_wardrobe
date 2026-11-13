@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../data/points.dart';
 import '../config/app_config.dart';
+import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 
@@ -25,9 +26,16 @@ class PointsService with BaseService {
   static void notifyBalanceChanged() => _balanceChanges.add(null);
 
   /// Wraps a charged AI request; see [notifyBalanceChanged].
-  static Future<T> charged<T>(Future<T> Function() send) async {
+  static Future<T> charged<T>(
+    Future<T> Function() send, {
+    required ChargedFeature feature,
+  }) async {
     try {
-      return await send();
+      final result = await send();
+      if (result is http.Response && result.statusCode == 402) {
+        Analytics.pointsInsufficient(feature);
+      }
+      return result;
     } finally {
       notifyBalanceChanged();
     }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/locale_provider.dart';
 import '../core/services/auth_storage.dart';
+import '../core/utils/analytics.dart';
 import '../core/utils/crash_handler.dart';
 import '../core/utils/route_observer.dart';
 import '../features/pages/common/login_page.dart';
@@ -19,6 +20,7 @@ class App extends ConsumerWidget {
     final token = await AuthStorage.getAccessToken();
     if (token != null && token.isNotEmpty) {
       await GlobalErrorHandler.setReportingUser(token);
+      await Analytics.setUser(token);
       return const WardrobeShell();
     }
     return const LoginPage();

@@ -1071,6 +1071,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nameTheClothingHint => 'Name the clothing';
 
   @override
+  String get ownershipQuestion => 'Do you own this item?';
+
+  @override
+  String get ownershipOwned => 'Yes, I own it';
+
+  @override
+  String get ownershipNotYet => 'Not yet';
+
+  @override
+  String get notOwnedTag => 'Not Owned';
+
+  @override
   String get pleaseEnterNameError => 'Please enter name';
 
   @override
@@ -1201,17 +1213,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get usedInOutfits => 'Used in Outfits';
-
-  @override
-  String usedInOutfitsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Outfits',
-      one: '1 Outfit',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get selectAColor => 'Select Color';
@@ -1446,17 +1447,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String suitcaseItemsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count items',
-      one: '1 item',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get failedToUpdateSuitcase => 'Failed to update suitcase';
 
   @override
@@ -1544,13 +1534,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Google login is not configured for iOS yet.';
 
   @override
+  String get appleLoginNotConfiguredAndroid =>
+      'Apple login is not configured for Android yet.';
+
+  @override
   String get googleLoginSuccess => 'Google login success';
 
   @override
   String get appleLoginSuccess => 'Apple login success';
-
-  @override
-  String get facebookLoginSuccess => 'Facebook login success';
 
   @override
   String get loginHeading => 'Log-In / Sign-in to get dressed!';
@@ -1643,9 +1634,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInWithGoogle => 'Sign in with Google';
-
-  @override
-  String get signInWithFacebook => 'Sign in with Facebook';
 
   @override
   String get loginFailed => 'Login failed. Please try again.';
@@ -1894,6 +1882,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get savedOutfitUnavailable =>
       'Some garments in this outfit were deleted from your closet.';
+
+  @override
+  String get tripOutfitHasNotOwned =>
+      'This outfit includes items you don\'t own yet, so it can\'t be added to a trip.';
+
+  @override
+  String get notOwnedCannotBePacked =>
+      'Items you don\'t own yet can\'t be packed.';
 
   @override
   String get tripOutfitMissingGarmentsTryOn =>

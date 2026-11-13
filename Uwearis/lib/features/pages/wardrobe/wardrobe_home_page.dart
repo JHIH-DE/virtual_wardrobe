@@ -9,6 +9,7 @@ import '../../../app/explore_shell.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/providers/daily_outfit_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
@@ -360,8 +361,8 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
         style: AppTextStyle.brandTitleToolbar,
       ),
       showBackButton: false,
-      leading: _buildExploreButton(),
-      leadingWidth: 148,
+      leading: AppConfig.enableExplore ? _buildExploreButton() : null,
+      leadingWidth: AppConfig.enableExplore ? 148 : null,
       actions: const [SettingsButton()],
     );
   }

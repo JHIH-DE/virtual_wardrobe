@@ -53,6 +53,11 @@ void main() {
     _garment(1, 'Tee', GarmentCategory.top),
     _garment(2, 'Jeans', GarmentCategory.bottom),
     _garment(3, 'Sneakers', GarmentCategory.shoes),
+    _garment(
+      4,
+      'Wishlist Coat',
+      GarmentCategory.outer,
+    ).copyWith(isOwned: false),
   ];
 
   /// Returns a getter for the popped result.
@@ -241,6 +246,31 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(popped()?.id, 70);
+    }, () => client);
+  });
+
+  testWidgets('a version with a not-yet-owned garment can\'t be added', (
+    tester,
+  ) async {
+    final client = MockClient(
+      (request) async => jsonResponse(envelope({}), status: 500),
+    );
+
+    await http.runWithClient(() async {
+      await pumpPage(
+        tester,
+        Outfit(id: 71, groupId: 42, imageUrl: '', garmentIds: const [1, 2, 4]),
+      );
+
+      expect(find.text('Wishlist Coat'), findsOneWidget);
+      expect(
+        find.text(
+          "This outfit includes items you don't own yet, so it can't be "
+          'added to a trip.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Add to Trip'), findsNothing);
     }, () => client);
   });
 }

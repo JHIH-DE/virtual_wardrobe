@@ -41,6 +41,7 @@ import '../../widgets/common/overlays/page_sheet.dart';
 import '../../widgets/common/overlays/picker_sheet.dart';
 import '../../widgets/common/overlays/save_changes_dialog.dart';
 import '../../widgets/common/overlays/text_input_dialog.dart';
+import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/section_title.dart';
 import '../../widgets/garment/garment_detail_dialog.dart';
 import '../../widgets/garment/garment_image.dart';
@@ -104,6 +105,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   bool _isAnalyzing = false;
   bool _uploading = false;
   bool _isFavorite = false;
+  bool _isOwned = true;
+
+  /// Edit mode asks only for a garment that was "Not yet" when opened, and
+  /// keeps asking until the page closes so a mis-tap can be undone.
+  late final bool _asksOwnership;
   bool _isTogglingFavorite = false;
   bool _openingAddOutfit = false;
   // Covers the confirm dialog and consent prompt, before the overlay shows.
@@ -187,6 +193,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     _editingGarment = widget.initialGarment;
     _id = _editingGarment?.id;
     _isFavorite = _editingGarment?.isFavorite ?? false;
+    _isOwned = _editingGarment?.isOwned ?? true;
+    _asksOwnership = _id == null || !_isOwned;
     _imagePathOrUrl = _editingGarment?.imageUrl;
     _name = _editingGarment?.name;
     // Show loading during the async cache read rather than flashing the
@@ -473,7 +481,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   AppToolBar _buildAppBar() {
     return AppToolBar(
       title: _isAddMode ? _title : _l10n.clothingDetailsTitle,
-      titleWidget: buildFadingToolbarTitle(_title),
+      titleWidget: _isAddMode ? null : buildFadingToolbarTitle(_title),
       onBack: _leave,
       actions: [
         if (!_isAddMode)
@@ -589,21 +597,43 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
           ),
           children: [
             const SizedBox(height: 20),
-            Padding(
-              key: toolbarTitleAnchorKey,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _isAddMode
-                  ? _buildNameField()
-                  : Text(_title, style: AppTextStyle.bold22),
-            ),
-            const SizedBox(height: AppDimens.titleGap),
+            if (_isAddMode) ...[
+              _buildOwnershipCard(),
+              const SizedBox(height: AppDimens.sectionSpacing),
+            ],
+            if (!_isAddMode) ...[
+              Padding(
+                key: toolbarTitleAnchorKey,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(_title, style: AppTextStyle.bold22),
+              ),
+              const SizedBox(height: AppDimens.titleGap),
+            ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _imagePreview(),
             ),
+            if (!_isAddMode && _asksOwnership) ...[
+              const SizedBox(height: AppDimens.sectionSpacing),
+              _buildOwnershipCard(),
+            ],
             _buildDetailsSection(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildOwnershipCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: _OwnershipSelector(
+        isOwned: _isOwned,
+        onChanged: (v) {
+          if (v == _isOwned) return;
+          setState(() => _isOwned = v);
+          if (!_isAddMode) _onEdited();
+        },
       ),
     );
   }
@@ -620,6 +650,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
             _buildUsedInOutfitsTile(),
           ],
           const AppDivider(),
+          if (_isAddMode) ...[_buildNameField(), const SizedBox(height: 20)],
           _buildCategoryField(),
           const SizedBox(height: 20),
           _buildSubCategoryField(),
@@ -650,13 +681,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     );
   }
 
-  // No label — it sits in the title position; the hint carries it.
   Widget _buildNameField() {
-    return AppTextField(
-      controller: _nameCtrl,
-      hint: _l10n.nameTheClothingHint,
-      validator: (v) =>
-          (v == null || v.trim().isEmpty) ? _l10n.pleaseEnterNameError : null,
+    return LabeledField(
+      label: _l10n.clothingNameLabel,
+      child: AppTextField(
+        controller: _nameCtrl,
+        hint: _l10n.nameTheClothingHint,
+        validator: (v) =>
+            (v == null || v.trim().isEmpty) ? _l10n.pleaseEnterNameError : null,
+      ),
     );
   }
 
@@ -1284,7 +1317,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       onTap: _openUsedInOutfits,
       showArrow: true,
       leading: const Icon(Icons.checkroom_outlined, color: AppColors.icon),
-      summary: _l10n.usedInOutfitsCount(count),
+      summary: '$count',
       child: Text(_l10n.usedInOutfits, style: AppTextStyle.bold16),
     );
   }
@@ -1559,6 +1592,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       cropLength: _selectedCropLength?.apiValue,
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
+      isOwned: _isOwned,
     );
     // `/complete` reads these only from `metadata`, which must never be null
     // (it 500s). `crop_length` isn't nullable there, so unset is "".
@@ -1650,6 +1684,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       clearPurchaseDate: _purchaseDate == null,
       thickness: _thickness,
       formality: _formality,
+      isOwned: _isOwned,
     );
     return GarmentService().updateGarment(updated);
   }
@@ -2043,6 +2078,92 @@ class _AiGarmentThumbState extends State<_AiGarmentThumb> {
       behavior: HitTestBehavior.opaque,
       onTap: widget.onTap,
       child: thumb,
+    );
+  }
+}
+
+class _OwnershipSelector extends StatelessWidget {
+  final bool isOwned;
+  final ValueChanged<bool> onChanged;
+
+  const _OwnershipSelector({required this.isOwned, required this.onChanged});
+
+  static const double _radioWidth = 32;
+  static const double _gap = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final labels = [l10n.ownershipOwned, l10n.ownershipNotYet];
+    return AppCardShell(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+      title: l10n.ownershipQuestion,
+      child: RadioGroup<bool>(
+        groupValue: isOwned,
+        onChanged: (v) {
+          if (v != null) onChanged(v);
+        },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final yes = _buildOption(value: true, label: labels[0]);
+            final no = _buildOption(value: false, label: labels[1]);
+            final half = (constraints.maxWidth - AppDimens.cardSpacing) / 2;
+            final fitsSideBySide = labels.every(
+              (l) => _optionWidth(context, l) <= half,
+            );
+            if (!fitsSideBySide) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [yes, no],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(child: yes),
+                const SizedBox(width: AppDimens.cardSpacing),
+                Expanded(child: no),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  double _optionWidth(BuildContext context, String label) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: AppTextStyle.medium16),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = _radioWidth + _gap + painter.width;
+    painter.dispose();
+    return width;
+  }
+
+  Widget _buildOption({required bool value, required String label}) {
+    return InkWell(
+      onTap: () => onChanged(value),
+      borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: AppDimens.minTouchTarget),
+        child: Row(
+          children: [
+            SizedBox.square(
+              dimension: _radioWidth,
+              child: Radio<bool>(
+                value: value,
+                activeColor: AppColors.accent,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+            const SizedBox(width: _gap),
+            Expanded(child: Text(label, style: AppTextStyle.medium16)),
+          ],
+        ),
+      ),
     );
   }
 }

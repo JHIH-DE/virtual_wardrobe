@@ -10,6 +10,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/points_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/utils/analytics.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../data/points.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -93,6 +94,7 @@ class _PointsPageState extends ConsumerState<PointsPage> {
   @override
   void initState() {
     super.initState();
+    Analytics.paywallView();
     // The shell's copy may be from hours ago; show the balance as of now.
     unawaited(ref.read(pointsProvider.notifier).reloadPoints());
   }
@@ -133,7 +135,12 @@ class _PointsPageState extends ConsumerState<PointsPage> {
       ),
       bottomNavigationBar: BottomActionButton(
         label: _actionLabel,
-        onPressed: () {},
+        onPressed: () {
+          final plan = _plans[_selectedIndex];
+          Analytics.purchaseTap(
+            plan.isSubscription ? 'plus' : 'pack_${plan.points}',
+          );
+        },
       ),
       body: Builder(
         builder: (bodyContext) => ListView(

@@ -6,8 +6,10 @@ import 'package:http/http.dart' as http;
 import '../../data/outfit.dart';
 import '../../data/try_on_generation.dart';
 import '../config/app_config.dart';
+import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
+import 'api_exception.dart';
 import 'base_service.dart';
 import 'points_service.dart';
 
@@ -125,6 +127,25 @@ class OutfitService with BaseService {
     int? backgroundId,
     bool isFavorite = false,
     String? idempotencyKey,
+  }) => _trackTryOn(
+    groupId == null ? TryOnMode.newOutfit : TryOnMode.version,
+    () => _generateOutfit(
+      garmentIds: garmentIds,
+      groupId: groupId,
+      type: type,
+      backgroundId: backgroundId,
+      isFavorite: isFavorite,
+      idempotencyKey: idempotencyKey,
+    ),
+  );
+
+  Future<Outfit> _generateOutfit({
+    required List<int> garmentIds,
+    required int? groupId,
+    required String type,
+    required int? backgroundId,
+    required bool isFavorite,
+    required String? idempotencyKey,
   }) async {
     groupId ??= await createGroup(type: type);
     debugLog(
@@ -138,6 +159,7 @@ class OutfitService with BaseService {
       'is_favorite': isFavorite,
     };
     final res = await PointsService.charged(
+      feature: ChargedFeature.tryOn,
       () => withAuth(
         (token) => http
             .post(
@@ -171,6 +193,21 @@ class OutfitService with BaseService {
     int outfitId, {
     int? backgroundId,
     String? idempotencyKey,
+  }) => _trackTryOn(
+    TryOnMode.regenerate,
+    () => _regenerateOutfit(
+      groupId,
+      outfitId,
+      backgroundId: backgroundId,
+      idempotencyKey: idempotencyKey,
+    ),
+  );
+
+  Future<Outfit> _regenerateOutfit(
+    int groupId,
+    int outfitId, {
+    required int? backgroundId,
+    required String? idempotencyKey,
   }) async {
     debugLog(
       '--- regenerateOutfit: groupId=$groupId outfitId=$outfitId '
@@ -179,6 +216,7 @@ class OutfitService with BaseService {
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId/regenerate');
     final payload = <String, dynamic>{'background_id': ?backgroundId};
     final res = await PointsService.charged(
+      feature: ChargedFeature.tryOn,
       () => withAuth(
         (token) => http
             .post(
@@ -198,6 +236,31 @@ class OutfitService with BaseService {
     }
     _groupCache.remove(groupId);
     return Outfit.fromJson(data);
+  }
+
+  /// A timeout is usually a lost reply, not a failed render — the caller
+  /// recovers it by key, so `timeout` is not counted as a failure.
+  Future<Outfit> _trackTryOn(
+    TryOnMode mode,
+    Future<Outfit> Function() render,
+  ) async {
+    Analytics.tryOnStart(mode);
+    try {
+      final outfit = await render();
+      Analytics.tryOnResult(mode, TryOnStatus.success);
+      return outfit;
+    } on TimeoutException {
+      Analytics.tryOnResult(mode, TryOnStatus.timeout);
+      rethrow;
+    } catch (e) {
+      Analytics.tryOnResult(
+        mode,
+        e is ApiException && e.statusCode == 402
+            ? TryOnStatus.insufficientPoints
+            : TryOnStatus.error,
+      );
+      rethrow;
+    }
   }
 
   /// Status of a generate/regenerate sent with [idempotencyKey], for when its

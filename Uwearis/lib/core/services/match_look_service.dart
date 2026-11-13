@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../data/match_a_look.dart';
 import '../config/app_config.dart';
+import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 import 'points_service.dart';
@@ -68,6 +69,7 @@ class MatchLookService with BaseService {
 
     final uri = Uri.parse('$_baseUrl/reference');
     final res = await PointsService.charged(
+      feature: ChargedFeature.matchLook,
       () => withAuth(
         (token) => http
             .post(
@@ -87,6 +89,7 @@ class MatchLookService with BaseService {
     debugLog('--- matchLook ---');
     final uri = Uri.parse('$_baseUrl/match');
     final res = await PointsService.charged(
+      feature: ChargedFeature.matchLook,
       () => withAuth(
         (token) => http
             .post(uri, headers: authHeaders(token))

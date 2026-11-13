@@ -28,12 +28,15 @@ class CategoryTag extends StatelessWidget {
     final isHeader = variant == CategoryTagVariant.header;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: isHeader
             ? AppColors.headerChipBackground
             : AppColors.tagBackground,
-        borderRadius: BorderRadius.circular(4),
-        border: borderColor == null ? null : Border.all(color: borderColor!),
+        shape: StadiumBorder(
+          side: borderColor == null
+              ? BorderSide.none
+              : BorderSide(color: borderColor!),
+        ),
       ),
       child: Text(
         label,

@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/closet_analysis.dart';
 import '../../data/garment.dart';
 import '../config/app_config.dart';
+import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
 import 'base_service.dart';
@@ -114,6 +115,7 @@ class GarmentService with BaseService {
       'color': garment.color,
       'price': garment.price,
       'purchase_date': garment.purchaseDateApiValue,
+      'is_owned': garment.isOwned,
       'metadata': metaData,
     };
 
@@ -131,6 +133,7 @@ class GarmentService with BaseService {
     if (data == null) {
       throw Exception('completeUpload: response missing data');
     }
+    Analytics.garmentAdded();
     return Garment.fromJson(data);
   }
 
@@ -266,6 +269,7 @@ class GarmentService with BaseService {
       'color': garment.color,
       'price': garment.price?.round(),
       'purchase_date': garment.purchaseDateApiValue,
+      'is_owned': garment.isOwned,
       if (garment.thickness > 0) 'thickness': garment.thickness,
       if (garment.formality > 0) 'formality': garment.formality,
       if (garmentFitCategories.contains(category)) ...{
@@ -394,6 +398,7 @@ class GarmentService with BaseService {
   ) async {
     final uri = Uri.parse('$_baseUrl/analyze-instant');
     final res = await PointsService.charged(
+      feature: ChargedFeature.garmentAnalyze,
       () => withAuth((token) async {
         final request = http.MultipartRequest('POST', uri);
         request.headers['Authorization'] = 'Bearer $token';
@@ -443,6 +448,7 @@ class GarmentService with BaseService {
     debugLog('--- closetAnalysis: $garmentId ---');
     final uri = Uri.parse('$_baseUrl/closet-analysis');
     final res = await PointsService.charged(
+      feature: ChargedFeature.closetAnalysis,
       () => withAuth(
         (token) => http
             .post(

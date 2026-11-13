@@ -1,4 +1,5 @@
 {
   "GOOGLE_CLIENT_ID": "223311252510-suu459iqa27d9jca8cn3eildmssr58vq.apps.googleusercontent.com",
-  "GOOGLE_IOS_CLIENT_ID": "your-ios-client-id.apps.googleusercontent.com"
+  "GOOGLE_IOS_CLIENT_ID": "your-ios-client-id.apps.googleusercontent.com",
+  "APPLE_SERVICE_ID": "com.uwearis.app.signin"
 }

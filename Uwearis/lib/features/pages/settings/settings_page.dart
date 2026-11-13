@@ -7,7 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../../../core/config/env.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/providers/points_provider.dart';
@@ -16,6 +16,7 @@ import '../../../core/services/auth_handler.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/auth_storage.dart';
 import '../../../core/services/profile_service.dart';
+import '../../../core/utils/analytics.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../core/utils/external_links.dart';
@@ -145,6 +146,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     setState(() => _deletingAccount = true);
     try {
       await ProfileService().deleteMyAccount();
+      await Analytics.resetData();
       if (!mounted) return;
       await clearSignedInSession();
       if (!mounted) return;
@@ -180,7 +182,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _buildStyleTasteCard(),
       _buildLanguageCard(),
       _buildHelpAndLegalCard(),
-      if (Env.enableDebugTools) _buildDebugToolsCard(),
+      if (AppConfig.enableDebugTools) _buildDebugToolsCard(),
       _buildLogoutCard(),
       _buildDeleteAccountCard(),
     ];

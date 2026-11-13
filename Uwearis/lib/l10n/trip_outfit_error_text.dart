@@ -20,6 +20,8 @@ String tripOutfitErrorMessage(
       'TRIP_OUTFIT_GENERATION_IN_PROGRESS' =>
         l10n.tripOutfitGenerationInProgress,
       'SAVED_OUTFIT_UNAVAILABLE' => l10n.savedOutfitUnavailable,
+      'SAVED_OUTFIT_NOT_OWNED' => l10n.tripOutfitHasNotOwned,
+      'GARMENT_NOT_OWNED' => l10n.notOwnedCannotBePacked,
       _ => null,
     };
     if (mapped != null) return mapped;

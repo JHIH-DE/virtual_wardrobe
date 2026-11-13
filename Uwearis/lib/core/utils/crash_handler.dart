@@ -10,6 +10,7 @@ import '../../app/theme/app_text_styles.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../l10n/generated/app_localizations_zh.dart';
 import '../services/auth_storage.dart';
+import 'analytics.dart';
 import 'debug_log.dart';
 
 class GlobalErrorHandler {
@@ -31,6 +32,7 @@ class GlobalErrorHandler {
         !kDebugMode,
       );
       _reporting = !kDebugMode;
+      await Analytics.initialize();
     } catch (e) {
       // A build without GoogleService-Info.plist / google-services.json
       // must still launch.

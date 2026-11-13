@@ -80,7 +80,7 @@ void main() {
     });
   });
 
-  group('loginWithAppleIdToken / loginWithFacebookAccessToken', () {
+  group('loginWithAppleIdToken', () {
     test('Apple login POSTs id_token, no name key when omitted', () async {
       late http.Request captured;
       final client = MockClient((request) async {
@@ -120,28 +120,7 @@ void main() {
       });
     });
 
-    // Facebook issues an access token, not an id token like Google/Apple.
-    test(
-      'Facebook login POSTs access_token to the facebook endpoint',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return _jsonResponse(
-            _envelope({'access_token': 'a', 'refresh_token': 'r'}),
-          );
-        });
-
-        await http.runWithClient(
-          () => AuthService().loginWithFacebookAccessToken('fb-token'),
-          () => client,
-        );
-        expect(captured.url.toString(), '$_base/facebook');
-        expect(jsonDecode(captured.body), {'access_token': 'fb-token'});
-      },
-    );
-
-    test('Apple and Facebook also throw on a missing token', () async {
+    test('Apple also throws on a missing token', () async {
       final client = MockClient(
         (request) async => _jsonResponse(_envelope({'access_token': 'a'})),
       );
@@ -149,13 +128,6 @@ void main() {
       await expectLater(
         http.runWithClient(
           () => AuthService().loginWithAppleIdToken('t'),
-          () => client,
-        ),
-        throwsA(isA<Exception>()),
-      );
-      await expectLater(
-        http.runWithClient(
-          () => AuthService().loginWithFacebookAccessToken('t'),
           () => client,
         ),
         throwsA(isA<Exception>()),

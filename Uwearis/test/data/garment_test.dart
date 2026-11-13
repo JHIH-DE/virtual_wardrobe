@@ -437,4 +437,32 @@ void main() {
       },
     );
   });
+
+  group('Garment.isOwned', () {
+    test('defaults to owned when the API omits it', () {
+      expect(Garment.fromJson({'category': 'Top'}).isOwned, isTrue);
+    });
+
+    test('round-trips is_owned', () {
+      final garment = Garment.fromJson({'category': 'Top', 'is_owned': false});
+      expect(garment.isOwned, isFalse);
+      expect(garment.toJson()['is_owned'], isFalse);
+      expect(garment.copyWith(isOwned: true).isOwned, isTrue);
+    });
+
+    test('packable drops deleted and not-yet-owned garments', () {
+      final owned = Garment.fromJson({'id': 1, 'category': 'Top'});
+      final notOwned = Garment.fromJson({
+        'id': 2,
+        'category': 'Top',
+        'is_owned': false,
+      });
+      final deleted = Garment.fromJson({
+        'id': 3,
+        'category': 'Top',
+        'is_deleted': true,
+      });
+      expect([owned, notOwned, deleted].packable.map((g) => g.id), [1]);
+    });
+  });
 }

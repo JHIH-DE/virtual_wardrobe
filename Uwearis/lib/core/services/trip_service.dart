@@ -8,6 +8,7 @@ import '../../data/packing_analysis.dart';
 import '../../data/trip.dart';
 import '../../data/trip_outfit.dart';
 import '../config/app_config.dart';
+import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
 import 'points_service.dart';
@@ -59,6 +60,7 @@ class TripService with BaseService {
     }
     final id = (data['id'] as num?)?.toInt();
     if (id == null) throw Exception('createTrip: missing id in response');
+    Analytics.tripCreated();
     return id;
   }
 
@@ -178,6 +180,7 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/packing-analysis');
 
     final res = await PointsService.charged(
+      feature: ChargedFeature.tripAnalyze,
       () => withAuth(
         (token) => http
             .post(uri, headers: authHeaders(token))
@@ -370,6 +373,7 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/outfits/generate');
 
     final res = await PointsService.charged(
+      feature: ChargedFeature.tripOutfits,
       () => withAuth(
         (token) => http
             .post(
@@ -398,6 +402,7 @@ class TripService with BaseService {
     final uri = Uri.parse('$_baseUrl/$tripId/outfits/$tripOutfitId/try-on');
 
     final res = await PointsService.charged(
+      feature: ChargedFeature.tryOn,
       () => withAuth(
         (token) => http
             .post(uri, headers: authHeaders(token))

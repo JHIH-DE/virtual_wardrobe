@@ -419,6 +419,10 @@
   "similarInClosetHeading": "Similar in Your Closet",
   "clothingNameLabel": "Name",
   "nameTheClothingHint": "Name the clothing",
+  "ownershipQuestion": "Do you own this item?",
+  "ownershipOwned": "Yes, I own it",
+  "ownershipNotYet": "Not yet",
+  "notOwnedTag": "Not Owned",
   "pleaseEnterNameError": "Please enter name",
   "clothingCategoryLabel": "Category",
   "productType": "Product Type",
@@ -463,14 +467,6 @@
   "priceHint": "How much is this clothing?",
   "purchaseDateLabel": "Purchase date (optional)",
   "usedInOutfits": "Used in Outfits",
-  "usedInOutfitsCount": "{count, plural, =1{1 Outfit} other{{count} Outfits}}",
-  "@usedInOutfitsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "selectAColor": "Select Color",
   "chooseColorTitle": "Choose a color",
   "chooseBackgroundTitle": "Choose a background",
@@ -560,13 +556,6 @@
       "selected": { "type": "int" }
     }
   },
-  "suitcaseItemsCount": "{count, plural, =1{1 item} other{{count} items}}",
-  "@suitcaseItemsCount": {
-    "description": "Trip Details' Suitcase card status: how many garments are packed",
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
 
   "failedToUpdateSuitcase": "Failed to update suitcase",
   "failedToRemoveItem": "Failed to remove item",
@@ -599,9 +588,9 @@
   "gettingStartedReadyForFirstLookSubtitle": "Your closet is ready. Create your first outfit and see it on you.",
 
   "googleLoginNotConfiguredIOS": "Google login is not configured for iOS yet.",
+  "appleLoginNotConfiguredAndroid": "Apple login is not configured for Android yet.",
   "googleLoginSuccess": "Google login success",
   "appleLoginSuccess": "Apple login success",
-  "facebookLoginSuccess": "Facebook login success",
   "loginHeading": "Log-In / Sign-in to get dressed!",
   "loginTagline": "Your AI stylist, every day",
   "loginTermsNotice": "By continuing, you agree to our {terms} and {privacy}.",
@@ -635,7 +624,6 @@
   "referencePhotoTermsConfirm": "I Confirm",
   "continueWithApple": "Continue with Apple",
   "signInWithGoogle": "Sign in with Google",
-  "signInWithFacebook": "Sign in with Facebook",
   "loginFailed": "Login failed. Please try again.",
   "copyrightText": "© Uwearis Inc. All rights reserved.",
 
@@ -730,6 +718,8 @@
   "tripOutfitGarmentNotPacked": "Pick garments that are in your suitcase.",
   "tripOutfitGenerationInProgress": "Uwearis is already putting outfits together for this trip.",
   "savedOutfitUnavailable": "Some garments in this outfit were deleted from your closet.",
+  "tripOutfitHasNotOwned": "This outfit includes items you don't own yet, so it can't be added to a trip.",
+  "notOwnedCannotBePacked": "Items you don't own yet can't be packed.",
   "tripOutfitMissingGarmentsTryOn": "Pack its missing garments or edit this outfit before trying it on.",
   "failedToAddTripOutfit": "Couldn't add this outfit. Please try again.",
   "failedToRemoveTripOutfit": "Couldn't remove this outfit. Please try again.",
