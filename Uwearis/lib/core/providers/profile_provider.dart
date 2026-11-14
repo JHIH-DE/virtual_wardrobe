@@ -33,16 +33,28 @@ class ProfileNotifier extends AsyncNotifier<ProfileData> {
 
   /// Uses the URL from the upload's `/complete` response rather than a
   /// [refresh], which could race the backend still committing it.
-  void setBodyRefUrl(String url) {
+  void setBodyRefUrl(String url, String? cacheKey) {
     final current = state.value;
     if (current == null) return;
-    state = AsyncData(current.copyWith(bodyRefUrl: url));
+    state = AsyncData(
+      current.copyWith(
+        bodyRefUrl: url,
+        bodyRefCacheKey: cacheKey,
+        setBodyRefCacheKey: true,
+      ),
+    );
   }
 
-  void setFaceRefUrl(String url) {
+  void setFaceRefUrl(String url, String? cacheKey) {
     final current = state.value;
     if (current == null) return;
-    state = AsyncData(current.copyWith(faceRefUrl: url));
+    state = AsyncData(
+      current.copyWith(
+        faceRefUrl: url,
+        faceRefCacheKey: cacheKey,
+        setFaceRefCacheKey: true,
+      ),
+    );
   }
 
   /// Compare-and-set: a re-signed URL can arrive after a newer upload, and
@@ -61,10 +73,16 @@ class ProfileNotifier extends AsyncNotifier<ProfileData> {
   }
 
   /// Not a [refresh], for the same reason as [setBodyRefUrl].
-  void setBaseModelUrl(String url) {
+  void setBaseModelUrl(String url, String? cacheKey) {
     final current = state.value;
     if (current == null) return;
-    state = AsyncData(current.copyWith(baseModelUrl: url));
+    state = AsyncData(
+      current.copyWith(
+        baseModelUrl: url,
+        baseModelCacheKey: cacheKey,
+        setBaseModelCacheKey: true,
+      ),
+    );
   }
 
   /// See [setBodyRefUrlIfCurrent].

@@ -1,10 +1,10 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../l10n/generated/app_localizations.dart';
 import '../services/api_exception.dart';
+import '../services/points_service.dart';
 
 /// A user-safe message for a caught error: a shared string for a known
 /// cross-cutting `error_code`, a rate limit, or being offline — the cases
@@ -50,9 +50,13 @@ String? sharedErrorCodeMessage(AppLocalizations l10n, String? errorCode) {
     case 'TRY_ON_GENERATION_TIMED_OUT':
       return l10n.tryOnNotCounted;
     case insufficientPointsErrorCode:
-      return l10n.insufficientPoints(
-        clockLabel(nextDailyPointsGrant(DateTime.now())),
-      );
+      // Only promise a grant the backend says is coming; unknown (no
+      // balance read yet) counts as none.
+      final points = PointsService.lastSummary;
+      if (points != null && points.nextGrant > 0) {
+        return l10n.insufficientPoints(clockLabel(points.nextClaimAt));
+      }
+      return l10n.insufficientPointsNoGrant;
     default:
       return null;
   }
@@ -63,14 +67,4 @@ String clockLabel(DateTime time) {
   final hh = time.hour.toString().padLeft(2, '0');
   final mm = time.minute.toString().padLeft(2, '0');
   return '$hh:$mm';
-}
-
-/// The next daily points grant, in the device's time zone. Mirrors the
-/// backend (`next_claim_at`): 00:00 Asia/Taipei, a fixed UTC+8 with no DST.
-@visibleForTesting
-DateTime nextDailyPointsGrant(DateTime now) {
-  const taipeiOffset = Duration(hours: 8);
-  final taipei = now.toUtc().add(taipeiOffset);
-  final nextMidnight = DateTime.utc(taipei.year, taipei.month, taipei.day + 1);
-  return nextMidnight.subtract(taipeiOffset).toLocal();
 }

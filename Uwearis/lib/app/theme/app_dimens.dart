@@ -33,7 +33,7 @@ abstract class AppDimens {
   // Garment Card
   static const double garmentCardWidth = 165;
   static const double garmentCardHeight = 230;
-  static const double garmentCardInfoHeight = 70;
+  static const double garmentCardInfoHeight = 60;
 
   // GarmentListCard's minimum height (it grows with enlarged text). iOS
   // CoreText renders NotoSansTC's CJK line box taller (the text stack needs

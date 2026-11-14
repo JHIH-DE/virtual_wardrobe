@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/profile_data.dart';
 import '../../features/widgets/common/overlays/ai_consent_dialog.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../features/widgets/common/overlays/error_dialog.dart';
@@ -12,7 +13,7 @@ import 'api_error_text.dart';
 import 'debug_log.dart';
 import 'image_cache_bust.dart';
 
-typedef GenerateBaseModel = Future<String> Function();
+typedef GenerateBaseModel = Future<UploadedImage> Function();
 
 /// Test seam for the AI render.
 final generateBaseModelProvider = Provider<GenerateBaseModel>(
@@ -25,8 +26,12 @@ const _baseModelCacheKey = 'base_model';
 
 /// Bumped by every successful generation: a regenerate can overwrite the
 /// same GCS object, and the disk cache would otherwise serve the old render.
-String baseModelImageCacheKey() =>
-    '$_baseModelCacheKey-v${ImageCacheBust.versionOf(_baseModelCacheKey)}';
+/// Prefers the backend's own `base_model_cache_key` (from `ProfileData`)
+/// when available; falls back to the local version counter otherwise.
+String baseModelImageCacheKey(String? backendKey) => imageCacheKey(
+  backendKey,
+  '$_baseModelCacheKey-v${ImageCacheBust.versionOf(_baseModelCacheKey)}',
+)!;
 
 /// The (confirm →) render → commit flow behind every "generate virtual model"
 /// trigger (My Outfit Profile's preview, the reference photos page's bottom
@@ -65,9 +70,11 @@ mixin BaseModelGenerationMixin<T extends ConsumerStatefulWidget>
       if (!await ensureAiConsent(context) || !mounted) return false;
 
       setState(() => generatingBaseModel = true);
-      final url = await ref.read(generateBaseModelProvider)();
+      final uploaded = await ref.read(generateBaseModelProvider)();
       if (!mounted) return false;
-      ref.read(profileProvider.notifier).setBaseModelUrl(url);
+      ref
+          .read(profileProvider.notifier)
+          .setBaseModelUrl(uploaded.url, uploaded.cacheKey);
       ImageCacheBust.bump(_baseModelCacheKey);
       return true;
     } on AuthExpiredException {

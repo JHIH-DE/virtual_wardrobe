@@ -216,7 +216,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmBody =>
-      'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone.';
+      'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone. Your points are cleared too: signing up again with the same account won\'t restore them or restart new-member points.';
 
   @override
   String get deletingAccountEllipsis => 'Deleting Account…';
@@ -248,6 +248,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remove => 'Remove';
+
+  @override
+  String get lockGarment => 'Lock';
+
+  @override
+  String get unlockGarment => 'Unlock';
+
+  @override
+  String get adjustGarmentDetails => 'Adjust Details';
 
   @override
   String get rename => 'Rename';
@@ -2033,7 +2042,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pointsHowItWorksBody =>
-      'Each AI feature uses points from your balance — see the list above. You get free points every day at 00:00 (Taiwan time), and Plus subscribers get more. If an AI feature fails, its points are refunded automatically.';
+      'Each AI feature uses points from your balance — see the list above. New accounts get free points every day for their first 7 days, and Plus subscribers get points every day, at 00:00 (Taiwan time). If an AI feature fails, its points are refunded automatically.';
 
   @override
   String pointsPrice(int amount) {
@@ -2094,6 +2103,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get insufficientPointsNoGrant =>
+      'Not enough points. Uwearis Plus members get points every day.';
+
+  @override
   String pointsRemaining(String balance) {
     return '$balance points left';
   }
@@ -2112,9 +2125,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Saved outfits were added, but there weren\'t enough points for AI styling.';
 
   @override
-  String pointsDailyGrantHint(int count, String time) {
-    return 'You get $count points every day · next at $time';
+  String pointsNextGrantHint(int count, String time) {
+    return '$count points tomorrow · added at $time';
   }
+
+  @override
+  String get pointsLastGrantToday => 'Today is the last day of daily points';
 
   @override
   String pointsPlusActiveUntil(String date) {
@@ -2171,7 +2187,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pointsActionOther => 'AI feature';
 
   @override
-  String get pointsKindDailyGrant => 'Daily points';
+  String get pointsKindDailyGrant => 'Points granted';
 
   @override
   String pointsKindRefund(String action) {

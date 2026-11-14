@@ -21,6 +21,10 @@ class PointsService with BaseService {
   /// charged endpoints don't return the new balance, so a listener re-reads.
   static Stream<void> get balanceChanges => _balanceChanges.stream;
 
+  /// The last [getPoints] result this session, for copy that has no
+  /// provider access (the insufficient-points message).
+  static PointsSummary? lastSummary;
+
   /// Call from every charged AI request, success or failure (a failure is
   /// refunded server-side, which also moves the balance back).
   static void notifyBalanceChanged() => _balanceChanges.add(null);
@@ -54,7 +58,7 @@ class PointsService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('getPoints: response missing data object');
     }
-    return PointsSummary.fromJson(data);
+    return lastSummary = PointsSummary.fromJson(data);
   }
 
   /// Newest first. [size] is 1–100.

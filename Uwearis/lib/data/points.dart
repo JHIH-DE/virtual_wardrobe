@@ -50,12 +50,17 @@ class PointsSummary {
   /// The daily grant tops the balance up to at most this.
   final int cap;
 
-  /// Points this account gets each day (more with a subscription).
+  /// Points granted today; 0 when today has no grant (only new accounts'
+  /// first 7 days and subscribers get one).
   final int dailyGrant;
   final bool claimedToday;
 
-  /// The next grant (00:00 Taipei), in device-local time.
+  /// The next Taipei midnight, in device-local time. Whether anything is
+  /// granted then is [nextGrant].
   final DateTime nextClaimAt;
+
+  /// Points granted at [nextClaimAt]; 0 means none.
+  final int nextGrant;
   final bool subscriptionActive;
   final DateTime? subscriptionExpiresAt;
 
@@ -68,6 +73,7 @@ class PointsSummary {
     required this.dailyGrant,
     required this.claimedToday,
     required this.nextClaimAt,
+    this.nextGrant = 0,
     this.subscriptionActive = false,
     this.subscriptionExpiresAt,
     this.costs = const {},
@@ -85,6 +91,7 @@ class PointsSummary {
       dailyGrant: (json['daily_grant'] as num?)?.toInt() ?? 0,
       claimedToday: json['claimed_today'] as bool? ?? false,
       nextClaimAt: DateTime.parse(json['next_claim_at'] as String).toLocal(),
+      nextGrant: (json['next_grant'] as num?)?.toInt() ?? 0,
       subscriptionActive: subscription?['active'] as bool? ?? false,
       subscriptionExpiresAt: rawExpiry == null
           ? null

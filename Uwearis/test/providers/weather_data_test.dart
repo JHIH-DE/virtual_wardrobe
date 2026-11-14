@@ -92,4 +92,98 @@ void main() {
       expect(restored.iconAsset.split('/').last, 'partly-cloudy-night.svg');
     });
   });
+
+  group('fromApi', () {
+    WeatherData parse(Map<String, dynamic> data) => WeatherData.fromApi(
+      data,
+      unknownLocation: 'Unknown location',
+      locationLocale: 'zh-TW',
+    );
+
+    test('maps the documented response', () {
+      final w = parse({
+        'location_name': '臺北市',
+        'location_source': 'gps',
+        'current': {'temperature_c': 28.1, 'weather_code': 53, 'is_day': false},
+        'daily': [
+          {
+            'date': '2026-11-14',
+            'weather_code': 81,
+            'temperature_max_c': 29.6,
+            'temperature_min_c': 20.2,
+          },
+          {
+            'date': '2026-11-15',
+            'weather_code': 0,
+            'temperature_max_c': 27.0,
+            'temperature_min_c': 19.0,
+          },
+        ],
+      });
+
+      expect(w.location, '臺北市');
+      expect(w.temp, 28.1);
+      expect(w.currentCode, 53);
+      expect(w.condition, 'Rain');
+      expect(w.isDay, isFalse);
+      expect(w.high, 30);
+      expect(w.low, 20);
+      expect(w.weeklyCodes, [81, 0]);
+      expect(w.weeklyHighs, [29.6, 27.0]);
+      expect(w.weeklyLows, [20.2, 19.0]);
+      expect(w.locationLocale, 'zh-TW');
+    });
+
+    test('a null place name shows as unknown location', () {
+      final w = parse({
+        'location_name': null,
+        'current': {'temperature_c': 20, 'weather_code': 0, 'is_day': true},
+        'daily': const [],
+      });
+      expect(w.location, 'Unknown location');
+    });
+
+    test('null fields fall back without breaking the forecast lists', () {
+      final w = parse({
+        'location_name': 'Taipei',
+        'current': {
+          'temperature_c': null,
+          'weather_code': null,
+          'is_day': true,
+        },
+        'daily': [
+          {
+            'weather_code': null,
+            'temperature_max_c': 30,
+            'temperature_min_c': 20,
+          },
+          {
+            'weather_code': 1,
+            'temperature_max_c': null,
+            'temperature_min_c': 18,
+          },
+          {'weather_code': 2, 'temperature_max_c': 26, 'temperature_min_c': 17},
+        ],
+      });
+
+      // Today's mean stands in for the current reading; the forecast stops
+      // at the first day missing a temperature.
+      expect(w.temp, 25);
+      expect(w.currentCode, isNull);
+      expect(w.weeklyCodes, [3]);
+      expect(w.weeklyHighs, [30]);
+      expect(w.weeklyLows, [20]);
+    });
+
+    test('a response without any temperature is rejected', () {
+      expect(
+        () => parse({
+          'location_name': 'Taipei',
+          'current': {'temperature_c': null},
+          'daily': const [],
+        }),
+        throwsFormatException,
+      );
+    });
+  });
 }

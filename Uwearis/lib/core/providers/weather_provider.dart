@@ -2,12 +2,11 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../services/weather_service.dart';
 import 'locale_provider.dart';
 import 'retry_policy.dart';
 
@@ -18,8 +17,8 @@ class WeatherData {
   final int low;
   final String condition;
 
-  /// Open-Meteo's WMO code for right now; null in a cache written before it
-  /// was stored, where [condition] stands in.
+  /// The WMO weather code for right now; null when the backend has none or
+  /// in a cache written before it was stored, where [condition] stands in.
   final int? currentCode;
   final bool isDay;
   final List<int> weeklyCodes;
@@ -27,8 +26,8 @@ class WeatherData {
   final List<double> weeklyLows;
   final int timestamp;
 
-  /// Locale [location] was geocoded in; null in a cache written before it
-  /// was stored.
+  /// App locale [location] was fetched under; null in a cache written
+  /// before it was stored.
   final String? locationLocale;
 
   const WeatherData({
@@ -93,6 +92,63 @@ class WeatherData {
     isDay: isDay,
   );
 
+  /// Parses `GET /weather`'s `data`. A null `location_name` (reverse
+  /// geocoding failed) shows as [unknownLocation].
+  factory WeatherData.fromApi(
+    Map<String, dynamic> data, {
+    required String unknownLocation,
+    required String locationLocale,
+  }) {
+    final current = data['current'] is Map<String, dynamic>
+        ? data['current'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    // Stop at the first day without both temperatures, so the lists stay
+    // parallel and index 0 is still today.
+    final days = (data['daily'] as List? ?? const [])
+        .takeWhile(
+          (d) =>
+              d is Map &&
+              d['temperature_max_c'] is num &&
+              d['temperature_min_c'] is num,
+        )
+        .cast<Map>()
+        .toList();
+    final weeklyHighs = [
+      for (final d in days) (d['temperature_max_c'] as num).toDouble(),
+    ];
+    final weeklyLows = [
+      for (final d in days) (d['temperature_min_c'] as num).toDouble(),
+    ];
+    final weeklyCodes = [
+      for (final d in days) (d['weather_code'] as num?)?.toInt() ?? 3,
+    ];
+
+    final currentCode = (current['weather_code'] as num?)?.toInt();
+    final temp =
+        (current['temperature_c'] as num?)?.toDouble() ??
+        (days.isEmpty ? null : (weeklyHighs.first + weeklyLows.first) / 2);
+    if (temp == null) {
+      throw const FormatException('getWeather: no temperature in response');
+    }
+    final name = data['location_name'];
+    return WeatherData(
+      location: name is String && name.isNotEmpty ? name : unknownLocation,
+      temp: temp,
+      high: (days.isEmpty ? temp : weeklyHighs.first).round(),
+      low: (days.isEmpty ? temp : weeklyLows.first).round(),
+      condition: currentCode == null
+          ? 'Clouds'
+          : conditionFromCode(currentCode),
+      currentCode: currentCode,
+      isDay: current['is_day'] as bool? ?? true,
+      weeklyCodes: weeklyCodes,
+      weeklyHighs: weeklyHighs,
+      weeklyLows: weeklyLows,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+      locationLocale: locationLocale,
+    );
+  }
+
   factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(
     location: json['location'] as String,
     temp: (json['temp'] as num).toDouble(),
@@ -153,13 +209,13 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
   }
 
   // The app's `zh` strings are Traditional, so any Chinese maps to zh_TW.
-  Locale _geocodingLocale() => _l10n().localeName.startsWith('zh')
+  Locale _weatherLocale() => _l10n().localeName.startsWith('zh')
       ? const Locale('zh', 'TW')
       : const Locale('en');
 
   @override
   Future<WeatherData> build() async {
-    _locale = _geocodingLocale();
+    _locale = _weatherLocale();
     final cached = await _loadCache();
 
     if (cached != null && cached.hasWeeklyData) {
@@ -206,39 +262,24 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
     }
   }
 
-  Future<WeatherData> _fetchFromNetwork(Locale geocodingLocale) async {
-    final pos = await _getLocation();
-    final raw = await _fetchWeatherApi(pos.latitude, pos.longitude);
-    final locationName = await _getLocationName(
-      pos.latitude,
-      pos.longitude,
-      geocodingLocale,
+  Future<WeatherData> _fetchFromNetwork(Locale locale) async {
+    // The backend names the place in the profile's `locale`; a language
+    // switch PATCHes it, so wait for that before asking.
+    await ref.read(localeProvider.notifier).backendSynced;
+    // No position (services off, permission denied, timeout) isn't an
+    // error: without coordinates the backend uses the profile's location.
+    Position? pos;
+    try {
+      pos = await _getLocation();
+    } catch (_) {}
+    final raw = await WeatherService().getWeather(
+      lat: pos?.latitude,
+      lon: pos?.longitude,
     );
-
-    final weeklyCodes = List<int>.from(raw['daily']['weathercode']);
-    final weeklyHighs = List<double>.from(
-      raw['daily']['temperature_2m_max'].map((t) => (t as num).toDouble()),
-    );
-    final weeklyLows = List<double>.from(
-      raw['daily']['temperature_2m_min'].map((t) => (t as num).toDouble()),
-    );
-
-    final current = raw['current_weather'] as Map<String, dynamic>;
-    final currentCode = (current['weathercode'] as num).toInt();
-    final data = WeatherData(
-      location: locationName,
-      temp: (raw['current_weather']['temperature'] as num).toDouble(),
-      high: weeklyHighs.isNotEmpty ? weeklyHighs[0].round() : 0,
-      low: weeklyLows.isNotEmpty ? weeklyLows[0].round() : 0,
-      condition: WeatherData.conditionFromCode(currentCode),
-      currentCode: currentCode,
-      // 1 = daytime; absent means daytime too.
-      isDay: (current['is_day'] as num?) != 0,
-      weeklyCodes: weeklyCodes,
-      weeklyHighs: weeklyHighs,
-      weeklyLows: weeklyLows,
-      timestamp: DateTime.now().millisecondsSinceEpoch,
-      locationLocale: geocodingLocale.toLanguageTag(),
+    final data = WeatherData.fromApi(
+      raw,
+      unknownLocation: lookupAppLocalizations(locale).unknownLocation,
+      locationLocale: locale.toLanguageTag(),
     );
 
     final prefs = await SharedPreferences.getInstance();
@@ -269,64 +310,5 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
         timeLimit: Duration(seconds: 5),
       ),
     );
-  }
-
-  Future<Map<String, dynamic>> _fetchWeatherApi(double lat, double lon) async {
-    final url =
-        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon'
-        '&daily=weathercode,temperature_2m_max,temperature_2m_min'
-        '&current_weather=true&timezone=auto';
-    final res = await http
-        .get(Uri.parse(url))
-        .timeout(const Duration(seconds: 15));
-    if (res.statusCode == 200) return json.decode(res.body);
-    throw Exception('Failed to load weather');
-  }
-
-  Future<String> _getLocationName(double lat, double lon, Locale locale) async {
-    return await _fetchLocationName(lat, lon, locale) ??
-        await _geocodeLocationName(lat, lon, locale) ??
-        lookupAppLocalizations(locale).unknownLocation;
-  }
-
-  // The platform geocoders ignore the requested locale (Android answers in
-  // the system language), so the name comes from an API that honours it.
-  Future<String?> _fetchLocationName(
-    double lat,
-    double lon,
-    Locale locale,
-  ) async {
-    try {
-      final language = locale.languageCode == 'zh' ? 'zh-Hant' : 'en';
-      final res = await http
-          .get(
-            Uri.parse(
-              'https://api.bigdatacloud.net/data/reverse-geocode-client'
-              '?latitude=$lat&longitude=$lon&localityLanguage=$language',
-            ),
-          )
-          .timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) return null;
-      final name = (json.decode(res.body) as Map)['principalSubdivision'];
-      return name is String && name.isNotEmpty ? name : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<String?> _geocodeLocationName(
-    double lat,
-    double lon,
-    Locale locale,
-  ) async {
-    try {
-      // The plugin sends `toString()` (`zh_TW`), which Android's
-      // Locale.forLanguageTag rejects.
-      final placemarks = await Geocoding(
-        locale: Locale(locale.toLanguageTag()),
-      ).placemarkFromCoordinates(lat, lon);
-      if (placemarks.isNotEmpty) return placemarks.first.administrativeArea;
-    } catch (_) {}
-    return null;
   }
 }

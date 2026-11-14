@@ -90,6 +90,10 @@ class TripOutfit {
   /// Whose image [resultImageUrl] is — the cache key follows it.
   final int? imageOutfitId;
   final String? resultImageUrl;
+
+  /// Backend-derived stable cache key for [resultImageUrl]; prefer it over
+  /// the local version-counter key wherever one is available.
+  final String? resultImageCacheKey;
   final List<Garment> garments;
   final bool isComplete;
 
@@ -105,6 +109,7 @@ class TripOutfit {
     this.outfitId,
     this.imageOutfitId,
     this.resultImageUrl,
+    this.resultImageCacheKey,
     this.garments = const [],
     this.isComplete = true,
   });
@@ -132,6 +137,7 @@ class TripOutfit {
       outfitId: (json['outfit_id'] as num?)?.toInt(),
       imageOutfitId: (json['image_outfit_id'] as num?)?.toInt(),
       resultImageUrl: json['result_image_url'] as String?,
+      resultImageCacheKey: json['result_image_cache_key'] as String?,
       garments: ((json['garments'] as List?) ?? const [])
           .whereType<Map<String, dynamic>>()
           .map(Garment.fromTripItemJson)

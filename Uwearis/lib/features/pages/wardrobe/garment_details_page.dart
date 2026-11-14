@@ -1442,12 +1442,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
                         image: GarmentImage(
                           url: img,
                           garmentId: _id,
+                          cacheKey: _editingGarment?.imageCacheKey,
                           fit: BoxFit.contain,
                         ),
                       ),
                 child: GarmentImage(
                   url: img,
                   garmentId: _id,
+                  cacheKey: _editingGarment?.imageCacheKey,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -2016,6 +2018,7 @@ class _AiGarmentThumbState extends State<_AiGarmentThumb> {
     return GarmentImage(
       url: url,
       garmentId: garment.garmentId > 0 ? garment.garmentId : null,
+      cacheKey: garment.imageCacheKey,
       // Width only — pinning both forces a non-square source to decode
       // squashed into a square.
       memCacheWidth: 160,

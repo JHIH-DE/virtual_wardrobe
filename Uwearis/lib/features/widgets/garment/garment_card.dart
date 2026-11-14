@@ -67,6 +67,7 @@ class GarmentCard extends StatelessWidget {
                           child: GarmentImage(
                             url: garment.imageUrl,
                             garmentId: garment.id,
+                            cacheKey: garment.imageCacheKey,
                             width: double.infinity,
                             memCacheWidth: 360,
                             fit: BoxFit.contain,
@@ -117,14 +118,17 @@ class GarmentCard extends StatelessWidget {
                 ),
                 Container(height: 1, color: AppColors.borderSubtle),
                 Container(
-                  height: AppDimens.garmentCardInfoHeight,
+                  constraints: const BoxConstraints(
+                    minHeight: AppDimens.garmentCardInfoHeight,
+                  ),
                   color: cardColor,
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 10,
+                    vertical: 8,
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

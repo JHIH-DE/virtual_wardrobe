@@ -92,6 +92,7 @@ class GarmentListCard extends StatelessWidget {
                   child: GarmentImage(
                     url: garment.imageUrl,
                     garmentId: garment.id,
+                    cacheKey: garment.imageCacheKey,
                     memCacheWidth: 160,
                     fit: BoxFit.contain,
                     borderRadius: 0,

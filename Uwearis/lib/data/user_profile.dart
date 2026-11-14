@@ -4,10 +4,19 @@ class UserProfile {
   final String name;
   final String? gender;
   final String? location;
+
+  /// Where [location] is, when it was picked with coordinates; both or
+  /// neither. Older profiles only have the name.
+  final double? locationLatitude;
+  final double? locationLongitude;
   final String? email;
 
   /// Signed GCS URL; null until the user sets an avatar.
   final String? avatarObjectUrl;
+
+  /// Backend-derived stable cache key for [avatarObjectUrl]; prefer it over
+  /// the signed URL itself wherever one is available.
+  final String? avatarCacheKey;
 
   /// The wire's `birthday` (`yyyy-MM-dd`); null if absent or unparseable.
   final DateTime? birthDate;
@@ -24,8 +33,11 @@ class UserProfile {
     this.name = '',
     this.gender,
     this.location,
+    this.locationLatitude,
+    this.locationLongitude,
     this.email,
     this.avatarObjectUrl,
+    this.avatarCacheKey,
     this.birthDate,
     this.height,
     this.weight,
@@ -40,12 +52,18 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final rawBirthday = json['birthday'] as String?;
+    final lat = (json['location_latitude'] as num?)?.toDouble();
+    final lon = (json['location_longitude'] as num?)?.toDouble();
+    final hasCoordinates = lat != null && lon != null;
     return UserProfile(
       name: (json['name'] as String?) ?? '',
       gender: json['gender'] as String?,
       location: json['location'] as String?,
+      locationLatitude: hasCoordinates ? lat : null,
+      locationLongitude: hasCoordinates ? lon : null,
       email: json['email'] as String?,
       avatarObjectUrl: json['avatar_object_url'] as String?,
+      avatarCacheKey: json['avatar_cache_key'] as String?,
       birthDate: (rawBirthday == null || rawBirthday.isEmpty)
           ? null
           : DateTime.tryParse(rawBirthday),

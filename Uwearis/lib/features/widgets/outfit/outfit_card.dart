@@ -59,6 +59,7 @@ class OutfitCard extends StatelessWidget {
                     imageUrl: outfit.imageUrl,
                     groupId: outfit.groupId,
                     outfitId: outfit.id,
+                    cacheKey: outfit.resultImageCacheKey,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
                     noImageLabel: l10n.noImage,

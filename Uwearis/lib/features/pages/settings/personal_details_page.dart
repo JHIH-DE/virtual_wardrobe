@@ -73,7 +73,11 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
   String? _selectedGender;
   DateTime? _selectedBirthDate;
   String? _homeLocation;
+  // Both or neither; null for a location saved before coordinates were kept.
+  double? _homeLatitude;
+  double? _homeLongitude;
   String? _avatarUrl;
+  String? _avatarCacheKey;
   String? _avatarLocalPath;
   bool _avatarUploading = false;
   _UnitSystem _unitSystem = _UnitSystem.metric;
@@ -239,7 +243,10 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
         _nameCtrl.text = profile.name;
         _selectedGender = profile.gender;
         _homeLocation = profile.location;
+        _homeLatitude = profile.locationLatitude;
+        _homeLongitude = profile.locationLongitude;
         _avatarUrl = profile.avatarObjectUrl;
+        _avatarCacheKey = profile.avatarCacheKey;
         _selectedBirthDate = profile.birthDate;
         final h = profile.height;
         final w = profile.weight;
@@ -297,14 +304,13 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
   Future<bool> _uploadAvatar(String localPath) async {
     setState(() => _avatarUploading = true);
     try {
-      final url = await ProfileService().uploadAvatar(localPath);
+      final uploaded = await ProfileService().uploadAvatar(localPath);
       if (mounted) {
-        // Each upload gets a new signed URL, so no cache key is needed.
         // Precache is best-effort: a failure is logged and the URL is used anyway.
         try {
           await precacheImage(
             ResizeImage(
-              CachedNetworkImageProvider(url),
+              CachedNetworkImageProvider(uploaded.url),
               width: ProfileAvatar.decodeWidth(context, _avatarSize),
             ),
             context,
@@ -314,7 +320,8 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
         }
         if (!mounted) return true;
         setState(() {
-          _avatarUrl = url;
+          _avatarUrl = uploaded.url;
+          _avatarCacheKey = uploaded.cacheKey;
           _avatarLocalPath = null;
         });
         ref.read(profileProvider.notifier).refresh();
@@ -351,6 +358,8 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
           ? DateFormat('yyyy-MM-dd').format(_selectedBirthDate!)
           : null,
       location: _homeLocation,
+      locationLatitude: _homeLatitude,
+      locationLongitude: _homeLongitude,
       height: double.tryParse(_heightCtrl.text.trim()),
       weight: double.tryParse(_weightCtrl.text.trim()),
       unitSystem: _unitSystem.apiValue,
@@ -493,6 +502,7 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
       child: Center(
         child: ProfileAvatar(
           url: url,
+          cacheKey: _avatarCacheKey,
           onRefreshUrl: () => ProfileService().getMyAvatar(),
           size: _avatarSize,
           onTap: _avatarUploading ? null : _changeAvatar,
@@ -622,8 +632,18 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
       context,
       MaterialPageRoute(builder: (_) => const LocationPickerPage()),
     );
-    if (result == null || !mounted || result.name == _homeLocation) return;
-    setState(() => _homeLocation = result.name);
+    if (result == null || !mounted) return;
+    // Re-picking the same place still saves when it adds coordinates.
+    if (result.name == _homeLocation &&
+        result.latitude == _homeLatitude &&
+        result.longitude == _homeLongitude) {
+      return;
+    }
+    setState(() {
+      _homeLocation = result.name;
+      _homeLatitude = result.latitude;
+      _homeLongitude = result.longitude;
+    });
     _onEdited();
   }
 

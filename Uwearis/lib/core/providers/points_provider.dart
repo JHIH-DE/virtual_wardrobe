@@ -62,6 +62,7 @@ class PointsNotifier extends AsyncNotifier<PointsSummary> {
   /// A few seconds past midnight Taipei, so the grant has landed.
   void _scheduleNextGrant(PointsSummary summary) {
     _nextGrantTimer?.cancel();
+    if (summary.nextGrant <= 0) return;
     final delay =
         summary.nextClaimAt.difference(DateTime.now()) +
         const Duration(seconds: 5);

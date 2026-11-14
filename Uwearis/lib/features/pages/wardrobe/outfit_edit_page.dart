@@ -7,14 +7,13 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../widgets/common/adaptive_side_layout.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
 import '../../widgets/common/cards/app_list_card.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
 import '../../widgets/common/field_label.dart';
 import '../../widgets/common/images/dashed_border_painter.dart';
-import '../../widgets/garment/garment_image.dart';
+import '../../widgets/garment/outfit_garment_row.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
 
 /// Garment slots. [top] holds up to [_maxTops] garments
@@ -361,9 +360,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
     );
   }
 
-  static const double _outfitRowHeight = 84;
   static const double _addGarmentIconSize = 56;
-  static const double _outfitThumbnailWidth = 78;
 
   Widget _buildYourOutfitRow() {
     final entries = _outfitEntries();
@@ -387,7 +384,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
       child: AppListCard(
         onTap: exhausted ? null : () => _pickGarmentForOutfit(),
         showArrow: true,
-        minHeight: _outfitRowHeight,
+        minHeight: OutfitGarmentRow.minHeight,
         leading: SizedBox(
           width: _addGarmentIconSize,
           height: _addGarmentIconSize,
@@ -421,8 +418,10 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         g.id != null &&
         !widget.validGarmentIds!.contains(g.id);
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return OutfitGarmentRow(
+      garment: g,
+      subtitle: subtitle,
+      isInvalid: isInvalid,
       onTap: () => _pickGarmentForOutfit(
         initial: entry.category,
         replaceSlot: entry.slot,
@@ -430,113 +429,12 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
         replaceAccessoryIndex: entry.accessoryIndex,
         current: g,
       ),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: _outfitRowHeight),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowResting,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppDimens.cardRadius),
-                ),
-                child: SizedBox(
-                  width: _outfitThumbnailWidth,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(
-                          child: GarmentImage(
-                            url: g.imageUrl,
-                            garmentId: g.id,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                        if (isInvalid)
-                          Positioned(
-                            top: -4,
-                            right: -4,
-                            child: Icon(
-                              Icons.error,
-                              size: 16,
-                              color: AppColors.error,
-                              shadows: [
-                                Shadow(color: AppColors.surface, blurRadius: 3),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Container(width: 1, color: AppColors.borderSubtle),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
-                  child: AdaptiveSideLayout(
-                    sideEdge: AdaptiveSide.trailing,
-                    gap: 8,
-                    stackedGap: 4,
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          g.name,
-                          style: AppTextStyle.bold14,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: AppTextStyle.regular12.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                    side: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CardCornerBadge(
-                          icon: Icons.close,
-                          backgroundColor: AppColors.placeholderSurface,
-                          iconColor: AppColors.icon,
-                          hitTargetSize: const Size(
-                            24,
-                            AppDimens.minTouchTarget,
-                          ),
-                          onTap: () => _removeOutfitEntry(entry),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+      trailing: CardCornerBadge(
+        icon: Icons.close,
+        backgroundColor: AppColors.placeholderSurface,
+        iconColor: AppColors.icon,
+        hitTargetSize: const Size(24, AppDimens.minTouchTarget),
+        onTap: () => _removeOutfitEntry(entry),
       ),
     );
   }

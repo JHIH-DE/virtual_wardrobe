@@ -3,6 +3,7 @@ Map<String, dynamic> pointsSummaryJson({
   int balance = 140,
   int dailyGrant = 15,
   bool claimedToday = true,
+  int? nextGrant = 15,
   String? subscriptionExpiresAt,
   Map<String, int> costs = const {'try_on': 30, 'garment_analysis': 1},
 }) => {
@@ -11,6 +12,7 @@ Map<String, dynamic> pointsSummaryJson({
   'daily_grant': dailyGrant,
   'claimed_today': claimedToday,
   'next_claim_at': '2026-11-10T00:00:00+08:00',
+  'next_grant': ?nextGrant,
   'subscription': {
     'active': subscriptionExpiresAt != null,
     'expires_at': subscriptionExpiresAt,

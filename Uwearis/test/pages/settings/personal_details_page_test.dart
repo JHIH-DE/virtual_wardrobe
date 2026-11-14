@@ -91,12 +91,15 @@ void main() {
   Future<void> pumpAccount(
     WidgetTester tester, {
     bool completingOnboarding = false,
+    ProfileData? profile,
   }) async {
     useTallSurface(tester);
     await pumpApp(
       tester,
       PersonalDetailsPage(completingOnboarding: completingOnboarding),
-      overrides: [profileProvider.overrideWith(() => _FakeProfileNotifier())],
+      overrides: [
+        profileProvider.overrideWith(() => _FakeProfileNotifier(data: profile)),
+      ],
     );
     await tester.pump();
     await tester.pump();
@@ -154,6 +157,10 @@ void main() {
         expect(body['name'], 'Test User');
         expect(body['gender'], 'Male');
         expect(body['location'], 'Taipei');
+        // A location saved before coordinates were kept sends none, so the
+        // backend keeps geocoding its name.
+        expect(body.containsKey('location_latitude'), isFalse);
+        expect(body.containsKey('location_longitude'), isFalse);
         expect(
           find.byKey(const ValueKey('bottomActionButton-visible')),
           findsNothing,
@@ -161,6 +168,37 @@ void main() {
       }, backend);
     },
   );
+
+  testWidgets('a location with coordinates keeps sending them alongside its '
+      'name', (tester) async {
+    await http.runWithClient(() async {
+      await pumpAccount(
+        tester,
+        profile: ProfileData(
+          profile: UserProfile(
+            name: 'Test User',
+            gender: 'Male',
+            location: 'Seoul, South Korea',
+            locationLatitude: 37.5665,
+            locationLongitude: 126.978,
+            birthDate: DateTime(1996, 3, 11),
+            height: 178,
+            weight: 70,
+            unitSystem: 'metric',
+          ),
+        ),
+      );
+
+      await tester.enterText(find.text('70'), '72');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+
+      final body = patches.single;
+      expect(body['location'], 'Seoul, South Korea');
+      expect(body['location_latitude'], 37.5665);
+      expect(body['location_longitude'], 126.978);
+    }, backend);
+  });
 
   testWidgets('leaving a text field saves right away instead of waiting out '
       'the pause', (tester) async {

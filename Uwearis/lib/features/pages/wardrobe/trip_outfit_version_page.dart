@@ -209,6 +209,7 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
               imageUrl: outfit.imageUrl,
               groupId: outfit.groupId,
               outfitId: outfit.id,
+              cacheKey: outfit.resultImageCacheKey,
               errorLabel: _l10n.failedToLoadImage,
             );
           },

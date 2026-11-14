@@ -58,6 +58,9 @@ class ProfileService with BaseService {
       bodyRefUrl: data['body_reference_object_url']?.toString(),
       faceRefUrl: data['face_reference_object_url']?.toString(),
       baseModelUrl: data['base_model_object_url']?.toString(),
+      bodyRefCacheKey: data['body_reference_cache_key']?.toString(),
+      faceRefCacheKey: data['face_reference_cache_key']?.toString(),
+      baseModelCacheKey: data['base_model_cache_key']?.toString(),
     );
   }
 
@@ -80,7 +83,7 @@ class ProfileService with BaseService {
     return InitUploadResult.fromJson(_data(decodeMap(res, op: op)));
   }
 
-  Future<String> _refComplete(
+  Future<UploadedImage> _refComplete(
     String baseUrl,
     String objectName, {
     required String op,
@@ -95,15 +98,20 @@ class ProfileService with BaseService {
           )
           .timeout(_completeTimeout),
     );
-    final url = _data(decodeMap(res, op: op))['object_url']?.toString();
+    final data = _data(decodeMap(res, op: op));
+    final url = data['object_url']?.toString();
     if (url == null) {
       throw Exception('$op: response missing object_url');
     }
-    return url;
+    return UploadedImage(
+      url: url,
+      cacheKey: data['object_cache_key']?.toString(),
+    );
   }
 
-  /// init-upload → PUT to signed URL → complete; returns the new signed URL.
-  Future<String> _uploadRef(
+  /// init-upload → PUT to signed URL → complete; returns the new signed URL
+  /// plus its cache key.
+  Future<UploadedImage> _uploadRef(
     String baseUrl,
     String localPath, {
     required String opPrefix,
@@ -113,13 +121,13 @@ class ProfileService with BaseService {
     return _refComplete(baseUrl, init.objectName, op: '${opPrefix}Complete');
   }
 
-  Future<String> uploadAvatar(String localPath) =>
+  Future<UploadedImage> uploadAvatar(String localPath) =>
       _uploadRef(_avatarUrl, localPath, opPrefix: 'avatar');
 
-  Future<String> uploadBodyRef(String localPath) =>
+  Future<UploadedImage> uploadBodyRef(String localPath) =>
       _uploadRef(_bodyRefUrl, localPath, opPrefix: 'bodyRef');
 
-  Future<String> uploadFaceRef(String localPath) =>
+  Future<UploadedImage> uploadFaceRef(String localPath) =>
       _uploadRef(_faceRefUrl, localPath, opPrefix: 'faceRef');
 
   /// Also deletes the server-processed variant; 404 counts as success.
@@ -140,7 +148,7 @@ class ProfileService with BaseService {
   /// Generates from the body reference (required) and face reference
   /// (optional); uploads don't trigger it. A failure keeps the previous
   /// model.
-  Future<String> generateBaseModel() async {
+  Future<UploadedImage> generateBaseModel() async {
     debugLog('--- generateBaseModel ---');
     final res = await PointsService.charged(
       feature: ChargedFeature.baseModel,
@@ -153,14 +161,16 @@ class ProfileService with BaseService {
             .timeout(_generateTimeout),
       ),
     );
-    final url = _data(
-      decodeMap(res, op: 'generateBaseModel'),
-    )['object_url']?.toString();
+    final data = _data(decodeMap(res, op: 'generateBaseModel'));
+    final url = data['object_url']?.toString();
     if (url == null) {
       throw Exception('generateBaseModel: response missing object_url');
     }
     Analytics.baseModelCreated();
-    return url;
+    return UploadedImage(
+      url: url,
+      cacheKey: data['object_cache_key']?.toString(),
+    );
   }
 
   // ---- image reads (a 404 means "not set yet", not an error) ----
@@ -229,10 +239,18 @@ class ProfileService with BaseService {
     num? weight,
     String? unitSystem,
     String? location,
+    double? locationLatitude,
+    double? locationLongitude,
     num? temperatureOffsetC,
     String? locale,
   }) async {
-    // Null means "leave unchanged", so this can't clear a field.
+    // Null means "leave unchanged", so this can't clear a field. A changed
+    // [location] sent without coordinates makes the backend drop the old
+    // ones and fall back to geocoding the name.
+    assert(
+      (locationLatitude == null) == (locationLongitude == null),
+      'send both locationLatitude and locationLongitude, or neither',
+    );
     debugLog('--- updateMyProfile ---');
     final uri = Uri.parse(_baseUrl);
 
@@ -244,6 +262,10 @@ class ProfileService with BaseService {
     if (weight != null) payload['weight'] = weight;
     if (unitSystem != null) payload['unit_system'] = unitSystem;
     if (location != null) payload['location'] = location;
+    if (locationLatitude != null && locationLongitude != null) {
+      payload['location_latitude'] = locationLatitude;
+      payload['location_longitude'] = locationLongitude;
+    }
     if (temperatureOffsetC != null) {
       payload['temperature_offset_c'] = temperatureOffsetC;
     }

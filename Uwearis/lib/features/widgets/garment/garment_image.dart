@@ -12,6 +12,10 @@ class GarmentImage extends StatelessWidget {
   /// When set, a load failure refetches the garment once for a freshly
   /// signed URL. Null skips the retry.
   final int? garmentId;
+
+  /// The garment's backend-derived `image_cache_key`; prefer it over the
+  /// local version-counter key wherever one is available.
+  final String? cacheKey;
   final double? width;
   final double? height;
 
@@ -29,6 +33,7 @@ class GarmentImage extends StatelessWidget {
     super.key,
     required this.url,
     this.garmentId,
+    this.cacheKey,
     this.width,
     this.height,
     this.memCacheWidth,
@@ -42,15 +47,16 @@ class GarmentImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = garmentId;
     // Keyed by id so a re-signed URL isn't a cache miss; the version suffix
-    // changes when Edit image replaces the photo in place.
+    // changes when Edit image replaces the photo in place. The backend's own
+    // key, when available, takes priority over that fallback.
     final baseKey = id != null ? garmentImageCacheKey(id) : null;
-    final cacheKey = baseKey == null
+    final fallbackKey = baseKey == null
         ? null
         : '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
 
     return AppImage(
       url: url,
-      cacheKey: cacheKey,
+      cacheKey: imageCacheKey(cacheKey, fallbackKey),
       onRefreshUrl: id == null
           ? null
           : () async {

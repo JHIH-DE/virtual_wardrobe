@@ -21,6 +21,7 @@ import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
+import 'package:uwearis/features/widgets/common/cards/swipe_action_card.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
@@ -221,16 +222,19 @@ void main() {
       await tester.tap(find.text('Tee'));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.lock), findsOneWidget);
-      expect(find.byIcon(Icons.lock_open), findsNothing);
+      expect(_lockedCount(tester), 1);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await _revealSwipeActions(tester, 'Tee');
+      await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.lock), findsNothing);
+      expect(find.text('Tee'), findsNothing);
+      expect(_lockedCount(tester), 0);
     },
   );
 
-  testWidgets('tapping the lock badge toggles it', (tester) async {
+  testWidgets('swiping a garment left shows adjust-details beside remove', (
+    tester,
+  ) async {
     useTallSurface(tester);
     await pumpApp(
       tester,
@@ -243,16 +247,55 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tee'));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.lock), findsOneWidget);
+    expect(find.byIcon(Icons.tune), findsNothing);
 
-    await tester.tap(find.byIcon(Icons.lock));
+    await tester.drag(find.text('Tee'), const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.tune), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline), findsNothing);
+    expect(
+      tester.getRect(find.byIcon(Icons.tune)).left,
+      lessThan(tester.getRect(find.byIcon(Icons.delete_outline)).left),
+    );
+
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.tune), findsNothing);
+    expect(find.text('Tee'), findsOneWidget);
+  });
+
+  testWidgets('swiping right reveals the lock, showing its current state, '
+      'and tapping it toggles the lock', (tester) async {
+    useTallSurface(tester);
+    await pumpApp(
+      tester,
+      const CreateOutfitPage(),
+      overrides: closetOverride(),
+    );
     await tester.pump();
-    expect(find.byIcon(Icons.lock_open), findsOneWidget);
+
+    await tester.tap(find.text('Add Garment'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tee'));
+    await tester.pumpAndSettle();
+    expect(_lockedCount(tester), 1);
+    // The lock lives only behind the swipe.
     expect(find.byIcon(Icons.lock), findsNothing);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
 
+    await _revealLockAction(tester, 'Tee');
+    expect(find.byIcon(Icons.lock_open), findsNothing);
+    await tester.tap(find.byIcon(Icons.lock_outline));
+    await tester.pumpAndSettle();
+    expect(_lockedCount(tester), 0);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+
+    await _revealLockAction(tester, 'Tee');
+    expect(find.byIcon(Icons.lock_outline), findsNothing);
     await tester.tap(find.byIcon(Icons.lock_open));
-    await tester.pump();
-    expect(find.byIcon(Icons.lock), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(_lockedCount(tester), 1);
   });
 
   testWidgets(
@@ -393,7 +436,8 @@ void main() {
           find.widgetWithText(BottomActionButton, 'Create Outfit'),
           findsOneWidget,
         );
-        expect(find.byIcon(Icons.lock_open), findsNWidgets(3));
+        expect(find.byType(SwipeActionCard), findsNWidgets(3));
+        expect(_lockedCount(tester), 0);
         expect(requests, hasLength(1));
         final firstBody =
             jsonDecode(requests.single.body) as Map<String, dynamic>;
@@ -458,7 +502,7 @@ void main() {
           await tester.tap(find.text(name));
           await tester.pumpAndSettle();
         }
-        expect(find.byIcon(Icons.lock), findsNWidgets(2));
+        expect(_lockedCount(tester), 2);
 
         await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
         await tester.pump();
@@ -470,7 +514,7 @@ void main() {
         expect(find.text('Polo'), findsNothing);
         expect(find.text('Chinos'), findsNothing);
         expect(find.text('Sneakers'), findsOneWidget);
-        expect(find.byIcon(Icons.lock), findsNWidgets(2));
+        expect(_lockedCount(tester), 2);
       }, () => client);
     },
   );
@@ -1202,14 +1246,9 @@ void main() {
       name: 'Boots',
     );
 
-    Finder rowOf(String name) => find
-        .ancestor(of: find.text(name), matching: find.byType(GestureDetector))
-        .first;
-
     Future<void> removeRow(WidgetTester tester, String name) async {
-      await tester.tap(
-        find.descendant(of: rowOf(name), matching: find.byIcon(Icons.close)),
-      );
+      await _revealSwipeActions(tester, name);
+      await tester.tap(find.byIcon(Icons.delete_outline));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
     }
@@ -1574,7 +1613,7 @@ void main() {
 
         await land(tester, gates.single, 1);
         expect(find.text('Tee'), findsNothing);
-        expect(find.byIcon(Icons.lock_open), findsNothing);
+        expect(find.byType(SwipeActionCard), findsNothing);
         expect(
           find.text(
             "Couldn't complete your outfit with AI — please try "
@@ -1627,3 +1666,23 @@ class _FakeWeather extends WeatherNotifier {
     timestamp: DateTime.now().millisecondsSinceEpoch,
   );
 }
+
+/// Swipes the outfit row showing [name] left until adjust / remove show.
+Future<void> _revealSwipeActions(WidgetTester tester, String name) async {
+  await tester.drag(find.text(name), const Offset(-300, 0));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
+/// Swipes the outfit row showing [name] right until its lock shows.
+Future<void> _revealLockAction(WidgetTester tester, String name) async {
+  await tester.drag(find.text(name), const Offset(300, 0));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
+/// Outfit rows whose lock action shows them locked.
+int _lockedCount(WidgetTester tester) => tester
+    .widgetList<SwipeActionCard>(find.byType(SwipeActionCard))
+    .where((card) => card.leadingActions.first.icon == Icons.lock_outline)
+    .length;

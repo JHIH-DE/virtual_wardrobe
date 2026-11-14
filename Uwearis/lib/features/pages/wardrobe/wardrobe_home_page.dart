@@ -20,6 +20,7 @@ import '../../../core/services/auth_handler.dart';
 import '../../../core/services/outfit_service.dart';
 import '../../../core/utils/date_locale.dart';
 import '../../../core/utils/debug_log.dart';
+import '../../../core/utils/image_cache_bust.dart';
 import '../../../data/garment.dart';
 import '../../../data/outfit.dart';
 import '../../../data/profile_data.dart';
@@ -534,11 +535,15 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
                               color: AppColors.surface,
                               child: RefreshableNetworkImage(
                                 key: ValueKey(
-                                  outfitImageVersionedCacheKey(option.id),
+                                  imageCacheKey(
+                                    option.resultImageCacheKey,
+                                    outfitImageVersionedCacheKey(option.id),
+                                  ),
                                 ),
                                 imageUrl: option.imageUrl,
-                                cacheKey: outfitImageVersionedCacheKey(
-                                  option.id,
+                                cacheKey: imageCacheKey(
+                                  option.resultImageCacheKey,
+                                  outfitImageVersionedCacheKey(option.id),
                                 ),
                                 fit: BoxFit.cover,
                                 errorIconSize: 48,

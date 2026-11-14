@@ -29,7 +29,17 @@ class LocaleNotifier extends Notifier<Locale?> {
     state = _localeFromCode(code);
   }
 
+  Future<void> _backendSync = Future.value();
+
+  /// Completes once the latest switch reached the backend (or failed to).
+  /// Never throws.
+  Future<void> get backendSynced => _backendSync;
+
   Future<void> setLocale(Locale? locale) async {
+    // Started before the state change, so providers rebuilt by it can wait
+    // on [backendSynced].
+    final sync = _syncToBackend(locale);
+    _backendSync = sync;
     state = locale;
     final prefs = await SharedPreferences.getInstance();
     if (locale == null) {
@@ -37,8 +47,12 @@ class LocaleNotifier extends Notifier<Locale?> {
     } else {
       await prefs.setString(_prefsKey, _codeFor(locale));
     }
-    // Best-effort: sets the language of AI-generated text. A failure
-    // doesn't undo the local switch.
+    await sync;
+  }
+
+  // Best-effort: sets the language of AI-generated text and of the weather
+  // place name. A failure doesn't undo the local switch.
+  Future<void> _syncToBackend(Locale? locale) async {
     try {
       await ProfileService().updateMyProfile(
         locale: _apiCodeFor(locale ?? _systemLocale()),

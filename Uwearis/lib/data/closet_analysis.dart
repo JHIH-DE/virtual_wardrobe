@@ -59,12 +59,17 @@ class ClosetAnalysisGarment {
   final GarmentCategory category;
   final String? name;
   final String imageUrl;
+
+  /// Backend-derived stable cache key for [imageUrl]; prefer it over the
+  /// local version-counter key wherever one is available.
+  final String? imageCacheKey;
   final bool isTarget;
 
   const ClosetAnalysisGarment({
     required this.garmentId,
     required this.category,
     required this.imageUrl,
+    this.imageCacheKey,
     this.name,
     this.isTarget = false,
   });
@@ -75,6 +80,7 @@ class ClosetAnalysisGarment {
       category: GarmentCategoryX.fromApiValue(json['category'] as String?),
       name: json['name'] as String?,
       imageUrl: (json['image_url'] as String?) ?? '',
+      imageCacheKey: json['image_cache_key'] as String?,
       isTarget: (json['is_target'] as bool?) ?? false,
     );
   }
@@ -84,6 +90,7 @@ class ClosetAnalysisGarment {
     'category': category.apiValue,
     'name': name,
     'image_url': imageUrl,
+    'image_cache_key': imageCacheKey,
     'is_target': isTarget,
   };
 }

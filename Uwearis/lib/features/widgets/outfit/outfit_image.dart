@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/outfit_service.dart';
+import '../../../core/utils/image_cache_bust.dart';
 import '../../../data/outfit.dart';
 import '../common/images/refreshable_network_image.dart';
 
@@ -18,6 +19,10 @@ class OutfitImage extends StatelessWidget {
   final String imageUrl;
   final int groupId;
   final int outfitId;
+
+  /// The outfit's backend-derived `result_image_cache_key`; prefer it over
+  /// the local version-counter key wherever one is available.
+  final String? cacheKey;
   final double? width;
   final double? height;
   final BoxFit fit;
@@ -32,6 +37,7 @@ class OutfitImage extends StatelessWidget {
     required this.imageUrl,
     required this.groupId,
     required this.outfitId,
+    this.cacheKey,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
@@ -70,14 +76,15 @@ class OutfitImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Keyed by outfit id, not URL: every fetch re-signs the URL. The version
-    // suffix catches a regenerate overwriting the image in place.
-    final cacheKey = outfitImageVersionedCacheKey(outfitId);
+    // suffix catches a regenerate overwriting the image in place. The
+    // backend's own key, when available, takes priority over that fallback.
+    final key = imageCacheKey(cacheKey, outfitImageVersionedCacheKey(outfitId));
     final image = imageUrl.isEmpty
         ? _fallback(Icons.image_outlined, noImageLabel)
         : RefreshableNetworkImage(
-            key: ValueKey(cacheKey),
+            key: ValueKey(key),
             imageUrl: imageUrl,
-            cacheKey: cacheKey,
+            cacheKey: key,
             width: width,
             height: height,
             fit: fit,

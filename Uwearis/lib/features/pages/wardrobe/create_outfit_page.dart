@@ -27,7 +27,6 @@ import '../../../data/style_type.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../l10n/style_type_localization.dart';
-import '../../widgets/common/adaptive_side_layout.dart';
 import '../../widgets/common/app_divider.dart';
 import '../../widgets/common/app_popup_menu.dart';
 import '../../widgets/common/app_tool_bar.dart';
@@ -36,7 +35,7 @@ import '../../widgets/common/buttons/action_disc_button.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
 import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/cards/app_list_card.dart';
-import '../../widgets/common/cards/card_corner_badge.dart';
+import '../../widgets/common/cards/swipe_action_card.dart';
 import '../../widgets/common/cards/category_tag.dart';
 import '../../widgets/common/field_label.dart';
 import '../../widgets/common/fields/number_stepper.dart';
@@ -51,7 +50,7 @@ import '../../widgets/common/overlays/photo_source_dialog.dart';
 import '../../widgets/common/overlays/picker_sheet.dart';
 import '../../widgets/common/overlays/try_on_dialogs.dart';
 import '../../widgets/common/section_title.dart';
-import '../../widgets/garment/garment_image.dart';
+import '../../widgets/garment/outfit_garment_row.dart';
 import '../../widgets/outfit/outfit_background_field.dart';
 import '../common/camera_capture_page.dart' show CameraFrameRatio;
 import 'outfit_details_page.dart';
@@ -819,9 +818,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     child: child,
   );
 
-  static const double _outfitRowHeight = 84;
   static const double _addGarmentIconSize = 56;
-  static const double _outfitThumbnailWidth = 78;
 
   Widget _buildYourOutfitRow() {
     final entries = _outfitEntries();
@@ -846,7 +843,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       child: AppListCard(
         onTap: enabled ? () => _pickGarmentForOutfit() : null,
         showArrow: true,
-        minHeight: _outfitRowHeight,
+        minHeight: OutfitGarmentRow.minHeight,
         leading: SizedBox(
           width: _addGarmentIconSize,
           height: _addGarmentIconSize,
@@ -877,126 +874,44 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         ? '$categoryLabel · ${g.subCategory}'
         : categoryLabel;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: (isOutfitLoading || _garmentPoolLoading)
-          ? null
-          : () => _pickGarmentForOutfit(
-              initial: entry.category,
-              replaceSlot: entry.slot,
-              replaceTopIndex: entry.topIndex,
-              replaceAccessoryIndex: entry.accessoryIndex,
-              current: g,
-            ),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: _outfitRowHeight),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimens.cardRadius),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowResting,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    return SwipeActionCard(
+      key: ValueKey((entry.slot, entry.topIndex, entry.accessoryIndex, g.id)),
+      enabled: !isOutfitLoading,
+      leadingActions: [
+        // The icon shows the current state; the label names the toggle.
+        SwipeAction(
+          icon: locked ? Icons.lock_outline : Icons.lock_open,
+          label: locked ? _l10n.unlockGarment : _l10n.lockGarment,
+          onPressed: () => _toggleLock(g),
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(AppDimens.cardRadius),
-                ),
-                child: SizedBox(
-                  width: _outfitThumbnailWidth,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: GarmentImage(
-                            url: g.imageUrl,
-                            garmentId: g.id,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Container(width: 1, color: AppColors.borderSubtle),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
-                  child: AdaptiveSideLayout(
-                    sideEdge: AdaptiveSide.trailing,
-                    gap: 8,
-                    stackedGap: 4,
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          g.name,
-                          style: AppTextStyle.bold14,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: AppTextStyle.regular12.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                    side: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CardCornerBadge(
-                          icon: locked ? Icons.lock : Icons.lock_open,
-                          backgroundColor: locked
-                              ? AppColors.primary
-                              : AppColors.placeholderSurface,
-                          iconColor: locked
-                              ? AppColors.textOnPrimary
-                              : AppColors.icon,
-                          hitTargetSize: const Size(
-                            24,
-                            AppDimens.minTouchTarget,
-                          ),
-                          onTap: isOutfitLoading ? null : () => _toggleLock(g),
-                        ),
-                        if (!isOutfitLoading) ...[
-                          const SizedBox(width: 8),
-                          CardCornerBadge(
-                            icon: Icons.close,
-                            backgroundColor: AppColors.placeholderSurface,
-                            iconColor: AppColors.icon,
-                            hitTargetSize: const Size(
-                              24,
-                              AppDimens.minTouchTarget,
-                            ),
-                            onTap: () => _removeOutfitEntry(entry),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+      ],
+      actions: [
+        SwipeAction(
+          icon: Icons.tune,
+          label: _l10n.adjustGarmentDetails,
+          backgroundColor: AppColors.accent,
+          // TODO: open garment detail adjustments once designed.
+          onPressed: () {},
         ),
+        SwipeAction(
+          icon: Icons.delete_outline,
+          label: _l10n.remove,
+          backgroundColor: AppColors.error,
+          onPressed: () => _removeOutfitEntry(entry),
+        ),
+      ],
+      child: OutfitGarmentRow(
+        garment: g,
+        subtitle: subtitle,
+        onTap: (isOutfitLoading || _garmentPoolLoading)
+            ? null
+            : () => _pickGarmentForOutfit(
+                initial: entry.category,
+                replaceSlot: entry.slot,
+                replaceTopIndex: entry.topIndex,
+                replaceAccessoryIndex: entry.accessoryIndex,
+                current: g,
+              ),
       ),
     );
   }

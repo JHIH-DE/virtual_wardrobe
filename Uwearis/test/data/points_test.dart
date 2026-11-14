@@ -19,11 +19,17 @@ void main() {
       expect(s.dailyGrant, 15);
       expect(s.claimedToday, isTrue);
       expect(s.nextClaimAt.toUtc(), DateTime.utc(2026, 11, 9, 16));
+      expect(s.nextGrant, 15);
       expect(s.subscriptionActive, isTrue);
       expect(s.subscriptionExpiresAt!.toUtc(), DateTime.utc(2026, 12, 8, 16));
       expect(s.costOf(PointsAction.tryOn), 30);
       expect(s.costOf(PointsAction.flatLay), isNull);
       expect(s.costs['future_feature'], 4);
+    });
+
+    test('a missing next_grant means no grant tomorrow', () {
+      final s = PointsSummary.fromJson(pointsSummaryJson(nextGrant: null));
+      expect(s.nextGrant, 0);
     });
 
     test('a float-valued number still parses', () {

@@ -8,6 +8,10 @@ import 'images/app_image.dart';
 class ProfileAvatar extends StatelessWidget {
   final String? url;
 
+  /// Backend-derived stable cache key for [url]; prefer it over the signed
+  /// URL itself wherever one is available.
+  final String? cacheKey;
+
   /// Re-fetches a broken/expired signed URL once ([AppImage.onRefreshUrl]).
   final Future<String?> Function()? onRefreshUrl;
 
@@ -22,6 +26,7 @@ class ProfileAvatar extends StatelessWidget {
   const ProfileAvatar({
     super.key,
     this.url,
+    this.cacheKey,
     this.onRefreshUrl,
     this.onTap,
     this.size = 120,
@@ -65,6 +70,7 @@ class ProfileAvatar extends StatelessWidget {
                 hasImage
                     ? AppImage(
                         url: url,
+                        cacheKey: cacheKey,
                         onRefreshUrl: onRefreshUrl,
                         memCacheWidth: decodeWidth(context, photoSize),
                         fit: BoxFit.cover,

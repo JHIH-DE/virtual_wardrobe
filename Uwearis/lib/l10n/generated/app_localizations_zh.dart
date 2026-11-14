@@ -195,7 +195,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteAccountConfirmBody =>
-      '這將永久刪除您的帳號與所有資料——穿搭、衣物、照片與偏好設定，且無法復原。';
+      '这将永久删除您的账号与所有数据——穿搭、衣物、照片与偏好设置，且无法恢复。点数也会全部清空，即使用同一个账号重新注册也不会恢复，新手点数也不会重新计算。';
 
   @override
   String get deletingAccountEllipsis => '刪除帳號中…';
@@ -226,6 +226,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get remove => '移除';
+
+  @override
+  String get lockGarment => '鎖定';
+
+  @override
+  String get unlockGarment => '解除鎖定';
+
+  @override
+  String get adjustGarmentDetails => '調整細節';
 
   @override
   String get rename => '重新命名';
@@ -1900,7 +1909,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pointsHowItWorksBody =>
-      '每次使用 AI 功能都会扣除点数，各功能点数见上方列表。每天 00:00（台湾时间）自动发放免费点数，Plus 订阅者每天获得更多点数。AI 功能失败时，点数会自动退回。';
+      '每次使用 AI 功能都会扣除点数，各功能点数见上方列表。新用户前 7 天及 Plus 订阅期间，每天 00:00（台湾时间）自动发放点数。AI 功能失败时，点数会自动退回。';
 
   @override
   String pointsPrice(int amount) {
@@ -1961,6 +1970,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get insufficientPointsNoGrant => '点数不足。订阅 Uwearis Plus 每天都能获得点数。';
+
+  @override
   String pointsRemaining(String balance) {
     return '剩余 $balance 点';
   }
@@ -1977,9 +1989,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tripAiInsufficientPoints => '已加入你的穿搭，但点数不足，没有进行 AI 搭配。';
 
   @override
-  String pointsDailyGrantHint(int count, String time) {
-    return '每天获得 $count 点 · 下次发放 $time';
+  String pointsNextGrantHint(int count, String time) {
+    return '明天 $count 点 · $time 发放';
   }
+
+  @override
+  String get pointsLastGrantToday => '今天是最后一天发放每日点数';
 
   @override
   String pointsPlusActiveUntil(String date) {
@@ -2035,7 +2050,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pointsActionOther => 'AI 功能';
 
   @override
-  String get pointsKindDailyGrant => '每日点数';
+  String get pointsKindDailyGrant => '点数发放';
 
   @override
   String pointsKindRefund(String action) {
@@ -2251,7 +2266,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deleteAccountConfirmBody =>
-      '這將永久刪除您的帳號與所有資料——穿搭、衣物、照片與偏好設定，且無法復原。';
+      '這將永久刪除您的帳號與所有資料——穿搭、衣物、照片與偏好設定，且無法復原。點數也會全部清空，即使用同一個帳號重新註冊也不會恢復，新手點數也不會重新計算。';
 
   @override
   String get deletingAccountEllipsis => '刪除帳號中…';
@@ -2282,6 +2297,15 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get remove => '移除';
+
+  @override
+  String get lockGarment => '鎖定';
+
+  @override
+  String get unlockGarment => '解除鎖定';
+
+  @override
+  String get adjustGarmentDetails => '調整細節';
 
   @override
   String get rename => '重新命名';
@@ -3956,7 +3980,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get pointsHowItWorksBody =>
-      '每次使用 AI 功能都會扣除點數，各功能點數見上方列表。每天 00:00（台灣時間）自動發放免費點數，Plus 訂閱者每天獲得更多點數。AI 功能失敗時，點數會自動退回。';
+      '每次使用 AI 功能都會扣除點數，各功能點數見上方列表。新用戶前 7 天及 Plus 訂閱期間，每天 00:00（台灣時間）自動發放點數。AI 功能失敗時，點數會自動退回。';
 
   @override
   String pointsPrice(int amount) {
@@ -4017,6 +4041,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String get insufficientPointsNoGrant => '點數不足。訂閱 Uwearis Plus 每天都能獲得點數。';
+
+  @override
   String pointsRemaining(String balance) {
     return '剩餘 $balance 點';
   }
@@ -4033,9 +4060,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get tripAiInsufficientPoints => '已加入你的穿搭，但點數不足，沒有進行 AI 搭配。';
 
   @override
-  String pointsDailyGrantHint(int count, String time) {
-    return '每天獲得 $count 點 · 下次發放 $time';
+  String pointsNextGrantHint(int count, String time) {
+    return '明天 $count 點 · $time 發放';
   }
+
+  @override
+  String get pointsLastGrantToday => '今天是最後一天發放每日點數';
 
   @override
   String pointsPlusActiveUntil(String date) {
@@ -4091,7 +4121,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get pointsActionOther => 'AI 功能';
 
   @override
-  String get pointsKindDailyGrant => '每日點數';
+  String get pointsKindDailyGrant => '點數發放';
 
   @override
   String pointsKindRefund(String action) {

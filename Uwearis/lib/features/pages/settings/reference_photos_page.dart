@@ -66,7 +66,7 @@ final fetchFreshReferenceUrlProvider = Provider<FetchFreshReferenceUrl>(
 );
 
 typedef UploadReferencePhoto =
-    Future<String> Function(ReferencePhotoKind kind, String localPath);
+    Future<UploadedImage> Function(ReferencePhotoKind kind, String localPath);
 
 final uploadReferencePhotoProvider = Provider<UploadReferencePhoto>(
   (ref) =>
@@ -160,12 +160,19 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
     return kind == ReferencePhotoKind.face ? data.faceRefUrl : data.bodyRefUrl;
   }
 
-  void _commitUrl(ReferencePhotoKind kind, String url) {
+  void _commitUrl(ReferencePhotoKind kind, String url, String? cacheKey) {
     if (kind == ReferencePhotoKind.face) {
-      ref.read(profileProvider.notifier).setFaceRefUrl(url);
+      ref.read(profileProvider.notifier).setFaceRefUrl(url, cacheKey);
     } else {
-      ref.read(profileProvider.notifier).setBodyRefUrl(url);
+      ref.read(profileProvider.notifier).setBodyRefUrl(url, cacheKey);
     }
+  }
+
+  String? _cacheKeyOf(ReferencePhotoKind kind, ProfileData? data) {
+    if (data == null) return null;
+    return kind == ReferencePhotoKind.face
+        ? data.faceRefCacheKey
+        : data.bodyRefCacheKey;
   }
 
   /// Compare-and-set for a refreshed signed URL: applies only if the
@@ -290,11 +297,14 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
     final slot = _slotFor(kind);
     setState(() => slot.uploading = true);
     try {
-      final url = await ref.read(uploadReferencePhotoProvider)(kind, localPath);
+      final uploaded = await ref.read(uploadReferencePhotoProvider)(
+        kind,
+        localPath,
+      );
       if (!mounted) return;
-      await ref.read(verifyReferencePhotoLoadsProvider)(context, url);
+      await ref.read(verifyReferencePhotoLoadsProvider)(context, uploaded.url);
       if (!mounted) return;
-      _commitUrl(kind, url);
+      _commitUrl(kind, uploaded.url, uploaded.cacheKey);
       setState(() => slot.loadFailed = false);
     } on AuthExpiredException {
       if (!mounted) return;
@@ -433,7 +443,8 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
 
   Widget _buildPhotoLeading(
     ReferencePhotoKind kind,
-    String? url, {
+    String? url,
+    String? cacheKey, {
     required IconData placeholder,
   }) {
     final slot = _slotFor(kind);
@@ -450,6 +461,7 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
               url != null
                   ? AppImage(
                       url: url,
+                      cacheKey: cacheKey,
                       onRefreshUrl: () =>
                           ref.read(fetchFreshReferenceUrlProvider)(kind),
                       onUrlRefreshed: (oldUrl, freshUrl) =>
@@ -505,6 +517,7 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
       photo: _buildPhotoLeading(
         kind,
         url,
+        _cacheKeyOf(kind, data),
         placeholder: failed
             ? Icons.error_outline
             : (isFace ? Icons.face_outlined : Icons.accessibility_new_outlined),

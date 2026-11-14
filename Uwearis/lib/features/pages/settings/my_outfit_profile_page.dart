@@ -219,7 +219,7 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
       imageUrl: baseModelUrl,
       hasAssignment: true,
       // No isLoading: build()'s full-screen LoadingOverlay covers it.
-      cacheKey: baseModelImageCacheKey(),
+      cacheKey: baseModelImageCacheKey(data.baseModelCacheKey),
       imageFit: BoxFit.contain,
       imageAlignment: Alignment.center,
       aspectRatio: _previewAspectRatio,

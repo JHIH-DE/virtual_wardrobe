@@ -56,6 +56,27 @@ class AdaptiveSideLayout extends MultiChildRenderObjectWidget {
 
 final RegExp _word = RegExp(r"[A-Za-z0-9\u00C0-\u024F'’]+");
 
+/// The widest Latin word (letters/digits) in [text] at [style] and
+/// [textScaler] — for deciding a layout before the text is laid out.
+double longestLatinWordWidth(
+  String text,
+  TextStyle? style,
+  TextScaler textScaler,
+) {
+  var widest = 0.0;
+  for (final match in _word.allMatches(text)) {
+    final painter = TextPainter(
+      text: TextSpan(text: match[0], style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: textScaler,
+      maxLines: 1,
+    )..layout();
+    widest = math.max(widest, painter.width);
+    painter.dispose();
+  }
+  return widest;
+}
+
 /// The widest Latin word (letters/digits) any paragraph under [root] will
 /// render, at that paragraph's own style and text scale. Measured from the
 /// text rather than `getMinIntrinsicWidth`, which reports a whole CJK run as
@@ -64,17 +85,14 @@ double longestWordWidth(RenderObject root) {
   var widest = 0.0;
   void visit(RenderObject node) {
     if (node is RenderParagraph) {
-      final style = node.text.style;
-      for (final match in _word.allMatches(node.text.toPlainText())) {
-        final painter = TextPainter(
-          text: TextSpan(text: match[0], style: style),
-          textDirection: TextDirection.ltr,
-          textScaler: node.textScaler,
-          maxLines: 1,
-        )..layout();
-        widest = math.max(widest, painter.width);
-        painter.dispose();
-      }
+      widest = math.max(
+        widest,
+        longestLatinWordWidth(
+          node.text.toPlainText(),
+          node.text.style,
+          node.textScaler,
+        ),
+      );
     }
     node.visitChildren(visit);
   }

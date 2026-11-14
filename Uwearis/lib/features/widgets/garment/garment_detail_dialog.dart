@@ -86,6 +86,7 @@ class _GarmentDetailDialogState extends State<GarmentDetailDialog> {
                   child: GarmentImage(
                     url: garment.imageUrl,
                     garmentId: garment.id,
+                    cacheKey: garment.imageCacheKey,
                     fit: BoxFit.contain,
                   ),
                 ),

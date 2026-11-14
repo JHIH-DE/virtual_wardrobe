@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/profile_service.dart';
+import 'package:uwearis/data/profile_data.dart';
 
 import '../helpers/fake_auth.dart';
 
@@ -105,16 +106,20 @@ void main() {
             return http.Response('', 200);
           }
           return _jsonResponse(
-            _envelope({'object_url': 'https://cdn.example.com/1.jpg'}),
+            _envelope({
+              'object_url': 'https://cdn.example.com/1.jpg',
+              'object_cache_key': 'avatar-abc',
+            }),
           );
         });
 
-        final url = await http.runWithClient(
+        final uploaded = await http.runWithClient(
           () => ProfileService().uploadAvatar(tempFile.path),
           () => client,
         );
 
-        expect(url, 'https://cdn.example.com/1.jpg');
+        expect(uploaded.url, 'https://cdn.example.com/1.jpg');
+        expect(uploaded.cacheKey, 'avatar-abc');
         expect(requests[0].url.toString(), '$_base/avatar/init-upload');
         expect(jsonDecode(requests[0].body), {'content_type': 'image/jpeg'});
         expect(requests[1].method, 'PUT');
@@ -188,7 +193,7 @@ void main() {
       addTearDown(() => tempFile.delete());
 
       Future<void> expectThrowsFor(
-        Future<String> Function(String) upload,
+        Future<UploadedImage> Function(String) upload,
         String segment,
       ) {
         final client = MockClient((request) async {
@@ -316,7 +321,7 @@ void main() {
         );
       });
 
-      final url = await http.runWithClient(
+      final uploaded = await http.runWithClient(
         () => ProfileService().generateBaseModel(),
         () => client,
       );
@@ -324,7 +329,7 @@ void main() {
       expect(captured.method, 'POST');
       expect(captured.url.toString(), '$_base/base-model/generate');
       expect(captured.body, isEmpty);
-      expect(url, 'https://cdn.example.com/base-model.jpg');
+      expect(uploaded.url, 'https://cdn.example.com/base-model.jpg');
     });
 
     test('throws when the response is missing object_url', () async {
@@ -578,6 +583,37 @@ void main() {
       );
 
       expect(jsonDecode(captured.body), {});
+    });
+
+    test('sends location coordinates under their wire keys', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope({
+            'location': 'Seoul, South Korea',
+            'location_latitude': 37.5665,
+            'location_longitude': 126.978,
+          }),
+        );
+      });
+
+      final profile = await http.runWithClient(
+        () => ProfileService().updateMyProfile(
+          location: 'Seoul, South Korea',
+          locationLatitude: 37.5665,
+          locationLongitude: 126.978,
+        ),
+        () => client,
+      );
+
+      expect(jsonDecode(captured.body), {
+        'location': 'Seoul, South Korea',
+        'location_latitude': 37.5665,
+        'location_longitude': 126.978,
+      });
+      expect(profile.locationLatitude, 37.5665);
+      expect(profile.locationLongitude, 126.978);
     });
 
     test('sends temperatureOffsetC under its wire key', () async {

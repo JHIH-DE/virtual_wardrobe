@@ -161,7 +161,7 @@ void main() {
       );
       container
           .read(profileProvider.notifier)
-          .setBodyRefUrl('https://example.com/body-new.jpg');
+          .setBodyRefUrl('https://example.com/body-new.jpg', null);
 
       await tester.pageBack();
       await tester.pumpAndSettle();
@@ -202,7 +202,7 @@ void main() {
             // harness lacks.
             generate: () async {
               calls++;
-              return '';
+              return const UploadedImage(url: '');
             },
           );
           await tester.pumpAndSettle();
@@ -251,7 +251,7 @@ void main() {
         tester,
         generate: () async {
           calls++;
-          return '';
+          return const UploadedImage(url: '');
         },
       );
       await tester.pumpAndSettle();

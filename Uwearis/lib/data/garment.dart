@@ -327,6 +327,10 @@ class Garment {
   final double? price;
   final DateTime? purchaseDate;
   final String? imageUrl;
+
+  /// Backend-derived stable cache key for [imageUrl]; prefer it over the
+  /// local version-counter key wherever one is available.
+  final String? imageCacheKey;
   final GarmentCategory category;
   final String subCategory;
 
@@ -369,6 +373,7 @@ class Garment {
     this.price,
     this.purchaseDate,
     this.imageUrl,
+    this.imageCacheKey,
     this.metadata,
   });
 
@@ -483,6 +488,7 @@ class Garment {
       uploadUrl: (json['upload_url'] as String?) ?? '',
       objectName: (json['object_name'] as String?) ?? '',
       imageUrl: (json['image_url'] as String?) ?? '',
+      imageCacheKey: json['image_cache_key'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
       isFavorite: (json['is_favorite'] as bool?) ?? false,
       isOwned: (json['is_owned'] as bool?) ?? true,
@@ -504,6 +510,7 @@ class Garment {
       uploadUrl: '',
       objectName: '',
       imageUrl: json['image_url'] as String?,
+      imageCacheKey: json['image_cache_key'] as String?,
       isDeleted: (json['is_deleted'] as bool?) ?? false,
     );
   }

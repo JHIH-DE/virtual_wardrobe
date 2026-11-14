@@ -88,7 +88,7 @@ void main() {
     }, _client(summary: pointsSummaryJson(balance: 1234, costs: _allCosts)));
 
     expect(find.text('P 1,234', findRichText: true), findsOneWidget);
-    expect(find.textContaining('You get 15 points every day'), findsOneWidget);
+    expect(find.textContaining('15 points tomorrow'), findsOneWidget);
     expect(find.textContaining('Uwearis Plus ·'), findsNothing);
     expect(find.text('Points per feature'), findsNothing);
 
@@ -154,14 +154,45 @@ void main() {
       },
       _client(
         summary: pointsSummaryJson(
-          dailyGrant: 300,
+          dailyGrant: 75,
+          nextGrant: 75,
           subscriptionExpiresAt: '2026-12-09T00:00:00+08:00',
         ),
       ),
     );
     expect(find.textContaining('Uwearis Plus · until'), findsOneWidget);
-    expect(find.textContaining('You get 300 points every day'), findsOneWidget);
+    expect(find.textContaining('75 points tomorrow'), findsOneWidget);
   });
+
+  for (final (name, daily, next, expected) in [
+    (
+      'the last grant day says so',
+      75,
+      0,
+      'Today is the last day of daily points',
+    ),
+    ('no grant today or tomorrow shows no grant line', 0, 0, null),
+  ]) {
+    testWidgets(name, (tester) async {
+      tester.view.physicalSize = const Size(390, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await http.runWithClient(
+        () async {
+          await pumpApp(tester, const PointsPage());
+          await tester.pumpAndSettle();
+        },
+        _client(
+          summary: pointsSummaryJson(dailyGrant: daily, nextGrant: next),
+        ),
+      );
+      expect(find.textContaining('points tomorrow'), findsNothing);
+      expect(
+        find.text('Today is the last day of daily points'),
+        expected == null ? findsNothing : findsOneWidget,
+      );
+    });
+  }
 
   testWidgets('selecting a plan updates the bottom action', (tester) async {
     tester.view.physicalSize = const Size(390, 2400);
@@ -206,7 +237,7 @@ void main() {
       );
       expect(find.text('Refund · Virtual try-on'), findsOneWidget);
       expect(find.text('Virtual try-on'), findsOneWidget);
-      expect(find.text('Daily points'), findsOneWidget);
+      expect(find.text('Points granted'), findsOneWidget);
       expect(find.text('AI feature'), findsOneWidget);
       expect(find.text('+30'), findsOneWidget);
       expect(find.text('-30'), findsOneWidget);

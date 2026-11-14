@@ -4,8 +4,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:uwearis/core/services/api_exception.dart';
+import 'package:uwearis/core/services/points_service.dart';
 import 'package:uwearis/core/utils/api_error_text.dart';
+import 'package:uwearis/data/points.dart';
 import 'package:uwearis/l10n/generated/app_localizations_en.dart';
+
+import '../helpers/points_fixture.dart';
 
 void main() {
   final l10n = AppLocalizationsEn();
@@ -128,22 +132,43 @@ void main() {
     String msg(Object e) =>
         apiErrorMessage(l10n, e, fallback: l10n.garmentSaveFailed);
 
-    test('insufficient points names the local time of the next grant', () {
+    group('insufficient points', () {
       const error = ApiException(
         statusCode: 402,
         errorCode: 'INSUFFICIENT_POINTS',
         message: 'not enough',
       );
-      final grant = nextDailyPointsGrant(DateTime.now());
-      final hhmm =
-          '${grant.hour.toString().padLeft(2, '0')}:'
-          '${grant.minute.toString().padLeft(2, '0')}';
-      expect(msg(error), l10n.insufficientPoints(hhmm));
-      expect(isInsufficientPoints(error), isTrue);
-      expect(
-        isInsufficientPoints(const ApiException(statusCode: 402, message: 'x')),
-        isFalse,
-      );
+      tearDown(() => PointsService.lastSummary = null);
+
+      PointsSummary summary({required int nextGrant}) =>
+          PointsSummary.fromJson(pointsSummaryJson(nextGrant: nextGrant));
+
+      test('names the local time of a grant that is coming', () {
+        final points = PointsService.lastSummary = summary(nextGrant: 75);
+        expect(
+          msg(error),
+          l10n.insufficientPoints(clockLabel(points.nextClaimAt)),
+        );
+      });
+
+      test('points to Plus when no grant is coming', () {
+        PointsService.lastSummary = summary(nextGrant: 0);
+        expect(msg(error), l10n.insufficientPointsNoGrant);
+      });
+
+      test('promises no grant before the balance was ever read', () {
+        expect(msg(error), l10n.insufficientPointsNoGrant);
+      });
+
+      test('is recognised only by its error code', () {
+        expect(isInsufficientPoints(error), isTrue);
+        expect(
+          isInsufficientPoints(
+            const ApiException(statusCode: 402, message: 'x'),
+          ),
+          isFalse,
+        );
+      });
     });
 
     test('any other 429 is a rate limit', () {
@@ -171,23 +196,6 @@ void main() {
         msg(const ApiException(statusCode: 422, message: 'x')),
         l10n.garmentSaveFailed,
       );
-    });
-  });
-
-  group('nextDailyPointsGrant', () {
-    test('is the next 00:00 Taipei (16:00 UTC)', () {
-      final reset = nextDailyPointsGrant(DateTime.utc(2026, 10, 28, 3));
-      expect(reset.toUtc(), DateTime.utc(2026, 10, 28, 16));
-    });
-
-    test('rolls to the following day once Taipei has passed midnight', () {
-      final reset = nextDailyPointsGrant(DateTime.utc(2026, 10, 28, 16, 1));
-      expect(reset.toUtc(), DateTime.utc(2026, 10, 29, 16));
-    });
-
-    test('handles month ends', () {
-      final reset = nextDailyPointsGrant(DateTime.utc(2026, 12, 31, 17));
-      expect(reset.toUtc(), DateTime.utc(2027, 1, 1, 16));
     });
   });
 }

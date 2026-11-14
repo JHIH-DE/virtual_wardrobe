@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/widgets/garment/garment_card.dart';
 
+import '../helpers/text_scale_harness.dart';
 import '../helpers/widget_harness.dart';
 
 const _garment = Garment(
@@ -26,6 +27,21 @@ Future<void> _pump(WidgetTester tester, Garment garment) => pumpApp(
 );
 
 void main() {
+  setUpAll(loadAppFont);
+
+  for (final c in layoutCases) {
+    testWidgets('${describeCase(c)}: name and color fit inside the card', (
+      tester,
+    ) async {
+      applyLayoutCase(tester, c);
+      await _pump(tester, _garment.copyWith(color: 'Navy'));
+
+      final card = find.byType(GarmentCard);
+      expectWithin(tester, find.text('Bomber'), card);
+      expectWithin(tester, find.text('Navy'), card);
+    });
+  }
+
   testWidgets('a Not-yet garment shows the Not Owned tag top-left', (
     tester,
   ) async {

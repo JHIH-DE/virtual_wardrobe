@@ -35,6 +35,10 @@ class Outfit {
   final String? name;
   final List<int> garmentIds;
   final String imageUrl;
+
+  /// Backend-derived stable cache key for [imageUrl]; prefer it over the
+  /// local version-counter key wherever one is available.
+  final String? resultImageCacheKey;
   final List<String> seasons;
   final List<String> style;
   final String? errorMessage;
@@ -62,6 +66,7 @@ class Outfit {
     this.name,
     this.garmentIds = const [],
     required this.imageUrl,
+    this.resultImageCacheKey,
     this.seasons = const <String>[],
     this.style = const <String>[],
     this.errorMessage,
@@ -76,6 +81,7 @@ class Outfit {
     bool? isFavorite,
     String? name,
     String? imageUrl,
+    String? resultImageCacheKey,
     List<String>? seasons,
     List<String>? style,
     int? versionCount,
@@ -92,6 +98,7 @@ class Outfit {
       name: name ?? this.name,
       garmentIds: garmentIds,
       imageUrl: imageUrl ?? this.imageUrl,
+      resultImageCacheKey: resultImageCacheKey ?? this.resultImageCacheKey,
       seasons: seasons ?? this.seasons,
       style: style ?? this.style,
       errorMessage: errorMessage,
@@ -146,6 +153,7 @@ class Outfit {
       name: json['name'] as String?,
       garmentIds: parseIds(json['garment_ids']),
       imageUrl: (json['result_image_url'] as String?) ?? '',
+      resultImageCacheKey: json['result_image_cache_key'] as String?,
       seasons: parseStrings(json['season']),
       style: parseStrings(json['style']),
       errorMessage: json['error_message'] as String?,

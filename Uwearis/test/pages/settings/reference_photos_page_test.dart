@@ -328,7 +328,7 @@ void main() {
       // A newer upload has already committed a different URL.
       container
           .read(profileProvider.notifier)
-          .setBodyRefUrl('https://example.com/body-newly-uploaded.jpg');
+          .setBodyRefUrl('https://example.com/body-newly-uploaded.jpg', null);
       await tester.pump();
 
       // A refresh started against the original URL resolves only now.
@@ -662,7 +662,7 @@ void main() {
         final newPath = _writeTempPng('would_be_new_body');
         final originalPath = await pumpWithCommittedBody(
           tester,
-          upload: (kind, path) async => newPath,
+          upload: (kind, path) async => UploadedImage(url: newPath),
           verify: (context, url) async =>
               throw Exception('could not load $url'),
         );
@@ -703,7 +703,7 @@ void main() {
           onDownloadPathCreated: (p) => downloadedOriginalPath = p,
           upload: (kind, path) async {
             pendingUploadPath = path;
-            return newPath;
+            return UploadedImage(url: newPath);
           },
           verify: (context, url) async => verifiedUrl = url,
         );
@@ -781,7 +781,7 @@ void main() {
                 return gate.future;
               }),
               uploadReferencePhotoProvider.overrideWithValue(
-                (kind, path) async => path,
+                (kind, path) async => UploadedImage(url: path),
               ),
               verifyReferencePhotoLoadsProvider.overrideWithValue(
                 (context, url) async {},
@@ -949,7 +949,7 @@ void main() {
         // '' not a real URL: a real fetch needs a sqflite factory.
         generate: () async {
           calls++;
-          return '';
+          return const UploadedImage(url: '');
         },
       );
       expect(find.text(_l10n.virtualModelGenerateNewAction), findsOneWidget);
@@ -970,7 +970,7 @@ void main() {
 
     testWidgets('a double tap still generates only once', (tester) async {
       var calls = 0;
-      final pending = Completer<String>();
+      final pending = Completer<UploadedImage>();
       await pushPage(
         tester,
         generate: () {
@@ -986,7 +986,7 @@ void main() {
       expect(calls, 1);
       expect(find.byType(LoadingOverlay), findsOneWidget);
 
-      pending.complete('');
+      pending.complete(const UploadedImage(url: ''));
       await tester.pumpAndSettle();
       expect(calls, 1);
     });

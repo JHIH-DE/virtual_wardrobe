@@ -468,7 +468,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccountConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone.'**
+  /// **'This permanently deletes your account and all your data — outfits, garments, photos and preferences. This cannot be undone. Your points are cleared too: signing up again with the same account won\'t restore them or restart new-member points.'**
   String get deleteAccountConfirmBody;
 
   /// No description provided for @deletingAccountEllipsis.
@@ -530,6 +530,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove'**
   String get remove;
+
+  /// No description provided for @lockGarment.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get lockGarment;
+
+  /// No description provided for @unlockGarment.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlockGarment;
+
+  /// No description provided for @adjustGarmentDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust Details'**
+  String get adjustGarmentDetails;
 
   /// No description provided for @rename.
   ///
@@ -3756,7 +3774,7 @@ abstract class AppLocalizations {
   /// No description provided for @pointsHowItWorksBody.
   ///
   /// In en, this message translates to:
-  /// **'Each AI feature uses points from your balance — see the list above. You get free points every day at 00:00 (Taiwan time), and Plus subscribers get more. If an AI feature fails, its points are refunded automatically.'**
+  /// **'Each AI feature uses points from your balance — see the list above. New accounts get free points every day for their first 7 days, and Plus subscribers get points every day, at 00:00 (Taiwan time). If an AI feature fails, its points are refunded automatically.'**
   String get pointsHowItWorksBody;
 
   /// No description provided for @pointsPrice.
@@ -3849,11 +3867,17 @@ abstract class AppLocalizations {
   /// **'Subscribe · {price}'**
   String pointsSubscribe(String price);
 
-  /// 402 INSUFFICIENT_POINTS; {time} is the local HH:mm of the next daily grant
+  /// 402 INSUFFICIENT_POINTS when points are granted tomorrow; {time} is the local HH:mm of that grant
   ///
   /// In en, this message translates to:
   /// **'Not enough points. You\'ll get more at {time}.'**
   String insufficientPoints(String time);
+
+  /// 402 INSUFFICIENT_POINTS when no points are granted tomorrow
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points. Uwearis Plus members get points every day.'**
+  String get insufficientPointsNoGrant;
 
   /// SnackBar after a try-on: the balance now
   ///
@@ -3879,11 +3903,17 @@ abstract class AppLocalizations {
   /// **'Saved outfits were added, but there weren\'t enough points for AI styling.'**
   String get tripAiInsufficientPoints;
 
-  /// No description provided for @pointsDailyGrantHint.
+  /// Points page: the next daily grant; {time} is local HH:mm
   ///
   /// In en, this message translates to:
-  /// **'You get {count} points every day · next at {time}'**
-  String pointsDailyGrantHint(int count, String time);
+  /// **'{count} points tomorrow · added at {time}'**
+  String pointsNextGrantHint(int count, String time);
+
+  /// Points page: points were granted today but none tomorrow (new-member period or subscription ending)
+  ///
+  /// In en, this message translates to:
+  /// **'Today is the last day of daily points'**
+  String get pointsLastGrantToday;
 
   /// No description provided for @pointsPlusActiveUntil.
   ///
@@ -3990,7 +4020,7 @@ abstract class AppLocalizations {
   /// No description provided for @pointsKindDailyGrant.
   ///
   /// In en, this message translates to:
-  /// **'Daily points'**
+  /// **'Points granted'**
   String get pointsKindDailyGrant;
 
   /// No description provided for @pointsKindRefund.

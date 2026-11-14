@@ -57,7 +57,7 @@ void main() {
         expect(c.read(profileProvider).value!.bodyRefUrl, isNull);
         c
             .read(profileProvider.notifier)
-            .setBodyRefUrl('https://example.com/body-new.jpg');
+            .setBodyRefUrl('https://example.com/body-new.jpg', null);
         expect(
           c.read(profileProvider).value!.bodyRefUrl,
           'https://example.com/body-new.jpg',
@@ -71,7 +71,7 @@ void main() {
         expect(c.read(profileProvider).value!.faceRefUrl, isNull);
         c
             .read(profileProvider.notifier)
-            .setFaceRefUrl('https://example.com/face-new.jpg');
+            .setFaceRefUrl('https://example.com/face-new.jpg', null);
         expect(
           c.read(profileProvider).value!.faceRefUrl,
           'https://example.com/face-new.jpg',
@@ -86,7 +86,7 @@ void main() {
         expect(c.read(profileProvider).value!.baseModelUrl, isNull);
         c
             .read(profileProvider.notifier)
-            .setBaseModelUrl('https://example.com/base-model.jpg');
+            .setBaseModelUrl('https://example.com/base-model.jpg', null);
         expect(
           c.read(profileProvider).value!.baseModelUrl,
           'https://example.com/base-model.jpg',
@@ -100,7 +100,7 @@ void main() {
         (c) async {
           c
               .read(profileProvider.notifier)
-              .setBodyRefUrl('https://example.com/body-new.jpg');
+              .setBodyRefUrl('https://example.com/body-new.jpg', null);
           final data = c.read(profileProvider).value!;
           expect(data.faceRefUrl, 'https://example.com/face-old.jpg');
           expect(data.profile.name, 'Test User');
@@ -140,7 +140,10 @@ void main() {
           // A separate, newer flow already committed a different URL.
           c
               .read(profileProvider.notifier)
-              .setBodyRefUrl('https://example.com/body-b-newly-uploaded.jpg');
+              .setBodyRefUrl(
+                'https://example.com/body-b-newly-uploaded.jpg',
+                null,
+              );
 
           // A stale refresh, started against the *original* URL, resolves
           // only now.
@@ -178,7 +181,10 @@ void main() {
           // Now a newer commit lands, then a second stale refresh resolves.
           c
               .read(profileProvider.notifier)
-              .setFaceRefUrl('https://example.com/face-b-newly-uploaded.jpg');
+              .setFaceRefUrl(
+                'https://example.com/face-b-newly-uploaded.jpg',
+                null,
+              );
           c
               .read(profileProvider.notifier)
               .setFaceRefUrlIfCurrent(

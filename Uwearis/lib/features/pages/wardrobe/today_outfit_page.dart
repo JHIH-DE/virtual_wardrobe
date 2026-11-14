@@ -11,6 +11,7 @@ import '../../../core/services/auth_handler.dart';
 import '../../../core/utils/analytics.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/debug_log.dart';
+import '../../../core/utils/image_cache_bust.dart';
 import '../../../core/utils/outfit_garments.dart';
 import '../../../data/garment.dart';
 import '../../../data/outfit.dart';
@@ -147,7 +148,10 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
               itemCount: options.length,
               itemBuilder: (_, index) {
                 final outfit = options[index];
-                final cacheKey = outfitImageVersionedCacheKey(outfit.id);
+                final cacheKey = imageCacheKey(
+                  outfit.resultImageCacheKey,
+                  outfitImageVersionedCacheKey(outfit.id),
+                );
                 return GestureDetector(
                   onTap: () => showFullscreenImage(
                     context,

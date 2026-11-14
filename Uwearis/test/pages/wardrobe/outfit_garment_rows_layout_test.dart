@@ -11,6 +11,7 @@ import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/outfit_edit_page.dart';
 import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
 import 'package:uwearis/features/widgets/common/cards/card_corner_badge.dart';
+import 'package:uwearis/features/widgets/common/cards/swipe_action_card.dart';
 import 'package:uwearis/features/widgets/garment/garment_image.dart';
 import 'package:uwearis/l10n/generated/app_localizations.dart';
 
@@ -70,12 +71,37 @@ void _expectReadableRow(WidgetTester tester, String name) {
   expectNoBrokenWords(tester, nameText);
   expect(renderedLineCount(tester, nameText), lessThanOrEqualTo(2));
 
-  // The photo still spans the row (8px inset) at its fixed width.
+  // Beside the text the photo spans the row (8px inset); once a word
+  // can't fit beside it, it sits above the text instead.
   final image = find.descendant(of: row, matching: find.byType(GarmentImage));
-  expect(
-    tester.getSize(image).height,
-    closeTo(tester.getSize(row).height - 16, 0.5),
-  );
+  final imageRect = tester.getRect(image);
+  if (imageRect.right <= tester.getRect(nameText).left) {
+    expect(imageRect.height, closeTo(tester.getSize(row).height - 16, 0.5));
+  } else {
+    expect(imageRect.bottom, lessThanOrEqualTo(tester.getRect(nameText).top));
+  }
+  expectWithin(tester, image, row);
+
+  // Beside the photo, the text (with any side actions) is vertically
+  // centered in the row.
+  if (imageRect.right <= tester.getRect(nameText).left) {
+    final parts = find.descendant(
+      of: row,
+      matching: find.byWidgetPredicate(
+        (w) => w is Text || w is CardCornerBadge,
+      ),
+    );
+    var block = tester.getRect(parts.first);
+    for (var i = 1; i < parts.evaluate().length; i++) {
+      block = block.expandToInclude(tester.getRect(parts.at(i)));
+    }
+    final rowRect = tester.getRect(row);
+    expect(
+      (block.top - rowRect.top) - (rowRect.bottom - block.bottom),
+      closeTo(0, 1),
+      reason: 'text block $block is not centered in $rowRect',
+    );
+  }
 
   // Every action badge stays fully inside the row with its 24x44 hit box.
   final badges = find.descendant(
@@ -189,30 +215,62 @@ void main() {
         _expectAddGarmentRowReadable(tester, l10n);
         final longName = closet.first.name;
         final row = _rowOf(longName);
-        Finder lockIn(IconData icon) =>
-            find.descendant(of: row, matching: find.byIcon(icon));
-        final initiallyLocked = lockIn(Icons.lock).evaluate().isNotEmpty;
+        final card = find
+            .ancestor(of: row, matching: find.byType(SwipeActionCard))
+            .first;
+        bool isLocked() =>
+            tester.widget<SwipeActionCard>(card).leadingActions.first.icon ==
+            Icons.lock_outline;
+        final initiallyLocked = isLocked();
+        final toggleIcon = initiallyLocked
+            ? Icons.lock_outline
+            : Icons.lock_open;
 
         for (final g in closet) {
           _expectReadableRow(tester, g.name);
         }
 
-        // Toggle the long-named row's lock: the other state lays out too,
-        // and the badge still works wherever the layout put it.
-        await tester.tap(
-          lockIn(initiallyLocked ? Icons.lock : Icons.lock_open),
-        );
+        // The revealed actions sit on screen, inside the row's height.
+        Future<void> reveal({required bool lock}) async {
+          await tester.drag(find.text(longName), Offset(lock ? 300 : -300, 0));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+        }
+
+        final screen = Offset.zero & tester.view.physicalSize / 3;
+        void expectDiscsOnScreen(List<IconData> icons) {
+          for (final icon in icons) {
+            final disc = find
+                .ancestor(
+                  of: find.byIcon(icon),
+                  matching: find.byType(Material),
+                )
+                .first;
+            expectWithin(tester, disc, card);
+            final rect = tester.getRect(disc);
+            expect(screen.contains(rect.topLeft), isTrue);
+            expect(screen.contains(rect.bottomRight), isTrue);
+          }
+        }
+
+        await reveal(lock: false);
+        expectDiscsOnScreen([Icons.tune, Icons.delete_outline]);
+        await tester.tap(find.text(longName), warnIfMissed: false);
         await tester.pump();
-        expect(
-          lockIn(initiallyLocked ? Icons.lock_open : Icons.lock),
-          findsOneWidget,
-        );
+        await tester.pump(const Duration(milliseconds: 300));
+
+        await reveal(lock: true);
+        expectDiscsOnScreen([toggleIcon]);
+
+        // Toggling lays out the other state.
+        await tester.tap(find.byIcon(toggleIcon));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(isLocked(), !initiallyLocked);
         _expectReadableRow(tester, longName);
 
-        // Remove still reaches its own row.
-        await tester.tap(
-          find.descendant(of: row, matching: find.byIcon(Icons.close)),
-        );
+        await reveal(lock: false);
+        await tester.tap(find.byIcon(Icons.delete_outline));
         await tester.pump();
         expect(find.text(longName), findsNothing);
       });

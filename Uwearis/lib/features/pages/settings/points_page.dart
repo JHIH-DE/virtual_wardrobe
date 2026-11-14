@@ -257,14 +257,19 @@ class _PointsPageState extends ConsumerState<PointsPage> {
           const SizedBox(height: 4),
           amount,
           if (summary != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _l10n.pointsDailyGrantHint(
-                summary.dailyGrant,
-                clockLabel(summary.nextClaimAt),
+            if (summary.nextGrant > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                _l10n.pointsNextGrantHint(
+                  summary.nextGrant,
+                  clockLabel(summary.nextClaimAt),
+                ),
+                style: secondary,
               ),
-              style: secondary,
-            ),
+            ] else if (summary.dailyGrant > 0) ...[
+              const SizedBox(height: 8),
+              Text(_l10n.pointsLastGrantToday, style: secondary),
+            ],
             if (summary.subscriptionActive && expiresAt != null) ...[
               const SizedBox(height: 4),
               Text(

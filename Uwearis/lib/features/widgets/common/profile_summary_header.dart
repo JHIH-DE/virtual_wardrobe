@@ -30,6 +30,7 @@ class ProfileSummaryHeader extends StatelessWidget {
         children: [
           ProfileAvatar(
             url: url,
+            cacheKey: profile?.avatarCacheKey,
             onRefreshUrl: () => ProfileService().getMyAvatar(),
             size: 96,
             showEditLabel: false,

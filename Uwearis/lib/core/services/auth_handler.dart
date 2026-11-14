@@ -21,6 +21,7 @@ import 'auth_storage.dart';
 import 'garment_service.dart';
 import 'outfit_service.dart';
 import 'pending_try_on_store.dart';
+import 'points_service.dart';
 
 class AuthExpiredException implements Exception {
   final String _message;
@@ -40,6 +41,7 @@ Future<void> clearSignedInSession() async {
   OutfitService().clearGroupCache();
   await PendingTryOnStore.clear();
   await DailyPointsNotice.clear();
+  PointsService.lastSummary = null;
 }
 
 /// Providers outlive the Navigator, so without this a new sign-in would see
