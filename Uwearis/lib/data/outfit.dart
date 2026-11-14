@@ -77,6 +77,12 @@ class Outfit {
     this.groupName,
   });
 
+  /// The cache key every widget displaying this outfit's image should use:
+  /// the backend's own [resultImageCacheKey] when available, else the local
+  /// version-counter fallback.
+  String get displayImageCacheKey =>
+      imageCacheKey(resultImageCacheKey, outfitImageVersionedCacheKey(id))!;
+
   Outfit copyWith({
     bool? isFavorite,
     String? name,

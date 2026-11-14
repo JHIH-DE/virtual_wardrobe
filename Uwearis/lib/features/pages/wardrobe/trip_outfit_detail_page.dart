@@ -328,12 +328,7 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
                   isLoading: _renderingOutfit,
                   jobStatus: _l10n.generatingTryOnEllipsis,
                   errorLabel: _l10n.failedToLoadImage,
-                  cacheKey: imageCacheKey(
-                    outfit.resultImageCacheKey,
-                    outfit.imageOutfitId == null
-                        ? null
-                        : outfitImageVersionedCacheKey(outfit.imageOutfitId!),
-                  ),
+                  cacheKey: outfit.displayImageCacheKey,
                   onRefreshUrl: _refreshImageUrl,
                   onRegenerate: canTryOn && !locked
                       ? () => _tryOn(outfit)

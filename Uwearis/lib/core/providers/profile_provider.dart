@@ -40,7 +40,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileData> {
       current.copyWith(
         bodyRefUrl: url,
         bodyRefCacheKey: cacheKey,
-        setBodyRefCacheKey: true,
+        clearBodyRefCacheKey: cacheKey == null,
       ),
     );
   }
@@ -52,7 +52,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileData> {
       current.copyWith(
         faceRefUrl: url,
         faceRefCacheKey: cacheKey,
-        setFaceRefCacheKey: true,
+        clearFaceRefCacheKey: cacheKey == null,
       ),
     );
   }
@@ -80,7 +80,7 @@ class ProfileNotifier extends AsyncNotifier<ProfileData> {
       current.copyWith(
         baseModelUrl: url,
         baseModelCacheKey: cacheKey,
-        setBaseModelCacheKey: true,
+        clearBaseModelCacheKey: cacheKey == null,
       ),
     );
   }

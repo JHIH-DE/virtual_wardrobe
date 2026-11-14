@@ -1146,6 +1146,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
         category: g.category,
         name: g.name,
         imageUrl: freshUrl,
+        imageCacheKey: g.imageCacheKey,
         isTarget: g.isTarget,
       );
     }
@@ -1639,6 +1640,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
         category: saved.category,
         name: saved.name,
         imageUrl: saved.imageUrl ?? '',
+        imageCacheKey: saved.imageCacheKey,
         isTarget: true,
       );
     }

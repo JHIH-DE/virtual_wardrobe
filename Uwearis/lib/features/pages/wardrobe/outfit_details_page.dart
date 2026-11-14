@@ -687,11 +687,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
                   itemBuilder: (_, index) {
                     final outfit = _versions[index];
                     // Survives URL re-signing; versioned by _regenerateImage.
-                    // The backend's own key, when available, takes priority.
-                    final cacheKey = imageCacheKey(
-                      outfit.resultImageCacheKey,
-                      outfitImageVersionedCacheKey(outfit.id),
-                    );
+                    final cacheKey = outfit.displayImageCacheKey;
                     return GestureDetector(
                       onTap: () => showFullscreenImage(
                         context,

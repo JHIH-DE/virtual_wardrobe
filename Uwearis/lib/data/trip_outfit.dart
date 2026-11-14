@@ -1,5 +1,7 @@
+import '../core/utils/image_cache_bust.dart';
 import '../core/utils/signed_url.dart';
 import 'garment.dart';
+import 'outfit.dart';
 
 /// Backend `TripOutfitSource`: how a trip outfit came to exist. Whether
 /// Refresh may replace it is a separate flag ([TripOutfit.isReplaceable]).
@@ -121,6 +123,15 @@ class TripOutfit {
   ];
 
   bool get hasImage => resultImageUrl?.isNotEmpty ?? false;
+
+  /// The cache key every widget displaying this trip outfit's image should
+  /// use: the backend's own [resultImageCacheKey] when available, else the
+  /// local version-counter fallback keyed by [imageOutfitId] (null before
+  /// any render exists, so no cache key at all).
+  String? get displayImageCacheKey => imageCacheKey(
+    resultImageCacheKey,
+    imageOutfitId == null ? null : outfitImageVersionedCacheKey(imageOutfitId!),
+  );
 
   factory TripOutfit.fromJson(Map<String, dynamic> json) {
     return TripOutfit(

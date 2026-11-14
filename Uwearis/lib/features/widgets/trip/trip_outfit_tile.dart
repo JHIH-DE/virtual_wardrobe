@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../../../core/utils/image_cache_bust.dart';
-import '../../../data/outfit.dart';
 import '../../../data/trip_outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/cards/category_tag.dart';
@@ -136,12 +134,7 @@ class TripOutfitTile extends StatelessWidget {
         memCacheWidth:
             (constraints.maxWidth * MediaQuery.devicePixelRatioOf(context))
                 .ceil(),
-        cacheKey: imageCacheKey(
-          outfit.resultImageCacheKey,
-          outfit.imageOutfitId == null
-              ? null
-              : outfitImageVersionedCacheKey(outfit.imageOutfitId!),
-        ),
+        cacheKey: outfit.displayImageCacheKey,
         onRefreshUrl: onRefreshImageUrl,
       ),
     );

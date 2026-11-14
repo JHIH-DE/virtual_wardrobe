@@ -30,11 +30,11 @@ class ProfileData {
     this.baseModelCacheKey,
   });
 
-  /// The cache key setters pass [bodyRefCacheKey] etc. even when `null` (a
-  /// fresh upload against a backend that hasn't deployed the field), so
-  /// those three use [setBodyRefCacheKey] flags rather than `??`-merging —
-  /// otherwise a stale key from the previous photo would survive and could
-  /// pair with the new URL under the old photo's disk-cache entry.
+  /// A fresh upload passes its cache key even when it's `null` (a backend
+  /// that hasn't deployed the field yet), so these three follow the
+  /// project's `clearX` idiom rather than `??`-merging — otherwise a stale
+  /// key from the previous photo would survive and could pair with the new
+  /// URL under the old photo's disk-cache entry.
   ProfileData copyWith({
     UserProfile? profile,
     String? bodyRefUrl,
@@ -43,19 +43,23 @@ class ProfileData {
     String? bodyRefCacheKey,
     String? faceRefCacheKey,
     String? baseModelCacheKey,
-    bool setBodyRefCacheKey = false,
-    bool setFaceRefCacheKey = false,
-    bool setBaseModelCacheKey = false,
+    bool clearBodyRefCacheKey = false,
+    bool clearFaceRefCacheKey = false,
+    bool clearBaseModelCacheKey = false,
   }) => ProfileData(
     profile: profile ?? this.profile,
     bodyRefUrl: bodyRefUrl ?? this.bodyRefUrl,
     faceRefUrl: faceRefUrl ?? this.faceRefUrl,
     baseModelUrl: baseModelUrl ?? this.baseModelUrl,
-    bodyRefCacheKey: setBodyRefCacheKey ? bodyRefCacheKey : this.bodyRefCacheKey,
-    faceRefCacheKey: setFaceRefCacheKey ? faceRefCacheKey : this.faceRefCacheKey,
-    baseModelCacheKey: setBaseModelCacheKey
-        ? baseModelCacheKey
-        : this.baseModelCacheKey,
+    bodyRefCacheKey: clearBodyRefCacheKey
+        ? null
+        : (bodyRefCacheKey ?? this.bodyRefCacheKey),
+    faceRefCacheKey: clearFaceRefCacheKey
+        ? null
+        : (faceRefCacheKey ?? this.faceRefCacheKey),
+    baseModelCacheKey: clearBaseModelCacheKey
+        ? null
+        : (baseModelCacheKey ?? this.baseModelCacheKey),
   );
 
   /// The backend's OpenAPI example value "string" sometimes leaks through as

@@ -20,7 +20,6 @@ import '../../../core/services/auth_handler.dart';
 import '../../../core/services/outfit_service.dart';
 import '../../../core/utils/date_locale.dart';
 import '../../../core/utils/debug_log.dart';
-import '../../../core/utils/image_cache_bust.dart';
 import '../../../data/garment.dart';
 import '../../../data/outfit.dart';
 import '../../../data/profile_data.dart';
@@ -527,6 +526,7 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
                         itemCount: options.length,
                         itemBuilder: (_, index) {
                           final option = options[index];
+                          final cacheKey = option.displayImageCacheKey;
                           return GestureDetector(
                             onTap: () => isFallbackOutfit
                                 ? _openOutfitDetails(option)
@@ -534,17 +534,9 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
                             child: Container(
                               color: AppColors.surface,
                               child: RefreshableNetworkImage(
-                                key: ValueKey(
-                                  imageCacheKey(
-                                    option.resultImageCacheKey,
-                                    outfitImageVersionedCacheKey(option.id),
-                                  ),
-                                ),
+                                key: ValueKey(cacheKey),
                                 imageUrl: option.imageUrl,
-                                cacheKey: imageCacheKey(
-                                  option.resultImageCacheKey,
-                                  outfitImageVersionedCacheKey(option.id),
-                                ),
+                                cacheKey: cacheKey,
                                 fit: BoxFit.cover,
                                 errorIconSize: 48,
                                 placeholderBuilder: (_) =>
