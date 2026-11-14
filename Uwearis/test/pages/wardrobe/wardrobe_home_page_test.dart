@@ -38,6 +38,56 @@ class _FakeDailyOutfitNotifier extends DailyOutfitNotifier {
   }
 }
 
+/// Resolves only after [delay], so a test can see Home before today's
+/// outfit has arrived.
+class _DelayedDailyOutfitNotifier extends _FakeDailyOutfitNotifier {
+  _DelayedDailyOutfitNotifier(super.outfits, {required this.delay});
+  final Duration delay;
+
+  @override
+  Future<List<Outfit>> build() async {
+    await Future<void>.delayed(delay);
+    return _outfits;
+  }
+}
+
+/// [refresh] stays loading for [delay] before showing [next].
+class _SlowRefreshDailyOutfitNotifier extends _FakeDailyOutfitNotifier {
+  _SlowRefreshDailyOutfitNotifier(super.outfits, {required this.next});
+  final List<Outfit> next;
+  static const delay = Duration(milliseconds: 100);
+
+  @override
+  Future<void> refresh() async {
+    refreshCount++;
+    state = const AsyncLoading();
+    await Future<void>.delayed(delay);
+    state = AsyncData(next);
+  }
+}
+
+/// Fails its first load, then succeeds.
+class _FailOnceGarmentsNotifier extends GarmentsNotifier {
+  static int builds = 0;
+
+  @override
+  Future<List<Garment>> build() async {
+    if (builds++ == 0) throw Exception('first load failed');
+    return const [_topGarment, _bottomGarment, _shoesGarment];
+  }
+}
+
+class _DelayedProfileNotifier extends _FakeProfileNotifier {
+  _DelayedProfileNotifier({required this.delay});
+  final Duration delay;
+
+  @override
+  Future<ProfileData> build() async {
+    await Future<void>.delayed(delay);
+    return data;
+  }
+}
+
 class _FakeWeatherNotifier extends WeatherNotifier {
   @override
   Future<WeatherData> build() async => WeatherData(
@@ -197,7 +247,7 @@ void main() {
   List<Override> overridesWith(
     _FakeDailyOutfitNotifier dailyOutfit, {
     GarmentsNotifier? garments,
-    _FakeProfileNotifier? profile,
+    ProfileNotifier? profile,
     _FakeOutfitsNotifier? outfits,
     _FakeTripsNotifier? trips,
   }) => [
@@ -649,11 +699,9 @@ void main() {
     },
   );
 
-  testWidgets('regression: ref.invalidate (as login does via '
-      'invalidateSignedInProviders) must not flash the previous account\'s '
-      'stale Home content while the new account\'s fetch is still in flight', (
-    tester,
-  ) async {
+  testWidgets('regression: a sign-in (invalidateSignedInProviders, then a '
+      'new Home) must not flash the previous account\'s stale Home content '
+      'while the new account\'s fetch is still in flight', (tester) async {
     final dailyOutfit = _FakeDailyOutfitNotifier([
       Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
     ]);
@@ -674,22 +722,73 @@ void main() {
     // A zero-duration pump() never fires a Future.delayed.
     await tester.pump(delay);
     expect(find.text('Thursday, Sep 17'), findsOneWidget);
-    expect(find.text('Welcome to Uwearis'), findsNothing);
 
-    // What invalidateSignedInProviders does on login: the AsyncLoading
-    // still carries account A's value via copyWithPrevious.
+    // As in the app: the signed-in shell is gone before the next login,
+    // which invalidates the providers and mounts a new Home. The
+    // AsyncLoading still carries account A's value.
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    navigator.pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => const SizedBox()),
+    );
+    await _pumpRoute(tester);
+    expect(find.byType(WardrobeHomePage), findsNothing);
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(WardrobeHomePage)),
+      tester.element(find.byType(Navigator)),
     );
     container.invalidate(garmentsProvider);
+    navigator.pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
+      ),
+    );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 10));
 
     // Mid-refetch: must not fall through to A's stale value.
     expect(find.text('Thursday, Sep 17'), findsNothing);
     expect(find.text('Welcome to Uwearis'), findsNothing);
 
     await tester.pump(delay);
+    await _pumpRoute(tester);
     expect(find.text('Thursday, Sep 17'), findsOneWidget);
+  });
+
+  testWidgets('refreshes while Home stays mounted keep showing its content: no '
+      'blank page, and the outfit carousel is not swapped for a spinner', (
+    tester,
+  ) async {
+    const delay = Duration(milliseconds: 50);
+    final dailyOutfit = _FakeDailyOutfitNotifier([
+      Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
+    ]);
+    await pumpApp(
+      tester,
+      WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
+      overrides: overridesWith(
+        dailyOutfit,
+        garments: _DelayedGarmentsNotifier(const [
+          _topGarment,
+          _bottomGarment,
+          _shoesGarment,
+        ], delay: delay),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(delay);
+    expect(find.byType(PageView), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(WardrobeHomePage)),
+    );
+    container.invalidate(garmentsProvider);
+    dailyOutfit.state = const AsyncLoading();
+    await tester.pump();
+
+    expect(find.text('Thursday, Sep 17'), findsOneWidget);
+    expect(find.text('Recently Added'), findsOneWidget);
+    expect(find.byType(PageView), findsOneWidget);
+
+    await tester.pump(delay);
   });
 
   testWidgets(
@@ -738,6 +837,97 @@ void main() {
             .currentIndex,
         1,
       );
+    },
+  );
+
+  testWidgets(
+    'an established user sees Home as soon as the closet and outfits are '
+    'in, with today\'s outfit filling in later; profile is not waited on',
+    (tester) async {
+      const delay = Duration(milliseconds: 100);
+      final dailyOutfit = _DelayedDailyOutfitNotifier([
+        Outfit(id: 1, imageUrl: 'https://example.com/outfit.jpg'),
+      ], delay: delay);
+      await pumpApp(
+        tester,
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
+        overrides: overridesWith(
+          dailyOutfit,
+          profile: _DelayedProfileNotifier(delay: delay),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Thursday, Sep 17'), findsOneWidget);
+      expect(find.text('Recently Added'), findsOneWidget);
+      expect(find.text("Today's Outfit"), findsOneWidget);
+      expect(find.byType(PageView), findsNothing);
+
+      await tester.pump(delay);
+      expect(find.byType(PageView), findsOneWidget);
+      expect(find.text('Welcome to Uwearis'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "after midnight, yesterday's plan is not shown as today's while the "
+    'new day loads',
+    (tester) async {
+      var now = DateTime(2026, 9, 17, 23, 59, 50);
+      final dailyOutfit = _SlowRefreshDailyOutfitNotifier(
+        [Outfit(id: 1, imageUrl: 'https://example.com/yesterday.jpg')],
+        next: [Outfit(id: 2, imageUrl: 'https://example.com/today.jpg')],
+      );
+      await pumpApp(
+        tester,
+        WardrobeHomePage(now: () => now),
+        overrides: overridesWith(dailyOutfit),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(PageView), findsOneWidget);
+
+      now = DateTime(2026, 9, 18, 0, 0, 5);
+      await tester.pump(const Duration(minutes: 1));
+      await tester.pump();
+
+      expect(dailyOutfit.refreshCount, 1);
+      expect(find.text('Friday, Sep 18'), findsOneWidget);
+      expect(find.byType(PageView), findsNothing);
+
+      await tester.pump(_SlowRefreshDailyOutfitNotifier.delay);
+      expect(find.byType(PageView), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a failed first closet load shows Retry rather than Getting Started '
+    'with an empty closet, and Retry brings Home back',
+    (tester) async {
+      _FailOnceGarmentsNotifier.builds = 0;
+      await pumpApp(
+        tester,
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
+        overrides: overridesWith(
+          _FakeDailyOutfitNotifier(const []),
+          garments: _FailOnceGarmentsNotifier(),
+        ),
+        retry: (_, _) => null,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Next'), findsNothing);
+      expect(find.text('Welcome to Uwearis'), findsNothing);
+
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Retry'), findsNothing);
+      expect(find.text('Thursday, Sep 17'), findsOneWidget);
     },
   );
 }
