@@ -356,6 +356,7 @@ void main() {
               'fit': 'Regular',
               'silhouette': 'Boxy',
               'sleeve_length': 'Long',
+              'closure': 'Button',
               'crop_length': '',
             },
           ),
@@ -365,8 +366,40 @@ void main() {
         expect(find.text('Regular'), findsOneWidget);
         expect(find.text('Boxy'), findsOneWidget);
         expect(find.text('Long Sleeve'), findsOneWidget);
+        expect(find.text('Buttons'), findsOneWidget);
         expect(find.text('LENGTH'), findsNothing);
       });
+    });
+
+    testWidgets('closure shows only on an Outer, saves right away, and is '
+        'dropped when the category changes', (tester) async {
+      const jacket = Garment(
+        id: 9302,
+        name: 'Denim Jacket',
+        category: GarmentCategory.outer,
+        subCategory: 'Denim jacket',
+        uploadUrl: '',
+        objectName: '',
+        imageUrl: '',
+        sleeveLength: 'Long',
+        closure: 'Zipper',
+      );
+      final patches = <Map<String, dynamic>>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(tester, const GarmentDetailsPage(initialGarment: jacket));
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('CLOSURE'), findsOneWidget);
+
+        await pick(tester, 'Zipper', 'Buttons');
+        expect(find.text('Buttons'), findsOneWidget);
+        expect(patches.last['closure'], 'Button');
+
+        await pick(tester, 'Outer', 'Top');
+        expect(find.text('CLOSURE'), findsNothing);
+        expect(patches.last.containsKey('closure'), isFalse);
+      }, () => _garmentBackend(jacket, patches));
     });
   });
 

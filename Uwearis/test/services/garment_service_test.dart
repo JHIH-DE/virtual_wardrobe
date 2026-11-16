@@ -688,10 +688,14 @@ void main() {
         silhouette: 'Tapered',
         sleeveLength: 'Long',
         cropLength: 'Nine-length',
+        closure: 'Button',
       );
 
       await http.runWithClient(() async {
         await GarmentService().updateGarment(base);
+        await GarmentService().updateGarment(
+          base.copyWith(category: GarmentCategory.outer),
+        );
         await GarmentService().updateGarment(
           base.copyWith(category: GarmentCategory.top, cropLength: ''),
         );
@@ -705,12 +709,22 @@ void main() {
       expect(bodies[0]['silhouette'], 'Tapered');
       expect(bodies[0]['crop_length'], 'Nine-length');
       expect(bodies[0].containsKey('sleeve_length'), isFalse);
-      // Top: no crop_length.
-      expect(bodies[1]['sleeve_length'], 'Long');
-      expect(bodies[1].containsKey('crop_length'), isFalse);
-      // Shoes: none of the four.
-      for (final key in ['fit', 'silhouette', 'sleeve_length', 'crop_length']) {
-        expect(bodies[2].containsKey(key), isFalse, reason: key);
+      expect(bodies[0].containsKey('closure'), isFalse);
+      // Outer: closure.
+      expect(bodies[1]['closure'], 'Button');
+      // Top: no crop_length or closure.
+      expect(bodies[2]['sleeve_length'], 'Long');
+      expect(bodies[2].containsKey('crop_length'), isFalse);
+      expect(bodies[2].containsKey('closure'), isFalse);
+      // Shoes: none of them.
+      for (final key in [
+        'fit',
+        'silhouette',
+        'sleeve_length',
+        'closure',
+        'crop_length',
+      ]) {
+        expect(bodies[3].containsKey(key), isFalse, reason: key);
       }
     });
 

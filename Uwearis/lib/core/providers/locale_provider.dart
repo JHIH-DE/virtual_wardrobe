@@ -35,10 +35,57 @@ class LocaleNotifier extends Notifier<Locale?> {
   /// Never throws.
   Future<void> get backendSynced => _backendSync;
 
+  // The backend `locale` confirmed for the current account. Static: the
+  // sign-out path ([forgetBackendLocale]) has no provider container.
+  static String? _confirmedCode;
+  static int _generation = 0;
+  static Future<bool>? _inFlight;
+  static String? _inFlightCode;
+
+  /// The backend's `Locale` for a displayed app locale.
+  static String apiLocaleFor(Locale displayed) =>
+      displayed.languageCode == 'zh' ? 'zh-TW' : 'en';
+
+  /// Call at session end, so the next account's locale is pushed again.
+  static void forgetBackendLocale() {
+    _generation++;
+    _confirmedCode = null;
+    _inFlight = null;
+    _inFlightCode = null;
+  }
+
+  /// The backend only learns a locale from [setLocale], so a user following
+  /// the system — or one signed in on a device whose saved choice predates
+  /// the account — still has its default (`en`). Call with the displayed
+  /// locale's [apiLocaleFor] before reading backend-labelled data. Pushes it
+  /// unless the backend already confirmed it this session; a failed push is
+  /// retried on the next call. Never throws.
+  Future<void> ensureBackendLocale(String apiCode) async {
+    if (_confirmedCode == apiCode) return;
+    final pending = _inFlightCode == apiCode ? _inFlight : null;
+    await (pending ?? _push(apiCode));
+  }
+
+  Future<bool> _push(String apiCode) {
+    final generation = _generation;
+    late final Future<bool> push;
+    push = _syncToBackend(apiCode).then((ok) {
+      if (identical(_inFlight, push)) {
+        _inFlight = null;
+        _inFlightCode = null;
+      }
+      if (ok && generation == _generation) _confirmedCode = apiCode;
+      return ok;
+    });
+    _inFlight = push;
+    _inFlightCode = apiCode;
+    return push;
+  }
+
   Future<void> setLocale(Locale? locale) async {
     // Started before the state change, so providers rebuilt by it can wait
     // on [backendSynced].
-    final sync = _syncToBackend(locale);
+    final sync = _push(apiLocaleFor(locale ?? _systemLocale()));
     _backendSync = sync;
     state = locale;
     final prefs = await SharedPreferences.getInstance();
@@ -50,17 +97,15 @@ class LocaleNotifier extends Notifier<Locale?> {
     await sync;
   }
 
-  // Best-effort: sets the language of AI-generated text and of the weather
-  // place name. A failure doesn't undo the local switch.
-  Future<void> _syncToBackend(Locale? locale) async {
+  // Best-effort: sets the language of AI-generated text, the weather place
+  // name and adjustment labels. A failure doesn't undo the local switch.
+  static Future<bool> _syncToBackend(String apiCode) async {
     try {
-      await ProfileService().updateMyProfile(
-        locale: _apiCodeFor(locale ?? _systemLocale()),
-      );
+      await ProfileService().updateMyProfile(locale: apiCode);
+      return true;
     } catch (e) {
-      debugLog(
-        'LocaleNotifier.setLocale: failed to sync locale to backend: $e',
-      );
+      debugLog('LocaleNotifier: failed to sync locale to backend: $e');
+      return false;
     }
   }
 
@@ -72,11 +117,6 @@ class LocaleNotifier extends Notifier<Locale?> {
     final parts = code.split('_');
     return parts.length > 1 ? Locale(parts[0], parts[1]) : Locale(parts[0]);
   }
-
-  /// BCP-47 (`"zh-TW"`), unlike the underscore storage format.
-  static String _apiCodeFor(Locale locale) => locale.countryCode == null
-      ? locale.languageCode
-      : '${locale.languageCode}-${locale.countryCode}';
 
   /// The displayed locale when following the system: any zh device locale
   /// maps to zh-TW, everything else to en.

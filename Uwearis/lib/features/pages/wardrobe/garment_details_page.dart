@@ -123,6 +123,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   GarmentFit? _selectedFit;
   GarmentSilhouette? _selectedSilhouette;
   GarmentSleeveLength? _selectedSleeveLength;
+  GarmentClosure? _selectedClosure;
   GarmentCropLength? _selectedCropLength;
   GarmentCategory _category = GarmentCategory.top;
   DateTime? _purchaseDate;
@@ -174,12 +175,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   GarmentFit? _initialFit;
   GarmentSilhouette? _initialSilhouette;
   GarmentSleeveLength? _initialSleeveLength;
+  GarmentClosure? _initialClosure;
   GarmentCropLength? _initialCropLength;
   DateTime? _initialDate;
 
   bool get _showFitField => garmentFitCategories.contains(_category);
   bool get _showSleeveLengthField =>
       garmentSleeveLengthCategories.contains(_category);
+  bool get _showClosureField => garmentClosureCategories.contains(_category);
   bool get _showCropLengthField =>
       garmentCropLengthCategories.contains(_category);
   List<GarmentSilhouette> get _silhouetteOptions =>
@@ -214,6 +217,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     _initialSleeveLength = GarmentSleeveLengthX.fromApiValue(
       _editingGarment?.sleeveLength,
     );
+    _initialClosure = GarmentClosureX.fromApiValue(_editingGarment?.closure);
     _initialCropLength = GarmentCropLengthX.fromApiValue(
       _editingGarment?.cropLength,
     );
@@ -232,6 +236,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       _selectedFit ??= _initialFit;
       _selectedSilhouette ??= _initialSilhouette;
       _selectedSleeveLength ??= _initialSleeveLength;
+      _selectedClosure ??= _initialClosure;
       _selectedCropLength ??= _initialCropLength;
     }
 
@@ -303,6 +308,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
         _selectedFit != _initialFit ||
         _selectedSilhouette != _initialSilhouette ||
         _selectedSleeveLength != _initialSleeveLength ||
+        _selectedClosure != _initialClosure ||
         _selectedCropLength != _initialCropLength ||
         _purchaseDate != _initialDate;
 
@@ -667,6 +673,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
             const SizedBox(height: 20),
             _buildSleeveLengthField(),
           ],
+          if (_showClosureField) ...[
+            const SizedBox(height: 20),
+            _buildClosureField(),
+          ],
           if (_showCropLengthField) ...[
             const SizedBox(height: 20),
             _buildCropLengthField(),
@@ -760,6 +770,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       _selectedSilhouette = null;
     }
     if (!_showSleeveLengthField) _selectedSleeveLength = null;
+    if (!_showClosureField) _selectedClosure = null;
     if (!_showCropLengthField) _selectedCropLength = null;
   }
 
@@ -843,6 +854,16 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       options: GarmentSleeveLength.values,
       labelOf: (v) => v.localizedLabel(context),
       onSelected: (v) => _selectedSleeveLength = v,
+    );
+  }
+
+  Widget _buildClosureField() {
+    return _buildOptionField<GarmentClosure>(
+      label: _l10n.closureLabel,
+      value: _selectedClosure,
+      options: GarmentClosure.values,
+      labelOf: (v) => v.localizedLabel(context),
+      onSelected: (v) => _selectedClosure = v,
     );
   }
 
@@ -968,6 +989,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     );
     _selectedSleeveLength = GarmentSleeveLengthX.fromApiValue(
       analysisData['sleeve_length']?.toString(),
+    );
+    _selectedClosure = GarmentClosureX.fromApiValue(
+      analysisData['closure']?.toString(),
     );
     _selectedCropLength = GarmentCropLengthX.fromApiValue(
       analysisData['crop_length']?.toString(),
@@ -1593,6 +1617,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       fit: _selectedFit?.apiValue,
       silhouette: _selectedSilhouette?.apiValue,
       sleeveLength: _selectedSleeveLength?.apiValue,
+      closure: _selectedClosure?.apiValue,
       cropLength: _selectedCropLength?.apiValue,
       price: double.tryParse(_priceCtrl.text.trim()),
       purchaseDate: _purchaseDate,
@@ -1605,6 +1630,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       'fit': _selectedFit?.apiValue,
       'silhouette': _selectedSilhouette?.apiValue,
       'sleeve_length': _selectedSleeveLength?.apiValue,
+      'closure': _selectedClosure?.apiValue,
       'crop_length': _selectedCropLength?.apiValue ?? '',
     };
     return GarmentService().completeUpload(temp, metadata);
@@ -1624,6 +1650,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       'fit': _selectedFit?.apiValue,
       'silhouette': _selectedSilhouette?.apiValue,
       'sleeve_length': _selectedSleeveLength?.apiValue,
+      'closure': _selectedClosure?.apiValue,
       'crop_length': _selectedCropLength?.apiValue,
     };
   }
@@ -1681,6 +1708,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       clearSilhouette: _selectedSilhouette == null,
       sleeveLength: _selectedSleeveLength?.apiValue,
       clearSleeveLength: _selectedSleeveLength == null,
+      closure: _selectedClosure?.apiValue,
+      clearClosure: _selectedClosure == null,
       cropLength: _selectedCropLength?.apiValue,
       clearCropLength: _selectedCropLength == null,
       price: price,

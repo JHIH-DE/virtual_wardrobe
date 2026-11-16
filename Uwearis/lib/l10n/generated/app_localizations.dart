@@ -549,6 +549,42 @@ abstract class AppLocalizations {
   /// **'Adjust Details'**
   String get adjustGarmentDetails;
 
+  /// Adjustment chip meaning no explicit pick: the backend's outfit-dependent default applies
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get adjustmentDefault;
+
+  /// Create Outfit garment row subtitle suffix: how many adjustments the user picked
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 adjustment} other{{count} adjustments}}'**
+  String garmentAdjustedCount(int count);
+
+  /// No description provided for @adjustmentOptionsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the styling options. Please try again.'**
+  String get adjustmentOptionsLoadFailed;
+
+  /// No description provided for @noGarmentAdjustments.
+  ///
+  /// In en, this message translates to:
+  /// **'There’s nothing to adjust on this item yet.'**
+  String get noGarmentAdjustments;
+
+  /// No description provided for @adjustmentNeedsLongTrousers.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies when worn with long trousers.'**
+  String get adjustmentNeedsLongTrousers;
+
+  /// 400 INVALID_GARMENT_ADJUSTMENT
+  ///
+  /// In en, this message translates to:
+  /// **'This item can\'t be worn that way. Please choose again.'**
+  String get errorInvalidGarmentAdjustment;
+
   /// No description provided for @rename.
   ///
   /// In en, this message translates to:
@@ -2312,6 +2348,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Long Sleeve'**
   String get sleeveLong;
+
+  /// No description provided for @closureLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Closure'**
+  String get closureLabel;
+
+  /// No description provided for @closureZipper.
+  ///
+  /// In en, this message translates to:
+  /// **'Zipper'**
+  String get closureZipper;
+
+  /// No description provided for @closureButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Buttons'**
+  String get closureButton;
+
+  /// No description provided for @closureNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get closureNone;
 
   /// No description provided for @cropFullLength.
   ///

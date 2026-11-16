@@ -36,11 +36,10 @@ class OutfitGarmentSection extends StatelessWidget {
         if (isLoading)
           const Center(child: AppSpinner())
         else if (garments != null)
-          for (final g in garments!)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppDimens.sectionSpacing),
-              child: GarmentListCard(garment: g, onTap: () => onGarmentTap(g)),
-            ),
+          for (final (i, g) in garments!.indexed) ...[
+            if (i > 0) const SizedBox(height: AppDimens.sectionSpacing),
+            GarmentListCard(garment: g, onTap: () => onGarmentTap(g)),
+          ],
       ],
     );
   }

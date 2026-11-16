@@ -465,4 +465,113 @@ void main() {
       expect([owned, notOwned, deleted].packable.map((g) => g.id), [1]);
     });
   });
+
+  group('closure', () {
+    test('parses, serializes and clears like the other attributes', () {
+      final g = Garment.fromJson({
+        'id': 15,
+        'category': 'Outer',
+        'closure': 'Button',
+      });
+      expect(g.closure, 'Button');
+      expect(GarmentClosureX.fromApiValue(g.closure), GarmentClosure.button);
+      expect(Garment.fromJson(g.toJson()).closure, 'Button');
+      expect(g.copyWith(name: 'x').closure, 'Button');
+      expect(g.copyWith(clearClosure: true).closure, isNull);
+      expect(Garment.fromJson({'id': 1}).closure, isNull);
+    });
+
+    test('maps every API value and rejects unknown ones', () {
+      for (final c in GarmentClosure.values) {
+        expect(GarmentClosureX.fromApiValue(c.apiValue), c);
+      }
+      expect(GarmentClosureX.fromApiValue(''), isNull);
+      expect(GarmentClosureX.fromApiValue('Velcro'), isNull);
+    });
+  });
+
+  group('adjustment_options', () {
+    test('parses string keys, ignoring anything else', () {
+      final g = Garment.fromJson({
+        'id': 132,
+        'category': 'Outer',
+        'adjustment_options': ['zipper', 3, 'sleeve'],
+      });
+      expect(g.adjustmentOptions, ['zipper', 'sleeve']);
+    });
+
+    test('defaults to empty when missing or not a list', () {
+      expect(Garment.fromJson({'id': 1}).adjustmentOptions, isEmpty);
+      expect(
+        Garment.fromJson({
+          'id': 1,
+          'adjustment_options': 'zipper',
+        }).adjustmentOptions,
+        isEmpty,
+      );
+    });
+
+    test('survives toJson → fromJson (GarmentService caches garments)', () {
+      final g = Garment.fromJson({
+        'id': 1,
+        'category': 'Top',
+        'adjustment_options': ['hem'],
+      });
+      expect(Garment.fromJson(g.toJson()).adjustmentOptions, ['hem']);
+      expect(g.copyWith(name: 'x').adjustmentOptions, ['hem']);
+    });
+  });
+
+  group('isLongTrousers (mirrors the backend _is_long_trousers)', () {
+    bool long(Map<String, dynamic> extra) => Garment.fromJson({
+      'id': 1,
+      'category': 'Bottom',
+      ...extra,
+    }).isLongTrousers;
+
+    test('Full- and Nine-length trousers, or no length set, count', () {
+      expect(
+        long({'sub_category': 'Jeans', 'crop_length': 'Full-length'}),
+        isTrue,
+      );
+      expect(
+        long({'sub_category': 'Pants', 'crop_length': 'Nine-length'}),
+        isTrue,
+      );
+      expect(long({'sub_category': 'Jeans'}), isTrue);
+      expect(long({'sub_category': 'Jeans', 'crop_length': ''}), isTrue);
+      expect(
+        long({'sub_category': 'Pants', 'silhouette': 'Flared'}),
+        isTrue,
+        reason: 'Flared is shared with trousers',
+      );
+    });
+
+    test('shorter lengths, shorts and skirts do not', () {
+      expect(
+        long({'sub_category': 'Pants', 'crop_length': 'Seven-length'}),
+        isFalse,
+      );
+      expect(
+        long({'sub_category': 'Pants', 'crop_length': 'Five-length'}),
+        isFalse,
+      );
+      expect(long({'sub_category': 'Denim Shorts'}), isFalse);
+      expect(
+        long({'sub_category': 'Maxi Skirt', 'crop_length': 'Full-length'}),
+        isFalse,
+      );
+      expect(
+        long({'sub_category': 'Bottom', 'silhouette': 'Pleated'}),
+        isFalse,
+      );
+    });
+
+    test('only Bottoms', () {
+      expect(
+        Garment.fromJson({'id': 1, 'category': 'One-piece'}).isLongTrousers,
+        isFalse,
+      );
+    });
+  });
 }

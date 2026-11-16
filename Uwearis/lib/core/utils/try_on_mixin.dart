@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/garment_adjustment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../services/auth_handler.dart';
@@ -64,6 +65,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     int? groupId,
     String type = 'general',
     int? backgroundId,
+    GarmentAdjustments adjustments = const {},
     void Function(Outfit outfit)? onLandedAfterLeave,
     Future<bool> Function()? confirmRetryWhileUnknown,
   }) async {
@@ -76,9 +78,11 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       tryOnResultUrl = null;
     });
 
+    // Adjustments are part of the request body, and a key replayed with a
+    // different body is rejected (409 IDEMPOTENCY_KEY_REUSED).
     final inputs =
         '${groupId ?? type}|${([...garmentIds]..sort()).join(',')}'
-        '|$backgroundId';
+        '|$backgroundId|${_adjustmentsSignature(adjustments)}';
     final retryingUnknown = inputs == _attemptInputs && _outcomeUnknown;
     // A reply that lands after a sign-out belongs to the previous account:
     // none of its local side effects may run.
@@ -122,6 +126,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
           groupId: target,
           type: type,
           backgroundId: backgroundId,
+          adjustments: adjustments,
           idempotencyKey: attemptKey,
         ),
       );
@@ -173,6 +178,15 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       debugLog('performTryOn: draft check failed: $e');
       return null;
     }
+  }
+
+  static String _adjustmentsSignature(GarmentAdjustments adjustments) {
+    final ids = adjustments.keys.toList()..sort();
+    return [
+      for (final id in ids)
+        if (adjustments[id]!.isNotEmpty)
+          '$id:${(adjustments[id]!.entries.map((e) => '${e.key}=${e.value}').toList()..sort()).join(',')}',
+    ].join(';');
   }
 
   void _startNewIntent(String inputs, {required int? groupId}) {

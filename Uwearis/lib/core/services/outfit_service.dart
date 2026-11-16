@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../data/garment_adjustment.dart';
 import '../../data/outfit.dart';
 import '../../data/try_on_generation.dart';
 import '../config/app_config.dart';
@@ -25,6 +26,26 @@ class OutfitService with BaseService {
   OutfitService._internal();
 
   final Map<int, List<Outfit>> _groupCache = {};
+
+  Future<List<AdjustmentDefinition>> getAdjustmentOptions() async {
+    debugLog('--- getAdjustmentOptions ---');
+    final uri = Uri.parse('$_baseUrl/adjustment-options');
+    final res = await withAuth(
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
+    );
+    final envelope = decodeMap(res, op: 'getAdjustmentOptions');
+    final data = envelope['data'];
+    if (data is! List) {
+      throw Exception('getAdjustmentOptions: response missing options list');
+    }
+    return [
+      for (final d in data)
+        if (d is Map<String, dynamic>) AdjustmentDefinition.fromJson(d),
+    ];
+  }
 
   Future<int> createGroup({String type = 'general'}) async {
     debugLog('--- createGroup: type=$type ---');
@@ -126,6 +147,7 @@ class OutfitService with BaseService {
     String type = 'general',
     int? backgroundId,
     bool isFavorite = false,
+    GarmentAdjustments adjustments = const {},
     String? idempotencyKey,
   }) => _trackTryOn(
     groupId == null ? TryOnMode.newOutfit : TryOnMode.version,
@@ -135,28 +157,35 @@ class OutfitService with BaseService {
       type: type,
       backgroundId: backgroundId,
       isFavorite: isFavorite,
+      adjustments: adjustments,
       idempotencyKey: idempotencyKey,
     ),
   );
 
+  /// [adjustments] holds only the user's explicit picks: the backend applies
+  /// its own (combination-dependent) defaults to everything left out.
   Future<Outfit> _generateOutfit({
     required List<int> garmentIds,
     required int? groupId,
     required String type,
     required int? backgroundId,
     required bool isFavorite,
+    required GarmentAdjustments adjustments,
     required String? idempotencyKey,
   }) async {
     groupId ??= await createGroup(type: type);
+    final adjustmentsJson = garmentAdjustmentsToJson(adjustments);
     debugLog(
       '--- generateOutfit: groupId=$groupId garmentIds=$garmentIds '
-      'backgroundId=$backgroundId ---',
+      'backgroundId=$backgroundId '
+      'adjusted=${adjustmentsJson.map((e) => e['garment_id']).toList()} ---',
     );
     final uri = Uri.parse('$_baseUrl/$groupId/generate');
     final payload = <String, dynamic>{
       'garment_ids': garmentIds,
       'background_id': ?backgroundId,
       'is_favorite': isFavorite,
+      if (adjustmentsJson.isNotEmpty) 'garment_adjustments': adjustmentsJson,
     };
     final res = await PointsService.charged(
       feature: ChargedFeature.tryOn,

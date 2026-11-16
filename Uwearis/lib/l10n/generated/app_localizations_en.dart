@@ -259,6 +259,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adjustGarmentDetails => 'Adjust Details';
 
   @override
+  String get adjustmentDefault => 'Default';
+
+  @override
+  String garmentAdjustedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count adjustments',
+      one: '1 adjustment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adjustmentOptionsLoadFailed =>
+      'Couldn\'t load the styling options. Please try again.';
+
+  @override
+  String get noGarmentAdjustments =>
+      'There’s nothing to adjust on this item yet.';
+
+  @override
+  String get adjustmentNeedsLongTrousers =>
+      'Applies when worn with long trousers.';
+
+  @override
+  String get errorInvalidGarmentAdjustment =>
+      'This item can\'t be worn that way. Please choose again.';
+
+  @override
   String get rename => 'Rename';
 
   @override
@@ -1189,6 +1219,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleeveLong => 'Long Sleeve';
+
+  @override
+  String get closureLabel => 'Closure';
+
+  @override
+  String get closureZipper => 'Zipper';
+
+  @override
+  String get closureButton => 'Buttons';
+
+  @override
+  String get closureNone => 'None';
 
   @override
   String get cropFullLength => 'Full-length';

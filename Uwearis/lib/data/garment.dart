@@ -251,6 +251,21 @@ const Set<GarmentCategory> garmentSleeveLengthCategories = {
   GarmentCategory.onePiece,
 };
 
+enum GarmentClosure { zipper, button, none }
+
+extension GarmentClosureX on GarmentClosure {
+  String get apiValue => switch (this) {
+    GarmentClosure.zipper => 'Zipper',
+    GarmentClosure.button => 'Button',
+    GarmentClosure.none => 'None',
+  };
+
+  static GarmentClosure? fromApiValue(String? value) =>
+      _attrFromApiValue(value, GarmentClosure.values, (v) => v.apiValue);
+}
+
+const Set<GarmentCategory> garmentClosureCategories = {GarmentCategory.outer};
+
 enum GarmentCropLength {
   fullLength,
   nineLength,
@@ -324,6 +339,10 @@ class Garment {
   final String? silhouette;
   final String? sleeveLength;
   final String? cropLength;
+
+  /// Outer only. `null` = not yet classified; the backend then guesses from
+  /// the name, so [adjustmentOptions] stay right either way.
+  final String? closure;
   final double? price;
   final DateTime? purchaseDate;
   final String? imageUrl;
@@ -351,6 +370,10 @@ class Garment {
   /// still references it. See [ActiveGarmentsX.active].
   final bool isDeleted;
 
+  /// Try-on adjustment keys (`zipper`, `hem`, …) the backend allows on this
+  /// garment; labels and codes come from `GET /outfit/adjustment-options`.
+  final List<String> adjustmentOptions;
+
   const Garment({
     required this.name,
     required this.category,
@@ -362,6 +385,7 @@ class Garment {
     this.isFavorite = false,
     this.isOwned = true,
     this.isDeleted = false,
+    this.adjustmentOptions = const [],
     this.id,
     this.garmentId,
     this.brand,
@@ -370,6 +394,7 @@ class Garment {
     this.silhouette,
     this.sleeveLength,
     this.cropLength,
+    this.closure,
     this.price,
     this.purchaseDate,
     this.imageUrl,
@@ -387,6 +412,7 @@ class Garment {
     String? silhouette,
     String? sleeveLength,
     String? cropLength,
+    String? closure,
     double? price,
     DateTime? purchaseDate,
     GarmentCategory? category,
@@ -401,6 +427,7 @@ class Garment {
     bool? isFavorite,
     bool? isOwned,
     bool? isDeleted,
+    List<String>? adjustmentOptions,
     bool clearId = false,
     bool clearGarmentId = false,
     bool clearBrand = false,
@@ -409,6 +436,7 @@ class Garment {
     bool clearSilhouette = false,
     bool clearSleeveLength = false,
     bool clearCropLength = false,
+    bool clearClosure = false,
     bool clearPrice = false,
     bool clearPurchaseDate = false,
     bool clearMetadata = false,
@@ -433,6 +461,7 @@ class Garment {
           ? null
           : (sleeveLength ?? this.sleeveLength),
       cropLength: clearCropLength ? null : (cropLength ?? this.cropLength),
+      closure: clearClosure ? null : (closure ?? this.closure),
       price: clearPrice ? null : (price ?? this.price),
       purchaseDate: clearPurchaseDate
           ? null
@@ -441,6 +470,7 @@ class Garment {
       isFavorite: isFavorite ?? this.isFavorite,
       isOwned: isOwned ?? this.isOwned,
       isDeleted: isDeleted ?? this.isDeleted,
+      adjustmentOptions: adjustmentOptions ?? this.adjustmentOptions,
     );
   }
 
@@ -481,6 +511,7 @@ class Garment {
       silhouette: json['silhouette'] as String?,
       sleeveLength: json['sleeve_length'] as String?,
       cropLength: json['crop_length'] as String?,
+      closure: json['closure'] as String?,
       price: parseNum(json['price']),
       thickness: parseIntField(json['thickness']) ?? 0,
       formality: parseIntField(json['formality']) ?? 0,
@@ -495,6 +526,10 @@ class Garment {
       isFavorite: (json['is_favorite'] as bool?) ?? false,
       isOwned: (json['is_owned'] as bool?) ?? true,
       isDeleted: (json['is_deleted'] as bool?) ?? false,
+      adjustmentOptions: switch (json['adjustment_options']) {
+        final List<dynamic> keys => keys.whereType<String>().toList(),
+        _ => const [],
+      },
     );
   }
 
@@ -517,6 +552,33 @@ class Garment {
     );
   }
 
+  /// Ankle-length trousers, mirroring the backend's `_is_long_trousers` (what
+  /// `boots_pants` needs): a Bottom that isn't a skirt or shorts, Full- or
+  /// Nine-length, or with no length set.
+  bool get isLongTrousers {
+    if (category != GarmentCategory.bottom) return false;
+    final sub = subCategory.toLowerCase();
+    if (sub.contains('skirt') || sub.contains('short')) return false;
+    if (_skirtOnlySilhouettes.contains(
+      GarmentSilhouetteX.fromApiValue(silhouette),
+    )) {
+      return false;
+    }
+    final crop = cropLength;
+    if (crop == null || crop.isEmpty) return true;
+    return const {
+      GarmentCropLength.fullLength,
+      GarmentCropLength.nineLength,
+    }.contains(GarmentCropLengthX.fromApiValue(crop));
+  }
+
+  // `Flared` is shared with trousers, so it doesn't make a skirt.
+  static const _skirtOnlySilhouettes = {
+    GarmentSilhouette.pencil,
+    GarmentSilhouette.aLine,
+    GarmentSilhouette.pleated,
+  };
+
   /// Date-only `yyyy-MM-dd`: the backend's Pydantic `date` rejects a
   /// datetime with a non-zero time. Every request path must use this.
   String? get purchaseDateApiValue =>
@@ -533,6 +595,7 @@ class Garment {
       'silhouette': silhouette,
       'sleeve_length': sleeveLength,
       'crop_length': cropLength,
+      'closure': closure,
       'price': price,
       'thickness': thickness,
       'formality': formality,
@@ -544,6 +607,7 @@ class Garment {
       'image_url': imageUrl,
       'metadata': metadata,
       'is_owned': isOwned,
+      'adjustment_options': adjustmentOptions,
     };
   }
 }

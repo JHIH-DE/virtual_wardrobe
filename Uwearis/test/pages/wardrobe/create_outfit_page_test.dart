@@ -10,9 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uwearis/core/providers/adjustment_options_provider.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
 import 'package:uwearis/data/garment.dart';
+import 'package:uwearis/data/garment_adjustment.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/outfit_details_page.dart';
@@ -23,6 +25,8 @@ import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart'
 import 'package:uwearis/features/widgets/common/buttons/bottom_action_button.dart';
 import 'package:uwearis/features/widgets/common/cards/swipe_action_card.dart';
 import 'package:uwearis/features/widgets/common/cards/category_tag.dart';
+import 'package:uwearis/features/widgets/common/overlays/picker_sheet.dart';
+import 'package:uwearis/app/theme/app_text_styles.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 
@@ -48,6 +52,8 @@ Garment _garment({
   required GarmentCategory category,
   String name = 'Item',
   String subCategory = '',
+  String? cropLength,
+  List<String> adjustmentOptions = const [],
 }) {
   return Garment(
     id: id,
@@ -55,10 +61,33 @@ Garment _garment({
     name: name,
     category: category,
     subCategory: subCategory,
+    cropLength: cropLength,
+    adjustmentOptions: adjustmentOptions,
     uploadUrl: '',
     objectName: '',
   );
 }
+
+AdjustmentDefinition _def(String key, String label, Map<int, String> opts) =>
+    AdjustmentDefinition(
+      key: key,
+      label: label,
+      options: [
+        for (final e in opts.entries)
+          AdjustmentOption(code: e.key, label: e.value),
+      ],
+    );
+
+final _adjustmentTable = {
+  for (final d in [
+    _def('zipper', 'Jacket zipper', {1: 'Zipped', 3: 'Open'}),
+    _def('hem', 'Hem', {1: 'Untucked', 2: 'Tucked', 3: 'Front tuck'}),
+    _def('sleeve', 'Sleeves', {1: 'Natural', 2: 'Rolled'}),
+    _def('boots_pants', 'Boots & pants', {1: 'Over', 2: 'Tucked in'}),
+    _def('pant_cuff', 'Pant hem', {1: 'Natural', 2: 'Cuffed'}),
+  ])
+    d.key: d,
+};
 
 void main() {
   setUp(() {
@@ -67,13 +96,19 @@ void main() {
   });
 
   final closet = [
-    _garment(id: 1, category: GarmentCategory.top, name: 'Tee'),
+    _garment(
+      id: 1,
+      category: GarmentCategory.top,
+      name: 'Tee',
+      adjustmentOptions: const ['sleeve'],
+    ),
     _garment(id: 2, category: GarmentCategory.bottom, name: 'Jeans'),
     _garment(id: 3, category: GarmentCategory.shoes, name: 'Sneakers'),
   ];
 
   List<Override> closetOverride([List<Garment>? pool]) => [
     garmentsProvider.overrideWith(() => _FakeGarments(pool ?? closet)),
+    adjustmentOptionsProvider.overrideWith((ref, _) async => _adjustmentTable),
   ];
 
   // A viewport tall enough that the whole ListView is laid out at once, so
@@ -232,40 +267,497 @@ void main() {
     },
   );
 
-  testWidgets('swiping a garment left shows adjust-details beside remove', (
+  testWidgets(
+    'swiping left shows lock beside remove; right shows adjust-details',
+    (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tee'));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.tune), findsNothing);
+
+      await tester.drag(find.text('Tee'), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+      expect(find.byIcon(Icons.tune), findsNothing);
+      expect(
+        tester.getRect(find.byIcon(Icons.lock_outline)).left,
+        lessThan(tester.getRect(find.byIcon(Icons.delete_outline)).left),
+      );
+      // A tap on the open row closes it.
+      await tester.tap(find.text('Tee'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      await _revealAdjustAction(tester, 'Tee');
+      expect(find.byIcon(Icons.tune), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.tune), findsNothing);
+      // The sheet lists only this garment's adjustments, Default selected.
+      expect(find.text('Sleeves'), findsOneWidget);
+      expect(find.text('Hem'), findsNothing);
+      expect(_chipSelected(tester, 'Default'), isTrue);
+    },
+  );
+
+  testWidgets('a garment with no applicable adjustment has no adjust action', (
     tester,
   ) async {
     useTallSurface(tester);
     await pumpApp(
       tester,
-      const CreateOutfitPage(),
+      CreateOutfitPage(initialGarments: [closet[1]]),
       overrides: closetOverride(),
     );
     await tester.pump();
 
-    await tester.tap(find.text('Add Garment'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Tee'));
-    await tester.pumpAndSettle();
+    await _revealAdjustAction(tester, 'Jeans');
     expect(find.byIcon(Icons.tune), findsNothing);
-
-    await tester.drag(find.text('Tee'), const Offset(-300, 0));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.tune), findsOneWidget);
-    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
-    expect(find.byIcon(Icons.lock_outline), findsNothing);
-    expect(
-      tester.getRect(find.byIcon(Icons.tune)).left,
-      lessThan(tester.getRect(find.byIcon(Icons.delete_outline)).left),
-    );
-
-    await tester.tap(find.byIcon(Icons.tune));
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.tune), findsNothing);
-    expect(find.text('Tee'), findsOneWidget);
   });
 
-  testWidgets('swiping right reveals the lock, showing its current state, '
+  testWidgets('a hem pick made before the bottom waits for one', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    final tee = _garment(
+      id: 11,
+      category: GarmentCategory.top,
+      name: 'Shirt',
+      adjustmentOptions: const ['hem'],
+    );
+    final pants = _garment(
+      id: 12,
+      category: GarmentCategory.bottom,
+      name: 'Chinos',
+    );
+    await pumpApp(
+      tester,
+      CreateOutfitPage(initialGarments: [tee]),
+      overrides: closetOverride([tee, pants]),
+    );
+    await tester.pump();
+
+    Future<void> addChinos() async {
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chinos'));
+      await tester.pumpAndSettle();
+    }
+
+    // No bottom yet: offered, with a note, and the pick isn't counted.
+    await _revealAdjustAction(tester, 'Shirt');
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    expect(find.text('Hem'), findsOneWidget);
+    // No note for a hem waiting on a bottom.
+    expect(_sheetNotes(tester), isEmpty);
+    await _tapSheetOption(tester, 'Tucked');
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 adjustment'), findsNothing);
+
+    await addChinos();
+    expect(find.textContaining('1 adjustment'), findsOneWidget);
+
+    // Kept while the bottom is out, so it applies again once one is back.
+    await _revealSwipeActions(tester, 'Chinos');
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1 adjustment'), findsNothing);
+    await addChinos();
+    expect(find.textContaining('1 adjustment'), findsOneWidget);
+
+    await _revealAdjustAction(tester, 'Shirt');
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    expect(_sheetNotes(tester), isEmpty);
+  });
+
+  group('boots_pants applies only with long trousers', () {
+    final boots = _garment(
+      id: 21,
+      category: GarmentCategory.shoes,
+      name: 'Boots',
+      adjustmentOptions: const ['boots_pants'],
+    );
+
+    // Always offered; without long trousers the sheet says it won't apply.
+    Future<bool> applies(WidgetTester tester, Garment bottom) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: [boots, bottom]),
+        overrides: closetOverride([boots, bottom]),
+      );
+      await tester.pump();
+      await _revealAdjustAction(tester, 'Boots');
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+      expect(find.text('Boots & pants'), findsOneWidget);
+      return find
+          .text('Applies when worn with long trousers.')
+          .evaluate()
+          .isEmpty;
+    }
+
+    for (final (label, bottom, expected) in [
+      (
+        'Nine-length trousers',
+        _garment(
+          id: 22,
+          category: GarmentCategory.bottom,
+          name: 'Pants',
+          cropLength: 'Nine-length',
+        ),
+        true,
+      ),
+      (
+        'trousers with no length set',
+        _garment(id: 22, category: GarmentCategory.bottom, name: 'Pants'),
+        true,
+      ),
+      (
+        'Seven-length trousers',
+        _garment(
+          id: 22,
+          category: GarmentCategory.bottom,
+          name: 'Pants',
+          cropLength: 'Seven-length',
+        ),
+        false,
+      ),
+      (
+        'a full-length skirt',
+        _garment(
+          id: 22,
+          category: GarmentCategory.bottom,
+          name: 'Pants',
+          subCategory: 'Maxi Skirt',
+          cropLength: 'Full-length',
+        ),
+        false,
+      ),
+    ]) {
+      testWidgets('$label → $expected', (tester) async {
+        expect(await applies(tester, bottom), expected);
+      });
+    }
+  });
+
+  testWidgets('cuffing the pants drops an earlier "tucked into boots" pick', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    final boots = _garment(
+      id: 21,
+      category: GarmentCategory.shoes,
+      name: 'Boots',
+      adjustmentOptions: const ['boots_pants'],
+    );
+    final jeans = _garment(
+      id: 22,
+      category: GarmentCategory.bottom,
+      name: 'Straight Jeans',
+      adjustmentOptions: const ['pant_cuff'],
+    );
+    final top = closet[0];
+    final generateBodies = <Map<String, dynamic>>[];
+    final client = MockClient((request) async {
+      if (request.method == 'POST' && request.url.path.endsWith('/outfit')) {
+        return jsonResponse(envelope({'group_id': 9}));
+      }
+      if (request.url.path.endsWith('/generate')) {
+        generateBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+      }
+      return jsonResponse(envelope(null), status: 400);
+    });
+
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: [top, jeans, boots]),
+        overrides: closetOverride([top, jeans, boots]),
+      );
+      await tester.pump();
+
+      await _pickAdjustment(tester, 'Boots', 'Tucked in');
+      await _pickAdjustment(tester, 'Straight Jeans', 'Cuffed');
+      expect(find.textContaining('1 adjustment'), findsOneWidget);
+
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }, () => client);
+
+    expect(generateBodies.single['garment_adjustments'], [
+      {
+        'garment_id': 22,
+        'adjustments': {'pant_cuff': 2},
+      },
+    ]);
+  });
+
+  group('while the adjustment table is still loading', () {
+    late Completer<Map<String, AdjustmentDefinition>> table;
+    var fetches = 0;
+
+    // Built inside the test body: a Completer made in setUp lives outside
+    // the widget test's fake-async zone, and pumping never delivers it.
+    List<Override> slowTable() {
+      table = Completer();
+      fetches = 0;
+      return [
+        garmentsProvider.overrideWith(() => _FakeGarments(closet)),
+        adjustmentOptionsProvider.overrideWith((ref, _) {
+          fetches++;
+          return table.future;
+        }),
+      ];
+    }
+
+    testWidgets('a garment removed meanwhile gets no sheet', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: closet),
+        overrides: slowTable(),
+      );
+      await tester.pump();
+
+      await _revealAdjustAction(tester, 'Tee');
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pump();
+      await _revealSwipeActions(tester, 'Tee');
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pumpAndSettle();
+      expect(find.text('Tee'), findsNothing);
+
+      table.complete(_adjustmentTable);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('a double tap opens one sheet', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: closet),
+        overrides: slowTable(),
+      );
+      await tester.pump();
+
+      await _revealAdjustAction(tester, 'Tee');
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pump();
+      if (find.byIcon(Icons.tune).evaluate().isEmpty) {
+        await _revealAdjustAction(tester, 'Tee');
+      }
+      await tester.tap(find.byIcon(Icons.tune), warnIfMissed: false);
+      await tester.pump();
+
+      table.complete(_adjustmentTable);
+      await tester.pumpAndSettle();
+      expect(find.text('Sleeves'), findsOneWidget);
+      expect(fetches, 1);
+    });
+
+    testWidgets("a table without this garment's keys says so", (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: closet),
+        overrides: slowTable(),
+      );
+      await tester.pump();
+
+      await _revealAdjustAction(tester, 'Tee');
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pump();
+      table.complete(const {});
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('There’s nothing to adjust on this item yet.'),
+        findsOneWidget,
+      );
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+  });
+
+  testWidgets('a jacket keeps "fully closed" when a top joins', (tester) async {
+    useTallSurface(tester);
+    final jacket = _garment(
+      id: 51,
+      category: GarmentCategory.outer,
+      name: 'Denim Jacket',
+      adjustmentOptions: const ['zipper'],
+    );
+    final pool = [...closet, jacket];
+    final generateBodies = <Map<String, dynamic>>[];
+    final client = MockClient((request) async {
+      if (request.method == 'POST' && request.url.path.endsWith('/outfit')) {
+        return jsonResponse(envelope({'group_id': 9}));
+      }
+      if (request.url.path.endsWith('/generate')) {
+        generateBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+      }
+      return jsonResponse(envelope(null), status: 400);
+    });
+
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: [jacket, closet[1], closet[2]]),
+        overrides: closetOverride(pool),
+      );
+      await tester.pump();
+
+      await _pickAdjustment(tester, 'Denim Jacket', 'Zipped');
+      expect(find.textContaining('1 adjustment'), findsOneWidget);
+
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tee'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('1 adjustment'), findsOneWidget);
+
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }, () => client);
+
+    expect(generateBodies, hasLength(1));
+    expect(generateBodies.single['garment_adjustments'], [
+      {
+        'garment_id': 51,
+        'adjustments': {'zipper': 1},
+      },
+    ]);
+  });
+
+  testWidgets('a key the loaded table lacks offers no adjust action', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    final cap = _garment(
+      id: 41,
+      category: GarmentCategory.accessory,
+      name: 'Cap',
+      adjustmentOptions: const ['cap'],
+    );
+    await pumpApp(
+      tester,
+      CreateOutfitPage(initialGarments: [cap]),
+      overrides: closetOverride([cap]),
+    );
+    await tester.pump();
+
+    await _revealAdjustAction(tester, 'Cap');
+    expect(find.byIcon(Icons.tune), findsNothing);
+  });
+
+  testWidgets('Create Outfit sends only the explicit picks as '
+      'garment_adjustments', (tester) async {
+    useTallSurface(tester);
+    final jacket = _garment(
+      id: 31,
+      category: GarmentCategory.outer,
+      name: 'Jacket',
+      adjustmentOptions: const ['zipper', 'sleeve'],
+    );
+    final pool = [...closet, jacket];
+    final generateBodies = <Map<String, dynamic>>[];
+    final client = MockClient((request) async {
+      if (request.method == 'POST' && request.url.path.endsWith('/outfit')) {
+        return jsonResponse(envelope({'group_id': 9}));
+      }
+      if (request.url.path.endsWith('/generate')) {
+        generateBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+      }
+      return jsonResponse(envelope(null), status: 400);
+    });
+
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: [...closet, jacket]),
+        overrides: closetOverride(pool),
+      );
+      await tester.pump();
+
+      await _pickAdjustment(tester, 'Jacket', 'Zipped');
+      // Picked, then put back to Default: not sent at all.
+      await _pickAdjustment(tester, 'Tee', 'Rolled');
+      await _pickAdjustment(tester, 'Tee', 'Default');
+
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }, () => client);
+
+    expect(generateBodies, hasLength(1));
+    expect(generateBodies.single['garment_adjustments'], [
+      {
+        'garment_id': 31,
+        'adjustments': {'zipper': 1},
+      },
+    ]);
+  });
+
+  testWidgets('Create Outfit with no picks omits garment_adjustments', (
+    tester,
+  ) async {
+    useTallSurface(tester);
+    final generateBodies = <Map<String, dynamic>>[];
+    final client = MockClient((request) async {
+      if (request.method == 'POST' && request.url.path.endsWith('/outfit')) {
+        return jsonResponse(envelope({'group_id': 9}));
+      }
+      if (request.url.path.endsWith('/generate')) {
+        generateBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+      }
+      return jsonResponse(envelope(null), status: 400);
+    });
+
+    await http.runWithClient(() async {
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: closet),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }, () => client);
+
+    expect(generateBodies, hasLength(1));
+    expect(generateBodies.single.containsKey('garment_adjustments'), isFalse);
+  });
+
+  testWidgets('swiping left reveals the lock, showing its current state, '
       'and tapping it toggles the lock', (tester) async {
     useTallSurface(tester);
     await pumpApp(
@@ -284,14 +776,14 @@ void main() {
     expect(find.byIcon(Icons.lock), findsNothing);
     expect(find.byIcon(Icons.delete_outline), findsNothing);
 
-    await _revealLockAction(tester, 'Tee');
+    await _revealSwipeActions(tester, 'Tee');
     expect(find.byIcon(Icons.lock_open), findsNothing);
     await tester.tap(find.byIcon(Icons.lock_outline));
     await tester.pumpAndSettle();
     expect(_lockedCount(tester), 0);
     expect(find.byIcon(Icons.delete_outline), findsNothing);
 
-    await _revealLockAction(tester, 'Tee');
+    await _revealSwipeActions(tester, 'Tee');
     expect(find.byIcon(Icons.lock_outline), findsNothing);
     await tester.tap(find.byIcon(Icons.lock_open));
     await tester.pumpAndSettle();
@@ -1470,6 +1962,69 @@ void main() {
       );
     });
 
+    testWidgets('an adjustment pick alone counts as a change', (tester) async {
+      useTallSurface(tester);
+      final generateBodies = <Map<String, dynamic>>[];
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/generate')) {
+          generateBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+        }
+        return jsonResponse(envelope(null), status: 400);
+      });
+
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(
+            initialGarments: [closet[0], closet[1], closet[2]],
+            targetGroupId: 40,
+          ),
+          overrides: closetOverride(),
+        );
+        await tester.pump();
+
+        await _pickAdjustment(tester, 'Tee', 'Rolled');
+        await tester.tap(
+          find.widgetWithText(BottomActionButton, 'Create Version'),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pump();
+      }, () => client);
+
+      expect(find.text('Nothing Changed Yet'), findsNothing);
+      expect(generateBodies, hasLength(1));
+      expect(generateBodies.single['garment_adjustments'], [
+        {
+          'garment_id': 1,
+          'adjustments': {'sleeve': 2},
+        },
+      ]);
+    });
+
+    testWidgets('a pick put back to Default is no change again', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(
+          initialGarments: [closet[0], closet[1], closet[2]],
+          targetGroupId: 40,
+        ),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+
+      await _pickAdjustment(tester, 'Tee', 'Rolled');
+      await _pickAdjustment(tester, 'Tee', 'Default');
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Version'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Nothing Changed Yet'), findsOneWidget);
+    });
+
     testWidgets('renders into the target group and pops the new version '
         'instead of opening it as a new outfit', (tester) async {
       useTallSurface(tester);
@@ -1667,15 +2222,56 @@ class _FakeWeather extends WeatherNotifier {
   );
 }
 
-/// Swipes the outfit row showing [name] left until adjust / remove show.
+/// Swipes the outfit row showing [name] left until lock / remove show.
 Future<void> _revealSwipeActions(WidgetTester tester, String name) async {
   await tester.drag(find.text(name), const Offset(-300, 0));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
 }
 
-/// Swipes the outfit row showing [name] right until its lock shows.
-Future<void> _revealLockAction(WidgetTester tester, String name) async {
+/// Opens [garment]'s Adjust Details sheet, taps [chip], then closes it.
+Future<void> _pickAdjustment(
+  WidgetTester tester,
+  String garment,
+  String chip,
+) async {
+  await _revealAdjustAction(tester, garment);
+  await tester.tap(find.byIcon(Icons.tune));
+  await tester.pumpAndSettle();
+  await _tapSheetOption(tester, chip);
+  await tester.tapAt(const Offset(5, 5));
+  await tester.pumpAndSettle();
+}
+
+/// The subtitles shown under the open adjustment sheet's group titles.
+List<String> _sheetNotes(WidgetTester tester) => tester
+    .widgetList<PickerSheetHeader>(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byType(PickerSheetHeader),
+      ),
+    )
+    .map((h) => h.description)
+    .whereType<String>()
+    .toList();
+
+/// An option row's label in the open adjustment sheet.
+Finder _sheetOption(String label) => find
+    .descendant(of: find.byType(BottomSheet), matching: find.text(label))
+    .first;
+
+Future<void> _tapSheetOption(WidgetTester tester, String label) async {
+  await tester.ensureVisible(_sheetOption(label));
+  await tester.tap(_sheetOption(label));
+  await tester.pump();
+}
+
+/// Selected rows show a bold label.
+bool _chipSelected(WidgetTester tester, String label) =>
+    tester.widget<Text>(_sheetOption(label)).style == AppTextStyle.bold16;
+
+/// Swipes the outfit row showing [name] right until Adjust Details shows.
+Future<void> _revealAdjustAction(WidgetTester tester, String name) async {
   await tester.drag(find.text(name), const Offset(300, 0));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
@@ -1684,5 +2280,5 @@ Future<void> _revealLockAction(WidgetTester tester, String name) async {
 /// Outfit rows whose lock action shows them locked.
 int _lockedCount(WidgetTester tester) => tester
     .widgetList<SwipeActionCard>(find.byType(SwipeActionCard))
-    .where((card) => card.leadingActions.first.icon == Icons.lock_outline)
+    .where((card) => card.actions.first.icon == Icons.lock_outline)
     .length;

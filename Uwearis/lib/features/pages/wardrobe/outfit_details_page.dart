@@ -217,7 +217,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
                   20,
                   _showsBottomActionButton
                       ? BottomActionButton.scrollClearance(bodyContext)
-                      : 30 + MediaQuery.paddingOf(context).bottom,
+                      : 24 + MediaQuery.paddingOf(context).bottom,
                 ),
                 children: [
                   Text(

@@ -15,6 +15,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     setUpFakeAuth();
+    LocaleNotifier.forgetBackendLocale();
   });
 
   test(
@@ -54,4 +55,88 @@ void main() {
       }, () => client);
     },
   );
+
+  group('ensureBackendLocale', () {
+    Future<List<Object?>> run(
+      Future<void> Function(LocaleNotifier notifier) body, {
+      List<int> statuses = const [],
+    }) async {
+      final bodies = <Object?>[];
+      final client = MockClient((request) async {
+        final status = bodies.length < statuses.length
+            ? statuses[bodies.length]
+            : 200;
+        bodies.add(jsonDecode(request.body));
+        return http.Response(
+          jsonEncode({'success': true, 'data': <String, dynamic>{}}),
+          status,
+        );
+      });
+      await http.runWithClient(() async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        await body(container.read(localeProvider.notifier));
+      }, () => client);
+      return bodies;
+    }
+
+    test('pushes a locale once the backend confirmed it', () async {
+      final bodies = await run((notifier) async {
+        await notifier.ensureBackendLocale('zh-TW');
+        await notifier.ensureBackendLocale('zh-TW');
+      });
+      expect(bodies, [
+        {'locale': 'zh-TW'},
+      ]);
+    });
+
+    test('concurrent calls share one push', () async {
+      final bodies = await run((notifier) async {
+        await Future.wait([
+          notifier.ensureBackendLocale('zh-TW'),
+          notifier.ensureBackendLocale('zh-TW'),
+        ]);
+      });
+      expect(bodies, hasLength(1));
+    });
+
+    test('a failed push is retried on the next call', () async {
+      final bodies = await run((notifier) async {
+        await notifier.ensureBackendLocale('zh-TW');
+        await notifier.ensureBackendLocale('zh-TW');
+        await notifier.ensureBackendLocale('zh-TW');
+      }, statuses: [500]);
+      expect(bodies, hasLength(2));
+    });
+
+    test('a different displayed locale pushes again', () async {
+      final bodies = await run((notifier) async {
+        await notifier.ensureBackendLocale('en');
+        await notifier.ensureBackendLocale('zh-TW');
+      });
+      expect(bodies, [
+        {'locale': 'en'},
+        {'locale': 'zh-TW'},
+      ]);
+    });
+
+    test('nothing extra after setLocale already pushed that locale', () async {
+      final bodies = await run((notifier) async {
+        await notifier.setLocale(const Locale('zh', 'TW'));
+        await notifier.ensureBackendLocale('zh-TW');
+      });
+      expect(bodies, [
+        {'locale': 'zh-TW'},
+      ]);
+    });
+
+    test('a session end makes the next account push again', () async {
+      final bodies = await run((notifier) async {
+        await notifier.ensureBackendLocale('zh-TW');
+        LocaleNotifier.forgetBackendLocale();
+        await notifier.ensureBackendLocale('zh-TW');
+      });
+      expect(bodies, hasLength(2));
+    });
+  });
 }

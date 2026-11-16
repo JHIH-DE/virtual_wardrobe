@@ -179,6 +179,17 @@ extension GarmentSleeveLengthLocalization on GarmentSleeveLength {
   }
 }
 
+extension GarmentClosureLocalization on GarmentClosure {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      GarmentClosure.zipper => l10n.closureZipper,
+      GarmentClosure.button => l10n.closureButton,
+      GarmentClosure.none => l10n.closureNone,
+    };
+  }
+}
+
 extension GarmentCropLengthLocalization on GarmentCropLength {
   String localizedLabel(BuildContext context) {
     final l10n = AppLocalizations.of(context);

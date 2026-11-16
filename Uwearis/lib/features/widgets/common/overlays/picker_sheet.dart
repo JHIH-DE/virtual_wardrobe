@@ -11,11 +11,15 @@ class PickerSheetHeader extends StatelessWidget {
   final String? description;
   final Widget? trailing;
 
+  /// False for a second header further down the same sheet.
+  final bool dragHandle;
+
   const PickerSheetHeader(
     this.title, {
     super.key,
     this.description,
     this.trailing,
+    this.dragHandle = true,
   });
 
   @override
@@ -23,8 +27,10 @@ class PickerSheetHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SheetDragHandle(),
-        const SizedBox(height: 20),
+        if (dragHandle) ...[
+          const SheetDragHandle(),
+          const SizedBox(height: 20),
+        ],
         Row(
           children: [
             Expanded(child: Text(title, style: AppTextStyle.bold20)),
@@ -96,39 +102,71 @@ Future<T?> showSingleChoiceSheet<T>(
   return showPickerSheet<T>(
     context,
     fitContent: true,
-    builder: (sheetContext) => RadioGroup<T>(
-      groupValue: selected,
-      onChanged: (v) => Navigator.pop(sheetContext, v),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PickerSheetHeader(title),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              children: [
-                for (final option in options)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      labelOf(option),
-                      style: option == selected
-                          ? AppTextStyle.bold16
-                          : AppTextStyle.regular16,
-                    ),
-                    trailing: Radio<T>(
-                      value: option,
-                      activeColor: AppColors.accent,
-                    ),
-                    onTap: () => Navigator.pop(sheetContext, option),
-                  ),
-              ],
-            ),
+    builder: (sheetContext) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PickerSheetHeader(title),
+        Flexible(
+          child: ListView(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            children: [
+              SingleChoiceList<T>(
+                options: options,
+                selected: selected,
+                labelOf: labelOf,
+                onSelected: (v) => Navigator.pop(sheetContext, v),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     ),
   );
+}
+
+/// Radio rows — label left (bold when selected), radio right. A null
+/// option can't be told from "nothing selected": wrap nullable values in a
+/// record, e.g. `({StyleType? style})`.
+class SingleChoiceList<T> extends StatelessWidget {
+  final List<T> options;
+  final T? selected;
+  final String Function(T) labelOf;
+  final ValueChanged<T> onSelected;
+
+  const SingleChoiceList({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.labelOf,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RadioGroup<T>(
+      groupValue: selected,
+      onChanged: (v) {
+        if (v != null) onSelected(v);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final option in options)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                labelOf(option),
+                style: option == selected
+                    ? AppTextStyle.bold16
+                    : AppTextStyle.regular16,
+              ),
+              trailing: Radio<T>(value: option, activeColor: AppColors.accent),
+              onTap: () => onSelected(option),
+            ),
+        ],
+      ),
+    );
+  }
 }

@@ -9,8 +9,10 @@ import 'package:lucide_icons_flutter/lucide_icons_400.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/providers/adjustment_options_provider.dart';
 import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/garments_provider.dart';
+import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/providers/weather_provider.dart';
 import '../../../core/services/auth_handler.dart';
@@ -21,6 +23,7 @@ import '../../../core/utils/remaining_points.dart';
 import '../../../core/utils/try_on_mixin.dart';
 import '../../../data/background_option.dart';
 import '../../../data/garment.dart';
+import '../../../data/garment_adjustment.dart';
 import '../../../data/match_a_look.dart';
 import '../../../data/outfit.dart';
 import '../../../data/style_type.dart';
@@ -42,6 +45,7 @@ import '../../widgets/common/fields/number_stepper.dart';
 import '../../widgets/common/images/dashed_border_painter.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/app_dialog.dart';
+import '../../widgets/common/overlays/app_snack_bar.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
@@ -50,6 +54,7 @@ import '../../widgets/common/overlays/photo_source_dialog.dart';
 import '../../widgets/common/overlays/picker_sheet.dart';
 import '../../widgets/common/overlays/try_on_dialogs.dart';
 import '../../widgets/common/section_title.dart';
+import '../../widgets/garment/garment_adjustment_sheet.dart';
 import '../../widgets/garment/outfit_garment_row.dart';
 import '../../widgets/outfit/outfit_background_field.dart';
 import '../common/camera_capture_page.dart' show CameraFrameRatio;
@@ -193,6 +198,12 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   // Create Outfit's re-entrancy guard; Finish Outfit's is
   // [_isCompletingWithAi].
   bool _tryOnRequested = false;
+  // Explicit picks only (garment id → key → code); anything absent gets the
+  // backend's outfit-dependent default. Read through [_effectiveAdjustments].
+  final GarmentAdjustments _garmentAdjustments = {};
+  // Adjust Details' re-entrancy guard: a double tap while the table loads
+  // would stack two sheets that overwrite each other's picks.
+  bool _adjustSheetInFlight = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -556,6 +567,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         ..addAll(newAiIds);
       _matchALookStatus = _MatchALookStatus.matched;
     });
+    _pruneGarmentAdjustments();
   }
 
   /// Also drops the garments Match a Look still holds (manual picks stay).
@@ -579,6 +591,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       _referenceImagePath = null;
       _matchALookStatus = _MatchALookStatus.idle;
     });
+    _pruneGarmentAdjustments();
     try {
       await MatchLookService().removeReference();
     } catch (_) {
@@ -627,6 +640,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         backgroundId: _backgroundCustomized || _initialBackground != null
             ? _background.backgroundId
             : null,
+        adjustments: _effectiveAdjustments(),
         onLandedAfterLeave: (_) => unawaited(outfits.refresh()),
         confirmRetryWhileUnknown: () => showRetryWhileUnknownDialog(context),
       );
@@ -687,10 +701,12 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   bool get _isVersionMode => widget.targetGroupId != null;
 
   /// A new version identical to its source would just be a re-render —
-  /// Regenerate already covers that.
+  /// Regenerate already covers that. Version mode starts with no
+  /// adjustment picks, so any pick is a change.
   bool get _isUnchangedVersion =>
       _isVersionMode &&
       setEquals(_selectedGarmentIds().toSet(), _initialGarmentIds) &&
+      _effectiveAdjustments().isEmpty &&
       _background.id == (_initialBackground ?? BackgroundOption.all.first).id;
 
   AppToolBar _buildAppBar() {
@@ -719,17 +735,19 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   Widget build(BuildContext context) {
     // _garmentPool / _garmentPoolLoading read it via ref.read.
     ref.watch(garmentsProvider);
+    // Also prefetches, so Adjust Details opens without a wait.
+    final adjustmentTable = ref.watch(_adjustmentOptions).value;
     // A system back mid-render takes the same Stop Waiting confirm.
     return PopScope(
       canPop: !isOutfitLoading,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _stopWaitingForRender();
       },
-      child: _buildPageStack(),
+      child: _buildPageStack(adjustmentTable),
     );
   }
 
-  Widget _buildPageStack() {
+  Widget _buildPageStack(Map<String, AdjustmentDefinition>? adjustmentTable) {
     return Stack(
       children: [
         Scaffold(
@@ -745,7 +763,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
                 0,
                 BottomActionButton.scrollClearance(bodyContext),
               ),
-              children: _buildCreateFlowBody(),
+              children: _buildCreateFlowBody(adjustmentTable),
             ),
           ),
           bottomNavigationBar: _buildBottomBar(),
@@ -778,7 +796,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     );
   }
 
-  List<Widget> _buildCreateFlowBody() {
+  List<Widget> _buildCreateFlowBody(
+    Map<String, AdjustmentDefinition>? adjustmentTable,
+  ) {
     return [
       if (_referenceImagePath != null) ...[
         _hInset(
@@ -795,7 +815,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       const SizedBox(height: AppDimens.sectionSpacing),
       _hInset(FieldLabel(_l10n.outfitItemsLabel.toUpperCase())),
       const SizedBox(height: AppDimens.cardHeaderGap),
-      _hInset(_buildYourOutfitRow()),
+      _hInset(_buildYourOutfitRow(adjustmentTable)),
       _hInset(const AppDivider(spacing: AppDimens.sectionSpacing)),
       _hInset(
         OutfitBackgroundField(
@@ -820,14 +840,16 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
 
   static const double _addGarmentIconSize = 56;
 
-  Widget _buildYourOutfitRow() {
+  Widget _buildYourOutfitRow(
+    Map<String, AdjustmentDefinition>? adjustmentTable,
+  ) {
     final entries = _outfitEntries();
     return Column(
       children: [
         _buildAddGarmentRow(),
         for (final entry in entries) ...[
           const SizedBox(height: AppDimens.cardSpacing),
-          _buildOutfitGarmentRow(entry),
+          _buildOutfitGarmentRow(entry, adjustmentTable),
         ],
       ],
     );
@@ -866,32 +888,40 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     );
   }
 
-  Widget _buildOutfitGarmentRow(_OutfitEntry entry) {
+  Widget _buildOutfitGarmentRow(
+    _OutfitEntry entry,
+    Map<String, AdjustmentDefinition>? adjustmentTable,
+  ) {
     final g = entry.garment;
     final locked = _isLocked(g);
     final categoryLabel = entry.category.localizedLabel(context);
-    final subtitle = g.subCategory.isNotEmpty
+    final baseSubtitle = g.subCategory.isNotEmpty
         ? '$categoryLabel · ${g.subCategory}'
         : categoryLabel;
+    final adjustedCount = _effectiveAdjustments()[g.id]?.length ?? 0;
+    final subtitle = adjustedCount > 0
+        ? '$baseSubtitle · ${_l10n.garmentAdjustedCount(adjustedCount)}'
+        : baseSubtitle;
+    final canAdjust = _canAdjust(g, adjustmentTable);
 
     return SwipeActionCard(
       key: ValueKey((entry.slot, entry.topIndex, entry.accessoryIndex, g.id)),
       enabled: !isOutfitLoading,
       leadingActions: [
+        if (canAdjust)
+          SwipeAction(
+            icon: Icons.tune,
+            label: _l10n.adjustGarmentDetails,
+            backgroundColor: AppColors.accent,
+            onPressed: () => _showAdjustDetailsSheet(g),
+          ),
+      ],
+      actions: [
         // The icon shows the current state; the label names the toggle.
         SwipeAction(
           icon: locked ? Icons.lock_outline : Icons.lock_open,
           label: locked ? _l10n.unlockGarment : _l10n.lockGarment,
           onPressed: () => _toggleLock(g),
-        ),
-      ],
-      actions: [
-        SwipeAction(
-          icon: Icons.tune,
-          label: _l10n.adjustGarmentDetails,
-          backgroundColor: AppColors.accent,
-          // TODO: open garment detail adjustments once designed.
-          onPressed: () {},
         ),
         SwipeAction(
           icon: Icons.delete_outline,
@@ -977,6 +1007,180 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       if (entry.garment.id != null) {
         _lockedGarmentIds.remove(entry.garment.id);
       }
+    });
+    _pruneGarmentAdjustments();
+  }
+
+  /// Whether [key] can be sent with the current outfit (generate answers 400
+  /// otherwise): `hem` needs a bottom, `boots_pants` long trousers. A pick
+  /// that can't is kept and applies once the outfit allows it.
+  bool _keyFitsOutfit(String key) =>
+      switch (GarmentAdjustmentKeyApi.fromApiValue(key)) {
+        GarmentAdjustmentKey.hem => _outfit.bottom != null,
+        GarmentAdjustmentKey.bootsPants =>
+          _outfit.bottom?.isLongTrousers ?? false,
+        _ => true,
+      };
+
+  /// The sheet's note for a pick waiting on the outfit. `hem` has none.
+  String? _pendingNoteFor(String key) =>
+      GarmentAdjustmentKeyApi.fromApiValue(key) ==
+              GarmentAdjustmentKey.bootsPants &&
+          !_keyFitsOutfit(key)
+      ? _l10n.adjustmentNeedsLongTrousers
+      : null;
+
+  /// The table for the displayed locale.
+  FutureProvider<Map<String, AdjustmentDefinition>> get _adjustmentOptions =>
+      adjustmentOptionsProvider(
+        LocaleNotifier.apiLocaleFor(Localizations.localeOf(context)),
+      );
+
+  /// Whether [g]'s row offers Adjust Details. Before [table] loads it goes by
+  /// the garment's own keys; a tap then loads it or reports the failure.
+  bool _canAdjust(Garment g, Map<String, AdjustmentDefinition>? table) =>
+      table == null
+      ? g.adjustmentOptions.isNotEmpty
+      : _definitionsFor(g, table).isNotEmpty;
+
+  List<AdjustmentDefinition> _definitionsFor(
+    Garment g,
+    Map<String, AdjustmentDefinition> definitions,
+  ) {
+    final keys = g.adjustmentOptions.toSet();
+    return [
+      for (final d in definitions.values)
+        if (keys.contains(d.key) && d.options.isNotEmpty) d,
+    ];
+  }
+
+  /// Cuffed pants and pants tucked into boots can't go in one request; the
+  /// newer pick wins, as the backend does for a regenerate.
+  void _dropConflictingPantsPick(Map<String, int> newPicks) {
+    final cuff = GarmentAdjustmentKey.pantCuff.apiValue;
+    final boots = GarmentAdjustmentKey.bootsPants.apiValue;
+    final String clash;
+    final int clashCode;
+    if (newPicks[cuff] == pantCuffCuffed) {
+      (clash, clashCode) = (boots, bootsPantsTucked);
+    } else if (newPicks[boots] == bootsPantsTucked) {
+      (clash, clashCode) = (cuff, pantCuffCuffed);
+    } else {
+      return;
+    }
+    for (final id in _garmentAdjustments.keys.toList()) {
+      final picks = _garmentAdjustments[id]!;
+      if (picks[clash] != clashCode) continue;
+      final rest = {...picks}..remove(clash);
+      if (rest.isEmpty) {
+        _garmentAdjustments.remove(id);
+      } else {
+        _garmentAdjustments[id] = rest;
+      }
+    }
+  }
+
+  /// The garment with [id] in the current outfit, if it's still there.
+  Garment? _outfitGarment(int id) {
+    for (final g in [
+      ..._outfit.garments,
+      ..._accessories.whereType<Garment>(),
+    ]) {
+      if (g.id == id) return g;
+    }
+    return null;
+  }
+
+  /// The picks this outfit can send: garments still in it, keys whose outfit
+  /// condition is met. The only source for a request, so a stale or pending
+  /// pick can't 400.
+  GarmentAdjustments _effectiveAdjustments() {
+    final result = <int, Map<String, int>>{};
+    for (final e in _garmentAdjustments.entries) {
+      final g = _outfitGarment(e.key);
+      if (g == null) continue;
+      final picks = {
+        for (final p in e.value.entries)
+          if (g.adjustmentOptions.contains(p.key) && _keyFitsOutfit(p.key))
+            p.key: p.value,
+      };
+      if (picks.isNotEmpty) result[e.key] = picks;
+    }
+    return result;
+  }
+
+  /// Forgets the picks of garments that left the outfit, so one added back
+  /// starts from Default. Picks waiting on an outfit condition stay.
+  void _pruneGarmentAdjustments() {
+    _garmentAdjustments.removeWhere((id, _) => _outfitGarment(id) == null);
+  }
+
+  Future<void> _showAdjustDetailsSheet(Garment g) async {
+    final id = g.id;
+    if (id == null || _adjustSheetInFlight) return;
+    _adjustSheetInFlight = true;
+    try {
+      await _openAdjustDetailsSheet(id);
+    } finally {
+      _adjustSheetInFlight = false;
+    }
+  }
+
+  Future<void> _openAdjustDetailsSheet(int id) async {
+    final options = _adjustmentOptions;
+    final Map<String, AdjustmentDefinition> definitions;
+    try {
+      definitions = await ref.read(options.future);
+    } on AuthExpiredException {
+      if (!mounted) return;
+      await AuthExpiredHandler.handle(context);
+      return;
+    } catch (e) {
+      debugLog('CreateOutfitPage._showAdjustDetailsSheet failed: $e');
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        message: apiErrorMessage(
+          _l10n,
+          e,
+          fallback: _l10n.adjustmentOptionsLoadFailed,
+        ),
+        onRetry: () {
+          ref.invalidate(options);
+          final g = _outfitGarment(id);
+          if (g != null) _showAdjustDetailsSheet(g);
+        },
+      );
+      return;
+    }
+    if (!mounted) return;
+    // The outfit may have changed while the table loaded.
+    final g = _outfitGarment(id);
+    if (g == null) return;
+    final available = _definitionsFor(g, definitions);
+    if (available.isEmpty) {
+      showAppSnackBar(context, _l10n.noGarmentAdjustments);
+      return;
+    }
+    // A pick for a key the garment no longer offers (its closure changed)
+    // has no row; it's never sent, and a sheet closed unchanged keeps it.
+    final listed = {
+      for (final d in available) d.key: {for (final o in d.options) o.code},
+    };
+    final picks = await showGarmentAdjustmentSheet(
+      context,
+      definitions: available,
+      selected: {
+        for (final e in (_garmentAdjustments[id] ?? const {}).entries)
+          if (listed[e.key]?.contains(e.value) ?? false) e.key: e.value,
+      },
+      notes: {for (final d in available) d.key: ?_pendingNoteFor(d.key)},
+    );
+    if (picks == null || !mounted || _outfitGarment(id) == null) return;
+    setState(() {
+      _garmentAdjustments.remove(id);
+      _dropConflictingPantsPick(picks);
+      if (picks.isNotEmpty) _garmentAdjustments[id] = picks;
     });
   }
 
@@ -1103,6 +1307,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       }
       _placeGarment(g, lock: true);
     });
+    _pruneGarmentAdjustments();
   }
 
   /// Call inside `setState`.
@@ -1185,6 +1390,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         _placeGarment(g, lock: false);
       }
     });
+    _pruneGarmentAdjustments();
   }
 
   /// Whether [g] fits without replacing a garment already picked.

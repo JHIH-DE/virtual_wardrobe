@@ -237,6 +237,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adjustGarmentDetails => '調整細節';
 
   @override
+  String get adjustmentDefault => '預設';
+
+  @override
+  String garmentAdjustedCount(int count) {
+    return '已調整 $count 項';
+  }
+
+  @override
+  String get adjustmentOptionsLoadFailed => '無法載入穿法選項，請再試一次。';
+
+  @override
+  String get noGarmentAdjustments => '這件單品目前沒有可調整的穿法。';
+
+  @override
+  String get adjustmentNeedsLongTrousers => '搭配長褲時才會套用。';
+
+  @override
+  String get errorInvalidGarmentAdjustment => '這件衣服無法套用這個穿法，請重新選擇。';
+
+  @override
   String get rename => '重新命名';
 
   @override
@@ -1136,6 +1156,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sleeveLong => '長袖';
+
+  @override
+  String get closureLabel => '扣合方式';
+
+  @override
+  String get closureZipper => '拉鍊';
+
+  @override
+  String get closureButton => '釦子';
+
+  @override
+  String get closureNone => '無';
 
   @override
   String get cropFullLength => '全長';
@@ -2305,6 +2337,26 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get adjustGarmentDetails => '調整細節';
 
   @override
+  String get adjustmentDefault => '預設';
+
+  @override
+  String garmentAdjustedCount(int count) {
+    return '已調整 $count 項';
+  }
+
+  @override
+  String get adjustmentOptionsLoadFailed => '無法載入穿法選項，請再試一次。';
+
+  @override
+  String get noGarmentAdjustments => '這件單品目前沒有可調整的穿法。';
+
+  @override
+  String get adjustmentNeedsLongTrousers => '搭配長褲時才會套用。';
+
+  @override
+  String get errorInvalidGarmentAdjustment => '這件衣服無法套用這個穿法，請重新選擇。';
+
+  @override
   String get rename => '重新命名';
 
   @override
@@ -3204,6 +3256,18 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get sleeveLong => '長袖';
+
+  @override
+  String get closureLabel => '扣合方式';
+
+  @override
+  String get closureZipper => '拉鍊';
+
+  @override
+  String get closureButton => '釦子';
+
+  @override
+  String get closureNone => '無';
 
   @override
   String get cropFullLength => '全長';

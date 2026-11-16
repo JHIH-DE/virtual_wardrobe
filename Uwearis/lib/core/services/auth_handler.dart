@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/pages/common/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../providers/adjustment_options_provider.dart';
 import '../providers/daily_outfit_provider.dart';
 import '../providers/garments_provider.dart';
+import '../providers/locale_provider.dart';
 import '../providers/outfits_provider.dart';
 import '../providers/points_provider.dart';
 import '../providers/profile_provider.dart';
@@ -42,6 +44,7 @@ Future<void> clearSignedInSession() async {
   await PendingTryOnStore.clear();
   await DailyPointsNotice.clear();
   PointsService.lastSummary = null;
+  LocaleNotifier.forgetBackendLocale();
 }
 
 /// Providers outlive the Navigator, so without this a new sign-in would see
@@ -52,6 +55,7 @@ Future<void> clearSignedInSession() async {
 void invalidateSignedInProviders(BuildContext context) {
   final container = ProviderScope.containerOf(context, listen: false);
   container.invalidate(profileProvider);
+  container.invalidate(adjustmentOptionsProvider);
   container.invalidate(pointsProvider);
   container.invalidate(garmentsProvider);
   container.invalidate(outfitsProvider);

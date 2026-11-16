@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_dimens.dart';
+import 'package:uwearis/core/providers/adjustment_options_provider.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
+import 'package:uwearis/data/garment_adjustment.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/outfit_edit_page.dart';
 import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
@@ -34,6 +36,8 @@ Garment _garment(int id, GarmentCategory category, String name, String sub) =>
       name: name,
       category: category,
       subCategory: sub,
+      // So Create Outfit's rows lay out the Adjust Details action too.
+      adjustmentOptions: const ['sleeve'],
       uploadUrl: '',
       objectName: '',
     );
@@ -205,6 +209,15 @@ void main() {
             garmentsProvider.overrideWith(
               () => _FakeGarments([...closet, _spare]),
             ),
+            adjustmentOptionsProvider.overrideWith(
+              (ref, _) async => const {
+                'sleeve': AdjustmentDefinition(
+                  key: 'sleeve',
+                  label: 'Sleeves',
+                  options: [AdjustmentOption(code: 2, label: 'Rolled')],
+                ),
+              },
+            ),
           ],
         );
         await tester.pump();
@@ -219,7 +232,7 @@ void main() {
             .ancestor(of: row, matching: find.byType(SwipeActionCard))
             .first;
         bool isLocked() =>
-            tester.widget<SwipeActionCard>(card).leadingActions.first.icon ==
+            tester.widget<SwipeActionCard>(card).actions.first.icon ==
             Icons.lock_outline;
         final initiallyLocked = isLocked();
         final toggleIcon = initiallyLocked
@@ -231,8 +244,9 @@ void main() {
         }
 
         // The revealed actions sit on screen, inside the row's height.
-        Future<void> reveal({required bool lock}) async {
-          await tester.drag(find.text(longName), Offset(lock ? 300 : -300, 0));
+        // Right: Adjust Details. Left: lock + remove.
+        Future<void> reveal({required bool left}) async {
+          await tester.drag(find.text(longName), Offset(left ? -300 : 300, 0));
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
         }
@@ -253,14 +267,14 @@ void main() {
           }
         }
 
-        await reveal(lock: false);
-        expectDiscsOnScreen([Icons.tune, Icons.delete_outline]);
+        await reveal(left: false);
+        expectDiscsOnScreen([Icons.tune]);
         await tester.tap(find.text(longName), warnIfMissed: false);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
-        await reveal(lock: true);
-        expectDiscsOnScreen([toggleIcon]);
+        await reveal(left: true);
+        expectDiscsOnScreen([toggleIcon, Icons.delete_outline]);
 
         // Toggling lays out the other state.
         await tester.tap(find.byIcon(toggleIcon));
@@ -269,7 +283,7 @@ void main() {
         expect(isLocked(), !initiallyLocked);
         _expectReadableRow(tester, longName);
 
-        await reveal(lock: false);
+        await reveal(left: true);
         await tester.tap(find.byIcon(Icons.delete_outline));
         await tester.pump();
         expect(find.text(longName), findsNothing);

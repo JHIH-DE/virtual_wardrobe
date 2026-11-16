@@ -547,6 +547,38 @@ void main() {
         expect(payload['garment_ids'], [1, 2, 3]);
         expect(payload['is_favorite'], false);
         expect(payload.containsKey('background_id'), isFalse);
+        expect(payload.containsKey('garment_adjustments'), isFalse);
+      },
+    );
+
+    test(
+      'sends garment_adjustments, skipping garments with no picks',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return _jsonResponse(_envelope(_outfitJson()));
+        });
+
+        await http.runWithClient(
+          () => OutfitService().generateOutfit(
+            garmentIds: [132, 127],
+            groupId: 7,
+            adjustments: {
+              132: {'zipper': 1},
+              127: {},
+            },
+          ),
+          () => client,
+        );
+
+        final payload = jsonDecode(captured.body) as Map<String, dynamic>;
+        expect(payload['garment_adjustments'], [
+          {
+            'garment_id': 132,
+            'adjustments': {'zipper': 1},
+          },
+        ]);
       },
     );
 
@@ -586,6 +618,49 @@ void main() {
         ),
         throwsA(isA<TimeoutException>()),
       );
+    });
+  });
+
+  group('getAdjustmentOptions', () {
+    test('parses the table, keeping non-contiguous codes', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope([
+            {
+              'key': 'zipper',
+              'label': '外套拉鍊',
+              'default_code': 3,
+              'options': [
+                {'code': 1, 'label': '全拉'},
+                {'code': 3.0, 'label': '敞開'},
+              ],
+            },
+            {
+              'key': 'laces',
+              'label': '鞋帶',
+              'default_code': null,
+              'options': [
+                {'code': 1, 'label': '正常'},
+                {'code': 'bad', 'label': 'dropped'},
+              ],
+            },
+          ]),
+        );
+      });
+
+      final defs = await http.runWithClient(
+        () => OutfitService().getAdjustmentOptions(),
+        () => client,
+      );
+
+      expect(captured.method, 'GET');
+      expect(captured.url.toString(), '$_base/adjustment-options');
+      expect(defs.map((d) => d.key), ['zipper', 'laces']);
+      expect(defs[0].label, '外套拉鍊');
+      expect(defs[0].options.map((o) => o.code), [1, 3]);
+      expect(defs[1].options.map((o) => o.label), ['正常']);
     });
   });
 

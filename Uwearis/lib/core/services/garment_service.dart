@@ -253,7 +253,7 @@ class GarmentService with BaseService {
   /// Only PATCH-editable fields (`object_name` / `image_url` are rejected
   /// with `FIELD_NOT_EDITABLE`).
   ///
-  /// fit / silhouette / sleeve_length / crop_length are sent only for a
+  /// fit / silhouette / sleeve_length / closure / crop_length are sent only for a
   /// category they apply to (the backend clears them on a category change).
   /// PATCH validates them strictly (400 `INVALID_GARMENT_ATTRIBUTE`), so `""`
   /// goes as `null`; `crop_length` isn't nullable, so it's sent only with a value.
@@ -278,6 +278,8 @@ class GarmentService with BaseService {
       },
       if (garmentSleeveLengthCategories.contains(category))
         'sleeve_length': valueOrNull(garment.sleeveLength),
+      if (garmentClosureCategories.contains(category))
+        'closure': valueOrNull(garment.closure),
       if (garmentCropLengthCategories.contains(category) && cropLength != null)
         'crop_length': cropLength,
     };

@@ -49,6 +49,8 @@ String? sharedErrorCodeMessage(AppLocalizations l10n, String? errorCode) {
     case 'TRY_ON_GENERATION_EXPIRED':
     case 'TRY_ON_GENERATION_TIMED_OUT':
       return l10n.tryOnNotCounted;
+    case 'INVALID_GARMENT_ADJUSTMENT':
+      return l10n.errorInvalidGarmentAdjustment;
     case insufficientPointsErrorCode:
       // Only promise a grant the backend says is coming; unknown (no
       // balance read yet) counts as none.
