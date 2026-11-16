@@ -849,7 +849,7 @@ void main() {
         );
         expect(container.read(tripDetailProvider(7)).value!.suitcaseIds, {1});
         expect(find.text('Jeans'), findsOneWidget);
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pumpAndSettle();
 
         await tester.binding.handlePopRoute();

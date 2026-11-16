@@ -5,8 +5,8 @@ import 'app_dialog.dart';
 
 enum SaveChangesChoice { save, discard, cancel }
 
-/// The shared unsaved-changes prompt. There is no Cancel button: dismissing
-/// it (barrier tap / back) counts as [SaveChangesChoice.cancel].
+/// The shared unsaved-changes prompt. Cancel (or a barrier tap / back)
+/// counts as [SaveChangesChoice.cancel]: stay on the page.
 Future<SaveChangesChoice> showSaveChangesDialog(
   BuildContext context, {
   required String title,
@@ -22,6 +22,7 @@ Future<SaveChangesChoice> showSaveChangesDialog(
       onPrimary: () => Navigator.pop(ctx, SaveChangesChoice.save),
       secondaryLabel: l10n.dontSave,
       onSecondary: () => Navigator.pop(ctx, SaveChangesChoice.discard),
+      dismiss: AppDialogDismiss.cancel,
     ),
   );
   return choice ?? SaveChangesChoice.cancel;

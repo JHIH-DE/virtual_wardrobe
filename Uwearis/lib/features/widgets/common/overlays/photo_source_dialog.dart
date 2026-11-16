@@ -21,6 +21,7 @@ Future<String?> showPhotoSourceDialog(
       final l10n = AppLocalizations.of(dialogCtx);
       return AppDialog(
         title: title,
+        dismiss: AppDialogDismiss.cancel,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

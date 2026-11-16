@@ -87,7 +87,7 @@ void main() {
       await tester.pumpAndSettle();
     }, _client(summary: pointsSummaryJson(balance: 1234, costs: _allCosts)));
 
-    expect(find.text('P 1,234', findRichText: true), findsOneWidget);
+    expect(find.text('\u{FFFC} 1,234', findRichText: true), findsOneWidget);
     expect(find.textContaining('15 points tomorrow'), findsOneWidget);
     expect(find.textContaining('Uwearis Plus ·'), findsNothing);
     expect(find.text('Points per feature'), findsNothing);
@@ -108,7 +108,7 @@ void main() {
     for (final action in PointsAction.values) {
       expect(find.text(action.localizedLabel(l10n)), findsOneWidget);
     }
-    expect(find.text('P 30', findRichText: true), findsOneWidget);
+    expect(find.text('\u{FFFC} 30', findRichText: true), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('IMAGES')).dy,
       lessThan(tester.getTopLeft(find.text('Virtual try-on')).dy),

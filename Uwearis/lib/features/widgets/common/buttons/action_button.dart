@@ -11,6 +11,9 @@ enum ActionButtonVariant {
   /// Pale accent tint — an action that shouldn't compete with a primary one
   /// on the same screen.
   secondary,
+
+  /// Solid error fill — the main action when it deletes or can't be undone.
+  destructive,
 }
 
 /// Full-width pill call-to-action.
@@ -64,13 +67,16 @@ class ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final disabled = onPressed == null;
     final (background, foreground, border) = switch (variant) {
-      ActionButtonVariant.primary when disabled => (
-        AppColors.borderSubtle,
-        AppColors.hintText,
-        BorderSide.none,
-      ),
+      ActionButtonVariant.primary || ActionButtonVariant.destructive
+          when disabled =>
+        (AppColors.borderSubtle, AppColors.hintText, BorderSide.none),
       ActionButtonVariant.primary => (
         AppColors.accent,
+        AppColors.textOnPrimary,
+        BorderSide.none,
+      ),
+      ActionButtonVariant.destructive => (
+        AppColors.error,
         AppColors.textOnPrimary,
         BorderSide.none,
       ),

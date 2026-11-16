@@ -418,6 +418,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
             title: _l10n.clearTrip,
             body: _l10n.clearTripConfirmation,
             primaryLabel: _l10n.clear,
+            destructive: true,
             onPrimary: () => Navigator.pop(ctx, true),
           ),
         );
@@ -439,6 +440,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
         title: _l10n.deleteTrip,
         body: _l10n.deleteTripConfirmation,
         primaryLabel: _l10n.delete,
+        destructive: true,
         onPrimary: () => Navigator.pop(ctx, true),
       ),
     );

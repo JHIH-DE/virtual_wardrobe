@@ -299,22 +299,42 @@ class _CreditsBalance extends StatelessWidget {
   /// don't shift as the balance changes.
   static const _maxCredits = 30000;
 
+  /// At label size the icon at digit height is too small to read as a coin.
+  static const _iconScale = 1.5;
+
   static TextSpan _span(BuildContext context, int amount) {
+    final style = NavBarTab.labelStyle.copyWith(color: AppColors.textSecondary);
     return TextSpan(
-      style: NavBarTab.labelStyle.copyWith(color: AppColors.textSecondary),
-      children: [PointsAmount.span(context, amount)],
+      style: style,
+      children: [
+        PointsAmount.span(
+          context,
+          amount,
+          fontSize: style.fontSize!,
+          iconScale: _iconScale,
+        ),
+      ],
     );
   }
 
   /// At least [minWidth], and wide enough for [_maxCredits] at [context]'s
   /// text scale.
   static double slotWidthFor(BuildContext context, {required double minWidth}) {
-    final painter = TextPainter(
-      text: _span(context, _maxCredits),
-      textDirection: TextDirection.ltr,
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
+    final painter =
+        TextPainter(
+            text: _span(context, _maxCredits),
+            textDirection: TextDirection.ltr,
+            textScaler: MediaQuery.textScalerOf(context),
+            maxLines: 1,
+          )
+          ..setPlaceholderDimensions(
+            PointsAmount.placeholderDimensions(
+              context,
+              fontSize: NavBarTab.labelStyle.fontSize!,
+              iconScale: _iconScale,
+            ),
+          )
+          ..layout();
     final width = painter.width.ceilToDouble();
     painter.dispose();
     return math.max(minWidth, width);

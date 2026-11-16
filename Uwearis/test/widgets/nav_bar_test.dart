@@ -104,7 +104,7 @@ void _expectNothingClipped(WidgetTester tester) {
 
 /// The whole balance, centered under the button, on the tabs' label line.
 void _expectCreditsOnLabelLine(WidgetTester tester) {
-  final credits = find.text('P 10,000', findRichText: true);
+  final credits = find.text('\u{FFFC} 10,000', findRichText: true);
   expect(credits, findsOneWidget);
   expect(isTruncated(tester, credits), isFalse);
 

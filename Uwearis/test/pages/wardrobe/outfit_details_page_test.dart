@@ -573,7 +573,7 @@ void main() {
           findsOneWidget,
         );
         // Dismiss, then confirm the picker never opened underneath.
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pump();
         await tester.pump();
         expect(find.byType(CreateOutfitPage), findsNothing);
@@ -1064,13 +1064,13 @@ void main() {
             ),
             findsOneWidget,
           );
-          await tester.tap(find.byKey(AppDialog.closeButtonKey));
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
 
           await tester.tap(find.byIcon(Icons.refresh).first);
           await tester.pump(const Duration(milliseconds: 300));
           expect(find.text('Try Again?'), findsOneWidget);
-          await tester.tap(find.byKey(AppDialog.closeButtonKey));
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
           expect(keys, hasLength(1));
 

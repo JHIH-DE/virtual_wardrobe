@@ -3717,12 +3717,6 @@ abstract class AppLocalizations {
   /// **'AI Credits'**
   String get aiCreditsLabel;
 
-  /// No description provided for @aiCreditsSymbol.
-  ///
-  /// In en, this message translates to:
-  /// **'P'**
-  String get aiCreditsSymbol;
-
   /// No description provided for @uwearisPoints.
   ///
   /// In en, this message translates to:

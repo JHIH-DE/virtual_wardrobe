@@ -1057,7 +1057,7 @@ void main() {
 
         pending.complete(jsonResponse(envelope(null), status: 500));
         await tester.pump(const Duration(seconds: 1));
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pump(const Duration(milliseconds: 300));
 
         await tester.dragFrom(const Offset(2, 600), const Offset(600, 0));
@@ -1102,14 +1102,14 @@ void main() {
           ),
           findsOneWidget,
         );
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pump(const Duration(milliseconds: 300));
 
         await tester.tap(createButton());
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         expect(find.text('Try Again?'), findsOneWidget);
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         expect(generates, 1);
@@ -1450,7 +1450,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Nothing Changed Yet'), findsOneWidget);
-      await tester.tap(find.byKey(AppDialog.closeButtonKey));
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
       await tester.pumpAndSettle();
       expect(find.text('Nothing Changed Yet'), findsNothing);
 

@@ -763,7 +763,6 @@
   "tripAiPartialFailure": "Saved outfits were added, but AI styling couldn't be completed.",
   "tripAiRateLimited": "You've made a lot of AI outfit requests. Please try again later.",
   "aiCreditsLabel": "AI Credits",
-  "aiCreditsSymbol": "P",
   "uwearisPoints": "Uwearis Points",
   "pointsAvailable": "Available points",
   "pointsViewActivity": "View activity",

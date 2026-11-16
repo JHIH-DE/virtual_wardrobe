@@ -417,6 +417,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
         title: _l10n.deleteGarment,
         body: _l10n.deleteGarmentConfirmation,
         primaryLabel: _l10n.delete,
+        destructive: true,
         onPrimary: () => Navigator.pop(ctx, true),
       ),
     );

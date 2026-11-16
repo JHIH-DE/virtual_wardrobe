@@ -648,7 +648,6 @@
   "tripAiPartialFailure": "已加入你的穿搭，但 AI 搭配没有完成。",
   "tripAiRateLimited": "AI 穿搭请求次数较多，请稍后再试。",
   "aiCreditsLabel": "AI 点数",
-  "aiCreditsSymbol": "P",
   "uwearisPoints": "Uwearis 点数",
   "pointsAvailable": "可用点数",
   "pointsViewActivity": "查看记录",

@@ -370,7 +370,7 @@ class _PointsPageState extends ConsumerState<PointsPage> {
       TextSpan(
         style: AppTextStyle.bold24.copyWith(fontSize: fontSize, height: 1.2),
         children: [
-          PointsAmount.span(context, points),
+          PointsAmount.span(context, points, fontSize: fontSize),
           if (unit != null)
             TextSpan(
               text: ' $unit',

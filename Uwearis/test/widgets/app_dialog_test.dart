@@ -54,7 +54,7 @@ void main() {
     },
   );
 
-  testWidgets('the top-right X pops the dialog with null', (tester) async {
+  Future<Future<bool?>?> open(WidgetTester tester, AppDialog dialog) async {
     Future<bool?>? result;
     await tester.pumpWidget(
       MaterialApp(
@@ -62,11 +62,7 @@ void main() {
           builder: (context) => TextButton(
             onPressed: () => result = showDialog<bool>(
               context: context,
-              builder: (_) => const AppDialog(
-                title: 'Title',
-                body: 'Body',
-                secondaryLabel: 'Decline',
-              ),
+              builder: (_) => dialog,
             ),
             child: const Text('open'),
           ),
@@ -75,14 +71,133 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
+    return result;
+  }
+
+  testWidgets('without a primary, the primary slot is an OK that pops null', (
+    tester,
+  ) async {
+    final result = await open(
+      tester,
+      const AppDialog(title: 'Title', body: 'Body', secondaryLabel: 'Decline'),
+    );
 
     final label = tester.widget<Text>(find.text('Decline'));
     expect(label.style!.fontSize, AppTextStyle.medium14.fontSize);
     expect(label.style!.color, AppColors.textSecondary);
 
-    await tester.tap(find.byKey(AppDialog.closeButtonKey));
+    expect(
+      find.descendant(
+        of: find.byKey(AppDialog.dismissButtonKey),
+        matching: find.text('OK'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(AppDialog.dismissButtonKey));
     await tester.pumpAndSettle();
     expect(find.byType(AppDialog), findsNothing);
     expect(await result, isNull);
+  });
+
+  testWidgets('with a primary only, the secondary slot is a Cancel that pops '
+      'null', (tester) async {
+    final result = await open(
+      tester,
+      AppDialog(
+        title: 'Title',
+        body: 'Body',
+        primaryLabel: 'Go',
+        onPrimary: () {},
+      ),
+    );
+
+    expect(
+      find.descendant(
+        of: find.byKey(AppDialog.dismissButtonKey),
+        matching: find.text('Cancel'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsNothing);
+    expect(await result, isNull);
+  });
+
+  testWidgets('with both buttons set, there is no dismiss button', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        AppDialog(
+          title: 'Title',
+          body: 'Body',
+          primaryLabel: 'Save',
+          onPrimary: () {},
+          secondaryLabel: "Don't Save",
+          onSecondary: () {},
+        ),
+      ),
+    );
+    expect(find.byKey(AppDialog.dismissButtonKey), findsNothing);
+    expect(find.byIcon(Icons.close), findsNothing);
+  });
+
+  testWidgets('destructive renders the primary with the error fill', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        AppDialog(
+          title: 'Title',
+          body: 'Body',
+          primaryLabel: 'Delete',
+          onPrimary: () {},
+          destructive: true,
+        ),
+      ),
+    );
+    expect(style(tester).backgroundColor?.resolve({}), AppColors.error);
+  });
+
+  testWidgets('dismiss: cancel adds a Cancel under both buttons, and none in '
+      'the primary slot without a primary', (tester) async {
+    final result = await open(
+      tester,
+      AppDialog(
+        title: 'Title',
+        body: 'Body',
+        primaryLabel: 'Save',
+        onPrimary: () {},
+        secondaryLabel: "Don't Save",
+        onSecondary: () {},
+        dismiss: AppDialogDismiss.cancel,
+      ),
+    );
+    expect(
+      tester.getTopLeft(find.byKey(AppDialog.dismissButtonKey)).dy,
+      greaterThan(tester.getTopLeft(find.text("Don't Save")).dy),
+    );
+    await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+    await tester.pumpAndSettle();
+    expect(await result, isNull);
+
+    await tester.pumpWidget(
+      host(
+        const AppDialog(
+          title: 'Title',
+          content: SizedBox(),
+          dismiss: AppDialogDismiss.cancel,
+        ),
+      ),
+    );
+    expect(find.byType(ElevatedButton), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(AppDialog.dismissButtonKey),
+        matching: find.text('Cancel'),
+      ),
+      findsOneWidget,
+    );
   });
 }

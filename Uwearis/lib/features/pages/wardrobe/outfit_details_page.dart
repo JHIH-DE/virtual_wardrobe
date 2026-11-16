@@ -991,6 +991,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
         title: _l10n.deleteOutfitTitle,
         body: _l10n.deleteOutfitGroupConfirmation,
         primaryLabel: _l10n.delete,
+        destructive: true,
         onPrimary: () => Navigator.pop(ctx, true),
       ),
     );
@@ -1035,6 +1036,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
         title: _l10n.deleteOutfitTitle,
         body: _l10n.deleteOutfitConfirmation,
         primaryLabel: _l10n.delete,
+        destructive: true,
         onPrimary: () => Navigator.pop(ctx, true),
       ),
     );

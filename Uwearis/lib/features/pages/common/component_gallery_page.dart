@@ -143,6 +143,17 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         label: _l10n.viewClosetMatch,
         variant: ActionButtonVariant.secondary,
       ),
+      const _Spec('destructive · normal'),
+      ActionButton(
+        label: _l10n.delete,
+        variant: ActionButtonVariant.destructive,
+        onPressed: () {},
+      ),
+      const _Spec('destructive · disabled'),
+      ActionButton(
+        label: _l10n.delete,
+        variant: ActionButtonVariant.destructive,
+      ),
       const _Spec(
         'secondary + primary side by side; stacks when either label would '
         'not fit its half',

@@ -56,6 +56,7 @@ class SharedMediaHandler {
       context: context,
       builder: (dialogCtx) => AppDialog(
         title: l10n.useSharedPhotoTitle,
+        dismiss: AppDialogDismiss.cancel,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

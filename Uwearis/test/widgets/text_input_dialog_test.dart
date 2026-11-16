@@ -80,7 +80,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Osaka Trip');
     await tester.pump();
 
-    await tester.tap(find.byKey(AppDialog.closeButtonKey));
+    await tester.tap(find.byKey(AppDialog.dismissButtonKey));
     await tester.pumpAndSettle();
 
     expect(await resultFuture, isNull);

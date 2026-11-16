@@ -209,6 +209,7 @@ class TripCard extends StatelessWidget {
         title: l10n.deleteTrip,
         body: l10n.deleteTripConfirmation,
         primaryLabel: l10n.delete,
+        destructive: true,
         onPrimary: () => Navigator.pop(ctx, true),
       ),
     );

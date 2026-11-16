@@ -220,6 +220,7 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
             title: _l10n.removeTripOutfitTitle,
             body: _l10n.removeTripOutfitBody,
             primaryLabel: _l10n.remove,
+            destructive: true,
             onPrimary: () => Navigator.pop(ctx, true),
           ),
         );

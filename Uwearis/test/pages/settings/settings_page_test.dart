@@ -81,7 +81,7 @@ void main() {
 
       await tester.tap(find.text('Log out'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(AppDialog.closeButtonKey));
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
       await tester.pumpAndSettle();
 
       expect(find.text('Log out?'), findsNothing);
@@ -323,7 +323,7 @@ void main() {
 
         await tester.tap(find.text('Withdraw AI Consent'));
         await tester.pumpAndSettle();
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pumpAndSettle();
         expect(await UserAcknowledgement.aiConsent.isGranted(), isTrue);
       });

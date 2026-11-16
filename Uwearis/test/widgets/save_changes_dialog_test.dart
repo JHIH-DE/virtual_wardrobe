@@ -30,7 +30,7 @@ void main() {
     return choice!;
   }
 
-  testWidgets('renders the title/body, Save and Don\'t Save, no Cancel', (
+  testWidgets('renders the title/body, Save, Don\'t Save and Cancel', (
     tester,
   ) async {
     await open(tester);
@@ -38,12 +38,13 @@ void main() {
     expect(find.text('Leave without saving?'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
     expect(find.text("Don't Save"), findsOneWidget);
-    expect(find.text('Cancel'), findsNothing);
+    expect(find.text('Cancel'), findsOneWidget);
   });
 
   for (final (label, expected) in const [
     ('Save', SaveChangesChoice.save),
     ("Don't Save", SaveChangesChoice.discard),
+    ('Cancel', SaveChangesChoice.cancel),
   ]) {
     testWidgets('$label returns $expected', (tester) async {
       final future = await open(tester);

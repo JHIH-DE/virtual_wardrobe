@@ -2013,9 +2013,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiCreditsLabel => 'AI Credits';
 
   @override
-  String get aiCreditsSymbol => 'P';
-
-  @override
   String get uwearisPoints => 'Uwearis Points';
 
   @override

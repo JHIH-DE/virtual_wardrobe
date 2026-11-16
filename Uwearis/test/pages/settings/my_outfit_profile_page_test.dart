@@ -391,7 +391,7 @@ void main() {
         await tester.tap(find.byIcon(Icons.add_circle_outline));
         await tester.pumpAndSettle();
         expect(find.text(_l10n.retry), findsOneWidget);
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pumpAndSettle();
         expect(find.text('+1°C'), findsOneWidget);
 

@@ -541,7 +541,7 @@ void main() {
           await tester.tap(find.text('Refresh AI Outfits'));
           await tester.pumpAndSettle();
           expect(find.textContaining('replace 2 AI picks'), findsOneWidget);
-          await tester.tap(find.byKey(AppDialog.closeButtonKey));
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
           await tester.pumpAndSettle();
           expect(log, isEmpty);
 
@@ -836,7 +836,7 @@ void main() {
         await settle(tester);
 
         await chooseClearTrip(tester);
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await tester.pumpAndSettle();
 
         expect(log, isEmpty);
@@ -1143,7 +1143,7 @@ void main() {
           );
           await pumpUntil(tester, () => unknown.evaluate().isNotEmpty);
           expect(unknown, findsOneWidget);
-          await tester.tap(find.byKey(AppDialog.closeButtonKey));
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
 
           // Still nothing: ask first; Cancel sends nothing.
@@ -1151,7 +1151,7 @@ void main() {
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 300));
           expect(find.text('Try Again?'), findsOneWidget);
-          await tester.tap(find.byKey(AppDialog.closeButtonKey));
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
           await tester.pump(const Duration(milliseconds: 300));
           expect(posts, hasLength(1));
 

@@ -138,6 +138,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         title: _l10n.deleteAccountConfirmTitle,
         body: _l10n.deleteAccountConfirmBody,
         primaryLabel: _l10n.deleteAccount,
+        destructive: true,
         onPrimary: () => Navigator.pop(ctx, true),
       ),
     );
@@ -229,7 +230,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         context,
         MaterialPageRoute(builder: (_) => const PointsPage()),
       ),
-      leading: _buildLeadingIcon(LucideIcons300.coins),
+      leading: _buildLeadingIcon(LucideIcons300.circleStar),
       showArrow: true,
       summary: balance == null
           ? null
@@ -413,6 +414,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         title: _l10n.withdrawAiConsentConfirmTitle,
         body: _l10n.withdrawAiConsentConfirmBody,
         primaryLabel: _l10n.withdrawAiConsentConfirm,
+        destructive: true,
         onPrimary: () => Navigator.pop(ctx, true),
       ),
     );

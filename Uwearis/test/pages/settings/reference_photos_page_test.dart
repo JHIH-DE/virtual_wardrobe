@@ -448,7 +448,7 @@ void main() {
       expect(find.text(_l10n.referencePhotoTermsTitle), findsOneWidget);
       expect(find.text(_l10n.referencePhotoTermsBody(13)), findsOneWidget);
 
-      await tester.tap(find.byKey(AppDialog.closeButtonKey));
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
       await tester.pumpAndSettle();
       expect(downloads, 0);
       expect(find.byType(ImageEditorPage), findsNothing);
@@ -471,7 +471,7 @@ void main() {
       expect(await UserAcknowledgement.referencePhotoTerms.isGranted(), isTrue);
 
       // The fake download fails, which leaves an error dialog up.
-      await tester.tap(find.byKey(AppDialog.closeButtonKey));
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('updatePhotoAction-body')));
       await tester.pumpAndSettle();
@@ -1000,7 +1000,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(_l10n.virtualModelGenerateFailed), findsOneWidget);
-      await tester.tap(find.byKey(AppDialog.closeButtonKey));
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
       await tester.pumpAndSettle();
       expect(find.byType(ReferencePhotosPage), findsOneWidget);
       final container = ProviderScope.containerOf(

@@ -259,4 +259,38 @@ void main() {
       });
     }
   });
+
+  testWidgets('destructive: error fill with a light label; disabled matches '
+      'the disabled primary', (tester) async {
+    await tester.pumpWidget(
+      host(
+        ActionButton(
+          label: 'Delete',
+          variant: ActionButtonVariant.destructive,
+          onPressed: () {},
+        ),
+      ),
+    );
+    var style = styleOf(tester);
+    expect(style.backgroundColor!.resolve({}), AppColors.error);
+    expect(style.foregroundColor!.resolve({}), AppColors.textOnPrimary);
+
+    await tester.pumpWidget(
+      host(
+        const ActionButton(
+          label: 'Delete',
+          variant: ActionButtonVariant.destructive,
+        ),
+      ),
+    );
+    style = styleOf(tester);
+    expect(
+      style.backgroundColor!.resolve({WidgetState.disabled}),
+      AppColors.borderSubtle,
+    );
+    expect(
+      style.foregroundColor!.resolve({WidgetState.disabled}),
+      AppColors.hintText,
+    );
+  });
 }

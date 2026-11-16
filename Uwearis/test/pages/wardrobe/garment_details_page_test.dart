@@ -1547,7 +1547,7 @@ void main() {
           find.text("Couldn't save this item. Please try again."),
           findsOneWidget,
         );
-        await tester.tap(find.byKey(AppDialog.closeButtonKey));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
         await pump500(tester);
 
         await tester.tap(backButton);

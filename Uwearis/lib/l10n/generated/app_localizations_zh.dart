@@ -1881,9 +1881,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiCreditsLabel => 'AI 点数';
 
   @override
-  String get aiCreditsSymbol => 'P';
-
-  @override
   String get uwearisPoints => 'Uwearis 点数';
 
   @override
@@ -3950,9 +3947,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get aiCreditsLabel => 'AI 點數';
-
-  @override
-  String get aiCreditsSymbol => 'P';
 
   @override
   String get uwearisPoints => 'Uwearis 點數';
