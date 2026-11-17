@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/garment_service.dart';
+import 'package:uwearis/data/bag_details.dart';
 import 'package:uwearis/data/closet_analysis.dart';
 import 'package:uwearis/data/garment.dart';
 
@@ -726,6 +727,41 @@ void main() {
       ]) {
         expect(bodies[3].containsKey(key), isFalse, reason: key);
       }
+    });
+
+    test('sends bag_details only for a bag that has them', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final client = MockClient((request) async {
+        bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return _jsonResponse(_envelope(_garmentJson(309)));
+      });
+      const bag = Garment(
+        id: 309,
+        name: 'Sacoche',
+        category: GarmentCategory.accessory,
+        subCategory: 'Bag',
+        uploadUrl: '',
+        objectName: '',
+        bagDetails: BagDetails(bagType: BagType.sacoche, bodyWidthCm: 25),
+      );
+
+      await http.runWithClient(() async {
+        await GarmentService().updateGarment(bag);
+        // No longer a bag: the backend clears it, sending it would 400.
+        await GarmentService().updateGarment(bag.copyWith(subCategory: 'Cap'));
+        // A legacy bag nobody filled in: nothing to send.
+        await GarmentService().updateGarment(
+          bag.copyWith(clearBagDetails: true),
+        );
+      }, () => client);
+
+      expect(bodies[0]['bag_details'], {
+        'bag_type': 'sacoche',
+        'body_width_cm': 25.0,
+        'strap_width_class': null,
+      });
+      expect(bodies[1].containsKey('bag_details'), isFalse);
+      expect(bodies[2].containsKey('bag_details'), isFalse);
     });
 
     test('never sends a null crop_length', () async {

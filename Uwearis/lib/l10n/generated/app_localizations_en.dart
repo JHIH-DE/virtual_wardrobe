@@ -441,6 +441,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleMinimal => 'Minimal';
 
   @override
+  String get styleMinimalShort => 'Minimal';
+
+  @override
+  String get seasonSpring => 'Spring';
+
+  @override
+  String get seasonSummer => 'Summer';
+
+  @override
+  String get seasonAutumn => 'Autumn';
+
+  @override
+  String get seasonWinter => 'Winter';
+
+  @override
   String get styleClassic => 'Classic';
 
   @override
@@ -877,11 +892,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get back => 'Back';
 
   @override
-  String outfitFallbackTitle(int id) {
-    return 'Outfit #$id';
-  }
-
-  @override
   String get failedToLoad => 'Failed to Load';
 
   @override
@@ -1231,6 +1241,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get closureNone => 'None';
+
+  @override
+  String get bagTypeLabel => 'Bag Type';
+
+  @override
+  String get bagTypeSacoche => 'Sacoche';
+
+  @override
+  String get bagTypeTote => 'Tote';
+
+  @override
+  String get bagTypeBackpack => 'Backpack';
+
+  @override
+  String get bagTypeMessenger => 'Messenger';
+
+  @override
+  String get bagTypeShoulderBag => 'Shoulder Bag';
+
+  @override
+  String get bagTypeCrossbodyBag => 'Crossbody Bag';
+
+  @override
+  String get bagTypeHandbag => 'Handbag';
+
+  @override
+  String get bagTypeClutch => 'Clutch';
+
+  @override
+  String get bagTypeWaistBag => 'Waist Bag';
+
+  @override
+  String get bagTypeBucketBag => 'Bucket Bag';
+
+  @override
+  String get bagTypeOther => 'Other';
+
+  @override
+  String get bagBodyWidthLabel => 'Bag Width (cm)';
+
+  @override
+  String get bagBodyWidthHint => 'Measure the body, without the strap';
+
+  @override
+  String get bagBodyWidthError => 'Enter a width from 3 to 150 cm';
+
+  @override
+  String get strapWidthClassLabel => 'Strap Thickness';
+
+  @override
+  String get strapWidthExtraThin => 'Extra Thin';
+
+  @override
+  String get strapWidthThin => 'Thin';
+
+  @override
+  String get strapWidthMedium => 'Medium';
+
+  @override
+  String get strapWidthWide => 'Wide';
+
+  @override
+  String get strapWidthUnknown => 'Not Sure';
 
   @override
   String get cropFullLength => 'Full-length';

@@ -14,6 +14,9 @@ import 'action_disc_button.dart';
 class FilterGroup {
   final String label;
   final List<String> options;
+
+  /// A chip's text for an option value; the value itself when null.
+  final String Function(String option)? labelOf;
   final Set<String> Function() selected;
   final void Function(String option) onToggle;
   final String? emptyMessage;
@@ -27,6 +30,7 @@ class FilterGroup {
     required this.options,
     required this.selected,
     required this.onToggle,
+    this.labelOf,
     this.emptyMessage,
     this.headerAll = false,
   });
@@ -38,11 +42,13 @@ class FilterGroup {
     required List<String> options,
     required Set<String> Function() selected,
     required void Function(Set<String> next) onChanged,
+    String Function(String option)? labelOf,
     String? emptyMessage,
   }) {
     return FilterGroup(
       label: label,
       options: options,
+      labelOf: labelOf,
       selected: selected,
       onToggle: (option) =>
           onChanged(FilterButton.toggleWithAll(selected(), option)),
@@ -206,6 +212,7 @@ class _ChipGroup extends StatelessWidget {
               )
             : _JustifiedChips(
                 options: options,
+                labelOf: group.labelOf ?? (o) => o,
                 selected: group.selected,
                 onToggle: group.onToggle,
                 onChanged: onChanged,
@@ -222,12 +229,14 @@ class _ChipGroup extends StatelessWidget {
 /// rough fill ratio.
 class _JustifiedChips extends StatefulWidget {
   final List<String> options;
+  final String Function(String option) labelOf;
   final Set<String> Function() selected;
   final void Function(String option) onToggle;
   final VoidCallback onChanged;
 
   const _JustifiedChips({
     required this.options,
+    required this.labelOf,
     required this.selected,
     required this.onToggle,
     required this.onChanged,
@@ -290,8 +299,11 @@ class _JustifiedChipsState extends State<_JustifiedChips> {
   }
 
   List<String> _orderOptions(List<String> options) {
-    return [...options]
-      ..sort((a, b) => _estimateWidth(b).compareTo(_estimateWidth(a)));
+    return [...options]..sort(
+      (a, b) => _estimateWidth(
+        widget.labelOf(b),
+      ).compareTo(_estimateWidth(widget.labelOf(a))),
+    );
   }
 
   void _measure() {
@@ -323,7 +335,7 @@ class _JustifiedChipsState extends State<_JustifiedChips> {
     final selected = widget.selected().contains(opt);
     return SelectableChip(
       key: _keys[opt],
-      label: opt,
+      label: widget.labelOf(opt),
       selected: selected,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       onTap: () {
@@ -336,7 +348,10 @@ class _JustifiedChipsState extends State<_JustifiedChips> {
   bool _shouldJustify(List<String> rowOptions) {
     if (rowOptions.length < 2 || _availableWidth <= 0) return false;
     final natural =
-        rowOptions.fold<double>(0, (w, o) => w + _estimateWidth(o)) +
+        rowOptions.fold<double>(
+          0,
+          (w, o) => w + _estimateWidth(widget.labelOf(o)),
+        ) +
         (rowOptions.length - 1) * _spacing;
     return natural >= _availableWidth * _justifyFillRatio;
   }

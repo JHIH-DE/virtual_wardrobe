@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'bag_details.dart';
+
 /// Stable cache key for a garment's photo; use it everywhere it's cached so
 /// replacing the image busts every copy.
 String garmentImageCacheKey(int garmentId) => 'garment-job-$garmentId';
@@ -374,6 +376,10 @@ class Garment {
   /// garment; labels and codes come from `GET /outfit/adjustment-options`.
   final List<String> adjustmentOptions;
 
+  /// Bags only; null for every other garment and for bags analyzed before
+  /// the field existed.
+  final BagDetails? bagDetails;
+
   const Garment({
     required this.name,
     required this.category,
@@ -386,6 +392,7 @@ class Garment {
     this.isOwned = true,
     this.isDeleted = false,
     this.adjustmentOptions = const [],
+    this.bagDetails,
     this.id,
     this.garmentId,
     this.brand,
@@ -428,6 +435,7 @@ class Garment {
     bool? isOwned,
     bool? isDeleted,
     List<String>? adjustmentOptions,
+    BagDetails? bagDetails,
     bool clearId = false,
     bool clearGarmentId = false,
     bool clearBrand = false,
@@ -440,6 +448,7 @@ class Garment {
     bool clearPrice = false,
     bool clearPurchaseDate = false,
     bool clearMetadata = false,
+    bool clearBagDetails = false,
   }) {
     return Garment(
       id: clearId ? null : (id ?? this.id),
@@ -471,6 +480,7 @@ class Garment {
       isOwned: isOwned ?? this.isOwned,
       isDeleted: isDeleted ?? this.isDeleted,
       adjustmentOptions: adjustmentOptions ?? this.adjustmentOptions,
+      bagDetails: clearBagDetails ? null : (bagDetails ?? this.bagDetails),
     );
   }
 
@@ -530,6 +540,10 @@ class Garment {
         final List<dynamic> keys => keys.whereType<String>().toList(),
         _ => const [],
       },
+      bagDetails: switch (json['bag_details']) {
+        final Map<String, dynamic> details => BagDetails.fromJson(details),
+        _ => null,
+      },
     );
   }
 
@@ -551,6 +565,8 @@ class Garment {
       isDeleted: (json['is_deleted'] as bool?) ?? false,
     );
   }
+
+  bool get isBag => isBagGarment(category, subCategory);
 
   /// Ankle-length trousers, mirroring the backend's `_is_long_trousers` (what
   /// `boots_pants` needs): a Bottom that isn't a skirt or shorts, Full- or
@@ -608,6 +624,7 @@ class Garment {
       'metadata': metadata,
       'is_owned': isOwned,
       'adjustment_options': adjustmentOptions,
+      'bag_details': bagDetails?.toJson(),
     };
   }
 }

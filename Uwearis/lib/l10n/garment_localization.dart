@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../data/bag_details.dart';
 import '../data/closet_analysis.dart';
 import '../data/garment.dart';
 import 'generated/app_localizations.dart';
@@ -205,5 +206,37 @@ extension GarmentCropLengthLocalization on GarmentCropLength {
       case GarmentCropLength.shorts:
         return l10n.cropShorts;
     }
+  }
+}
+
+extension BagTypeLocalization on BagType {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      BagType.sacoche => l10n.bagTypeSacoche,
+      BagType.tote => l10n.bagTypeTote,
+      BagType.backpack => l10n.bagTypeBackpack,
+      BagType.messenger => l10n.bagTypeMessenger,
+      BagType.shoulderBag => l10n.bagTypeShoulderBag,
+      BagType.crossbodyBag => l10n.bagTypeCrossbodyBag,
+      BagType.handbag => l10n.bagTypeHandbag,
+      BagType.clutch => l10n.bagTypeClutch,
+      BagType.waistBag => l10n.bagTypeWaistBag,
+      BagType.bucketBag => l10n.bagTypeBucketBag,
+      BagType.other => l10n.bagTypeOther,
+    };
+  }
+}
+
+extension StrapWidthClassLocalization on StrapWidthClass {
+  String localizedLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      StrapWidthClass.extraThin => l10n.strapWidthExtraThin,
+      StrapWidthClass.thin => l10n.strapWidthThin,
+      StrapWidthClass.medium => l10n.strapWidthMedium,
+      StrapWidthClass.wide => l10n.strapWidthWide,
+      StrapWidthClass.unknown => l10n.strapWidthUnknown,
+    };
   }
 }

@@ -403,6 +403,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleMinimal => '極簡 / 無印感';
 
   @override
+  String get styleMinimalShort => '極簡';
+
+  @override
+  String get seasonSpring => '春天';
+
+  @override
+  String get seasonSummer => '夏天';
+
+  @override
+  String get seasonAutumn => '秋天';
+
+  @override
+  String get seasonWinter => '冬天';
+
+  @override
   String get styleClassic => '經典';
 
   @override
@@ -820,11 +835,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get back => '返回';
 
   @override
-  String outfitFallbackTitle(int id) {
-    return '穿搭 #$id';
-  }
-
-  @override
   String get failedToLoad => '載入失敗';
 
   @override
@@ -1065,13 +1075,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clothingCategoryLabel => '類別';
 
   @override
-  String get productType => '商品類型';
+  String get productType => '類型';
 
   @override
   String get productTypeHint => '例如：上衣';
 
   @override
-  String get pleaseEnterProductTypeError => '請輸入商品類型';
+  String get pleaseEnterProductTypeError => '請輸入類型';
 
   @override
   String get color => '顏色';
@@ -1168,6 +1178,69 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get closureNone => '無';
+
+  @override
+  String get bagTypeLabel => '包款';
+
+  @override
+  String get bagTypeSacoche => '薄型側背包';
+
+  @override
+  String get bagTypeTote => '托特包';
+
+  @override
+  String get bagTypeBackpack => '後背包';
+
+  @override
+  String get bagTypeMessenger => '郵差包';
+
+  @override
+  String get bagTypeShoulderBag => '肩背包';
+
+  @override
+  String get bagTypeCrossbodyBag => '斜背包';
+
+  @override
+  String get bagTypeHandbag => '手提包';
+
+  @override
+  String get bagTypeClutch => '手拿包';
+
+  @override
+  String get bagTypeWaistBag => '腰包';
+
+  @override
+  String get bagTypeBucketBag => '水桶包';
+
+  @override
+  String get bagTypeOther => '其他';
+
+  @override
+  String get bagBodyWidthLabel => '包身寬度（公分）';
+
+  @override
+  String get bagBodyWidthHint => '量包身，不含背帶';
+
+  @override
+  String get bagBodyWidthError => '請輸入 3 到 150 公分';
+
+  @override
+  String get strapWidthClassLabel => '背帶粗細';
+
+  @override
+  String get strapWidthExtraThin => '極細';
+
+  @override
+  String get strapWidthThin => '細';
+
+  @override
+  String get strapWidthMedium => '中等';
+
+  @override
+  String get strapWidthWide => '寬';
+
+  @override
+  String get strapWidthUnknown => '不確定';
 
   @override
   String get cropFullLength => '全長';
@@ -2503,6 +2576,21 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleMinimal => '極簡 / 無印感';
 
   @override
+  String get styleMinimalShort => '極簡';
+
+  @override
+  String get seasonSpring => '春天';
+
+  @override
+  String get seasonSummer => '夏天';
+
+  @override
+  String get seasonAutumn => '秋天';
+
+  @override
+  String get seasonWinter => '冬天';
+
+  @override
   String get styleClassic => '經典';
 
   @override
@@ -2920,11 +3008,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get back => '返回';
 
   @override
-  String outfitFallbackTitle(int id) {
-    return '穿搭 #$id';
-  }
-
-  @override
   String get failedToLoad => '載入失敗';
 
   @override
@@ -3165,13 +3248,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get clothingCategoryLabel => '類別';
 
   @override
-  String get productType => '商品類型';
+  String get productType => '類型';
 
   @override
   String get productTypeHint => '例如：上衣';
 
   @override
-  String get pleaseEnterProductTypeError => '請輸入商品類型';
+  String get pleaseEnterProductTypeError => '請輸入類型';
 
   @override
   String get color => '顏色';
@@ -3268,6 +3351,69 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get closureNone => '無';
+
+  @override
+  String get bagTypeLabel => '包款';
+
+  @override
+  String get bagTypeSacoche => '薄型側背包';
+
+  @override
+  String get bagTypeTote => '托特包';
+
+  @override
+  String get bagTypeBackpack => '後背包';
+
+  @override
+  String get bagTypeMessenger => '郵差包';
+
+  @override
+  String get bagTypeShoulderBag => '肩背包';
+
+  @override
+  String get bagTypeCrossbodyBag => '斜背包';
+
+  @override
+  String get bagTypeHandbag => '手提包';
+
+  @override
+  String get bagTypeClutch => '手拿包';
+
+  @override
+  String get bagTypeWaistBag => '腰包';
+
+  @override
+  String get bagTypeBucketBag => '水桶包';
+
+  @override
+  String get bagTypeOther => '其他';
+
+  @override
+  String get bagBodyWidthLabel => '包身寬度（公分）';
+
+  @override
+  String get bagBodyWidthHint => '量包身，不含背帶';
+
+  @override
+  String get bagBodyWidthError => '請輸入 3 到 150 公分';
+
+  @override
+  String get strapWidthClassLabel => '背帶粗細';
+
+  @override
+  String get strapWidthExtraThin => '極細';
+
+  @override
+  String get strapWidthThin => '細';
+
+  @override
+  String get strapWidthMedium => '中等';
+
+  @override
+  String get strapWidthWide => '寬';
+
+  @override
+  String get strapWidthUnknown => '不確定';
 
   @override
   String get cropFullLength => '全長';

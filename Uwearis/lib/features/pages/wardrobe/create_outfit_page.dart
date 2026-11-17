@@ -204,6 +204,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   // Adjust Details' re-entrancy guard: a double tap while the table loads
   // would stack two sheets that overwrite each other's picks.
   bool _adjustSheetInFlight = false;
+  bool _waitingForCloset = false;
 
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
@@ -298,8 +299,28 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   bool _hasCategory(GarmentCategory category) =>
       _garmentPool.any((g) => g.category == category);
 
-  Future<void> _ensureFreshGarments() async {
-    await ref.read(garmentsProvider.notifier).refreshIfNeeded();
+  /// Brings the closet up to date before a pick. False when the picker
+  /// shouldn't open (session expired).
+  Future<bool> _ensureFreshGarments() async {
+    setState(() => _waitingForCloset = true);
+    try {
+      await ref.read(garmentsProvider.notifier).refreshIfNeeded();
+      // refreshIfNeeded doesn't wait for a load already running (the first
+      // fetch, started by build's watch).
+      if (ref.read(garmentsProvider).isLoading) {
+        await ref.read(garmentsProvider.future);
+      }
+      return true;
+    } on AuthExpiredException {
+      if (!mounted) return false;
+      await AuthExpiredHandler.handle(context);
+      return false;
+    } catch (e) {
+      debugLog('_ensureFreshGarments failed: $e');
+      return true;
+    } finally {
+      if (mounted) setState(() => _waitingForCloset = false);
+    }
   }
 
   Set<int> get _accessoryIds => _accessories
@@ -348,10 +369,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         .where((b) => b.backgroundId == widget.initialBackgroundId)
         .firstOrNull;
     _background = _initialBackground ?? BackgroundOption.all.first;
-    // Post-frame: refreshIfNeeded synchronously sets AsyncLoading, which
-    // Riverpod forbids during initState.
+    // No closet refresh here: Add Garment checks freshness itself, so
+    // opening the page doesn't block on a reload.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(garmentsProvider.notifier).refreshIfNeeded();
       final sharedPath = widget.initialMatchALookImagePath;
       if (sharedPath != null && mounted) {
         _startMatchALookFlow(initialImagePath: sharedPath);
@@ -776,7 +796,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
               onAction: _stopWaitingForRender,
             ),
           ),
-        if (_garmentPoolLoading)
+        // Only a pick waits on the closet; opening the page never does.
+        if (_waitingForCloset && _garmentPoolLoading)
           Positioned.fill(
             child: LoadingOverlay(label: _l10n.loadingClosetEllipsis),
           ),
@@ -858,7 +879,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   Widget _buildAddGarmentRow() {
     final exhausted =
         _garmentPool.isNotEmpty && _addGarmentCandidates().isEmpty;
-    final enabled = !isOutfitLoading && !_garmentPoolLoading && !exhausted;
+    final enabled = !isOutfitLoading && !_waitingForCloset && !exhausted;
     final iconColor = enabled ? AppColors.icon : AppColors.hintText;
     return Opacity(
       opacity: enabled ? 1 : 0.5,
@@ -933,7 +954,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       child: OutfitGarmentRow(
         garment: g,
         subtitle: subtitle,
-        onTap: (isOutfitLoading || _garmentPoolLoading)
+        onTap: (isOutfitLoading || _waitingForCloset)
             ? null
             : () => _pickGarmentForOutfit(
                 initial: entry.category,
@@ -1239,8 +1260,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     int? replaceAccessoryIndex,
     Garment? current,
   }) async {
-    await _ensureFreshGarments();
-    if (!mounted) return;
+    if (_waitingForCloset) return;
+    if (!await _ensureFreshGarments() || !mounted) return;
     final candidates = _addGarmentCandidates(
       keepCategory: replaceSlot != null ? _categoryForSlot(replaceSlot) : null,
       keepTopIndex: replaceTopIndex,

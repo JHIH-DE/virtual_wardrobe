@@ -6,6 +6,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'outfit_image.dart';
+import 'outfit_title.dart';
 
 class OutfitCard extends StatelessWidget {
   final Outfit outfit;
@@ -13,21 +14,14 @@ class OutfitCard extends StatelessWidget {
 
   const OutfitCard({super.key, required this.outfit, required this.onTap});
 
-  String _label(AppLocalizations l10n) {
-    if (outfit.groupName != null && outfit.groupName!.isNotEmpty) {
-      return outfit.groupName!;
-    }
-    if (outfit.name != null && outfit.name!.isNotEmpty) return outfit.name!;
-    final parts = [
-      ...outfit.style,
-      ...outfit.seasons,
-    ].where((s) => s.isNotEmpty).toList();
-    if (parts.isEmpty) return l10n.outfitFallbackTitle(outfit.id);
-    return parts.map(_capitalize).join(' ');
-  }
-
-  String _capitalize(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
+  /// Same title as Outfit Details shows.
+  String _label(AppLocalizations l10n) => outfitDisplayTitle(
+    l10n,
+    groupName: outfit.groupName,
+    name: outfit.name,
+    seasons: outfit.seasons,
+    style: outfit.style,
+  );
 
   @override
   Widget build(BuildContext context) {

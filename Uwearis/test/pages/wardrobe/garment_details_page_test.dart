@@ -11,10 +11,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/app/theme/app_dimens.dart';
 import 'package:uwearis/core/services/garment_service.dart';
+import 'package:uwearis/data/bag_details.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/garment_details_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
+import 'package:uwearis/features/widgets/common/fields/app_text_field.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
@@ -400,6 +402,168 @@ void main() {
         expect(find.text('CLOSURE'), findsNothing);
         expect(patches.last.containsKey('closure'), isFalse);
       }, () => _garmentBackend(jacket, patches));
+    });
+
+    group('bag fields', () {
+      const sacoche = Garment(
+        id: 288,
+        name: 'PORTER Sacoche',
+        category: GarmentCategory.accessory,
+        subCategory: 'Bag',
+        uploadUrl: '',
+        objectName: '',
+        imageUrl: '',
+        bagDetails: BagDetails(
+          bagType: BagType.sacoche,
+          strapWidthClass: StrapWidthClass.thin,
+        ),
+      );
+
+      Future<void> openBag(WidgetTester tester, Garment garment) async {
+        useTallSurface(tester);
+        await pumpApp(tester, GarmentDetailsPage(initialGarment: garment));
+        await tester.pump();
+        await tester.pump();
+      }
+
+      testWidgets('show the stored values', (tester) async {
+        await runWithEmptyCloset(() async {
+          await openBag(tester, sacoche);
+
+          expect(find.text('BAG TYPE'), findsOneWidget);
+          expect(find.text('Sacoche'), findsOneWidget);
+          expect(find.text('Thin'), findsOneWidget);
+          // Removed fields.
+          expect(find.text('WAYS TO CARRY'), findsNothing);
+          expect(find.text('USUAL CARRY'), findsNothing);
+          expect(find.text('STRAP'), findsNothing);
+          expect(find.text('TOP HANDLE'), findsNothing);
+          expect(find.text('STRAP WIDTH (CM)'), findsNothing);
+        });
+      });
+
+      testWidgets('a pick saves the whole bag_details right away', (
+        tester,
+      ) async {
+        final patches = <Map<String, dynamic>>[];
+        await http.runWithClient(() async {
+          await openBag(tester, sacoche);
+
+          await pick(tester, 'Thin', 'Wide');
+          expect(patches.last['bag_details'], {
+            'bag_type': 'sacoche',
+            'body_width_cm': null,
+            'strap_width_class': 'wide',
+          });
+
+          await pick(tester, 'Sacoche', 'Tote');
+          expect(patches.last['bag_details']['bag_type'], 'tote');
+        }, () => _garmentBackend(sacoche, patches));
+      });
+
+      testWidgets('the width saves after typing; an out-of-range value is '
+          'flagged and not sent', (tester) async {
+        final patches = <Map<String, dynamic>>[];
+        await http.runWithClient(() async {
+          await openBag(tester, sacoche);
+          final width = find.widgetWithText(
+            AppTextField,
+            'Measure the body, without the strap',
+          );
+
+          await tester.enterText(width, '25');
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pump();
+          expect(patches.last['bag_details']['body_width_cm'], 25.0);
+
+          await tester.enterText(width, '250');
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pump();
+          expect(find.text('Enter a width from 3 to 150 cm'), findsOneWidget);
+          // The invalid value keeps the last saved one.
+          expect(patches.last['bag_details']['body_width_cm'], isNull);
+        }, () => _garmentBackend(sacoche, patches));
+      });
+
+      testWidgets(
+        'leaving the bag category hides them and stops sending them',
+        (tester) async {
+          final patches = <Map<String, dynamic>>[];
+          await http.runWithClient(() async {
+            await openBag(tester, sacoche);
+
+            await pick(tester, 'Accessory', 'Top');
+            expect(find.text('BAG TYPE'), findsNothing);
+            expect(patches.last.containsKey('bag_details'), isFalse);
+          }, () => _garmentBackend(sacoche, patches));
+        },
+      );
+
+      testWidgets('a legacy bag with nothing filled in sends no bag_details', (
+        tester,
+      ) async {
+        final legacy = sacoche.copyWith(clearBagDetails: true);
+        final patches = <Map<String, dynamic>>[];
+        await http.runWithClient(() async {
+          await openBag(tester, legacy);
+          expect(find.text('BAG TYPE'), findsOneWidget);
+
+          await tester.enterText(
+            find.widgetWithText(
+              AppTextField,
+              "What is the brand of this clothing?",
+            ),
+            'PORTER',
+          );
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pump();
+        }, () => _garmentBackend(legacy, patches));
+        expect(patches, isNotEmpty);
+        expect(patches.where((p) => p.containsKey('bag_details')), isEmpty);
+      });
+
+      testWidgets('add mode pre-fills them from AI metadata', (tester) async {
+        await runWithEmptyCloset(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            const GarmentDetailsPage(
+              initialGarment: _draftGarment,
+              initialAnalysisData: {
+                'name': 'PORTER Sacoche',
+                'category': 'Accessory',
+                'sub_category': 'Bag',
+                'bag_details': {
+                  'bag_type': 'sacoche',
+                  'body_width_cm': null,
+                  'strap_width_class': 'thin',
+                },
+              },
+            ),
+          );
+          await tester.pump();
+
+          expect(find.text('Sacoche'), findsOneWidget);
+          expect(find.text('Thin'), findsOneWidget);
+        });
+      });
+
+      testWidgets('typing a bag product type reveals them', (tester) async {
+        await runWithEmptyCloset(() async {
+          await openBag(
+            tester,
+            sacoche.copyWith(subCategory: 'Cap', clearBagDetails: true),
+          );
+          expect(find.text('BAG TYPE'), findsNothing);
+
+          await tester.enterText(
+            find.widgetWithText(AppTextField, 'Cap'),
+            'Tote bag',
+          );
+          await tester.pump();
+          expect(find.text('BAG TYPE'), findsOneWidget);
+        });
+      });
     });
   });
 

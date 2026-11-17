@@ -35,6 +35,19 @@ import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
 
+/// A closet whose first fetch finishes only when [release] completes.
+class _SlowGarments extends GarmentsNotifier {
+  _SlowGarments(this._items, this.release);
+  final List<Garment> _items;
+  final Completer<void> release;
+
+  @override
+  Future<List<Garment>> build() async {
+    await release.future;
+    return _items;
+  }
+}
+
 /// Fixed closet so tests don't hit the network.
 class _FakeGarments extends GarmentsNotifier {
   _FakeGarments(this._items);
@@ -119,6 +132,34 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
   }
+
+  testWidgets('opening the page never shows the closet loading; '
+      'Add Garment waits for it, then opens the picker', (tester) async {
+    useTallSurface(tester);
+    final release = Completer<void>();
+    await pumpApp(
+      tester,
+      const CreateOutfitPage(),
+      overrides: [
+        garmentsProvider.overrideWith(() => _SlowGarments(closet, release)),
+        adjustmentOptionsProvider.overrideWith(
+          (ref, _) async => _adjustmentTable,
+        ),
+      ],
+    );
+    await tester.pump();
+    expect(find.byType(LoadingOverlay), findsNothing);
+
+    await tester.tap(find.text('Add Garment'));
+    await tester.pump();
+    expect(find.byType(LoadingOverlay), findsOneWidget);
+    expect(find.byType(SelectGarmentPage), findsNothing);
+
+    release.complete();
+    await tester.pumpAndSettle();
+    expect(find.byType(LoadingOverlay), findsNothing);
+    expect(find.byType(SelectGarmentPage), findsOneWidget);
+  });
 
   testWidgets(
     'create mode shows the Match a Look app-bar icon and an empty Your Outfit row',

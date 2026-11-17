@@ -19,8 +19,8 @@ Future<OutfitTags?> showOutfitTagsSheet(
   Outfit outfit,
 ) async {
   final l10n = AppLocalizations.of(context);
-  final initialSeasons = outfit.seasons.map(outfitTagLabel).toSet();
-  final initialStyles = outfit.style.map(outfitTagLabel).toSet();
+  final initialSeasons = outfit.seasons.map(normalizeOutfitTag).toSet();
+  final initialStyles = outfit.style.map(normalizeOutfitTag).toSet();
   final selectedSeasons = {...initialSeasons};
   final selectedStyles = {...initialStyles};
 
@@ -28,6 +28,7 @@ Future<OutfitTags?> showOutfitTagsSheet(
     return FilterGroup(
       label: label,
       options: options,
+      labelOf: (v) => outfitTagLabel(l10n, v),
       selected: () => sel,
       onToggle: (option) {
         if (!sel.remove(option)) sel.add(option);
@@ -46,11 +47,5 @@ Future<OutfitTags?> showOutfitTagsSheet(
       setEquals(selectedStyles, initialStyles)) {
     return null;
   }
-  return (
-    seasons: selectedSeasons.map((s) => s.toLowerCase()).toList(),
-    // Back to the backend's snake_case.
-    style: selectedStyles
-        .map((s) => s.toLowerCase().replaceAll(' ', '_'))
-        .toList(),
-  );
+  return (seasons: selectedSeasons.toList(), style: selectedStyles.toList());
 }

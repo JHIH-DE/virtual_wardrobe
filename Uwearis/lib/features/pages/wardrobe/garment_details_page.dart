@@ -12,6 +12,7 @@ import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/auto_save_controller.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../core/utils/signed_url.dart';
+import '../../../data/bag_details.dart';
 import '../../../data/closet_analysis.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
@@ -100,6 +101,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   final _subCategory = TextEditingController();
   final _brandCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+  final _bagBodyWidthCtrl = TextEditingController();
 
   bool _isImageChanged = false;
   bool _isAnalyzing = false;
@@ -125,6 +127,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   GarmentSleeveLength? _selectedSleeveLength;
   GarmentClosure? _selectedClosure;
   GarmentCropLength? _selectedCropLength;
+
+  /// The bag's classifications; its body width lives in [_bagBodyWidthCtrl].
+  /// Kept when the garment stops being a bag (only
+  /// sent while it is one), so switching back restores it.
+  BagDetails? _bagDetails;
   GarmentCategory _category = GarmentCategory.top;
   DateTime? _purchaseDate;
   // Not on the form; only a re-analysis changes them.
@@ -177,6 +184,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   GarmentSleeveLength? _initialSleeveLength;
   GarmentClosure? _initialClosure;
   GarmentCropLength? _initialCropLength;
+  BagDetails? _initialBagDetails;
+  late String _initialBagBodyWidth;
   DateTime? _initialDate;
 
   bool get _showFitField => garmentFitCategories.contains(_category);
@@ -185,6 +194,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   bool get _showClosureField => garmentClosureCategories.contains(_category);
   bool get _showCropLengthField =>
       garmentCropLengthCategories.contains(_category);
+  bool get _showBagFields => isBagGarment(_category, _subCategory.text);
+  BagDetails get _bag => _bagDetails ?? const BagDetails();
   List<GarmentSilhouette> get _silhouetteOptions =>
       garmentSilhouettesByCategory[_category] ?? const [];
 
@@ -222,6 +233,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       _editingGarment?.cropLength,
     );
     _initialDate = _editingGarment?.purchaseDate;
+    _initialBagDetails = _editingGarment?.bagDetails;
+    _initialBagBodyWidth = _formatCm(_initialBagDetails?.bodyWidthCm);
 
     if (_editingGarment != null) {
       _category = _editingGarment!.category;
@@ -238,6 +251,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       _selectedSleeveLength ??= _initialSleeveLength;
       _selectedClosure ??= _initialClosure;
       _selectedCropLength ??= _initialCropLength;
+      _bagDetails = _initialBagDetails;
+      _bagBodyWidthCtrl.text = _initialBagBodyWidth;
     }
 
     if (widget.initialAnalysisData != null) {
@@ -255,6 +270,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     _subCategory.addListener(_checkModified);
     _brandCtrl.addListener(_checkModified);
     _priceCtrl.addListener(_checkModified);
+    _bagBodyWidthCtrl.addListener(_checkModified);
 
     if (_id != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _ensureFreshImage());
@@ -310,6 +326,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
         _selectedSleeveLength != _initialSleeveLength ||
         _selectedClosure != _initialClosure ||
         _selectedCropLength != _initialCropLength ||
+        _bagDetails != _initialBagDetails ||
+        _bagBodyWidthCtrl.text != _initialBagBodyWidth ||
         _purchaseDate != _initialDate;
 
     if (changed != _isModified) {
@@ -344,6 +362,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     _subCategory.dispose();
     _brandCtrl.dispose();
     _priceCtrl.dispose();
+    _bagBodyWidthCtrl.dispose();
     _closetAnalysis.dispose();
     _isAnalyzingCloset.dispose();
     _isRefreshingAnalysis.dispose();
@@ -681,6 +700,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
             const SizedBox(height: 20),
             _buildCropLengthField(),
           ],
+          // Product Type is free text, so the bag fields follow it as typed.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _subCategory,
+            builder: (context, _, _) =>
+                _showBagFields ? _buildBagFields() : const SizedBox.shrink(),
+          ),
           const SizedBox(height: 20),
           _buildBrandField(),
           const SizedBox(height: 20),
@@ -877,6 +902,82 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     );
   }
 
+  Widget _buildBagFields() {
+    final bag = _bag;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        _buildOptionField<BagType>(
+          label: _l10n.bagTypeLabel,
+          value: bag.bagType,
+          options: BagType.values,
+          labelOf: (v) => v.localizedLabel(context),
+          onSelected: (v) => _updateBag((b) => b.copyWith(bagType: v)),
+        ),
+        const SizedBox(height: 20),
+        _buildBagBodyWidthField(),
+        const SizedBox(height: 20),
+        _buildOptionField<StrapWidthClass>(
+          label: _l10n.strapWidthClassLabel,
+          value: bag.strapWidthClass,
+          options: StrapWidthClass.values,
+          labelOf: (v) => v.localizedLabel(context),
+          onSelected: (v) => _updateBag((b) => b.copyWith(strapWidthClass: v)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBagBodyWidthField() {
+    return LabeledField(
+      label: _l10n.bagBodyWidthLabel,
+      child: _savesOnBlur(
+        AppTextField(
+          controller: _bagBodyWidthCtrl,
+          hint: _l10n.bagBodyWidthHint,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          validator: (v) =>
+              _parseBodyWidth(v ?? '').valid ? null : _l10n.bagBodyWidthError,
+          onChanged: (_) => _onEdited(typing: true),
+          onSubmitted: (_) => _onTextFieldBlur(),
+        ),
+      ),
+    );
+  }
+
+  /// Called inside the picker's setState.
+  void _updateBag(BagDetails Function(BagDetails) update) {
+    _bagDetails = update(_bag);
+  }
+
+  static String _formatCm(double? cm) {
+    if (cm == null) return '';
+    return cm == cm.roundToDouble() ? cm.toInt().toString() : cm.toString();
+  }
+
+  /// Empty is a valid "not measured"; a value outside the backend's range
+  /// (a 422) isn't.
+  static ({bool valid, double? cm}) _parseBodyWidth(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return (valid: true, cm: null);
+    final cm = double.tryParse(trimmed);
+    if (cm == null || cm < bagBodyWidthMinCm || cm > bagBodyWidthMaxCm) {
+      return (valid: false, cm: null);
+    }
+    return (valid: true, cm: cm);
+  }
+
+  /// What to save for a bag; an invalid width keeps [saved]'s. Null when
+  /// nothing was ever set, so an untouched legacy bag isn't given an empty
+  /// `bag_details`.
+  BagDetails? _bagDetailsToSave(BagDetails? saved) {
+    final body = _parseBodyWidth(_bagBodyWidthCtrl.text);
+    final bodyCm = body.valid ? body.cm : saved?.bodyWidthCm;
+    if (_bagDetails == null && bodyCm == null) return null;
+    return _bag.copyWith(bodyWidthCm: bodyCm, clearBodyWidthCm: bodyCm == null);
+  }
+
   Widget _buildBrandField() {
     return LabeledField(
       label: _l10n.brandOptionalLabel,
@@ -996,6 +1097,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     _selectedCropLength = GarmentCropLengthX.fromApiValue(
       analysisData['crop_length']?.toString(),
     );
+    // The body width stays in its field: the AI never measures, so a
+    // re-analysis must not wipe what the user typed.
+    if (analysisData.containsKey('bag_details')) {
+      final raw = analysisData['bag_details'];
+      _bagDetails = raw is Map<String, dynamic>
+          ? BagDetails.fromJson(raw)
+          : null;
+    }
     _dropInapplicableAttributes();
     _metaData = analysisData;
     _checkModified();
@@ -1632,6 +1741,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       'sleeve_length': _selectedSleeveLength?.apiValue,
       'closure': _selectedClosure?.apiValue,
       'crop_length': _selectedCropLength?.apiValue ?? '',
+      'bag_details': _showBagFields ? _bagDetailsToSave(null)?.toJson() : null,
     };
     return GarmentService().completeUpload(temp, metadata);
   }
@@ -1693,6 +1803,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     final brand = _brandCtrl.text.trim();
     final priceText = _priceCtrl.text.trim();
     final price = double.tryParse(priceText);
+    final bagDetails = _bagDetailsToSave(saved.bagDetails);
     final updated = saved.copyWith(
       // An invalid field keeps its saved value instead of being sent.
       name: name.isEmpty ? saved.name : name,
@@ -1712,6 +1823,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       clearClosure: _selectedClosure == null,
       cropLength: _selectedCropLength?.apiValue,
       clearCropLength: _selectedCropLength == null,
+      bagDetails: bagDetails,
+      clearBagDetails: bagDetails == null,
       price: price,
       clearPrice: priceText.isEmpty,
       purchaseDate: _purchaseDate,

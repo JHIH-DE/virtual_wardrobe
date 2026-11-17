@@ -46,6 +46,41 @@ void main() {
     });
   });
 
+  testWidgets('chips show labelOf text but toggle the option value', (
+    tester,
+  ) async {
+    var selected = {'All'};
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showChipGroupsSheet(
+              context,
+              groups: [
+                FilterGroup.toggleAll(
+                  label: 'Style',
+                  options: const ['All', 'smart_casual'],
+                  labelOf: (v) => v == 'smart_casual' ? '質感休閒' : v,
+                  selected: () => selected,
+                  onChanged: (next) => selected = next,
+                ),
+              ],
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('smart_casual'), findsNothing);
+    await tester.tap(find.text('質感休閒'));
+    await tester.pump();
+    expect(selected, {'smart_casual'});
+  });
+
   group('FilterButton widget', () {
     testWidgets('shows the filtered dot only when isFiltered', (tester) async {
       Widget btn(bool filtered) => FilterButton(

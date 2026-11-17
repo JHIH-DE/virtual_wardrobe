@@ -861,6 +861,36 @@ abstract class AppLocalizations {
   /// **'Minimal'**
   String get styleMinimal;
 
+  /// Minimal style as an outfit tag, where the full styleMinimal label is too long
+  ///
+  /// In en, this message translates to:
+  /// **'Minimal'**
+  String get styleMinimalShort;
+
+  /// No description provided for @seasonSpring.
+  ///
+  /// In en, this message translates to:
+  /// **'Spring'**
+  String get seasonSpring;
+
+  /// No description provided for @seasonSummer.
+  ///
+  /// In en, this message translates to:
+  /// **'Summer'**
+  String get seasonSummer;
+
+  /// No description provided for @seasonAutumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Autumn'**
+  String get seasonAutumn;
+
+  /// No description provided for @seasonWinter.
+  ///
+  /// In en, this message translates to:
+  /// **'Winter'**
+  String get seasonWinter;
+
   /// No description provided for @styleClassic.
   ///
   /// In en, this message translates to:
@@ -1683,12 +1713,6 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get back;
 
-  /// Fallback outfit card title when the outfit has no name or tags
-  ///
-  /// In en, this message translates to:
-  /// **'Outfit #{id}'**
-  String outfitFallbackTitle(int id);
-
   /// No description provided for @failedToLoad.
   ///
   /// In en, this message translates to:
@@ -2372,6 +2396,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'None'**
   String get closureNone;
+
+  /// No description provided for @bagTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bag Type'**
+  String get bagTypeLabel;
+
+  /// No description provided for @bagTypeSacoche.
+  ///
+  /// In en, this message translates to:
+  /// **'Sacoche'**
+  String get bagTypeSacoche;
+
+  /// No description provided for @bagTypeTote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tote'**
+  String get bagTypeTote;
+
+  /// No description provided for @bagTypeBackpack.
+  ///
+  /// In en, this message translates to:
+  /// **'Backpack'**
+  String get bagTypeBackpack;
+
+  /// No description provided for @bagTypeMessenger.
+  ///
+  /// In en, this message translates to:
+  /// **'Messenger'**
+  String get bagTypeMessenger;
+
+  /// No description provided for @bagTypeShoulderBag.
+  ///
+  /// In en, this message translates to:
+  /// **'Shoulder Bag'**
+  String get bagTypeShoulderBag;
+
+  /// No description provided for @bagTypeCrossbodyBag.
+  ///
+  /// In en, this message translates to:
+  /// **'Crossbody Bag'**
+  String get bagTypeCrossbodyBag;
+
+  /// No description provided for @bagTypeHandbag.
+  ///
+  /// In en, this message translates to:
+  /// **'Handbag'**
+  String get bagTypeHandbag;
+
+  /// No description provided for @bagTypeClutch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clutch'**
+  String get bagTypeClutch;
+
+  /// No description provided for @bagTypeWaistBag.
+  ///
+  /// In en, this message translates to:
+  /// **'Waist Bag'**
+  String get bagTypeWaistBag;
+
+  /// No description provided for @bagTypeBucketBag.
+  ///
+  /// In en, this message translates to:
+  /// **'Bucket Bag'**
+  String get bagTypeBucketBag;
+
+  /// No description provided for @bagTypeOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get bagTypeOther;
+
+  /// No description provided for @bagBodyWidthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bag Width (cm)'**
+  String get bagBodyWidthLabel;
+
+  /// No description provided for @bagBodyWidthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Measure the body, without the strap'**
+  String get bagBodyWidthHint;
+
+  /// No description provided for @bagBodyWidthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a width from 3 to 150 cm'**
+  String get bagBodyWidthError;
+
+  /// No description provided for @strapWidthClassLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Strap Thickness'**
+  String get strapWidthClassLabel;
+
+  /// No description provided for @strapWidthExtraThin.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra Thin'**
+  String get strapWidthExtraThin;
+
+  /// No description provided for @strapWidthThin.
+  ///
+  /// In en, this message translates to:
+  /// **'Thin'**
+  String get strapWidthThin;
+
+  /// No description provided for @strapWidthMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get strapWidthMedium;
+
+  /// No description provided for @strapWidthWide.
+  ///
+  /// In en, this message translates to:
+  /// **'Wide'**
+  String get strapWidthWide;
+
+  /// No description provided for @strapWidthUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Sure'**
+  String get strapWidthUnknown;
 
   /// No description provided for @cropFullLength.
   ///

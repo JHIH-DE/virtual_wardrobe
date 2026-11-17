@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../../../../data/outfit.dart';
 import '../../../../data/style_type.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../outfit/outfit_title.dart';
 import 'filter_button.dart';
 
 /// Season + style filter state for the Outfits tab and a garment's outfit
@@ -13,22 +14,13 @@ class OutfitSeasonStyleFilter {
 
   bool get isActive => !seasons.contains('All') || !styles.contains('All');
 
-  // Backend tags are snake_case (`smart_casual`), chips are "Smart Casual".
-  static String _normalizeTag(String s) =>
-      s.toLowerCase().replaceAll(RegExp(r'[\s_]+'), '');
+  static bool _anyMatch(Iterable<String> tags, Set<String> selected) =>
+      tags.any((t) => selected.contains(normalizeOutfitTag(t)));
 
   List<Outfit> apply(List<Outfit> all) {
     return all.where((o) {
-      final okSeason =
-          seasons.contains('All') ||
-          o.seasons.any(
-            (s) => seasons.any((sel) => sel.toLowerCase() == s.toLowerCase()),
-          );
-      final okStyle =
-          styles.contains('All') ||
-          o.style.any(
-            (s) => styles.any((sel) => _normalizeTag(sel) == _normalizeTag(s)),
-          );
+      final okSeason = seasons.contains('All') || _anyMatch(o.seasons, seasons);
+      final okStyle = styles.contains('All') || _anyMatch(o.style, styles);
       return okSeason && okStyle;
     }).toList();
   }
@@ -47,9 +39,9 @@ class OutfitSeasonStyleFilter {
     Iterable<String> tagsInUse,
     Set<String> selected,
   ) {
-    final inUse = tagsInUse.map(_normalizeTag).toSet();
+    final inUse = tagsInUse.map(normalizeOutfitTag).toSet();
     return vocab
-        .where((v) => inUse.contains(_normalizeTag(v)) || selected.contains(v))
+        .where((v) => inUse.contains(v) || selected.contains(v))
         .toList();
   }
 
@@ -67,6 +59,7 @@ class OutfitSeasonStyleFilter {
         FilterGroup.toggleAll(
           label: l10n.seasonLabel,
           options: seasonOpts.isEmpty ? const [] : ['All', ...seasonOpts],
+          labelOf: (v) => outfitTagLabel(l10n, v),
           selected: () => seasons,
           onChanged: (next) {
             seasons = next;
@@ -76,6 +69,7 @@ class OutfitSeasonStyleFilter {
         FilterGroup.toggleAll(
           label: l10n.styleLabel,
           options: styleOpts.isEmpty ? const [] : ['All', ...styleOpts],
+          labelOf: (v) => outfitTagLabel(l10n, v),
           selected: () => styles,
           onChanged: (next) {
             styles = next;

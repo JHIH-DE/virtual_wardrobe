@@ -462,8 +462,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
       context,
       imageUrl: _current.imageUrl,
       name: _title,
-      style: _effectiveStyle.map(outfitTagLabel).toList(),
-      seasons: _effectiveSeasons.map(outfitTagLabel).toList(),
+      style: [for (final s in _effectiveStyle) outfitTagLabel(_l10n, s)],
+      seasons: [for (final s in _effectiveSeasons) outfitTagLabel(_l10n, s)],
       garmentImageUrls: [
         for (final g in _garments ?? const <Garment>[])
           if ((g.imageUrl ?? '').isNotEmpty) g.imageUrl!,

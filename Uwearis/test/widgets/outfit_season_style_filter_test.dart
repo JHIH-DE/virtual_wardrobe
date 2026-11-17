@@ -33,18 +33,23 @@ void main() {
     expect(f.apply(all).map((o) => o.id), [1, 3]);
   });
 
-  test(
-    'style filter normalizes separators/case ("Smart Casual" == "smart_casual")',
-    () {
-      final f = OutfitSeasonStyleFilter()..styles = {'Smart Casual'};
-      expect(f.apply(all).map((o) => o.id), [1]);
-    },
-  );
+  test('style filter matches older tag spellings ("Smart Casual")', () {
+    final f = OutfitSeasonStyleFilter()..styles = {'smart_casual'};
+    expect(
+      f
+          .apply([
+            ...all,
+            _o(4, style: ['Smart Casual']),
+          ])
+          .map((o) => o.id),
+      [1, 4],
+    );
+  });
 
   test('season and style combine (AND)', () {
     final f = OutfitSeasonStyleFilter()
-      ..seasons = {'Summer'}
-      ..styles = {'Casual'};
+      ..seasons = {'summer'}
+      ..styles = {'casual'};
     expect(f.apply(all).map((o) => o.id), [3]);
   });
 
@@ -53,8 +58,8 @@ void main() {
       final f = OutfitSeasonStyleFilter();
       // all[] uses Summer/Winter/Spring and smart_casual (Autumn + the rest
       // of the style vocab never appear).
-      expect(f.visibleSeasonOptions(all), ['Spring', 'Summer', 'Winter']);
-      expect(f.visibleStyleOptions(all), ['Smart Casual']);
+      expect(f.visibleSeasonOptions(all), ['spring', 'summer', 'winter']);
+      expect(f.visibleStyleOptions(all), ['smart_casual']);
     });
 
     test('matches style tags regardless of separator/case', () {
@@ -62,13 +67,13 @@ void main() {
       final outfits = [
         _o(1, style: ['STREET_WEAR']),
       ];
-      expect(f.visibleStyleOptions(outfits), ['Streetwear']);
+      expect(f.visibleStyleOptions(outfits), ['streetwear']);
     });
 
     test('keeps a selected value even once it is no longer present', () {
-      final f = OutfitSeasonStyleFilter()..styles = {'Vintage'};
+      final f = OutfitSeasonStyleFilter()..styles = {'vintage'};
       // Unused but selected Vintage stays visible so it can be cleared.
-      expect(f.visibleStyleOptions(all), ['Smart Casual', 'Vintage']);
+      expect(f.visibleStyleOptions(all), ['smart_casual', 'vintage']);
     });
 
     test('an empty outfit list yields no options', () {

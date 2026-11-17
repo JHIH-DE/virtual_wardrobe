@@ -20,8 +20,11 @@ class OutfitTagRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _CollapsingTagsRow(
-      tags: [...seasons, ...style].map(outfitTagLabel).toList(),
+      tags: [
+        for (final t in [...seasons, ...style]) outfitTagLabel(l10n, t),
+      ],
     );
   }
 }

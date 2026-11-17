@@ -170,6 +170,14 @@
   },
 
   "styleMinimal": "Minimal",
+  "styleMinimalShort": "Minimal",
+  "@styleMinimalShort": {
+    "description": "Minimal style as an outfit tag, where the full styleMinimal label is too long"
+  },
+  "seasonSpring": "Spring",
+  "seasonSummer": "Summer",
+  "seasonAutumn": "Autumn",
+  "seasonWinter": "Winter",
   "styleClassic": "Classic",
   "styleStreetwear": "Streetwear",
   "styleSmartCasual": "Smart Casual",
@@ -337,15 +345,6 @@
   "chooseFromAlbumLabel": "Album",
   "back": "Back",
 
-  "outfitFallbackTitle": "Outfit #{id}",
-  "@outfitFallbackTitle": {
-    "description": "Fallback outfit card title when the outfit has no name or tags",
-    "placeholders": {
-      "id": {
-        "type": "int"
-      }
-    }
-  },
   "failedToLoad": "Failed to Load",
   "noImage": "No Image",
 
@@ -472,6 +471,27 @@
   "closureZipper": "Zipper",
   "closureButton": "Buttons",
   "closureNone": "None",
+  "bagTypeLabel": "Bag Type",
+  "bagTypeSacoche": "Sacoche",
+  "bagTypeTote": "Tote",
+  "bagTypeBackpack": "Backpack",
+  "bagTypeMessenger": "Messenger",
+  "bagTypeShoulderBag": "Shoulder Bag",
+  "bagTypeCrossbodyBag": "Crossbody Bag",
+  "bagTypeHandbag": "Handbag",
+  "bagTypeClutch": "Clutch",
+  "bagTypeWaistBag": "Waist Bag",
+  "bagTypeBucketBag": "Bucket Bag",
+  "bagTypeOther": "Other",
+  "bagBodyWidthLabel": "Bag Width (cm)",
+  "bagBodyWidthHint": "Measure the body, without the strap",
+  "bagBodyWidthError": "Enter a width from 3 to 150 cm",
+  "strapWidthClassLabel": "Strap Thickness",
+  "strapWidthExtraThin": "Extra Thin",
+  "strapWidthThin": "Thin",
+  "strapWidthMedium": "Medium",
+  "strapWidthWide": "Wide",
+  "strapWidthUnknown": "Not Sure",
   "cropFullLength": "Full-length",
   "cropNineLength": "Nine-length",
   "cropSevenLength": "Seven-length",

@@ -282,6 +282,10 @@ class GarmentService with BaseService {
         'closure': valueOrNull(garment.closure),
       if (garmentCropLengthCategories.contains(category) && cropLength != null)
         'crop_length': cropLength,
+      // Only a bag may carry it (400 otherwise); the backend clears it when
+      // the garment stops being one.
+      if (garment.isBag && garment.bagDetails != null)
+        'bag_details': garment.bagDetails!.toJson(),
     };
   }
 
