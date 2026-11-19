@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/providers/sub_category_provider.dart';
 import '../../../data/garment.dart';
+import '../../../l10n/garment_localization.dart';
 import '../common/adaptive_side_layout.dart';
 import 'garment_image.dart';
 
 /// A garment in an outfit being built (Create Outfit, Outfit Edit): photo,
-/// name and category line, plus optional [trailing] actions. The category
-/// line matches the Add Garment `AppListCard`'s subtitle size.
+/// name and category line ("Top · T-shirt", the sub-category by its
+/// display label, then [subtitleSuffix]), plus optional [trailing] actions.
+/// The category line matches the Add Garment `AppListCard`'s subtitle size.
 ///
 /// When the name's or subtitle's widest word no longer fits beside the
 /// photo at the current text size, the photo moves above the text.
-class OutfitGarmentRow extends StatelessWidget {
+class OutfitGarmentRow extends ConsumerWidget {
   static const double minHeight = 84;
   static const double thumbnailWidth = 78;
   static const EdgeInsets _textPadding = EdgeInsets.fromLTRB(10, 8, 14, 8);
@@ -24,7 +28,10 @@ class OutfitGarmentRow extends StatelessWidget {
   );
 
   final Garment garment;
-  final String subtitle;
+
+  /// The outfit slot's category (can differ from [garment]'s own).
+  final GarmentCategory category;
+  final String? subtitleSuffix;
   final VoidCallback? onTap;
 
   /// Marks the photo with an error badge (the garment can't be used).
@@ -36,13 +43,24 @@ class OutfitGarmentRow extends StatelessWidget {
   const OutfitGarmentRow({
     super.key,
     required this.garment,
-    required this.subtitle,
+    required this.category,
+    this.subtitleSuffix,
     this.onTap,
     this.isInvalid = false,
     this.trailing,
   });
 
-  bool _photoStacks(BuildContext context, double width) {
+  String _subtitle(BuildContext context, WidgetRef ref) {
+    final type = garment.style ?? garment.subCategory;
+    return [
+      category.localizedLabel(context),
+      // Only a garment with a sub-category needs the lists.
+      if (type.isNotEmpty) watchSubCategoryLabel(ref, context)(type),
+      ?subtitleSuffix,
+    ].join(' · ');
+  }
+
+  bool _photoStacks(BuildContext context, double width, String subtitle) {
     final scaler = MediaQuery.textScalerOf(context);
     final textWidth = width - thumbnailWidth - 1 - _textPadding.horizontal;
     final widest = [
@@ -53,7 +71,8 @@ class OutfitGarmentRow extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subtitle = _subtitle(context, ref);
     final text = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +126,7 @@ class OutfitGarmentRow extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            if (_photoStacks(context, constraints.maxWidth)) {
+            if (_photoStacks(context, constraints.maxWidth, subtitle)) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

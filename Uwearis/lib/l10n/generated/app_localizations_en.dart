@@ -332,22 +332,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'You can keep up to 10 versions for each outfit. Delete a version to create a new one.';
 
   @override
-  String get currentOutfitLabel => 'Current Outfit';
-
-  @override
-  String get accessoriesLabel => 'Accessories';
-
-  @override
-  String get optionalLabel => 'Optional';
-
-  @override
   String get createOutfit => 'Create Outfit';
 
   @override
   String get createVersion => 'Create Version';
-
-  @override
-  String get createOutfitHint => 'Create another outfit using these garments';
 
   @override
   String get backgroundLabel => 'Background';
@@ -374,9 +362,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outfitItemsLabel => 'Outfit Items';
-
-  @override
-  String get shareComingSoon => 'Share coming soon';
 
   @override
   String get failedToLoadImage => 'Failed to load image';
@@ -414,23 +399,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t delete this outfit. Please try again.';
 
   @override
-  String createdOnDate(String date) {
-    return 'Created $date';
-  }
-
-  @override
   String outfitTitle(String style) {
     return '$style Outfit';
   }
 
   @override
   String get outfitDetailsTitle => 'Outfit Details';
-
-  @override
-  String get tripDetailsTitle => 'Trip Details';
-
-  @override
-  String get clothingDetailsTitle => 'Clothing Details';
 
   @override
   String garmentsCount(int count) {
@@ -840,9 +814,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingStyleTasteEllipsis => 'Loading Style Taste…';
 
   @override
-  String get tryAgain => 'Try Again';
-
-  @override
   String get noOutfitImageYet => 'No outfit image yet';
 
   @override
@@ -871,7 +842,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirm => 'Confirm';
 
   @override
-  String get addLocation => 'Add Itinerary';
+  String get addLocation => 'Add Destination';
 
   @override
   String get camera => 'Camera';
@@ -929,21 +900,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryAccessory => 'Accessory';
-
-  @override
-  String get categoryTopPlural => 'Tops';
-
-  @override
-  String get categoryBottomPlural => 'Bottoms';
-
-  @override
-  String get categoryOuterPlural => 'Outers';
-
-  @override
-  String get categoryOnePiecePlural => 'One-pieces';
-
-  @override
-  String get categoryShoesPlural => 'Shoes';
 
   @override
   String get colorBlack => 'Black';
@@ -1056,9 +1012,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentlyAdded => 'Recently Added';
 
   @override
-  String get purchasedLabel => 'Purchased';
-
-  @override
   String get analyzeWithAi => 'Analyze with AI';
 
   @override
@@ -1141,10 +1094,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productType => 'Product Type';
 
   @override
-  String get productTypeHint => 'e.g. Top';
+  String get garmentStyleLabel => 'Style';
 
   @override
-  String get pleaseEnterProductTypeError => 'Please enter product type';
+  String get pleaseEnterProductTypeError => 'Please choose a product type';
+
+  @override
+  String get subCategoriesLoadFailed =>
+      'Couldn\'t load the product types. Please try again.';
 
   @override
   String get color => 'Color';
@@ -1375,9 +1332,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get midLayer => 'Mid Layer';
 
   @override
-  String get outerwear => 'Outerwear';
-
-  @override
   String get generatingTryOnEllipsis => 'Generating Try-On…';
 
   @override
@@ -1508,9 +1462,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadTripDetails => 'Failed to load trip details';
 
   @override
-  String get creatingEllipsis => 'Creating…';
-
-  @override
   String get creatingModelEllipsis => 'Creating Your Model…';
 
   @override
@@ -1589,9 +1540,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseYourClosetHint => 'Browse your closet';
 
   @override
-  String get addAction => 'Add';
-
-  @override
   String get startPackingTripTitle => 'Start packing your trip';
 
   @override
@@ -1608,16 +1556,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get latestOutfitTitle => 'Your Latest Outfit';
 
   @override
-  String get loadingWeatherEllipsis => 'Loading weather…';
-
-  @override
-  String get viewDetails => 'View Details';
-
-  @override
   String get viewFullOutfit => 'View Full Outfit';
-
-  @override
-  String get gettingStartedSectionLabel => 'Getting Started';
 
   @override
   String get gettingStartedWelcomeTitle => 'Welcome to Uwearis';
@@ -1637,21 +1576,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get continueLabel => 'Continue';
-
-  @override
-  String get gettingStartedBuildClosetTitle => 'Build your closet';
-
-  @override
-  String get gettingStartedBuildClosetSubtitle =>
-      'Add a top, a bottom, and a pair of shoes so Uwearis can start creating outfits and personalized styling for you.';
-
-  @override
-  String get gettingStartedReadyForFirstLookTitle =>
-      'Ready for your first look?';
-
-  @override
-  String get gettingStartedReadyForFirstLookSubtitle =>
-      'Your closet is ready. Create your first outfit and see it on you.';
 
   @override
   String get googleLoginNotConfiguredIOS =>
@@ -1766,9 +1690,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get copyrightText => '© Uwearis Inc. All rights reserved.';
 
   @override
-  String get noItemsFound => 'No items found.';
-
-  @override
   String get edit => 'Edit';
 
   @override
@@ -1787,6 +1708,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get photoProcessingFailed =>
       'Couldn\'t process this photo. Please try a different one.';
+
+  @override
+  String get photoPickFailed =>
+      'Couldn\'t open your photos. Check photo access for Uwearis in Settings and try again.';
 
   @override
   String get reset => 'Reset';
@@ -1907,9 +1832,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get findMoreOutfits => 'Add AI Outfits';
-
-  @override
-  String get refreshSuggestions => 'Refresh AI Picks';
 
   @override
   String get refreshSuggestionsTitle => 'Refresh AI picks?';

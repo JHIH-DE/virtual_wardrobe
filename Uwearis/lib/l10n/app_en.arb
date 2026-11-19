@@ -105,12 +105,8 @@
   "addVersionTitle": "Add Version",
   "versionLimitReachedTitle": "Version limit reached",
   "versionLimitReachedBody": "You can keep up to 10 versions for each outfit. Delete a version to create a new one.",
-  "currentOutfitLabel": "Current Outfit",
-  "accessoriesLabel": "Accessories",
-  "optionalLabel": "Optional",
   "createOutfit": "Create Outfit",
   "createVersion": "Create Version",
-  "createOutfitHint": "Create another outfit using these garments",
   "backgroundLabel": "Background",
   "noneLabel": "None",
   "selectItemTitle": "Select {item}",
@@ -122,7 +118,6 @@
   "myCollection": "My Collection",
   "myOutfit": "My Outfit",
   "outfitItemsLabel": "Outfit Items",
-  "shareComingSoon": "Share coming soon",
   "failedToLoadImage": "Failed to load image",
   "failedToLoadGarments": "Failed to load garments",
 
@@ -135,15 +130,6 @@
   "outfitUpdateFailed": "Couldn't update this outfit. Please try again.",
   "outfitDeleteFailed": "Couldn't delete this outfit. Please try again.",
 
-  "createdOnDate": "Created {date}",
-  "@createdOnDate": {
-    "description": "Footer showing the creation date of an outfit",
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
 
   "outfitTitle": "{style} Outfit",
   "@outfitTitle": {
@@ -156,8 +142,6 @@
   },
 
   "outfitDetailsTitle": "Outfit Details",
-  "tripDetailsTitle": "Trip Details",
-  "clothingDetailsTitle": "Clothing Details",
 
   "garmentsCount": "Garments ({count})",
   "@garmentsCount": {
@@ -241,11 +225,6 @@
   "finishOutfit": "AI Styling",
   "finishOutfitDescription": "Let AI complete your outfit.",
   "finishWithAi": "Go",
-  "@outfitIncompleteBody": {
-    "placeholders": {
-      "parts": {"type": "String", "example": "Bottom, Shoes"}
-    }
-  },
   "temperatureFieldLabel": "Temperature",
   "completeWithAiUnavailable": "Couldn't complete your outfit with AI — please try again.",
   "navCloset": "Closet",
@@ -325,7 +304,6 @@
   "loadingAppEllipsis": "Loading…",
   "loadingHomeEllipsis": "Loading Home…",
   "loadingStyleTasteEllipsis": "Loading Style Taste…",
-  "tryAgain": "Try Again",
   "noOutfitImageYet": "No outfit image yet",
   "generateOutfit": "Generate Outfit",
   "dayOutfitMissingCoreItemsMessage": "This outfit is missing a Top, Bottom, or Shoes item — complete it to generate an outfit.",
@@ -336,7 +314,7 @@
   "booked": "Booked",
   "selected": "Selected",
   "confirm": "Confirm",
-  "addLocation": "Add Itinerary",
+  "addLocation": "Add Destination",
 
   "camera": "Camera",
   "switchCamera": "Switch camera",
@@ -360,11 +338,6 @@
   "categorySocks": "Socks",
   "categoryShoes": "Shoes",
   "categoryAccessory": "Accessory",
-  "categoryTopPlural": "Tops",
-  "categoryBottomPlural": "Bottoms",
-  "categoryOuterPlural": "Outers",
-  "categoryOnePiecePlural": "One-pieces",
-  "categoryShoesPlural": "Shoes",
 
   "colorBlack": "Black",
   "colorWhite": "White",
@@ -402,7 +375,6 @@
   "addToCloset": "Add to Closet",
   "clothingAdded": "Clothing Added",
   "recentlyAdded": "Recently Added",
-  "purchasedLabel": "Purchased",
   "analyzeWithAi": "Analyze with AI",
   "analyzeAgain": "Analyze Again",
   "closetMatch": "Closet Match",
@@ -437,8 +409,9 @@
   "pleaseEnterNameError": "Please enter name",
   "clothingCategoryLabel": "Category",
   "productType": "Product Type",
-  "productTypeHint": "e.g. Top",
-  "pleaseEnterProductTypeError": "Please enter product type",
+  "garmentStyleLabel": "Style",
+  "pleaseEnterProductTypeError": "Please choose a product type",
+  "subCategoriesLoadFailed": "Couldn't load the product types. Please try again.",
   "color": "Color",
   "fitLabel": "Fit",
   "fitSkinny": "Skinny",
@@ -516,7 +489,6 @@
   "outfitDeleted": "Outfit Deleted",
 
   "midLayer": "Mid Layer",
-  "outerwear": "Outerwear",
   "generatingTryOnEllipsis": "Generating Try-On…",
   "loadingClosetEllipsis": "Loading Closet…",
 
@@ -563,7 +535,6 @@
   "failedToDeleteTrip": "Failed to delete trip",
   "failedToLoadTripDetails": "Failed to load trip details",
 
-  "creatingEllipsis": "Creating…",
   "creatingModelEllipsis": "Creating Your Model…",
   "completingOutfitEllipsis": "Completing Outfit…",
   "suitcaseLabel": "Suitcase",
@@ -599,7 +570,6 @@
   "addingOutfitEllipsis": "Adding Outfit…",
   "addGarment": "Add Garment",
   "browseYourClosetHint": "Browse your closet",
-  "addAction": "Add",
   "startPackingTripTitle": "Start packing your trip",
   "startPackingTripHint": "Choose clothes from your closet to build your trip outfits.",
   "addGarmentsButton": "Add Garments",
@@ -607,21 +577,14 @@
 
   "todaysOutfit": "Today's Outfit",
   "latestOutfitTitle": "Your Latest Outfit",
-  "loadingWeatherEllipsis": "Loading weather…",
-  "viewDetails": "View Details",
   "viewFullOutfit": "View Full Outfit",
 
-  "gettingStartedSectionLabel": "Getting Started",
   "gettingStartedWelcomeTitle": "Welcome to Uwearis",
   "gettingStartedWelcomeSubtitle": "Set up your profile and build your closet to unlock personalized outfit previews.",
   "gettingStartedGetStartedButton": "Get Started",
   "gettingStartedNextButton": "Next",
   "gettingStartedAboutYouLabel": "About You",
   "continueLabel": "Continue",
-  "gettingStartedBuildClosetTitle": "Build your closet",
-  "gettingStartedBuildClosetSubtitle": "Add a top, a bottom, and a pair of shoes so Uwearis can start creating outfits and personalized styling for you.",
-  "gettingStartedReadyForFirstLookTitle": "Ready for your first look?",
-  "gettingStartedReadyForFirstLookSubtitle": "Your closet is ready. Create your first outfit and see it on you.",
 
   "googleLoginNotConfiguredIOS": "Google login is not configured for iOS yet.",
   "appleLoginNotConfiguredAndroid": "Apple login is not configured for Android yet.",
@@ -663,7 +626,6 @@
   "loginFailed": "Login failed. Please try again.",
   "copyrightText": "© Uwearis Inc. All rights reserved.",
 
-  "noItemsFound": "No items found.",
 
   "edit": "Edit",
   "analyzingGarmentEllipsis": "Analyzing Garment…",
@@ -671,6 +633,7 @@
   "analysisFailedTitle": "Couldn't analyze this photo",
   "analysisFailedBody": "The AI analysis didn't come through. Check your connection and try again.",
   "photoProcessingFailed": "Couldn't process this photo. Please try a different one.",
+  "photoPickFailed": "Couldn't open your photos. Check photo access for Uwearis in Settings and try again.",
   "reset": "Reset",
   "pinchToZoomHint": "Pinch to zoom the image to make sure the picture have the whole details.",
   "retake": "Retake",
@@ -719,7 +682,6 @@
     "placeholders": { "min": { "type": "int" }, "max": { "type": "int" }, "days": { "type": "int" } }
   },
   "findMoreOutfits": "Add AI Outfits",
-  "refreshSuggestions": "Refresh AI Picks",
   "refreshSuggestionsTitle": "Refresh AI picks?",
   "refreshSuggestionsBody": "Uwearis will replace {count} AI picks with new ones. Saved, edited, kept and tried-on outfits stay as they are.",
   "@refreshSuggestionsBody": {

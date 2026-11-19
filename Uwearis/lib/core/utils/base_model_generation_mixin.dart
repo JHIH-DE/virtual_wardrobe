@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/profile_data.dart';
 import '../../features/widgets/common/overlays/ai_consent_dialog.dart';
-import '../../features/widgets/common/overlays/app_dialog.dart';
+import '../../features/widgets/common/overlays/confirm_dialog.dart';
 import '../../features/widgets/common/overlays/error_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers/profile_provider.dart';
@@ -56,14 +55,11 @@ mixin BaseModelGenerationMixin<T extends ConsumerStatefulWidget>
     try {
       if (confirm) {
         final l10n = AppLocalizations.of(context);
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AppDialog(
-            title: l10n.virtualModelGenerateConfirmTitle,
-            body: l10n.virtualModelGenerateConfirmBody,
-            primaryLabel: l10n.virtualModelGenerateAction,
-            onPrimary: () => Navigator.pop(ctx, true),
-          ),
+        final ok = await showConfirmDialog(
+          context,
+          title: l10n.virtualModelGenerateConfirmTitle,
+          body: l10n.virtualModelGenerateConfirmBody,
+          confirmLabel: l10n.virtualModelGenerateAction,
         );
         if (ok != true || !mounted) return false;
       }

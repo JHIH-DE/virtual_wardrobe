@@ -74,7 +74,7 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.listenManual(profileProvider, (_, next) {
-        if (next.hasError && next.error is AuthExpiredException && mounted) {
+        if (isSettledAuthExpiry(next) && mounted) {
           AuthExpiredHandler.handle(context);
         }
       });

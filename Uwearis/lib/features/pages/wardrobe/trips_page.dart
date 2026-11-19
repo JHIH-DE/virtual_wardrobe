@@ -129,39 +129,57 @@ Future<void> handleRenameTrip(
   }
 }
 
-/// Deletes a trip from a list card (Trips and Home).
-Future<void> handleDeleteTrip(
+/// Deletes an already-confirmed [trip] (Trips / Home cards, Trip Details).
+/// True once the backend deleted it and [tripsProvider] dropped it.
+Future<bool> handleDeleteTrip(
   BuildContext context,
   WidgetRef ref,
   Trip trip,
 ) async {
   final l10n = AppLocalizations.of(context);
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final trips = ref.read(tripsProvider.notifier);
+  // A system back must not close the overlay mid-delete: the old code then
+  // popped whatever page was on top once the request finished.
+  final overlay = RouteSettings(name: 'deleteTripOverlay');
   showDialog(
     context: context,
+    routeSettings: overlay,
     barrierDismissible: false,
     barrierColor: Colors.transparent,
     useSafeArea: false,
-    builder: (_) => LoadingOverlay(label: l10n.deletingTripEllipsis),
+    builder: (_) => PopScope(
+      canPop: false,
+      child: LoadingOverlay(label: l10n.deletingTripEllipsis),
+    ),
   );
+  // Pops the overlay only while it is the top route; after a session reset
+  // (or anything else pushed on top) it pops nothing.
+  void closeOverlay() {
+    var checked = false;
+    navigator.popUntil((route) {
+      if (checked) return true;
+      checked = true;
+      return !identical(route.settings, overlay);
+    });
+  }
 
   try {
     await TripService().deleteTrip(int.parse(trip.id));
-
-    if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
-    ref.read(tripsProvider.notifier).removeTrip(trip.id);
+    closeOverlay();
+    trips.removeTrip(trip.id);
+    return true;
   } on AuthExpiredException {
-    if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
-    await AuthExpiredHandler.handle(context);
+    closeOverlay();
+    if (context.mounted) await AuthExpiredHandler.handle(context);
+    return false;
   } catch (e) {
-    if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
+    closeOverlay();
     debugLog('Failed to delete trip: $e');
-    showErrorDialog(
-      context,
-      message: AppLocalizations.of(context).failedToDeleteTrip,
-    );
+    if (context.mounted) {
+      showErrorDialog(context, message: l10n.failedToDeleteTrip);
+    }
+    return false;
   }
 }
 

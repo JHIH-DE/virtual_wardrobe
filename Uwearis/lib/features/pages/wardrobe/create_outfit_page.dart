@@ -250,7 +250,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       if (i == keepAccessoryIndex) continue;
       final a = _accessories[i];
       if (a != null && a.subCategory.isNotEmpty) {
-        wornAccessoryKeys.add(accessorySlotKey(a.subCategory));
+        wornAccessoryKeys.add(accessorySlotKey(a));
       }
     }
 
@@ -273,7 +273,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       if (isAccessory) {
         if (g.id != null && _accessoryIds.contains(g.id)) return false;
         if (g.subCategory.isNotEmpty &&
-            wornAccessoryKeys.contains(accessorySlotKey(g.subCategory))) {
+            wornAccessoryKeys.contains(accessorySlotKey(g))) {
           return false;
         }
       } else if (g.category == GarmentCategory.top &&
@@ -915,14 +915,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   ) {
     final g = entry.garment;
     final locked = _isLocked(g);
-    final categoryLabel = entry.category.localizedLabel(context);
-    final baseSubtitle = g.subCategory.isNotEmpty
-        ? '$categoryLabel · ${g.subCategory}'
-        : categoryLabel;
     final adjustedCount = _effectiveAdjustments()[g.id]?.length ?? 0;
-    final subtitle = adjustedCount > 0
-        ? '$baseSubtitle · ${_l10n.garmentAdjustedCount(adjustedCount)}'
-        : baseSubtitle;
     final canAdjust = _canAdjust(g, adjustmentTable);
 
     return SwipeActionCard(
@@ -953,7 +946,10 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       ],
       child: OutfitGarmentRow(
         garment: g,
-        subtitle: subtitle,
+        category: entry.category,
+        subtitleSuffix: adjustedCount > 0
+            ? _l10n.garmentAdjustedCount(adjustedCount)
+            : null,
         onTap: (isOutfitLoading || _waitingForCloset)
             ? null
             : () => _pickGarmentForOutfit(
@@ -1712,11 +1708,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   Widget _buildBottomBar() {
     return BottomActionButton(
       label: _isVersionMode ? _l10n.createVersion : _l10n.createOutfit,
-      leading: Image.asset(
-        'assets/images/ai_process_inv.png',
-        width: 18,
-        height: 18,
-      ),
       onPressed: _onCreatePressed,
     );
   }

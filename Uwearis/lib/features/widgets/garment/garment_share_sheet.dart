@@ -6,12 +6,15 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../common/overlays/share_image_sheet.dart';
 import 'garment_share_card.dart';
 
+/// [subCategoryLabel]: the sub-category's display label, when known; the
+/// stored value is shown otherwise.
 Future<void> showGarmentShareSheet(
   BuildContext context, {
   required Garment garment,
+  String? subCategoryLabel,
 }) {
   final l10n = AppLocalizations.of(context);
-  final sub = garment.subCategory.trim();
+  final sub = (subCategoryLabel ?? garment.style ?? garment.subCategory).trim();
   final color = garment.color?.trim() ?? '';
   final brand = garment.brand?.trim() ?? '';
   final price = garment.price;

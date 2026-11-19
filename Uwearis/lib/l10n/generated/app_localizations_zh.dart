@@ -299,22 +299,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
-  String get currentOutfitLabel => '目前穿搭';
-
-  @override
-  String get accessoriesLabel => '配件';
-
-  @override
-  String get optionalLabel => '選填';
-
-  @override
   String get createOutfit => '建立造型';
 
   @override
   String get createVersion => '建立版本';
-
-  @override
-  String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
 
   @override
   String get backgroundLabel => '背景';
@@ -341,9 +329,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get outfitItemsLabel => '你的穿搭';
-
-  @override
-  String get shareComingSoon => '分享功能即將推出';
 
   @override
   String get failedToLoadImage => '圖片載入失敗';
@@ -376,23 +361,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outfitDeleteFailed => '无法删除这套穿搭，请再试一次。';
 
   @override
-  String createdOnDate(String date) {
-    return '建立於 $date';
-  }
-
-  @override
   String outfitTitle(String style) {
     return '$style穿搭';
   }
 
   @override
   String get outfitDetailsTitle => '穿搭詳情';
-
-  @override
-  String get tripDetailsTitle => '行程詳情';
-
-  @override
-  String get clothingDetailsTitle => '衣物詳情';
 
   @override
   String garmentsCount(int count) {
@@ -784,9 +758,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingStyleTasteEllipsis => '載入風格品味中…';
 
   @override
-  String get tryAgain => '再試一次';
-
-  @override
   String get noOutfitImageYet => '尚無穿搭圖片';
 
   @override
@@ -814,7 +785,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirm => '確認';
 
   @override
-  String get addLocation => '新增行程';
+  String get addLocation => '新增目的地';
 
   @override
   String get camera => '拍照';
@@ -872,21 +843,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get categoryAccessory => '配件';
-
-  @override
-  String get categoryTopPlural => '上衣';
-
-  @override
-  String get categoryBottomPlural => '下身';
-
-  @override
-  String get categoryOuterPlural => '外套';
-
-  @override
-  String get categoryOnePiecePlural => '連身衣';
-
-  @override
-  String get categoryShoesPlural => '鞋';
 
   @override
   String get colorBlack => '黑色';
@@ -995,9 +951,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recentlyAdded => '最近新增';
 
   @override
-  String get purchasedLabel => '購買日';
-
-  @override
   String get analyzeWithAi => 'AI 分析';
 
   @override
@@ -1078,10 +1031,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get productType => '類型';
 
   @override
-  String get productTypeHint => '例如：上衣';
+  String get garmentStyleLabel => '款式';
 
   @override
-  String get pleaseEnterProductTypeError => '請輸入類型';
+  String get pleaseEnterProductTypeError => '請選擇類型';
+
+  @override
+  String get subCategoriesLoadFailed => '無法載入類型清單，請再試一次。';
 
   @override
   String get color => '顏色';
@@ -1312,9 +1268,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get midLayer => '中層';
 
   @override
-  String get outerwear => '外套';
-
-  @override
   String get generatingTryOnEllipsis => '生成試穿圖中…';
 
   @override
@@ -1441,9 +1394,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedToLoadTripDetails => '載入行程詳情失敗';
 
   @override
-  String get creatingEllipsis => '建立中…';
-
-  @override
   String get creatingModelEllipsis => '建立虛擬模特兒中…';
 
   @override
@@ -1520,9 +1470,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get browseYourClosetHint => '瀏覽你的衣櫃';
 
   @override
-  String get addAction => '新增';
-
-  @override
   String get startPackingTripTitle => '開始打包你的行程';
 
   @override
@@ -1538,16 +1485,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get latestOutfitTitle => '你的最新穿搭';
 
   @override
-  String get loadingWeatherEllipsis => '載入天氣中…';
-
-  @override
-  String get viewDetails => '查看詳情';
-
-  @override
   String get viewFullOutfit => '查看完整穿搭';
-
-  @override
-  String get gettingStartedSectionLabel => '開始使用';
 
   @override
   String get gettingStartedWelcomeTitle => '歡迎使用 Uwearis';
@@ -1566,20 +1504,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get continueLabel => '繼續';
-
-  @override
-  String get gettingStartedBuildClosetTitle => '打造你的衣櫥';
-
-  @override
-  String get gettingStartedBuildClosetSubtitle =>
-      '新增一件上衣、一件下身和一雙鞋子，Uwearis 就能开始为你打造穿搭与个人化风格建议。';
-
-  @override
-  String get gettingStartedReadyForFirstLookTitle => '準備好打造第一套穿搭了嗎？';
-
-  @override
-  String get gettingStartedReadyForFirstLookSubtitle =>
-      '你的衣櫥已經準備好了，建立第一套穿搭，看看穿在你身上的樣子。';
 
   @override
   String get googleLoginNotConfiguredIOS => 'iOS 尚未設定 Google 登入。';
@@ -1691,9 +1615,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copyrightText => '© Uwearis Inc. 版权所有';
 
   @override
-  String get noItemsFound => '找不到項目。';
-
-  @override
   String get edit => '編輯';
 
   @override
@@ -1710,6 +1631,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get photoProcessingFailed => '无法处理这张照片，请换一张试试看。';
+
+  @override
+  String get photoPickFailed => '無法開啟相簿。請到「設定」確認 Uwearis 的照片存取權限後再試一次。';
 
   @override
   String get reset => '重設';
@@ -1823,9 +1747,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get findMoreOutfits => 'AI 新增穿搭';
-
-  @override
-  String get refreshSuggestions => '更新 AI 推荐';
 
   @override
   String get refreshSuggestionsTitle => '要更新 AI 推荐吗？';
@@ -2472,22 +2393,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
-  String get currentOutfitLabel => '目前穿搭';
-
-  @override
-  String get accessoriesLabel => '配件';
-
-  @override
-  String get optionalLabel => '選填';
-
-  @override
   String get createOutfit => '建立造型';
 
   @override
   String get createVersion => '建立版本';
-
-  @override
-  String get createOutfitHint => '使用這些單品建立另一套穿搭造型';
 
   @override
   String get backgroundLabel => '背景';
@@ -2514,9 +2423,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get outfitItemsLabel => '你的穿搭';
-
-  @override
-  String get shareComingSoon => '分享功能即將推出';
 
   @override
   String get failedToLoadImage => '圖片載入失敗';
@@ -2549,23 +2455,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get outfitDeleteFailed => '無法刪除這套穿搭，請再試一次。';
 
   @override
-  String createdOnDate(String date) {
-    return '建立於 $date';
-  }
-
-  @override
   String outfitTitle(String style) {
     return '$style穿搭';
   }
 
   @override
   String get outfitDetailsTitle => '穿搭詳情';
-
-  @override
-  String get tripDetailsTitle => '行程詳情';
-
-  @override
-  String get clothingDetailsTitle => '衣物詳情';
 
   @override
   String garmentsCount(int count) {
@@ -2957,9 +2852,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loadingStyleTasteEllipsis => '載入風格品味中…';
 
   @override
-  String get tryAgain => '再試一次';
-
-  @override
   String get noOutfitImageYet => '尚無穿搭圖片';
 
   @override
@@ -2987,7 +2879,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get confirm => '確認';
 
   @override
-  String get addLocation => '新增行程';
+  String get addLocation => '新增目的地';
 
   @override
   String get camera => '拍照';
@@ -3045,21 +2937,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get categoryAccessory => '配件';
-
-  @override
-  String get categoryTopPlural => '上衣';
-
-  @override
-  String get categoryBottomPlural => '下身';
-
-  @override
-  String get categoryOuterPlural => '外套';
-
-  @override
-  String get categoryOnePiecePlural => '連身衣';
-
-  @override
-  String get categoryShoesPlural => '鞋';
 
   @override
   String get colorBlack => '黑色';
@@ -3168,9 +3045,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get recentlyAdded => '最近新增';
 
   @override
-  String get purchasedLabel => '購買日';
-
-  @override
   String get analyzeWithAi => 'AI 分析';
 
   @override
@@ -3251,10 +3125,13 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get productType => '類型';
 
   @override
-  String get productTypeHint => '例如：上衣';
+  String get garmentStyleLabel => '款式';
 
   @override
-  String get pleaseEnterProductTypeError => '請輸入類型';
+  String get pleaseEnterProductTypeError => '請選擇類型';
+
+  @override
+  String get subCategoriesLoadFailed => '無法載入類型清單，請再試一次。';
 
   @override
   String get color => '顏色';
@@ -3485,9 +3362,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get midLayer => '中層';
 
   @override
-  String get outerwear => '外套';
-
-  @override
   String get generatingTryOnEllipsis => '生成試穿圖中…';
 
   @override
@@ -3614,9 +3488,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get failedToLoadTripDetails => '載入行程詳情失敗';
 
   @override
-  String get creatingEllipsis => '建立中…';
-
-  @override
   String get creatingModelEllipsis => '建立虛擬模特兒中…';
 
   @override
@@ -3693,9 +3564,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get browseYourClosetHint => '瀏覽你的衣櫃';
 
   @override
-  String get addAction => '新增';
-
-  @override
   String get startPackingTripTitle => '開始打包你的行程';
 
   @override
@@ -3711,16 +3579,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get latestOutfitTitle => '你的最新穿搭';
 
   @override
-  String get loadingWeatherEllipsis => '載入天氣中…';
-
-  @override
-  String get viewDetails => '查看詳情';
-
-  @override
   String get viewFullOutfit => '查看完整穿搭';
-
-  @override
-  String get gettingStartedSectionLabel => '開始使用';
 
   @override
   String get gettingStartedWelcomeTitle => '歡迎使用 Uwearis';
@@ -3739,20 +3598,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get continueLabel => '繼續';
-
-  @override
-  String get gettingStartedBuildClosetTitle => '打造你的衣櫥';
-
-  @override
-  String get gettingStartedBuildClosetSubtitle =>
-      '新增一件上衣、一件下身和一雙鞋子，Uwearis 就能開始為你打造穿搭與個人化風格建議。';
-
-  @override
-  String get gettingStartedReadyForFirstLookTitle => '準備好打造第一套穿搭了嗎？';
-
-  @override
-  String get gettingStartedReadyForFirstLookSubtitle =>
-      '你的衣櫥已經準備好了，建立第一套穿搭，看看穿在你身上的樣子。';
 
   @override
   String get googleLoginNotConfiguredIOS => 'iOS 尚未設定 Google 登入。';
@@ -3864,9 +3709,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get copyrightText => '© Uwearis Inc. 版權所有';
 
   @override
-  String get noItemsFound => '找不到項目。';
-
-  @override
   String get edit => '編輯';
 
   @override
@@ -3883,6 +3725,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get photoProcessingFailed => '無法處理這張照片，請換一張試試看。';
+
+  @override
+  String get photoPickFailed => '無法開啟相簿。請到「設定」確認 Uwearis 的照片存取權限後再試一次。';
 
   @override
   String get reset => '重設';
@@ -3996,9 +3841,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get findMoreOutfits => 'AI 新增穿搭';
-
-  @override
-  String get refreshSuggestions => '更新 AI 推薦';
 
   @override
   String get refreshSuggestionsTitle => '要更新 AI 推薦嗎？';

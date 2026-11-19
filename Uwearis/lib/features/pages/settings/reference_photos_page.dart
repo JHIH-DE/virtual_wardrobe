@@ -27,7 +27,7 @@ import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/images/app_image.dart';
 import '../../widgets/common/images/app_spinner.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
-import '../../widgets/common/overlays/app_dialog.dart';
+import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
 import '../../widgets/common/section_title.dart';
@@ -222,14 +222,11 @@ class _ReferencePhotosPageState extends ConsumerState<ReferencePhotosPage>
     final terms = UserAcknowledgement.referencePhotoTerms;
     if (await terms.isGranted()) return true;
     if (!mounted) return false;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.referencePhotoTermsTitle,
-        body: _l10n.referencePhotoTermsBody(AppConfig.minimumAge),
-        primaryLabel: _l10n.referencePhotoTermsConfirm,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: _l10n.referencePhotoTermsTitle,
+      body: _l10n.referencePhotoTermsBody(AppConfig.minimumAge),
+      confirmLabel: _l10n.referencePhotoTermsConfirm,
     );
     if (confirmed != true) return false;
     await terms.grant();

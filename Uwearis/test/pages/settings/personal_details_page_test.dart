@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uwearis/core/providers/profile_provider.dart';
+import 'package:uwearis/core/providers/sub_category_provider.dart';
+import 'package:uwearis/data/garment_sub_category.dart';
 import 'package:uwearis/data/image_edit_result.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/user_profile.dart';
@@ -331,6 +334,57 @@ void main() {
       expect(patches.single['gender'], 'Female');
       expect(find.text(_l10n.genderFemale), findsOneWidget);
     }, backend);
+  });
+
+  testWidgets('a gender change refetches the sub-category lists; another '
+      'edit does not', (tester) async {
+    var builds = 0;
+    final client = MockClient((request) async {
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      patches.add(body);
+      return jsonResponse(
+        envelope({'name': 'Test User', 'gender': body['gender']}),
+      );
+    });
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const PersonalDetailsPage(),
+        overrides: [
+          profileProvider.overrideWith(() => _FakeProfileNotifier()),
+          subCategoryCatalogProvider.overrideWith((ref, _) async {
+            builds++;
+            return SubCategoryCatalog(const {});
+          }),
+        ],
+      );
+      await tester.pump();
+      await tester.pump();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(PersonalDetailsPage)),
+      );
+      container.listen(
+        subCategoryCatalogProvider((locale: 'en', allGenders: false)),
+        (_, _) {},
+      );
+      await tester.pump();
+      expect(builds, 1);
+
+      await tester.tap(find.text(_l10n.genderMale));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(_l10n.genderFemale));
+      await tester.pumpAndSettle();
+      expect(patches.last['gender'], 'Female');
+      expect(builds, 2);
+
+      // Same gender again: the lists stay.
+      await tester.enterText(find.text('Test User'), 'Renamed');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(patches.last['name'], 'Renamed');
+      expect(builds, 2);
+    }, () => client);
   });
 
   testWidgets('a failed avatar upload goes back to the saved avatar instead '

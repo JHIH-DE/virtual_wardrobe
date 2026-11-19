@@ -5,7 +5,6 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
-import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
@@ -254,7 +253,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
       if (i == keepAccessoryIndex) continue;
       final a = _accessories[i];
       if (a != null && a.subCategory.isNotEmpty) {
-        wornAccessoryKeys.add(accessorySlotKey(a.subCategory));
+        wornAccessoryKeys.add(accessorySlotKey(a));
       }
     }
 
@@ -277,7 +276,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
       if (isAccessory) {
         if (g.id != null && _accessoryIds.contains(g.id)) return false;
         if (g.subCategory.isNotEmpty &&
-            wornAccessoryKeys.contains(accessorySlotKey(g.subCategory))) {
+            wornAccessoryKeys.contains(accessorySlotKey(g))) {
           return false;
         }
       } else if (g.category == GarmentCategory.top &&
@@ -409,10 +408,6 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
 
   Widget _buildOutfitGarmentRow(_OutfitEntry entry) {
     final g = entry.garment;
-    final categoryLabel = entry.category.localizedLabel(context);
-    final subtitle = g.subCategory.isNotEmpty
-        ? '$categoryLabel · ${g.subCategory}'
-        : categoryLabel;
     final isInvalid =
         widget.validGarmentIds != null &&
         g.id != null &&
@@ -420,7 +415,7 @@ class _OutfitEditPageState extends State<OutfitEditPage> {
 
     return OutfitGarmentRow(
       garment: g,
-      subtitle: subtitle,
+      category: entry.category,
       isInvalid: isInvalid,
       onTap: () => _pickGarmentForOutfit(
         initial: entry.category,

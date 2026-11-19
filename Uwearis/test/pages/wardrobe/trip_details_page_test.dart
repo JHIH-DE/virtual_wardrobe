@@ -247,13 +247,19 @@ void main() {
       await pumpDetails(tester);
       await settle(tester);
 
-      // In the page body; the toolbar's copy stays invisible at the top.
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Kyoto Autumn'),
+        ),
+        findsOneWidget,
+      );
       expect(
         find.descendant(
           of: find.byType(ListView),
           matching: find.text('Kyoto Autumn'),
         ),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.text('Itinerary'), findsOneWidget);
       expect(
@@ -270,8 +276,8 @@ void main() {
     }, tripClient(log));
   });
 
-  testWidgets('the toolbar fades the trip name in once the in-page name '
-      'scrolls away, and out again back at the top', (tester) async {
+  testWidgets('the toolbar shows a long trip name on one ellipsized line '
+      'between the back button and the menu', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -287,9 +293,7 @@ void main() {
           activities: const [],
           legs: _trip().legs,
         ),
-        detail: _collection(
-          outfits: [for (var i = 1; i <= 8; i++) _outfitJson(i)],
-        ),
+        detail: _collection(),
       );
       await settle(tester);
 
@@ -297,27 +301,6 @@ void main() {
         of: find.byType(AppBar),
         matching: find.text(longName),
       );
-      double opacity() => tester
-          .widget<AnimatedOpacity>(
-            find.ancestor(
-              of: toolbarTitle,
-              matching: find.byType(AnimatedOpacity),
-            ),
-          )
-          .opacity;
-
-      expect(opacity(), 0);
-
-      // Not past the name yet: still hidden.
-      await tester.drag(find.byType(ListView), const Offset(0, -20));
-      await tester.pumpAndSettle();
-      expect(opacity(), 0);
-
-      await tester.drag(find.byType(ListView), const Offset(0, -300));
-      await tester.pumpAndSettle();
-      expect(opacity(), 1);
-      // One line, ellipsized, never wider than the space between the
-      // toolbar's back button and menu.
       final text = tester.widget<Text>(toolbarTitle);
       expect((text.maxLines, text.overflow), (1, TextOverflow.ellipsis));
       expect(
@@ -330,10 +313,6 @@ void main() {
         tester.getRect(toolbarTitle).right,
         lessThan(tester.getRect(find.byIcon(Icons.more_vert)).left),
       );
-
-      await tester.drag(find.byType(ListView), const Offset(0, 400));
-      await tester.pumpAndSettle();
-      expect(opacity(), 0);
     }, tripClient([]));
   });
 
@@ -1170,6 +1149,317 @@ void main() {
           posts: posts,
         ),
       );
+    });
+  });
+
+  // P2-1 batch 3: the Trip confirm dialogs now come from showConfirmDialog.
+  // Each keeps its texts and destructive style; cancelling sends nothing.
+  group('confirm dialogs', () {
+    AppDialog dialog(WidgetTester tester) =>
+        tester.widget<AppDialog>(find.byType(AppDialog));
+
+    Future<void> cancel(WidgetTester tester) async {
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Refresh is a plain confirm and Clear Trip a destructive one', (
+      tester,
+    ) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: _collection(
+            outfits: [_outfitJson(1, replaceable: true), _outfitJson(2)],
+          ),
+        );
+        await settle(tester);
+
+        await tester.tap(find.text('Refresh AI Outfits'));
+        await tester.pumpAndSettle();
+        expect(dialog(tester).title, 'Refresh AI picks?');
+        expect(dialog(tester).primaryLabel, 'Refresh');
+        expect(dialog(tester).destructive, isFalse);
+        await cancel(tester);
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Clear Trip'));
+        await tester.pumpAndSettle();
+        expect(dialog(tester).title, 'Clear Trip');
+        expect(dialog(tester).primaryLabel, 'Clear');
+        expect(dialog(tester).destructive, isTrue);
+        await cancel(tester);
+      }, tripClient([]));
+    });
+
+    testWidgets('Delete Trip: destructive; Cancel deletes nothing and stays', (
+      tester,
+    ) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: _collection(outfits: [_outfitJson(1)]),
+        );
+        await settle(tester);
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Delete Trip'));
+        await tester.pumpAndSettle();
+
+        expect(dialog(tester).title, 'Delete Trip');
+        expect(
+          dialog(tester).body,
+          'Are you sure you want to delete this trip?',
+        );
+        expect(dialog(tester).primaryLabel, 'Delete');
+        expect(dialog(tester).destructive, isTrue);
+        await cancel(tester);
+        expect(log.where((r) => r.method == 'DELETE'), isEmpty);
+        expect(find.byType(TripDetailsPage), findsOneWidget);
+      }, tripClient(log));
+    });
+
+    testWidgets('Remove from Trip: destructive; Cancel removes nothing and '
+        'stays on the outfit', (tester) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: _collection(outfits: [_outfitJson(1)]),
+        );
+        await settle(tester);
+        await openTile(tester);
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Remove from Trip'));
+        await tester.pumpAndSettle();
+
+        expect(dialog(tester).title, 'Remove from trip?');
+        expect(dialog(tester).primaryLabel, 'Remove');
+        expect(dialog(tester).destructive, isTrue);
+        await cancel(tester);
+        expect(log.where((r) => r.method == 'DELETE'), isEmpty);
+        expect(find.byType(TripOutfitDetailPage), findsOneWidget);
+      }, tripClient(log));
+    });
+
+    testWidgets('Regenerate (an outfit with an image): a plain confirm; '
+        'Cancel renders nothing', (tester) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpDetails(
+          tester,
+          detail: _collection(
+            outfits: [_outfitJson(1, imageUrl: 'https://example.com/1.jpg')],
+          ),
+        );
+        await settle(tester);
+        // The image's spinner never settles: fixed pumps cover the push.
+        await tester.tap(find.byType(TripOutfitTile).first);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        expect(find.byType(TripOutfitDetailPage), findsOneWidget);
+        await tester.tap(find.byIcon(Icons.refresh));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(dialog(tester).title, 'Regenerate this image?');
+        expect(dialog(tester).primaryLabel, 'Regenerate');
+        expect(dialog(tester).destructive, isFalse);
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.byType(AppDialog), findsNothing);
+        expect(log.where((r) => r.path.endsWith('/try-on')), isEmpty);
+      }, tripClient(log));
+    });
+  });
+
+  // P2-2: deleting from Trip Details goes through the shared flow, then
+  // leaves the page. Details sits on a base page, so an extra pop shows.
+  group('delete the trip', () {
+    late List<String> deletes;
+    late Completer<http.Response>? hold;
+    late http.Response Function() reply;
+
+    setUp(() {
+      deletes = [];
+      hold = null;
+      reply = () => jsonResponse(envelope(null));
+    });
+
+    http.Client Function() client() {
+      final c = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'DELETE') {
+          deletes.add(path);
+          final gate = hold;
+          if (gate != null) return gate.future;
+          return reply();
+        }
+        if (path.endsWith('/packing-analysis')) {
+          return jsonResponse(
+            envelope({'overall_advice': null, 'categories': []}),
+          );
+        }
+        if (isPointsSummaryPath(path)) {
+          return jsonResponse(envelope(pointsSummaryJson(balance: 4)));
+        }
+        return jsonResponse(envelope({}), status: 404);
+      });
+      return () => c;
+    }
+
+    Future<void> openDetails(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TripDetailsPage(trip: _trip()),
+                ),
+              ),
+              child: const Text('base page'),
+            ),
+          ),
+        ),
+        overrides: [
+          tripDetailProvider.overrideWithBuild(
+            (_, _) => _collection(outfits: [_outfitJson(1)]),
+          ),
+        ],
+      );
+      await tester.tap(find.text('base page'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TripDetailsPage), findsOneWidget);
+    }
+
+    Future<void> confirmDelete(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete Trip'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+      await tester.pump();
+    }
+
+    testWidgets('success leaves Trip Details for the page beneath it', (
+      tester,
+    ) async {
+      await http.runWithClient(() async {
+        await openDetails(tester);
+        await confirmDelete(tester);
+        await tester.pumpAndSettle();
+
+        expect(deletes, ['/api/v1/trip_plans/7']);
+        expect(find.byType(LoadingOverlay), findsNothing);
+        expect(find.byType(TripDetailsPage), findsNothing);
+        expect(find.text('base page'), findsOneWidget);
+      }, client());
+    });
+
+    testWidgets('B1: a system back during the delete closes nothing; once it '
+        'lands only Trip Details leaves', (tester) async {
+      hold = Completer();
+      await http.runWithClient(() async {
+        await openDetails(tester);
+        await confirmDelete(tester);
+        await tester.binding.handlePopRoute(); // Android back
+        await tester.pump();
+        final overlayAfterBack = find.byType(LoadingOverlay).evaluate().length;
+        final detailsAfterBack = find.byType(TripDetailsPage).evaluate().length;
+
+        hold!.complete(jsonResponse(envelope(null)));
+        await tester.pump();
+        await tester.pumpAndSettle();
+        expect(
+          {
+            'overlay after back': overlayAfterBack,
+            'Details after back': detailsAfterBack,
+            'Details after delete': find
+                .byType(TripDetailsPage)
+                .evaluate()
+                .length,
+            'base page after delete': find.text('base page').evaluate().length,
+          },
+          {
+            'overlay after back': 1,
+            'Details after back': 1,
+            'Details after delete': 0,
+            'base page after delete': 1,
+          },
+        );
+      }, client());
+    });
+
+    testWidgets('an expired session closes only the overlay; Details is not '
+        'popped', (tester) async {
+      reply = () => jsonResponse({'success': false}, status: 401);
+      await http.runWithClient(() async {
+        await openDetails(tester);
+        await confirmDelete(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Session Expired'), findsOneWidget);
+        expect(find.byType(LoadingOverlay), findsNothing);
+        expect(find.byType(TripDetailsPage), findsOneWidget);
+        expect(find.text('base page', skipOffstage: false), findsOneWidget);
+      }, client());
+    });
+
+    testWidgets('Details going away mid-delete: no overlay left, no error, '
+        'the page beneath is not popped', (tester) async {
+      hold = Completer();
+      await http.runWithClient(() async {
+        await openDetails(tester);
+        final detailsRoute = ModalRoute.of(
+          tester.element(find.byType(TripDetailsPage)),
+        )!;
+        await confirmDelete(tester);
+        tester
+            .state<NavigatorState>(find.byType(Navigator).first)
+            .removeRoute(detailsRoute);
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.byType(TripDetailsPage), findsNothing, reason: 'disposed');
+
+        hold!.complete(jsonResponse(envelope(null)));
+        await tester.pump();
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(deletes, hasLength(1));
+        expect(find.byType(LoadingOverlay), findsNothing);
+        expect(find.text('base page'), findsOneWidget);
+      }, client());
+    });
+
+    testWidgets('a failure shows the existing error and stays on Details', (
+      tester,
+    ) async {
+      reply = () => jsonResponse({
+        'success': false,
+        'message': 'boom',
+        'data': null,
+        'error_code': 'INTERNAL_SERVER_ERROR',
+      }, status: 500);
+      await http.runWithClient(() async {
+        await openDetails(tester);
+        await confirmDelete(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Failed to delete trip'), findsOneWidget);
+        expect(find.byType(LoadingOverlay), findsNothing);
+        expect(find.byType(TripDetailsPage), findsOneWidget);
+      }, client());
     });
   });
 }

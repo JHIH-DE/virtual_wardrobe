@@ -24,9 +24,9 @@ import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/action_button.dart';
 import '../../widgets/common/cards/app_card_shell.dart';
 import '../../widgets/common/cards/app_list_card.dart';
-import '../../widgets/common/fading_toolbar_title.dart';
 import '../../widgets/common/labeled_divider.dart';
 import '../../widgets/common/overlays/app_dialog.dart';
+import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/app_snack_bar.dart';
 import '../../widgets/common/overlays/empty_state_placeholder.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
@@ -39,6 +39,7 @@ import '../../widgets/trip/trip_outfit_tile.dart';
 import 'outfit_edit_page.dart';
 import 'trip_outfit_detail_page.dart';
 import 'trip_suitcase_page.dart';
+import 'trips_page.dart';
 
 enum _TripMenuAction { editName, editLegs, clear, delete }
 
@@ -54,7 +55,7 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
-    with TripCollectionActions, FadingToolbarTitle {
+    with TripCollectionActions {
   // Local copy so name/itinerary edits show immediately; [_updateTrip]
   // keeps [tripsProvider] in sync.
   late Trip _trip = widget.trip;
@@ -165,16 +166,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<bool> _confirmRefresh(int count) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.refreshSuggestionsTitle,
-        body: _l10n.refreshSuggestionsBody(count),
-        primaryLabel: _l10n.refresh,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    return showConfirmDialog(
+      context,
+      title: _l10n.refreshSuggestionsTitle,
+      body: _l10n.refreshSuggestionsBody(count),
+      confirmLabel: _l10n.refresh,
     );
-    return confirmed ?? false;
   }
 
   Future<void> _createOutfit() async {
@@ -231,8 +228,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: _l10n.tripDetailsTitle,
-      titleWidget: buildFadingToolbarTitle(_trip.name),
+      title: _trip.name,
       actions: [
         AppPopupMenu<_TripMenuAction>(
           variant: AppPopupMenuVariant.toolbar,
@@ -412,15 +408,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
     await runCollectionAction(
       fallback: _l10n.failedToClearTrip,
       request: () async {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AppDialog(
-            title: _l10n.clearTrip,
-            body: _l10n.clearTripConfirmation,
-            primaryLabel: _l10n.clear,
-            destructive: true,
-            onPrimary: () => Navigator.pop(ctx, true),
-          ),
+        final confirmed = await showConfirmDialog(
+          context,
+          title: _l10n.clearTrip,
+          body: _l10n.clearTripConfirmation,
+          confirmLabel: _l10n.clear,
+          destructive: true,
         );
         if (confirmed != true || !mounted) return null;
         setState(() => _clearingTrip = true);
@@ -434,41 +427,17 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
   }
 
   Future<void> _confirmDeleteTrip() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.deleteTrip,
-        body: _l10n.deleteTripConfirmation,
-        primaryLabel: _l10n.delete,
-        destructive: true,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: _l10n.deleteTrip,
+      body: _l10n.deleteTripConfirmation,
+      confirmLabel: _l10n.delete,
+      destructive: true,
     );
     if (confirmed != true || !mounted) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.transparent,
-      useSafeArea: false,
-      builder: (_) => LoadingOverlay(label: _l10n.deletingTripEllipsis),
-    );
-    try {
-      await TripService().deleteTrip(int.parse(_trip.id));
-      if (!mounted) return;
-      ref.read(tripsProvider.notifier).removeTrip(_trip.id);
-      Navigator.pop(context); // close loading indicator
-      Navigator.pop(context); // the trip is gone
-    } on AuthExpiredException {
-      if (!mounted) return;
-      Navigator.pop(context); // close loading indicator
-      await AuthExpiredHandler.handle(context);
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // close loading indicator
-      debugLog('Failed to delete trip: $e');
-      showErrorDialog(context, message: _l10n.failedToDeleteTrip);
-    }
+    final deleted = await handleDeleteTrip(context, ref, _trip);
+    if (deleted && mounted) Navigator.pop(context); // the trip is gone
   }
 
   @override
@@ -481,20 +450,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
           backgroundColor: AppColors.pageBackground,
           appBar: _buildAppBar(),
           body: ListView(
-            controller: toolbarTitleScrollController,
             padding: EdgeInsets.only(
               bottom: 32 + MediaQuery.paddingOf(context).bottom,
             ),
             children: [
               const SizedBox(height: 20),
-              _paddedSection(
-                Text(
-                  _trip.name,
-                  key: toolbarTitleAnchorKey,
-                  style: AppTextStyle.bold22,
-                ),
-              ),
-              const SizedBox(height: AppDimens.titleGap),
               _paddedSection(
                 AppCardShell(
                   title: _l10n.itineraryTitle,
@@ -555,7 +515,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
                     const AppDivider(spacing: AppDimens.sectionSpacing),
                   ActionButton(
                     label: _l10n.findMoreOutfits,
-                    leading: const Icon(Icons.auto_awesome_outlined),
                     onPressed: locked
                         ? null
                         : () => _generateOutfits(TripOutfitGenerateMode.more),

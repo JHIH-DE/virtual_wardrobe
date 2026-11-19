@@ -24,11 +24,22 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   List<LocationResult> _results = [];
   bool _isLoading = false;
 
+  // Bumped by every search: only the latest one may show its places, an
+  // error, or end the loading state.
+  int _searchCount = 0;
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> _search() async {
     final query = _controller.text.trim();
     if (query.isEmpty) return;
+    final search = ++_searchCount;
     setState(() => _isLoading = true);
     final language = Localizations.localeOf(context).languageCode;
     try {
@@ -45,8 +56,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               .timeout(const Duration(seconds: 15)),
         ),
       );
+      // A variant that failed is skipped like one with no match; only when
+      // every one failed is the search itself a failure (the dialog below).
+      final answered = [
+        for (final res in responses)
+          if (res.statusCode >= 200 && res.statusCode < 300) res,
+      ];
+      if (answered.isEmpty) {
+        throw Exception(
+          'geocoding failed: ${responses.map((r) => r.statusCode).join(',')}',
+        );
+      }
       final byId = <Object, Map<String, dynamic>>{};
-      for (final res in responses) {
+      for (final res in answered) {
         final results = json.decode(res.body)['results'] as List?;
         for (final r in results ?? const []) {
           byId.putIfAbsent(
@@ -63,7 +85,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             (a['population'] as num?) ?? 0,
           ),
         );
-      if (!mounted) return;
+      if (!mounted || search != _searchCount) return;
       setState(() {
         _results = merged
             .take(8)
@@ -79,10 +101,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       });
     } catch (e) {
       debugLog('LocationPickerPage search error: $e');
-      if (!mounted) return;
+      if (!mounted || search != _searchCount) return;
       showErrorDialog(context, message: _l10n.locationSearchFailed);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && search == _searchCount) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

@@ -163,15 +163,12 @@ class TripService with BaseService {
 
   Future<void> deleteTrip(int tripId) async {
     debugLog('--- deleteTrip id=$tripId ---');
-    final uri = Uri.parse('$_baseUrl/$tripId');
-
-    final res = await withAuth(
-      (token) => http
-          .delete(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
+    // A retry after a lost reply finds the trip gone: 404 TRIP_NOT_FOUND.
+    await deleteIdempotent(
+      Uri.parse('$_baseUrl/$tripId'),
+      op: 'deleteTrip',
+      goneErrorCode: 'TRIP_NOT_FOUND',
     );
-
-    decodeMap(res, op: 'deleteTrip');
   }
 
   /// Re-runs the AI packing analysis; [getTripSuggestion] reads the last one.

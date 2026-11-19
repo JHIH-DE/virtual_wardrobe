@@ -4,19 +4,26 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/core/providers/garments_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/app/theme/app_dimens.dart';
+import 'package:uwearis/core/providers/sub_category_provider.dart';
 import 'package:uwearis/core/services/garment_service.dart';
+import 'package:uwearis/core/services/outfit_service.dart';
 import 'package:uwearis/data/bag_details.dart';
 import 'package:uwearis/data/garment.dart';
+import 'package:uwearis/data/garment_sub_category.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/garment_details_page.dart';
 import 'package:uwearis/features/widgets/common/app_divider.dart';
 import 'package:uwearis/features/widgets/common/fields/app_text_field.dart';
+import 'package:uwearis/features/widgets/common/fields/picker_field.dart';
+import 'package:uwearis/features/widgets/common/fields/labeled_field.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
@@ -547,22 +554,310 @@ void main() {
           expect(find.text('Thin'), findsOneWidget);
         });
       });
+    });
+  });
 
-      testWidgets('typing a bag product type reveals them', (tester) async {
-        await runWithEmptyCloset(() async {
-          await openBag(
-            tester,
-            sacoche.copyWith(subCategory: 'Cap', clearBagDetails: true),
-          );
-          expect(find.text('BAG TYPE'), findsNothing);
+  group('product type', () {
+    final catalog = SubCategoryCatalog(const {
+      GarmentCategory.top: [
+        SubCategoryOption(value: 'T-shirt', label: 'Tee (label)'),
+        SubCategoryOption(value: 'Button-up shirt', label: 'Shirt (label)'),
+        SubCategoryOption(
+          value: 'Shirts',
+          label: 'Shirts (label)',
+          styles: [
+            SubCategoryOption(value: 'Overshirt', label: 'Overshirt (label)'),
+            SubCategoryOption(value: 'Oxford shirt', label: 'Oxford (label)'),
+          ],
+        ),
+        SubCategoryOption(value: 'Other', label: 'Other (label)'),
+      ],
+      GarmentCategory.outer: [
+        SubCategoryOption(value: 'Jacket', label: 'Jacket (label)'),
+        SubCategoryOption(value: 'Button-up shirt', label: 'Shirt (label)'),
+        SubCategoryOption(value: 'Other', label: 'Other (label)'),
+      ],
+      GarmentCategory.accessory: [
+        SubCategoryOption(value: 'Cap', label: 'Cap (label)'),
+        SubCategoryOption(value: 'Tote bag', label: 'Tote (label)'),
+        SubCategoryOption(value: 'Other', label: 'Other (label)'),
+      ],
+    });
 
-          await tester.enterText(
-            find.widgetWithText(AppTextField, 'Cap'),
-            'Tote bag',
-          );
-          await tester.pump();
-          expect(find.text('BAG TYPE'), findsOneWidget);
-        });
+    Garment garment(GarmentCategory category, String sub, {String? style}) =>
+        Garment(
+          id: 9501,
+          name: 'Item',
+          category: category,
+          subCategory: sub,
+          style: style,
+          uploadUrl: '',
+          objectName: '',
+          imageUrl: '',
+        );
+
+    Future<void> open(
+      WidgetTester tester,
+      Garment g, {
+      Object? loadError,
+    }) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        GarmentDetailsPage(initialGarment: g),
+        overrides: [
+          subCategoryCatalogProvider.overrideWith((ref, _) async {
+            if (loadError != null) throw loadError;
+            return catalog;
+          }),
+        ],
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    Future<void> pickFrom(
+      WidgetTester tester,
+      String field,
+      String option,
+    ) async {
+      await tester.tap(find.text(field));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text(option).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    testWidgets('shows the label, offers the category\'s list and saves the '
+        'value', (tester) async {
+      final patches = <Map<String, dynamic>>[];
+      final shirt = garment(GarmentCategory.top, 'Button-up shirt');
+      await http.runWithClient(() async {
+        await open(tester, shirt);
+        expect(find.text('Shirt (label)'), findsOneWidget);
+
+        await tester.tap(find.text('Shirt (label)'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Jacket (label)'), findsNothing);
+        await tester.tap(find.text('Tee (label)').last);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Tee (label)'), findsOneWidget);
+        expect(patches.last['sub_category'], 'T-shirt');
+      }, () => _garmentBackend(shirt, patches));
+    });
+
+    testWidgets('the Style field shows only for a product type with styles, '
+        'saves a pick, and clears when the type changes', (tester) async {
+      final patches = <Map<String, dynamic>>[];
+      final shirt = garment(GarmentCategory.top, 'Shirts', style: 'Overshirt');
+      await http.runWithClient(() async {
+        await open(tester, shirt);
+        expect(find.text('STYLE'), findsOneWidget);
+        expect(find.text('Overshirt (label)'), findsOneWidget);
+
+        await pickFrom(tester, 'Overshirt (label)', 'Oxford (label)');
+        expect(patches.last['style'], 'Oxford shirt');
+        expect(patches.last['sub_category'], 'Shirts');
+
+        await pickFrom(tester, 'Shirts (label)', 'Tee (label)');
+        expect(find.text('STYLE'), findsNothing);
+        expect(patches.last['sub_category'], 'T-shirt');
+        expect(patches.last.containsKey('style'), isTrue);
+        expect(patches.last['style'], isNull);
+      }, () => _garmentBackend(shirt, patches));
+    });
+
+    testWidgets('picking None in Style clears only the L3', (tester) async {
+      final patches = <Map<String, dynamic>>[];
+      final shirt = garment(GarmentCategory.top, 'Shirts', style: 'Overshirt');
+      await http.runWithClient(() async {
+        await open(tester, shirt);
+
+        await pickFrom(tester, 'Overshirt (label)', 'None');
+        expect(find.text('STYLE'), findsOneWidget);
+        expect(patches.last['sub_category'], 'Shirts');
+        expect(patches.last.containsKey('style'), isTrue);
+        expect(patches.last['style'], isNull);
+      }, () => _garmentBackend(shirt, patches));
+    });
+
+    testWidgets('a category change keeps a value both lists have; any other '
+        'is flagged and the saved value is sent until one is picked', (
+      tester,
+    ) async {
+      final patches = <Map<String, dynamic>>[];
+      final shirt = garment(GarmentCategory.top, 'Button-up shirt');
+      await http.runWithClient(() async {
+        await open(tester, shirt);
+
+        await pickFrom(tester, 'Top', 'Outer');
+        expect(find.text('Shirt (label)'), findsOneWidget);
+        expect(patches.last['sub_category'], 'Button-up shirt');
+
+        await pickFrom(tester, 'Outer', 'Accessory');
+        expect(find.text('Shirt (label)'), findsNothing);
+        expect(find.text('Please choose a product type'), findsOneWidget);
+        expect(patches.last['sub_category'], 'Button-up shirt');
+
+        await pickFrom(tester, 'Not selected', 'Cap (label)');
+        expect(find.text('Please choose a product type'), findsNothing);
+        expect(patches.last['sub_category'], 'Cap');
+      }, () => _garmentBackend(shirt, patches));
+    });
+
+    testWidgets('while the lists are unknown a category change keeps the '
+        'value', (tester) async {
+      final patches = <Map<String, dynamic>>[];
+      final shirt = garment(GarmentCategory.top, 'Button-up shirt');
+      await http.runWithClient(() async {
+        await open(tester, shirt, loadError: Exception('down'));
+
+        await pickFrom(tester, 'Top', 'Outer');
+        expect(find.text('Button-up shirt'), findsOneWidget);
+        expect(patches.last['sub_category'], 'Button-up shirt');
+      }, () => _garmentBackend(shirt, patches));
+    });
+
+    testWidgets('an unrelated edit keeps an empty legacy value as is', (
+      tester,
+    ) async {
+      final patches = <Map<String, dynamic>>[];
+      final legacy = garment(GarmentCategory.top, '');
+      await http.runWithClient(() async {
+        await open(tester, legacy);
+        await pickFrom(tester, 'Top', 'Outer');
+        expect(patches.last['sub_category'], '');
+      }, () => _garmentBackend(legacy, patches));
+    });
+
+    testWidgets('a value from before the lists shows as stored', (
+      tester,
+    ) async {
+      await runWithEmptyCloset(() async {
+        await open(tester, garment(GarmentCategory.top, 'Denim shirt'));
+        expect(find.text('Denim shirt'), findsOneWidget);
+      });
+    });
+
+    testWidgets('picking a bag reveals the bag fields', (tester) async {
+      final patches = <Map<String, dynamic>>[];
+      final cap = garment(GarmentCategory.accessory, 'Cap');
+      await http.runWithClient(() async {
+        await open(tester, cap);
+        expect(find.text('BAG TYPE'), findsNothing);
+
+        await pickFrom(tester, 'Cap (label)', 'Tote (label)');
+        expect(find.text('BAG TYPE'), findsOneWidget);
+      }, () => _garmentBackend(cap, patches));
+    });
+
+    testWidgets('add mode requires one before Add to Closet', (tester) async {
+      await runWithEmptyCloset(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          const GarmentDetailsPage(
+            initialGarment: _draftGarment,
+            initialAnalysisData: {'name': 'Tee', 'category': 'Top'},
+          ),
+          overrides: [
+            subCategoryCatalogProvider.overrideWith((ref, _) async => catalog),
+          ],
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Add to Closet'));
+        await tester.pump();
+        expect(find.text('Please choose a product type'), findsOneWidget);
+
+        await tester.tap(
+          find.descendant(
+            of: find.widgetWithText(LabeledField, "PRODUCT TYPE"),
+            matching: find.byType(PickerField),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.tap(find.text('Tee (label)').last);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Please choose a product type'), findsNothing);
+      });
+    });
+
+    testWidgets('a value the gender-filtered picker lacks keeps its label '
+        '(from the full lists) and stays', (tester) async {
+      final menu = SubCategoryCatalog(const {
+        GarmentCategory.bottom: [
+          SubCategoryOption(value: 'Jeans', label: 'Jeans (label)'),
+          SubCategoryOption(value: 'Other', label: 'Other (label)'),
+        ],
+      });
+      final full = SubCategoryCatalog(const {
+        GarmentCategory.bottom: [
+          SubCategoryOption(value: 'Jeans', label: 'Jeans (label)'),
+          SubCategoryOption(value: 'Mini skirt', label: 'Skirt (label)'),
+          SubCategoryOption(value: 'Other', label: 'Other (label)'),
+        ],
+      });
+      final patches = <Map<String, dynamic>>[];
+      final skirt = garment(GarmentCategory.bottom, 'Mini skirt');
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          GarmentDetailsPage(initialGarment: skirt),
+          overrides: [
+            subCategoryCatalogProvider.overrideWith(
+              (ref, key) async => key.allGenders ? full : menu,
+            ),
+          ],
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Skirt (label)'), findsOneWidget);
+
+        await tester.tap(find.text('Skirt (label)'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.text('Skirt (label)'),
+          ),
+          findsNothing,
+        );
+        // Dismissed: nothing changes.
+        await tester.tapAt(const Offset(5, 5));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Skirt (label)'), findsOneWidget);
+      }, () => _garmentBackend(skirt, patches));
+      expect(patches, isEmpty);
+    });
+
+    testWidgets('a list that fails to load says so and offers a retry', (
+      tester,
+    ) async {
+      await runWithEmptyCloset(() async {
+        await open(
+          tester,
+          garment(GarmentCategory.top, 'T-shirt'),
+          loadError: Exception('down'),
+        );
+        // Falls back to the stored value.
+        expect(find.text('T-shirt'), findsOneWidget);
+
+        await tester.tap(find.text('T-shirt'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(
+          find.text("Couldn't load the product types. Please try again."),
+          findsOneWidget,
+        );
       });
     });
   });
@@ -1669,20 +1964,6 @@ void main() {
       }, () => _garmentBackend(shirt, patches));
     });
 
-    testWidgets('an emptied Product Type flags itself and keeps the saved '
-        'value in the PATCH', (tester) async {
-      await http.runWithClient(() async {
-        await pushPage(tester);
-
-        await tester.enterText(find.text('Shirt'), '');
-        await tester.pump(const Duration(seconds: 1));
-        await tester.pump();
-
-        expect(find.text('Please enter product type'), findsOneWidget);
-        expect(patches.single['sub_category'], 'Shirt');
-      }, () => _garmentBackend(shirt, patches));
-    });
-
     testWidgets('rename goes through the same auto-save and updates the '
         'heading', (tester) async {
       await http.runWithClient(() async {
@@ -1708,7 +1989,7 @@ void main() {
         expect(patches.single['name'], 'Blue Oxford');
         expect(
           find.descendant(
-            of: find.byType(ListView),
+            of: find.byType(AppBar),
             matching: find.text('Blue Oxford'),
           ),
           findsOneWidget,
@@ -2069,6 +2350,431 @@ void main() {
         expect(patches, hasLength(1));
         expect(jsonDecode(patches.single.body)['sub_category'], 'Fresh Polo');
       }, () => gatedClient(id: 7702, gates: gates, patches: patches));
+    });
+  });
+
+  group('Used in Outfits', () {
+    const garmentId = 7801;
+    const garment = Garment(
+      id: garmentId,
+      name: 'Plain Tee',
+      category: GarmentCategory.top,
+      subCategory: 'T-Shirt',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: '',
+    );
+
+    // Outfits on the fake backend, as `GET by-garments` would return them.
+    late List<Map<String, dynamic>> outfits;
+
+    Map<String, dynamic> outfitJson(int outfitId, int groupId) => {
+      'outfit_id': outfitId,
+      'group_id': groupId,
+      'group_type': 'general',
+      'status': 'completed',
+      'name': null,
+      'garment_ids': [garmentId, 8],
+      'result_image_url': 'https://example.com/$outfitId.jpg',
+      'season': <String>[],
+      'style': <String>[],
+      'is_favorite': false,
+    };
+
+    MockClient outfitBackend() => MockClient((request) async {
+      final path = request.url.path;
+      if (request.method == 'POST' && path.endsWith('/outfit/by-garments')) {
+        return jsonResponse(envelope(outfits));
+      }
+      if (request.method == 'POST' && path.endsWith('/40/generate')) {
+        final created = outfitJson(900, 40);
+        outfits.add(created);
+        return jsonResponse(envelope(created));
+      }
+      if (request.method == 'DELETE' && path.endsWith('/outfit/40')) {
+        outfits.removeWhere((o) => o['group_id'] == 40);
+        return jsonResponse(envelope(null));
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    Future<void> settle(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        await tester.pump();
+      }
+    }
+
+    setUp(() => outfits = []);
+
+    testWidgets('the count follows outfits created and deleted while the '
+        'page is open: 0 → 1 → 0', (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          const GarmentDetailsPage(initialGarment: garment),
+        );
+        await settle(tester);
+        expect(find.text('Used in Outfits'), findsNothing);
+
+        // E.g. Closet Match's outfit idea → Create Outfit, pushed over this page.
+        await OutfitService().generateOutfit(
+          garmentIds: [garmentId, 8],
+          groupId: 40,
+        );
+        await settle(tester);
+        expect(find.text('Used in Outfits'), findsOneWidget);
+        expect(find.text('1'), findsOneWidget);
+
+        await OutfitService().deleteGroup(40);
+        await settle(tester);
+        expect(find.text('Used in Outfits'), findsNothing);
+      }, outfitBackend);
+    });
+
+    testWidgets('the count goes from 1 to 2 when another outfit uses it', (
+      tester,
+    ) async {
+      outfits.add(outfitJson(800, 30));
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          const GarmentDetailsPage(initialGarment: garment),
+        );
+        await settle(tester);
+        expect(find.text('1'), findsOneWidget);
+
+        await OutfitService().generateOutfit(
+          garmentIds: [garmentId, 8],
+          groupId: 40,
+        );
+        await settle(tester);
+        expect(find.text('2'), findsOneWidget);
+      }, outfitBackend);
+    });
+  });
+  // F4: an optimistic favorite racing a garmentsProvider refresh that read
+  // the server before the PATCH committed.
+  group('favorite vs. a closet refresh', () {
+    const id = 7101;
+    const garment = Garment(
+      id: id,
+      name: 'Oxford Shirt',
+      category: GarmentCategory.top,
+      subCategory: 'Shirt',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: '',
+    );
+
+    late bool serverFavorite;
+    late bool holdList;
+    late bool holdPatch;
+    late bool patchFails;
+    late List<Completer<void>> listGates;
+    late List<Completer<void>> patchGates;
+
+    Map<String, dynamic> garmentJson(bool fav) => {
+      'id': id,
+      'name': garment.name,
+      'category': garment.category.apiValue,
+      'sub_category': garment.subCategory,
+      'image_url': '',
+      'is_favorite': fav,
+    };
+
+    setUp(() {
+      serverFavorite = false;
+      holdList = false;
+      holdPatch = false;
+      patchFails = false;
+      listGates = [];
+      patchGates = [];
+    });
+
+    /// `GET /garments` answers with the server's favorite when the request
+    /// *arrives*; a PATCH commits only once released.
+    MockClient backend() => MockClient((request) async {
+      if (request.method == 'PATCH') {
+        final value =
+            (jsonDecode(request.body) as Map<String, dynamic>)['is_favorite']
+                as bool;
+        if (holdPatch) {
+          final gate = Completer<void>();
+          patchGates.add(gate);
+          await gate.future;
+        }
+        if (patchFails) return jsonResponse({'success': false}, status: 500);
+        serverFavorite = value;
+        return jsonResponse(envelope(garmentJson(value)));
+      }
+      if (request.url.path.endsWith('/garments')) {
+        final snapshot = garmentJson(serverFavorite);
+        if (holdList) {
+          final gate = Completer<void>();
+          listGates.add(gate);
+          await gate.future;
+        }
+        return jsonResponse(
+          envelope({
+            'items': [snapshot],
+            'total': 1,
+            'page': 1,
+            'size': 100,
+          }),
+        );
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    Future<void> settle(WidgetTester tester) async {
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+      }
+    }
+
+    late ProviderContainer container;
+
+    Future<void> open(WidgetTester tester, {bool favorite = false}) async {
+      serverFavorite = favorite;
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        GarmentDetailsPage(
+          initialGarment: garment.copyWith(isFavorite: favorite),
+        ),
+      );
+      container = ProviderScope.containerOf(
+        tester.element(find.byType(GarmentDetailsPage)),
+      );
+      container.listen(garmentsProvider, (_, _) {});
+      await settle(tester);
+    }
+
+    bool? providerFavorite() => container
+        .read(garmentsProvider)
+        .value
+        ?.singleWhere((g) => g.id == id)
+        .isFavorite;
+
+    /// Taps the heart with its PATCH held, then starts a refresh that reads
+    /// the server before that PATCH commits.
+    Future<({Future<void> done})> tapThenRefresh(
+      WidgetTester tester, {
+      required IconData heart,
+    }) async {
+      holdPatch = true;
+      await tester.tap(find.byIcon(heart));
+      await settle(tester);
+      holdList = true;
+      final refresh = container.read(garmentsProvider.notifier).refresh();
+      await settle(tester);
+      return (done: refresh);
+    }
+
+    Future<void> release(
+      WidgetTester tester,
+      List<Completer<void>> gates,
+    ) async {
+      for (final gate in [...gates]) {
+        gate.complete();
+      }
+      gates.clear();
+      await settle(tester);
+    }
+
+    testWidgets('favorite → stale refresh answers → PATCH succeeds: the '
+        'closet ends favorited', (tester) async {
+      await http.runWithClient(() async {
+        await open(tester);
+        final refresh = (await tapThenRefresh(
+          tester,
+          heart: Icons.favorite_border,
+        )).done;
+
+        await release(tester, listGates); // stale: not favorite
+        await refresh;
+        await release(tester, patchGates); // PATCH commits
+
+        expect(providerFavorite(), isTrue);
+        expect(find.byIcon(Icons.favorite), findsOneWidget);
+      }, backend);
+    });
+
+    testWidgets('unfavorite → stale refresh answers → PATCH succeeds: the '
+        'closet ends unfavorited', (tester) async {
+      await http.runWithClient(() async {
+        await open(tester, favorite: true);
+        final refresh = (await tapThenRefresh(
+          tester,
+          heart: Icons.favorite,
+        )).done;
+
+        await release(tester, listGates); // stale: still favorite
+        await refresh;
+        await release(tester, patchGates);
+
+        expect(providerFavorite(), isFalse);
+      }, backend);
+    });
+
+    testWidgets('PATCH succeeds before the stale refresh answers: the '
+        'closet still ends favorited', (tester) async {
+      await http.runWithClient(() async {
+        await open(tester);
+        final refresh = (await tapThenRefresh(
+          tester,
+          heart: Icons.favorite_border,
+        )).done;
+
+        await release(tester, patchGates); // commits first
+        await release(tester, listGates); // then the stale reply lands
+        await refresh;
+
+        expect(providerFavorite(), isTrue);
+      }, backend);
+    });
+
+    testWidgets('a failed PATCH rolls back the closet and the heart', (
+      tester,
+    ) async {
+      await http.runWithClient(() async {
+        await open(tester);
+        patchFails = true;
+        await tester.tap(find.byIcon(Icons.favorite_border));
+        await settle(tester);
+
+        expect(providerFavorite(), isFalse);
+        expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+      }, backend);
+    });
+
+    testWidgets("a failed PATCH's rollback doesn't undo a newer favorite "
+        'written meanwhile (another screen)', (tester) async {
+      await http.runWithClient(() async {
+        await open(tester);
+        holdPatch = true;
+        patchFails = true;
+        await tester.tap(find.byIcon(Icons.favorite_border)); // held; fails
+        await settle(tester);
+
+        // Another screen favorites it too, and its own request succeeded:
+        // the newer write. Our rollback (to unfavorited) must not undo it.
+        container
+            .read(garmentsProvider.notifier)
+            .updateFavorite(id, isFavorite: true);
+        await release(tester, patchGates); // our favorite's PATCH fails
+
+        expect(providerFavorite(), isTrue);
+      }, backend);
+    });
+  });
+
+  // P2-1 batch 2: the confirm dialogs now come from showConfirmDialog. Each
+  // keeps its texts and destructive style; cancelling sends nothing.
+  group('confirm dialogs', () {
+    const id = 7301;
+
+    /// Records DELETEs and analysis calls; everything else is a plain read.
+    MockClient recordingClient(List<http.Request> requests) {
+      return MockClient((request) async {
+        requests.add(request);
+        if (request.method == 'DELETE') return jsonResponse(envelope(null));
+        if (request.url.path.endsWith('/garments/$id')) {
+          return jsonResponse(
+            envelope({
+              'id': id,
+              'name': 'Plain Tee',
+              'category': 'Top',
+              'sub_category': 'Tee',
+              'image_url': '',
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+    }
+
+    Future<void> openMenuItem(WidgetTester tester, String label) async {
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text(label));
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    Future<void> openPage(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const GarmentDetailsPage(
+          initialGarment: Garment(
+            id: id,
+            name: 'Plain Tee',
+            category: GarmentCategory.top,
+            subCategory: 'Tee',
+            uploadUrl: '',
+            objectName: '',
+            imageUrl: '',
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    AppDialog dialog(WidgetTester tester) =>
+        tester.widget<AppDialog>(find.byType(AppDialog));
+
+    testWidgets('Delete Garment: destructive; Cancel deletes nothing, Delete '
+        'deletes it', (tester) async {
+      final requests = <http.Request>[];
+      await http.runWithClient(() async {
+        await openPage(tester);
+        await openMenuItem(tester, 'Delete Garment');
+
+        expect(dialog(tester).title, 'Delete Garment');
+        expect(
+          dialog(tester).body,
+          'Are you sure you want to delete this garment?',
+        );
+        expect(dialog(tester).primaryLabel, 'Delete');
+        expect(dialog(tester).destructive, isTrue);
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(requests.where((r) => r.method == 'DELETE'), isEmpty);
+        expect(find.byType(GarmentDetailsPage), findsOneWidget);
+
+        await openMenuItem(tester, 'Delete Garment');
+        await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+        await tester.pump();
+        await tester.pump();
+        final deletes = requests.where((r) => r.method == 'DELETE');
+        expect(deletes.single.url.path, endsWith('/garments/$id'));
+      }, () => recordingClient(requests));
+    });
+
+    testWidgets('Re-analyze: a plain (not destructive) confirm; Cancel '
+        'analyzes nothing', (tester) async {
+      final requests = <http.Request>[];
+      await http.runWithClient(() async {
+        await openPage(tester);
+        await openMenuItem(tester, 'Re-analyze');
+
+        expect(dialog(tester).title, 'Re-analyze This Item?');
+        expect(dialog(tester).primaryLabel, 'Re-analyze');
+        expect(dialog(tester).destructive, isFalse);
+        final before = requests.length;
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(
+          requests
+              .skip(before)
+              .where((r) => r.url.path.endsWith('/analyze-instant')),
+          isEmpty,
+        );
+        expect(requests.skip(before), isEmpty, reason: 'nothing at all');
+      }, () => recordingClient(requests));
     });
   });
 }

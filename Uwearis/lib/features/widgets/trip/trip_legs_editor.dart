@@ -4,23 +4,29 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/utils/date_locale.dart';
 import '../../../data/location_result.dart';
 import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/common/location_picker_page.dart';
-import '../common/buttons/accent_pill_button.dart';
-import '../common/cards/card_corner_badge.dart';
-import '../common/field_label.dart';
+import '../common/buttons/circle_icon_button.dart';
+import '../common/app_divider.dart';
 import 'trip_leg_date_range_picker.dart';
 
 /// Edits a trip's legs through [legsNotifier], which the hosting dialog
-/// reads on submit. With a [label], the add button sits beside it instead
-/// of under the legs.
+/// reads on submit.
 class TripLegsEditor extends StatefulWidget {
   final ValueNotifier<List<TripLeg>> legsNotifier;
-  final String? label;
 
-  const TripLegsEditor({super.key, required this.legsNotifier, this.label});
+  /// Lets the last leg be removed too: a new trip's own submit gate already
+  /// requires a leg, while a saved trip must always keep one.
+  final bool allowsEmpty;
+
+  const TripLegsEditor({
+    super.key,
+    required this.legsNotifier,
+    this.allowsEmpty = false,
+  });
 
   @override
   State<TripLegsEditor> createState() => _TripLegsEditorState();
@@ -81,35 +87,19 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final label = widget.label;
-    return SizedBox(
-      width: double.infinity,
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppDimens.cardRadius),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (label != null) ...[
-            Row(
-              children: [
-                Expanded(child: FieldLabel(label.toUpperCase())),
-                AccentPillButton(label: l10n.addAction, onPressed: _addLeg),
-              ],
-            ),
-            if (_legs.isNotEmpty) const SizedBox(height: 4),
-          ],
           for (int i = 0; i < _legs.length; i++) ...[
-            if (i != 0) const SizedBox(height: 12),
+            if (i != 0) const AppDivider(spacing: 0),
             _buildLegRow(i),
           ],
-          if (label == null) ...[
-            if (_legs.isNotEmpty) const SizedBox(height: 12),
-            Center(
-              child: AccentPillButton(
-                label: l10n.addLocation,
-                onPressed: _addLeg,
-              ),
-            ),
-          ],
+          if (_legs.isNotEmpty) const AppDivider(spacing: 0),
+          _buildAddRow(l10n),
         ],
       ),
     );
@@ -117,46 +107,69 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
 
   Widget _buildLegRow(int index) {
     final leg = _legs[index];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.borderSubtle),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  leg.location.name,
-                  style: AppTextStyle.semibold14,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: () => _editLegDate(index),
-                  child: Text(
-                    "${DateFormat('MM/dd').format(leg.dateRange.start)} - "
-                    "${DateFormat('MM/dd').format(leg.dateRange.end)}",
-                    style: AppTextStyle.regular13.copyWith(
+    final dateFormat = DateFormat.MMMd(dateLocaleOf(context));
+    return InkWell(
+      onTap: () => _editLegDate(index),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    leg.location.name,
+                    style: AppTextStyle.semibold16,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "${dateFormat.format(leg.dateRange.start)} – "
+                    "${dateFormat.format(leg.dateRange.end)}",
+                    style: AppTextStyle.regular14.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            CircleIconButton(
+              icon: Icons.close,
+              discAlignment: Alignment.centerRight,
+              tooltip: MaterialLocalizations.of(context).deleteButtonTooltip,
+              enabled: widget.allowsEmpty || _legs.length > 1,
+              onPressed: () => _removeLeg(index),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddRow(AppLocalizations l10n) {
+    return InkWell(
+      onTap: _addLeg,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 52),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.add, size: 20, color: AppColors.textSecondary),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  l10n.addLocation,
+                  style: AppTextStyle.medium14.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
           ),
-          CardCornerBadge(
-            icon: Icons.close,
-            backgroundColor: AppColors.placeholderSurface,
-            iconColor: AppColors.icon,
-            hitTargetSize: const Size(24, AppDimens.minTouchTarget),
-            onTap: _legs.length > 1 ? () => _removeLeg(index) : null,
-          ),
-        ],
+        ),
       ),
     );
   }

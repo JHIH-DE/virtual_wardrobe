@@ -25,6 +25,20 @@ class PointsService with BaseService {
   /// provider access (the insufficient-points message).
   static PointsSummary? lastSummary;
 
+  // Only a read started in the current session, and newer than the one
+  // already kept, may set [lastSummary]: a reply can land after sign-out
+  // (the previous account's) or after a later read's.
+  static int _session = 0;
+  static int _readsStarted = 0;
+  static int _keptRead = 0;
+
+  /// Session end: forgets [lastSummary] and disqualifies reads still in
+  /// flight from setting it.
+  static void forgetSession() {
+    _session++;
+    lastSummary = null;
+  }
+
   /// Call from every charged AI request, success or failure (a failure is
   /// refunded server-side, which also moves the balance back).
   static void notifyBalanceChanged() => _balanceChanges.add(null);
@@ -47,6 +61,8 @@ class PointsService with BaseService {
 
   Future<PointsSummary> getPoints() async {
     debugLog('--- getPoints ---');
+    final session = _session;
+    final read = ++_readsStarted;
     final uri = Uri.parse(_baseUrl);
     final res = await withAuth(
       (token) => http
@@ -58,7 +74,12 @@ class PointsService with BaseService {
     if (data is! Map<String, dynamic>) {
       throw Exception('getPoints: response missing data object');
     }
-    return lastSummary = PointsSummary.fromJson(data);
+    final summary = PointsSummary.fromJson(data);
+    if (session == _session && read > _keptRead) {
+      _keptRead = read;
+      lastSummary = summary;
+    }
+    return summary;
   }
 
   /// Newest first. [size] is 1–100.

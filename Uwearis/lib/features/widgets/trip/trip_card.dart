@@ -8,7 +8,7 @@ import '../../../data/trip.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/app_popup_menu.dart';
 import '../common/buttons/circle_icon_button.dart';
-import '../common/overlays/app_dialog.dart';
+import '../common/overlays/confirm_dialog.dart';
 import '../common/overlays/text_input_dialog.dart';
 import '../common/section_title.dart';
 import '../../../core/utils/date_locale.dart';
@@ -203,15 +203,12 @@ class TripCard extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: l10n.deleteTrip,
-        body: l10n.deleteTripConfirmation,
-        primaryLabel: l10n.delete,
-        destructive: true,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: l10n.deleteTrip,
+      body: l10n.deleteTripConfirmation,
+      confirmLabel: l10n.delete,
+      destructive: true,
     );
     if (confirmed == true) onDelete();
   }

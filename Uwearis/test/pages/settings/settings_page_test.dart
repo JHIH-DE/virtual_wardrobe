@@ -280,6 +280,125 @@ void main() {
     });
   });
 
+  group('delete account', () {
+    testWidgets('asks first, as a destructive confirmation; cancelling sends '
+        'no delete and stays on Settings', (tester) async {
+      final deletes = <http.Request>[];
+      await http.runWithClient(
+        () async {
+          useTallSurface(tester);
+          await pumpApp(tester, const SettingsPage());
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Delete My Account'));
+          await tester.pumpAndSettle();
+          expect(find.text('Delete your account?'), findsOneWidget);
+          expect(
+            tester.widget<AppDialog>(find.byType(AppDialog)).destructive,
+            isTrue,
+          );
+
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+          await tester.pumpAndSettle();
+          expect(find.text('Delete your account?'), findsNothing);
+          expect(deletes, isEmpty);
+          expect(find.byType(SettingsPage), findsOneWidget);
+          expect(find.byType(LoginPage), findsNothing);
+        },
+        () => MockClient((request) async {
+          if (request.method == 'DELETE') deletes.add(request);
+          return jsonResponse(
+            envelope({'name': 'Test User', 'email': 'test@example.com'}),
+          );
+        }),
+      );
+    });
+
+    /// Records DELETEs; answers everything else with the profile.
+    MockClient recording(List<http.Request> deletes) =>
+        MockClient((request) async {
+          if (request.method == 'DELETE') {
+            deletes.add(request);
+            return jsonResponse(envelope(null));
+          }
+          return jsonResponse(
+            envelope({'name': 'Test User', 'email': 'test@example.com'}),
+          );
+        });
+
+    Future<void> openConfirm(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(tester, const SettingsPage());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete My Account'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete your account?'), findsOneWidget);
+    }
+
+    Finder confirmButton() =>
+        find.widgetWithText(ElevatedButton, 'Delete My Account');
+
+    testWidgets('confirming deletes the account and goes to Login', (
+      tester,
+    ) async {
+      final deletes = <http.Request>[];
+      await http.runWithClient(() async {
+        await openConfirm(tester);
+        await tester.tap(confirmButton());
+        await tester.pumpAndSettle();
+
+        expect(deletes, hasLength(1));
+        expect(find.byType(LoginPage), findsOneWidget);
+        expect(find.byType(SettingsPage), findsNothing);
+      }, () => recording(deletes));
+    });
+
+    testWidgets('a tap outside or a system back deletes nothing', (
+      tester,
+    ) async {
+      final deletes = <http.Request>[];
+      await http.runWithClient(() async {
+        await openConfirm(tester);
+        await tester.tapAt(const Offset(4, 4)); // the barrier
+        await tester.pumpAndSettle();
+        expect(find.text('Delete your account?'), findsNothing);
+
+        await tester.tap(find.text('Delete My Account'));
+        await tester.pumpAndSettle();
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(find.text('Delete your account?'), findsNothing);
+
+        expect(deletes, isEmpty);
+        expect(find.byType(SettingsPage), findsOneWidget);
+      }, () => recording(deletes));
+    });
+
+    testWidgets('confirming after Settings itself was removed (the dialog '
+        'outlived it) sends no delete, calls no setState and navigates '
+        'nowhere', (tester) async {
+      final deletes = <http.Request>[];
+      await http.runWithClient(() async {
+        await openConfirm(tester);
+        final settingsRoute = ModalRoute.of(
+          tester.element(find.byType(SettingsPage)),
+        )!;
+        tester
+            .state<NavigatorState>(find.byType(Navigator).first)
+            .removeRoute(settingsRoute); // Settings is disposed
+        await tester.pump();
+        expect(find.byType(SettingsPage), findsNothing);
+
+        await tester.tap(confirmButton());
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(deletes, isEmpty);
+        expect(find.byType(LoginPage), findsNothing);
+      }, () => recording(deletes));
+    });
+  });
+
   group('withdraw AI consent', () {
     setUp(() => UserAcknowledgement.debugGrantedOverride = null);
     tearDown(() => UserAcknowledgement.debugGrantedOverride = true);

@@ -27,7 +27,7 @@ import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/cards/app_list_card.dart';
 import '../../widgets/common/images/app_spinner.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
-import '../../widgets/common/overlays/app_dialog.dart';
+import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/app_snack_bar.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
@@ -76,7 +76,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.listenManual(profileProvider, (_, next) {
-        if (next.hasError && next.error is AuthExpiredException && mounted) {
+        if (isSettledAuthExpiry(next) && mounted) {
           AuthExpiredHandler.handle(context);
         }
       });
@@ -104,14 +104,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.logoutConfirmTitle,
-        body: _l10n.logoutConfirmBody,
-        primaryLabel: _l10n.logout,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: _l10n.logoutConfirmTitle,
+      body: _l10n.logoutConfirmBody,
+      confirmLabel: _l10n.logout,
     );
     if (confirmed != true || !mounted) return;
 
@@ -132,17 +129,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.deleteAccountConfirmTitle,
-        body: _l10n.deleteAccountConfirmBody,
-        primaryLabel: _l10n.deleteAccount,
-        destructive: true,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: _l10n.deleteAccountConfirmTitle,
+      body: _l10n.deleteAccountConfirmBody,
+      confirmLabel: _l10n.deleteAccount,
+      destructive: true,
     );
-    if (confirmed != true || _deletingAccount) return;
+    if (confirmed != true || _deletingAccount || !mounted) return;
 
     setState(() => _deletingAccount = true);
     try {
@@ -408,15 +402,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _withdrawAiConsent() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.withdrawAiConsentConfirmTitle,
-        body: _l10n.withdrawAiConsentConfirmBody,
-        primaryLabel: _l10n.withdrawAiConsentConfirm,
-        destructive: true,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: _l10n.withdrawAiConsentConfirmTitle,
+      body: _l10n.withdrawAiConsentConfirmBody,
+      confirmLabel: _l10n.withdrawAiConsentConfirm,
+      destructive: true,
     );
     if (confirmed != true || !mounted) return;
     await UserAcknowledgement.aiConsent.revoke();

@@ -62,7 +62,6 @@ void main() {
           extendBody: true,
           bottomNavigationBar: BottomActionButton(
             label: label,
-            leading: const Icon(Icons.luggage_outlined),
             onPressed: () {},
           ),
           body: Builder(

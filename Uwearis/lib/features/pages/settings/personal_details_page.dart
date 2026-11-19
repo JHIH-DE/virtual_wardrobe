@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/profile_provider.dart';
+import '../../../core/providers/sub_category_provider.dart';
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../core/utils/api_error_text.dart';
@@ -351,6 +352,8 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
     // Read up front: a save can still land after the page is gone, and
     // Settings must see it even then.
     final profile = ref.read(profileProvider.notifier);
+    final container = ProviderScope.containerOf(context, listen: false);
+    final previousGender = ref.read(profileProvider).value?.profile.gender;
     final result = await ProfileService().updateMyProfile(
       name: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : null,
       gender: _selectedGender,
@@ -365,6 +368,10 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
       unitSystem: _unitSystem.apiValue,
     );
     profile.setProfile(result);
+    // The sub-category picker is filtered by gender.
+    if (result.gender != previousGender) {
+      container.invalidate(subCategoryCatalogProvider);
+    }
   }
 
   /// Onboarding's save before Continue. Returns whether it succeeded.

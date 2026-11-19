@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
+import 'package:uwearis/core/services/api_exception.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/outfit_service.dart';
 import 'package:uwearis/data/outfit.dart';
@@ -103,7 +104,7 @@ void main() {
   });
 
   group('getAllOutfits', () {
-    test('builds the query string from type/page/size/sort', () async {
+    test('builds the query string from type/size/sort, from page 1', () async {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
@@ -121,7 +122,6 @@ void main() {
       await http.runWithClient(
         () => OutfitService().getAllOutfits(
           type: 'general',
-          page: 2,
           size: 30,
           sort: 'created_at_asc',
         ),
@@ -131,7 +131,7 @@ void main() {
       expect(captured.method, 'GET');
       expect(captured.url.queryParameters, {
         'type': 'general',
-        'page': '2',
+        'page': '1',
         'size': '30',
         'sort': 'created_at_asc',
       });
@@ -220,6 +220,250 @@ void main() {
         () => client,
       );
       expect(outfits, isEmpty);
+    });
+  });
+
+  group('getAllOutfits pagination', () {
+    /// [count] groups, newest (highest group_id) first — the backend's
+    /// `created_at_desc` order. Each holds one outfit with id = group id.
+    List<Map<String, dynamic>> groupsNewestFirst(int count) => [
+      for (var id = count; id >= 1; id--)
+        {
+          'group_id': id,
+          'name': null,
+          'cover_outfit_id': null,
+          'outfits': [_outfitJson(outfitId: id, groupId: id)],
+        },
+    ];
+
+    /// Serves [groups] by `page`/`size` like the backend's offset pagination.
+    /// [total] overrides the reported `total` (the field is omitted when it
+    /// returns [_omit]).
+    MockClient pagedBackend(
+      List<Map<String, dynamic>> groups, {
+      required List<http.Request> requests,
+      Object? Function(int page)? total,
+      http.Response? Function(int page)? override,
+    }) {
+      return MockClient((request) async {
+        requests.add(request);
+        final page = int.parse(request.url.queryParameters['page']!);
+        final size = int.parse(request.url.queryParameters['size']!);
+        final replaced = override?.call(page);
+        if (replaced != null) return replaced;
+        final start = (page - 1) * size;
+        final items = start >= groups.length
+            ? const <Map<String, dynamic>>[]
+            : groups.sublist(start, (start + size).clamp(0, groups.length));
+        final reported = total == null ? groups.length : total(page);
+        return _jsonResponse(
+          _envelope({
+            'items': items,
+            if (!identical(reported, _omit)) 'total': reported,
+            'page': page,
+            'size': size,
+            'sort': 'created_at_desc',
+          }),
+        );
+      });
+    }
+
+    for (final (count, expectedRequests) in [
+      (0, 1),
+      (1, 1),
+      (99, 1),
+      (100, 1),
+      (101, 2),
+      (200, 2),
+      (201, 3),
+    ]) {
+      test('$count groups: all of them, in backend order, in '
+          '$expectedRequests request(s)', () async {
+        final requests = <http.Request>[];
+        final outfits = await http.runWithClient(
+          () => OutfitService().getAllOutfits(sort: 'created_at_desc'),
+          () => pagedBackend(groupsNewestFirst(count), requests: requests),
+        );
+
+        expect(outfits.map((o) => o.groupId), [
+          for (var id = count; id >= 1; id--) id,
+        ]);
+        expect(requests, hasLength(expectedRequests));
+        for (final (i, r) in requests.indexed) {
+          expect(r.url.queryParameters, {
+            'type': 'general',
+            'page': '${i + 1}',
+            'size': '100',
+            'sort': 'created_at_desc',
+          });
+        }
+      });
+    }
+
+    for (final (label, reported) in [
+      ('missing', _omit),
+      ('null', null),
+      ('not a number', 'many'),
+      ('negative', -1),
+    ]) {
+      test('a $label total: stops at the first short page', () async {
+        final requests = <http.Request>[];
+        final outfits = await http.runWithClient(
+          () => OutfitService().getAllOutfits(),
+          () => pagedBackend(
+            groupsNewestFirst(150),
+            requests: requests,
+            total: (_) => reported,
+          ),
+        );
+
+        expect(outfits, hasLength(150));
+        expect(requests, hasLength(2));
+      });
+    }
+
+    test('a missing total on an exact multiple: stops at the empty page '
+        'after it', () async {
+      final requests = <http.Request>[];
+      final outfits = await http.runWithClient(
+        () => OutfitService().getAllOutfits(),
+        () => pagedBackend(
+          groupsNewestFirst(200),
+          requests: requests,
+          total: (_) => _omit,
+        ),
+      );
+
+      expect(outfits, hasLength(200));
+      expect(requests, hasLength(3));
+    });
+
+    test('a total larger than what exists: stops at the short page', () async {
+      final requests = <http.Request>[];
+      final outfits = await http.runWithClient(
+        () => OutfitService().getAllOutfits(),
+        () => pagedBackend(
+          groupsNewestFirst(150),
+          requests: requests,
+          total: (_) => 500,
+        ),
+      );
+
+      expect(outfits, hasLength(150));
+      expect(requests, hasLength(2));
+    });
+
+    test('a backend that ignores `page` (same full page every time) '
+        "doesn't loop forever or duplicate groups", () async {
+      final requests = <http.Request>[];
+      final firstPage = groupsNewestFirst(250).sublist(0, 100);
+      final outfits = await http.runWithClient(
+        () => OutfitService().getAllOutfits(),
+        () => pagedBackend(
+          groupsNewestFirst(250),
+          requests: requests,
+          total: (_) => _omit,
+          override: (_) => _jsonResponse(_envelope({'items': firstPage})),
+        ),
+      );
+
+      expect(outfits, hasLength(100));
+      expect(outfits.map((o) => o.groupId).toSet(), hasLength(100));
+      expect(requests, hasLength(2));
+    });
+
+    test('a group created mid-walk shifts the pages: the group repeated on '
+        'the next page appears once, in its first position', () async {
+      final requests = <http.Request>[];
+      final groups = groupsNewestFirst(150);
+      final outfits = await http.runWithClient(
+        () => OutfitService().getAllOutfits(),
+        () => pagedBackend(
+          groups,
+          requests: requests,
+          override: (page) {
+            if (page != 2) return null;
+            // A new group pushed everything down one: page 2 now starts
+            // with page 1's last group.
+            return _jsonResponse(
+              _envelope({'items': groups.sublist(99, 150), 'total': 151}),
+            );
+          },
+        ),
+      );
+
+      expect(outfits.map((o) => o.groupId), [
+        for (var id = 150; id >= 1; id--) id,
+      ]);
+    });
+
+    test('empty groups count toward paging but are not returned', () async {
+      final groups = groupsNewestFirst(120);
+      for (final g in groups.take(10)) {
+        g['outfits'] = <Object?>[];
+      }
+      final requests = <http.Request>[];
+      final outfits = await http.runWithClient(
+        () => OutfitService().getAllOutfits(),
+        () => pagedBackend(groups, requests: requests),
+      );
+
+      expect(outfits, hasLength(110));
+      expect(requests, hasLength(2));
+    });
+
+    test('a backend that never stops sending new full pages hits the '
+        'backstop and fails — not a silently truncated list', () {
+      final requests = <http.Request>[];
+      expect(
+        http.runWithClient(
+          () => OutfitService().getAllOutfits(),
+          () => pagedBackend(
+            groupsNewestFirst(10100),
+            requests: requests,
+            total: (_) => _omit,
+          ),
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('a failed later page fails the whole call — no partial list', () {
+      final requests = <http.Request>[];
+      expect(
+        http.runWithClient(
+          () => OutfitService().getAllOutfits(),
+          () => pagedBackend(
+            groupsNewestFirst(150),
+            requests: requests,
+            override: (page) => page == 2
+                ? _jsonResponse({
+                    'success': false,
+                    'message': 'boom',
+                    'data': null,
+                    'error_code': 'INTERNAL_SERVER_ERROR',
+                  }, status: 500)
+                : null,
+          ),
+        ),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('a malformed later page fails the whole call', () {
+      final requests = <http.Request>[];
+      expect(
+        http.runWithClient(
+          () => OutfitService().getAllOutfits(),
+          () => pagedBackend(
+            groupsNewestFirst(150),
+            requests: requests,
+            override: (page) =>
+                page == 2 ? _jsonResponse(_envelope({'total': 150})) : null,
+          ),
+        ),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 
@@ -885,3 +1129,6 @@ void main() {
     });
   });
 }
+
+/// Marks a field the fake backend leaves out of its reply.
+const Object _omit = Object();

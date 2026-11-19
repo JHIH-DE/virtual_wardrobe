@@ -195,14 +195,36 @@ void main() {
     final backend = _Backend(plan: [1, 2]);
     return _withDaily(backend, [_outfit(1), _outfit(2)], (c, outfits) async {
       final before = backend.getCount;
-      outfits.set([_outfit(1)]);
-      // Lands while the first re-read is still in flight.
+      outfits.set([_outfit(1)]); // outfit 2 (in today's plan) deleted
+      // Lands while the first re-read is still in flight: outfit 1, also in
+      // the plan, re-rendered (a new image cache key).
       backend.plan = [1];
-      outfits.set([_outfit(1), _outfit(3)]);
+      outfits.set([
+        Outfit(
+          id: 1,
+          groupId: 1,
+          imageUrl: 'https://example.com/1.jpg',
+          resultImageCacheKey: 'rerendered',
+        ),
+      ]);
       await pumpEventQueue();
 
       expect(backend.getCount - before, 2);
       expect(_ids(c), [1]);
+    });
+  });
+
+  // Since D1/D2: with a plan already picked, a new outfit can't change it,
+  // so it costs no re-read (it used to cost one per outfitsProvider change).
+  test('a new outfit while today already has a plan re-reads nothing', () {
+    final backend = _Backend(plan: [1, 2]);
+    return _withDaily(backend, [_outfit(1), _outfit(2)], (c, outfits) async {
+      final before = backend.getCount;
+      outfits.set([_outfit(1), _outfit(2), _outfit(3)]);
+      await pumpEventQueue();
+
+      expect(backend.getCount - before, 0);
+      expect(_ids(c), [1, 2]);
     });
   });
 

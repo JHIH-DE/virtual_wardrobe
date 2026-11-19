@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/utils/debug_log.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../pages/common/camera_capture_page.dart';
 import 'app_dialog.dart';
 import 'dialog_option_card.dart';
+import 'error_dialog.dart';
 
 /// Camera / album picker dialog; returns the photo's local path, or null if
-/// cancelled at any step. [subtitle] replaces the generic prompt line.
+/// cancelled at any step or the album couldn't be opened (which says so).
+/// [subtitle] replaces the generic prompt line.
 Future<String?> showPhotoSourceDialog(
   BuildContext context, {
   required String title,
@@ -73,6 +77,19 @@ Future<String?> showPhotoSourceDialog(
       ),
     );
   }
-  final xFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-  return xFile?.path;
+  try {
+    final xFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    return xFile?.path;
+  } on PlatformException catch (e) {
+    // The plugin's documented failures: photo access denied, already open,
+    // an unreadable image. Anything else is a bug and propagates.
+    debugLog('showPhotoSourceDialog album pick failed: ${e.code}');
+    if (context.mounted) {
+      showErrorDialog(
+        context,
+        message: AppLocalizations.of(context).photoPickFailed,
+      );
+    }
+    return null;
+  }
 }

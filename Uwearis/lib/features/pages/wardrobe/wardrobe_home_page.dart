@@ -216,7 +216,7 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
   void _listenToHomeData(ProviderBase<AsyncValue<Object?>> provider) {
     ref.listenManual(provider, (_, next) {
       if (!next.isLoading && !next.hasError) _settledProviders.add(provider);
-      if (next.error is AuthExpiredException) {
+      if (isSettledAuthExpiry(next)) {
         // WardrobeShellScope's lookup isn't safe during initState.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) AuthExpiredHandler.handle(context);
@@ -717,15 +717,27 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
     if (!_fallbackFavoriteInFlight.add(target.id)) return;
     final outfits = ref.read(outfitsProvider.notifier);
     final next = target.copyWith(isFavorite: !target.isFavorite);
-    outfits.updateOutfit(next);
+    final token = outfits.updateOutfitFavoriteOptimistically(
+      target.id,
+      isFavorite: next.isFavorite,
+    );
     try {
       await OutfitService().updateOutfit(
         target.groupId,
         target.id,
         isFavorite: next.isFavorite,
       );
+      outfits.settleOutfitFavorite(
+        target.id,
+        token,
+        isFavorite: next.isFavorite,
+      );
     } catch (_) {
-      outfits.updateOutfit(target);
+      outfits.settleOutfitFavorite(
+        target.id,
+        token,
+        isFavorite: target.isFavorite,
+      );
       rethrow;
     } finally {
       _fallbackFavoriteInFlight.remove(target.id);

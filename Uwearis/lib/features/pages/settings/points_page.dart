@@ -110,7 +110,7 @@ class _PointsPageState extends ConsumerState<PointsPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen(pointsProvider, (_, next) {
-      if (next.error is AuthExpiredException) {
+      if (isSettledAuthExpiry(next)) {
         AuthExpiredHandler.handle(context);
       }
     });

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
-import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/daily_outfit_provider.dart';
 import '../../../core/providers/garments_provider.dart';
@@ -30,11 +29,11 @@ import '../../widgets/common/buttons/accent_pill_button.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
 import '../../widgets/common/carousel_dots_indicator.dart';
-import '../../widgets/common/fading_toolbar_title.dart';
 import '../../widgets/common/images/fullscreen_image_viewer.dart';
 import '../../widgets/common/images/refreshable_network_image.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/app_dialog.dart';
+import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
@@ -76,8 +75,7 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<OutfitDetailsPage> createState() => _OutfitDetailsPageState();
 }
 
-class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
-    with FadingToolbarTitle {
+class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isDeleting = false;
   // Discarding a new outfit (deleting its group) on leave.
   bool _isLeaving = false;
@@ -210,24 +208,17 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
             appBar: _buildAppBar(),
             body: Builder(
               builder: (bodyContext) => ListView(
-                controller: toolbarTitleScrollController,
                 padding: EdgeInsets.fromLTRB(
                   20,
-                  20,
+                  8,
                   20,
                   _showsBottomActionButton
                       ? BottomActionButton.scrollClearance(bodyContext)
                       : 24 + MediaQuery.paddingOf(context).bottom,
                 ),
                 children: [
-                  Text(
-                    _title,
-                    key: toolbarTitleAnchorKey,
-                    style: AppTextStyle.bold22,
-                  ),
-                  const SizedBox(height: 8),
                   _buildInfoCard(),
-                  const SizedBox(height: AppDimens.cardHeaderGap),
+                  const SizedBox(height: 4),
                   _buildOutfitImage(),
                   if (_current.garmentIds.isNotEmpty) ...[
                     _buildGarmentSection(),
@@ -282,8 +273,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
         ),
     ];
     return AppToolBar(
-      title: _l10n.outfitDetailsTitle,
-      titleWidget: buildFadingToolbarTitle(_title),
+      title: _title,
       onBack: widget.isNew ? _leaveNewOutfit : null,
       actions: [
         if (items.isNotEmpty)
@@ -316,7 +306,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
     if (widget.isNew) {
       return BottomActionButton(
         label: _l10n.save,
-        leading: const Icon(Icons.check),
         enabled: !_saved,
         onPressed: _save,
       );
@@ -433,7 +422,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
         season: seasons,
         style: styles,
       );
-      outfits.updateOutfit(updated);
+      outfits.updateOutfitTags(target.id, seasons: seasons, style: styles);
       dailyOutfits.updateOutfit(updated);
     } on AuthExpiredException {
       if (!mounted) return;
@@ -511,7 +500,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
         target.id,
         isFavorite: next,
       );
-      outfits.updateOutfit(updated);
+      outfits.updateOutfitFavorite(target.id, isFavorite: next);
       dailyOutfits.updateOutfit(updated);
     } on AuthExpiredException {
       if (!mounted) return;
@@ -579,16 +568,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
     // dialog already says so, in place of the plain confirm.
     final ok = retryingUnknown && _regenerateStatusUnavailable
         ? await showRetryWhileUnknownDialog(context)
-        : await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AppDialog(
-                  title: _l10n.regenerateOutfitConfirmTitle,
-                  body: _l10n.regenerateOutfitConfirmBody,
-                  primaryLabel: _l10n.regenerate,
-                  onPrimary: () => Navigator.pop(ctx, true),
-                ),
-              ) ==
-              true;
+        : await showConfirmDialog(
+            context,
+            title: _l10n.regenerateOutfitConfirmTitle,
+            body: _l10n.regenerateOutfitConfirmBody,
+            confirmLabel: _l10n.regenerate,
+          );
     if (!ok || !mounted) return;
     if (!await ensureAiConsent(context) || !mounted || _isRegenerating) return;
 
@@ -985,15 +970,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
   Future<void> _deleteOutfit() => _confirmThenDeleteGroup();
 
   Future<void> _confirmThenDeleteGroup() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.deleteOutfitTitle,
-        body: _l10n.deleteOutfitGroupConfirmation,
-        primaryLabel: _l10n.delete,
-        destructive: true,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final ok = await showConfirmDialog(
+      context,
+      title: _l10n.deleteOutfitTitle,
+      body: _l10n.deleteOutfitGroupConfirmation,
+      confirmLabel: _l10n.delete,
+      destructive: true,
     );
     if (ok != true || !mounted) return;
 
@@ -1030,15 +1012,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage>
     }
 
     final target = _current;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.deleteOutfitTitle,
-        body: _l10n.deleteOutfitConfirmation,
-        primaryLabel: _l10n.delete,
-        destructive: true,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final ok = await showConfirmDialog(
+      context,
+      title: _l10n.deleteOutfitTitle,
+      body: _l10n.deleteOutfitConfirmation,
+      confirmLabel: _l10n.delete,
+      destructive: true,
     );
     if (ok != true || !mounted) return;
 

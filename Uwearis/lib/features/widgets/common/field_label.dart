@@ -10,8 +10,18 @@ class FieldLabel extends StatelessWidget {
 
   const FieldLabel(this.title, {super.key, this.style});
 
+  /// Chinese has no capitals, so the 12px small-caps size reads too small.
+  static const double cjkFontSize = 14;
+
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: style ?? AppTextStyle.overline12);
+    final base = style ?? AppTextStyle.overline12;
+    final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+    return Text(
+      title,
+      style: isChinese
+          ? base.copyWith(fontSize: cjkFontSize, letterSpacing: 0)
+          : base,
+    );
   }
 }

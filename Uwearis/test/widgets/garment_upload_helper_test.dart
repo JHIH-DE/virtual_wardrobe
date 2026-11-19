@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/data/image_edit_result.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/garment/garment_upload_helper.dart';
 
@@ -143,5 +144,67 @@ void main() {
       expect(find.text('Analyze'), findsOneWidget);
       expect(value?.analysisData?['sub_category'], 'Tee');
     }, () => gatedClient(gates));
+  });
+
+  group('analysis failed', () {
+    /// The first analyze-instant fails (500); later ones succeed.
+    MockClient failingOnce(List<http.Request> requests) {
+      return MockClient((request) async {
+        requests.add(request);
+        if (requests.length == 1) {
+          return jsonResponse({
+            'success': false,
+            'message': 'boom',
+            'data': null,
+            'error_code': 'INTERNAL_SERVER_ERROR',
+          }, status: 500);
+        }
+        return jsonResponse(
+          envelope({
+            'metadata': {'category': 'Top', 'sub_category': 'Tee'},
+            'processed_image_base64': '',
+          }),
+        );
+      });
+    }
+
+    testWidgets(
+      'offers Retry; retrying analyzes again and returns the result',
+      (tester) async {
+        final requests = <http.Request>[];
+        await http.runWithClient(() async {
+          final result = await harness(tester)();
+          expect(find.text("Couldn't analyze this photo"), findsOneWidget);
+
+          ImageEditResult? value;
+          unawaited(result.then((r) => value = r));
+          await tester.tap(find.text('Retry'));
+          await tester.pump();
+          await driveIo(tester);
+
+          expect(requests, hasLength(2));
+          expect(value?.analysisData?['sub_category'], 'Tee');
+          expect(find.text('Analyze'), findsOneWidget);
+        }, () => failingOnce(requests));
+      },
+    );
+
+    testWidgets('cancelling the Retry prompt returns null without retrying', (
+      tester,
+    ) async {
+      final requests = <http.Request>[];
+      await http.runWithClient(() async {
+        final result = await harness(tester)();
+
+        ImageEditResult? value = ImageEditResult(imagePath: 'unset');
+        unawaited(result.then((r) => value = r));
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+        await tester.pumpAndSettle();
+
+        expect(requests, hasLength(1));
+        expect(value, isNull);
+        expect(find.text('Analyze'), findsOneWidget);
+      }, () => failingOnce(requests));
+    });
   });
 }

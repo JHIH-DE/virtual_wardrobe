@@ -669,24 +669,6 @@ abstract class AppLocalizations {
   /// **'You can keep up to 10 versions for each outfit. Delete a version to create a new one.'**
   String get versionLimitReachedBody;
 
-  /// No description provided for @currentOutfitLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Current Outfit'**
-  String get currentOutfitLabel;
-
-  /// No description provided for @accessoriesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Accessories'**
-  String get accessoriesLabel;
-
-  /// No description provided for @optionalLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional'**
-  String get optionalLabel;
-
   /// No description provided for @createOutfit.
   ///
   /// In en, this message translates to:
@@ -698,12 +680,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create Version'**
   String get createVersion;
-
-  /// No description provided for @createOutfitHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Create another outfit using these garments'**
-  String get createOutfitHint;
 
   /// No description provided for @backgroundLabel.
   ///
@@ -752,12 +728,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Outfit Items'**
   String get outfitItemsLabel;
-
-  /// No description provided for @shareComingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Share coming soon'**
-  String get shareComingSoon;
 
   /// No description provided for @failedToLoadImage.
   ///
@@ -819,12 +789,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete this outfit. Please try again.'**
   String get outfitDeleteFailed;
 
-  /// Footer showing the creation date of an outfit
-  ///
-  /// In en, this message translates to:
-  /// **'Created {date}'**
-  String createdOnDate(String date);
-
   /// Auto-generated outfit title built from its first season/style tag
   ///
   /// In en, this message translates to:
@@ -836,18 +800,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Outfit Details'**
   String get outfitDetailsTitle;
-
-  /// No description provided for @tripDetailsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Trip Details'**
-  String get tripDetailsTitle;
-
-  /// No description provided for @clothingDetailsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Clothing Details'**
-  String get clothingDetailsTitle;
 
   /// Section header showing how many garments are in an outfit
   ///
@@ -1611,12 +1563,6 @@ abstract class AppLocalizations {
   /// **'Loading Style Taste…'**
   String get loadingStyleTasteEllipsis;
 
-  /// No description provided for @tryAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Try Again'**
-  String get tryAgain;
-
   /// No description provided for @noOutfitImageYet.
   ///
   /// In en, this message translates to:
@@ -1674,7 +1620,7 @@ abstract class AppLocalizations {
   /// No description provided for @addLocation.
   ///
   /// In en, this message translates to:
-  /// **'Add Itinerary'**
+  /// **'Add Destination'**
   String get addLocation;
 
   /// No description provided for @camera.
@@ -1790,36 +1736,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Accessory'**
   String get categoryAccessory;
-
-  /// No description provided for @categoryTopPlural.
-  ///
-  /// In en, this message translates to:
-  /// **'Tops'**
-  String get categoryTopPlural;
-
-  /// No description provided for @categoryBottomPlural.
-  ///
-  /// In en, this message translates to:
-  /// **'Bottoms'**
-  String get categoryBottomPlural;
-
-  /// No description provided for @categoryOuterPlural.
-  ///
-  /// In en, this message translates to:
-  /// **'Outers'**
-  String get categoryOuterPlural;
-
-  /// No description provided for @categoryOnePiecePlural.
-  ///
-  /// In en, this message translates to:
-  /// **'One-pieces'**
-  String get categoryOnePiecePlural;
-
-  /// No description provided for @categoryShoesPlural.
-  ///
-  /// In en, this message translates to:
-  /// **'Shoes'**
-  String get categoryShoesPlural;
 
   /// No description provided for @colorBlack.
   ///
@@ -2031,12 +1947,6 @@ abstract class AppLocalizations {
   /// **'Recently Added'**
   String get recentlyAdded;
 
-  /// No description provided for @purchasedLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Purchased'**
-  String get purchasedLabel;
-
   /// No description provided for @analyzeWithAi.
   ///
   /// In en, this message translates to:
@@ -2193,17 +2103,23 @@ abstract class AppLocalizations {
   /// **'Product Type'**
   String get productType;
 
-  /// No description provided for @productTypeHint.
+  /// No description provided for @garmentStyleLabel.
   ///
   /// In en, this message translates to:
-  /// **'e.g. Top'**
-  String get productTypeHint;
+  /// **'Style'**
+  String get garmentStyleLabel;
 
   /// No description provided for @pleaseEnterProductTypeError.
   ///
   /// In en, this message translates to:
-  /// **'Please enter product type'**
+  /// **'Please choose a product type'**
   String get pleaseEnterProductTypeError;
+
+  /// No description provided for @subCategoriesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the product types. Please try again.'**
+  String get subCategoriesLoadFailed;
 
   /// No description provided for @color.
   ///
@@ -2661,12 +2577,6 @@ abstract class AppLocalizations {
   /// **'Mid Layer'**
   String get midLayer;
 
-  /// No description provided for @outerwear.
-  ///
-  /// In en, this message translates to:
-  /// **'Outerwear'**
-  String get outerwear;
-
   /// No description provided for @generatingTryOnEllipsis.
   ///
   /// In en, this message translates to:
@@ -2919,12 +2829,6 @@ abstract class AppLocalizations {
   /// **'Failed to load trip details'**
   String get failedToLoadTripDetails;
 
-  /// No description provided for @creatingEllipsis.
-  ///
-  /// In en, this message translates to:
-  /// **'Creating…'**
-  String get creatingEllipsis;
-
   /// No description provided for @creatingModelEllipsis.
   ///
   /// In en, this message translates to:
@@ -3069,12 +2973,6 @@ abstract class AppLocalizations {
   /// **'Browse your closet'**
   String get browseYourClosetHint;
 
-  /// No description provided for @addAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get addAction;
-
   /// No description provided for @startPackingTripTitle.
   ///
   /// In en, this message translates to:
@@ -3105,29 +3003,11 @@ abstract class AppLocalizations {
   /// **'Your Latest Outfit'**
   String get latestOutfitTitle;
 
-  /// No description provided for @loadingWeatherEllipsis.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading weather…'**
-  String get loadingWeatherEllipsis;
-
-  /// No description provided for @viewDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'View Details'**
-  String get viewDetails;
-
   /// No description provided for @viewFullOutfit.
   ///
   /// In en, this message translates to:
   /// **'View Full Outfit'**
   String get viewFullOutfit;
-
-  /// No description provided for @gettingStartedSectionLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Getting Started'**
-  String get gettingStartedSectionLabel;
 
   /// No description provided for @gettingStartedWelcomeTitle.
   ///
@@ -3164,30 +3044,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue'**
   String get continueLabel;
-
-  /// No description provided for @gettingStartedBuildClosetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Build your closet'**
-  String get gettingStartedBuildClosetTitle;
-
-  /// No description provided for @gettingStartedBuildClosetSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Add a top, a bottom, and a pair of shoes so Uwearis can start creating outfits and personalized styling for you.'**
-  String get gettingStartedBuildClosetSubtitle;
-
-  /// No description provided for @gettingStartedReadyForFirstLookTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Ready for your first look?'**
-  String get gettingStartedReadyForFirstLookTitle;
-
-  /// No description provided for @gettingStartedReadyForFirstLookSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Your closet is ready. Create your first outfit and see it on you.'**
-  String get gettingStartedReadyForFirstLookSubtitle;
 
   /// No description provided for @googleLoginNotConfiguredIOS.
   ///
@@ -3381,12 +3237,6 @@ abstract class AppLocalizations {
   /// **'© Uwearis Inc. All rights reserved.'**
   String get copyrightText;
 
-  /// No description provided for @noItemsFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No items found.'**
-  String get noItemsFound;
-
   /// No description provided for @edit.
   ///
   /// In en, this message translates to:
@@ -3422,6 +3272,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t process this photo. Please try a different one.'**
   String get photoProcessingFailed;
+
+  /// No description provided for @photoPickFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open your photos. Check photo access for Uwearis in Settings and try again.'**
+  String get photoPickFailed;
 
   /// No description provided for @reset.
   ///
@@ -3644,12 +3500,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add AI Outfits'**
   String get findMoreOutfits;
-
-  /// No description provided for @refreshSuggestions.
-  ///
-  /// In en, this message translates to:
-  /// **'Refresh AI Picks'**
-  String get refreshSuggestions;
 
   /// No description provided for @refreshSuggestionsTitle.
   ///

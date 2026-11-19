@@ -574,4 +574,93 @@ void main() {
       );
     });
   });
+
+  group('slot keys', () {
+    Garment accessory(String sub, [String? style]) => Garment(
+      name: 'Item',
+      category: GarmentCategory.accessory,
+      subCategory: sub,
+      style: style,
+      uploadUrl: '',
+      objectName: '',
+    );
+
+    test('every headwear value shares one accessory slot', () {
+      for (final g in [
+        accessory('Hat'),
+        accessory('Cap'),
+        accessory('Bucket hat'),
+        accessory('Beanie'),
+        accessory('Hats & Caps'),
+        accessory('Hats & Caps', 'Bucket hat'),
+        accessory('Hats & Caps', 'Beanie'),
+      ]) {
+        expect(
+          accessorySlotKey(g),
+          'headwear',
+          reason: '${g.subCategory}/${g.style}',
+        );
+      }
+      expect(accessorySlotKey(accessory('Scarf')), 'scarf');
+    });
+
+    test('an accessory with an L3 style is slotted by it; without, by L2', () {
+      expect(
+        accessorySlotKey(accessory('Sunglasses & Glasses', 'Sunglasses')),
+        isNot(accessorySlotKey(accessory('Sunglasses & Glasses', 'Glasses'))),
+      );
+      expect(
+        accessorySlotKey(accessory('Bags', 'Tote bag')),
+        isNot(accessorySlotKey(accessory('Bags', 'Backpack'))),
+      );
+      expect(
+        accessorySlotKey(accessory('Bags', 'Tote bag')),
+        accessorySlotKey(accessory('Bags', 'Tote bag')),
+      );
+      expect(accessorySlotKey(accessory('Bags')), 'bags');
+    });
+
+    test('base tops share one slot; other tops keep their own', () {
+      for (final sub in [
+        'T-shirts & Vests',
+        'Polo shirts',
+        'T-shirt',
+        'Long sleeve T-shirt',
+        'Henley',
+        'Jersey',
+        'Tank top',
+        'Polo shirt',
+      ]) {
+        expect(baseTopSlotKey(sub), 'base-top', reason: sub);
+      }
+      for (final sub in ['Blouse', 'Hoodie', 'Button-up shirt', 'Shirts']) {
+        expect(baseTopSlotKey(sub), sub.toLowerCase(), reason: sub);
+      }
+    });
+  });
+
+  group('style (L3)', () {
+    Map<String, dynamic> json(Object? style) => {
+      'id': 1,
+      'name': 'Shirt',
+      'category': 'Top',
+      'sub_category': 'Shirts',
+      'style': style,
+    };
+
+    test('parses a string; null, empty and the old tag list are no L3', () {
+      expect(Garment.fromJson(json('Overshirt')).style, 'Overshirt');
+      expect(Garment.fromJson(json(null)).style, isNull);
+      expect(Garment.fromJson(json('')).style, isNull);
+      expect(Garment.fromJson(json(['Minimal', 'Streetwear'])).style, isNull);
+    });
+
+    test('copyWith keeps, replaces or clears it', () {
+      final g = Garment.fromJson(json('Overshirt'));
+      expect(g.copyWith(name: 'x').style, 'Overshirt');
+      expect(g.copyWith(style: 'Oxford shirt').style, 'Oxford shirt');
+      expect(g.copyWith(clearStyle: true).style, isNull);
+      expect(g.toJson()['style'], 'Overshirt');
+    });
+  });
 }

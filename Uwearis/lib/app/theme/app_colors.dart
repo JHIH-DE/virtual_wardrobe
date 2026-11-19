@@ -145,6 +145,10 @@ class AppColors {
   static const Color navBarGlassSheen = Color(0x73FFFFFF); // white @45%
   static const Color navBarGlassHighlight = Color(0xE6FFFFFF); // white @90%
   static const Color navBarGlassShade = Color(0x14000000); // black @8%
+  // AppDialog's glass: neutral white so the dimmed barrier behind it doesn't
+  // turn the nav bar's warm tint beige.
+  static const Color dialogGlassTop = Color(0xBFFFFFFF); // white @75%
+  static const Color dialogGlassBottom = Color(0xA6FFFFFF); // white @65%
   // Toolbar action disc, modelled on iOS 26's glass bar buttons.
   static const Color actionDiscFillCenter = Color(0x80FFFFFF); // white @50%
   static const Color actionDiscFillEdge = Color(0x10FFFFFF); // white @6%

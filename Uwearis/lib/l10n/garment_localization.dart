@@ -43,27 +43,6 @@ extension GarmentCategoryLocalization on GarmentCategory {
         return l10n.categoryAccessory;
     }
   }
-
-  /// For counts ("15 Tops"). Socks/Accessory have no plural string.
-  String pluralLabel(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    switch (this) {
-      case GarmentCategory.top:
-        return l10n.categoryTopPlural;
-      case GarmentCategory.bottom:
-        return l10n.categoryBottomPlural;
-      case GarmentCategory.outer:
-        return l10n.categoryOuterPlural;
-      case GarmentCategory.onePiece:
-        return l10n.categoryOnePiecePlural;
-      case GarmentCategory.shoes:
-        return l10n.categoryShoesPlural;
-      case GarmentCategory.socks:
-        return l10n.categorySocks;
-      case GarmentCategory.accessory:
-        return l10n.categoryAccessory;
-    }
-  }
 }
 
 extension GarmentColorLocalization on GarmentColor {

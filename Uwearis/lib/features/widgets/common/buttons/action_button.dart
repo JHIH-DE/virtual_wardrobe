@@ -24,26 +24,18 @@ class ActionButton extends StatelessWidget {
 
   static const double _labelVerticalPadding = 12;
   static const double _labelHorizontalPadding = 24;
-  static const double _iconSize = 24;
 
   /// The width a button needs to show [label] on one line under [context]'s
   /// text scale. A parent placing two buttons side by side stacks them
   /// instead when either one needs more than its share.
-  static double oneLineWidthFor(
-    BuildContext context,
-    String label, {
-    bool hasIcon = false,
-  }) {
+  static double oneLineWidthFor(BuildContext context, String label) {
     final painter = TextPainter(
       text: TextSpan(text: label, style: AppTextStyle.medium16),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
     )..layout();
-    final width =
-        painter.width +
-        2 * _labelHorizontalPadding +
-        (hasIcon ? _iconSize + AppDimens.actionButtonIconGap : 0);
+    final width = painter.width + 2 * _labelHorizontalPadding;
     painter.dispose();
     return width;
   }
@@ -51,16 +43,12 @@ class ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final ActionButtonVariant variant;
-  final Widget? leading;
-  final Widget? trailing;
 
   const ActionButton({
     super.key,
     required this.label,
     this.onPressed,
     this.variant = ActionButtonVariant.primary,
-    this.leading,
-    this.trailing,
   });
 
   @override
@@ -129,31 +117,10 @@ class ActionButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: style,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (leading != null) ...[
-              IconTheme(
-                data: IconThemeData(color: foreground),
-                child: leading!,
-              ),
-              const SizedBox(width: AppDimens.actionButtonIconGap),
-            ],
-            Flexible(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: AppTextStyle.medium16.copyWith(color: foreground),
-              ),
-            ),
-            if (trailing != null) ...[
-              const SizedBox(width: AppDimens.actionButtonIconGap),
-              IconTheme(
-                data: IconThemeData(color: foreground),
-                child: trailing!,
-              ),
-            ],
-          ],
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: AppTextStyle.medium16.copyWith(color: foreground),
         ),
       ),
     );

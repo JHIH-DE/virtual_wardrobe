@@ -53,7 +53,7 @@ class _StyleTastePageState extends ConsumerState<StyleTastePage> {
   /// page would go blank instead of prompting to log in again.
   void _watchAuthExpiry<T>(ProviderListenable<AsyncValue<T>> provider) {
     ref.listenManual<AsyncValue<T>>(provider, (_, next) {
-      if (next.hasError && next.error is AuthExpiredException && mounted) {
+      if (isSettledAuthExpiry(next) && mounted) {
         AuthExpiredHandler.handle(context);
       }
     });

@@ -134,7 +134,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
 
   void _watchAuthExpiry<T>(ProviderListenable<AsyncValue<T>> provider) {
     ref.listenManual<AsyncValue<T>>(provider, (_, next) {
-      if (next.hasError && next.error is AuthExpiredException) {
+      if (isSettledAuthExpiry(next) && mounted) {
         AuthExpiredHandler.handle(context);
       }
     });
@@ -461,7 +461,6 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       label: _hasOutfits ? _l10n.findMoreOutfits : _l10n.planTripOutfits,
       onPressed: _showsBottomActionButton ? _generatePlan : null,
       isLoading: _generatingPlan,
-      leading: const Icon(Icons.auto_awesome_outlined),
     );
   }
 

@@ -49,12 +49,21 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
   );
 
   Widget _buildTitle() {
+    if (titleCount == null) {
+      return Text(
+        title,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
+        textScaler: TextScaler.noScaling,
+        style: AppTextStyle.bold22,
+      );
+    }
     final text = Text(
       title,
       textScaler: TextScaler.noScaling,
       style: AppTextStyle.bold22,
     );
-    if (titleCount == null) return text;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

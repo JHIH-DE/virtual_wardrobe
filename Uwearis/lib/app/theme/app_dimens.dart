@@ -70,5 +70,4 @@ abstract class AppDimens {
   static const double actionButtonHeight = 48;
   // Matches the cards (AppCardShell) the buttons sit beside.
   static const double actionButtonRadius = cardRadius;
-  static const double actionButtonIconGap = 8;
 }

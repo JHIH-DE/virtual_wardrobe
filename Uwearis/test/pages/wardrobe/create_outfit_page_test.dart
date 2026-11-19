@@ -11,6 +11,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/adjustment_options_provider.dart';
+import 'package:uwearis/core/providers/sub_category_provider.dart';
+import 'package:uwearis/data/garment_sub_category.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
 import 'package:uwearis/data/garment.dart';
@@ -122,6 +124,9 @@ void main() {
   List<Override> closetOverride([List<Garment>? pool]) => [
     garmentsProvider.overrideWith(() => _FakeGarments(pool ?? closet)),
     adjustmentOptionsProvider.overrideWith((ref, _) async => _adjustmentTable),
+    subCategoryCatalogProvider.overrideWith(
+      (ref, _) async => SubCategoryCatalog(const {}),
+    ),
   ];
 
   // A viewport tall enough that the whole ListView is laid out at once, so

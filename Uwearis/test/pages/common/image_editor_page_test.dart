@@ -1,11 +1,47 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:uwearis/features/pages/common/image_editor_page.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
+
+import 'package:uwearis/l10n/generated/app_localizations.dart';
 
 import '../../helpers/widget_harness.dart';
+
+typedef AppLocalizationsLookup = AppLocalizations;
+
+AppLocalizations _l10n(WidgetTester tester) =>
+    AppLocalizations.of(tester.element(find.byType(ImageEditorPage)));
+
+/// The album: answers each pick with [next] (null = the user cancelled),
+/// or holds it until the test completes [held].
+class _FakeImagePicker extends ImagePickerPlatform
+    with MockPlatformInterfaceMixin {
+  String? next;
+  bool hold = false;
+  Completer<XFile?>? held;
+  int picks = 0;
+
+  /// When set, the pick fails with it (a denied photo permission, say).
+  Object? error;
+
+  @override
+  Future<XFile?> getImageFromSource({
+    required ImageSource source,
+    ImagePickerOptions options = const ImagePickerOptions(),
+  }) {
+    picks++;
+    if (hold) return (held = Completer<XFile?>()).future;
+    if (error != null) return Future.error(error!);
+    return Future.value(next == null ? null : XFile(next!));
+  }
+}
 
 // A real 1x1 PNG — precacheImage needs a decodable file to resolve.
 const _onePixelPngBase64 =
@@ -197,4 +233,184 @@ void main() {
       });
     },
   );
+
+  // P2-6: the photo source can come back after the editor is gone (the
+  // session expired while the album was open, the editor's route was
+  // removed under the camera).
+  group('Retake / Album after an await', () {
+    late _FakeImagePicker picker;
+    late ImagePickerPlatform originalPicker;
+    late File replacement;
+
+    setUp(() {
+      originalPicker = ImagePickerPlatform.instance;
+      picker = _FakeImagePicker();
+      ImagePickerPlatform.instance = picker;
+      replacement = File(
+        '${Directory.systemTemp.path}/image_editor_page_test_new_'
+        '${DateTime.now().microsecondsSinceEpoch}.png',
+      )..writeAsBytesSync(base64Decode(_onePixelPngBase64));
+    });
+
+    tearDown(() {
+      ImagePickerPlatform.instance = originalPicker;
+      if (replacement.existsSync()) replacement.deleteSync();
+    });
+
+    Finder shows(String path) => find.byWidgetPredicate(
+      (w) =>
+          w is Image &&
+          w.image is FileImage &&
+          (w.image as FileImage).file.path == path,
+    );
+
+    Future<void> openEditor(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        ImageEditorPage(title: 'Photo', initialPath: imageFile.path),
+      );
+      await tester.pump();
+    }
+
+    NavigatorState navigator(WidgetTester tester) =>
+        tester.state<NavigatorState>(find.byType(Navigator).first);
+
+    // The camera page's progress indicator never settles; a route
+    // transition is well under 1s.
+    Future<void> settleRoute(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    Future<void> openCamera(
+      WidgetTester tester,
+      AppLocalizationsLookup l10n,
+    ) async {
+      await tester.tap(find.text(l10n.retake));
+      await settleRoute(tester);
+    }
+
+    testWidgets('Retake: a photo taken while the editor is open replaces it', (
+      tester,
+    ) async {
+      await openEditor(tester);
+      await openCamera(tester, _l10n(tester));
+
+      navigator(tester).pop(replacement.path);
+      await settleRoute(tester);
+
+      expect(shows(replacement.path), findsOneWidget);
+      expect(shows(imageFile.path), findsNothing);
+    });
+
+    testWidgets('Retake cancelled: the editor keeps its photo', (tester) async {
+      await openEditor(tester);
+      await openCamera(tester, _l10n(tester));
+
+      navigator(tester).pop();
+      await settleRoute(tester);
+
+      expect(shows(imageFile.path), findsOneWidget);
+    });
+
+    testWidgets("Retake answering after the editor's route was removed: no "
+        'error', (tester) async {
+      await openEditor(tester);
+      final editorRoute = ModalRoute.of(
+        tester.element(find.byType(ImageEditorPage)),
+      )!;
+      await openCamera(tester, _l10n(tester));
+
+      navigator(tester).removeRoute(editorRoute); // the editor is disposed
+      await tester.pump();
+      navigator(tester).pop(replacement.path); // the camera answers
+      await settleRoute(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ImageEditorPage), findsNothing);
+    });
+
+    testWidgets('Album: a picked photo replaces it', (tester) async {
+      picker.next = replacement.path;
+      await openEditor(tester);
+
+      await tester.tap(find.text(_l10n(tester).album));
+      await tester.pump();
+
+      expect(picker.picks, 1);
+      expect(shows(replacement.path), findsOneWidget);
+    });
+
+    testWidgets('Album cancelled: the editor keeps its photo', (tester) async {
+      picker.next = null;
+      await openEditor(tester);
+
+      await tester.tap(find.text(_l10n(tester).album));
+      await tester.pump();
+
+      expect(shows(imageFile.path), findsOneWidget);
+    });
+
+    testWidgets('Album answering after the editor is gone: no error', (
+      tester,
+    ) async {
+      picker.hold = true;
+      await openEditor(tester);
+      await tester.tap(find.text(_l10n(tester).album));
+      await tester.pump();
+
+      await tester.pumpWidget(const SizedBox()); // e.g. session expired
+      picker.held!.complete(XFile(replacement.path));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Album cancelled shows no error', (tester) async {
+      picker.next = null;
+      await openEditor(tester);
+
+      await tester.tap(find.text(_l10n(tester).album));
+      await settleRoute(tester);
+
+      expect(find.byType(AppDialog), findsNothing);
+    });
+
+    testWidgets('Album failing (photo access denied) shows the pick-failed '
+        'dialog and keeps the photo', (tester) async {
+      picker.error = PlatformException(
+        code: 'photo_access_denied',
+        message: 'The user did not allow photo access.',
+      );
+      await openEditor(tester);
+      final l10n = _l10n(tester);
+
+      await tester.tap(find.text(l10n.album));
+      await settleRoute(tester);
+
+      expect(find.text(l10n.photoPickFailed), findsOneWidget);
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+      await settleRoute(tester);
+      expect(shows(imageFile.path), findsOneWidget);
+    });
+
+    testWidgets('Album failing after the editor is gone: no dialog, no error', (
+      tester,
+    ) async {
+      picker.hold = true;
+      await openEditor(tester);
+      await tester.tap(find.text(_l10n(tester).album));
+      await tester.pump();
+
+      await tester.pumpWidget(const SizedBox());
+      picker.held!.completeError(
+        PlatformException(code: 'already_active', message: 'busy'),
+      );
+      await settleRoute(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(AppDialog), findsNothing);
+    });
+  });
 }

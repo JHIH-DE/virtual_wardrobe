@@ -27,14 +27,19 @@ class GarmentColorTypeFilter {
     return ['All', ...values];
   }
 
-  List<String> availableTypes(List<Garment> pool) {
+  /// Sorted by [labelOf] (the display label) when given.
+  List<String> availableTypes(
+    List<Garment> pool, {
+    String Function(String type)? labelOf,
+  }) {
+    final label = labelOf ?? (String t) => t;
     final values =
         pool
             .map((g) => g.subCategory)
             .where((t) => t.isNotEmpty)
             .toSet()
             .toList()
-          ..sort();
+          ..sort((a, b) => label(a).compareTo(label(b)));
     return ['All', ...values];
   }
 
@@ -57,11 +62,13 @@ class GarmentColorTypeFilter {
   }
 
   /// The standard colour + product-type [FilterButton]. [onChanged] fires
-  /// after a selection changes — call `setState` there.
+  /// after a selection changes — call `setState` there. [typeLabelOf] turns
+  /// a stored sub-category into its display label (`readSubCategoryLabel`).
   FilterButton buildButton(
     AppLocalizations l10n,
     List<Garment> pool, {
     required VoidCallback onChanged,
+    String Function(String type)? typeLabelOf,
   }) {
     return FilterButton(
       isFiltered: isActive,
@@ -77,7 +84,8 @@ class GarmentColorTypeFilter {
         ),
         FilterGroup.toggleAll(
           label: l10n.productType,
-          options: availableTypes(pool),
+          options: availableTypes(pool, labelOf: typeLabelOf),
+          labelOf: typeLabelOf,
           selected: () => types,
           onChanged: (next) {
             types = next;

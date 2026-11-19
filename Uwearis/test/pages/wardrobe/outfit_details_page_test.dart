@@ -124,7 +124,7 @@ void main() {
 
       expect(
         find.descendant(
-          of: find.byType(ListView),
+          of: find.byType(AppBar),
           matching: find.text('Weekend Look'),
         ),
         findsOneWidget,
@@ -1103,6 +1103,140 @@ void main() {
     testWidgets('a failed regenerate shows no balance', (tester) async {
       await regenerate(tester, succeed: false);
       expect(find.textContaining('points left'), findsNothing);
+    });
+  });
+
+  // P2-1 batch 2: the confirm dialogs now come from showConfirmDialog. Each
+  // keeps its texts and destructive style; cancelling sends nothing.
+  group('confirm dialogs', () {
+    /// A group of [versions] (ids 1..n); records DELETEs and regenerates.
+    MockClient groupClient(
+      int groupId,
+      int versions,
+      List<http.Request> deletes,
+      List<http.Request> regenerates,
+    ) {
+      return MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'DELETE') {
+          deletes.add(request);
+          return jsonResponse(envelope(null));
+        }
+        if (path.endsWith('/regenerate')) {
+          regenerates.add(request);
+          return jsonResponse(envelope(null));
+        }
+        if (request.method == 'GET' && path.endsWith('/$groupId')) {
+          return jsonResponse(
+            envelope({
+              'outfits': [
+                for (var id = 1; id <= versions; id++)
+                  {
+                    'id': id,
+                    'group_id': groupId,
+                    'image_url': 'https://img.example/$id.png',
+                  },
+              ],
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+    }
+
+    Future<void> openPage(WidgetTester tester, int groupId) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(outfit: _outfit(groupId: groupId)),
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    AppDialog dialog(WidgetTester tester) =>
+        tester.widget<AppDialog>(find.byType(AppDialog));
+
+    Future<void> cancel(WidgetTester tester) async {
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    testWidgets('Delete Outfit: destructive; Cancel deletes nothing, Delete '
+        'deletes the group', (tester) async {
+      const groupId = 741;
+      final deletes = <http.Request>[];
+      await http.runWithClient(() async {
+        await openPage(tester, groupId);
+        Future<void> openDelete() async {
+          await tester.tap(find.byIcon(Icons.more_vert));
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.tap(find.text('Delete Outfit'));
+          await tester.pump(const Duration(milliseconds: 500));
+        }
+
+        await openDelete();
+        expect(dialog(tester).title, 'Delete Outfit');
+        expect(
+          dialog(tester).body,
+          "This will also delete every other outfit generated together with "
+          "it. This can't be undone.",
+        );
+        expect(dialog(tester).primaryLabel, 'Delete');
+        expect(dialog(tester).destructive, isTrue);
+        await cancel(tester);
+        expect(deletes, isEmpty);
+        expect(find.byType(OutfitDetailsPage), findsOneWidget);
+
+        await openDelete();
+        await tester.tap(find.text('Delete').last);
+        await tester.pump();
+        await tester.pump();
+        expect(deletes.single.url.path, endsWith('/outfit/$groupId'));
+      }, () => groupClient(groupId, 1, deletes, []));
+    });
+
+    testWidgets('Delete Version: destructive; Cancel keeps every version', (
+      tester,
+    ) async {
+      const groupId = 742;
+      final deletes = <http.Request>[];
+      await http.runWithClient(() async {
+        await openPage(tester, groupId);
+        expect(find.text('1 / 3'), findsOneWidget);
+        await tester.tap(find.byIcon(Icons.more_horiz));
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.tap(find.text('Delete Version'));
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(dialog(tester).title, 'Delete Outfit');
+        expect(
+          dialog(tester).body,
+          'Are you sure you want to delete this version?',
+        );
+        expect(dialog(tester).primaryLabel, 'Delete');
+        expect(dialog(tester).destructive, isTrue);
+        await cancel(tester);
+        expect(deletes, isEmpty);
+        expect(find.text('1 / 3'), findsOneWidget);
+      }, () => groupClient(groupId, 3, deletes, []));
+    });
+
+    testWidgets('Regenerate: a plain (not destructive) confirm; Cancel '
+        'regenerates nothing', (tester) async {
+      const groupId = 743;
+      final regenerates = <http.Request>[];
+      await http.runWithClient(() async {
+        await openPage(tester, groupId);
+        await tester.tap(find.byIcon(Icons.refresh).first);
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(dialog(tester).title, 'Regenerate this image?');
+        expect(dialog(tester).primaryLabel, 'Regenerate');
+        expect(dialog(tester).destructive, isFalse);
+        await cancel(tester);
+        expect(regenerates, isEmpty);
+      }, () => groupClient(groupId, 1, [], regenerates));
     });
   });
 }

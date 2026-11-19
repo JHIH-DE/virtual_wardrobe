@@ -5,7 +5,9 @@ import '../../features/pages/common/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers/adjustment_options_provider.dart';
+import '../providers/sub_category_provider.dart';
 import '../providers/daily_outfit_provider.dart';
+import '../providers/garment_outfits_provider.dart';
 import '../providers/garments_provider.dart';
 import '../providers/locale_provider.dart';
 import '../providers/outfits_provider.dart';
@@ -16,6 +18,7 @@ import '../providers/style_taste_provider.dart';
 import '../providers/trip_detail_provider.dart';
 import '../providers/trip_suggestion_provider.dart';
 import '../providers/trips_provider.dart';
+import '../providers/weather_provider.dart';
 import '../utils/analytics.dart';
 import '../utils/crash_handler.dart';
 import '../utils/daily_points_notice.dart';
@@ -32,6 +35,12 @@ class AuthExpiredException implements Exception {
   String toString() => _message;
 }
 
+/// The test every auth-expiry listener on a provider uses. A value that is
+/// still loading may carry the previous build's error — after a sign-in, the
+/// previous account's — so only a settled one counts.
+bool isSettledAuthExpiry(AsyncValue<Object?> value) =>
+    !value.isLoading && value.error is AuthExpiredException;
+
 /// Call wherever a session ends. Does not touch Riverpod providers — see
 /// [invalidateSignedInProviders].
 Future<void> clearSignedInSession() async {
@@ -43,7 +52,8 @@ Future<void> clearSignedInSession() async {
   OutfitService().clearGroupCache();
   await PendingTryOnStore.clear();
   await DailyPointsNotice.clear();
-  PointsService.lastSummary = null;
+  await WeatherNotifier.clearCache();
+  PointsService.forgetSession();
   LocaleNotifier.forgetBackendLocale();
 }
 
@@ -56,8 +66,10 @@ void invalidateSignedInProviders(BuildContext context) {
   final container = ProviderScope.containerOf(context, listen: false);
   container.invalidate(profileProvider);
   container.invalidate(adjustmentOptionsProvider);
+  container.invalidate(subCategoryCatalogProvider);
   container.invalidate(pointsProvider);
   container.invalidate(garmentsProvider);
+  container.invalidate(garmentOutfitsProvider);
   container.invalidate(outfitsProvider);
   container.invalidate(tripsProvider);
   container.invalidate(tripDetailProvider);
@@ -65,6 +77,7 @@ void invalidateSignedInProviders(BuildContext context) {
   container.invalidate(dailyOutfitProvider);
   container.invalidate(styleProfileProvider);
   container.invalidate(styleTasteProfileProvider);
+  container.invalidate(weatherProvider);
 }
 
 class AuthExpiredHandler {

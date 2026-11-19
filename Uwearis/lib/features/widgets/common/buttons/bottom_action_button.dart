@@ -12,8 +12,6 @@ class BottomActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool enabled;
   final bool isLoading;
-  final Widget? leading;
-  final Widget? trailing;
   final EdgeInsets panelPadding;
 
   const BottomActionButton({
@@ -22,8 +20,6 @@ class BottomActionButton extends StatelessWidget {
     this.onPressed,
     this.enabled = true,
     this.isLoading = false,
-    this.leading,
-    this.trailing,
     this.panelPadding = const EdgeInsets.fromLTRB(20, 0, 20, 0),
   });
 
@@ -68,12 +64,7 @@ class BottomActionButton extends StatelessWidget {
         top: false,
         left: false,
         right: false,
-        child: ActionButton(
-          label: label,
-          onPressed: onPressed,
-          leading: leading,
-          trailing: trailing,
-        ),
+        child: ActionButton(label: label, onPressed: onPressed),
       ),
     );
   }

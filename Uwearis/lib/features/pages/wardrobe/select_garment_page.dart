@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/providers/sub_category_provider.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/garment_color_type_filter.dart';
 import '../../widgets/garment/category_selector.dart';
@@ -66,10 +68,13 @@ class _SelectGarmentPageState extends State<SelectGarmentPage> {
     return AppToolBar(
       title: widget.title,
       actions: [
-        _filter.buildButton(
-          AppLocalizations.of(context),
-          _byCategory,
-          onChanged: () => setState(() {}),
+        Consumer(
+          builder: (context, ref, _) => _filter.buildButton(
+            AppLocalizations.of(context),
+            _byCategory,
+            onChanged: () => setState(() {}),
+            typeLabelOf: readSubCategoryLabel(ref, context),
+          ),
         ),
       ],
       bottom: _tabMode

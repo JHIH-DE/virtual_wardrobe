@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/api_exception.dart';
+import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/trip_service.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
@@ -499,6 +500,91 @@ void main() {
       expect(captured.url.toString(), '$_base/9/packing-analysis');
       expect(analysis.categories, isEmpty);
       expect(analysis.recommendedTotal, 0);
+    });
+  });
+
+  // B2: a retry after a delete whose reply was lost finds the trip gone; the
+  // backend then answers 404 TRIP_NOT_FOUND (trip_plans.py delete_trip_plan).
+  group('deleteTrip', () {
+    Map<String, dynamic> failure(String code) => {
+      'success': false,
+      'message': 'm',
+      'data': null,
+      'error_code': code,
+    };
+
+    /// Runs deleteTrip(7) against [response]; the refresh endpoint 401s.
+    Future<void> delete(
+      http.Response Function() response, {
+      List<String>? log,
+    }) => http.runWithClient(
+      () => TripService().deleteTrip(7),
+      () => MockClient((request) async {
+        log?.add('${request.method} ${request.url}');
+        if (request.url.path.endsWith('/auth/refresh')) {
+          return _jsonResponse({'success': false}, status: 401);
+        }
+        return response();
+      }),
+    );
+
+    test('200: sends DELETE /trip_plans/7 and succeeds', () async {
+      final log = <String>[];
+      await delete(() => _jsonResponse(_envelope({'id': 7})), log: log);
+      expect(log, ['DELETE $_base/7']);
+    });
+
+    test('204 with no body: succeeds', () async {
+      await delete(() => http.Response('', 204));
+    });
+
+    test('404 TRIP_NOT_FOUND: the trip is already gone, so success', () async {
+      await delete(() => _jsonResponse(failure('TRIP_NOT_FOUND'), status: 404));
+    });
+
+    test(
+      'a 404 without TRIP_NOT_FOUND (e.g. no such route) still fails',
+      () async {
+        await expectLater(
+          delete(() => _jsonResponse({'detail': 'Not Found'}, status: 404)),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'status', 404),
+          ),
+        );
+        await expectLater(
+          delete(
+            () => _jsonResponse(failure('GARMENT_NOT_FOUND'), status: 404),
+          ),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'status', 404),
+          ),
+        );
+      },
+    );
+
+    test('401 that the refresh cannot recover: AuthExpiredException', () async {
+      await expectLater(
+        delete(() => _jsonResponse(failure('UNAUTHORIZED'), status: 401)),
+        throwsA(isA<AuthExpiredException>()),
+      );
+    });
+
+    for (final status in [403, 500]) {
+      test('$status: not success, an ApiException', () async {
+        await expectLater(
+          delete(() => _jsonResponse(failure('X'), status: status)),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'status', status),
+          ),
+        );
+      });
+    }
+
+    test('a transport error propagates unchanged', () async {
+      await expectLater(
+        delete(() => throw http.ClientException('offline')),
+        throwsA(isA<http.ClientException>()),
+      );
     });
   });
 }

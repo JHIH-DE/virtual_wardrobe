@@ -98,12 +98,8 @@
   "addVersionTitle": "新增版本",
   "versionLimitReachedTitle": "已達版本上限",
   "versionLimitReachedBody": "每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。",
-  "currentOutfitLabel": "目前穿搭",
-  "accessoriesLabel": "配件",
-  "optionalLabel": "選填",
   "createOutfit": "建立造型",
   "createVersion": "建立版本",
-  "createOutfitHint": "使用這些單品建立另一套穿搭造型",
   "backgroundLabel": "背景",
   "noneLabel": "無",
   "selectItemTitle": "選擇{item}",
@@ -112,7 +108,6 @@
   "myCollection": "我的收藏",
   "myOutfit": "我的穿搭",
   "outfitItemsLabel": "你的穿搭",
-  "shareComingSoon": "分享功能即將推出",
   "failedToLoadImage": "圖片載入失敗",
   "failedToLoadGarments": "服飾載入失敗",
 
@@ -125,12 +120,9 @@
   "outfitUpdateFailed": "无法更新这套穿搭，请再试一次。",
   "outfitDeleteFailed": "无法删除这套穿搭，请再试一次。",
 
-  "createdOnDate": "建立於 {date}",
   "outfitTitle": "{style}穿搭",
 
   "outfitDetailsTitle": "穿搭詳情",
-  "tripDetailsTitle": "行程詳情",
-  "clothingDetailsTitle": "衣物詳情",
 
   "garmentsCount": "服飾（{count}）",
 
@@ -271,7 +263,6 @@
   "loadingAppEllipsis": "載入中…",
   "loadingHomeEllipsis": "載入首頁中…",
   "loadingStyleTasteEllipsis": "載入風格品味中…",
-  "tryAgain": "再試一次",
   "noOutfitImageYet": "尚無穿搭圖片",
   "generateOutfit": "產生穿搭",
   "dayOutfitMissingCoreItemsMessage": "這套穿搭還缺少上衣、下身或鞋子，請先補齊才能產生。",
@@ -282,7 +273,7 @@
   "booked": "已預訂",
   "selected": "已選擇",
   "confirm": "確認",
-  "addLocation": "新增行程",
+  "addLocation": "新增目的地",
 
   "camera": "拍照",
   "switchCamera": "切換鏡頭",
@@ -306,11 +297,6 @@
   "categorySocks": "襪子",
   "categoryShoes": "鞋子",
   "categoryAccessory": "配件",
-  "categoryTopPlural": "上衣",
-  "categoryBottomPlural": "下身",
-  "categoryOuterPlural": "外套",
-  "categoryOnePiecePlural": "連身衣",
-  "categoryShoesPlural": "鞋",
 
   "colorBlack": "黑色",
   "colorWhite": "白色",
@@ -348,7 +334,6 @@
   "addToCloset": "加入衣櫃",
   "clothingAdded": "已加入衣物",
   "recentlyAdded": "最近新增",
-  "purchasedLabel": "購買日",
   "analyzeWithAi": "AI 分析",
   "analyzeAgain": "重新分析",
   "closetMatch": "衣櫥匹配度",
@@ -375,8 +360,9 @@
   "pleaseEnterNameError": "請輸入名稱",
   "clothingCategoryLabel": "類別",
   "productType": "類型",
-  "productTypeHint": "例如：上衣",
-  "pleaseEnterProductTypeError": "請輸入類型",
+  "garmentStyleLabel": "款式",
+  "pleaseEnterProductTypeError": "請選擇類型",
+  "subCategoriesLoadFailed": "無法載入類型清單，請再試一次。",
   "color": "顏色",
   "fitLabel": "版型",
   "fitSkinny": "緊身",
@@ -454,7 +440,6 @@
   "outfitDeleted": "穿搭已刪除",
 
   "midLayer": "中層",
-  "outerwear": "外套",
   "generatingTryOnEllipsis": "生成試穿圖中…",
   "loadingClosetEllipsis": "載入衣櫃中…",
 
@@ -501,7 +486,6 @@
   "failedToDeleteTrip": "刪除行程失敗",
   "failedToLoadTripDetails": "載入行程詳情失敗",
 
-  "creatingEllipsis": "建立中…",
   "creatingModelEllipsis": "建立虛擬模特兒中…",
   "completingOutfitEllipsis": "補齊穿搭中…",
   "suitcaseLabel": "行李箱",
@@ -528,7 +512,6 @@
   "addingOutfitEllipsis": "加入穿搭中…",
   "addGarment": "新增衣物",
   "browseYourClosetHint": "瀏覽你的衣櫃",
-  "addAction": "新增",
   "startPackingTripTitle": "開始打包你的行程",
   "startPackingTripHint": "從衣櫃挑選衣物，打造你的行程穿搭。",
   "addGarmentsButton": "新增衣物",
@@ -536,21 +519,14 @@
 
   "todaysOutfit": "今日穿搭",
   "latestOutfitTitle": "你的最新穿搭",
-  "loadingWeatherEllipsis": "載入天氣中…",
-  "viewDetails": "查看詳情",
   "viewFullOutfit": "查看完整穿搭",
 
-  "gettingStartedSectionLabel": "開始使用",
   "gettingStartedWelcomeTitle": "歡迎使用 Uwearis",
   "gettingStartedWelcomeSubtitle": "設定你的個人資料並建立衣櫥，解鎖專屬的穿搭預覽。",
   "gettingStartedGetStartedButton": "開始設定",
   "gettingStartedNextButton": "下一步",
   "gettingStartedAboutYouLabel": "個人資料",
   "continueLabel": "繼續",
-  "gettingStartedBuildClosetTitle": "打造你的衣櫥",
-  "gettingStartedBuildClosetSubtitle": "新增一件上衣、一件下身和一雙鞋子，Uwearis 就能开始为你打造穿搭与个人化风格建议。",
-  "gettingStartedReadyForFirstLookTitle": "準備好打造第一套穿搭了嗎？",
-  "gettingStartedReadyForFirstLookSubtitle": "你的衣櫥已經準備好了，建立第一套穿搭，看看穿在你身上的樣子。",
 
   "googleLoginNotConfiguredIOS": "iOS 尚未設定 Google 登入。",
   "appleLoginNotConfiguredAndroid": "Android 尚未設定 Apple 登入。",
@@ -585,7 +561,6 @@
   "loginFailed": "登录失败，请再试一次。",
   "copyrightText": "© Uwearis Inc. 版权所有",
 
-  "noItemsFound": "找不到項目。",
 
   "edit": "編輯",
   "analyzingGarmentEllipsis": "分析衣物中…",
@@ -593,6 +568,7 @@
   "analysisFailedTitle": "无法分析这张照片",
   "analysisFailedBody": "AI 分析没有完成，请检查网络连接后重试。",
   "photoProcessingFailed": "无法处理这张照片，请换一张试试看。",
+  "photoPickFailed": "無法開啟相簿。請到「設定」確認 Uwearis 的照片存取權限後再試一次。",
   "confirm": "確認",
   "reset": "重設",
   "pinchToZoomHint": "用兩指縮放圖片，確保照片包含完整細節。",
@@ -636,7 +612,6 @@
   "yourTripOutfits": "你的旅行穿搭",
   "tripOutfitsSuggestedRange": "{days} 天的行程约需 {min}–{max} 套",
   "findMoreOutfits": "AI 新增穿搭",
-  "refreshSuggestions": "更新 AI 推荐",
   "refreshSuggestionsTitle": "要更新 AI 推荐吗？",
   "refreshSuggestionsBody": "Uwearis 会用新的组合取代 {count} 套 AI 推荐。已保存、改过、保留或已试穿的穿搭都不会变动。",
   "refresh": "更新",

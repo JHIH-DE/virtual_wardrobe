@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/closet_analysis.dart';
 import '../../data/garment.dart';
+import '../../data/garment_sub_category.dart';
 import '../config/app_config.dart';
 import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
@@ -110,6 +111,9 @@ class GarmentService with BaseService {
       'name': garment.name,
       'category': garment.category.apiValue,
       'sub_category': garment.subCategory,
+      // Sent only when picked: it then decides the L2. Left out, the
+      // backend keeps `metadata.style` if it's under `sub_category`.
+      if (garment.style != null) 'style': garment.style,
       'object_name': garment.objectName,
       'brand': garment.brand,
       'color': garment.color,
@@ -265,6 +269,8 @@ class GarmentService with BaseService {
       'name': garment.name,
       'category': category.apiValue,
       'sub_category': garment.subCategory,
+      // null clears only the L3; a value also decides the L2.
+      'style': garment.style,
       'brand': garment.brand,
       'color': garment.color,
       'price': garment.price?.round(),
@@ -362,6 +368,28 @@ class GarmentService with BaseService {
         data['flat_lay_status'] as String?,
       ),
     );
+  }
+
+  /// The fixed sub-category lists, labelled in the profile's locale. By
+  /// default filtered by the profile's gender (no skirts or dresses for
+  /// `Male`) — for the picker; [allGenders] returns every value — for
+  /// labelling stored garments, which may hold any of them.
+  Future<SubCategoryCatalog> getSubCategories({bool allGenders = false}) async {
+    debugLog('--- getSubCategories: allGenders=$allGenders ---');
+    final uri = Uri.parse(
+      '$_baseUrl/sub-categories',
+    ).replace(queryParameters: allGenders ? const {'gender': 'all'} : null);
+    final res = await withAuth(
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
+    );
+    final data = decodeMap(res, op: 'getSubCategories')['data'];
+    if (data is! List) {
+      throw Exception('getSubCategories: response missing category list');
+    }
+    return SubCategoryCatalog.fromJson(data);
   }
 
   /// Re-runs analyze-instant on a saved garment's stored photo. Only the

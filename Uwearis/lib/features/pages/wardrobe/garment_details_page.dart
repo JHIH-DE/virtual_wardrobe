@@ -6,6 +6,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/garment_outfits_provider.dart';
 import '../../../core/providers/garments_provider.dart';
+import '../../../core/providers/sub_category_provider.dart';
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/garment_service.dart';
 import '../../../core/utils/api_error_text.dart';
@@ -15,6 +16,7 @@ import '../../../core/utils/signed_url.dart';
 import '../../../data/bag_details.dart';
 import '../../../data/closet_analysis.dart';
 import '../../../data/garment.dart';
+import '../../../data/garment_sub_category.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_divider.dart';
@@ -24,7 +26,6 @@ import '../../widgets/common/buttons/accent_pill_button.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
 import '../../widgets/common/cards/app_list_card.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
-import '../../widgets/common/fading_toolbar_title.dart';
 import '../../widgets/common/fields/app_text_field.dart';
 import '../../widgets/common/fields/labeled_field.dart';
 import '../../widgets/common/fields/picker_field.dart';
@@ -32,11 +33,12 @@ import '../../widgets/common/fields/tappable_field_decorator.dart';
 import '../../widgets/common/images/app_spinner.dart';
 import '../../widgets/common/images/fullscreen_image_viewer.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
-import '../../widgets/common/overlays/app_dialog.dart';
+import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/auto_save_prompts.dart';
 import '../../widgets/common/overlays/app_snack_bar.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
+import '../../widgets/common/overlays/inline_error_text.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
 import '../../widgets/common/overlays/page_sheet.dart';
 import '../../widgets/common/overlays/picker_sheet.dart';
@@ -94,11 +96,9 @@ class GarmentDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<GarmentDetailsPage> createState() => _GarmentDetailsPageState();
 }
 
-class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
-    with FadingToolbarTitle {
+class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _subCategory = TextEditingController();
   final _brandCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _bagBodyWidthCtrl = TextEditingController();
@@ -133,6 +133,15 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   /// sent while it is one), so switching back restores it.
   BagDetails? _bagDetails;
   GarmentCategory _category = GarmentCategory.top;
+
+  /// A value from the backend's fixed list (`SubCategoryCatalog`); `""` =
+  /// not picked yet (add mode, or after a category change dropped it).
+  String _subCategory = '';
+
+  /// L3 under [_subCategory]; null when it has none or none is picked.
+  String? _style;
+  bool _subCategoryPickerInFlight = false;
+  final _subCategoryFieldKey = GlobalKey<FormFieldState<String>>();
   DateTime? _purchaseDate;
   // Not on the form; only a re-analysis changes them.
   int _thickness = 0;
@@ -176,6 +185,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   late String _initialName;
   late GarmentCategory _initialCategory;
   late String _initialSub;
+  late String? _initialStyle;
   late String _initialBrand;
   late String _initialPrice;
   GarmentColor? _initialColor;
@@ -194,7 +204,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   bool get _showClosureField => garmentClosureCategories.contains(_category);
   bool get _showCropLengthField =>
       garmentCropLengthCategories.contains(_category);
-  bool get _showBagFields => isBagGarment(_category, _subCategory.text);
+  bool get _showBagFields => isBagGarment(_category, _subCategory);
   BagDetails get _bag => _bagDetails ?? const BagDetails();
   List<GarmentSilhouette> get _silhouetteOptions =>
       garmentSilhouettesByCategory[_category] ?? const [];
@@ -218,6 +228,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     _initialName = _editingGarment?.name ?? '';
     _initialCategory = _editingGarment?.category ?? GarmentCategory.top;
     _initialSub = _editingGarment?.subCategory ?? '';
+    _initialStyle = _editingGarment?.style;
     _initialBrand = _editingGarment?.brand ?? '';
     _initialPrice = _editingGarment?.price?.toString() ?? '';
     _initialColor = _tryParseGarmentColor(_editingGarment?.color);
@@ -238,7 +249,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
 
     if (_editingGarment != null) {
       _category = _editingGarment!.category;
-      _subCategory.text = _editingGarment!.subCategory;
+      _subCategory = _editingGarment!.subCategory;
+      _style = _editingGarment!.style;
       _nameCtrl.text = _editingGarment!.name;
       _brandCtrl.text = _editingGarment!.brand ?? '';
       _priceCtrl.text = _editingGarment!.price?.toString() ?? '';
@@ -267,7 +279,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     }
 
     _nameCtrl.addListener(_checkModified);
-    _subCategory.addListener(_checkModified);
     _brandCtrl.addListener(_checkModified);
     _priceCtrl.addListener(_checkModified);
     _bagBodyWidthCtrl.addListener(_checkModified);
@@ -284,17 +295,24 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   int? get _garmentIdForOutfits =>
       _editingGarment?.garmentId ?? _editingGarment?.id;
 
-  Future<void> _loadOutfitCount() async {
+  /// Listened to, not read once, so an outfit created or deleted while this
+  /// page is open (e.g. from Closet Match's ideas) updates the count.
+  void _loadOutfitCount() {
     final gid = _garmentIdForOutfits;
     if (gid == null) return;
-    try {
-      // Shared with GarmentOutfitsPage so opening it doesn't re-fetch.
-      final outfits = await ref.read(garmentOutfitsProvider(gid).future);
-      if (mounted) setState(() => _outfitCount = outfits.length);
-    } catch (e) {
-      // Secondary count — the tile stays hidden; no error UI.
-      debugLog('Failed to load outfit count: $e');
-    }
+    // Shared with GarmentOutfitsPage so opening it doesn't re-fetch.
+    ref.listenManual(garmentOutfitsProvider(gid), (_, next) {
+      if (next.isLoading) return;
+      if (next.hasError) {
+        // Secondary count — the tile keeps what it showed; no error UI.
+        debugLog('Failed to load outfit count: ${next.error}');
+        return;
+      }
+      final count = next.requireValue.length;
+      if (mounted && count != _outfitCount) {
+        setState(() => _outfitCount = count);
+      }
+    }, fireImmediately: true);
   }
 
   /// Re-fetches the garment if its signed image URL has expired, so the
@@ -317,7 +335,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
         _isImageChanged ||
         _nameCtrl.text != _initialName ||
         _category != _initialCategory ||
-        _subCategory.text != _initialSub ||
+        _subCategory != _initialSub ||
+        _style != _initialStyle ||
         _brandCtrl.text != _initialBrand ||
         _priceCtrl.text != _initialPrice ||
         _selectedColor != _initialColor ||
@@ -359,7 +378,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   void dispose() {
     _autoSave.dispose();
     _nameCtrl.dispose();
-    _subCategory.dispose();
     _brandCtrl.dispose();
     _priceCtrl.dispose();
     _bagBodyWidthCtrl.dispose();
@@ -403,10 +421,16 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     final price = double.tryParse(_priceCtrl.text.trim());
     showGarmentShareSheet(
       context,
+      // The card shows the label; the garment keeps the stored value.
+      subCategoryLabel: readSubCategoryLabel(ref, context)(
+        _style ?? _subCategory,
+      ),
       garment: base.copyWith(
         name: _nameCtrl.text.trim(),
         category: _category,
-        subCategory: _subCategory.text.trim(),
+        subCategory: _subCategory,
+        style: _style,
+        clearStyle: _style == null,
         brand: brand.isEmpty ? null : brand,
         clearBrand: brand.isEmpty,
         price: price,
@@ -436,15 +460,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   }
 
   Future<void> _handleDelete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.deleteGarment,
-        body: _l10n.deleteGarmentConfirmation,
-        primaryLabel: _l10n.delete,
-        destructive: true,
-        onPrimary: () => Navigator.pop(ctx, true),
-      ),
+    final confirm = await showConfirmDialog(
+      context,
+      title: _l10n.deleteGarment,
+      body: _l10n.deleteGarmentConfirmation,
+      confirmLabel: _l10n.delete,
+      destructive: true,
     );
 
     if (confirm == true && _id != null) {
@@ -506,8 +527,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
-      title: _isAddMode ? _title : _l10n.clothingDetailsTitle,
-      titleWidget: _isAddMode ? null : buildFadingToolbarTitle(_title),
+      title: _title,
       onBack: _leave,
       actions: [
         if (!_isAddMode)
@@ -615,7 +635,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
           : AutovalidateMode.onUserInteraction,
       child: Builder(
         builder: (bodyContext) => ListView(
-          controller: toolbarTitleScrollController,
           padding: EdgeInsets.only(
             bottom: _showsBottomActionButton
                 ? BottomActionButton.scrollClearance(bodyContext)
@@ -626,14 +645,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
             if (_isAddMode) ...[
               _buildOwnershipCard(),
               const SizedBox(height: AppDimens.sectionSpacing),
-            ],
-            if (!_isAddMode) ...[
-              Padding(
-                key: toolbarTitleAnchorKey,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(_title, style: AppTextStyle.bold22),
-              ),
-              const SizedBox(height: AppDimens.titleGap),
             ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -680,6 +691,10 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
           _buildCategoryField(),
           const SizedBox(height: 20),
           _buildSubCategoryField(),
+          if (_styleOptions().isNotEmpty || _style != null) ...[
+            const SizedBox(height: 20),
+            _buildStyleField(),
+          ],
           const SizedBox(height: 20),
           _buildColorField(),
           if (_showFitField) ...[
@@ -700,12 +715,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
             const SizedBox(height: 20),
             _buildCropLengthField(),
           ],
-          // Product Type is free text, so the bag fields follow it as typed.
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _subCategory,
-            builder: (context, _, _) =>
-                _showBagFields ? _buildBagFields() : const SizedBox.shrink(),
-          ),
+          if (_showBagFields) _buildBagFields(),
           const SizedBox(height: 20),
           _buildBrandField(),
           const SizedBox(height: 20),
@@ -738,6 +748,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       onSelected: (c) {
         _category = c;
         _dropInapplicableAttributes();
+        // The lists differ per category ("Shirt" is in both Top
+        // and Outer); a value the new list lacks is re-picked. Unknown
+        // lists (still loading, failed) keep it rather than guess.
+        final catalog = ref.read(_subCategoryMenu).value;
+        if (catalog != null && !catalog.allows(c, _subCategory)) {
+          _subCategory = '';
+          _style = null;
+        }
       },
     );
   }
@@ -799,21 +817,142 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     if (!_showCropLengthField) _selectedCropLength = null;
   }
 
+  /// The picker's lists, filtered by the profile's gender. Labels come from
+  /// the full lists instead: a garment may hold a value the picker doesn't
+  /// offer (a skirt in a `Male` closet), which stays as it is.
+  FutureProvider<SubCategoryCatalog> get _subCategoryMenu =>
+      subCategoryCatalogFor(context);
+
   Widget _buildSubCategoryField() {
+    // Loaded up front so a tap opens at once and a category change can
+    // tell what the new list keeps.
+    ref.watch(_subCategoryMenu);
+    final labelOf = watchSubCategoryLabel(ref, context);
     return LabeledField(
       label: _l10n.productType,
-      child: _savesOnBlur(
-        AppTextField(
-          controller: _subCategory,
-          hint: _l10n.productTypeHint,
-          validator: (v) => (v == null || v.trim().isEmpty)
-              ? _l10n.pleaseEnterProductTypeError
-              : null,
-          onChanged: (_) => _onEdited(typing: true),
-          onSubmitted: (_) => _onTextFieldBlur(),
+      child: FormField<String>(
+        key: _subCategoryFieldKey,
+        // Edit mode has no submit step and a picker never marks the form as
+        // interacted with, so an emptied value is flagged right away.
+        autovalidateMode: _isAddMode
+            ? AutovalidateMode.disabled
+            : AutovalidateMode.always,
+        validator: (_) =>
+            _subCategory.isEmpty ? _l10n.pleaseEnterProductTypeError : null,
+        builder: (field) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PickerField(
+              text: labelOf(_subCategory),
+              hint: _l10n.notSelected,
+              onTap: _openSubCategoryPicker,
+            ),
+            if (field.errorText != null)
+              InlineErrorText(
+                message: field.errorText!,
+                padding: const EdgeInsets.only(top: 6),
+              ),
+          ],
         ),
       ),
     );
+  }
+
+  /// Waits for the list if it hasn't loaded; the guard covers that wait.
+  Future<void> _openSubCategoryPicker() async {
+    if (_subCategoryPickerInFlight) return;
+    _subCategoryPickerInFlight = true;
+    try {
+      final provider = _subCategoryMenu;
+      final SubCategoryCatalog catalog;
+      try {
+        catalog = await ref.read(provider.future);
+      } on AuthExpiredException {
+        if (!mounted) return;
+        await AuthExpiredHandler.handle(context);
+        return;
+      } catch (e) {
+        debugLog('GarmentDetailsPage._openSubCategoryPicker failed: $e');
+        if (!mounted) return;
+        showErrorDialog(
+          context,
+          message: apiErrorMessage(
+            _l10n,
+            e,
+            fallback: _l10n.subCategoriesLoadFailed,
+          ),
+          onRetry: () {
+            ref.invalidate(provider);
+            _openSubCategoryPicker();
+          },
+        );
+        return;
+      }
+      if (!mounted) return;
+      final options = catalog.optionsFor(_category);
+      final current = options.where((o) => o.value == _subCategory);
+      final picked = await showSingleChoiceSheet<SubCategoryOption>(
+        context,
+        title: _l10n.productType,
+        options: options,
+        selected: current.isEmpty ? null : current.first,
+        labelOf: (o) => o.label,
+      );
+      if (picked == null || picked.value == _subCategory || !mounted) return;
+      setState(() {
+        _subCategory = picked.value;
+        if (!picked.styles.any((s) => s.value == _style)) _style = null;
+      });
+      // Clears an error left by an earlier Add to Closet attempt.
+      final field = _subCategoryFieldKey.currentState;
+      if (field != null && field.hasError) field.validate();
+      _onEdited();
+    } finally {
+      _subCategoryPickerInFlight = false;
+    }
+  }
+
+  /// The L3 choices under [_subCategory]; empty while the lists load or
+  /// when it has none. Watches, so call it from `build` only.
+  List<SubCategoryOption> _styleOptions() =>
+      ref.watch(_subCategoryMenu).value?.stylesFor(_category, _subCategory) ??
+      const [];
+
+  Widget _buildStyleField() {
+    final labelOf = watchSubCategoryLabel(ref, context);
+    final options = _styleOptions();
+    final style = _style;
+    return LabeledField(
+      label: _l10n.garmentStyleLabel,
+      child: PickerField(
+        text: style == null ? '' : labelOf(style),
+        hint: _l10n.notSelected,
+        onTap: () => _openStylePicker([
+          // A value the picker no longer offers stays pickable as it is.
+          if (style != null && !options.any((o) => o.value == style))
+            SubCategoryOption(value: style, label: labelOf(style)),
+          ...options,
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _openStylePicker(List<SubCategoryOption> styles) async {
+    // `value: ''` is the "none" row: a null pop means dismissed.
+    final none = SubCategoryOption(value: '', label: _l10n.noneLabel);
+    final current = styles.where((o) => o.value == _style);
+    final picked = await showSingleChoiceSheet<SubCategoryOption>(
+      context,
+      title: _l10n.garmentStyleLabel,
+      options: [none, ...styles],
+      selected: current.isEmpty ? none : current.first,
+      labelOf: (o) => o.label,
+    );
+    if (picked == null || !mounted) return;
+    final next = picked.value.isEmpty ? null : picked.value;
+    if (next == _style) return;
+    setState(() => _style = next);
+    _onEdited();
   }
 
   Widget _buildColorField() {
@@ -1078,7 +1217,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       }
     }
     if (analysisData['sub_category'] != null) {
-      _subCategory.text = analysisData['sub_category'].toString();
+      _subCategory = analysisData['sub_category'].toString();
+    }
+    if (analysisData.containsKey('style')) {
+      final style = analysisData['style'];
+      _style = style is String && style.isNotEmpty ? style : null;
     }
     final String? colorStr = analysisData['color']?.toString();
     if (colorStr != null) {
@@ -1152,17 +1295,12 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     _reanalyzeInFlight = true;
     bool confirmed;
     try {
-      confirmed =
-          await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AppDialog(
-              title: _l10n.reanalyzeGarmentTitle,
-              body: _l10n.reanalyzeGarmentBody,
-              primaryLabel: _l10n.reanalyze,
-              onPrimary: () => Navigator.pop(ctx, true),
-            ),
-          ) ==
-          true;
+      confirmed = await showConfirmDialog(
+        context,
+        title: _l10n.reanalyzeGarmentTitle,
+        body: _l10n.reanalyzeGarmentBody,
+        confirmLabel: _l10n.reanalyze,
+      );
       confirmed = confirmed && mounted && await ensureAiConsent(context);
     } finally {
       _reanalyzeInFlight = false;
@@ -1688,18 +1826,24 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     final garments = ref.read(garmentsProvider.notifier);
     void apply(bool value) {
       _editingGarment = _editingGarment?.copyWith(isFavorite: value);
-      garments.updateFavorite(id, isFavorite: value);
       if (mounted) setState(() => _isFavorite = value);
     }
 
     apply(next);
+    final token = garments.updateFavoriteOptimistically(id, isFavorite: next);
+    void rollBack() {
+      apply(!next);
+      garments.settleFavorite(id, token, isFavorite: !next);
+    }
+
     try {
       await GarmentService().setFavorite(id, isFavorite: next);
+      garments.settleFavorite(id, token, isFavorite: next);
     } on AuthExpiredException {
-      apply(!next);
+      rollBack();
       if (mounted) await AuthExpiredHandler.handle(context);
     } catch (_) {
-      apply(!next);
+      rollBack();
       if (mounted) {
         showErrorDialog(context, message: _l10n.failedToUpdateFavorite);
       }
@@ -1719,7 +1863,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       uploadUrl: initDate.uploadUrl,
       objectName: initDate.objectName,
       category: _category,
-      subCategory: _subCategory.text.trim(),
+      subCategory: _subCategory,
+      style: _style,
       name: _nameCtrl.text.trim(),
       brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
       color: _selectedColor?.label,
@@ -1736,6 +1881,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     // (it 500s). `crop_length` isn't nullable there, so unset is "".
     final metadata = <String, dynamic>{
       ...?_metaData,
+      // The AI's L3, unless the user changed or cleared it.
+      'style': _style,
       'fit': _selectedFit?.apiValue,
       'silhouette': _selectedSilhouette?.apiValue,
       'sleeve_length': _selectedSleeveLength?.apiValue,
@@ -1753,7 +1900,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
     return <String, dynamic>{
       ...?_metaData,
       'category': _category.apiValue,
-      'sub_category': _subCategory.text.trim(),
+      'sub_category': _subCategory,
+      'style': _style,
       'name': _nameCtrl.text.trim(),
       'brand': brand.isEmpty ? null : brand,
       'color': _selectedColor?.label,
@@ -1799,7 +1947,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
   Future<Garment> _updateGarmentFields() async {
     final saved = _editingGarment!;
     final name = _nameCtrl.text.trim();
-    final subCategory = _subCategory.text.trim();
     final brand = _brandCtrl.text.trim();
     final priceText = _priceCtrl.text.trim();
     final price = double.tryParse(priceText);
@@ -1808,7 +1955,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage>
       // An invalid field keeps its saved value instead of being sent.
       name: name.isEmpty ? saved.name : name,
       category: _category,
-      subCategory: subCategory.isEmpty ? saved.subCategory : subCategory,
+      // Emptied by a category change: keep the saved value until the user
+      // picks (CLAUDE.md #auto-save); the field flags itself meanwhile.
+      subCategory: _subCategory.isEmpty ? saved.subCategory : _subCategory,
+      style: _subCategory.isEmpty ? saved.style : _style,
+      clearStyle: _subCategory.isNotEmpty && _style == null,
       brand: brand.isEmpty ? null : brand,
       clearBrand: brand.isEmpty,
       color: _selectedColor?.label,

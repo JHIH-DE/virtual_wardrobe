@@ -194,8 +194,36 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
   // their `locationLocale` says.
   static const String _cacheKey = 'cached_weather_v2';
 
+  /// Session-end only: the place name may come from the previous
+  /// account's profile location.
+  static Future<void> clearCache() async {
+    // Before any await, so a reading still in flight can't be written back
+    // after the removal.
+    _cacheEpoch++;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_cacheKey);
+    } catch (_) {}
+  }
+
+  // Bumped by [clearCache]. Sign-out doesn't rebuild this provider (that
+  // happens at the next sign-in), so [_generation] alone can't stop a
+  // reading the previous account requested from being cached.
+  static int _cacheEpoch = 0;
+
+  // Riverpod keeps this notifier across invalidate and locale rebuilds, and
+  // `ref` is always the newest build's, so `ref.mounted` can't tell a reply
+  // to an earlier generation from a current one. Bumped on every
+  // dispose/rebuild; work from another generation touches nothing.
+  int _generation = 0;
+
+  bool _isCurrent(int generation) => generation == _generation;
+
   late Locale _locale;
-  bool _refreshInFlight = false;
+
+  // The generation whose background refresh is in flight, so an older
+  // generation's neither blocks nor (finishing) unblocks a newer one's.
+  int? _refreshInFlightFor;
 
   // No BuildContext here: the language override, else the device locale.
   AppLocalizations _l10n() {
@@ -215,39 +243,48 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
 
   @override
   Future<WeatherData> build() async {
+    final generation = _generation;
+    ref.onDispose(() => _generation++);
     _locale = _weatherLocale();
     final cached = await _loadCache();
 
     if (cached != null && cached.hasWeeklyData) {
       if (cached.locationLocale != _locale.toLanguageTag()) {
         try {
-          return await _fetchFromNetwork(_locale);
+          return await _fetchFromNetwork(_locale, generation);
         } catch (_) {
           return cached;
         }
       }
       // A Future, not a microtask: runs once build's value is in state.
-      if (cached.isStale) Future(refreshIfStale);
+      // Skipped if this generation is gone by then (its state with it).
+      if (cached.isStale) {
+        Future(() {
+          if (_isCurrent(generation)) refreshIfStale();
+        });
+      }
       return cached;
     }
 
-    return _fetchFromNetwork(_locale);
+    return _fetchFromNetwork(_locale, generation);
   }
 
   /// Background refresh once the reading is stale (or failed): the old
   /// reading stays on screen meanwhile and if the fetch fails.
   Future<void> refreshIfStale() async {
-    if (_refreshInFlight || state.isLoading) return;
+    final generation = _generation;
+    if (_refreshInFlightFor == generation || state.isLoading) return;
     final current = state.value;
     if (current != null && !current.isStale) return;
-    _refreshInFlight = true;
+    _refreshInFlightFor = generation;
     try {
-      final fresh = await _fetchFromNetwork(_locale);
-      // A locale change rebuilt the provider meanwhile; its own fetch wins.
-      if (ref.mounted) state = AsyncData(fresh);
+      final fresh = await _fetchFromNetwork(_locale, generation);
+      // A sign-in or locale change rebuilt the provider meanwhile; its own
+      // fetch wins.
+      if (_isCurrent(generation)) state = AsyncData(fresh);
     } catch (_) {
     } finally {
-      _refreshInFlight = false;
+      if (_refreshInFlightFor == generation) _refreshInFlightFor = null;
     }
   }
 
@@ -262,7 +299,10 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
     }
   }
 
-  Future<WeatherData> _fetchFromNetwork(Locale locale) async {
+  /// Caches the reading only while [generation] is current and no
+  /// [clearCache] has run since the request started.
+  Future<WeatherData> _fetchFromNetwork(Locale locale, int generation) async {
+    final cacheEpoch = _cacheEpoch;
     // The backend names the place in the profile's `locale`; a language
     // switch PATCHes it, so wait for that before asking.
     await ref.read(localeProvider.notifier).backendSynced;
@@ -283,7 +323,11 @@ class WeatherNotifier extends AsyncNotifier<WeatherData> {
     );
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_cacheKey, json.encode(data.toJson()));
+    // Checked after the last await: setString updates the in-memory copy
+    // synchronously, so a clearCache can't slip in between.
+    if (_isCurrent(generation) && cacheEpoch == _cacheEpoch) {
+      await prefs.setString(_cacheKey, json.encode(data.toJson()));
+    }
     return data;
   }
 

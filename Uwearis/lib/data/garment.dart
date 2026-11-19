@@ -309,21 +309,36 @@ const Set<GarmentCategory> garmentFitCategories = {
   GarmentCategory.onePiece,
 };
 
-/// Exclusivity slot for an accessory's freeform `subCategory` ("Hat" and
-/// "Cap" are both headwear). Only merges pairs known to collide.
-String accessorySlotKey(String subCategory) {
-  final normalized = subCategory.toLowerCase();
-  const headwear = {'hat', 'cap'};
-  if (headwear.contains(normalized)) return 'headwear';
-  return normalized;
+/// Exclusivity slot for an accessory. Keyed by its L3 [Garment.style] when
+/// it has one, so types that share an L2 stay apart as they did before the
+/// three-level taxonomy (sunglasses vs glasses under `Sunglasses & Glasses`,
+/// a tote vs a backpack under `Bags`). All headwear still shares one slot,
+/// whether stored as the L2 `Hats & Caps` or an older flat value.
+String accessorySlotKey(Garment garment) {
+  final sub = garment.subCategory.toLowerCase();
+  const headwear = {'hats & caps', 'hat', 'cap', 'bucket hat', 'beanie'};
+  if (headwear.contains(sub)) return 'headwear';
+  return (garment.style ?? garment.subCategory).toLowerCase();
 }
 
-/// Base-layer slot for a top's `subCategory` ("T-shirt" and "Polo shirt"
-/// replace each other instead of stacking like a mid layer would). Only
-/// merges pairs known to collide.
+/// Base-layer slot for a top's `subCategory` (a T-shirt, polo, henley … replace
+/// each other instead of stacking like a mid layer would). Mirrors the
+/// backend's TEE / POLO kinds (`top_layering.top_kind()`); blouses and crop
+/// tops (its OTHER_BASE) keep their own slots. Only merges values known to
+/// collide. Holds both the three-level taxonomy's L2 values and the older
+/// flat ones, which un-migrated data may still carry.
 String baseTopSlotKey(String subCategory) {
   final normalized = subCategory.toLowerCase();
-  const baseTop = {'t-shirt', 'polo shirt'};
+  const baseTop = {
+    't-shirts & vests',
+    'polo shirts',
+    't-shirt',
+    'long sleeve t-shirt',
+    'henley',
+    'jersey',
+    'tank top',
+    'polo shirt',
+  };
   if (baseTop.contains(normalized)) return 'base-top';
   return normalized;
 }
@@ -353,7 +368,13 @@ class Garment {
   /// local version-counter key wherever one is available.
   final String? imageCacheKey;
   final GarmentCategory category;
+
+  /// L2 of the three-level taxonomy (`Shirts`).
   final String subCategory;
+
+  /// L3 under [subCategory] (`Overshirt`); null when it has none or none
+  /// was picked.
+  final String? style;
 
   /// Backend scales are 1–5; 0 means unset and is omitted from PATCH. Not
   /// shown in the UI.
@@ -384,6 +405,7 @@ class Garment {
     required this.name,
     required this.category,
     required this.subCategory,
+    this.style,
     required this.uploadUrl,
     required this.objectName,
     this.thickness = 0,
@@ -424,6 +446,7 @@ class Garment {
     DateTime? purchaseDate,
     GarmentCategory? category,
     String? subCategory,
+    String? style,
     int? thickness,
     int? formality,
     String? uploadUrl,
@@ -449,12 +472,14 @@ class Garment {
     bool clearPurchaseDate = false,
     bool clearMetadata = false,
     bool clearBagDetails = false,
+    bool clearStyle = false,
   }) {
     return Garment(
       id: clearId ? null : (id ?? this.id),
       garmentId: clearGarmentId ? null : (garmentId ?? this.garmentId),
       category: category ?? this.category,
       subCategory: subCategory ?? this.subCategory,
+      style: clearStyle ? null : (style ?? this.style),
       thickness: thickness ?? this.thickness,
       formality: formality ?? this.formality,
       name: name ?? this.name,
@@ -528,6 +553,11 @@ class Garment {
       purchaseDate: parseDate(json['purchase_date']),
       category: GarmentCategoryX.fromApiValue(json['category'] as String?),
       subCategory: (json['sub_category'] as String?) ?? '',
+      // Older rows carried a list of style tags here; only a string is L3.
+      style: switch (json['style']) {
+        final String style when style.isNotEmpty => style,
+        _ => null,
+      },
       uploadUrl: (json['upload_url'] as String?) ?? '',
       objectName: (json['object_name'] as String?) ?? '',
       imageUrl: (json['image_url'] as String?) ?? '',
@@ -616,6 +646,7 @@ class Garment {
       'thickness': thickness,
       'formality': formality,
       'sub_category': subCategory,
+      'style': style,
       'category': category.apiValue,
       'purchase_date': purchaseDateApiValue,
       'upload_url': uploadUrl,

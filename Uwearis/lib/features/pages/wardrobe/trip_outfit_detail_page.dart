@@ -25,7 +25,7 @@ import '../../widgets/common/buttons/accent_pill_button.dart';
 import '../../widgets/common/cards/generated_image_card.dart';
 import '../../widgets/common/fading_toolbar_title.dart';
 import '../../widgets/common/labeled_divider.dart';
-import '../../widgets/common/overlays/app_dialog.dart';
+import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/loading_overlay.dart';
 import '../../widgets/common/overlays/try_on_dialogs.dart';
@@ -116,14 +116,11 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
           if (!mounted) return null;
         } else if (outfit.hasImage) {
           // A re-render spends a generation on top of the image shown.
-          final ok = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AppDialog(
-              title: _l10n.regenerateOutfitConfirmTitle,
-              body: _l10n.regenerateOutfitConfirmBody,
-              primaryLabel: _l10n.regenerate,
-              onPrimary: () => Navigator.pop(ctx, true),
-            ),
+          final ok = await showConfirmDialog(
+            context,
+            title: _l10n.regenerateOutfitConfirmTitle,
+            body: _l10n.regenerateOutfitConfirmBody,
+            confirmLabel: _l10n.regenerate,
           );
           if (ok != true || !mounted) return null;
         }
@@ -214,15 +211,12 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
     final removed = await runCollectionAction(
       fallback: _l10n.failedToRemoveTripOutfit,
       request: () async {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AppDialog(
-            title: _l10n.removeTripOutfitTitle,
-            body: _l10n.removeTripOutfitBody,
-            primaryLabel: _l10n.remove,
-            destructive: true,
-            onPrimary: () => Navigator.pop(ctx, true),
-          ),
+        final confirmed = await showConfirmDialog(
+          context,
+          title: _l10n.removeTripOutfitTitle,
+          body: _l10n.removeTripOutfitBody,
+          confirmLabel: _l10n.remove,
+          destructive: true,
         );
         if (confirmed != true) return null;
         return TripService().removeTripOutfit(tripId, tripOutfitId: outfit.id);

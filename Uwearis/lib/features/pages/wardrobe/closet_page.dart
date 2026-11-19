@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../core/providers/garments_provider.dart';
+import '../../../core/providers/sub_category_provider.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -101,12 +102,13 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
           )
           .map((c) => c.label),
     ];
+    final typeLabel = readSubCategoryLabel(ref, context);
     final availableTypes = [
       'All',
       ...{
         for (final g in categoryGarments)
           if (g.subCategory.isNotEmpty) g.subCategory,
-      }.toList()..sort(),
+      }.toList()..sort((a, b) => typeLabel(a).compareTo(typeLabel(b))),
     ];
 
     final l10n = AppLocalizations.of(context);
@@ -123,6 +125,7 @@ class _ClosetPageState extends ConsumerState<ClosetPage> {
         FilterGroup.toggleAll(
           label: l10n.productType,
           options: availableTypes,
+          labelOf: typeLabel,
           selected: () => _selectedProductTypes,
           onChanged: (next) => setState(() => _selectedProductTypes = next),
         ),

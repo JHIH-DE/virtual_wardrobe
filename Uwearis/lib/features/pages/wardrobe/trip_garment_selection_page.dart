@@ -10,6 +10,7 @@ import '../../../data/garment.dart';
 import '../../../data/packing_analysis.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/providers/sub_category_provider.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/garment_color_type_filter.dart';
 import '../../widgets/common/cards/app_card_shell.dart';
@@ -115,6 +116,7 @@ class _TripGarmentSelectionPageState
           l10n,
           _byCategory,
           onChanged: () => setState(() {}),
+          typeLabelOf: readSubCategoryLabel(ref, context),
         ),
       ],
       bottom: _buildCategorySelector(),

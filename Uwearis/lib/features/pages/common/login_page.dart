@@ -86,8 +86,10 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
       final tokens = await AuthService().loginWithGoogleIdToken(idToken);
-      await AuthStorage.saveAccessToken(tokens.accessToken);
-      await AuthStorage.saveRefreshToken(tokens.refreshToken);
+      await AuthStorage.startSession(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
 
       Analytics.login('google');
       Fluttertoast.showToast(msg: _l10n.googleLoginSuccess);
@@ -157,8 +159,10 @@ class _LoginPageState extends State<LoginPage> {
         name: name.isNotEmpty ? name : null,
         nonce: rawNonce,
       );
-      await AuthStorage.saveAccessToken(tokens.accessToken);
-      await AuthStorage.saveRefreshToken(tokens.refreshToken);
+      await AuthStorage.startSession(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
 
       Analytics.login('apple');
       Fluttertoast.showToast(msg: _l10n.appleLoginSuccess);

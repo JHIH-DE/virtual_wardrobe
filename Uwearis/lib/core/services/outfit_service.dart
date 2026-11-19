@@ -27,6 +27,20 @@ class OutfitService with BaseService {
 
   final Map<int, List<Outfit>> _groupCache = {};
 
+  static final StreamController<void> _garmentLinkChanges =
+      StreamController<void>.broadcast();
+
+  /// Fires after outfits may have gained or lost garments: a render landed
+  /// (directly or recovered by key), or an outfit / group was deleted.
+  static Stream<void> get garmentLinkChanges => _garmentLinkChanges.stream;
+
+  static final StreamController<int> _outfitImageChanges =
+      StreamController<int>.broadcast();
+
+  /// The id of an outfit re-rendered in place (same id, same garments, new
+  /// image) — whichever screen asked for it, even one already closed.
+  static Stream<int> get outfitImageChanges => _outfitImageChanges.stream;
+
   Future<List<AdjustmentDefinition>> getAdjustmentOptions() async {
     debugLog('--- getAdjustmentOptions ---');
     final uri = Uri.parse('$_baseUrl/adjustment-options');
@@ -70,39 +84,69 @@ class OutfitService with BaseService {
     return groupId;
   }
 
+  /// Every group of [type], walking all pages of [size] (the backend's max
+  /// is 100). A failed or malformed page fails the whole call — never a
+  /// partial list.
   Future<List<Outfit>> getAllOutfits({
     String type = 'general',
-    int page = 1,
     int size = 100,
     String? sort,
   }) async {
-    debugLog(
-      '--- getAllOutfits: type=$type page=$page size=$size sort=$sort ---',
-    );
-    final uri = Uri.parse(_baseUrl).replace(
-      queryParameters: {
-        'type': type,
-        'page': '$page',
-        'size': '$size',
-        'sort': ?sort,
-      },
-    );
-    final res = await withAuth(
-      (token) => http
-          .get(uri, headers: authHeaders(token))
-          .timeout(const Duration(seconds: 15)),
-      retryOnTimeout: true,
-    );
-    final envelope = decodeMap(res, op: 'getAllOutfits');
-    final data = envelope['data'];
-    final items = data is Map<String, dynamic> ? data['items'] : null;
-    if (items is! List) {
-      throw Exception('getAllOutfits: response missing items list');
+    debugLog('--- getAllOutfits: type=$type size=$size sort=$sort ---');
+    // `total` counts groups, empty ones included, so paging compares it
+    // with groups seen — not with the outfits returned.
+    final groups = <Map<String, dynamic>>[];
+    final seenGroupIds = <int>{};
+    for (var page = 1; ; page++) {
+      final uri = Uri.parse(_baseUrl).replace(
+        queryParameters: {
+          'type': type,
+          'page': '$page',
+          'size': '$size',
+          'sort': ?sort,
+        },
+      );
+      final res = await withAuth(
+        (token) => http
+            .get(uri, headers: authHeaders(token))
+            .timeout(const Duration(seconds: 15)),
+        retryOnTimeout: true,
+      );
+      final envelope = decodeMap(res, op: 'getAllOutfits');
+      final data = envelope['data'];
+      final items = data is Map<String, dynamic> ? data['items'] : null;
+      if (items is! List) {
+        throw Exception('getAllOutfits: response missing items list');
+      }
+
+      // Offset paging over `created_at` alone: a group created or deleted
+      // mid-walk shifts the pages, so one can repeat on the next page.
+      var added = 0;
+      for (final group in items.whereType<Map<String, dynamic>>()) {
+        final groupId = (group['group_id'] as num?)?.toInt();
+        if (groupId != null && !seenGroupIds.add(groupId)) continue;
+        groups.add(group);
+        added++;
+      }
+
+      final rawTotal = (data as Map<String, dynamic>)['total'];
+      final total = rawTotal is num && rawTotal >= 0 ? rawTotal.toInt() : null;
+      // A page that adds nothing new also stops a backend that ignores
+      // `page`, which would otherwise loop forever.
+      if (items.length < size ||
+          added == 0 ||
+          (total != null && groups.length >= total)) {
+        break;
+      }
+      if (page >= _maxOutfitPages) {
+        throw Exception('getAllOutfits: more than $_maxOutfitPages pages');
+      }
     }
+
     // One representative per group; it carries the group's real version
     // count (Outfit.versionCount) for totals like Style Taste's stat.
     final outfits = <Outfit>[];
-    for (final group in items.whereType<Map<String, dynamic>>()) {
+    for (final group in groups) {
       final groupOutfits = group['outfits'];
       if (groupOutfits is List) {
         final parsed = groupOutfits
@@ -133,6 +177,9 @@ class OutfitService with BaseService {
     }
     return outfits;
   }
+
+  /// A runaway backstop (10,000 groups at size 100), not a product limit.
+  static const _maxOutfitPages = 100;
 
   static const _renderTimeout = Duration(seconds: 180);
   static const tryOnProtocolHeader = 'X-Try-On-Protocol';
@@ -212,6 +259,7 @@ class OutfitService with BaseService {
       throw Exception('generateOutfit: response missing outfit data object');
     }
     _groupCache.remove(groupId);
+    _garmentLinkChanges.add(null);
     return Outfit.fromJson(data);
   }
 
@@ -264,6 +312,7 @@ class OutfitService with BaseService {
       throw Exception('regenerateOutfit: response missing outfit data object');
     }
     _groupCache.remove(groupId);
+    _outfitImageChanges.add(outfitId);
     return Outfit.fromJson(data);
   }
 
@@ -311,7 +360,10 @@ class OutfitService with BaseService {
     }
     final generation = TryOnGeneration.fromJson(data);
     final groupId = generation.outfit?.groupId;
-    if (groupId != null) _groupCache.remove(groupId);
+    if (groupId != null) {
+      _groupCache.remove(groupId);
+      _garmentLinkChanges.add(null);
+    }
     return generation;
   }
 
@@ -375,6 +427,7 @@ class OutfitService with BaseService {
     );
     decodeMap(res, op: 'deleteOutfit');
     _groupCache.remove(groupId);
+    _garmentLinkChanges.add(null);
   }
 
   /// Every version in [groupId]. Served from [_groupCache] unless an image
@@ -463,6 +516,7 @@ class OutfitService with BaseService {
     );
     decodeMap(res, op: 'deleteGroup');
     _groupCache.remove(groupId);
+    _garmentLinkChanges.add(null);
   }
 
   /// Every outfit that contains all of [garmentIds].

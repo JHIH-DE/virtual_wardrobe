@@ -21,7 +21,7 @@ void Function(AsyncValue<Object?>) wardrobeTabReporter(
   required WardrobeTab tab,
 }) {
   return (state) {
-    if (state.hasError && state.error is AuthExpiredException) {
+    if (isSettledAuthExpiry(state)) {
       AuthExpiredHandler.handle(context);
     }
     WardrobeShellScope.of(

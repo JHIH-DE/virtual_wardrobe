@@ -11,7 +11,7 @@ import '../../../data/image_edit_result.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../pages/wardrobe/garment_details_page.dart';
 import '../common/overlays/ai_consent_dialog.dart';
-import '../common/overlays/app_dialog.dart';
+import '../common/overlays/confirm_dialog.dart';
 import '../common/overlays/app_snack_bar.dart';
 import '../common/overlays/error_dialog.dart';
 import '../common/overlays/feedback_overlay.dart';
@@ -174,14 +174,11 @@ class GarmentUploadHelper {
           );
           return null;
         }
-        final retry = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AppDialog(
-            title: l10n.analysisFailedTitle,
-            body: l10n.analysisFailedBody,
-            primaryLabel: l10n.retry,
-            onPrimary: () => Navigator.pop(ctx, true),
-          ),
+        final retry = await showConfirmDialog(
+          context,
+          title: l10n.analysisFailedTitle,
+          body: l10n.analysisFailedBody,
+          confirmLabel: l10n.retry,
         );
         if (retry != true || !context.mounted) return null;
       }

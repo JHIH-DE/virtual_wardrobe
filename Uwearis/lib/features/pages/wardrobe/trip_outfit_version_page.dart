@@ -235,7 +235,6 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
     return BottomActionButton(
       label: _l10n.addToTrip,
       onPressed: enabled ? _addToTrip : null,
-      leading: const Icon(Icons.luggage_outlined),
     );
   }
 }

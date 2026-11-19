@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
 import 'package:uwearis/core/providers/daily_outfit_provider.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
@@ -20,6 +25,8 @@ import 'package:uwearis/features/pages/wardrobe/today_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/wardrobe_home_page.dart';
 import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 
+import '../../helpers/fake_auth.dart';
+import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
 
 class _FakeDailyOutfitNotifier extends DailyOutfitNotifier {
@@ -930,4 +937,158 @@ void main() {
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
     },
   );
+
+  // F4: the latest-outfit fallback card's optimistic favorite racing an
+  // outfitsProvider refresh that read the server before the PATCH committed.
+  group('fallback favorite vs. an outfits refresh', () {
+    late bool serverFavorite;
+    late bool holdList;
+    late bool holdPatch;
+    late bool patchFails;
+    late List<Completer<void>> listGates;
+    late List<Completer<void>> patchGates;
+    late ProviderContainer container;
+
+    Map<String, dynamic> outfitJson(bool fav) => {
+      'outfit_id': 100,
+      'group_id': 100,
+      'group_type': 'general',
+      'status': 'completed',
+      'garment_ids': <int>[],
+      'result_image_url': 'https://example.com/my-outfit.jpg',
+      'season': <String>[],
+      'style': <String>[],
+      'is_favorite': fav,
+    };
+
+    setUp(() {
+      setUpFakeAuth();
+      serverFavorite = false;
+      holdList = false;
+      holdPatch = false;
+      patchFails = false;
+      listGates = [];
+      patchGates = [];
+    });
+
+    MockClient backend() => MockClient((request) async {
+      if (request.method == 'PATCH') {
+        final value =
+            (jsonDecode(request.body) as Map<String, dynamic>)['is_favorite']
+                as bool;
+        if (holdPatch) {
+          final gate = Completer<void>();
+          patchGates.add(gate);
+          await gate.future;
+        }
+        if (patchFails) return jsonResponse({'success': false}, status: 500);
+        serverFavorite = value;
+        return jsonResponse(envelope(outfitJson(value)));
+      }
+      final snapshot = outfitJson(serverFavorite);
+      if (holdList) {
+        final gate = Completer<void>();
+        listGates.add(gate);
+        await gate.future;
+      }
+      return jsonResponse(
+        envelope({
+          'items': [
+            {
+              'group_id': 100,
+              'name': null,
+              'cover_outfit_id': null,
+              'outfits': [snapshot],
+            },
+          ],
+          'total': 1,
+          'page': 1,
+        }),
+      );
+    });
+
+    Future<void> settle(WidgetTester tester) async {
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+      }
+    }
+
+    Future<void> release(
+      WidgetTester tester,
+      List<Completer<void>> gates,
+    ) async {
+      for (final gate in [...gates]) {
+        gate.complete();
+      }
+      gates.clear();
+      await settle(tester);
+    }
+
+    // The real OutfitsNotifier (its refresh goes through the guard).
+    Future<void> openHome(WidgetTester tester) async {
+      // Tall enough that the fallback card's heart is on screen.
+      tester.view.physicalSize = const Size(1200, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpApp(
+        tester,
+        WardrobeHomePage(now: () => DateTime(2026, 9, 17, 10)),
+        overrides: [
+          dailyOutfitProvider.overrideWith(
+            () => _FakeDailyOutfitNotifier(const []),
+          ),
+          weatherProvider.overrideWith(_FakeWeatherNotifier.new),
+          garmentsProvider.overrideWith(_FakeGarmentsNotifier.new),
+          profileProvider.overrideWith(_FakeProfileNotifier.new),
+          tripsProvider.overrideWith(_FakeTripsNotifier.new),
+        ],
+      );
+      container = ProviderScope.containerOf(
+        tester.element(find.byType(WardrobeHomePage)),
+      );
+      await settle(tester);
+    }
+
+    bool? providerFavorite() =>
+        container.read(outfitsProvider).value?.single.isFavorite;
+
+    testWidgets('favorite → stale refresh answers → PATCH succeeds: Outfits '
+        'ends favorited', (tester) async {
+      await http.runWithClient(() async {
+        await openHome(tester);
+        holdPatch = true;
+        await tester.tap(find.byIcon(Icons.favorite_border));
+        await settle(tester);
+        holdList = true;
+        final refresh = container.read(outfitsProvider.notifier).refresh();
+        await settle(tester);
+
+        await release(tester, listGates); // stale: not favorite
+        await refresh;
+        await release(tester, patchGates); // PATCH commits
+
+        expect(providerFavorite(), isTrue);
+      }, backend);
+    });
+
+    testWidgets("a failed PATCH's rollback doesn't undo a newer favorite "
+        'written meanwhile (Outfit Details)', (tester) async {
+      await http.runWithClient(() async {
+        await openHome(tester);
+        holdPatch = true;
+        patchFails = true;
+        await tester.tap(find.byIcon(Icons.favorite_border));
+        await settle(tester);
+
+        container
+            .read(outfitsProvider.notifier)
+            .updateOutfitFavorite(100, isFavorite: true);
+        await release(tester, patchGates); // ours fails
+
+        expect(providerFavorite(), isTrue);
+        await tester.tap(find.text('OK'));
+        await settle(tester);
+      }, backend);
+    });
+  });
 }

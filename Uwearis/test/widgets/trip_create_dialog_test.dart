@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/features/pages/common/location_picker_page.dart';
-import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/trip/trip_create_dialog.dart';
 
 import '../helpers/widget_harness.dart';
@@ -27,18 +26,19 @@ void main() {
     },
   );
 
-  testWidgets('"Add" sits beside the Itinerary & Dates label as an '
-      'AccentPillButton and opens the location picker', (tester) async {
+  testWidgets('"Add Destination" sits in the itinerary card under the '
+      'Itinerary & Dates label and opens the location picker', (tester) async {
     await pumpApp(tester, const TripCreateDialog());
     await tester.pump();
 
-    final pill = find.widgetWithText(AccentPillButton, 'Add');
-    expect(pill, findsOneWidget);
-    final label = find.text('ITINERARY & DATES');
-    expect(tester.getCenter(pill).dy, closeTo(tester.getCenter(label).dy, 1));
-    expect(tester.getCenter(pill).dx, greaterThan(tester.getCenter(label).dx));
+    final add = find.text('Add Destination');
+    expect(add, findsOneWidget);
+    expect(
+      tester.getCenter(add).dy,
+      greaterThan(tester.getCenter(find.text('ITINERARY & DATES')).dy),
+    );
 
-    await tester.tap(find.byType(AccentPillButton));
+    await tester.tap(add);
     await tester.pumpAndSettle();
 
     expect(find.byType(LocationPickerPage), findsOneWidget);

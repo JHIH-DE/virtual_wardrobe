@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
@@ -185,7 +185,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             CameraCapturePage(initialRatio: widget.cameraFrameRatio),
       ),
     );
-    if (newPath != null) {
+    if (newPath != null && mounted) {
       setState(() {
         _currentPath = newPath;
         _sourceReplaced = true;
@@ -198,8 +198,19 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
   Future<void> _handleAlbum() async {
     final picker = ImagePicker();
-    final xFile = await picker.pickImage(source: ImageSource.gallery);
-    if (xFile != null) {
+    final XFile? picked;
+    try {
+      picked = await picker.pickImage(source: ImageSource.gallery);
+    } on PlatformException catch (e) {
+      // The plugin's documented failures: photo access denied, already
+      // open, an unreadable image. Anything else is a bug and propagates.
+      debugLog('ImageEditorPage album pick failed: ${e.code}');
+      if (!mounted) return;
+      showErrorDialog(context, message: _l10n.photoPickFailed);
+      return;
+    }
+    final xFile = picked;
+    if (xFile != null && mounted) {
       setState(() {
         _currentPath = xFile.path;
         _sourceReplaced = true;
@@ -362,11 +373,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     return BottomActionButton(
       label: _l10n.confirm,
       onPressed: _canConfirm ? _handleConfirmed : null,
-      leading: Image.asset(
-        'assets/images/ai_process.png',
-        height: AppDimens.iconSmallSize,
-        color: AppColors.textOnPrimary,
-      ),
     );
   }
 

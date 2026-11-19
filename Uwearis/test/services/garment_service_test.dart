@@ -123,8 +123,36 @@ void main() {
         expect(payload['object_name'], 'g/101.jpg');
         expect(payload['purchase_date'], '2025-03-14');
         expect(payload['metadata'], {'note': 'x'});
+        expect(payload.containsKey('style'), isFalse);
       },
     );
+
+    test('completeUpload sends a picked L3 style at the top level', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(_envelope(_garmentJson(102)));
+      });
+
+      await http.runWithClient(
+        () => GarmentService().completeUpload(
+          const Garment(
+            name: 'Overshirt',
+            category: GarmentCategory.top,
+            subCategory: 'Shirts',
+            style: 'Overshirt',
+            uploadUrl: '',
+            objectName: 'g/102.jpg',
+          ),
+          {'style': 'Overshirt'},
+        ),
+        () => client,
+      );
+
+      final payload = jsonDecode(captured.body) as Map<String, dynamic>;
+      expect(payload['sub_category'], 'Shirts');
+      expect(payload['style'], 'Overshirt');
+    });
   });
 
   group('getGarments', () {
@@ -554,6 +582,55 @@ void main() {
     });
   });
 
+  group('getSubCategories', () {
+    test('GETs the lists and parses them', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope([
+            {
+              'category': 'Accessory',
+              'options': [
+                {'value': 'Tote bag', 'label': '托特包'},
+                {'value': 'Other', 'label': '其他'},
+              ],
+            },
+          ]),
+        );
+      });
+
+      final catalog = await http.runWithClient(
+        () => GarmentService().getSubCategories(),
+        () => client,
+      );
+
+      expect(captured.method, 'GET');
+      expect(captured.url.path, endsWith('/garments/sub-categories'));
+      expect(captured.url.queryParameters, isEmpty);
+      expect(catalog.labelFor('Tote bag'), '托特包');
+
+      await http.runWithClient(
+        () => GarmentService().getSubCategories(allGenders: true),
+        () => client,
+      );
+      expect(captured.url.queryParameters, {'gender': 'all'});
+    });
+
+    test('a body without the list throws', () async {
+      final client = MockClient(
+        (_) async => _jsonResponse(_envelope({'items': []})),
+      );
+      await expectLater(
+        http.runWithClient(
+          () => GarmentService().getSubCategories(),
+          () => client,
+        ),
+        throwsException,
+      );
+    });
+  });
+
   group('updateGarment', () {
     test(
       'throws immediately when the garment has no id, without a network call',
@@ -788,6 +865,33 @@ void main() {
       final payload = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(payload.containsKey('crop_length'), isFalse);
       expect(payload['silhouette'], isNull);
+    });
+
+    test('always sends style: a value, or null to clear only the L3', () async {
+      final bodies = <Map<String, dynamic>>[];
+      final client = MockClient((request) async {
+        bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return _jsonResponse(_envelope(_garmentJson(309)));
+      });
+      const base = Garment(
+        id: 309,
+        name: 'Shirt',
+        category: GarmentCategory.top,
+        subCategory: 'Shirts',
+        style: 'Overshirt',
+        uploadUrl: '',
+        objectName: '',
+      );
+
+      await http.runWithClient(() async {
+        await GarmentService().updateGarment(base);
+        await GarmentService().updateGarment(base.copyWith(clearStyle: true));
+      }, () => client);
+
+      expect(bodies[0]['style'], 'Overshirt');
+      expect(bodies[1].containsKey('style'), isTrue);
+      expect(bodies[1]['style'], isNull);
+      expect(bodies[1]['sub_category'], 'Shirts');
     });
   });
 

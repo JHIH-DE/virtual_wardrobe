@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/app/theme/app_text_styles.dart';
+import 'package:uwearis/core/providers/sub_category_provider.dart';
 import 'package:uwearis/data/garment.dart';
+import 'package:uwearis/data/garment_sub_category.dart';
 import 'package:uwearis/features/widgets/garment/garment_image.dart';
 import 'package:uwearis/features/widgets/garment/outfit_garment_row.dart';
 
@@ -27,7 +29,10 @@ Future<void> _pump(WidgetTester tester, LayoutCase c, String name) async {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           children: [
-            OutfitGarmentRow(garment: _garment(name), subtitle: 'Top'),
+            OutfitGarmentRow(
+              garment: _garment(name),
+              category: GarmentCategory.top,
+            ),
           ],
         ),
       ),
@@ -68,5 +73,42 @@ void main() {
     final photo = tester.getRect(find.byType(GarmentImage));
     expect(photo.bottom, lessThanOrEqualTo(tester.getRect(name).top));
     expectNoBrokenWords(tester, name);
+  });
+
+  testWidgets('category line: category, sub-category label, suffix', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: OutfitGarmentRow(
+          garment: Garment(
+            id: 2,
+            name: 'Shirt',
+            category: GarmentCategory.outer,
+            subCategory: 'Button-up shirt',
+            uploadUrl: '',
+            objectName: '',
+            imageUrl: '',
+          ),
+          category: GarmentCategory.top,
+          subtitleSuffix: '2 adjusted',
+        ),
+      ),
+      overrides: [
+        subCategoryCatalogProvider.overrideWith(
+          (ref, _) async => SubCategoryCatalog(const {
+            GarmentCategory.top: [
+              SubCategoryOption(
+                value: 'Button-up shirt',
+                label: 'Shirt (label)',
+              ),
+            ],
+          }),
+        ),
+      ],
+    );
+    await tester.pump();
+    expect(find.text('Top · Shirt (label) · 2 adjusted'), findsOneWidget);
   });
 }

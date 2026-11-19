@@ -198,11 +198,7 @@ void main() {
       host(
         SizedBox(
           width: 160,
-          child: ActionButton(
-            label: label,
-            leading: const Icon(Icons.check),
-            onPressed: () {},
-          ),
+          child: ActionButton(label: label, onPressed: () {}),
         ),
       ),
     );
@@ -232,11 +228,7 @@ void main() {
               child: Builder(
                 builder: (context) {
                   label = AppLocalizations.of(context).createOutfit;
-                  return ActionButton(
-                    label: label,
-                    leading: const Icon(Icons.auto_awesome),
-                    onPressed: () {},
-                  );
+                  return ActionButton(label: label, onPressed: () {});
                 },
               ),
             ),

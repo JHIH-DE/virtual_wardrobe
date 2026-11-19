@@ -38,6 +38,18 @@ void main() {
     ]);
   });
 
+  test('product types sort by their display label when given one', () {
+    const labels = {'Shirt': 'C', 'Sweater': 'A', 'T-Shirt': 'D', 'Tank': 'B'};
+    final f = GarmentColorTypeFilter();
+    expect(f.availableTypes(pool, labelOf: (t) => labels[t]!), [
+      'All',
+      'Sweater',
+      'Tank',
+      'Shirt',
+      'T-Shirt',
+    ]);
+  });
+
   test('filtering by colour is case-insensitive', () {
     final f = GarmentColorTypeFilter()..colors = {'blue'};
     expect(f.isActive, isTrue);
