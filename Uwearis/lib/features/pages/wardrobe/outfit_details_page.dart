@@ -92,6 +92,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   // [isNew] only: Save was tapped, so leaving no longer prompts.
   bool _saved = false;
   bool _isRegenerating = false;
+  // Held from the tap until the flow ends, so a tap during its confirm or
+  // consent check (before [_isRegenerating] is set) opens no second confirm.
+  bool _isRegenerateFlowActive = false;
   // The last regenerate's key while its outcome is unknown: retrying the same
   // outfit reuses it, so a backend that honours keys replays instead of
   // rendering again.
@@ -566,7 +569,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// Re-renders the current version in place. Confirms first: it's a paid
   /// AI call.
   Future<void> _regenerateImage() async {
-    if (_isRegenerating) return;
+    if (_isRegenerating || _isRegenerateFlowActive) return;
+    _isRegenerateFlowActive = true;
+    try {
+      await _confirmAndRegenerate();
+    } finally {
+      _isRegenerateFlowActive = false;
+    }
+  }
+
+  Future<void> _confirmAndRegenerate() async {
     final target = _current;
     final retryingUnknown = _regenerateKeyOutfitId == target.id;
 

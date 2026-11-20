@@ -4,12 +4,18 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+// ignore: depend_on_referenced_packages
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
+import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/daily_outfit_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
+import 'package:uwearis/core/services/auth_storage.dart';
+import 'package:uwearis/core/utils/user_acknowledgement.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/outfit_details_page.dart';
@@ -25,6 +31,24 @@ import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
 import '../../helpers/seeded_notifiers.dart';
+
+/// Secure storage whose reads wait on [hold] while it is set — a slow
+/// keychain, as on a device.
+class _SlowReadStorage extends TestFlutterSecureStoragePlatform {
+  _SlowReadStorage(super.data);
+
+  Completer<void>? hold;
+
+  @override
+  Future<String?> read({
+    required String key,
+    required Map<String, String> options,
+  }) async {
+    final gate = hold;
+    if (gate != null) await gate.future;
+    return super.read(key: key, options: options);
+  }
+}
 
 Outfit _outfit({
   List<String> style = const [],
@@ -1148,6 +1172,251 @@ void main() {
               jsonResponse({'success': false, 'message': 'x'}, status: 422),
         ),
       );
+    });
+
+    // F3: one confirm flow at a time — a double tap used to stack two.
+    group('one confirm at a time', () {
+      final confirms = find.byType(AppDialog);
+      final confirmTitle = find.text('Regenerate this image?');
+
+      Future<void> openPage(WidgetTester tester) async {
+        useTallSurface(tester);
+        await pumpApp(tester, OutfitDetailsPage(outfit: _outfit()));
+        await tester.pump();
+        await tester.pump();
+      }
+
+      /// Two taps inside one frame, before the first confirm is laid out.
+      Future<void> doubleTap(WidgetTester tester) async {
+        await tester.tap(find.byIcon(Icons.refresh).first);
+        await tester.tap(find.byIcon(Icons.refresh).first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      Future<void> cancel(WidgetTester tester) async {
+        await tester.tap(find.byKey(AppDialog.dismissButtonKey).last);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      testWidgets('a double tap opens one confirm; Cancel lets it open again', (
+        tester,
+      ) async {
+        final keys = <String?>[];
+        await http.runWithClient(
+          () async {
+            await openPage(tester);
+            await doubleTap(tester);
+            expect(confirms, findsOneWidget);
+
+            await cancel(tester);
+            expect(confirms, findsNothing);
+            await tester.tap(find.byIcon(Icons.refresh).first);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            expect(confirmTitle, findsOneWidget);
+            await cancel(tester);
+            expect(confirms, findsNothing);
+            expect(keys, isEmpty);
+          },
+          () => recordingClient(
+            keys,
+            onRegenerate: () async => jsonResponse(envelope(regenerated())),
+          ),
+        );
+      });
+
+      testWidgets('a double tap, then Regenerate: one request, and no '
+          'confirm left behind', (tester) async {
+        final keys = <String?>[];
+        final pending = Completer<http.Response>();
+        await http.runWithClient(() async {
+          await openPage(tester);
+          await doubleTap(tester);
+          await tester.tap(find.text('Regenerate').last);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(keys, hasLength(1));
+
+          pending.complete(jsonResponse(envelope(regenerated())));
+          await pumpFor(tester, 1);
+          expect(confirms, findsNothing);
+          expect(keys, hasLength(1));
+          await pumpFor(tester, 5);
+        }, () => recordingClient(keys, onRegenerate: () => pending.future));
+      });
+
+      testWidgets('a tap while the confirmed flow is still checking AI '
+          'consent opens no second confirm and sends one request', (
+        tester,
+      ) async {
+        // The real consent check: it reads the signed-in user id from the
+        // keychain, which this storage holds on demand.
+        final storage = _SlowReadStorage({
+          'access_token': 'fake-access-token',
+          'refresh_token': 'fake-refresh-token',
+        });
+        FlutterSecureStoragePlatform.instance = storage;
+        AuthStorage.debugTrustStoredTokens();
+        SharedPreferences.setMockInitialValues({
+          'ai_consent_v1_unknown': '2026-11-20T00:00:00Z',
+        });
+        UserAcknowledgement.debugGrantedOverride = null;
+        addTearDown(() => UserAcknowledgement.debugGrantedOverride = true);
+
+        final keys = <String?>[];
+        final pending = Completer<http.Response>();
+        await http.runWithClient(() async {
+          await openPage(tester);
+          await tester.tap(find.byIcon(Icons.refresh).first);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(confirmTitle, findsOneWidget);
+
+          final keychain = storage.hold = Completer<void>();
+          await tester.tap(find.text('Regenerate').last);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 50));
+          await tester.tap(
+            find.byIcon(Icons.refresh).first,
+            warnIfMissed: false,
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          final confirmsWhileChecking = confirms.evaluate().length;
+
+          storage.hold = null;
+          keychain.complete();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          final requests = keys.length;
+          pending.complete(jsonResponse(envelope(regenerated())));
+          await pumpFor(tester, 1);
+          final confirmsAfter = confirms.evaluate().length;
+          while (find.byKey(AppDialog.dismissButtonKey).evaluate().isNotEmpty) {
+            await cancel(tester);
+          }
+          await pumpFor(tester, 5);
+
+          expect(
+            {
+              'confirms while checking': confirmsWhileChecking,
+              'requests': requests,
+              'confirms after': confirmsAfter,
+              'requests at end': keys.length,
+            },
+            {
+              'confirms while checking': 0,
+              'requests': 1,
+              'confirms after': 0,
+              'requests at end': 1,
+            },
+          );
+        }, () => recordingClient(keys, onRegenerate: () => pending.future));
+      });
+
+      testWidgets('after a failed regenerate, Regenerate opens again', (
+        tester,
+      ) async {
+        final keys = <String?>[];
+        await http.runWithClient(
+          () async {
+            await openPage(tester);
+            await tester.tap(find.byIcon(Icons.refresh).first);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            await tester.tap(find.text('Regenerate').last);
+            await pumpFor(tester, 1);
+            expect(find.text('Failed to generate outfit'), findsOneWidget);
+            await cancel(tester);
+            expect(confirms, findsNothing);
+
+            await tester.tap(find.byIcon(Icons.refresh).first);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            expect(confirmTitle, findsOneWidget);
+            await cancel(tester);
+            expect(keys, hasLength(1));
+          },
+          () => recordingClient(
+            keys,
+            onRegenerate: () async => jsonResponse({
+              'success': false,
+              'error_code': 'LOOK_GENERATION_FAILED',
+            }, status: 500),
+          ),
+        );
+      });
+
+      testWidgets('a confirm removed by other navigation (the page stays) '
+          'does not block the next tap', (tester) async {
+        final keys = <String?>[];
+        await http.runWithClient(
+          () async {
+            await openPage(tester);
+            await tester.tap(find.byIcon(Icons.refresh).first);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            final dialogRoute = ModalRoute.of(tester.element(confirmTitle))!;
+            Navigator.of(
+              tester.element(find.byType(OutfitDetailsPage)),
+            ).removeRoute(dialogRoute);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            expect(confirms, findsNothing);
+
+            await tester.tap(find.byIcon(Icons.refresh).first);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            expect(confirmTitle, findsOneWidget);
+            await cancel(tester);
+            expect(keys, isEmpty);
+          },
+          () => recordingClient(
+            keys,
+            onRegenerate: () async => jsonResponse(envelope(regenerated())),
+          ),
+        );
+      });
+
+      testWidgets('signed out with the confirm open: no confirm, request or '
+          'error left behind', (tester) async {
+        final keys = <String?>[];
+        await http.runWithClient(
+          () async {
+            await openPage(tester);
+            await tester.tap(find.byIcon(Icons.refresh).first);
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            expect(confirmTitle, findsOneWidget);
+
+            final navigator = Navigator.of(
+              tester.element(find.byType(OutfitDetailsPage)),
+            );
+            await clearSignedInSession();
+            unawaited(
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (_) => const Scaffold(body: Text('Signed out')),
+                ),
+                (_) => false,
+              ),
+            );
+            await tester.pumpAndSettle();
+
+            expect(tester.takeException(), isNull);
+            expect(find.text('Signed out'), findsOneWidget);
+            expect(find.byType(OutfitDetailsPage), findsNothing);
+            expect(confirms, findsNothing);
+            expect(keys, isEmpty);
+          },
+          () => recordingClient(
+            keys,
+            onRegenerate: () async => jsonResponse(envelope(regenerated())),
+          ),
+        );
+      });
     });
 
     testWidgets('a successful regenerate re-reads the balance and shows it', (
