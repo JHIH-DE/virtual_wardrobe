@@ -19,27 +19,29 @@ mixin BaseService {
     };
   }
 
-  Future<String> getSafeToken() async {
-    final token = await AuthStorage.getAccessToken();
-    if (token == null || token.isEmpty) {
-      throw AuthExpiredException();
-    }
-    return token;
-  }
-
   /// On 401, refreshes tokens and retries once.
   ///
   /// [retryOnTimeout]: retry once on [TimeoutException] — idempotent reads
   /// only (the timed-out request has often already woken a cold backend).
   ///
-  /// Throws [AuthExpiredException] only when the session can't be
-  /// recovered; a network failure on the refresh call propagates as-is, so
-  /// callers can tell "logged out" from "server unavailable".
+  /// A timeout or transport error on the request itself propagates as-is,
+  /// so callers can tell "server unavailable" from "logged out".
+  ///
+  /// Throws [AuthExpiredException] when this session can't be recovered: no
+  /// token, or the refresh's outcome is anything but a stored new token
+  /// pair. A retry that 401s again is returned; [decodeMap] turns it into an
+  /// [AuthExpiredException]. Refresh tokens are single-use and the backend
+  /// revokes every session of a user that reuses one, so a sent refresh
+  /// token is never sent again: a refresh that times out, fails in
+  /// transport, or answers non-200 or an incomplete body ends the session
+  /// ([AuthStorage.distrustSession]) instead of being retried.
   ///
   /// The request belongs to the session signed in when it starts. Once that
   /// session has ended, it throws [SessionChangedException] instead of
   /// refreshing, retrying or returning a reply: the next account's tokens
   /// must never carry this request, and its reply isn't that account's data.
+  /// That is not an expiry of the session signed in now, so it must not
+  /// reach [AuthExpiredHandler].
   Future<http.Response> withAuth(
     Future<http.Response> Function(String token) request, {
     bool retryOnTimeout = false,
@@ -68,6 +70,17 @@ mixin BaseService {
 
   void _ensureSession(int epoch) {
     if (AuthStorage.sessionEpoch != epoch) throw SessionChangedException();
+  }
+
+  /// For a flow of several steps (requests, a signed-URL PUT, a download):
+  /// captures the session signed in now — synchronously, when this is
+  /// called — and returns a check that throws [SessionChangedException]
+  /// once that session has ended. Call the check before each further step;
+  /// [withAuth] binds only its own request. A later sign-in, even of the
+  /// same account, never makes it pass again.
+  void Function() sessionGuard() {
+    final epoch = AuthStorage.sessionEpoch;
+    return () => _ensureSession(epoch);
   }
 
   /// Single-flight `/auth/refresh` shared by concurrent 401s of one session:
@@ -214,26 +227,37 @@ mixin BaseService {
   }
 
   /// Decodes a JSON object response. Every failure (non-2xx, malformed
-  /// body) is an [ApiException]; the raw body is only debug-logged, under
-  /// [op].
+  /// body) is an [ApiException]. Failures are debug-logged under [op] with
+  /// status, `error_code` and request id only — never the body, which can
+  /// carry signed URLs, identifiers or personal data.
   Map<String, dynamic> decodeMap(http.Response res, {required String op}) {
     throwIfAuthExpired(res);
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      debugLog('decodeMap: $op failed (${res.statusCode}): ${res.body}');
-      throw ApiException.fromResponse(res);
+      final error = ApiException.fromResponse(res);
+      debugLog(
+        'decodeMap: $op failed (${error.statusCode}) '
+        'error_code=${error.errorCode} request_id=${error.requestId}',
+      );
+      throw error;
     }
     dynamic decoded;
     try {
       decoded = jsonDecode(res.body);
     } catch (e) {
-      debugLog('decodeMap: $op returned invalid JSON: ${res.body}');
+      debugLog(
+        'decodeMap: $op returned invalid JSON '
+        '(${res.statusCode}, ${res.bodyBytes.length} bytes)',
+      );
       throw ApiException(
         statusCode: res.statusCode,
         message: 'Invalid response',
       );
     }
     if (decoded is! Map<String, dynamic>) {
-      debugLog('decodeMap: $op returned a non-object JSON body: ${res.body}');
+      debugLog(
+        'decodeMap: $op returned a non-object JSON body '
+        '(${decoded.runtimeType})',
+      );
       throw ApiException(
         statusCode: res.statusCode,
         message: 'Invalid response',

@@ -9,23 +9,12 @@ import 'package:http/testing.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/services/shared_media_handler.dart';
-import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._items);
-  final List<Garment> _items;
-
-  @override
-  Future<List<Garment>> build() async => _items;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
-}
+import '../helpers/seeded_notifiers.dart';
 
 void main() {
   setUp(setUpFakeAuth);
@@ -45,7 +34,11 @@ void main() {
           return const Scaffold(body: SizedBox());
         },
       ),
-      overrides: [garmentsProvider.overrideWith(() => _FakeGarments(const []))],
+      overrides: [
+        garmentsProvider.overrideWith(
+          () => SeededGarmentsNotifier(const [], refreshReseeds: true),
+        ),
+      ],
     );
     return (context: capturedContext, ref: capturedRef);
   }

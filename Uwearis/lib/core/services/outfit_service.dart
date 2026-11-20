@@ -156,14 +156,7 @@ class OutfitService with BaseService {
         if (parsed.isEmpty) continue;
         final coverOutfitId = (group['cover_outfit_id'] as num?)?.toInt();
         final groupName = group['name'] as String?;
-        // Backend's own default rule when cover_outfit_id is null: the
-        // group's lowest outfit_id (its earliest-created outfit).
-        final representative = coverOutfitId != null
-            ? parsed.firstWhere(
-                (o) => o.id == coverOutfitId,
-                orElse: () => parsed.reduce((a, b) => a.id < b.id ? a : b),
-              )
-            : parsed.reduce((a, b) => a.id < b.id ? a : b);
+        final representative = groupRepresentative(parsed, coverOutfitId);
         outfits.add(
           representative.copyWith(
             versionCount: parsed.length,

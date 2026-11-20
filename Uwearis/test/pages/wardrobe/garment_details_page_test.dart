@@ -557,6 +557,333 @@ void main() {
     });
   });
 
+  group('add mode: form values', () {
+    Finder addToCloset() => find.text('Add to Closet');
+
+    Future<void> openDraft(WidgetTester tester, Garment draft) async {
+      useTallSurface(tester);
+      await pumpApp(tester, GarmentDetailsPage(initialGarment: draft));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    Future<void> pick(WidgetTester tester, String field, String option) async {
+      await tester.tap(find.text(field));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.text(option).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    /// The text field showing [text] now, still found after its text changes.
+    Finder textFieldShowing(WidgetTester tester, String text) {
+      final element = find
+          .byWidgetPredicate(
+            (w) => w is TextField && w.controller?.text == text,
+          )
+          .evaluate()
+          .single;
+      return find.byElementPredicate((e) => identical(e, element));
+    }
+
+    const bottomDraft = Garment(
+      name: 'Wide Pants',
+      category: GarmentCategory.bottom,
+      subCategory: 'Trousers',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: '',
+      fit: 'Relaxed',
+      silhouette: 'Tapered',
+      cropLength: 'Nine-length',
+      brand: 'Uniqlo',
+      price: 1990,
+    );
+
+    testWidgets('a text field edit shows Add to Closet; typing the starting '
+        'text back hides it again', (tester) async {
+      await runWithEmptyCloset(() async {
+        await openDraft(tester, bottomDraft);
+        expect(addToCloset(), findsNothing);
+
+        for (final (start, changed) in [
+          ('Wide Pants', 'Wide Pants 2'),
+          ('Uniqlo', 'Uniqlo U'),
+          ('1990.0', '2490'),
+        ]) {
+          final field = textFieldShowing(tester, start);
+          await tester.enterText(field, changed);
+          await tester.pump();
+          expect(addToCloset(), findsOneWidget, reason: changed);
+          await tester.enterText(field, start);
+          await tester.pump();
+          expect(addToCloset(), findsNothing, reason: start);
+        }
+        // Whitespace is a change to the field as typed.
+        final name = textFieldShowing(tester, 'Wide Pants');
+        await tester.enterText(name, 'Wide Pants ');
+        await tester.pump();
+        expect(addToCloset(), findsOneWidget);
+      });
+    });
+
+    testWidgets('an attribute pick shows Add to Closet; picking the starting '
+        'value back hides it again', (tester) async {
+      await runWithEmptyCloset(() async {
+        await openDraft(tester, bottomDraft);
+
+        await pick(tester, 'Relaxed', 'Oversized');
+        expect(addToCloset(), findsOneWidget);
+        await pick(tester, 'Oversized', 'Relaxed');
+        expect(addToCloset(), findsNothing);
+
+        await pick(tester, 'Tapered', 'Straight');
+        expect(addToCloset(), findsOneWidget);
+        await pick(tester, 'Straight', 'Tapered');
+        expect(addToCloset(), findsNothing);
+      });
+    });
+
+    testWidgets('a category round trip that drops nothing ends unmodified', (
+      tester,
+    ) async {
+      await runWithEmptyCloset(() async {
+        await openDraft(
+          tester,
+          const Garment(
+            name: 'Tee',
+            category: GarmentCategory.top,
+            subCategory: '',
+            uploadUrl: '',
+            objectName: '',
+            imageUrl: '',
+            fit: 'Slim',
+          ),
+        );
+        await pick(tester, 'Top', 'Bottom');
+        expect(addToCloset(), findsOneWidget);
+        await pick(tester, 'Bottom', 'Top');
+        expect(addToCloset(), findsNothing);
+      });
+    });
+
+    testWidgets('a category round trip that drops an attribute stays '
+        'modified', (tester) async {
+      await runWithEmptyCloset(() async {
+        await openDraft(tester, bottomDraft);
+        // Tops have no crop length and Tapered isn't a Top silhouette.
+        await pick(tester, 'Bottom', 'Top');
+        await pick(tester, 'Top', 'Bottom');
+        expect(addToCloset(), findsOneWidget);
+      });
+    });
+
+    testWidgets('bag type and body width count as edits, and undoing them '
+        'counts as unmodified', (tester) async {
+      await runWithEmptyCloset(() async {
+        await openDraft(
+          tester,
+          const Garment(
+            name: 'PORTER Sacoche',
+            category: GarmentCategory.accessory,
+            subCategory: 'Bag',
+            uploadUrl: '',
+            objectName: '',
+            imageUrl: '',
+            bagDetails: BagDetails(
+              bagType: BagType.sacoche,
+              strapWidthClass: StrapWidthClass.thin,
+            ),
+          ),
+        );
+        expect(addToCloset(), findsNothing);
+
+        await pick(tester, 'Thin', 'Wide');
+        expect(addToCloset(), findsOneWidget);
+        await pick(tester, 'Wide', 'Thin');
+        expect(addToCloset(), findsNothing);
+
+        final width = find.widgetWithText(
+          AppTextField,
+          'Measure the body, without the strap',
+        );
+        final widthField = find.descendant(
+          of: width,
+          matching: find.byType(TextField),
+        );
+        final element = widthField.evaluate().single;
+        final stable = find.byElementPredicate((e) => identical(e, element));
+        await tester.enterText(stable, '25');
+        await tester.pump();
+        expect(addToCloset(), findsOneWidget);
+        await tester.enterText(stable, '');
+        await tester.pump();
+        expect(addToCloset(), findsNothing);
+      });
+    });
+
+    testWidgets(
+      'AI metadata reaches the preview and the saved garment with '
+      'the same attributes; only the upload sends an unset crop length as ""',
+      (tester) async {
+        // Real file I/O never completes inside testWidgets' fake-async zone.
+        final tempDir = Directory.systemTemp.createTempSync('garment_photo');
+        final photo = File('${tempDir.path}/photo.jpg')
+          ..writeAsBytesSync(
+            base64Decode(
+              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk'
+              '+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            ),
+          );
+        addTearDown(() => tempDir.deleteSync(recursive: true));
+
+        Map<String, dynamic>? preview;
+        Map<String, dynamic>? complete;
+        final client = MockClient((request) async {
+          final path = request.url.path;
+          if (request.method == 'POST' && path.endsWith('/closet-analysis')) {
+            preview = jsonDecode(request.body) as Map<String, dynamic>;
+            return jsonResponse(
+              envelope({
+                'versatility': {'level': 6, 'label': 'Versatile'},
+                'outfit_ideas': <Object?>[],
+                'similar_garments': <Object?>[],
+              }),
+            );
+          }
+          if (request.method == 'POST' &&
+              path.endsWith('/garments/init-upload')) {
+            return jsonResponse(
+              envelope({
+                'upload_url': 'https://example.com/upload-b6',
+                'object_name': 'obj-b6',
+              }),
+            );
+          }
+          if (request.method == 'PUT') return http.Response('', 200);
+          if (request.method == 'POST' && path.endsWith('/garments/complete')) {
+            complete = jsonDecode(request.body) as Map<String, dynamic>;
+            return jsonResponse(
+              envelope({
+                'id': 700601,
+                'category': 'Outer',
+                'name': 'Coach Jacket',
+                'sub_category': 'Jacket',
+                'image_url': 'https://cdn.example.com/700601.jpg',
+              }),
+            );
+          }
+          return jsonResponse(envelope({'items': []}));
+        });
+
+        await http.runWithClient(() async {
+          useTallSurface(tester);
+          await pumpApp(
+            tester,
+            Builder(
+              builder: (context) => Scaffold(
+                body: ElevatedButton(
+                  onPressed: () => Navigator.push<Garment>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GarmentDetailsPage(
+                        initialGarment: Garment(
+                          name: '',
+                          category: GarmentCategory.top,
+                          subCategory: '',
+                          uploadUrl: '',
+                          objectName: '',
+                          imageUrl: photo.path,
+                        ),
+                        initialAnalysisData: const {
+                          'name': 'Coach Jacket',
+                          'category': 'Outer',
+                          'sub_category': 'Jacket',
+                          'fit': 'Regular',
+                          'silhouette': 'Boxy',
+                          'sleeve_length': 'Long',
+                          'closure': 'Button',
+                          'material': 'nylon',
+                        },
+                      ),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          );
+          await tester.tap(find.text('open'));
+          await tester.pumpAndSettle();
+
+          // Surrounding spaces are trimmed in both requests.
+          await tester.enterText(
+            textFieldShowing(tester, 'Coach Jacket'),
+            '  Coach Jacket  ',
+          );
+          await tester.pump();
+
+          await openAnalysisSheet(tester);
+          await closeAnalysisSheet(tester);
+
+          await tester.tap(addToCloset());
+          for (var i = 0; i < 6; i++) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 50)),
+            );
+            await tester.pump();
+          }
+          await tester.pump(const Duration(milliseconds: 500));
+        }, () => client);
+
+        expect(preview, {
+          'name': 'Coach Jacket',
+          'category': 'Outer',
+          'sub_category': 'Jacket',
+          'style': null,
+          'brand': null,
+          'color': null,
+          'fit': 'Regular',
+          'silhouette': 'Boxy',
+          'sleeve_length': 'Long',
+          'closure': 'Button',
+          'crop_length': null,
+          'material': 'nylon',
+        });
+
+        expect(complete, isNotNull);
+        final metadata = complete!['metadata'] as Map<String, dynamic>;
+        expect(complete!['name'], 'Coach Jacket');
+        expect(complete!['category'], 'Outer');
+        expect(complete!['sub_category'], 'Jacket');
+        expect(complete!.containsKey('style'), isFalse);
+        expect(complete!['object_name'], 'obj-b6');
+        expect(complete!['brand'], isNull);
+        expect(complete!['color'], isNull);
+        expect(complete!['price'], isNull);
+        expect(complete!['purchase_date'], isNull);
+        expect(complete!['is_owned'], isTrue);
+        expect(metadata, {
+          'name': 'Coach Jacket',
+          'category': 'Outer',
+          'sub_category': 'Jacket',
+          'material': 'nylon',
+          'style': null,
+          'fit': 'Regular',
+          'silhouette': 'Boxy',
+          'sleeve_length': 'Long',
+          'closure': 'Button',
+          'crop_length': '',
+          'bag_details': null,
+        });
+        for (final key in ['fit', 'silhouette', 'sleeve_length', 'closure']) {
+          expect(metadata[key], preview![key], reason: key);
+        }
+      },
+    );
+  });
+
   group('product type', () {
     final catalog = SubCategoryCatalog(const {
       GarmentCategory.top: [
@@ -1129,6 +1456,173 @@ void main() {
       }, () => client);
     },
   );
+
+  group('Closet Match sheet', () {
+    Garment savedGarment(int id) => Garment(
+      id: id,
+      name: 'Black Leather Moc Toe Work Boots',
+      category: GarmentCategory.shoes,
+      subCategory: 'Boots',
+      uploadUrl: '',
+      objectName: '',
+      imageUrl: '',
+    );
+
+    Map<String, dynamic> analysisJson({
+      int level = 8,
+      List<Map<String, dynamic>> ideaGarments = const [],
+    }) => {
+      'versatility': {'level': level, 'label': 'Versatile'},
+      'outfit_ideas': [
+        if (ideaGarments.isNotEmpty)
+          {'title': 'Idea', 'garments': ideaGarments},
+      ],
+      'similar_garments': <Object?>[],
+    };
+
+    testWidgets('the versatility bar fills one segment per level, of 10', (
+      tester,
+    ) async {
+      final client = MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/closet-analysis')) {
+          return jsonResponse(envelope(analysisJson(level: 3)));
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          GarmentDetailsPage(initialGarment: savedGarment(7701)),
+        );
+        await tester.pump();
+        await tester.pump();
+        await openAnalysisSheet(tester);
+
+        Finder segments(Color color) => find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints == const BoxConstraints.tightFor(height: 8) &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).color == color,
+        );
+        expect(find.text('3/10'), findsOneWidget);
+        expect(segments(AppColors.accent), findsNWidgets(3));
+        expect(segments(AppColors.borderSubtle), findsNWidgets(7));
+      }, () => client);
+    });
+
+    testWidgets('closing the sheet mid-run does not cancel the analysis: '
+        'reopening shows its result without a second run', (tester) async {
+      final reply = Completer<http.Response>();
+      var runs = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/closet-analysis')) {
+          runs++;
+          return reply.future;
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          GarmentDetailsPage(initialGarment: savedGarment(7702)),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        await openAnalysisSheet(tester);
+        expect(find.byType(LoadingOverlay), findsOneWidget);
+
+        await closeAnalysisSheet(tester);
+        expect(find.byType(BottomSheet), findsNothing);
+
+        reply.complete(jsonResponse(envelope(analysisJson())));
+        await tester.pump();
+        await tester.pump();
+
+        await openAnalysisSheet(tester);
+        expect(find.text('8/10'), findsOneWidget);
+        expect(find.byType(LoadingOverlay), findsNothing);
+        expect(runs, 1);
+      }, () => client);
+    });
+
+    testWidgets('an idea garment whose signed URL already expired is '
+        're-signed before showing, and the fresh URL is written back to the '
+        'persisted result', (tester) async {
+      const expired =
+          'https://storage.example/g.png'
+          '?X-Goog-Date=20200101T000000Z&X-Goog-Expires=60';
+      const fresh = 'https://img.example/fresh-7731.png';
+      final garmentReads = <Uri>[];
+      final client = MockClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/closet-analysis')) {
+          return jsonResponse(
+            envelope(
+              analysisJson(
+                ideaGarments: [
+                  {
+                    'garment_id': 7731,
+                    'category': 'Bottom',
+                    'name': 'Wide Tapered Denim Pants',
+                    'image_url': expired,
+                    'is_target': false,
+                  },
+                ],
+              ),
+            ),
+          );
+        }
+        if (request.method == 'GET' &&
+            request.url.path.endsWith('/garments/7731')) {
+          garmentReads.add(request.url);
+          return jsonResponse(
+            envelope({
+              'id': 7731,
+              'category': 'Bottom',
+              'name': 'Wide Tapered Denim Pants',
+              'sub_category': 'Jeans',
+              'image_url': fresh,
+              'is_favorite': false,
+              'is_deleted': false,
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          GarmentDetailsPage(initialGarment: savedGarment(7703)),
+        );
+        await tester.pump();
+        await tester.pump();
+        await openAnalysisSheet(tester);
+        await tester.pump();
+        await tester.pump();
+
+        expect(garmentReads, isNotEmpty);
+        expect(garmentReads.first.queryParameters['include_deleted'], 'true');
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is GarmentImage && w.garmentId == 7731 && w.url == fresh,
+          ),
+          findsOneWidget,
+        );
+        final persisted = await GarmentService().cachedClosetAnalysis(7703);
+        expect(persisted!.outfitIdeas.single.garments.single.imageUrl, fresh);
+      }, () => client);
+    });
+  });
 
   testWidgets('edit mode: the View Match button opens the Closet Match sheet, '
       'which runs it and shows the versatility result', (tester) async {
@@ -2663,7 +3157,7 @@ void main() {
         // the newer write. Our rollback (to unfavorited) must not undo it.
         container
             .read(garmentsProvider.notifier)
-            .updateFavorite(id, isFavorite: true);
+            .updateFavoriteOptimistically(id, isFavorite: true);
         await release(tester, patchGates); // our favorite's PATCH fails
 
         expect(providerFavorite(), isTrue);

@@ -204,6 +204,39 @@ void main() {
       },
     );
 
+    test('falls back to the lowest outfit_id when cover_outfit_id names no '
+        'outfit in the group', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(
+          _envelope({
+            'items': [
+              {
+                'group_id': 40,
+                'name': null,
+                'cover_outfit_id': 99,
+                'outfits': [
+                  _outfitJson(outfitId: 70, groupId: 40),
+                  _outfitJson(outfitId: 65, groupId: 40),
+                  _outfitJson(outfitId: 68, groupId: 40),
+                ],
+              },
+            ],
+          }),
+        ),
+      );
+
+      final outfits = await http.runWithClient(
+        () => OutfitService().getAllOutfits(),
+        () => client,
+      );
+
+      expect(outfits.single.id, 65);
+      // The group's own value is still carried, even though it matched
+      // no version.
+      expect(outfits.single.coverOutfitId, 99);
+      expect(outfits.single.versionCount, 3);
+    });
+
     test('skips a group whose outfits list is empty', () async {
       final client = MockClient(
         (request) async => _jsonResponse(

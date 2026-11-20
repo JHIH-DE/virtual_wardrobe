@@ -160,7 +160,10 @@ void main() {
     test("a rollback doesn't undo a newer write made before it", () {
       return run((n) async {
         final older = n.updateFavoriteOptimistically(1, isFavorite: true);
-        n.updateFavorite(1, isFavorite: true); // another screen, confirmed
+        n.updateFavoriteOptimistically(
+          1,
+          isFavorite: true,
+        ); // another screen, confirmed
         n.settleFavorite(1, older, isFavorite: false); // older PATCH failed
 
         expect(fav(), isTrue);

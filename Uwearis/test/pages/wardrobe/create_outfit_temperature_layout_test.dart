@@ -3,17 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
-import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/text_scale_harness.dart';
 import '../../helpers/widget_harness.dart';
-
-class _EmptyCloset extends GarmentsNotifier {
-  @override
-  Future<List<Garment>> build() async => const [];
-}
+import '../../helpers/seeded_notifiers.dart';
 
 /// Today's mean temperature is exactly [mean] (high == low == mean).
 class _FixedWeather extends WeatherNotifier {
@@ -73,7 +68,9 @@ void main() {
           tester,
           const CreateOutfitPage(),
           overrides: [
-            garmentsProvider.overrideWith(_EmptyCloset.new),
+            garmentsProvider.overrideWith(
+              () => SeededGarmentsNotifier(const []),
+            ),
             weatherProvider.overrideWith(() => _FixedWeather(t)),
           ],
         );

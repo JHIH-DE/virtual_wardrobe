@@ -20,7 +20,6 @@ import 'package:uwearis/core/services/garment_service.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/garment_sub_category.dart';
 import 'package:uwearis/data/location_result.dart';
-import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/user_profile.dart';
@@ -37,31 +36,13 @@ import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 // C3: a single AI call whose session ends before its reply lands. The
 // reply is a SessionChangedException (withAuth); whatever ended the session
 // owns the UI, so the page shows no failure / Retry, applies nothing, starts
 // nothing more, and clears its loading. Same-session 500 / 401 / success
 // are unchanged.
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._seed);
-  final List<Garment> _seed;
-
-  @override
-  Future<List<Garment>> build() async => _seed;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_seed);
-}
-
-class _FakeOutfits extends OutfitsNotifier {
-  @override
-  Future<List<Outfit>> build() async => const [];
-
-  @override
-  Future<void> refresh() async => state = const AsyncData([]);
-}
 
 class _FakeWeather extends WeatherNotifier {
   @override
@@ -105,7 +86,9 @@ final _closet = [
 ];
 
 List<Override> _createOutfitOverrides() => [
-  garmentsProvider.overrideWith(() => _FakeGarments(_closet)),
+  garmentsProvider.overrideWith(
+    () => SeededGarmentsNotifier(_closet, refreshReseeds: true),
+  ),
   adjustmentOptionsProvider.overrideWith((ref, _) async => const {}),
   subCategoryCatalogProvider.overrideWith(
     (ref, _) async => SubCategoryCatalog(const {}),
@@ -570,8 +553,12 @@ final _entries = <_Entry>[
   _Entry(
     name: 'TripSuitcasePage._generatePlan',
     overrides: [
-      garmentsProvider.overrideWith(() => _FakeGarments(_closet)),
-      outfitsProvider.overrideWith(_FakeOutfits.new),
+      garmentsProvider.overrideWith(
+        () => SeededGarmentsNotifier(_closet, refreshReseeds: true),
+      ),
+      outfitsProvider.overrideWith(
+        () => SeededOutfitsNotifier(const [], refreshReseeds: true),
+      ),
     ],
     open: (tester, root) =>
         _pushPage(tester, root, TripSuitcasePage(trip: _trip())),

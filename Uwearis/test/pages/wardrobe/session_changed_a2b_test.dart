@@ -22,22 +22,12 @@ import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 // Finding #1, batch A2 (second): a product-type picker, the adjust-details
 // sheet and two profile pages wait on a provider's load. A load that ends
 // after its session did fails with SessionChangedException; each entry
 // point runs the same five scenarios as the earlier batches.
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._seed);
-  final List<Garment> _seed;
-
-  @override
-  Future<List<Garment>> build() async => _seed;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_seed);
-}
 
 const _tee = Garment(
   id: 1,
@@ -189,7 +179,9 @@ final _entries = <_Entry>[
   _Entry(
     name: 'CreateOutfitPage._openAdjustDetailsSheet',
     overrides: [
-      garmentsProvider.overrideWith(() => _FakeGarments(const [_tee])),
+      garmentsProvider.overrideWith(
+        () => SeededGarmentsNotifier(const [_tee], refreshReseeds: true),
+      ),
     ],
     open: (tester, root) => _pushPage(
       tester,

@@ -29,6 +29,7 @@ import 'package:uwearis/features/widgets/outfit/outfit_card.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 // Finding #1, batch A1-b: Home / Today / Trips / Settings actions whose
 // reply lands after their session ended get SessionChangedException. Each
@@ -55,25 +56,6 @@ class _FakeOutfits extends OutfitsNotifier {
 
   @override
   Future<void> refresh() async {}
-}
-
-class _FakeTrips extends TripsNotifier {
-  _FakeTrips(this._seed);
-  final List<Trip> _seed;
-
-  @override
-  Future<List<Trip>> build() async => _seed;
-}
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._seed);
-  final List<Garment> _seed;
-
-  @override
-  Future<List<Garment>> build() async => _seed;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_seed);
 }
 
 final _trip = Trip(
@@ -303,7 +285,7 @@ final _entries = <_Entry>[
   _Entry(
     name: 'handleRenameTrip',
     overrides: [
-      tripsProvider.overrideWith(() => _FakeTrips([_trip])),
+      tripsProvider.overrideWith(() => SeededTripsNotifier([_trip])),
     ],
     open: _pushBase,
     trigger: (tester) async {
@@ -321,7 +303,7 @@ final _entries = <_Entry>[
   _Entry(
     name: 'handleDeleteTrip',
     overrides: [
-      tripsProvider.overrideWith(() => _FakeTrips([_trip])),
+      tripsProvider.overrideWith(() => SeededTripsNotifier([_trip])),
     ],
     open: _pushBase,
     trigger: (tester) async {
@@ -340,7 +322,7 @@ final _entries = <_Entry>[
   _Entry(
     name: 'TripDetailsPage._updateTrip',
     overrides: [
-      tripsProvider.overrideWith(() => _FakeTrips([_trip])),
+      tripsProvider.overrideWith(() => SeededTripsNotifier([_trip])),
     ],
     open: (tester, root) async {
       await _pushPage(tester, root, TripDetailsPage(trip: _trip));
@@ -388,7 +370,11 @@ final _entries = <_Entry>[
   ),
   _Entry(
     name: 'TripSuitcasePage._commitChanges',
-    overrides: [garmentsProvider.overrideWith(() => _FakeGarments(_closet))],
+    overrides: [
+      garmentsProvider.overrideWith(
+        () => SeededGarmentsNotifier(_closet, refreshReseeds: true),
+      ),
+    ],
     open: (tester, root) =>
         _pushPage(tester, root, TripSuitcasePage(trip: _trip)),
     trigger: (tester) async {
@@ -427,7 +413,9 @@ final _entries = <_Entry>[
           Outfit(id: 50, imageUrl: '', garmentIds: const [1, 3]),
         ]),
       ),
-      garmentsProvider.overrideWith(() => _FakeGarments(_closet)),
+      garmentsProvider.overrideWith(
+        () => SeededGarmentsNotifier(_closet, refreshReseeds: true),
+      ),
     ],
     open: (tester, root) =>
         _pushPage(tester, root, TripSuitcasePage(trip: _trip)),

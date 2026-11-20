@@ -53,9 +53,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get facePhotoGuidance => 'Face forward in good lighting.';
 
   @override
-  String get faceReferenceComingSoon => 'Coming soon';
-
-  @override
   String get fullBodyPhotoLabel => 'Full-Body Photo';
 
   @override
@@ -342,11 +339,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noneLabel => 'None';
-
-  @override
-  String selectItemTitle(String item) {
-    return 'Select $item';
-  }
 
   @override
   String get notSelected => 'Not selected';
@@ -858,9 +850,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chooseFromAlbumLabel => 'Album';
-
-  @override
-  String get back => 'Back';
 
   @override
   String get failedToLoad => 'Failed to Load';
@@ -1420,9 +1409,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failedToCreateTrip => 'Failed to create trip';
-
-  @override
-  String get tripPlannerTitle => 'Trip Planner';
 
   @override
   String get loadingTripEllipsis => 'Loading Trip…';

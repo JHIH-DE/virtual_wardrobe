@@ -31,7 +31,7 @@ Map<String, dynamic> _envelope(Object? data) => {
 void main() {
   setUp(setUpFakeAuth);
 
-  group('getMyProfile', () {
+  group('getMyProfileData: profile fields', () {
     test('GETs the profile root and parses a typed UserProfile', () async {
       late http.Request captured;
       final client = MockClient((request) async {
@@ -51,10 +51,10 @@ void main() {
         );
       });
 
-      final profile = await http.runWithClient(
-        () => ProfileService().getMyProfile(),
+      final profile = (await http.runWithClient(
+        () => ProfileService().getMyProfileData(),
         () => client,
-      );
+      )).profile;
 
       expect(captured.url.toString(), _base);
       expect(profile.name, 'Jason');
@@ -73,10 +73,10 @@ void main() {
         (request) async => _jsonResponse(_envelope({'name': 'Jason'})),
       );
 
-      final profile = await http.runWithClient(
-        () => ProfileService().getMyProfile(),
+      final profile = (await http.runWithClient(
+        () => ProfileService().getMyProfileData(),
         () => client,
-      );
+      )).profile;
 
       expect(profile.birthDate, isNull);
       expect(profile.height, isNull);
@@ -262,13 +262,11 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        await ProfileService().deleteAvatar();
         await ProfileService().deleteBodyRef();
         await ProfileService().deleteFaceRef();
       }, () => client);
 
       expect(calls, [
-        'DELETE $_base/avatar',
         'DELETE $_base/body-reference',
         'DELETE $_base/face-reference',
       ]);

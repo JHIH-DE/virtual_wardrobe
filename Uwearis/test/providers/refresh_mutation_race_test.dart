@@ -185,7 +185,7 @@ void main() {
     test('a favorite set while a refresh is in flight survives it', () {
       return run(() async {
         final refresh = (await heldRefresh()).done;
-        notifier().updateFavorite(2, isFavorite: true);
+        notifier().updateFavoriteOptimistically(2, isFavorite: true);
 
         await backend.release([0]);
         await refresh;
@@ -211,8 +211,14 @@ void main() {
         'rolled back', () {
       return run(() async {
         final refresh = (await heldRefresh()).done;
-        notifier().updateFavorite(2, isFavorite: true); // optimistic
-        notifier().updateFavorite(2, isFavorite: false); // request failed
+        notifier().updateFavoriteOptimistically(
+          2,
+          isFavorite: true,
+        ); // optimistic
+        notifier().updateFavoriteOptimistically(
+          2,
+          isFavorite: false,
+        ); // request failed
 
         await backend.release([0]);
         await refresh;
@@ -580,8 +586,8 @@ void main() {
           ..removeGarment(3)
           ..removeGarment(2)
           ..addGarment(_garment(2, name: 'Back'))
-          ..updateFavorite(1, isFavorite: true)
-          ..updateFavorite(1, isFavorite: false);
+          ..updateFavoriteOptimistically(1, isFavorite: true)
+          ..updateFavoriteOptimistically(1, isFavorite: false);
         final local = state().value!;
 
         await backend.release([0]);
@@ -694,7 +700,7 @@ void main() {
           ..hold = true;
         final refresh = notifier().refresh();
         await _settle();
-        notifier().updateFavorite(1, isFavorite: true);
+        notifier().updateFavoriteOptimistically(1, isFavorite: true);
 
         await backend.release([0]);
         await refresh;
@@ -808,7 +814,7 @@ void main() {
           // A confirmed favorite: on the server before B's request.
           between: () {
             backend.items[0] = _garmentJson(1, fav: true);
-            notifier().updateFavorite(1, isFavorite: true);
+            notifier().updateFavoriteOptimistically(1, isFavorite: true);
           },
         );
         final gates = [...backend.held];

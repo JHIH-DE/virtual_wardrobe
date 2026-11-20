@@ -183,12 +183,6 @@ abstract class AppLocalizations {
   /// **'Face forward in good lighting.'**
   String get facePhotoGuidance;
 
-  /// No description provided for @faceReferenceComingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get faceReferenceComingSoon;
-
   /// No description provided for @fullBodyPhotoLabel.
   ///
   /// In en, this message translates to:
@@ -692,12 +686,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'None'**
   String get noneLabel;
-
-  /// No description provided for @selectItemTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Select {item}'**
-  String selectItemTitle(String item);
 
   /// No description provided for @notSelected.
   ///
@@ -1652,12 +1640,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Album'**
   String get chooseFromAlbumLabel;
-
-  /// No description provided for @back.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get back;
 
   /// No description provided for @failedToLoad.
   ///
@@ -2750,12 +2732,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to create trip'**
   String get failedToCreateTrip;
-
-  /// No description provided for @tripPlannerTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Trip Planner'**
-  String get tripPlannerTitle;
 
   /// No description provided for @loadingTripEllipsis.
   ///

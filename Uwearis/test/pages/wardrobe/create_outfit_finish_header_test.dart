@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
-import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
 import 'package:uwearis/features/widgets/common/cards/app_card_shell.dart';
@@ -11,11 +10,7 @@ import 'package:uwearis/l10n/generated/app_localizations.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/text_scale_harness.dart';
 import '../../helpers/widget_harness.dart';
-
-class _EmptyCloset extends GarmentsNotifier {
-  @override
-  Future<List<Garment>> build() async => const [];
-}
+import '../../helpers/seeded_notifiers.dart';
 
 void main() {
   setUpAll(loadAppFont);
@@ -33,7 +28,9 @@ void main() {
       await pumpApp(
         tester,
         const CreateOutfitPage(),
-        overrides: [garmentsProvider.overrideWith(_EmptyCloset.new)],
+        overrides: [
+          garmentsProvider.overrideWith(() => SeededGarmentsNotifier(const [])),
+        ],
       );
       await tester.pump();
 

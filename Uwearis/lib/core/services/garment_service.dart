@@ -15,7 +15,6 @@ import '../config/app_config.dart';
 import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
-import 'auth_storage.dart';
 import 'base_service.dart';
 import 'points_service.dart';
 
@@ -111,11 +110,7 @@ class GarmentService with BaseService {
     required (Garment, Map<String, dynamic>) Function(InitUploadResult init)
     describe,
   }) async {
-    final session = AuthStorage.sessionEpoch;
-    void ensureSession() {
-      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
-    }
-
+    final ensureSession = sessionGuard();
     final init = await initUpload();
     ensureSession();
     await putJpegToSignedUrl(init.uploadUrl, localPath);
@@ -425,11 +420,7 @@ class GarmentService with BaseService {
   /// has ended, the photo isn't sent — the charge would land on the next
   /// account — and it throws [SessionChangedException].
   Future<Map<String, dynamic>> reanalyzeGarment(int garmentId) async {
-    final session = AuthStorage.sessionEpoch;
-    void ensureSession() {
-      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
-    }
-
+    final ensureSession = sessionGuard();
     final garment = await getGarment(garmentId);
     debugLog('--- reanalyzeGarment: $garmentId ---');
     final imageUrl = garment.imageUrl;

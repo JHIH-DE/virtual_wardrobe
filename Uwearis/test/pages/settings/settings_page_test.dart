@@ -21,14 +21,7 @@ import 'package:uwearis/features/widgets/common/profile_avatar.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
-
-class _FakeOutfits extends OutfitsNotifier {
-  _FakeOutfits(this._items);
-  final List<Outfit> _items;
-
-  @override
-  Future<List<Outfit>> build() async => _items;
-}
+import '../../helpers/seeded_notifiers.dart';
 
 void main() {
   setUp(() {
@@ -171,7 +164,7 @@ void main() {
           tester,
           const SettingsPage(),
           overrides: [
-            outfitsProvider.overrideWith(() => _FakeOutfits(outfits)),
+            outfitsProvider.overrideWith(() => SeededOutfitsNotifier(outfits)),
           ],
         );
         await tester.pumpAndSettle();

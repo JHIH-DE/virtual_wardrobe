@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -12,17 +11,7 @@ import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._items);
-  final List<Garment> _items;
-
-  @override
-  Future<List<Garment>> build() async => _items;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
-}
+import '../../helpers/seeded_notifiers.dart';
 
 Garment _garment(int id, String name, GarmentCategory category) => Garment(
   id: id,
@@ -92,7 +81,11 @@ void main() {
           ),
         ),
       ),
-      overrides: [garmentsProvider.overrideWith(() => _FakeGarments(closet))],
+      overrides: [
+        garmentsProvider.overrideWith(
+          () => SeededGarmentsNotifier(closet, refreshReseeds: true),
+        ),
+      ],
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();

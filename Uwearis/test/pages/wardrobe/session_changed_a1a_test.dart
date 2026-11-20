@@ -22,6 +22,7 @@ import 'package:uwearis/features/widgets/garment/garment_detail_dialog.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 // Finding #1, batch A1-a: Outfit / Garment Details actions whose reply
 // lands after their session ended get SessionChangedException. Each entry
@@ -52,11 +53,6 @@ class _FakeOutfits extends OutfitsNotifier {
     _outfitWrites.add('updateGroupName $groupId');
     super.updateGroupName(groupId, name: name);
   }
-}
-
-class _FakeDailyOutfits extends DailyOutfitNotifier {
-  @override
-  Future<List<Outfit>> build() async => const [];
 }
 
 Map<String, dynamic> _versionJson(int id, int groupId, {String? name}) => {
@@ -215,7 +211,9 @@ final _entries = <_Entry>[
     name: 'OutfitDetailsPage._saveTags',
     overrides: [
       outfitsProvider.overrideWith(() => _FakeOutfits(const [])),
-      dailyOutfitProvider.overrideWith(_FakeDailyOutfits.new),
+      dailyOutfitProvider.overrideWith(
+        () => SeededDailyOutfitNotifier(const []),
+      ),
     ],
     open: (tester, root) => _pushPage(
       tester,
@@ -249,7 +247,9 @@ final _entries = <_Entry>[
     name: 'OutfitDetailsPage._setCover',
     overrides: [
       outfitsProvider.overrideWith(() => _FakeOutfits(const [])),
-      dailyOutfitProvider.overrideWith(_FakeDailyOutfits.new),
+      dailyOutfitProvider.overrideWith(
+        () => SeededDailyOutfitNotifier(const []),
+      ),
     ],
     groupVersions: {
       902: [
@@ -282,7 +282,9 @@ final _entries = <_Entry>[
     name: 'OutfitDetailsPage._deleteThisOutfit',
     overrides: [
       outfitsProvider.overrideWith(() => _FakeOutfits([_outfit(903)])),
-      dailyOutfitProvider.overrideWith(_FakeDailyOutfits.new),
+      dailyOutfitProvider.overrideWith(
+        () => SeededDailyOutfitNotifier(const []),
+      ),
     ],
     groupVersions: {
       903: [
@@ -309,7 +311,9 @@ final _entries = <_Entry>[
     name: 'OutfitDetailsPage._confirmThenDeleteGroup',
     overrides: [
       outfitsProvider.overrideWith(() => _FakeOutfits([_outfit(904)])),
-      dailyOutfitProvider.overrideWith(_FakeDailyOutfits.new),
+      dailyOutfitProvider.overrideWith(
+        () => SeededDailyOutfitNotifier(const []),
+      ),
     ],
     groupVersions: {
       904: [_versionJson(1, 904)],
@@ -331,7 +335,9 @@ final _entries = <_Entry>[
     name: 'OutfitDetailsPage._leaveNewOutfit',
     overrides: [
       outfitsProvider.overrideWith(() => _FakeOutfits([_outfit(905)])),
-      dailyOutfitProvider.overrideWith(_FakeDailyOutfits.new),
+      dailyOutfitProvider.overrideWith(
+        () => SeededDailyOutfitNotifier(const []),
+      ),
     ],
     groupVersions: {
       905: [_versionJson(1, 905)],
@@ -357,7 +363,9 @@ final _entries = <_Entry>[
     name: 'OutfitDetailsPage._showRenameDialog',
     overrides: [
       outfitsProvider.overrideWith(() => _FakeOutfits([_outfit(906)])),
-      dailyOutfitProvider.overrideWith(_FakeDailyOutfits.new),
+      dailyOutfitProvider.overrideWith(
+        () => SeededDailyOutfitNotifier(const []),
+      ),
     ],
     groupVersions: {
       906: [_versionJson(1, 906)],

@@ -111,16 +111,6 @@ class AppTextStyle {
     color: AppColors.textPrimary,
   );
 
-  static const TextStyle bold15 = TextStyle(
-    fontFamily: 'NotoSansTC',
-    fontSize: 15,
-    fontWeight: FontWeight.w700,
-    fontVariations: [FontVariation('wght', 700)],
-    leadingDistribution: TextLeadingDistribution.even,
-    letterSpacing: 0,
-    color: AppColors.textPrimary,
-  );
-
   static const TextStyle bold14 = TextStyle(
     fontFamily: 'NotoSansTC',
     fontSize: 14,
@@ -184,16 +174,6 @@ class AppTextStyle {
     leadingDistribution: TextLeadingDistribution.even,
     letterSpacing: 0,
     color: AppColors.textPrimary,
-  );
-
-  static const TextStyle medium13 = TextStyle(
-    fontFamily: 'NotoSansTC',
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
-    fontVariations: [FontVariation('wght', 500)],
-    leadingDistribution: TextLeadingDistribution.even,
-    letterSpacing: 0,
-    color: AppColors.textSecondary,
   );
 
   // ── Regular (w400) ────────────────────────────────────────────────────

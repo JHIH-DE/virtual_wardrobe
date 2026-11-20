@@ -4,7 +4,6 @@ import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/providers/style_profile_provider.dart';
 import 'package:uwearis/core/providers/style_taste_provider.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
-import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/data/style_profile.dart';
 import 'package:uwearis/data/style_taste.dart';
 import 'package:uwearis/features/pages/settings/style_taste_page.dart';
@@ -12,6 +11,7 @@ import 'package:uwearis/l10n/generated/app_localizations_en.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 final _l10n = AppLocalizationsEn();
 
@@ -28,11 +28,6 @@ class _FailingStyleTasteNotifier extends StyleTasteProfileNotifier {
 class _EmptyStyleProfileNotifier extends StyleProfileNotifier {
   @override
   Future<List<StyleProfileItem>> build() async => const [];
-}
-
-class _EmptyOutfitsNotifier extends OutfitsNotifier {
-  @override
-  Future<List<Outfit>> build() async => const [];
 }
 
 void main() {
@@ -53,7 +48,7 @@ void main() {
       overrides: [
         styleTasteProfileProvider.overrideWith(_FailingStyleTasteNotifier.new),
         styleProfileProvider.overrideWith(_EmptyStyleProfileNotifier.new),
-        outfitsProvider.overrideWith(_EmptyOutfitsNotifier.new),
+        outfitsProvider.overrideWith(() => SeededOutfitsNotifier(const [])),
       ],
     );
     await tester.pump();

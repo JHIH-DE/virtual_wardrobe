@@ -32,6 +32,7 @@ import 'package:uwearis/features/widgets/common/wardrobe_nav_bar.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 // Finding #1, batch A2 (provider futures): entry points that wait on a
 // provider's load before opening a page. A load that ends after its session
@@ -52,11 +53,6 @@ class _FakeDailyOutfits extends DailyOutfitNotifier {
 
   @override
   Future<void> refresh() async {}
-}
-
-class _FakeTrips extends TripsNotifier {
-  @override
-  Future<List<Trip>> build() async => const [];
 }
 
 class _FakeWeather extends WeatherNotifier {
@@ -321,7 +317,7 @@ final _entries = <_Entry>[
     overrides: [
       dailyOutfitProvider.overrideWith(_FakeDailyOutfits.new),
       outfitsProvider.overrideWith(_FakeOutfits.new),
-      tripsProvider.overrideWith(_FakeTrips.new),
+      tripsProvider.overrideWith(() => SeededTripsNotifier(const [])),
       weatherProvider.overrideWith(_FakeWeather.new),
       profileProvider.overrideWith(_FakeProfile.new),
     ],

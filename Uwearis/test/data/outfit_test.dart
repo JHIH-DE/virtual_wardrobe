@@ -226,4 +226,63 @@ void main() {
       expect(json['is_favorite'], true);
     });
   });
+
+  group('groupRepresentative', () {
+    Outfit v(int id, {String? name}) => Outfit(
+      id: id,
+      groupId: 1,
+      name: name,
+      imageUrl: '',
+      style: const [],
+      garmentIds: const [],
+    );
+
+    test('the cover when it is one of the versions', () {
+      expect(groupRepresentative([v(4), v(2), v(7)], 7).id, 7);
+    });
+
+    test('the lowest id when the cover names none of the versions', () {
+      expect(groupRepresentative([v(4), v(2), v(7)], 99).id, 2);
+    });
+
+    test('the lowest id when there is no cover', () {
+      expect(groupRepresentative([v(4), v(2), v(7)], null).id, 2);
+    });
+
+    test('does not depend on the versions\' order', () {
+      for (final order in [
+        [v(2), v(4), v(7)],
+        [v(7), v(4), v(2)],
+        [v(4), v(7), v(2)],
+      ]) {
+        expect(groupRepresentative(order, null).id, 2);
+        expect(groupRepresentative(order, 4).id, 4);
+      }
+    });
+
+    test('a single version is its own representative', () {
+      expect(groupRepresentative([v(5)], null).id, 5);
+      expect(groupRepresentative([v(5)], 8).id, 5);
+    });
+
+    test('duplicate ids: the first cover match; the last lowest-id one', () {
+      final firstCover = v(3, name: 'first');
+      final secondCover = v(3, name: 'second');
+      expect(
+        groupRepresentative([v(1), firstCover, secondCover], 3),
+        same(firstCover),
+      );
+      final firstLow = v(1, name: 'first');
+      final lastLow = v(1, name: 'last');
+      expect(
+        groupRepresentative([firstLow, v(3), lastLow], null),
+        same(lastLow),
+      );
+    });
+
+    test('an empty list throws StateError, with or without a cover', () {
+      expect(() => groupRepresentative(const [], null), throwsStateError);
+      expect(() => groupRepresentative(const [], 3), throwsStateError);
+    });
+  });
 }

@@ -307,7 +307,7 @@ void main() {
     test("a favorite keeps the refresh's new URL and cache key", () {
       return run(() async {
         final refresh = (await resignedRefresh()).done;
-        notifier().updateFavorite(1, isFavorite: true);
+        notifier().updateFavoriteOptimistically(1, isFavorite: true);
 
         await release();
         await refresh;
@@ -345,7 +345,7 @@ void main() {
     test('a favorite then a full edit replay in order', () {
       return run(() async {
         final refresh = (await resignedRefresh()).done;
-        notifier().updateFavorite(1, isFavorite: true);
+        notifier().updateFavoriteOptimistically(1, isFavorite: true);
         notifier().updateGarment(
           Garment.fromJson(
             garmentJson(

@@ -118,18 +118,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// version actions apply to it.
   Outfit get _current => _versions[_currentIndex];
 
-  /// The group's cover version (lowest id when unset, same pick as
-  /// [OutfitService.getAllOutfits]), so the title doesn't change per swipe.
-  Outfit get _primary {
-    final coverId = _current.coverOutfitId;
-    if (coverId == null) {
-      return _versions.reduce((a, b) => a.id < b.id ? a : b);
-    }
-    return _versions.firstWhere(
-      (o) => o.id == coverId,
-      orElse: () => _versions.reduce((a, b) => a.id < b.id ? a : b),
-    );
-  }
+  /// The group's representative (same pick as [OutfitService.getAllOutfits]),
+  /// so the title doesn't change per swipe.
+  Outfit get _primary => groupRepresentative(_versions, _current.coverOutfitId);
 
   List<String> get _effectiveSeasons => _current.seasons;
   List<String> get _effectiveStyle => _current.style;

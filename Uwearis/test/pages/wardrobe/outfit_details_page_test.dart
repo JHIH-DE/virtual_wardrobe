@@ -24,6 +24,7 @@ import '../../helpers/points_fixture.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 Outfit _outfit({
   List<String> style = const [],
@@ -39,22 +40,6 @@ Outfit _outfit({
     style: style,
     garmentIds: garmentIds,
   );
-}
-
-class _FakeDailyOutfitNotifier extends DailyOutfitNotifier {
-  _FakeDailyOutfitNotifier(this._outfits);
-  final List<Outfit> _outfits;
-
-  @override
-  Future<List<Outfit>> build() async => _outfits;
-}
-
-class _FakeOutfitsNotifier extends OutfitsNotifier {
-  _FakeOutfitsNotifier(this._outfits);
-  final List<Outfit> _outfits;
-
-  @override
-  Future<List<Outfit>> build() async => _outfits;
 }
 
 void main() {
@@ -131,6 +116,75 @@ void main() {
         findsOneWidget,
       );
     }, stubClient);
+  });
+
+  group('title comes from the group representative', () {
+    // Opened on version 5; the group's versions come back out of id order
+    // and without a group name, so the title is the representative's name.
+    Future<void> pumpGroup(
+      WidgetTester tester, {
+      required int groupId,
+      required int? coverOutfitId,
+    }) async {
+      Map<String, dynamic> version(int id) => {
+        'outfit_id': id,
+        'group_id': groupId,
+        'name': 'Version $id',
+        'result_image_url': 'https://img.example/$id.png',
+      };
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/outfit/$groupId')) {
+          return jsonResponse(
+            envelope({
+              'group_id': groupId,
+              'name': null,
+              'cover_outfit_id': coverOutfitId,
+              'outfits': [version(5), version(2), version(9)],
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: Outfit(
+              id: 5,
+              groupId: groupId,
+              name: 'Version 5',
+              imageUrl: 'https://img.example/5.png',
+              style: const [],
+              garmentIds: const [],
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+      }, () => client);
+    }
+
+    Finder titled(String text) =>
+        find.descendant(of: find.byType(AppBar), matching: find.text(text));
+
+    testWidgets('the cover version when it is in the group', (tester) async {
+      await pumpGroup(tester, groupId: 801, coverOutfitId: 9);
+      expect(titled('Version 9'), findsOneWidget);
+    });
+
+    testWidgets('the lowest id when the cover names no version', (
+      tester,
+    ) async {
+      await pumpGroup(tester, groupId: 802, coverOutfitId: 77);
+      expect(titled('Version 2'), findsOneWidget);
+    });
+
+    testWidgets('the lowest id when there is no cover', (tester) async {
+      await pumpGroup(tester, groupId: 803, coverOutfitId: null);
+      expect(titled('Version 2'), findsOneWidget);
+    });
   });
 
   // One 404 (e.g. a deleted garment) must not reject the whole batch.
@@ -695,9 +749,9 @@ void main() {
           OutfitDetailsPage(outfit: seed),
           overrides: [
             dailyOutfitProvider.overrideWith(
-              () => _FakeDailyOutfitNotifier([seed]),
+              () => SeededDailyOutfitNotifier([seed]),
             ),
-            outfitsProvider.overrideWith(() => _FakeOutfitsNotifier([seed])),
+            outfitsProvider.overrideWith(() => SeededOutfitsNotifier([seed])),
           ],
         );
         final container = ProviderScope.containerOf(
@@ -793,9 +847,11 @@ void main() {
         OutfitDetailsPage(outfit: favorited),
         overrides: [
           dailyOutfitProvider.overrideWith(
-            () => _FakeDailyOutfitNotifier([favorited]),
+            () => SeededDailyOutfitNotifier([favorited]),
           ),
-          outfitsProvider.overrideWith(() => _FakeOutfitsNotifier([favorited])),
+          outfitsProvider.overrideWith(
+            () => SeededOutfitsNotifier([favorited]),
+          ),
         ],
       );
       final container = ProviderScope.containerOf(

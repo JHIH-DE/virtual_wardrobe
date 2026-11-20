@@ -46,15 +46,35 @@ import '../../widgets/common/overlays/picker_sheet.dart';
 import '../../widgets/common/overlays/save_changes_dialog.dart';
 import '../../widgets/common/overlays/text_input_dialog.dart';
 import '../../widgets/common/cards/app_card_shell.dart';
-import '../../widgets/common/section_title.dart';
+import '../../widgets/garment/closet_match_sheet.dart';
 import '../../widgets/garment/garment_detail_dialog.dart';
 import '../../widgets/garment/garment_image.dart';
-import '../../widgets/garment/garment_outfit_ideas_card.dart';
 import '../../widgets/garment/garment_share_sheet.dart';
 import 'create_outfit_page.dart';
 import 'garment_outfits_page.dart';
 
 enum _GarmentMenuAction { rename, reanalyze, share, delete }
+
+/// The editable form as shown: text fields as typed (untrimmed), pickers as
+/// picked. Add mode compares it with what the page opened with to gate Add
+/// to Closet. A record, so a field left out of a builder doesn't compile.
+typedef _GarmentFormValues = ({
+  String name,
+  GarmentCategory category,
+  String subCategory,
+  String? style,
+  String brand,
+  String price,
+  GarmentColor? color,
+  GarmentFit? fit,
+  GarmentSilhouette? silhouette,
+  GarmentSleeveLength? sleeveLength,
+  GarmentClosure? closure,
+  GarmentCropLength? cropLength,
+  BagDetails? bagDetails,
+  String bagBodyWidth,
+  DateTime? purchaseDate,
+});
 
 class GarmentDetailsPage extends ConsumerStatefulWidget {
   final Garment initialGarment;
@@ -183,21 +203,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   // Add mode only — gates Add to Closet and the leave prompt.
   bool _isModified = false;
-  late String _initialName;
-  late GarmentCategory _initialCategory;
-  late String _initialSub;
-  late String? _initialStyle;
-  late String _initialBrand;
-  late String _initialPrice;
-  GarmentColor? _initialColor;
-  GarmentFit? _initialFit;
-  GarmentSilhouette? _initialSilhouette;
-  GarmentSleeveLength? _initialSleeveLength;
-  GarmentClosure? _initialClosure;
-  GarmentCropLength? _initialCropLength;
-  BagDetails? _initialBagDetails;
-  late String _initialBagBodyWidth;
-  DateTime? _initialDate;
+  late final _GarmentFormValues _initialValues;
 
   bool get _showFitField => garmentFitCategories.contains(_category);
   bool get _showSleeveLengthField =>
@@ -226,46 +232,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     // "Analyze with AI" prompt.
     if (_id != null) _isAnalyzingCloset.value = true;
 
-    _initialName = _editingGarment?.name ?? '';
-    _initialCategory = _editingGarment?.category ?? GarmentCategory.top;
-    _initialSub = _editingGarment?.subCategory ?? '';
-    _initialStyle = _editingGarment?.style;
-    _initialBrand = _editingGarment?.brand ?? '';
-    _initialPrice = _editingGarment?.price?.toString() ?? '';
-    _initialColor = _tryParseGarmentColor(_editingGarment?.color);
-    _initialFit = GarmentFitX.fromApiValue(_editingGarment?.fit);
-    _initialSilhouette = GarmentSilhouetteX.fromApiValue(
-      _editingGarment?.silhouette,
-    );
-    _initialSleeveLength = GarmentSleeveLengthX.fromApiValue(
-      _editingGarment?.sleeveLength,
-    );
-    _initialClosure = GarmentClosureX.fromApiValue(_editingGarment?.closure);
-    _initialCropLength = GarmentCropLengthX.fromApiValue(
-      _editingGarment?.cropLength,
-    );
-    _initialDate = _editingGarment?.purchaseDate;
-    _initialBagDetails = _editingGarment?.bagDetails;
-    _initialBagBodyWidth = _formatCm(_initialBagDetails?.bodyWidthCm);
-
+    _initialValues = _formValuesOf(_editingGarment);
     if (_editingGarment != null) {
-      _category = _editingGarment!.category;
-      _subCategory = _editingGarment!.subCategory;
-      _style = _editingGarment!.style;
-      _nameCtrl.text = _editingGarment!.name;
-      _brandCtrl.text = _editingGarment!.brand ?? '';
-      _priceCtrl.text = _editingGarment!.price?.toString() ?? '';
-      _purchaseDate = _editingGarment!.purchaseDate;
+      _showFormValues(_initialValues);
       _thickness = _editingGarment!.thickness;
       _formality = _editingGarment!.formality;
-      _selectedColor ??= _initialColor;
-      _selectedFit ??= _initialFit;
-      _selectedSilhouette ??= _initialSilhouette;
-      _selectedSleeveLength ??= _initialSleeveLength;
-      _selectedClosure ??= _initialClosure;
-      _selectedCropLength ??= _initialCropLength;
-      _bagDetails = _initialBagDetails;
-      _bagBodyWidthCtrl.text = _initialBagBodyWidth;
     }
 
     if (widget.initialAnalysisData != null) {
@@ -330,25 +301,65 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
   }
 
+  /// What [garment] fills the form with; a blank form for null.
+  static _GarmentFormValues _formValuesOf(Garment? garment) => (
+    name: garment?.name ?? '',
+    category: garment?.category ?? GarmentCategory.top,
+    subCategory: garment?.subCategory ?? '',
+    style: garment?.style,
+    brand: garment?.brand ?? '',
+    price: garment?.price?.toString() ?? '',
+    color: _tryParseGarmentColor(garment?.color),
+    fit: GarmentFitX.fromApiValue(garment?.fit),
+    silhouette: GarmentSilhouetteX.fromApiValue(garment?.silhouette),
+    sleeveLength: GarmentSleeveLengthX.fromApiValue(garment?.sleeveLength),
+    closure: GarmentClosureX.fromApiValue(garment?.closure),
+    cropLength: GarmentCropLengthX.fromApiValue(garment?.cropLength),
+    bagDetails: garment?.bagDetails,
+    bagBodyWidth: _formatCm(garment?.bagDetails?.bodyWidthCm),
+    purchaseDate: garment?.purchaseDate,
+  );
+
+  _GarmentFormValues get _currentFormValues => (
+    name: _nameCtrl.text,
+    category: _category,
+    subCategory: _subCategory,
+    style: _style,
+    brand: _brandCtrl.text,
+    price: _priceCtrl.text,
+    color: _selectedColor,
+    fit: _selectedFit,
+    silhouette: _selectedSilhouette,
+    sleeveLength: _selectedSleeveLength,
+    closure: _selectedClosure,
+    cropLength: _selectedCropLength,
+    bagDetails: _bagDetails,
+    bagBodyWidth: _bagBodyWidthCtrl.text,
+    purchaseDate: _purchaseDate,
+  );
+
+  /// Call before the text controllers' listeners are added.
+  void _showFormValues(_GarmentFormValues values) {
+    _nameCtrl.text = values.name;
+    _category = values.category;
+    _subCategory = values.subCategory;
+    _style = values.style;
+    _brandCtrl.text = values.brand;
+    _priceCtrl.text = values.price;
+    _selectedColor = values.color;
+    _selectedFit = values.fit;
+    _selectedSilhouette = values.silhouette;
+    _selectedSleeveLength = values.sleeveLength;
+    _selectedClosure = values.closure;
+    _selectedCropLength = values.cropLength;
+    _bagDetails = values.bagDetails;
+    _bagBodyWidthCtrl.text = values.bagBodyWidth;
+    _purchaseDate = values.purchaseDate;
+  }
+
   void _checkModified() {
     if (!_isAddMode) return;
-    final changed =
-        _isImageChanged ||
-        _nameCtrl.text != _initialName ||
-        _category != _initialCategory ||
-        _subCategory != _initialSub ||
-        _style != _initialStyle ||
-        _brandCtrl.text != _initialBrand ||
-        _priceCtrl.text != _initialPrice ||
-        _selectedColor != _initialColor ||
-        _selectedFit != _initialFit ||
-        _selectedSilhouette != _initialSilhouette ||
-        _selectedSleeveLength != _initialSleeveLength ||
-        _selectedClosure != _initialClosure ||
-        _selectedCropLength != _initialCropLength ||
-        _bagDetails != _initialBagDetails ||
-        _bagBodyWidthCtrl.text != _initialBagBodyWidth ||
-        _purchaseDate != _initialDate;
+    final changed = _isImageChanged || _currentFormValues != _initialValues;
 
     if (changed != _isModified) {
       setState(() => _isModified = changed);
@@ -1406,6 +1417,14 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     _isAnalyzingCloset.value = false;
   }
 
+  /// Re-signs a Closet Match thumbnail; the garment may have been deleted
+  /// since the analysis ran.
+  Future<String?> _loadFreshGarmentImageUrl(int garmentId) async =>
+      (await GarmentService().getGarment(
+        garmentId,
+        includeDeleted: true,
+      )).imageUrl;
+
   /// Writes a thumbnail's refreshed URL back into the persisted cache, which
   /// has no TTL and would otherwise keep serving the expired one.
   void _onOutfitIdeaImageRefreshed(int garmentId, String freshUrl) {
@@ -1508,7 +1527,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
               Positioned.fill(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.only(top: 4),
-                  child: _ClosetAnalysisSheetContent(
+                  child: ClosetMatchSheetContent(
                     analysis: _closetAnalysis.value,
                     errorMessage: _closetAnalysisError.value,
                     onAnalyze: _runClosetAnalysis,
@@ -1517,6 +1536,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
                     onCreateOutfit: _isAddMode ? null : _openAddOutfitFromIdea,
                     onGarmentImageRefreshed: _onOutfitIdeaImageRefreshed,
                     targetImageOverride: _isAddMode ? _imagePathOrUrl : null,
+                    loadFreshImageUrl: _loadFreshGarmentImageUrl,
                   ),
                 ),
               ),
@@ -1612,9 +1632,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
 
   void _openUsedInOutfits() {
     final gid = _garmentIdForOutfits;
-    debugLog(
-      'Used in Outfits tapped: garmentId=${_editingGarment?.garmentId} id=${_editingGarment?.id} → passing $gid',
-    );
     if (gid == null) return;
     Navigator.push(
       context,
@@ -1907,15 +1924,22 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       ...?_metaData,
       // The AI's L3, unless the user changed or cleared it.
       'style': _style,
-      'fit': _selectedFit?.apiValue,
-      'silhouette': _selectedSilhouette?.apiValue,
-      'sleeve_length': _selectedSleeveLength?.apiValue,
-      'closure': _selectedClosure?.apiValue,
+      ..._attributeApiFields,
       'crop_length': _selectedCropLength?.apiValue ?? '',
       'bag_details': _showBagFields ? _bagDetailsToSave(null)?.toJson() : null,
     };
     return (temp, metadata);
   }
+
+  /// The cut attributes under their API keys, null when unset — the upload's
+  /// `metadata` and the preview body share them.
+  Map<String, String?> get _attributeApiFields => {
+    'fit': _selectedFit?.apiValue,
+    'silhouette': _selectedSilhouette?.apiValue,
+    'sleeve_length': _selectedSleeveLength?.apiValue,
+    'closure': _selectedClosure?.apiValue,
+    'crop_length': _selectedCropLength?.apiValue,
+  };
 
   /// Add mode's preview request body; fields the form can't edit
   /// (thickness, material, …) come from [_metaData].
@@ -1929,11 +1953,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       'name': _nameCtrl.text.trim(),
       'brand': brand.isEmpty ? null : brand,
       'color': _selectedColor?.label,
-      'fit': _selectedFit?.apiValue,
-      'silhouette': _selectedSilhouette?.apiValue,
-      'sleeve_length': _selectedSleeveLength?.apiValue,
-      'closure': _selectedClosure?.apiValue,
-      'crop_length': _selectedCropLength?.apiValue,
+      ..._attributeApiFields,
     };
   }
 
@@ -2011,7 +2031,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     return GarmentService().updateGarment(updated);
   }
 
-  GarmentColor? _tryParseGarmentColor(String? colorText) {
+  static GarmentColor? _tryParseGarmentColor(String? colorText) {
     if (colorText == null) return null;
     final normalized = colorText.trim().toLowerCase();
     for (final c in GarmentColor.values) {
@@ -2021,387 +2041,6 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       }
     }
     return null;
-  }
-}
-
-/// Versatility level, outfit ideas and similar garments. The prompt/error
-/// states are fallbacks — the sheet normally opens into a loading overlay.
-class _ClosetAnalysisSheetContent extends StatelessWidget {
-  final ClosetAnalysis? analysis;
-  final String? errorMessage;
-  final VoidCallback onAnalyze;
-  final void Function(int garmentId) onGarmentTap;
-
-  /// Each idea's "Try It On" button; null hides it.
-  final void Function(List<ClosetAnalysisGarment> garments)? onCreateOutfit;
-
-  final void Function(int garmentId, String freshUrl) onGarmentImageRefreshed;
-
-  /// Add mode's local photo — the preview target has no image URL.
-  final String? targetImageOverride;
-
-  const _ClosetAnalysisSheetContent({
-    required this.analysis,
-    required this.errorMessage,
-    required this.onAnalyze,
-    required this.onGarmentTap,
-    this.onCreateOutfit,
-    required this.onGarmentImageRefreshed,
-    this.targetImageOverride,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    if (errorMessage != null) return _buildError(l10n, errorMessage!);
-    if (analysis == null) return _buildPrompt(l10n);
-    return _buildResult(context, l10n, analysis!);
-  }
-
-  Widget _buildPrompt(AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.versatilityDescription, style: AppTextStyle.insightCardBody),
-        const SizedBox(height: 8),
-        Align(
-          child: AccentPillButton(
-            label: l10n.analyzeWithAi,
-            onPressed: onAnalyze,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildError(AppLocalizations l10n, String message) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          message,
-          style: AppTextStyle.regular14.copyWith(color: AppColors.error),
-        ),
-        const SizedBox(height: 8),
-        Align(
-          child: AccentPillButton(
-            label: l10n.analyzeAgain,
-            onPressed: onAnalyze,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildResult(
-    BuildContext context,
-    AppLocalizations l10n,
-    ClosetAnalysis analysis,
-  ) {
-    final ideas = analysis.outfitIdeas;
-    final similar = analysis.similarGarments;
-    final headingStyle = AppTextStyle.bold16.copyWith(
-      color: AppColors.textSecondary,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildVersatilitySection(context, l10n, analysis.versatility),
-        // Empty when the closet can't support them — omit the section.
-        if (ideas.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          SectionTitle(l10n.outfitIdeasHeading, style: headingStyle),
-          const SizedBox(height: 10),
-          for (var i = 0; i < ideas.length; i++) ...[
-            if (i > 0) const SizedBox(height: AppDimens.cardSpacing),
-            GarmentOutfitIdeasCard(
-              title: l10n.outfitIdeaNumber(i + 1),
-              onTryOn: switch (onCreateOutfit) {
-                final onCreate? => () => onCreate(ideas[i].garments),
-                null => null,
-              },
-              child: _buildGarmentThumbRow(
-                ideas[i].garments,
-                isOutfit: true,
-                onGarmentTap: onGarmentTap,
-                targetImageOverride: targetImageOverride,
-                onImageUrlRefreshed: onGarmentImageRefreshed,
-              ),
-            ),
-          ],
-        ],
-        if (similar.isNotEmpty) ...[
-          const AppDivider(topSpacing: 20, bottomSpacing: 16),
-          SectionTitle(l10n.similarInClosetHeading, style: headingStyle),
-          const SizedBox(height: 10),
-          _buildGarmentThumbRow(
-            similar,
-            onGarmentTap: onGarmentTap,
-            targetImageOverride: targetImageOverride,
-            onImageUrlRefreshed: onGarmentImageRefreshed,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildVersatilitySection(
-    BuildContext context,
-    AppLocalizations l10n,
-    ClosetAnalysisVersatility versatility,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: '${versatility.level}',
-                    style: AppTextStyle.bold24.copyWith(
-                      fontSize: 52,
-                      height: 1,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                  TextSpan(
-                    text: '/${_VersatilityLevelBar.segments}',
-                    style: AppTextStyle.bold24.copyWith(
-                      fontSize: 34,
-                      height: 1,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 48,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              color: AppColors.borderSubtle,
-            ),
-            Expanded(
-              child: Text(
-                versatility.label.localizedLabel(context),
-                style: AppTextStyle.bold20.copyWith(color: AppColors.accent),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _VersatilityLevelBar(level: versatility.level),
-      ],
-    );
-  }
-
-  /// [isOutfit]: "+" separators and no borders except the target's.
-  Widget _buildGarmentThumbRow(
-    List<ClosetAnalysisGarment> garments, {
-    bool isOutfit = false,
-    void Function(int garmentId)? onGarmentTap,
-    String? targetImageOverride,
-    void Function(int garmentId, String freshUrl)? onImageUrlRefreshed,
-  }) {
-    return SizedBox(
-      height: _AiGarmentThumb.size,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: garments.length,
-        separatorBuilder: (_, _) => isOutfit
-            ? const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(
-                  Icons.add,
-                  size: AppDimens.iconSmallSize,
-                  color: AppColors.hintText,
-                ),
-              )
-            : const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final g = garments[i];
-          // The preview target (id 0) isn't a real garment yet.
-          final canOpen = onGarmentTap != null && g.garmentId > 0;
-          return _AiGarmentThumb(
-            garment: g,
-            bordered: !isOutfit,
-            targetImageOverride: targetImageOverride,
-            onTap: canOpen ? () => onGarmentTap(g.garmentId) : null,
-            onImageUrlRefreshed: onImageUrlRefreshed,
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _VersatilityLevelBar extends StatelessWidget {
-  final int level;
-
-  const _VersatilityLevelBar({required this.level});
-
-  static const int segments = 10;
-
-  @override
-  Widget build(BuildContext context) {
-    final filled = level.clamp(0, segments);
-    return Row(
-      children: [
-        for (var i = 0; i < segments; i++) ...[
-          if (i > 0) const SizedBox(width: 6),
-          Expanded(
-            child: Container(
-              height: 8,
-              decoration: BoxDecoration(
-                color: i < filled ? AppColors.accent : AppColors.borderSubtle,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// The target garment gets the same outline as a selected GarmentCard.
-class _AiGarmentThumb extends StatefulWidget {
-  final ClosetAnalysisGarment garment;
-  final VoidCallback? onTap;
-  final bool bordered;
-  final String? targetImageOverride;
-  final void Function(int garmentId, String freshUrl)? onImageUrlRefreshed;
-
-  const _AiGarmentThumb({
-    required this.garment,
-    this.onTap,
-    this.bordered = true,
-    this.targetImageOverride,
-    this.onImageUrlRefreshed,
-  });
-
-  static const double size = 70;
-
-  @override
-  State<_AiGarmentThumb> createState() => _AiGarmentThumbState();
-}
-
-class _AiGarmentThumbState extends State<_AiGarmentThumb> {
-  /// Set when the cached URL is already expired: fetch a fresh one first
-  /// instead of flashing the broken-image icon.
-  Future<String?>? _preRefresh;
-
-  @override
-  void initState() {
-    super.initState();
-    _maybeStartPreRefresh();
-  }
-
-  @override
-  void didUpdateWidget(covariant _AiGarmentThumb oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.garment.imageUrl != oldWidget.garment.imageUrl) {
-      _maybeStartPreRefresh();
-    }
-  }
-
-  void _maybeStartPreRefresh() {
-    final id = widget.garment.garmentId;
-    final url = widget.garment.imageUrl;
-    final knownExpired =
-        id > 0 &&
-        url.isNotEmpty &&
-        url.startsWith('http') &&
-        isSignedUrlExpired(url);
-    _preRefresh = knownExpired ? _fetchFreshUrl(id, url) : null;
-  }
-
-  Future<String?> _fetchFreshUrl(int id, String staleUrl) async {
-    try {
-      final fresh = await GarmentService().getGarment(id, includeDeleted: true);
-      final freshUrl = fresh.imageUrl;
-      if (freshUrl != null && freshUrl.isNotEmpty && freshUrl != staleUrl) {
-        widget.onImageUrlRefreshed?.call(id, freshUrl);
-        return freshUrl;
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Widget _buildImage(String? url) {
-    final garment = widget.garment;
-    return GarmentImage(
-      url: url,
-      garmentId: garment.garmentId > 0 ? garment.garmentId : null,
-      cacheKey: garment.imageCacheKey,
-      // Width only — pinning both forces a non-square source to decode
-      // squashed into a square.
-      memCacheWidth: 160,
-      fit: BoxFit.contain,
-      onUrlRefreshed: widget.onImageUrlRefreshed == null
-          ? null
-          : (_, newUrl) =>
-                widget.onImageUrlRefreshed!(garment.garmentId, newUrl),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final garment = widget.garment;
-    final preRefresh = _preRefresh;
-    final Widget image;
-    if (preRefresh != null) {
-      image = FutureBuilder<String?>(
-        future: preRefresh,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const SizedBox.shrink();
-          }
-          final resolved = snapshot.data;
-          return _buildImage(
-            resolved != null && resolved.isNotEmpty
-                ? resolved
-                : garment.imageUrl,
-          );
-        },
-      );
-    } else {
-      image = _buildImage(
-        garment.isTarget && garment.imageUrl.isEmpty
-            ? widget.targetImageOverride
-            : garment.imageUrl,
-      );
-    }
-    final thumb = Container(
-      width: _AiGarmentThumb.size,
-      height: _AiGarmentThumb.size,
-      padding: const EdgeInsets.all(6),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: widget.bordered || garment.isTarget
-            ? Border.all(
-                color: garment.isTarget
-                    ? AppColors.borderStrong
-                    : AppColors.borderSubtle,
-                width: garment.isTarget ? 1.5 : 1,
-              )
-            : null,
-      ),
-      child: image,
-    );
-    if (widget.onTap == null) return thumb;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
-      child: thumb,
-    );
   }
 }
 

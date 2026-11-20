@@ -1,37 +1,11 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
-import 'package:uwearis/data/garment.dart';
-import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/wardrobe/outfits_page.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/widget_harness.dart';
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._items);
-  final List<Garment> _items;
-
-  @override
-  Future<List<Garment>> build() async => _items;
-
-  // refreshIfNeeded() would otherwise fire a real HTTP refresh() when empty.
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
-}
-
-class _FakeOutfits extends OutfitsNotifier {
-  _FakeOutfits(this._items);
-  final List<Outfit> _items;
-
-  @override
-  Future<List<Outfit>> build() async => _items;
-
-  // refreshIfNeeded() would otherwise fire a real HTTP refresh() when empty.
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
-}
+import '../../helpers/seeded_notifiers.dart';
 
 void main() {
   setUp(setUpFakeAuth);
@@ -42,8 +16,12 @@ void main() {
       tester,
       const OutfitsPage(),
       overrides: [
-        outfitsProvider.overrideWith(() => _FakeOutfits([])),
-        garmentsProvider.overrideWith(() => _FakeGarments([])),
+        outfitsProvider.overrideWith(
+          () => SeededOutfitsNotifier([], refreshReseeds: true),
+        ),
+        garmentsProvider.overrideWith(
+          () => SeededGarmentsNotifier([], refreshReseeds: true),
+        ),
       ],
     );
     await tester.pump();

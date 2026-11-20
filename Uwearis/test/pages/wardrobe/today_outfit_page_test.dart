@@ -15,22 +15,7 @@ import 'package:uwearis/features/widgets/outfit/outfit_tag_row.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
-
-class _FakeDailyOutfitNotifier extends DailyOutfitNotifier {
-  _FakeDailyOutfitNotifier(this._outfits);
-  final List<Outfit> _outfits;
-
-  @override
-  Future<List<Outfit>> build() async => _outfits;
-}
-
-class _FakeOutfitsNotifier extends OutfitsNotifier {
-  _FakeOutfitsNotifier(this._outfits);
-  final List<Outfit> _outfits;
-
-  @override
-  Future<List<Outfit>> build() async => _outfits;
-}
+import '../../helpers/seeded_notifiers.dart';
 
 // The closet cache isn't loaded on a page opened on its own, so each
 // garment resolves through GET /garments/{id}.
@@ -67,8 +52,8 @@ final _options = [
 ];
 
 List<Override> _overrides({List<Outfit> myOutfits = const []}) => [
-  dailyOutfitProvider.overrideWith(() => _FakeDailyOutfitNotifier(_options)),
-  outfitsProvider.overrideWith(() => _FakeOutfitsNotifier(myOutfits)),
+  dailyOutfitProvider.overrideWith(() => SeededDailyOutfitNotifier(_options)),
+  outfitsProvider.overrideWith(() => SeededOutfitsNotifier(myOutfits)),
 ];
 
 Future<void> _settle(WidgetTester tester) async {

@@ -10,7 +10,6 @@ import '../../data/user_profile.dart';
 import '../config/app_config.dart';
 import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
-import 'auth_storage.dart';
 import 'base_service.dart';
 import 'points_service.dart';
 
@@ -32,16 +31,6 @@ class ProfileService with BaseService {
   /// `data`, or the whole body for an un-enveloped response.
   Map<String, dynamic> _data(Map<String, dynamic> envelope) =>
       (envelope['data'] as Map<String, dynamic>?) ?? envelope;
-
-  Future<UserProfile> getMyProfile() async {
-    debugLog('--- getMyProfile ---');
-    final res = await withAuth(
-      (token) => http
-          .get(Uri.parse(_baseUrl), headers: authHeaders(token))
-          .timeout(_quick),
-    );
-    return UserProfile.fromJson(_data(decodeMap(res, op: 'getMyProfile')));
-  }
 
   /// Profile plus the reference-photo and base-model signed URLs, from one
   /// request. A URL can still point at a deleted object; that surfaces as an
@@ -120,11 +109,7 @@ class ProfileService with BaseService {
     String localPath, {
     required String opPrefix,
   }) async {
-    final session = AuthStorage.sessionEpoch;
-    void ensureSession() {
-      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
-    }
-
+    final ensureSession = sessionGuard();
     final init = await _refInitUpload(baseUrl, op: '${opPrefix}InitUpload');
     ensureSession();
     await putJpegToSignedUrl(init.uploadUrl, localPath);
@@ -146,8 +131,6 @@ class ProfileService with BaseService {
     debugLog('--- $op ---');
     await deleteIdempotent(Uri.parse(baseUrl), op: op);
   }
-
-  Future<void> deleteAvatar() => _deleteRef(_avatarUrl, op: 'deleteAvatar');
 
   /// Also deletes the existing base model on the backend, since it was
   /// generated from this photo — callers should clear `baseModelUrl` too.
@@ -233,7 +216,6 @@ class ProfileService with BaseService {
           .timeout(_quick),
     );
     final data = _data(decodeMap(res, op: 'getMyStyleProfile'));
-    debugLog('--- getMyStyleProfile data: $data ---');
     final items = data['items'];
     if (items is! List) return const [];
     return items

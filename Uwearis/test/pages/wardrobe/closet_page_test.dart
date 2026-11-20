@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
@@ -7,6 +6,7 @@ import 'package:uwearis/features/widgets/garment/category_selector.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 Garment _garment(int id, GarmentCategory category) => Garment(
   id: id,
@@ -18,18 +18,6 @@ Garment _garment(int id, GarmentCategory category) => Garment(
   objectName: '',
 );
 
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._items);
-  final List<Garment> _items;
-
-  @override
-  Future<List<Garment>> build() async => _items;
-
-  // Base refreshIfNeeded() would otherwise hit the network when empty.
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
-}
-
 void main() {
   setUp(setUpFakeAuth);
 
@@ -40,7 +28,11 @@ void main() {
       await pumpApp(
         tester,
         const ClosetPage(),
-        overrides: [garmentsProvider.overrideWith(() => _FakeGarments([]))],
+        overrides: [
+          garmentsProvider.overrideWith(
+            () => SeededGarmentsNotifier([], refreshReseeds: true),
+          ),
+        ],
       );
       await tester.pump();
       await tester.pump();
@@ -68,7 +60,9 @@ void main() {
       const ClosetPage(),
       overrides: [
         garmentsProvider.overrideWith(
-          () => _FakeGarments([_garment(1, GarmentCategory.top)]),
+          () => SeededGarmentsNotifier([
+            _garment(1, GarmentCategory.top),
+          ], refreshReseeds: true),
         ),
       ],
     );

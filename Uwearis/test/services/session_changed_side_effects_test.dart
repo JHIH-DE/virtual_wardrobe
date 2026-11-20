@@ -17,12 +17,8 @@ import 'package:uwearis/core/services/base_service.dart';
 
 import '../helpers/mock_http.dart';
 
-// Audit 2026-11-20 (SessionChangedException side effects). Skipped tests
-// assert the proposed behaviour and fail today; the rest pin what holds.
-
-const _proposed =
-    'Audit finding, not fixed yet — see '
-    'session_changed_side_effects_test.dart';
+// Audit 2026-11-20 (SessionChangedException side effects): pins how a
+// request that outlives its session behaves.
 
 class _TestService with BaseService {}
 
@@ -63,33 +59,47 @@ void main() {
   });
 
   group('A. SessionChangedException propagation', () {
-    test('a 401 that lands after AuthExpiredHandler cleared the session '
-        '(nobody signed in) should stay an AuthExpiredException, which the '
-        'handler dedupes — today it is a SessionChangedException that a '
-        "page's generic catch shows as an error", () async {
-      final second = Completer<void>();
-      final client = MockClient((req) async {
-        if (req.url.path.endsWith('/auth/refresh')) {
-          return http.Response('{}', 401); // A's session is dead
-        }
-        if (req.url.query == 'n=2') await second.future;
-        return http.Response('{}', 401);
-      });
+    // Only the request that found the expiry reports it; the handler shows
+    // Session Expired once (session_changed_dialog_test.dart covers the UI).
+    test(
+      'a 401 that lands after AuthExpiredHandler cleared the session '
+      '(nobody signed in) is a SessionChangedException, not a second '
+      'expiry: no refresh is sent for it and the request is not resent',
+      () async {
+        final second = Completer<void>();
+        final requests = <String>[];
+        final client = MockClient((req) async {
+          requests.add(
+            req.url.path.endsWith('/auth/refresh') ? 'refresh' : req.url.query,
+          );
+          if (req.url.path.endsWith('/auth/refresh')) {
+            return http.Response('{}', 401); // A's session is dead
+          }
+          if (req.url.query == 'n=2') await second.future;
+          return http.Response('{}', 401);
+        });
 
-      await http.runWithClient(() async {
-        final first = _TestService().withAuth(
-          (t) => http.get(_api.replace(query: 'n=1'), headers: {'t': t}),
-        );
-        final late = _TestService().withAuth(
-          (t) => http.get(_api.replace(query: 'n=2'), headers: {'t': t}),
-        );
-        await expectLater(first, throwsA(isA<AuthExpiredException>()));
-        // What AuthExpiredHandler does before its dialog.
-        await AuthStorage.clear();
-        second.complete();
-        await expectLater(late, throwsA(isA<AuthExpiredException>()));
-      }, () => client);
-    }, skip: _proposed);
+        await http.runWithClient(() async {
+          final first = _TestService().withAuth(
+            (t) => http.get(_api.replace(query: 'n=1'), headers: {'t': t}),
+          );
+          final late = _TestService().withAuth(
+            (t) => http.get(_api.replace(query: 'n=2'), headers: {'t': t}),
+          );
+          // The current session's own unrecoverable 401 is still an expiry.
+          await expectLater(first, throwsA(isA<AuthExpiredException>()));
+          // What AuthExpiredHandler does before its dialog.
+          await AuthStorage.clear();
+          second.complete();
+          await expectLater(late, throwsA(isA<SessionChangedException>()));
+        }, () => client);
+
+        expect(requests.where((r) => r == 'refresh'), hasLength(1));
+        expect(requests.where((r) => r == 'n=2'), hasLength(1));
+        expect(await AuthStorage.getAccessToken(), isNull);
+        expect(await AuthStorage.getRefreshToken(), isNull);
+      },
+    );
 
     test(
       'the same late 401 once B has signed in stays a '

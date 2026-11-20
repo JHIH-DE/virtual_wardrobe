@@ -16,14 +16,7 @@ import 'package:uwearis/features/widgets/common/wardrobe_nav_bar.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
-
-class _FakeTrips extends TripsNotifier {
-  _FakeTrips(this._items);
-  final List<Trip> _items;
-
-  @override
-  Future<List<Trip>> build() async => _items;
-}
+import '../../helpers/seeded_notifiers.dart';
 
 void main() {
   setUp(setUpFakeAuth);
@@ -35,7 +28,7 @@ void main() {
       await pumpApp(
         tester,
         const TripsPage(),
-        overrides: [tripsProvider.overrideWith(() => _FakeTrips([]))],
+        overrides: [tripsProvider.overrideWith(() => SeededTripsNotifier([]))],
       );
       await tester.pump();
       await tester.pump();
@@ -196,7 +189,7 @@ void main() {
           ),
         ),
         overrides: [
-          tripsProvider.overrideWith(() => _FakeTrips([kyoto])),
+          tripsProvider.overrideWith(() => SeededTripsNotifier([kyoto])),
         ],
       );
       await tester.tap(find.text('base page'));

@@ -51,9 +51,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get facePhotoGuidance => '正面朝前，光线充足。';
 
   @override
-  String get faceReferenceComingSoon => '即將推出';
-
-  @override
   String get fullBodyPhotoLabel => '全身照片';
 
   @override
@@ -309,11 +306,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noneLabel => '無';
-
-  @override
-  String selectItemTitle(String item) {
-    return '選擇$item';
-  }
 
   @override
   String get notSelected => '尚未選擇';
@@ -801,9 +793,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chooseFromAlbumLabel => '相簿';
-
-  @override
-  String get back => '返回';
 
   @override
   String get failedToLoad => '載入失敗';
@@ -1353,9 +1342,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get failedToCreateTrip => '建立行程失敗';
-
-  @override
-  String get tripPlannerTitle => '行程規劃';
 
   @override
   String get loadingTripEllipsis => '載入行程中…';
@@ -2145,9 +2131,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get facePhotoGuidance => '正面朝前，光線充足。';
 
   @override
-  String get faceReferenceComingSoon => '即將推出';
-
-  @override
   String get fullBodyPhotoLabel => '全身照片';
 
   @override
@@ -2403,11 +2386,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get noneLabel => '無';
-
-  @override
-  String selectItemTitle(String item) {
-    return '選擇$item';
-  }
 
   @override
   String get notSelected => '尚未選擇';
@@ -2895,9 +2873,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get chooseFromAlbumLabel => '相簿';
-
-  @override
-  String get back => '返回';
 
   @override
   String get failedToLoad => '載入失敗';
@@ -3447,9 +3422,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get failedToCreateTrip => '建立行程失敗';
-
-  @override
-  String get tripPlannerTitle => '行程規劃';
 
   @override
   String get loadingTripEllipsis => '載入行程中…';

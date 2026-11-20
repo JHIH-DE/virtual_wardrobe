@@ -27,6 +27,7 @@ import 'package:uwearis/features/widgets/outfit/outfit_card.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 Trip _trip() => Trip(
   id: '7',
@@ -47,28 +48,6 @@ Trip _trip() => Trip(
     ),
   ],
 );
-
-class _FakeOutfits extends OutfitsNotifier {
-  _FakeOutfits(this._items);
-  final List<Outfit> _items;
-
-  @override
-  Future<List<Outfit>> build() async => _items;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
-}
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._items);
-  final List<Garment> _items;
-
-  @override
-  Future<List<Garment>> build() async => _items;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
-}
 
 const _tee = {'garment_id': 1, 'name': 'Tee', 'category': 'top'};
 const _jeans = {'garment_id': 2, 'name': 'Jeans', 'category': 'bottom'};
@@ -324,8 +303,12 @@ void main() {
         tester,
         TripSuitcasePage(trip: _trip()),
         overrides: [
-          outfitsProvider.overrideWith(() => _FakeOutfits([outfit])),
-          garmentsProvider.overrideWith(() => _FakeGarments(closet)),
+          outfitsProvider.overrideWith(
+            () => SeededOutfitsNotifier([outfit], refreshReseeds: true),
+          ),
+          garmentsProvider.overrideWith(
+            () => SeededGarmentsNotifier(closet, refreshReseeds: true),
+          ),
         ],
       );
       await tester.pump();
@@ -484,15 +467,15 @@ void main() {
               TripSuitcasePage(trip: _trip()),
               overrides: [
                 outfitsProvider.overrideWith(
-                  () => _FakeOutfits([
+                  () => SeededOutfitsNotifier([
                     Outfit(id: 53, imageUrl: '', garmentIds: const [3]),
-                  ]),
+                  ], refreshReseeds: true),
                 ),
                 garmentsProvider.overrideWith(
-                  () => _FakeGarments([
+                  () => SeededGarmentsNotifier([
                     ...closet,
                     _closetGarment(2, 'Jeans', GarmentCategory.bottom),
-                  ]),
+                  ], refreshReseeds: true),
                 ),
               ],
             );
@@ -816,11 +799,11 @@ void main() {
           TripSuitcasePage(trip: _trip()),
           overrides: [
             garmentsProvider.overrideWith(
-              () => _FakeGarments([
+              () => SeededGarmentsNotifier([
                 _closetGarment(1, 'Tee', GarmentCategory.top),
                 _closetGarment(2, 'Jeans', GarmentCategory.bottom),
                 _closetGarment(3, 'Sneakers', GarmentCategory.shoes),
-              ]),
+              ], refreshReseeds: true),
             ),
           ],
         );

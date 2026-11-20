@@ -12,7 +12,6 @@ import 'package:uwearis/core/providers/trip_detail_provider.dart';
 import 'package:uwearis/core/services/auth_storage.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
-import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_suitcase_page.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
@@ -21,28 +20,13 @@ import 'package:uwearis/features/widgets/garment/garment_card.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 // Trip Suitcase commits staged picks one request at a time (one batched
 // add, then one DELETE per removal) before planning. Every request belongs
 // to the session the commit started in: once it has ended, no further add /
 // remove may go out — least of all under the next account's token — and no
 // plan is generated.
-
-class _FakeGarments extends GarmentsNotifier {
-  @override
-  Future<List<Garment>> build() async => _closet;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_closet);
-}
-
-class _FakeOutfits extends OutfitsNotifier {
-  @override
-  Future<List<Outfit>> build() async => const [];
-
-  @override
-  Future<void> refresh() async => state = const AsyncData([]);
-}
 
 Garment _garment(int id, String name, GarmentCategory category) => Garment(
   id: id,
@@ -230,8 +214,12 @@ void main() {
         },
       ),
       overrides: [
-        garmentsProvider.overrideWith(_FakeGarments.new),
-        outfitsProvider.overrideWith(_FakeOutfits.new),
+        garmentsProvider.overrideWith(
+          () => SeededGarmentsNotifier(_closet, refreshReseeds: true),
+        ),
+        outfitsProvider.overrideWith(
+          () => SeededOutfitsNotifier(const [], refreshReseeds: true),
+        ),
       ],
       retry: (_, _) => null,
     );

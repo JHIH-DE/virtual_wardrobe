@@ -62,11 +62,6 @@ class GarmentsNotifier extends AsyncNotifier<List<Garment>> {
   void removeGarment(int garmentId) =>
       _edit((list) => list.where((g) => g.id != garmentId).toList());
 
-  /// A favorite already confirmed by the server.
-  void updateFavorite(int garmentId, {required bool isFavorite}) {
-    updateFavoriteOptimistically(garmentId, isFavorite: isFavorite);
-  }
-
   /// Shows [isFavorite] while its PATCH is in flight. Pass the returned
   /// token to [settleFavorite] once the PATCH answers.
   int updateFavoriteOptimistically(int garmentId, {required bool isFavorite}) {

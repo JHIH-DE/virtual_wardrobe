@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -39,6 +38,7 @@ import '../../helpers/points_fixture.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 /// A closet whose first fetch finishes only when [release] completes.
 class _SlowGarments extends GarmentsNotifier {
@@ -51,18 +51,6 @@ class _SlowGarments extends GarmentsNotifier {
     await release.future;
     return _items;
   }
-}
-
-/// Fixed closet so tests don't hit the network.
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._items);
-  final List<Garment> _items;
-
-  @override
-  Future<List<Garment>> build() async => _items;
-
-  @override
-  Future<void> refresh() async => state = AsyncData(_items);
 }
 
 Garment _garment({
@@ -125,7 +113,9 @@ void main() {
   ];
 
   List<Override> closetOverride([List<Garment>? pool]) => [
-    garmentsProvider.overrideWith(() => _FakeGarments(pool ?? closet)),
+    garmentsProvider.overrideWith(
+      () => SeededGarmentsNotifier(pool ?? closet, refreshReseeds: true),
+    ),
     adjustmentOptionsProvider.overrideWith((ref, _) async => _adjustmentTable),
     subCategoryCatalogProvider.overrideWith(
       (ref, _) async => SubCategoryCatalog(const {}),
@@ -569,7 +559,9 @@ void main() {
       table = Completer();
       fetches = 0;
       return [
-        garmentsProvider.overrideWith(() => _FakeGarments(closet)),
+        garmentsProvider.overrideWith(
+          () => SeededGarmentsNotifier(closet, refreshReseeds: true),
+        ),
         adjustmentOptionsProvider.overrideWith((ref, _) {
           fetches++;
           return table.future;
@@ -1963,6 +1955,401 @@ void main() {
         expect(find.text('Polo'), findsNothing);
         expect(find.text('Top · Cardigan'), findsOneWidget);
       }, () => client);
+    });
+
+    testWidgets('a manual swap of a Match a Look pick is no longer counted '
+        'as matched, and Remove Reference Look keeps it', (tester) async {
+      useTallSurface(tester);
+      final photo = (await tester.runAsync(() async {
+        final dir = await Directory.systemTemp.createTemp('match_look');
+        final recorder = ui.PictureRecorder();
+        Canvas(recorder).drawRect(
+          const Rect.fromLTWH(0, 0, 4, 4),
+          Paint()..color = const Color(0xFF888888),
+        );
+        final image = await recorder.endRecording().toImage(4, 4);
+        final png = await image.toByteData(format: ui.ImageByteFormat.png);
+        final file = File('${dir.path}/look.png');
+        await file.writeAsBytes(png!.buffer.asUint8List());
+        return file.path;
+      }))!;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith('/reference/init-upload')) {
+          return jsonResponse(
+            envelope({
+              'upload_url': 'https://storage.example/look.jpg',
+              'object_name': 'look.jpg',
+            }),
+          );
+        }
+        if (path.endsWith('/look.jpg')) return http.Response('', 200);
+        if (path.endsWith('/match')) {
+          return jsonResponse(
+            envelope({
+              'reference_id': 1,
+              'roles': [
+                {
+                  'role': 'top',
+                  'match_status': 'strong_match',
+                  'selected_garment_id': polo.id,
+                },
+                {
+                  'role': 'shoes',
+                  'match_status': 'strong_match',
+                  'selected_garment_id': boots.id,
+                },
+              ],
+              'garments': [
+                for (final g in [polo, boots])
+                  {
+                    'id': g.id,
+                    'garment_id': g.id,
+                    'name': g.name,
+                    'category': g.category.apiValue,
+                    'sub_category': g.subCategory,
+                  },
+              ],
+            }),
+          );
+        }
+        return jsonResponse(envelope(<String, dynamic>{}));
+      });
+
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(
+            initialGarments: [jeans],
+            initialMatchALookImagePath: photo,
+          ),
+          overrides: closetOverride([tee, polo, jeans, boots]),
+        );
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+          await tester.pump();
+        }
+        expect(find.text('2 pieces matched'), findsOneWidget);
+
+        // Swap the matched top for Tee by hand.
+        await tester.tap(find.text('Polo'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Tee'));
+        await tester.pumpAndSettle();
+        expect(find.text('1 pieces matched'), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Remove Reference Look'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+
+        expect(find.text('Tee'), findsOneWidget);
+        expect(find.text('Jeans'), findsOneWidget);
+        expect(find.text('Boots'), findsNothing);
+      }, () => client);
+    });
+  });
+
+  group('selection', () {
+    Garment g(
+      int id,
+      GarmentCategory category,
+      String name, [
+      String sub = '',
+    ]) => _garment(id: id, category: category, name: name, subCategory: sub);
+
+    final tee = g(1, GarmentCategory.top, 'Tee', 'T-shirt');
+    final cardi = g(5, GarmentCategory.top, 'Cardi', 'Cardigan');
+    final hoodie = g(6, GarmentCategory.top, 'Hoodie', 'Hoodie');
+    final jeans = g(2, GarmentCategory.bottom, 'Jeans');
+    final chinos = g(4, GarmentCategory.bottom, 'Chinos');
+    final sneakers = g(3, GarmentCategory.shoes, 'Sneakers');
+    final coat = g(7, GarmentCategory.outer, 'Coat');
+    final shades = g(11, GarmentCategory.accessory, 'Shades', 'Sunglasses');
+    final watch = g(12, GarmentCategory.accessory, 'Watch', 'Watch');
+    final belt = g(13, GarmentCategory.accessory, 'Belt', 'Belt');
+    final scarf = g(14, GarmentCategory.accessory, 'Scarf', 'Scarf');
+    final socks = g(15, GarmentCategory.socks, 'Socks', 'Socks');
+    final cap = g(16, GarmentCategory.accessory, 'Cap', 'Cap');
+
+    /// Generate answers 400, so the page stays put and every Create Outfit
+    /// tap's `garment_ids` can be read.
+    MockClient backend(
+      List<List<int>> sent, {
+      List<Map<String, dynamic>> advice = const [],
+      List<Map<String, dynamic>>? adviceRequests,
+    }) {
+      var adviceCalls = 0;
+      return MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/outfit')) {
+          return jsonResponse(envelope({'group_id': 9}));
+        }
+        if (path.endsWith('/generate')) {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          sent.add([for (final id in body['garment_ids'] as List) id as int]);
+          return jsonResponse(envelope(null), status: 400);
+        }
+        if (path.endsWith('/advice')) {
+          adviceRequests?.add(jsonDecode(request.body) as Map<String, dynamic>);
+          return jsonResponse(envelope(advice[adviceCalls++]));
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+    }
+
+    Future<void> tapCreate(WidgetTester tester) async {
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      // The failed render's dialog.
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> runFinishWithAi(WidgetTester tester) async {
+      await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pump();
+    }
+
+    Future<void> removeRow(WidgetTester tester, String name) async {
+      await _revealSwipeActions(tester, name);
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    Future<void> addGarment(WidgetTester tester, String name) async {
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(name));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('initial garments: tops, outer, bottom, one-piece and shoes, '
+        'then accessories in the order given; extra tops and accessories '
+        'beyond the caps are dropped', (tester) async {
+      useTallSurface(tester);
+      final sent = <List<int>>[];
+      final pool = [
+        shades, sneakers, cardi, jeans, coat, tee, watch, hoodie, //
+        belt, scarf, socks,
+      ];
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(initialGarments: pool),
+          overrides: closetOverride(pool),
+        );
+        await tester.pump();
+        await tapCreate(tester);
+      }, () => backend(sent));
+
+      // Two tops (the first two given), then the single slots, then the
+      // first four accessories / socks.
+      expect(sent, [
+        [5, 1, 7, 2, 3, 11, 12, 13, 14],
+      ]);
+    });
+
+    testWidgets('accessories: removing one closes the gap, a swap keeps its '
+        'place, and a removed one can be added again at the end', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      final sent = <List<int>>[];
+      final pool = [tee, jeans, sneakers, shades, watch, belt, cap];
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(
+            initialGarments: [tee, jeans, sneakers, shades, watch, belt],
+          ),
+          overrides: closetOverride(pool),
+        );
+        await tester.pump();
+
+        await removeRow(tester, 'Watch');
+        await tapCreate(tester);
+
+        // Swap Shades for Cap in place.
+        await tester.tap(find.text('Shades'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Cap'));
+        await tester.pumpAndSettle();
+        await tapCreate(tester);
+
+        await addGarment(tester, 'Watch');
+        await tapCreate(tester);
+      }, () => backend(sent));
+
+      expect(sent, [
+        [1, 2, 3, 11, 13],
+        [1, 2, 3, 16, 13],
+        [1, 2, 3, 16, 13, 12],
+      ]);
+    });
+
+    testWidgets('a fifth accessory is not offered once four are worn, and is '
+        'again after one is removed', (tester) async {
+      useTallSurface(tester);
+      final pool = [tee, jeans, sneakers, shades, watch, belt, scarf, cap];
+      await pumpApp(
+        tester,
+        CreateOutfitPage(initialGarments: [tee, shades, watch, belt, scarf]),
+        overrides: closetOverride(pool),
+      );
+      await tester.pump();
+
+      // The picker shows one category tab at a time; a category with
+      // nothing to offer has no tab.
+      Finder accessoryTab() => find.descendant(
+        of: find.byType(SelectGarmentPage),
+        matching: find.text('Accessory'),
+      );
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      expect(accessoryTab(), findsNothing);
+      Navigator.of(tester.element(find.byType(SelectGarmentPage))).pop();
+      await tester.pumpAndSettle();
+
+      await removeRow(tester, 'Belt');
+      await tester.tap(find.text('Add Garment'));
+      await tester.pumpAndSettle();
+      expect(accessoryTab(), findsOneWidget);
+      await tester.tap(accessoryTab());
+      await tester.pumpAndSettle();
+      expect(find.text('Cap'), findsOneWidget);
+      expect(find.text('Belt'), findsOneWidget);
+    });
+
+    testWidgets('Finish with AI: a manual pick stays locked and kept; AI picks '
+        'are unlocked, fill accessories only up to four, and a re-run '
+        'excludes every earlier AI suggestion — placed or not', (tester) async {
+      useTallSurface(tester);
+      final sent = <List<int>>[];
+      final adviceRequests = <Map<String, dynamic>>[];
+      final pool = [
+        tee, jeans, chinos, sneakers, shades, watch, belt, scarf, socks, //
+      ];
+      // One client for the whole test: runWithClient calls its factory per
+      // request, and the advice replies are served in turn.
+      final client = backend(
+        sent,
+        adviceRequests: adviceRequests,
+        advice: [
+          {
+            'selected_garment_ids': [1, 2, 3, 11, 12, 13, 14, 15],
+            'items': <Object?>[],
+          },
+          {
+            'selected_garment_ids': [1, 4, 3, 15],
+            'items': <Object?>[],
+          },
+        ],
+      );
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          const CreateOutfitPage(),
+          overrides: closetOverride(pool),
+        );
+        await tester.pump();
+        await addGarment(tester, 'Tee');
+        expect(_lockedCount(tester), 1);
+
+        await runFinishWithAi(tester);
+        expect(_lockedCount(tester), 1);
+        expect(find.text('Socks'), findsNothing, reason: 'over the cap');
+        await tapCreate(tester);
+
+        await runFinishWithAi(tester);
+        await tapCreate(tester);
+      }, () => client);
+
+      expect(adviceRequests[0]['garment_ids'], [1]);
+      expect(adviceRequests[0]['exclude_garment_ids'], <int>[]);
+      expect(adviceRequests[1]['garment_ids'], [1]);
+      expect(
+        adviceRequests[1]['exclude_garment_ids'],
+        unorderedEquals([2, 3, 11, 12, 13, 14, 15]),
+      );
+      expect(sent, [
+        [1, 2, 3, 11, 12, 13, 14],
+        // Unlocked picks are cleared before the new ones go in.
+        [1, 4, 3, 15],
+      ]);
+    });
+
+    testWidgets('Finish with AI: an adjustment pick on a garment it drops is '
+        'forgotten; one on a garment it puts back is kept', (tester) async {
+      useTallSurface(tester);
+      final rollable = _garment(
+        id: 1,
+        category: GarmentCategory.top,
+        name: 'Tee',
+        subCategory: 'T-shirt',
+        adjustmentOptions: const ['sleeve'],
+      );
+      final cuffable = _garment(
+        id: 2,
+        category: GarmentCategory.bottom,
+        name: 'Jeans',
+        adjustmentOptions: const ['pant_cuff'],
+      );
+      final pool = [rollable, cuffable, chinos, sneakers];
+      final bodies = <Map<String, dynamic>>[];
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (request.method == 'POST' && path.endsWith('/outfit')) {
+          return jsonResponse(envelope({'group_id': 9}));
+        }
+        if (path.endsWith('/generate')) {
+          bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+          return jsonResponse(envelope(null), status: 400);
+        }
+        if (path.endsWith('/advice')) {
+          return jsonResponse(
+            envelope({
+              'selected_garment_ids': [1, 4, 3],
+              'items': <Object?>[],
+            }),
+          );
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(initialGarments: [rollable, cuffable, sneakers]),
+          overrides: closetOverride(pool),
+        );
+        await tester.pump();
+        await _pickAdjustment(tester, 'Tee', 'Rolled');
+        await _pickAdjustment(tester, 'Jeans', 'Cuffed');
+
+        await runFinishWithAi(tester);
+        expect(find.text('Jeans'), findsNothing);
+        expect(find.text('Chinos'), findsOneWidget);
+
+        await tapCreate(tester);
+      }, () => client);
+
+      expect(bodies.single['garment_ids'], [1, 4, 3]);
+      expect(bodies.single['garment_adjustments'], [
+        {
+          'garment_id': 1,
+          'adjustments': {'sleeve': 2},
+        },
+      ]);
     });
   });
 

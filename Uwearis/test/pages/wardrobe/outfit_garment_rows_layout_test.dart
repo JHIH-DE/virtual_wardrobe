@@ -20,14 +20,7 @@ import 'package:uwearis/l10n/generated/app_localizations.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/text_scale_harness.dart';
 import '../../helpers/widget_harness.dart';
-
-class _FakeGarments extends GarmentsNotifier {
-  _FakeGarments(this._items);
-  final List<Garment> _items;
-
-  @override
-  Future<List<Garment>> build() async => _items;
-}
+import '../../helpers/seeded_notifiers.dart';
 
 Garment _garment(int id, GarmentCategory category, String name, String sub) =>
     Garment(
@@ -174,7 +167,9 @@ Future<void> _expectTallPhotoKeepsRowHeight(
     tester,
     page(tall),
     overrides: [
-      garmentsProvider.overrideWith(() => _FakeGarments([tall, _spare])),
+      garmentsProvider.overrideWith(
+        () => SeededGarmentsNotifier([tall, _spare]),
+      ),
     ],
   );
   await tester.pump();
@@ -207,7 +202,7 @@ void main() {
           CreateOutfitPage(initialGarments: closet),
           overrides: [
             garmentsProvider.overrideWith(
-              () => _FakeGarments([...closet, _spare]),
+              () => SeededGarmentsNotifier([...closet, _spare]),
             ),
             adjustmentOptionsProvider.overrideWith(
               (ref, _) async => const {

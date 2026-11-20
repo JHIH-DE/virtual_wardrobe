@@ -18,7 +18,6 @@
   "temperatureAdjustmentWarmer": "Warmer",
   "facePhotoLabel": "Face Photo",
   "facePhotoGuidance": "Face forward in good lighting.",
-  "faceReferenceComingSoon": "Coming soon",
   "fullBodyPhotoLabel": "Full-Body Photo",
   "fullBodyPhotoGuidance": "Keep your full body visible, head to toe.",
   "bodyMeasurementsLabel": "Body Measurements",
@@ -109,10 +108,6 @@
   "createVersion": "Create Version",
   "backgroundLabel": "Background",
   "noneLabel": "None",
-  "selectItemTitle": "Select {item}",
-  "@selectItemTitle": {
-    "placeholders": { "item": { "type": "String" } }
-  },
   "notSelected": "Not selected",
   "loadingGarmentsEllipsis": "Loading Garments…",
   "myCollection": "My Collection",
@@ -321,7 +316,6 @@
   "cameraUnavailable": "Couldn't open the camera",
   "takePhotoLabel": "Camera",
   "chooseFromAlbumLabel": "Album",
-  "back": "Back",
 
   "failedToLoad": "Failed to Load",
   "noImage": "No Image",
@@ -521,7 +515,6 @@
   "deletingOutfitEllipsis": "Deleting Outfit…",
   "updatingTripEllipsis": "Updating Trip…",
   "failedToCreateTrip": "Failed to create trip",
-  "tripPlannerTitle": "Trip Planner",
   "loadingTripEllipsis": "Loading Trip…",
   "loadingTripsEllipsis": "Loading Trips…",
   "loadingOutfitsEllipsis": "Loading Outfits…",

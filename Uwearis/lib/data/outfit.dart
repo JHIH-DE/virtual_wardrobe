@@ -10,6 +10,16 @@ String outfitImageVersionedCacheKey(int outfitId) {
   return '$baseKey-v${ImageCacheBust.versionOf(baseKey)}';
 }
 
+/// The version that stands for its group: the one [coverOutfitId] names,
+/// or — when it is null or names none of [versions] — the lowest id (the
+/// backend's own default, the group's earliest-created outfit). Throws
+/// [StateError] for an empty [versions].
+Outfit groupRepresentative(List<Outfit> versions, int? coverOutfitId) {
+  Outfit lowestId() => versions.reduce((a, b) => a.id < b.id ? a : b);
+  if (coverOutfitId == null) return lowestId();
+  return versions.firstWhere((o) => o.id == coverOutfitId, orElse: lowestId);
+}
+
 /// Backend `OutfitGroupType`; shared by every outfit in a group.
 enum OutfitGroupType { general, trip }
 

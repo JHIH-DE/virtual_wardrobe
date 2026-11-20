@@ -74,14 +74,19 @@ void main() {
       });
     });
 
-    test('updateFavorite flips isFavorite only on the target', () {
-      return withGarments([_g(1), _g(2)], (c) async {
-        c.read(garmentsProvider.notifier).updateFavorite(1, isFavorite: true);
-        final list = c.read(garmentsProvider).value!;
-        expect(list.firstWhere((g) => g.id == 1).isFavorite, isTrue);
-        expect(list.firstWhere((g) => g.id == 2).isFavorite, isFalse);
-      });
-    });
+    test(
+      'updateFavoriteOptimistically flips isFavorite only on the target',
+      () {
+        return withGarments([_g(1), _g(2)], (c) async {
+          c
+              .read(garmentsProvider.notifier)
+              .updateFavoriteOptimistically(1, isFavorite: true);
+          final list = c.read(garmentsProvider).value!;
+          expect(list.firstWhere((g) => g.id == 1).isFavorite, isTrue);
+          expect(list.firstWhere((g) => g.id == 2).isFavorite, isFalse);
+        });
+      },
+    );
 
     test('a mutation on an empty list is a no-op, not a crash', () {
       return withGarments([], (c) async {

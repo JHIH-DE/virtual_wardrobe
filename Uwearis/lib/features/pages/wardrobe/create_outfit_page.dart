@@ -60,14 +60,9 @@ import '../../widgets/garment/garment_adjustment_sheet.dart';
 import '../../widgets/garment/outfit_garment_row.dart';
 import '../../widgets/outfit/outfit_background_field.dart';
 import '../common/camera_capture_page.dart' show CameraFrameRatio;
+import 'create_outfit_selection.dart';
 import 'outfit_details_page.dart';
 import 'select_garment_page.dart' show SelectGarmentPage;
-
-/// Garment slots. [top] holds up to [_maxTops] garments
-/// ([_OutfitSelection.tops]); the rest hold one each.
-enum _Slot { top, outer, bottom, onePiece, shoes }
-
-const int _maxTops = 2;
 
 /// No error state: a failed match shows a dialog and drops back to [idle].
 enum _MatchALookStatus { idle, analyzing, matched }
@@ -79,52 +74,10 @@ enum _ReferenceLookCardAction { remove }
 typedef _OutfitEntry = ({
   Garment garment,
   GarmentCategory category,
-  _Slot? slot,
+  OutfitSlot? slot,
   int? topIndex,
   int? accessoryIndex,
 });
-
-/// In-progress slot picks — local UI state, not a domain model.
-class _OutfitSelection {
-  final List<Garment> tops;
-  final Garment? outer;
-  final Garment? bottom;
-  final Garment? onePiece;
-  final Garment? shoes;
-
-  const _OutfitSelection({
-    this.tops = const [],
-    this.outer,
-    this.bottom,
-    this.onePiece,
-    this.shoes,
-  });
-
-  _OutfitSelection copyWith({
-    List<Garment>? tops,
-    Garment? outer,
-    Garment? bottom,
-    Garment? onePiece,
-    Garment? shoes,
-    bool clearOuter = false,
-    bool clearBottom = false,
-    bool clearOnePiece = false,
-    bool clearShoes = false,
-  }) {
-    return _OutfitSelection(
-      tops: List.unmodifiable(tops ?? this.tops),
-      outer: clearOuter ? null : (outer ?? this.outer),
-      bottom: clearBottom ? null : (bottom ?? this.bottom),
-      onePiece: clearOnePiece ? null : (onePiece ?? this.onePiece),
-      shoes: clearShoes ? null : (shoes ?? this.shoes),
-    );
-  }
-
-  List<Garment?> get _singles => [outer, bottom, onePiece, shoes];
-
-  /// Tops first, then the single slots — the "Outfit Items" order.
-  List<Garment> get garments => [...tops, ..._singles.whereType<Garment>()];
-}
 
 class CreateOutfitPage extends ConsumerStatefulWidget {
   final List<Garment> initialGarments;
@@ -158,7 +111,7 @@ class CreateOutfitPage extends ConsumerStatefulWidget {
 
 class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     with TryOnMixin {
-  late _OutfitSelection _outfit;
+  late OutfitSelection _outfit;
 
   /// `.active`: a soft-deleted garment can't be picked for a new outfit.
   List<Garment> get _garmentPool =>
@@ -172,10 +125,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   // this set.
   final Set<int> _aiPickedIds = {};
 
-  static const int _maxAccessories = 4;
-
-  // Always exactly one trailing empty ("+") slot until the max is reached.
-  final List<Garment?> _accessories = [null];
   // Null when [CreateOutfitPage.initialBackgroundId] is unset or unknown.
   BackgroundOption? _initialBackground;
   late BackgroundOption _background;
@@ -232,7 +181,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       if (c == keepCategory) return false;
       switch (c) {
         case GarmentCategory.top:
-          return _outfit.tops.length >= _maxTops;
+          return _outfit.tops.length >= OutfitSelection.maxTops;
         case GarmentCategory.outer:
           return _outfit.outer != null;
         case GarmentCategory.bottom:
@@ -243,14 +192,15 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
           return _outfit.shoes != null;
         case GarmentCategory.socks:
         case GarmentCategory.accessory:
-          return _accessories.whereType<Garment>().length >= _maxAccessories;
+          return _outfit.accessoryGarments.length >=
+              OutfitSelection.maxAccessories;
       }
     }
 
     final wornAccessoryKeys = <String>{};
-    for (var i = 0; i < _accessories.length; i++) {
+    for (var i = 0; i < _outfit.accessories.length; i++) {
       if (i == keepAccessoryIndex) continue;
-      final a = _accessories[i];
+      final a = _outfit.accessories[i];
       if (a != null && a.subCategory.isNotEmpty) {
         wornAccessoryKeys.add(accessorySlotKey(a));
       }
@@ -273,7 +223,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
           g.category == GarmentCategory.accessory ||
           g.category == GarmentCategory.socks;
       if (isAccessory) {
-        if (g.id != null && _accessoryIds.contains(g.id)) return false;
+        if (g.id != null && _outfit.accessoryIds.contains(g.id)) return false;
         if (g.subCategory.isNotEmpty &&
             wornAccessoryKeys.contains(accessorySlotKey(g))) {
           return false;
@@ -325,12 +275,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     }
   }
 
-  Set<int> get _accessoryIds => _accessories
-      .whereType<Garment>()
-      .map((g) => g.id)
-      .whereType<int>()
-      .toSet();
-
   /// Top/Bottom/Shoes, limited to the categories the closet actually has.
   List<GarmentCategory> get _coreChecklist => const [
     GarmentCategory.top,
@@ -359,13 +303,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   void initState() {
     super.initState();
     _outfit = widget.initialGarments.isNotEmpty
-        ? _buildInitialOutfit(widget.initialGarments)
-        : const _OutfitSelection();
-    if (widget.initialGarments.isNotEmpty) {
-      _accessories
-        ..clear()
-        ..addAll(_buildInitialAccessories(widget.initialGarments));
-    }
+        ? OutfitSelection.fromGarments(widget.initialGarments)
+        : OutfitSelection();
     _initialGarmentIds = _selectedGarmentIds().toSet();
     _initialBackground = BackgroundOption.all
         .where((b) => b.backgroundId == widget.initialBackgroundId)
@@ -381,108 +320,24 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     });
   }
 
-  _OutfitSelection _buildInitialOutfit(List<Garment> garments) {
-    final tops = garments
-        .where((g) => g.category == GarmentCategory.top)
-        .toList();
-    return _OutfitSelection(
-      tops: tops.take(_maxTops).toList(),
-      outer: garments
-          .where((g) => g.category == GarmentCategory.outer)
-          .firstOrNull,
-      bottom: garments
-          .where((g) => g.category == GarmentCategory.bottom)
-          .firstOrNull,
-      onePiece: garments
-          .where((g) => g.category == GarmentCategory.onePiece)
-          .firstOrNull,
-      shoes: garments
-          .where((g) => g.category == GarmentCategory.shoes)
-          .firstOrNull,
-    );
-  }
-
-  /// Keeps the "one trailing null add-slot until [_maxAccessories]"
-  /// invariant.
-  List<Garment?> _buildInitialAccessories(List<Garment> garments) {
-    final picked = garments
-        .where(
-          (g) =>
-              g.category == GarmentCategory.accessory ||
-              g.category == GarmentCategory.socks,
-        )
-        .take(_maxAccessories)
-        .toList();
-    return [...picked, if (picked.length < _maxAccessories) null];
-  }
-
   // Accessories are out of Match a Look's scope, so that role is never
   // applied.
-  _Slot? _slotFor(MatchALookRole role) {
+  OutfitSlot? _slotFor(MatchALookRole role) {
     switch (role) {
       case MatchALookRole.top:
       case MatchALookRole.midLayer:
-        return _Slot.top;
+        return OutfitSlot.top;
       case MatchALookRole.outer:
-        return _Slot.outer;
+        return OutfitSlot.outer;
       case MatchALookRole.bottom:
-        return _Slot.bottom;
+        return OutfitSlot.bottom;
       case MatchALookRole.onePiece:
-        return _Slot.onePiece;
+        return OutfitSlot.onePiece;
       case MatchALookRole.shoes:
-        return _Slot.shoes;
+        return OutfitSlot.shoes;
       case MatchALookRole.accessory:
         return null;
     }
-  }
-
-  /// Single slots only; tops go through [_placeTop] or their index.
-  _OutfitSelection _applyToSlot(_OutfitSelection sel, _Slot slot, Garment g) {
-    switch (slot) {
-      case _Slot.top:
-        throw ArgumentError.value(slot, 'slot', 'tops are indexed');
-      case _Slot.outer:
-        return sel.copyWith(outer: g);
-      case _Slot.bottom:
-        return sel.copyWith(bottom: g);
-      case _Slot.onePiece:
-        return sel.copyWith(onePiece: g);
-      case _Slot.shoes:
-        return sel.copyWith(shoes: g);
-    }
-  }
-
-  _OutfitSelection _clearSlotValue(_OutfitSelection sel, _Slot slot) {
-    switch (slot) {
-      case _Slot.top:
-        throw ArgumentError.value(slot, 'slot', 'tops are indexed');
-      case _Slot.outer:
-        return sel.copyWith(clearOuter: true);
-      case _Slot.bottom:
-        return sel.copyWith(clearBottom: true);
-      case _Slot.onePiece:
-        return sel.copyWith(clearOnePiece: true);
-      case _Slot.shoes:
-        return sel.copyWith(clearShoes: true);
-    }
-  }
-
-  /// A top interchangeable with a worn one ([baseTopSlotKey], e.g. Polo
-  /// over T-shirt) replaces it; otherwise it's added, or replaces the last
-  /// top once [_maxTops] are worn.
-  List<Garment> _placeTop(List<Garment> tops, Garment g) {
-    final next = [...tops];
-    final same = next.indexWhere(
-      (t) => baseTopSlotKey(t.subCategory) == baseTopSlotKey(g.subCategory),
-    );
-    if (same >= 0) {
-      next[same] = g;
-    } else if (next.length < _maxTops) {
-      next.add(g);
-    } else {
-      next[next.length - 1] = g;
-    }
-    return next;
   }
 
   void _markManual(Garment g) {
@@ -567,10 +422,10 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       // An unknown garment id counts as no match.
       if (garment == null) continue;
       if (garment.id != null) newAiIds.add(garment.id!);
-      if (slot == _Slot.top) {
+      if (slot == OutfitSlot.top) {
         matchedTops.add(garment);
       } else {
-        next = _applyToSlot(next, slot, garment);
+        next = next.withSlot(slot, garment);
       }
     }
     if (matchedTops.isNotEmpty) {
@@ -581,7 +436,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         (t) => !matchedTops.any((m) => m.id == t.id || key(m) == key(t)),
       );
       next = next.copyWith(
-        tops: [...matchedTops, ...kept].take(_maxTops).toList(),
+        tops: [...matchedTops, ...kept].take(OutfitSelection.maxTops).toList(),
       );
     }
 
@@ -604,12 +459,12 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       tops: _outfit.tops.where((t) => !ai(t)).toList(),
     );
     for (final slot in [
-      _Slot.outer,
-      _Slot.bottom,
-      _Slot.onePiece,
-      _Slot.shoes,
+      OutfitSlot.outer,
+      OutfitSlot.bottom,
+      OutfitSlot.onePiece,
+      OutfitSlot.shoes,
     ]) {
-      if (ai(_garmentIn(next, slot))) next = _clearSlotValue(next, slot);
+      if (ai(next.garmentIn(slot))) next = next.withoutSlot(slot);
     }
     setState(() {
       _outfit = next;
@@ -635,8 +490,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   /// `garment_ids`.
   List<int> _selectedGarmentIds() {
     final coreIds = _outfit.garments.map((g) => g.id).whereType<int>();
-    final accessoryIds = _accessories
-        .whereType<Garment>()
+    final accessoryIds = _outfit.accessoryGarments
         .map((g) => g.id)
         .whereType<int>();
     return {...coreIds, ...accessoryIds}.toList();
@@ -976,30 +830,30 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         (
           garment: _outfit.tops[i],
           category: GarmentCategory.top,
-          slot: _Slot.top,
+          slot: OutfitSlot.top,
           topIndex: i,
           accessoryIndex: null,
         ),
     ];
     for (final slot in [
-      _Slot.outer,
-      _Slot.bottom,
-      _Slot.onePiece,
-      _Slot.shoes,
+      OutfitSlot.outer,
+      OutfitSlot.bottom,
+      OutfitSlot.onePiece,
+      OutfitSlot.shoes,
     ]) {
-      final g = _garmentIn(_outfit, slot);
+      final g = _outfit.garmentIn(slot);
       if (g != null) {
         list.add((
           garment: g,
-          category: _categoryForSlot(slot),
+          category: OutfitSelection.categoryFor(slot),
           slot: slot,
           topIndex: null,
           accessoryIndex: null,
         ));
       }
     }
-    for (var i = 0; i < _accessories.length; i++) {
-      final g = _accessories[i];
+    for (var i = 0; i < _outfit.accessories.length; i++) {
+      final g = _outfit.accessories[i];
       if (g != null) {
         list.add((
           garment: g,
@@ -1018,13 +872,11 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       final slot = entry.slot;
       final topIndex = entry.topIndex;
       if (topIndex != null) {
-        _outfit = _outfit.copyWith(tops: [..._outfit.tops]..removeAt(topIndex));
+        _outfit = _outfit.withoutTopAt(topIndex);
       } else if (slot != null) {
-        _outfit = _clearSlotValue(_outfit, slot);
+        _outfit = _outfit.withoutSlot(slot);
       } else if (entry.accessoryIndex != null) {
-        _accessories.removeAt(entry.accessoryIndex!);
-        _accessories.removeWhere((g) => g == null);
-        if (_accessories.length < _maxAccessories) _accessories.add(null);
+        _outfit = _outfit.withoutAccessoryAt(entry.accessoryIndex!);
       }
       _markManual(entry.garment);
       if (entry.garment.id != null) {
@@ -1105,10 +957,7 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
 
   /// The garment with [id] in the current outfit, if it's still there.
   Garment? _outfitGarment(int id) {
-    for (final g in [
-      ..._outfit.garments,
-      ..._accessories.whereType<Garment>(),
-    ]) {
+    for (final g in [..._outfit.garments, ..._outfit.accessoryGarments]) {
       if (g.id == id) return g;
     }
     return null;
@@ -1225,42 +1074,12 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     });
   }
 
-  Garment? _garmentIn(_OutfitSelection sel, _Slot slot) {
-    switch (slot) {
-      case _Slot.top:
-        throw ArgumentError.value(slot, 'slot', 'tops are indexed');
-      case _Slot.outer:
-        return sel.outer;
-      case _Slot.bottom:
-        return sel.bottom;
-      case _Slot.onePiece:
-        return sel.onePiece;
-      case _Slot.shoes:
-        return sel.shoes;
-    }
-  }
-
-  GarmentCategory _categoryForSlot(_Slot slot) {
-    switch (slot) {
-      case _Slot.top:
-        return GarmentCategory.top;
-      case _Slot.outer:
-        return GarmentCategory.outer;
-      case _Slot.bottom:
-        return GarmentCategory.bottom;
-      case _Slot.onePiece:
-        return GarmentCategory.onePiece;
-      case _Slot.shoes:
-        return GarmentCategory.shoes;
-    }
-  }
-
   /// [replaceSlot] (+ [replaceTopIndex] for a top) / [replaceAccessoryIndex]
   /// pin the pick to the row being swapped; [current] shows as selected in
   /// the picker.
   Future<void> _pickGarmentForOutfit({
     GarmentCategory? initial,
-    _Slot? replaceSlot,
+    OutfitSlot? replaceSlot,
     int? replaceTopIndex,
     int? replaceAccessoryIndex,
     Garment? current,
@@ -1268,7 +1087,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     if (_waitingForCloset) return;
     if (!await _ensureFreshGarments() || !mounted) return;
     final candidates = _addGarmentCandidates(
-      keepCategory: replaceSlot != null ? _categoryForSlot(replaceSlot) : null,
+      keepCategory: replaceSlot != null
+          ? OutfitSelection.categoryFor(replaceSlot)
+          : null,
       keepTopIndex: replaceTopIndex,
       keepAccessoryIndex: replaceAccessoryIndex,
     );
@@ -1300,34 +1121,28 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   /// Manual picks are always locked so Finish Outfit keeps them.
   void _assignGarment(
     Garment g, {
-    _Slot? replaceSlot,
+    OutfitSlot? replaceSlot,
     int? replaceTopIndex,
     int? replaceAccessoryIndex,
   }) {
     setState(() {
-      if (replaceSlot != null && g.category == _categoryForSlot(replaceSlot)) {
+      if (replaceSlot != null &&
+          g.category == OutfitSelection.categoryFor(replaceSlot)) {
         if (replaceTopIndex != null && replaceTopIndex < _outfit.tops.length) {
-          _outfit = _outfit.copyWith(
-            tops: [..._outfit.tops]..[replaceTopIndex] = g,
-          );
-        } else if (replaceSlot != _Slot.top) {
-          _outfit = _applyToSlot(_outfit, replaceSlot, g);
+          _outfit = _outfit.withTopAt(replaceTopIndex, g);
+        } else if (replaceSlot != OutfitSlot.top) {
+          _outfit = _outfit.withSlot(replaceSlot, g);
         } else {
-          _outfit = _outfit.copyWith(tops: _placeTop(_outfit.tops, g));
+          _outfit = _outfit.withTop(g);
         }
         _markManual(g);
         _lockGarment(g);
         return;
       }
-      final isAccessory =
-          g.category == GarmentCategory.accessory ||
-          g.category == GarmentCategory.socks;
       if (replaceAccessoryIndex != null &&
-          isAccessory &&
-          replaceAccessoryIndex < _accessories.length) {
-        _accessories[replaceAccessoryIndex] = g;
-        _accessories.removeWhere((a) => a == null);
-        if (_accessories.length < _maxAccessories) _accessories.add(null);
+          OutfitSelection.isAccessoryGarment(g) &&
+          replaceAccessoryIndex < _outfit.accessories.length) {
+        _outfit = _outfit.withAccessoryAt(replaceAccessoryIndex, g);
         _lockGarment(g);
         return;
       }
@@ -1337,32 +1152,13 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   }
 
   /// Call inside `setState`.
+  /// Call inside `setState`. An accessory that can't go in is still
+  /// unmarked as Match a Look's, but not locked.
   void _placeGarment(Garment g, {required bool lock}) {
     _markManual(g);
-    switch (g.category) {
-      case GarmentCategory.top:
-        _outfit = _outfit.copyWith(tops: _placeTop(_outfit.tops, g));
-      case GarmentCategory.outer:
-        _outfit = _applyToSlot(_outfit, _Slot.outer, g);
-      case GarmentCategory.bottom:
-        _outfit = _applyToSlot(_outfit, _Slot.bottom, g);
-      case GarmentCategory.onePiece:
-        _outfit = _applyToSlot(_outfit, _Slot.onePiece, g);
-      case GarmentCategory.shoes:
-        _outfit = _applyToSlot(_outfit, _Slot.shoes, g);
-      case GarmentCategory.accessory:
-      case GarmentCategory.socks:
-        final filled = _accessories.whereType<Garment>().toList();
-        if (filled.length >= _maxAccessories ||
-            (g.id != null && _accessoryIds.contains(g.id))) {
-          return;
-        }
-        filled.add(g);
-        _accessories
-          ..clear()
-          ..addAll(filled);
-        if (_accessories.length < _maxAccessories) _accessories.add(null);
-    }
+    final next = _outfit.withGarment(g);
+    if (next == null) return;
+    _outfit = next;
     if (lock) _lockGarment(g);
   }
 
@@ -1389,59 +1185,17 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       _excludedGarmentIds.addAll(
         garmentIds.where((id) => !keepGarmentIds.contains(id)),
       );
-      _outfit = _outfit.copyWith(tops: _outfit.tops.where(kept).toList());
-      if (!kept(_outfit.outer)) {
-        _outfit = _outfit.copyWith(clearOuter: true);
-      }
-      if (!kept(_outfit.bottom)) {
-        _outfit = _outfit.copyWith(clearBottom: true);
-      }
-      if (!kept(_outfit.onePiece)) {
-        _outfit = _outfit.copyWith(clearOnePiece: true);
-      }
-      if (!kept(_outfit.shoes)) {
-        _outfit = _outfit.copyWith(clearShoes: true);
-      }
-      for (var i = 0; i < _accessories.length; i++) {
-        if (!kept(_accessories[i])) _accessories[i] = null;
-      }
-      _accessories.removeWhere((g) => g == null);
-      if (_accessories.length < _maxAccessories) _accessories.add(null);
+      _outfit = _outfit.keepingOnly(keepGarmentIds);
 
       for (final g in recommended) {
         if (kept(g)) continue; // already kept in place above
         // Only kept garments remain, and the backend may still suggest a
         // second piece for a locked slot — that must not displace it.
-        if (!_hasRoomFor(g)) continue;
+        if (!_outfit.hasRoomFor(g)) continue;
         _placeGarment(g, lock: false);
       }
     });
     _pruneGarmentAdjustments();
-  }
-
-  /// Whether [g] fits without replacing a garment already picked.
-  bool _hasRoomFor(Garment g) {
-    switch (g.category) {
-      case GarmentCategory.top:
-        return _outfit.tops.length < _maxTops &&
-            !_outfit.tops.any(
-              (t) =>
-                  baseTopSlotKey(t.subCategory) ==
-                  baseTopSlotKey(g.subCategory),
-            );
-      case GarmentCategory.outer:
-        return _outfit.outer == null;
-      case GarmentCategory.bottom:
-        return _outfit.bottom == null;
-      case GarmentCategory.onePiece:
-        return _outfit.onePiece == null;
-      case GarmentCategory.shoes:
-        return _outfit.shoes == null;
-      case GarmentCategory.accessory:
-      case GarmentCategory.socks:
-        // _placeGarment only appends accessories, never replaces one.
-        return true;
-    }
   }
 
   static const double _defaultTemperatureC = 20;
