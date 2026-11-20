@@ -14,6 +14,8 @@ import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/trip_outfit.dart';
+import 'package:uwearis/features/pages/wardrobe/outfit_edit_page.dart';
+import 'package:uwearis/features/pages/wardrobe/select_garment_page.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_details_page.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_outfit_detail_page.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_suitcase_page.dart';
@@ -24,6 +26,7 @@ import 'package:uwearis/features/widgets/common/cards/app_list_card.dart';
 import 'package:uwearis/features/widgets/common/cards/generated_image_card.dart';
 import 'package:uwearis/features/widgets/common/overlays/empty_state_placeholder.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
+import 'package:uwearis/features/widgets/garment/category_selector.dart';
 import 'package:uwearis/features/widgets/trip/trip_outfit_tile.dart';
 
 import '../../helpers/points_fixture.dart';
@@ -677,6 +680,134 @@ void main() {
       }, tripClient([]));
     },
   );
+
+  group('outfit editing sends garment_ids in slot order', () {
+    final outer = _garment(4, category: GarmentCategory.outer);
+
+    Future<void> pickInEditor(WidgetTester tester, String name) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(SelectGarmentPage),
+          matching: find.text(name),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Edit Outfit: backing out sends nothing; Confirm PATCHes the '
+        'edited outfit tops → outer → bottom → shoes', (tester) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(
+        () async {
+          useTallSurface(tester);
+          await pumpDetails(
+            tester,
+            detail: _collection(
+              suitcase: [..._viableSuitcase, outer],
+              outfits: [
+                _outfitJson(1, garments: [_shoes, _bottom, _top]),
+              ],
+            ),
+          );
+          await settle(tester);
+          await openTile(tester);
+
+          Future<void> openEditor() async {
+            await tester.tap(find.byIcon(Icons.more_vert));
+            await tester.pumpAndSettle();
+            await tester.tap(find.text('Edit Outfit'));
+            await tester.pumpAndSettle();
+            expect(find.byType(OutfitEditPage), findsOneWidget);
+          }
+
+          await openEditor();
+          Navigator.of(tester.element(find.byType(OutfitEditPage))).pop();
+          await tester.pumpAndSettle();
+          expect(log, isEmpty);
+
+          await openEditor();
+          await tester.tap(find.text('Add Garment'));
+          await tester.pumpAndSettle();
+          await pickInEditor(tester, 'Item 4');
+          await tester.tap(find.text('Confirm'));
+          await tester.pumpAndSettle();
+
+          expect(log.map((r) => r.toString()), ['PATCH /outfits/1']);
+          expect(log.single.body, {
+            'garment_ids': [1, 4, 2, 3],
+          });
+        },
+        tripClient(
+          log,
+          respond: (r) => r.method == 'PATCH'
+              ? _collectionJson(
+                  suitcase: [..._viableSuitcase, outer],
+                  outfits: [
+                    _outfitJson(1, garments: [_top, outer, _bottom, _shoes]),
+                  ],
+                )
+              : null,
+        ),
+      );
+    });
+
+    testWidgets('Add Manually: backing out sends nothing; Confirm POSTs the '
+        'picks in slot order, not pick order', (tester) async {
+      final log = <_Recorded>[];
+      await http.runWithClient(
+        () async {
+          useTallSurface(tester);
+          await pumpDetails(tester, detail: _collection());
+          await settle(tester);
+
+          await tester.tap(find.text('Add Manually'));
+          await tester.pumpAndSettle();
+          expect(find.byType(OutfitEditPage), findsOneWidget);
+          Navigator.of(tester.element(find.byType(OutfitEditPage))).pop();
+          await tester.pumpAndSettle();
+          expect(log, isEmpty);
+
+          await tester.tap(find.text('Add Manually'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Add Garment'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.descendant(
+              of: find.byType(CategorySelector),
+              matching: find.text('Shoes'),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await pickInEditor(tester, 'Item 3');
+          for (final name in ['Item 2', 'Item 1']) {
+            await tester.tap(find.text('Add Garment'));
+            await tester.pumpAndSettle();
+            await tester.tap(
+              find.descendant(
+                of: find.byType(CategorySelector),
+                matching: find.text(name == 'Item 2' ? 'Bottom' : 'Top'),
+              ),
+            );
+            await tester.pumpAndSettle();
+            await pickInEditor(tester, name);
+          }
+          await tester.tap(find.text('Confirm'));
+          await tester.pumpAndSettle();
+
+          expect(log.map((r) => r.toString()), ['POST /outfits']);
+          expect(log.single.body, {
+            'garment_ids': [1, 2, 3],
+          });
+        },
+        tripClient(
+          log,
+          respond: (r) => r.method == 'POST' && r.path == '/outfits'
+              ? _collectionJson(outfits: [_outfitJson(1, source: 'manual')])
+              : null,
+        ),
+      );
+    });
+  });
 
   testWidgets('Keep and Remove from Trip go through the outfit page menu, '
       'and removing returns to the grid', (tester) async {

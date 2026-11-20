@@ -1,13 +1,13 @@
 import '../../../data/garment.dart';
 
-/// Create Outfit's core garment slots. [top] holds up to
-/// [OutfitSelection.maxTops] garments; the rest hold one each.
+/// The core garment slots of Create Outfit and Outfit Edit. [top] holds up
+/// to [OutfitSelection.maxTops] garments; the rest hold one each.
 enum OutfitSlot { top, outer, bottom, onePiece, shoes }
 
-/// Create Outfit's in-progress picks — page state, not a domain model.
-/// Immutable: every change returns a new selection, and its lists can't be
-/// modified in place. Who picked what (locks, Match a Look's picks) stays
-/// with the page.
+/// In-progress picks shared by Create Outfit and Outfit Edit — page state,
+/// not a domain model. Immutable: every change returns a new selection, and
+/// its lists can't be modified in place. Who picked what (locks, Match a
+/// Look's picks) and which garments can be offered stay with each page.
 class OutfitSelection {
   static const int maxTops = 2;
   static const int maxAccessories = 4;
