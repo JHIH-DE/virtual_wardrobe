@@ -145,29 +145,28 @@ Future<bool> handleDeleteTrip(
   final l10n = AppLocalizations.of(context);
   final navigator = Navigator.of(context, rootNavigator: true);
   final trips = ref.read(tripsProvider.notifier);
-  // A system back must not close the overlay mid-delete: the old code then
-  // popped whatever page was on top once the request finished.
-  final overlay = RouteSettings(name: 'deleteTripOverlay');
-  showDialog(
+  // A system back must not close the overlay mid-delete, which
+  // ModalLoadingOverlay allows unless it shows a cancel action — so this
+  // route is its own, closed the same way: only it, wherever it is.
+  final overlay = DialogRoute<void>(
     context: context,
-    routeSettings: overlay,
     barrierDismissible: false,
     barrierColor: Colors.transparent,
     useSafeArea: false,
+    themes: InheritedTheme.capture(from: context, to: navigator.context),
     builder: (_) => PopScope(
       canPop: false,
       child: LoadingOverlay(label: l10n.deletingTripEllipsis),
     ),
   );
-  // Pops the overlay only while it is the top route; after a session reset
-  // (or anything else pushed on top) it pops nothing.
+  navigator.push(overlay);
   void closeOverlay() {
-    var checked = false;
-    navigator.popUntil((route) {
-      if (checked) return true;
-      checked = true;
-      return !identical(route.settings, overlay);
-    });
+    if (!overlay.isActive) return;
+    if (overlay.isCurrent) {
+      navigator.pop();
+    } else {
+      navigator.removeRoute(overlay);
+    }
   }
 
   try {

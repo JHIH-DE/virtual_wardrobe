@@ -6,10 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/trips_provider.dart';
+import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_details_page.dart';
 import 'package:uwearis/features/pages/wardrobe/trips_page.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:uwearis/features/widgets/common/overlays/loading_overlay.dart';
 import 'package:uwearis/features/widgets/common/wardrobe_nav_bar.dart';
 
@@ -206,6 +208,15 @@ void main() {
       await tester.pump();
     }
 
+    /// Closes Session Expired, releasing AuthExpiredHandler's static guard
+    /// for the next test; the login page it opens may log plugin errors.
+    Future<void> dismissSessionExpired(WidgetTester tester) async {
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey).last);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      while (tester.takeException() != null) {}
+    }
+
     Future<void> finish(WidgetTester tester) async {
       hold?.complete(jsonResponse(envelope(null)));
       await tester.pump();
@@ -314,6 +325,7 @@ void main() {
         expect(find.text('Session Expired'), findsOneWidget);
         expect(find.byType(LoadingOverlay), findsNothing);
         expect(find.byType(TripsPage), findsOneWidget, reason: 'not popped');
+        await dismissSessionExpired(tester);
       }, client);
     });
 
@@ -337,6 +349,152 @@ void main() {
         expect(find.byType(LoadingOverlay), findsNothing);
         expect(find.text('base page'), findsOneWidget);
       }, client);
+    });
+
+    // F2: the overlay used to be closed only while it was the top route, so
+    // anything pushed over it mid-delete left it behind, blocking back.
+    group('a route pushed over the overlay mid-delete', () {
+      final overlay = find.byType(LoadingOverlay);
+      final onTop = find.text('On top');
+
+      BuildContext tripsContext(WidgetTester tester) =>
+          tester.element(find.byType(TripsPage));
+
+      bool tripsIsTop(WidgetTester tester) =>
+          ModalRoute.of(tripsContext(tester))?.isCurrent ?? false;
+
+      /// Its dots never settle, so fixed pumps while it may still be up.
+      Future<void> pumpRoutes(WidgetTester tester) async {
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+
+      Future<void> coverWithDialog(WidgetTester tester) async {
+        unawaited(
+          showDialog<void>(
+            context: tripsContext(tester),
+            builder: (_) => const AlertDialog(content: Text('On top')),
+          ),
+        );
+        await pumpRoutes(tester);
+        expect(onTop, findsOneWidget);
+        expect(overlay, findsOneWidget);
+      }
+
+      Future<void> land(WidgetTester tester, http.Response response) async {
+        hold!.complete(response);
+        await pumpRoutes(tester);
+      }
+
+      testWidgets('success: the overlay leaves from under it, the route on '
+          'top stays, and back works once that closes', (tester) async {
+        hold = Completer();
+        await http.runWithClient(() async {
+          await openTrips(tester);
+          await confirmDelete(tester);
+          await coverWithDialog(tester);
+
+          await land(tester, jsonResponse(envelope(null)));
+          expect(overlay, findsNothing);
+          expect(onTop, findsOneWidget);
+          expect(find.text('Kyoto Autumn'), findsNothing, reason: 'removed');
+
+          Navigator.of(tester.element(onTop)).pop();
+          await tester.pumpAndSettle();
+          expect(tripsIsTop(tester), isTrue);
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+          expect(find.byType(TripsPage), findsNothing);
+          expect(find.text('base page'), findsOneWidget);
+        }, client);
+      });
+
+      testWidgets('failure: the overlay leaves, the error shows over the '
+          'route on top, and the trip is kept', (tester) async {
+        hold = Completer();
+        await http.runWithClient(() async {
+          await openTrips(tester);
+          await confirmDelete(tester);
+          await coverWithDialog(tester);
+
+          await land(
+            tester,
+            jsonResponse({
+              'success': false,
+              'message': 'boom',
+              'data': null,
+              'error_code': 'INTERNAL_SERVER_ERROR',
+            }, status: 500),
+          );
+          expect(overlay, findsNothing);
+          expect(onTop, findsOneWidget);
+          expect(find.text('Failed to delete trip'), findsOneWidget);
+          expect(find.byType(TripsPage), findsOneWidget);
+
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+          await tester.pumpAndSettle();
+          Navigator.of(tester.element(onTop)).pop();
+          await tester.pumpAndSettle();
+          expect(tripsIsTop(tester), isTrue);
+          expect(find.text('Kyoto Autumn'), findsOneWidget);
+        }, client);
+      });
+
+      testWidgets('the session expired elsewhere: the late reply removes '
+          'only the overlay, under Session Expired, and changes nothing else', (
+        tester,
+      ) async {
+        hold = Completer();
+        await http.runWithClient(() async {
+          await openTrips(tester);
+          await confirmDelete(tester);
+          unawaited(AuthExpiredHandler.handle(tripsContext(tester)));
+          // clearSignedInSession's async steps, then the dialog's entrance.
+          for (var i = 0; i < 10; i++) {
+            await tester.pump(const Duration(milliseconds: 100));
+          }
+          expect(find.text('Session Expired'), findsOneWidget);
+
+          await land(tester, jsonResponse(envelope(null)));
+          expect(overlay, findsNothing);
+          expect(find.text('Session Expired'), findsOneWidget);
+          expect(find.text('Failed to delete trip'), findsNothing);
+          expect(find.byType(TripsPage), findsOneWidget, reason: 'not popped');
+          expect(
+            find.text('Kyoto Autumn', skipOffstage: false),
+            findsOneWidget,
+            reason: "the old session's reply doesn't touch the list",
+          );
+          await dismissSessionExpired(tester);
+        }, client);
+      });
+
+      testWidgets('signed out meanwhile: the late reply pops nothing off the '
+          'new stack', (tester) async {
+        hold = Completer();
+        await http.runWithClient(() async {
+          await openTrips(tester);
+          await confirmDelete(tester);
+          final navigator = Navigator.of(tripsContext(tester));
+          await clearSignedInSession();
+          unawaited(
+            navigator.pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => const Scaffold(body: Text('Signed out')),
+              ),
+              (_) => false,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(overlay, findsNothing);
+
+          await land(tester, jsonResponse(envelope(null)));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(find.text('Signed out'), findsOneWidget);
+          expect(find.text('Failed to delete trip'), findsNothing);
+        }, client);
+      });
     });
 
     testWidgets('a second tap on Delete sends no second request', (
