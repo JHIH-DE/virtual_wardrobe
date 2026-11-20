@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uwearis/core/services/auth_storage.dart';
 import 'package:uwearis/core/services/outfit_service.dart';
 import 'package:uwearis/core/services/pending_try_on_store.dart';
 import 'package:uwearis/core/utils/try_on_mixin.dart';
@@ -569,6 +570,73 @@ void main() {
         await PendingTryOnStore.clear();
         await drive(tester, result);
         expect(backend.statusKeys.length, lessThanOrEqualTo(checksBefore + 1));
+        expect(backend.deleted, isEmpty);
+      }, () => backend.client);
+    });
+    // C1: the account's session ending (AuthStorage), before or without the
+    // pending store being cleared — mid-sign-out, or a session expiry.
+    testWidgets('the session ending mid-render is no failure: no message, '
+        'loading cleared, the key and draft kept for the same intent', (
+      tester,
+    ) async {
+      final first = Completer<http.Response>();
+      final backend = _FakeBackend(
+        (call, groupId) => call == 1
+            ? first.future
+            : Future.value(jsonResponse(envelope(_outfitJson(9, groupId)))),
+      );
+      await http.runWithClient(() async {
+        final state = await pumpHarness(tester);
+        final result = state.performTryOn([1, 2]);
+        await tester.pump();
+        await AuthStorage.clear();
+        first.complete(jsonResponse(envelope(_outfitJson(9, 100))));
+        expect(await result, isNull);
+        await tester.pump();
+
+        expect(state.tryOnErrorMessage, isNull);
+        expect(state.isOutfitLoading, isFalse);
+        expect(backend.deleted, isEmpty);
+        expect(
+          (await PendingTryOnStore.load()).single.key,
+          backend.generateKeys.single,
+          reason: 'still recorded',
+        );
+
+        // The same intent again (signed back in): the same key, same draft.
+        await AuthStorage.startSession(
+          accessToken: 'fake-access-token',
+          refreshToken: 'fake-refresh-token',
+        );
+        await state.performTryOn([1, 2]);
+        expect(backend.generateKeys, hasLength(2));
+        expect(backend.generateKeys[1], backend.generateKeys[0]);
+        expect(backend.generateGroups[1], backend.generateGroups[0]);
+        expect(backend.created, hasLength(1));
+      }, () => backend.client);
+    });
+
+    testWidgets('the next account signing in while polling stops at once: '
+        'no "still rendering", no checks as that account', (tester) async {
+      final backend = _FakeBackend(
+        (call, groupId) async => throw TimeoutException('slow'),
+        onStatus: (call, key) async {
+          if (call == 1) {
+            await AuthStorage.startSession(
+              accessToken: 'access-B',
+              refreshToken: 'refresh-B',
+            );
+          }
+          return _status('processing');
+        },
+      );
+      await http.runWithClient(() async {
+        final state = await pumpHarness(tester);
+        expect(await drive(tester, state.performTryOn([1, 2])), isNull);
+        expect(state.tryOnErrorMessage, isNull);
+        expect(state.isOutfitLoading, isFalse);
+        expect(backend.statusKeys, hasLength(1));
+        expect(backend.generateKeys, hasLength(1));
         expect(backend.deleted, isEmpty);
       }, () => backend.client);
     });

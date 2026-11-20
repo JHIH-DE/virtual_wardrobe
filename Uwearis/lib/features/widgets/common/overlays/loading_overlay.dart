@@ -244,3 +244,61 @@ class _SpokeSpinnerPainter extends CustomPainter {
     return oldDelegate.progress != progress;
   }
 }
+
+/// A blocking [LoadingOverlay] pushed as its own route on the root
+/// navigator. [close] removes that route and nothing else: popping
+/// "whatever is on top" after an await can close Session Expired, the login
+/// page or the page beneath instead.
+class ModalLoadingOverlay {
+  ModalLoadingOverlay._(this._navigator, this._route);
+
+  /// With [actionLabel] / [onAction], the overlay shows that way out under
+  /// the spinner, and a system back runs [onAction] instead of popping it;
+  /// [onAction] is expected to [close] it.
+  factory ModalLoadingOverlay.show(
+    BuildContext context, {
+    required String label,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final overlay = LoadingOverlay(
+      label: label,
+      actionLabel: actionLabel,
+      onAction: onAction,
+    );
+    final route = DialogRoute<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      useSafeArea: false,
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
+      builder: (_) => onAction == null
+          ? overlay
+          : PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, _) {
+                if (!didPop) onAction();
+              },
+              child: overlay,
+            ),
+    );
+    navigator.push(route);
+    return ModalLoadingOverlay._(navigator, route);
+  }
+
+  final NavigatorState _navigator;
+  final Route<void> _route;
+
+  /// Pops the overlay when it's on top; removes it from under whatever was
+  /// pushed above it meanwhile; does nothing once it's gone (a system back,
+  /// or a sign-out that replaced the whole stack).
+  void close() {
+    if (!_route.isActive) return;
+    if (_route.isCurrent) {
+      _navigator.pop();
+    } else {
+      _navigator.removeRoute(_route);
+    }
+  }
+}

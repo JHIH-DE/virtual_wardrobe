@@ -4,6 +4,7 @@ import '../../data/garment_adjustment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../services/auth_handler.dart';
+import '../services/base_service.dart';
 import '../services/outfit_service.dart';
 import '../services/pending_try_on_store.dart';
 import 'api_error_text.dart';
@@ -135,6 +136,17 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       isOutfitLoading = false;
       if (mounted) await AuthExpiredHandler.handle(context);
       return null;
+    } on SessionChangedException {
+      // Its session ended before the outcome was known: not a failure. The
+      // key, its draft and "unknown" stay, so nothing renders (or charges)
+      // again for this intent; whatever ended the session owns the UI.
+      _outcomeUnknown = true;
+      if (mounted) {
+        setState(() => isOutfitLoading = false);
+      } else {
+        isOutfitLoading = false;
+      }
+      return null;
     } catch (e) {
       debugLog('performTryOn failed: $e');
       final stillRunning = e is TryOnStillRunning;
@@ -173,6 +185,8 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     try {
       return await landedInDraft(draft);
     } on AuthExpiredException {
+      rethrow;
+    } on SessionChangedException {
       rethrow;
     } catch (e) {
       debugLog('performTryOn: draft check failed: $e');

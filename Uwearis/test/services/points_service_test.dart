@@ -42,6 +42,10 @@ http.Response _apiError(int status, String code) => jsonResponse({
   'error_code': code,
 }, status: status);
 
+/// Contract: a read that outlives its session (sign-out, or another account
+/// signed in) throws [SessionChangedException] to its caller — `withAuth`
+/// never hands back a reply from an ended session — and the shared
+/// `lastSummary` cache is left to the current session.
 Matcher get _staleSession => throwsA(isA<SessionChangedException>());
 
 void main() {

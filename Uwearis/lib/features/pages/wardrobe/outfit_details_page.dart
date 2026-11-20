@@ -11,6 +11,7 @@ import '../../../core/providers/daily_outfit_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/outfit_service.dart';
 import '../../../core/services/pending_try_on_store.dart';
 import '../../../core/utils/api_error_text.dart';
@@ -428,6 +429,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (!mounted) return;
       setState(rollBack);
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (mounted) setState(rollBack);
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage update tags failed: $e');
@@ -506,6 +510,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (!mounted) return;
       setState(() => setFavorite(!next));
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (mounted) setState(() => setFavorite(!next));
     } catch (_) {
       if (!mounted) return;
       setState(() => setFavorite(!next));
@@ -540,6 +547,14 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
           ..addAll(previous);
       });
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (!mounted) return;
+      setState(() {
+        _versions
+          ..clear()
+          ..addAll(previous);
+      });
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage._setCover failed: $e');
@@ -624,6 +639,12 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended before the outcome was known: not a failure. Kept
+      // like an unknown outcome, so a retry here replays this key.
+      _regenerateKey = key;
+      _regenerateKeyOutfitId = target.id;
+      _regenerateStatusUnavailable = false;
     } catch (e) {
       // Definitive: the next attempt is a new request (its quota was
       // released).
@@ -954,6 +975,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage._leaveNewOutfit failed: $e');
@@ -991,6 +1014,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage._confirmThenDeleteGroup failed: $e');
@@ -1040,6 +1065,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage._deleteThisOutfit failed: $e');
@@ -1084,6 +1111,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage rename failed: $e');

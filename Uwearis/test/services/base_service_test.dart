@@ -148,9 +148,11 @@ void main() {
       expect(tokens.length, 1);
     });
 
-    // The 15s refresh timeout itself isn't tested (needs fake_async); these
-    // pin that a refresh failure propagates unchanged, without a retry.
-    test('a TimeoutException from the refresh call propagates unchanged and '
+    // The 15s refresh timeout itself isn't tested (needs fake_async). A
+    // refresh that was sent but got no usable reply may have spent the
+    // token, so it ends the session (AuthExpiredException) rather than
+    // propagating as a network error; see base_service_refresh_outcome_test.
+    test('a TimeoutException from the refresh call ends the session and '
         'does not retry', () async {
       final tokens = <String>[];
       Future<http.Response> request(String token) async {
@@ -165,15 +167,13 @@ void main() {
             throw TimeoutException('simulated slow refresh');
           }),
         ),
-        throwsA(
-          allOf(isA<TimeoutException>(), isNot(isA<AuthExpiredException>())),
-        ),
+        throwsA(isA<AuthExpiredException>()),
       );
       expect(tokens.length, 1);
     });
 
-    test('any other transport error from the refresh call propagates '
-        'unchanged and does not retry', () async {
+    test('any other transport error from the refresh call ends the session '
+        'and does not retry', () async {
       final tokens = <String>[];
       Future<http.Response> request(String token) async {
         tokens.add(token);
@@ -187,12 +187,7 @@ void main() {
             throw http.ClientException('connection reset');
           }),
         ),
-        throwsA(
-          allOf(
-            isA<http.ClientException>(),
-            isNot(isA<AuthExpiredException>()),
-          ),
-        ),
+        throwsA(isA<AuthExpiredException>()),
       );
       expect(tokens.length, 1);
     });

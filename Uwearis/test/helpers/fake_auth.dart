@@ -1,7 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:uwearis/core/services/auth_storage.dart';
 
 /// Seeds secure storage with a fake access token so
-/// `BaseService.getSafeToken()` succeeds in tests.
+/// `BaseService.getSafeToken()` succeeds in tests, and has [AuthStorage]
+/// trust it: an earlier test's failed refresh may have distrusted the
+/// session this process holds.
 void setUpFakeAuth({
   String accessToken = 'fake-access-token',
   String refreshToken = 'fake-refresh-token',
@@ -10,4 +13,5 @@ void setUpFakeAuth({
     'access_token': accessToken,
     'refresh_token': refreshToken,
   });
+  AuthStorage.debugTrustStoredTokens();
 }

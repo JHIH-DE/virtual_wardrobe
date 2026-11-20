@@ -11,6 +11,7 @@ import '../../../core/providers/trip_detail_provider.dart';
 import '../../../core/providers/trip_suggestion_provider.dart';
 import '../../../core/providers/trips_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/trip_service.dart';
 import '../../../core/utils/date_locale.dart';
 import '../../../core/utils/debug_log.dart';
@@ -395,6 +396,11 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage>
       setState(() => _trip = previous);
       ref.read(tripsProvider.notifier).updateTrip(previous);
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (!mounted) return;
+      setState(() => _trip = previous);
+      ref.read(tripsProvider.notifier).updateTrip(previous);
     } catch (e) {
       if (!mounted) return;
       setState(() => _trip = previous);

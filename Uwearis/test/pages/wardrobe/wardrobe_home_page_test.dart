@@ -15,15 +15,18 @@ import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/providers/profile_provider.dart';
 import 'package:uwearis/core/providers/trips_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
+import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/data/profile_data.dart';
 import 'package:uwearis/data/trip.dart';
 import 'package:uwearis/data/user_profile.dart';
+import 'package:uwearis/features/pages/common/login_page.dart';
 import 'package:uwearis/features/pages/wardrobe/today_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/wardrobe_home_page.dart';
 import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
+import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
@@ -945,6 +948,7 @@ void main() {
     late bool holdList;
     late bool holdPatch;
     late bool patchFails;
+    late http.Response? patchReply;
     late List<Completer<void>> listGates;
     late List<Completer<void>> patchGates;
     late ProviderContainer container;
@@ -967,6 +971,7 @@ void main() {
       holdList = false;
       holdPatch = false;
       patchFails = false;
+      patchReply = null;
       listGates = [];
       patchGates = [];
     });
@@ -981,6 +986,7 @@ void main() {
           patchGates.add(gate);
           await gate.future;
         }
+        if (patchReply != null) return patchReply!;
         if (patchFails) return jsonResponse({'success': false}, status: 500);
         serverFavorite = value;
         return jsonResponse(envelope(outfitJson(value)));
@@ -1089,6 +1095,137 @@ void main() {
         await tester.tap(find.text('OK'));
         await settle(tester);
       }, backend);
+    });
+    // Finding #1 (A1-b): the heart's reply landing after its session ended.
+    group('a reply after the session ended', () {
+      final failed = find.text('Failed to update favorite');
+      final sessionExpired = find.text('Session Expired');
+
+      BuildContext homeContext(WidgetTester tester) =>
+          tester.element(find.byType(WardrobeHomePage));
+
+      Future<void> startFavorite(WidgetTester tester) async {
+        await openHome(tester);
+        holdPatch = true;
+        await tester.tap(find.byIcon(Icons.favorite_border));
+        await settle(tester);
+        expect(providerFavorite(), isTrue, reason: 'optimistic');
+        expect(patchGates, hasLength(1));
+      }
+
+      Future<void> closeDialogs(WidgetTester tester) async {
+        for (var i = 0; i < 4; i++) {
+          final buttons = find.byKey(AppDialog.dismissButtonKey);
+          if (buttons.evaluate().isEmpty) break;
+          await tester.tap(buttons.last);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 500));
+        }
+        while (tester.takeException() != null) {}
+      }
+
+      Future<void> signOutTo(WidgetTester tester, Widget page) async {
+        final navigator = Navigator.of(homeContext(tester));
+        await clearSignedInSession();
+        unawaited(
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => page),
+            (_) => false,
+          ),
+        );
+      }
+
+      testWidgets('session expired meanwhile: no error over Session Expired, '
+          'and the heart is rolled back', (tester) async {
+        await http.runWithClient(() async {
+          await startFavorite(tester);
+          unawaited(AuthExpiredHandler.handle(homeContext(tester)));
+          await settle(tester);
+          expect(sessionExpired, findsOneWidget);
+
+          await release(tester, patchGates);
+          await tester.pump(const Duration(milliseconds: 500));
+
+          final shown = {
+            'error': failed.evaluate().length,
+            'sessionExpired': sessionExpired.evaluate().length,
+            'heart': find.byIcon(Icons.favorite_border).evaluate().length,
+            'providerFavorite': providerFavorite(),
+          };
+          await closeDialogs(tester);
+          expect(shown, {
+            'error': 0,
+            'sessionExpired': 1,
+            'heart': 1,
+            'providerFavorite': false,
+          });
+        }, backend);
+      });
+
+      testWidgets('sign-out meanwhile: no error over the login page', (
+        tester,
+      ) async {
+        await http.runWithClient(() async {
+          await startFavorite(tester);
+          await signOutTo(tester, const LoginPage());
+          await tester.pump();
+          await release(tester, patchGates);
+          await tester.pump(const Duration(seconds: 1));
+          while (tester.takeException() != null) {}
+
+          final shown = {
+            'error': failed.evaluate().length,
+            'login': find.byType(LoginPage).evaluate().length,
+          };
+          await closeDialogs(tester);
+          expect(shown, {'error': 0, 'login': 1});
+        }, backend);
+      });
+
+      testWidgets('a reply after Home is gone touches nothing', (tester) async {
+        await http.runWithClient(() async {
+          await startFavorite(tester);
+          await signOutTo(tester, const Scaffold(body: Text('Signed out')));
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pump(const Duration(seconds: 1));
+          await release(tester, patchGates);
+          await tester.pump(const Duration(seconds: 1));
+
+          expect(tester.takeException(), isNull);
+          expect(find.text('Signed out'), findsOneWidget);
+          expect(find.byType(AppDialog), findsNothing);
+        }, backend);
+      });
+
+      testWidgets("the same session's 500 still says so", (tester) async {
+        await http.runWithClient(() async {
+          await startFavorite(tester);
+          patchFails = true;
+          await release(tester, patchGates);
+
+          final shown = failed.evaluate().length;
+          await closeDialogs(tester);
+          expect(shown, 1);
+          expect(providerFavorite(), isFalse);
+        }, backend);
+      });
+
+      testWidgets("the same session's own expiry still goes to Session "
+          'Expired', (tester) async {
+        await http.runWithClient(() async {
+          await startFavorite(tester);
+          patchReply = http.Response('{}', 401);
+          await release(tester, patchGates);
+          await tester.pump(const Duration(milliseconds: 500));
+
+          final shown = {
+            'error': failed.evaluate().length,
+            'sessionExpired': sessionExpired.evaluate().length,
+          };
+          await closeDialogs(tester);
+          expect(shown, {'error': 0, 'sessionExpired': 1});
+        }, backend);
+      });
     });
   });
 }

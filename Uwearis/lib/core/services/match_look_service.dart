@@ -7,6 +7,7 @@ import '../../data/match_a_look.dart';
 import '../config/app_config.dart';
 import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
+import 'auth_storage.dart';
 import 'base_service.dart';
 import 'points_service.dart';
 
@@ -64,8 +65,16 @@ class MatchLookService with BaseService {
   /// previous one (the backend keeps one per user).
   Future<void> uploadReference(String localImagePath) async {
     debugLog('--- uploadReference: $localImagePath ---');
+    // The charged /reference must never go out under the next account.
+    final session = AuthStorage.sessionEpoch;
+    void ensureSession() {
+      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
+    }
+
     final init = await _initUpload();
+    ensureSession();
     await putJpegToSignedUrl(init.uploadUrl, localImagePath);
+    ensureSession();
 
     final uri = Uri.parse('$_baseUrl/reference');
     final res = await PointsService.charged(

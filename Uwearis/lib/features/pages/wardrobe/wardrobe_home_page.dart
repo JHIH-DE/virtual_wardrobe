@@ -18,6 +18,7 @@ import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/trips_provider.dart';
 import '../../../core/providers/weather_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/outfit_service.dart';
 import '../../../core/utils/date_locale.dart';
 import '../../../core/utils/debug_log.dart';
@@ -409,6 +410,9 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
         );
       case AuthExpiredException():
         await AuthExpiredHandler.handle(context);
+      case SessionChangedException():
+        // Its session ended meanwhile; whatever ended it owns the UI now.
+        break;
       default:
         debugLog('WardrobeHomePage._openAddOutfit: $failure');
         showErrorDialog(context, message: _l10n.failedToLoadGarments);
@@ -704,6 +708,9 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now. The
+      // heart was already rolled back where it was toggled.
     } catch (e) {
       if (!mounted) return;
       debugLog('WardrobeHomePage._toggleFavorite: $e');

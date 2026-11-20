@@ -92,46 +92,65 @@ mixin BaseService {
   Future<({String accessToken, String refreshToken})> _doRefresh(
     int epoch,
   ) async {
-    final storedRefresh = await AuthStorage.getRefreshToken();
+    final storedRefresh = await AuthStorage.refreshTokenForRotation(epoch);
     _ensureSession(epoch);
     if (storedRefresh == null) throw AuthExpiredException();
 
-    final refreshRes = await sendTimed(
+    // From here the stored token may be spent: the backend can rotate it
+    // and the reply still never arrive or be unusable. Resending a spent one
+    // makes the backend revoke every session of the user, so any outcome
+    // but a stored new pair ends this session instead of being retried.
+    final ({String accessToken, String refreshToken}) rotated;
+    try {
+      rotated = await _postRefresh(storedRefresh);
+    } catch (e) {
+      if (!AuthStorage.distrustSession(epoch)) throw SessionChangedException();
+      debugLog('auth/refresh failed (${e.runtimeType}); session ended');
+      throw AuthExpiredException();
+    }
+    _ensureSession(epoch);
+
+    final saved = await AuthStorage.saveRefreshedTokens(
+      epoch: epoch,
+      accessToken: rotated.accessToken,
+      refreshToken: rotated.refreshToken,
+    );
+    if (!saved) throw SessionChangedException();
+    return rotated;
+  }
+
+  /// Throws unless the backend answered 200 with a complete token pair.
+  Future<({String accessToken, String refreshToken})> _postRefresh(
+    String refreshToken,
+  ) async {
+    final res = await sendTimed(
       () => http
           .post(
             Uri.parse('${AppConfig.fullApiUrl}/auth/refresh'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'refresh_token': storedRefresh}),
+            body: jsonEncode({'refresh_token': refreshToken}),
           )
           .timeout(const Duration(seconds: 15)),
     );
-    _ensureSession(epoch);
-    if (refreshRes.statusCode != 200) {
-      final rejected = ApiException.fromResponse(refreshRes);
+    if (res.statusCode != 200) {
+      final rejected = ApiException.fromResponse(res);
       debugLog(
         'auth/refresh rejected: ${rejected.statusCode} '
         'error_code=${rejected.errorCode}',
       );
-      throw AuthExpiredException();
+      throw rejected;
     }
-
-    final body = jsonDecode(refreshRes.body) as Map<String, dynamic>;
-    final data = body['data'] as Map<String, dynamic>?;
-    final newAccessToken = data?['access_token'] as String?;
-    final newRefreshToken = data?['refresh_token'] as String?;
-    if (newAccessToken == null || newRefreshToken == null) {
-      throw AuthExpiredException();
+    final body = jsonDecode(res.body);
+    final data = body is Map ? body['data'] : null;
+    final access = data is Map ? data['access_token'] : null;
+    final refresh = data is Map ? data['refresh_token'] : null;
+    if (access is! String ||
+        refresh is! String ||
+        access.isEmpty ||
+        refresh.isEmpty) {
+      throw const FormatException('auth/refresh: no token pair in the reply');
     }
-
-    // The old refresh token is spent either way; never resend it — the
-    // backend treats a reused one as theft and revokes every session.
-    final saved = await AuthStorage.saveRefreshedTokens(
-      epoch: epoch,
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
-    );
-    if (!saved) throw SessionChangedException();
-    return (accessToken: newAccessToken, refreshToken: newRefreshToken);
+    return (accessToken: access, refreshToken: refresh);
   }
 
   Future<http.Response> _send(

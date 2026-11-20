@@ -10,6 +10,7 @@ import '../../data/user_profile.dart';
 import '../config/app_config.dart';
 import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
+import 'auth_storage.dart';
 import 'base_service.dart';
 import 'points_service.dart';
 
@@ -110,14 +111,24 @@ class ProfileService with BaseService {
   }
 
   /// init-upload → PUT to signed URL → complete; returns the new signed URL
-  /// plus its cache key.
+  /// plus its cache key. All of it belongs to the session it started in:
+  /// once that has ended, no further step is sent (above all no `complete`
+  /// under the next account's token with this one's object) and it throws
+  /// [SessionChangedException]. A PUT already under way can't be stopped.
   Future<UploadedImage> _uploadRef(
     String baseUrl,
     String localPath, {
     required String opPrefix,
   }) async {
+    final session = AuthStorage.sessionEpoch;
+    void ensureSession() {
+      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
+    }
+
     final init = await _refInitUpload(baseUrl, op: '${opPrefix}InitUpload');
+    ensureSession();
     await putJpegToSignedUrl(init.uploadUrl, localPath);
+    ensureSession();
     return _refComplete(baseUrl, init.objectName, op: '${opPrefix}Complete');
   }
 

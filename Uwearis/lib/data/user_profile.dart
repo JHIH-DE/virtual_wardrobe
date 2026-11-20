@@ -1,5 +1,5 @@
-/// The signed-in user's profile (`/users/me`). Write-only fields
-/// (`temperature_offset_c`, `locale`) are only `updateMyProfile` arguments.
+/// The signed-in user's profile (`/users/me`). `locale` is write-only, an
+/// `updateMyProfile` argument only.
 class UserProfile {
   final String name;
   final String? gender;
@@ -29,6 +29,10 @@ class UserProfile {
   /// Uwearis Plus end; null if never subscribed. Read-only on the backend.
   final DateTime? subscriptionExpiresAt;
 
+  /// How much warmer (+) or colder (−) than the forecast the user feels, in
+  /// °C; null if never set.
+  final double? temperatureOffsetC;
+
   const UserProfile({
     this.name = '',
     this.gender,
@@ -43,6 +47,7 @@ class UserProfile {
     this.weight,
     this.unitSystem,
     this.subscriptionExpiresAt,
+    this.temperatureOffsetC,
   });
 
   bool get isSubscribed {
@@ -73,6 +78,7 @@ class UserProfile {
       subscriptionExpiresAt: DateTime.tryParse(
         (json['subscription_expires_at'] as String?) ?? '',
       )?.toLocal(),
+      temperatureOffsetC: (json['temperature_offset_c'] as num?)?.toDouble(),
     );
   }
 }

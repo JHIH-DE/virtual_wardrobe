@@ -8,6 +8,7 @@ import '../../../core/providers/daily_outfit_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/utils/analytics.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/debug_log.dart';
@@ -266,6 +267,9 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now. The
+      // notifier already rolled the tags back.
     } catch (e) {
       if (!mounted) return;
       debugLog('TodayOutfitPage update tags failed: $e');
@@ -287,6 +291,9 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now. The
+      // notifier already rolled the heart back.
     } catch (e) {
       if (!mounted) return;
       debugLog('TodayOutfitPage._toggleFavorite: $e');

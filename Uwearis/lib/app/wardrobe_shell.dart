@@ -8,6 +8,7 @@ import '../core/providers/outfits_provider.dart';
 import '../core/providers/points_provider.dart';
 import '../core/providers/trip_detail_provider.dart';
 import '../core/services/auth_handler.dart';
+import '../core/services/base_service.dart';
 import '../core/services/shared_media_handler.dart';
 import '../core/utils/daily_points_notice.dart';
 import '../core/utils/debug_log.dart';
@@ -205,20 +206,15 @@ Future<void> openAddOutfit(
   WidgetRef ref, {
   String? initialMatchALookImagePath,
 }) async {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.transparent,
-    useSafeArea: false,
-    builder: (_) => LoadingOverlay(
-      label: AppLocalizations.of(context).loadingGarmentsEllipsis,
-    ),
+  final loading = ModalLoadingOverlay.show(
+    context,
+    label: AppLocalizations.of(context).loadingGarmentsEllipsis,
   );
   try {
     // Also lets an expired session surface here.
     await ref.read(garmentsProvider.future);
+    loading.close();
     if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -229,12 +225,15 @@ Future<void> openAddOutfit(
       ),
     );
   } on AuthExpiredException {
+    loading.close();
     if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
     await AuthExpiredHandler.handle(context);
+  } on SessionChangedException {
+    // Its session ended meanwhile; whatever ended it owns the screen now.
+    loading.close();
   } catch (e) {
+    loading.close();
     if (!context.mounted) return;
-    Navigator.pop(context); // close loading indicator
     debugLog('Failed to load garments: $e');
     showErrorDialog(
       context,

@@ -6,6 +6,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../core/providers/trip_detail_provider.dart';
 import '../../../core/providers/trips_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/trip_service.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../data/trip.dart';
@@ -51,8 +52,7 @@ Future<void> handleCreateTrip(
 }) async {
   if (!await ensureAiConsent(context) || !context.mounted) return;
   final l10n = AppLocalizations.of(context);
-  // Captured up front: `context` may be gone after the awaits, and the
-  // loading overlay must be popped from the navigator showDialog used.
+  // Captured up front: `context` may be gone after the awaits.
   final navigator = Navigator.of(context, rootNavigator: true);
 
   final input = await showDialog<Trip>(
@@ -61,12 +61,9 @@ Future<void> handleCreateTrip(
   );
   if (input == null || !context.mounted) return;
 
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    barrierColor: Colors.transparent,
-    useSafeArea: false,
-    builder: (_) => LoadingOverlay(label: l10n.creatingTripEllipsis),
+  final loading = ModalLoadingOverlay.show(
+    context,
+    label: l10n.creatingTripEllipsis,
   );
 
   try {
@@ -76,12 +73,14 @@ Future<void> handleCreateTrip(
       await _loadTripDetail(ref, newTrip);
     } on AuthExpiredException {
       rethrow;
+    } on SessionChangedException {
+      rethrow;
     } catch (e) {
       // The trip was created — open it anyway; the next visit retries.
       debugLog('Failed to load new trip detail: $e');
     }
 
-    navigator.pop(); // close loading indicator
+    loading.close();
     onCreated?.call();
     // Trip Details goes under Suitcase so backing out of Suitcase lands
     // there; only the second push visibly animates.
@@ -92,10 +91,13 @@ Future<void> handleCreateTrip(
       MaterialPageRoute(builder: (_) => TripSuitcasePage(trip: newTrip)),
     );
   } on AuthExpiredException {
-    navigator.pop(); // close loading indicator
+    loading.close();
     if (context.mounted) await AuthExpiredHandler.handle(context);
+  } on SessionChangedException {
+    // Its session ended meanwhile; whatever ended it owns the screen now.
+    loading.close();
   } catch (e) {
-    navigator.pop(); // close loading indicator
+    loading.close();
     debugLog('Failed to create trip: $e');
     if (context.mounted) {
       showErrorDialog(context, message: l10n.failedToCreateTrip);
@@ -118,6 +120,10 @@ Future<void> handleRenameTrip(
     if (!context.mounted) return;
     ref.read(tripsProvider.notifier).updateTrip(trip);
     await AuthExpiredHandler.handle(context);
+  } on SessionChangedException {
+    // Its session ended meanwhile; whatever ended it owns the UI now.
+    if (!context.mounted) return;
+    ref.read(tripsProvider.notifier).updateTrip(trip);
   } catch (e) {
     if (!context.mounted) return;
     ref.read(tripsProvider.notifier).updateTrip(trip);
@@ -172,6 +178,10 @@ Future<bool> handleDeleteTrip(
   } on AuthExpiredException {
     closeOverlay();
     if (context.mounted) await AuthExpiredHandler.handle(context);
+    return false;
+  } on SessionChangedException {
+    // Its session ended meanwhile; whatever ended it owns the UI now.
+    closeOverlay();
     return false;
   } catch (e) {
     closeOverlay();
@@ -228,6 +238,10 @@ Future<void> openTripDetails(
     if (!context.mounted) return;
     WardrobeShellScope.of(context)?.setLoading(false, tab: tab);
     await AuthExpiredHandler.handle(context);
+  } on SessionChangedException {
+    // Its session ended meanwhile; whatever ended it owns the UI now.
+    if (!context.mounted) return;
+    WardrobeShellScope.of(context)?.setLoading(false, tab: tab);
   } catch (e) {
     if (!context.mounted) return;
     WardrobeShellScope.of(context)?.setLoading(false, tab: tab);

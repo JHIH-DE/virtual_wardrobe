@@ -8,6 +8,7 @@ import 'package:uwearis/features/widgets/trip/trip_legs_editor.dart';
 import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/providers/trip_detail_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/location_result.dart';
@@ -1146,6 +1147,110 @@ void main() {
         client(
           onTryOn: () async => throw TimeoutException('slow'),
           trip: () => landed ? withImage() : withoutImage(),
+          posts: posts,
+        ),
+      );
+    });
+
+    // C1: the session ending before the try-on's outcome is known.
+    final failed = find.text('Failed to generate outfit');
+    final unknown = find.text(
+      "We couldn't confirm whether this try-on finished. If it did, it will "
+      'appear in Outfits.',
+    );
+    final sessionExpired = find.text('Session Expired');
+
+    Future<void> closeDialogs(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        final buttons = find.byKey(AppDialog.dismissButtonKey);
+        if (buttons.evaluate().isEmpty) break;
+        await tester.tap(buttons.last);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+      }
+      while (tester.takeException() != null) {}
+    }
+
+    void expireSession(WidgetTester tester) => unawaited(
+      AuthExpiredHandler.handle(
+        tester.element(find.byType(TripOutfitDetailPage)),
+      ),
+    );
+
+    testWidgets('the reply landing after the session ended: no failure over '
+        'Session Expired, nothing applied, nothing sent again', (tester) async {
+      final pending = Completer<http.Response>();
+      final posts = <String>[];
+      await http.runWithClient(
+        () async {
+          await open(tester);
+          await tester.tap(find.text('Generate Outfit'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
+          expireSession(tester);
+          await tester.pump();
+          await tester.pump();
+          pending.complete(jsonResponse(envelope(withImage())));
+          for (var i = 0; i < 10; i++) {
+            await tester.pump(const Duration(seconds: 1));
+          }
+
+          final shown = {
+            'failed': failed.evaluate().length,
+            'unknown': unknown.evaluate().length,
+            'sessionExpired': sessionExpired.evaluate().length,
+            'posts': posts.length,
+            'applied': find.text('Generate Outfit').evaluate().isEmpty,
+          };
+          await closeDialogs(tester);
+          expect(shown, {
+            'failed': 0,
+            'unknown': 0,
+            'sessionExpired': 1,
+            'posts': 1,
+            'applied': false,
+          });
+        },
+        client(onTryOn: () => pending.future, trip: withoutImage, posts: posts),
+      );
+    });
+
+    testWidgets('the session ending while the trip is re-read: no delayed '
+        '"outcome unknown" over Session Expired, no new try-on', (
+      tester,
+    ) async {
+      final posts = <String>[];
+      await http.runWithClient(
+        () async {
+          await open(tester);
+          await tester.tap(find.text('Generate Outfit'));
+          await tester.pump();
+          for (var i = 0; i < 6; i++) {
+            await tester.pump(const Duration(seconds: 1));
+          }
+          expireSession(tester);
+          for (var i = 0; i < 4; i++) {
+            await tester.pump(const Duration(seconds: 5));
+          }
+
+          final shown = {
+            'failed': failed.evaluate().length,
+            'unknown': unknown.evaluate().length,
+            'sessionExpired': sessionExpired.evaluate().length,
+            'posts': posts.length,
+          };
+          await closeDialogs(tester);
+          expect(shown, {
+            'failed': 0,
+            'unknown': 0,
+            'sessionExpired': 1,
+            'posts': 1,
+          });
+        },
+        client(
+          onTryOn: () async =>
+              jsonResponse({'success': false, 'message': 'x'}, status: 504),
+          trip: withoutImage,
           posts: posts,
         ),
       );

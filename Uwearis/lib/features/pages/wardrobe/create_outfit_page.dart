@@ -16,6 +16,8 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/providers/weather_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/auth_storage.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/garment_recommendation_service.dart';
 import '../../../core/services/match_look_service.dart';
 import '../../../core/utils/debug_log.dart';
@@ -518,6 +520,10 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       if (!mounted) return;
       setState(() => _matchALookStatus = _MatchALookStatus.idle);
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (!mounted) return;
+      setState(() => _matchALookStatus = _MatchALookStatus.idle);
     } on MatchLookException catch (e) {
       debugLog('Match a Look failed: ${e.errorCode} — ${e.message}');
       if (!mounted) return;
@@ -1152,6 +1158,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
       return;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      return;
     } catch (e) {
       debugLog('CreateOutfitPage._showAdjustDetailsSheet failed: $e');
       if (!mounted) return;
@@ -1586,12 +1595,15 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     if (!await ensureAiConsent(context)) return;
     if (!mounted || _isCompletingWithAi) return;
     final run = ++_completeWithAiRun;
+    final session = AuthStorage.sessionEpoch;
     setState(() => _isCompletingWithAi = true);
     try {
       // null lets the backend decide.
       final temperatureC =
           _weatherTempOverrideC ??
           (await _fetchWeatherBestEffort())?.todayMeanTemp;
+      // The advice is charged: never send it under the next account.
+      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
       final keep = {..._lockedGarmentIds};
       final ids = await GarmentRecommendationService().completeOutfit(
         garmentIds: keep.toList(),
@@ -1604,6 +1616,8 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
     } on AuthExpiredException {
       if (!mounted || run != _completeWithAiRun) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       debugLog('Complete with AI failed: $e');
       if (!mounted || run != _completeWithAiRun) return;

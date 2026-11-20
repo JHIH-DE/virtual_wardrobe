@@ -13,6 +13,7 @@ import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/providers/trip_detail_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/trip_service.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../data/garment.dart';
@@ -248,6 +249,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       );
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       debugLog('Failed to add outfit to trip: $e');
       if (mounted) {
@@ -315,6 +318,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
       return false;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      return false;
     } catch (e) {
       debugLog('Failed to update suitcase: $e');
       if (mounted) {
@@ -370,6 +376,8 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
         Navigator.pop(context);
       } on AuthExpiredException {
         if (mounted) await AuthExpiredHandler.handle(context);
+      } on SessionChangedException {
+        // Its session ended meanwhile; whatever ended it owns the UI now.
       } catch (e) {
         debugLog('Failed to generate trip outfits: $e');
         if (mounted) {
@@ -427,6 +435,9 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
       if (!mounted) return;
       setState(rollBack);
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (mounted) setState(rollBack);
     } catch (e) {
       if (mounted) setState(rollBack);
       debugLog('Failed to remove suitcase item: $e');

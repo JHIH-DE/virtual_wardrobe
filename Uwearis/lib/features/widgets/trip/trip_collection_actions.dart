@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/trip_detail_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../data/trip_outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -37,6 +38,9 @@ mixin TripCollectionActions<W extends ConsumerStatefulWidget>
       return true;
     } on AuthExpiredException {
       if (mounted) await AuthExpiredHandler.handle(context);
+      return false;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
       return false;
     } catch (e) {
       debugLog('Trip outfit action failed: $e');

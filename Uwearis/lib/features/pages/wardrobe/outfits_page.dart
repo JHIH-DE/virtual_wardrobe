@@ -6,6 +6,7 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../data/outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -82,6 +83,12 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
         context,
       )?.setLoading(false, tab: WardrobeTab.outfits);
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (!mounted) return;
+      WardrobeShellScope.of(
+        context,
+      )?.setLoading(false, tab: WardrobeTab.outfits);
     } catch (e) {
       if (!mounted) return;
       WardrobeShellScope.of(

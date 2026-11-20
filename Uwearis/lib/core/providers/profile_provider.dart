@@ -13,14 +13,24 @@ final profileProvider = AsyncNotifierProvider<ProfileNotifier, ProfileData>(
 );
 
 class ProfileNotifier extends AsyncNotifier<ProfileData> {
+  // Riverpod keeps this notifier across invalidate (a sign-in), so a refresh
+  // from an earlier build — maybe the previous account's — is told apart by
+  // this, bumped when a build is disposed.
+  int _generation = 0;
+
   @override
-  Future<ProfileData> build() => _fetch();
+  Future<ProfileData> build() {
+    ref.onDispose(() => _generation++);
+    return _fetch();
+  }
 
   Future<ProfileData> _fetch() => ProfileService().getMyProfileData();
 
   Future<void> refresh() async {
+    final generation = _generation;
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
+    final next = await AsyncValue.guard(_fetch);
+    if (generation == _generation) state = next;
   }
 
   /// Applies an [ProfileService.updateMyProfile] result; photo URLs are

@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/services/api_exception.dart';
+import 'package:uwearis/core/services/auth_storage.dart';
+import 'package:uwearis/core/services/base_service.dart';
 import 'package:uwearis/core/services/outfit_service.dart';
 import 'package:uwearis/core/services/pending_try_on_store.dart';
 import 'package:uwearis/core/services/trip_service.dart';
@@ -229,6 +231,150 @@ void main() {
       );
       final result = await tryOn(tester, client, before());
       expect((result as ApiException).errorCode, 'TRIP_OUTFIT_INCOMPLETE');
+      expect(await pending(), isEmpty);
+    });
+  });
+
+  // C1: the session the request belongs to ends before its outcome is
+  // known. That isn't a failure — the render may still finish, charged once
+  // — so the key stays recorded and nothing is sent again; and it isn't
+  // "still running" either: the old page has nothing left to show.
+  group('across a session change', () {
+    /// Another account signs in: the session ends without the pending
+    /// store having been cleared yet (as mid-sign-out).
+    Future<void> nextAccount() => AuthStorage.startSession(
+      accessToken: 'access-B',
+      refreshToken: 'refresh-B',
+    );
+
+    TripOutfit before() => TripOutfit.fromJson(_tripOutfitJson());
+
+    Future<Object?> settle(WidgetTester tester, Future<Object?> future) async {
+      try {
+        return await drive(tester, future);
+      } catch (e) {
+        return e;
+      }
+    }
+
+    Future<Object?> keyed(String key) => sendKeyedTryOn(
+      key: key,
+      session: PendingTryOnStore.session,
+      regeneratedOutfitId: 5,
+      send: () => OutfitService().regenerateOutfit(3, 5, idempotencyKey: key),
+    );
+
+    Future<Object?> trip() => sendTripTryOn(
+      tripId: 7,
+      before: before(),
+      session: PendingTryOnStore.session,
+      send: () => TripService().tryOnTripOutfit(7, tripOutfitId: 1),
+    );
+
+    testWidgets("keyed: the render's reply landing after the session ended "
+        'is a session change; the key stays, nothing is sent again', (
+      tester,
+    ) async {
+      final reply = Completer<http.Response>();
+      var posts = 0;
+      var checks = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'POST') {
+          posts++;
+          return reply.future;
+        }
+        checks++;
+        return jsonResponse(envelope({'status': 'processing'}));
+      });
+      final result = await http.runWithClient(() async {
+        final future = keyed('key-0002');
+        await tester.pump();
+        await nextAccount();
+        reply.complete(jsonResponse(envelope(_outfitJson(5))));
+        return settle(tester, future);
+      }, () => client);
+      expect(result, isA<SessionChangedException>());
+      expect((posts, checks), (1, 0));
+      expect((await pending()).single.key, 'key-0002');
+    });
+
+    testWidgets('keyed: the session ending while its status is checked stops '
+        'at once — no "still running", no more checks', (tester) async {
+      var checks = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'POST') throw TimeoutException('slow');
+        checks++;
+        if (checks == 1) await nextAccount();
+        return jsonResponse(envelope({'status': 'processing'}));
+      });
+      final result = await http.runWithClient(
+        () => settle(tester, keyed('key-0003')),
+        () => client,
+      );
+      expect(result, isA<SessionChangedException>());
+      expect(checks, 1);
+      expect((await pending()).single.key, 'key-0003');
+    });
+
+    testWidgets("trip: the render's reply landing after the session ended "
+        'is a session change; the record stays', (tester) async {
+      final reply = Completer<http.Response>();
+      var posts = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'POST') {
+          posts++;
+          return reply.future;
+        }
+        return jsonResponse(envelope(_collection()));
+      });
+      final result = await http.runWithClient(() async {
+        final future = trip();
+        await tester.pump();
+        await nextAccount();
+        reply.complete(jsonResponse(envelope(_collection())));
+        return settle(tester, future);
+      }, () => client);
+      expect(result, isA<SessionChangedException>());
+      expect(posts, 1);
+      expect((await pending()).single.kind, PendingTryOnKind.trip);
+    });
+
+    testWidgets('trip: the session ending while the trip is re-read stops at '
+        'once — no "outcome unknown", no more reads', (tester) async {
+      var reads = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'POST') return _error(504, null);
+        reads++;
+        if (reads == 1) await nextAccount();
+        return jsonResponse(envelope(_collection()));
+      });
+      final result = await http.runWithClient(
+        () => settle(tester, trip()),
+        () => client,
+      );
+      expect(result, isA<SessionChangedException>());
+      expect(reads, 1);
+      expect((await pending()).single.kind, PendingTryOnKind.trip);
+    });
+
+    testWidgets('within the session, a 409 "in progress" is still recovered '
+        'by status', (tester) async {
+      var posts = 0;
+      final client = MockClient((request) async {
+        if (request.method == 'POST') {
+          posts++;
+          return _error(409, 'TRY_ON_GENERATION_IN_PROGRESS');
+        }
+        return jsonResponse(
+          envelope({'status': 'succeeded', 'outfit': _outfitJson(5)}),
+        );
+      });
+      final result = await http.runWithClient(
+        () => settle(tester, keyed('key-0004')),
+        () => client,
+      );
+      expect((result as dynamic).id, 5);
+      expect(posts, 1);
       expect(await pending(), isEmpty);
     });
   });

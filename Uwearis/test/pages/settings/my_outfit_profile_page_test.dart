@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -88,9 +89,10 @@ http.Client _profileClient(
   int patchStatus = 200,
 }) => MockClient((request) async {
   if (request.method == 'PATCH') {
-    patches.add(jsonDecode(request.body) as Map<String, dynamic>);
+    final body = jsonDecode(request.body) as Map<String, dynamic>;
+    patches.add(body);
     return patchStatus == 200
-        ? jsonResponse(envelope({'name': 'Test User'}))
+        ? jsonResponse(envelope({'name': 'Test User', ...body}))
         : jsonResponse(envelope(null), status: patchStatus);
   }
   return jsonResponse(envelope({'name': 'Test User'}));
@@ -176,16 +178,19 @@ void main() {
     });
 
     testWidgets('a failed profile load shows a retryable error in the model '
-        'section only; temperature stays usable', (tester) async {
+        "section only; temperature can't be changed without the saved value", (
+      tester,
+    ) async {
       _useTallSurface(tester);
       await _pumpPage(tester, notifier: _FailingProfileNotifier());
       await tester.pumpAndSettle();
 
       expect(find.text(_l10n.failedToLoad), findsOneWidget);
       expect(_editPhotosPill, findsNothing);
+      expect(find.text(_l10n.temperatureAdjustmentTitle), findsOneWidget);
       final stepper = tester.widget<NumberStepper>(find.byType(NumberStepper));
-      expect(stepper.onIncrement, isNotNull);
-      expect(stepper.onDecrement, isNotNull);
+      expect(stepper.onIncrement, isNull);
+      expect(stepper.onDecrement, isNull);
     });
 
     testWidgets(
@@ -318,10 +323,16 @@ void main() {
   });
 
   group('temperature adjustment', () {
-    testWidgets('shows the locally cached offset', (tester) async {
-      SharedPreferences.setMockInitialValues({'temperature_offset': -2});
+    testWidgets("shows the account's saved offset", (tester) async {
       _useTallSurface(tester);
-      await _pumpPage(tester);
+      await _pumpPage(
+        tester,
+        notifier: _FakeProfileNotifier(
+          data: const ProfileData(
+            profile: UserProfile(name: 'Test User', temperatureOffsetC: -2),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(_l10n.temperatureAdjustmentTitle), findsOneWidget);
@@ -330,7 +341,7 @@ void main() {
       expect(find.text(_l10n.temperatureAdjustmentLighter), findsOneWidget);
     });
 
-    testWidgets('stepping PATCHes only temperature_offset_c and caches the '
+    testWidgets('stepping PATCHes only temperature_offset_c and keeps the '
         'saved value for the next visit', (tester) async {
       _useTallSurface(tester);
       final patches = <Map<String, dynamic>>[];
@@ -351,12 +362,17 @@ void main() {
         expect(body.keys, ['temperature_offset_c']);
       }
       expect(patches.last, {'temperature_offset_c': 2});
+      // Not cached on the device: the account's profile holds it.
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('temperature_offset'), 2);
+      expect(prefs.getInt('temperature_offset'), isNull);
 
       // Re-entering reads the saved value back.
-      await tester.pumpWidget(const SizedBox());
-      await _pumpPage(tester);
+      final page = tester.element(find.byType(MyOutfitProfilePage));
+      unawaited(
+        Navigator.of(page).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MyOutfitProfilePage()),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('+2°C'), findsOneWidget);
     });
@@ -408,9 +424,15 @@ void main() {
     });
 
     testWidgets('+ is disabled at the +5°C upper bound', (tester) async {
-      SharedPreferences.setMockInitialValues({'temperature_offset': 5});
       _useTallSurface(tester);
-      await _pumpPage(tester);
+      await _pumpPage(
+        tester,
+        notifier: _FakeProfileNotifier(
+          data: const ProfileData(
+            profile: UserProfile(name: 'Test User', temperatureOffsetC: 5),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('+5°C'), findsOneWidget);

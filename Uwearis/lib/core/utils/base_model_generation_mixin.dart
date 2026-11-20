@@ -7,6 +7,7 @@ import '../../features/widgets/common/overlays/error_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers/profile_provider.dart';
 import '../services/auth_handler.dart';
+import '../services/base_service.dart';
 import '../services/profile_service.dart';
 import 'api_error_text.dart';
 import 'debug_log.dart';
@@ -76,6 +77,9 @@ mixin BaseModelGenerationMixin<T extends ConsumerStatefulWidget>
     } on AuthExpiredException {
       if (!mounted) return false;
       await AuthExpiredHandler.handle(context);
+      return false;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
       return false;
     } catch (e) {
       if (!mounted) return false;

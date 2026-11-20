@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/garment_service.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/debug_log.dart';
@@ -97,9 +98,6 @@ class GarmentUploadHelper {
     String imagePath,
   ) async {
     final l10n = AppLocalizations.of(context);
-    // Captured up front: the overlay must be popped from the navigator
-    // showDialog pushed it onto, and `context` may be stale after the await.
-    final navigator = Navigator.of(context, rootNavigator: true);
     if (!await ensureAiConsent(context)) return null;
 
     while (true) {
@@ -108,37 +106,27 @@ class GarmentUploadHelper {
       // overlay and this attempt's reply is ignored when it lands.
       var settled = false;
       final cancelled = Completer<AnalyzeGarmentResult?>();
+      late final ModalLoadingOverlay loading;
       void cancel() {
         if (settled) return;
         settled = true;
-        navigator.pop();
+        loading.close();
         cancelled.complete(null);
       }
 
-      // Pops the overlay unless Cancel already did; false once cancelled.
+      // Closes the overlay unless Cancel already did; false once cancelled.
       bool settle() {
         if (settled) return false;
         settled = true;
-        navigator.pop();
+        loading.close();
         return true;
       }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        barrierColor: Colors.transparent,
-        useSafeArea: false,
-        builder: (_) => PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) cancel();
-          },
-          child: LoadingOverlay(
-            label: l10n.analyzingGarmentEllipsis,
-            actionLabel: l10n.cancel,
-            onAction: cancel,
-          ),
-        ),
+      loading = ModalLoadingOverlay.show(
+        context,
+        label: l10n.analyzingGarmentEllipsis,
+        actionLabel: l10n.cancel,
+        onAction: cancel,
       );
       try {
         final result = await Future.any([
@@ -157,6 +145,10 @@ class GarmentUploadHelper {
       } on AuthExpiredException {
         if (!settle()) return null;
         if (context.mounted) await AuthExpiredHandler.handle(context);
+        return null;
+      } on SessionChangedException {
+        // Its session ended meanwhile; whatever ended it owns the UI now.
+        settle();
         return null;
       } catch (e) {
         if (!settle()) return null;

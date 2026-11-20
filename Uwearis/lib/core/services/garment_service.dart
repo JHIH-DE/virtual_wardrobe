@@ -15,6 +15,7 @@ import '../config/app_config.dart';
 import '../utils/analytics.dart';
 import '../utils/debug_log.dart';
 import '../utils/signed_url.dart';
+import 'auth_storage.dart';
 import 'base_service.dart';
 import 'points_service.dart';
 
@@ -96,6 +97,31 @@ class GarmentService with BaseService {
     }
 
     return InitUploadResult.fromJson(data);
+  }
+
+  /// A new garment's whole upload: [initUpload] → PUT of [localPath] to the
+  /// signed URL → [completeUpload] of what [describe] builds from the init
+  /// result (read once the PUT is done). All of it belongs to the session it
+  /// started in: once that has ended, no further step is sent (above all no
+  /// `complete` under the next account's token with this one's object) and
+  /// it throws [SessionChangedException]. A PUT already under way can't be
+  /// stopped.
+  Future<Garment> uploadNewGarment(
+    String localPath, {
+    required (Garment, Map<String, dynamic>) Function(InitUploadResult init)
+    describe,
+  }) async {
+    final session = AuthStorage.sessionEpoch;
+    void ensureSession() {
+      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
+    }
+
+    final init = await initUpload();
+    ensureSession();
+    await putJpegToSignedUrl(init.uploadUrl, localPath);
+    ensureSession();
+    final (garment, metadata) = describe(init);
+    return completeUpload(garment, metadata);
   }
 
   Future<Garment> completeUpload(
@@ -394,13 +420,23 @@ class GarmentService with BaseService {
 
   /// Re-runs analyze-instant on a saved garment's stored photo. Only the
   /// metadata comes back — PATCH can't replace an existing garment's image.
+  /// Reads the garment, downloads its photo, sends it to analyze-instant
+  /// (charged). All of it belongs to the session it started in: once that
+  /// has ended, the photo isn't sent — the charge would land on the next
+  /// account — and it throws [SessionChangedException].
   Future<Map<String, dynamic>> reanalyzeGarment(int garmentId) async {
+    final session = AuthStorage.sessionEpoch;
+    void ensureSession() {
+      if (AuthStorage.sessionEpoch != session) throw SessionChangedException();
+    }
+
     final garment = await getGarment(garmentId);
     debugLog('--- reanalyzeGarment: $garmentId ---');
     final imageUrl = garment.imageUrl;
     if (imageUrl == null || imageUrl.isEmpty) {
       throw Exception('reanalyzeGarment: garment has no image');
     }
+    ensureSession();
     final imageRes = await http
         .get(Uri.parse(imageUrl))
         .timeout(const Duration(seconds: 30));
@@ -414,6 +450,7 @@ class GarmentService with BaseService {
         lookupMimeType('', headerBytes: bytes) ??
         imageRes.headers['content-type'] ??
         'image/jpeg';
+    ensureSession();
     final data = await _analyzeInstant(
       () async => http.MultipartFile.fromBytes(
         'file',

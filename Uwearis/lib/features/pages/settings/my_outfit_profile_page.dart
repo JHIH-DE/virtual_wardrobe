@@ -12,6 +12,7 @@ import '../../../core/services/auth_handler.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../core/utils/auto_save_controller.dart';
 import '../../../core/utils/base_model_generation_mixin.dart';
+import '../../../core/utils/debug_log.dart';
 import '../../../data/profile_data.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
@@ -46,13 +47,15 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
     with BaseModelGenerationMixin {
   static const double _previewAspectRatio = 3 / 4;
 
-  // The backend field is write-only (not in /users/me), so the last saved
-  // value is cached locally.
-  static const _temperatureOffsetKey = 'temperature_offset';
+  // Earlier versions cached the offset under this one device-wide key, so
+  // its owner is unknown; it's removed, never read.
+  static const _legacyTemperatureOffsetKey = 'temperature_offset';
   static const _minTemperatureOffset = -5;
   static const _maxTemperatureOffset = 5;
 
-  int _temperatureOffset = 0;
+  /// The value stepped to on this page; until then the account's saved one
+  /// from [profileProvider] shows.
+  int? _editedTemperatureOffset;
   late final AutoSaveController _temperatureAutoSave = AutoSaveController(
     onSave: _saveTemperatureOffset,
     onError: (e) => showAutoSaveErrorDialog(
@@ -70,7 +73,7 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
   @override
   void initState() {
     super.initState();
-    _loadTemperatureOffset();
+    _removeLegacyTemperatureOffsetCache();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.listenManual(profileProvider, (_, next) {
@@ -87,30 +90,50 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
     super.dispose();
   }
 
-  Future<void> _loadTemperatureOffset() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getInt(_temperatureOffsetKey);
-    // A tap before the cache loads wins over the cached value.
-    if (saved == null || !mounted || _temperatureAutoSave.hasPendingChanges) {
-      return;
+  Future<void> _removeLegacyTemperatureOffsetCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_legacyTemperatureOffsetKey);
+    } catch (e) {
+      debugLog('MyOutfitProfilePage: legacy offset cleanup failed: $e');
     }
-    setState(() => _temperatureOffset = saved);
   }
+
+  int _savedTemperatureOffset(ProfileData? data) =>
+      (data?.profile.temperatureOffsetC?.round() ?? 0).clamp(
+        _minTemperatureOffset,
+        _maxTemperatureOffset,
+      );
+
+  /// Only once the account's saved value is known — loaded at least once
+  /// (a refresh keeps it) or just stepped here: before that, a step would
+  /// save a guess over it.
+  bool _canStepTemperatureOffset(AsyncValue<ProfileData> profile) =>
+      _editedTemperatureOffset != null || profile.hasValue;
 
   String _temperatureOffsetLabel(int offset) =>
       '${offset > 0 ? '+' : ''}$offset°C';
 
   void _stepTemperatureOffset(int delta) {
-    setState(() => _temperatureOffset += delta);
+    final profile = ref.read(profileProvider);
+    if (!_canStepTemperatureOffset(profile)) return;
+    final current =
+        _editedTemperatureOffset ?? _savedTemperatureOffset(profile.value);
+    setState(() => _editedTemperatureOffset = current + delta);
     _temperatureAutoSave.requestSave();
   }
 
   /// Only touches the offset — no model regenerate, no outfit replan.
   Future<void> _saveTemperatureOffset() async {
-    final offset = _temperatureOffset;
-    await ProfileService().updateMyProfile(temperatureOffsetC: offset);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_temperatureOffsetKey, offset);
+    final offset = _editedTemperatureOffset;
+    if (offset == null) return;
+    // Read before the await: the reply belongs to this session, and the
+    // next visit reads the offset back from [profileProvider].
+    final profile = ref.read(profileProvider.notifier);
+    final saved = await ProfileService().updateMyProfile(
+      temperatureOffsetC: offset,
+    );
+    profile.setProfile(saved);
   }
 
   Future<void> _leave() async {
@@ -259,7 +282,10 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
   }
 
   Widget _buildTemperatureCard() {
-    final offset = _temperatureOffset;
+    final profile = ref.watch(profileProvider);
+    final offset =
+        _editedTemperatureOffset ?? _savedTemperatureOffset(profile.value);
+    final canStep = _canStepTemperatureOffset(profile);
     return AppCardShell(
       title: _l10n.temperatureAdjustmentTitle,
       subtitle: _l10n.temperatureAdjustmentDescription,
@@ -277,10 +303,10 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
               final stepper = NumberStepper(
                 variant: NumberStepperVariant.tile,
                 valueLabel: _temperatureOffsetLabel(offset),
-                onDecrement: offset > _minTemperatureOffset
+                onDecrement: canStep && offset > _minTemperatureOffset
                     ? () => _stepTemperatureOffset(-1)
                     : null,
-                onIncrement: offset < _maxTemperatureOffset
+                onIncrement: canStep && offset < _maxTemperatureOffset
                     ? () => _stepTemperatureOffset(1)
                     : null,
               );

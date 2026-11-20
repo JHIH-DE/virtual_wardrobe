@@ -9,6 +9,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/trip_detail_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/pending_try_on_store.dart';
 import '../../../core/services/trip_service.dart';
 import '../../../core/utils/debug_log.dart';
@@ -149,6 +150,10 @@ class _TripOutfitDetailPageState extends ConsumerState<TripOutfitDetailPage>
             showErrorDialog(context, message: _l10n.tryOnOutcomeUnknown);
           }
           return null;
+        } on SessionChangedException {
+          // Unknown, not failed: a retry here first checks whether it landed.
+          _unknownTryOns[outfit.id] = tripOutfitImageMarker(outfit);
+          rethrow;
         } finally {
           if (mounted) setState(() => _renderingOutfit = false);
         }

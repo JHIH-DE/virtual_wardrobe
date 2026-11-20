@@ -7,6 +7,8 @@ import '../../data/outfit.dart';
 import '../../data/trip_outfit.dart';
 import '../services/api_exception.dart';
 import '../services/auth_handler.dart';
+import '../services/auth_storage.dart';
+import '../services/base_service.dart';
 import '../services/pending_try_on_store.dart';
 import '../services/trip_service.dart';
 import 'debug_log.dart';
@@ -52,7 +54,9 @@ const _maxTripChecks = 48;
 /// is recovered by asking for that key's status — never by sending again.
 /// The key is kept in [PendingTryOnStore] until the outcome is known, so a
 /// relaunch can still find out. Throws [TryOnStillRunning] when it can't be
-/// known; anything else is a definitive failure (its quota was released).
+/// known, and [SessionChangedException] once the session it was sent in has
+/// ended (the outcome isn't known either, and the old page has nothing left
+/// to show); anything else is a definitive failure (its quota was released).
 Future<Outfit> sendKeyedTryOn({
   required String key,
   required int session,
@@ -60,6 +64,7 @@ Future<Outfit> sendKeyedTryOn({
   int? draftGroupId,
   int? regeneratedOutfitId,
 }) async {
+  final ensureSession = _sessionCheck(session);
   PendingTryOnStore.markInFlight(key);
   try {
     await PendingTryOnStore.add(
@@ -72,12 +77,15 @@ Future<Outfit> sendKeyedTryOn({
       forSession: session,
     );
     try {
-      final outfit = await _sendOrRecover(key, session, send);
+      final outfit = await _sendOrRecover(key, ensureSession, send);
       await PendingTryOnStore.remove(key, forSession: session);
       return outfit;
     } on TryOnStillRunning {
       rethrow;
     } on AuthExpiredException {
+      rethrow;
+    } on SessionChangedException {
+      // Not a failure: the render may still finish, charged once for [key].
       rethrow;
     } catch (_) {
       await PendingTryOnStore.remove(key, forSession: session);
@@ -88,11 +96,24 @@ Future<Outfit> sendKeyedTryOn({
   }
 }
 
+/// Throws [SessionChangedException] once the session signed in now — and
+/// the pending store's [session] — is no longer the one this started in.
+void Function() _sessionCheck(int session) {
+  final epoch = AuthStorage.sessionEpoch;
+  return () {
+    if (PendingTryOnStore.session != session ||
+        AuthStorage.sessionEpoch != epoch) {
+      throw SessionChangedException();
+    }
+  };
+}
+
 Future<Outfit> _sendOrRecover(
   String key,
-  int session,
+  void Function() ensureSession,
   Future<Outfit> Function() send,
 ) async {
+  ensureSession();
   try {
     return await send();
   } catch (e) {
@@ -101,10 +122,9 @@ Future<Outfit> _sendOrRecover(
   }
   for (var check = 1; ; check++) {
     // Signed out meanwhile: the next account's token can't see this key.
-    if (PendingTryOnStore.session != session) {
-      throw const TryOnStillRunning(statusUnavailable: false);
-    }
+    ensureSession();
     final result = await checkTryOnStatus(key);
+    ensureSession();
     switch (result.kind) {
       case TryOnCheck.succeeded:
         return result.outfit!;
@@ -176,13 +196,15 @@ Future<TripOutfitCollection?> landedTripTryOn({
 /// status, so a lost reply is recovered only by re-reading the trip and
 /// seeing [before]'s image change; if it hasn't by the end, the outcome is
 /// unknown ([TryOnStillRunning] with `statusUnavailable`) and asking again
-/// may render again.
+/// may render again. Once the session it was sent in has ended it throws
+/// [SessionChangedException] instead, keeping the record.
 Future<TripOutfitCollection> sendTripTryOn({
   required int tripId,
   required TripOutfit before,
   required int session,
   required Future<TripOutfitCollection> Function() send,
 }) async {
+  final ensureSession = _sessionCheck(session);
   final key = 'trip-${newIdempotencyKey()}';
   final marker = tripOutfitImageMarker(before);
   PendingTryOnStore.markInFlight(key);
@@ -199,10 +221,14 @@ Future<TripOutfitCollection> sendTripTryOn({
       forSession: session,
     );
     try {
+      ensureSession();
       final collection = await send();
       await PendingTryOnStore.remove(key, forSession: session);
       return collection;
     } on AuthExpiredException {
+      rethrow;
+    } on SessionChangedException {
+      // Not a failure: the render may still finish.
       rethrow;
     } catch (e) {
       if (!mayStillBeRunning(e)) {
@@ -212,14 +238,13 @@ Future<TripOutfitCollection> sendTripTryOn({
       debugLog('trip try-on: outcome unknown ($e), re-reading the trip');
     }
     for (var check = 1; ; check++) {
-      if (PendingTryOnStore.session != session) {
-        throw const TryOnStillRunning(statusUnavailable: true);
-      }
+      ensureSession();
       final landed = await landedTripTryOn(
         tripId: tripId,
         tripOutfitId: before.id,
         beforeMarker: marker,
       );
+      ensureSession();
       if (landed != null) {
         await PendingTryOnStore.remove(key, forSession: session);
         return landed;

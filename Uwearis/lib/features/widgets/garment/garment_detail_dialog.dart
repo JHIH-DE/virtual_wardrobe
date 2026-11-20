@@ -4,6 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/garment_service.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
@@ -48,6 +49,9 @@ class _GarmentDetailDialogState extends State<GarmentDetailDialog> {
       if (!mounted) return;
       Navigator.of(context).pop();
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (mounted) setState(() => _restoring = false);
     } catch (_) {
       if (!mounted) return;
       setState(() => _restoring = false);

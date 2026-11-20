@@ -9,6 +9,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/sub_category_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/auto_save_controller.dart';
@@ -266,6 +267,8 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       if (!mounted) return;
       debugLog('PersonalDetailsPage._loadProfile failed: $e');
@@ -332,6 +335,9 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
       if (!mounted) return false;
       await AuthExpiredHandler.handle(context);
       return false;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      return false;
     } catch (e) {
       debugLog('PersonalDetailsPage avatar upload error: $e');
       if (mounted) {
@@ -383,6 +389,9 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return false;
       await AuthExpiredHandler.handle(context);
+      return false;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
       return false;
     } catch (e) {
       if (!mounted) return false;

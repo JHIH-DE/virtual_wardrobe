@@ -8,6 +8,7 @@ import '../../../core/providers/garment_outfits_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/sub_category_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/garment_service.dart';
 import '../../../core/utils/api_error_text.dart';
 import '../../../core/utils/auto_save_controller.dart';
@@ -477,6 +478,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         if (!mounted) return;
         await AuthExpiredHandler.handle(context);
         return;
+      } on SessionChangedException {
+        // Its session ended meanwhile; whatever ended it owns the UI now.
+        return;
       } catch (e) {
         if (!mounted) return;
         debugLog('GarmentDetailsPage delete failed: $e');
@@ -870,6 +874,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       } on AuthExpiredException {
         if (!mounted) return;
         await AuthExpiredHandler.handle(context);
+        return;
+      } on SessionChangedException {
+        // Its session ended meanwhile; whatever ended it owns the UI now.
         return;
       } catch (e) {
         debugLog('GarmentDetailsPage._openSubCategoryPicker failed: $e');
@@ -1328,6 +1335,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     } on AuthExpiredException {
       if (!mounted || run != _reanalysisRun) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       debugLog('GarmentDetailsPage._runReanalysis failed: $e');
       if (!mounted || run != _reanalysisRun) return;
@@ -1370,6 +1379,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } on ClosetAnalysisException catch (e) {
       if (!mounted) return;
       debugLog('closetAnalysis failed: ${e.errorCode}');
@@ -1454,6 +1465,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       if (!mounted) return;
       debugLog('closetAnalysis refresh failed: $e');
@@ -1538,6 +1551,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       if (!mounted) return;
       debugLog('_openAddOutfitFromIdea: failed to load garments: $e');
@@ -1789,6 +1804,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
       return;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      if (mounted) setState(() => _uploading = false);
     } catch (e) {
       debugLog('GarmentDetailsPage._saveGarment failed: $e');
       if (mounted) {
@@ -1842,6 +1860,9 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     } on AuthExpiredException {
       rollBack();
       if (mounted) await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      rollBack();
     } catch (_) {
       rollBack();
       if (mounted) {
@@ -1853,15 +1874,18 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   }
 
   /// Add mode only — there's no endpoint to replace an existing photo.
-  Future<Garment> _uploadNewGarment() async {
-    final initDate = await GarmentService().initUpload();
-    await GarmentService().putJpegToSignedUrl(
-      initDate.uploadUrl,
-      _imagePathOrUrl!,
-    );
+  Future<Garment> _uploadNewGarment() => GarmentService().uploadNewGarment(
+    _imagePathOrUrl!,
+    describe: _describeUploadedGarment,
+  );
+
+  /// What `complete` sends for [init]'s upload: the form as it is then.
+  (Garment, Map<String, dynamic>) _describeUploadedGarment(
+    InitUploadResult init,
+  ) {
     final temp = Garment(
-      uploadUrl: initDate.uploadUrl,
-      objectName: initDate.objectName,
+      uploadUrl: init.uploadUrl,
+      objectName: init.objectName,
       category: _category,
       subCategory: _subCategory,
       style: _style,
@@ -1890,7 +1914,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       'crop_length': _selectedCropLength?.apiValue ?? '',
       'bag_details': _showBagFields ? _bagDetailsToSave(null)?.toJson() : null,
     };
-    return GarmentService().completeUpload(temp, metadata);
+    return (temp, metadata);
   }
 
   /// Add mode's preview request body; fields the form can't edit

@@ -13,6 +13,7 @@ import '../../../core/providers/outfits_provider.dart';
 import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/services/auth_handler.dart';
+import '../../../core/services/base_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/auth_storage.dart';
 import '../../../core/services/profile_service.dart';
@@ -152,6 +153,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
       debugLog('SettingsPage delete account failed: $e');
       if (!mounted) return;

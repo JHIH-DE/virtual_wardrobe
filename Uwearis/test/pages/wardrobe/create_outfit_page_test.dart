@@ -15,6 +15,9 @@ import 'package:uwearis/core/providers/sub_category_provider.dart';
 import 'package:uwearis/data/garment_sub_category.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/weather_provider.dart';
+import 'package:uwearis/core/services/auth_handler.dart';
+import 'package:uwearis/core/services/auth_storage.dart';
+import 'package:uwearis/core/services/base_service.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/garment_adjustment.dart';
 import 'package:uwearis/data/outfit.dart';
@@ -2251,6 +2254,412 @@ void main() {
       }, () => gatedClient(gates));
     });
   });
+
+  // C1: a render whose session ends before its reply: the outcome is
+  // unknown, not a failure, and the page that sent it has nothing to show.
+  group('the session ending mid-render', () {
+    final deletes = <String>[];
+    setUp(deletes.clear);
+
+    Future<void> startRender(
+      WidgetTester tester,
+      List<String> generates,
+    ) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () => Navigator.push<Outfit>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateOutfitPage(
+                    initialGarments: [closet[0], closet[1], closet[2]],
+                  ),
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+        overrides: closetOverride(),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(generates, hasLength(1));
+    }
+
+    MockClient heldClient(
+      Completer<http.Response> reply,
+      List<String> generates,
+    ) => MockClient((request) async {
+      final path = request.url.path;
+      if (isPointsSummaryPath(path)) {
+        return jsonResponse(envelope(pointsSummaryJson()));
+      }
+      if (request.method == 'POST' && path.endsWith('/outfit')) {
+        return jsonResponse(envelope({'group_id': 40, 'type': 'general'}));
+      }
+      if (path.endsWith('/generate')) {
+        generates.add(request.headers['Idempotency-Key'] ?? '');
+        return reply.future;
+      }
+      if (request.method == 'DELETE') deletes.add(path);
+      return jsonResponse(envelope(null), status: 404);
+    });
+
+    Future<void> closeDialogs(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        final buttons = find.byKey(AppDialog.dismissButtonKey);
+        if (buttons.evaluate().isEmpty) break;
+        await tester.tap(buttons.last);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+      }
+      while (tester.takeException() != null) {}
+    }
+
+    testWidgets('session expired: no "Failed to generate outfit" over '
+        'Session Expired, the page stays, nothing is sent again', (
+      tester,
+    ) async {
+      final reply = Completer<http.Response>();
+      final generates = <String>[];
+      await http.runWithClient(() async {
+        await startRender(tester, generates);
+        unawaited(
+          AuthExpiredHandler.handle(
+            tester.element(find.byType(CreateOutfitPage)),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Session Expired'), findsOneWidget);
+
+        reply.complete(
+          jsonResponse(
+            envelope({
+              'outfit_id': 77,
+              'group_id': 40,
+              'result_image_url': '',
+              'garment_ids': [1, 2, 3],
+            }),
+          ),
+        );
+        for (var i = 0; i < 4; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+
+        final shown = {
+          'failed': find.text('Failed to generate outfit').evaluate().length,
+          'sessionExpired': find.text('Session Expired').evaluate().length,
+          'page': find
+              .byType(CreateOutfitPage, skipOffstage: false)
+              .evaluate()
+              .length,
+          'overlay': find.byType(LoadingOverlay).evaluate().length,
+          'generates': generates.length,
+          'deletes': deletes.length,
+        };
+        await closeDialogs(tester);
+        expect(shown, {
+          'failed': 0,
+          'sessionExpired': 1,
+          'page': 1,
+          'overlay': 0,
+          'generates': 1,
+          'deletes': 0,
+        });
+      }, () => heldClient(reply, generates));
+    });
+  });
+
+  // C4-b: Finish with AI waits for the weather before its charged advice
+  // call. Whatever session that wait ends in, the advice may only go out
+  // under the session the run started in.
+  group('Finish with AI and the session ending during the weather wait', () {
+    late Completer<void> weatherGate;
+    late Future<WeatherData> Function() weatherReply;
+    late List<(String, Map<String, dynamic>)> advice;
+    late Future<http.Response> Function() adviceReply;
+
+    setUp(() {
+      weatherReply = () async => _weatherData();
+      advice = [];
+      adviceReply = () async => jsonResponse(
+        envelope({
+          'selected_garment_ids': [1, 2, 3],
+          'items': <Object?>[],
+        }),
+      );
+    });
+
+    String who(http.BaseRequest r) => switch (r.headers['Authorization']) {
+      'Bearer fake-access-token' => 'A',
+      'Bearer access-B' => 'B',
+      final other => '$other',
+    };
+
+    MockClient client() => MockClient((request) async {
+      final path = request.url.path;
+      if (path.endsWith('/auth/refresh')) return http.Response('{}', 401);
+      if (isPointsSummaryPath(path)) {
+        return jsonResponse(envelope(pointsSummaryJson()));
+      }
+      if (path.endsWith('/outfit/advice')) {
+        advice.add((
+          who(request),
+          jsonDecode(request.body) as Map<String, dynamic>,
+        ));
+        return adviceReply();
+      }
+      return jsonResponse(envelope(null), status: 404);
+    });
+
+    Future<void> signInAsB() async {
+      await clearSignedInSession();
+      await AuthStorage.startSession(
+        accessToken: 'access-B',
+        refreshToken: 'refresh-B',
+      );
+    }
+
+    Finder overlay() => find.byType(LoadingOverlay);
+    final failed = find.text(
+      "Couldn't complete your outfit with AI — please try again.",
+    );
+
+    /// Opens the page and taps Go; the run is left waiting for the weather.
+    Future<void> start(WidgetTester tester) async {
+      // Made in the test's fake-async zone, so releasing it runs on a pump.
+      weatherGate = Completer<void>();
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: [
+          ...closetOverride(),
+          weatherProvider.overrideWith(
+            () => _HeldWeather(() async {
+              await weatherGate.future;
+              return weatherReply();
+            }),
+          ),
+        ],
+      );
+      await tester.pump();
+      await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(overlay(), findsOneWidget);
+      expect(advice, isEmpty);
+    }
+
+    Future<void> releaseWeather(WidgetTester tester) async {
+      weatherGate.complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+    }
+
+    Future<void> closeDialogs(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        final buttons = find.byKey(AppDialog.dismissButtonKey);
+        if (buttons.evaluate().isEmpty) break;
+        await tester.tap(buttons.last);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+      }
+      while (tester.takeException() != null) {}
+    }
+
+    testWidgets('one session: the weather lands and the advice goes out as '
+        'A with its temperature', (tester) async {
+      await http.runWithClient(() async {
+        await start(tester);
+        await releaseWeather(tester);
+
+        expect(advice.map((a) => a.$1), ['A']);
+        expect(advice.single.$2['temperature_c'], 23);
+        expect(overlay(), findsNothing);
+        expect(find.byType(SwipeActionCard), findsNWidgets(3));
+      }, client);
+    });
+
+    testWidgets("B signs in while A's run waits for the weather: no advice "
+        'is sent (or charged) as B', (tester) async {
+      await http.runWithClient(() async {
+        await start(tester);
+        await signInAsB();
+        await releaseWeather(tester);
+
+        final shown = {
+          'advice': advice.map((a) => a.$1).toList(),
+          'overlay': overlay().evaluate().length,
+          'filled': find.byType(SwipeActionCard).evaluate().length,
+          'failed': failed.evaluate().length,
+          'dialogs': find.byType(AppDialog).evaluate().length,
+        };
+        await closeDialogs(tester);
+        expect(shown, {
+          'advice': <String>[],
+          'overlay': 0,
+          'filled': 0,
+          'failed': 0,
+          'dialogs': 0,
+        });
+      }, client);
+    });
+
+    testWidgets('A only signs out while waiting: no advice is sent', (
+      tester,
+    ) async {
+      await http.runWithClient(() async {
+        await start(tester);
+        await clearSignedInSession();
+        await releaseWeather(tester);
+
+        final shown = {
+          'advice': advice.length,
+          'overlay': overlay().evaluate().length,
+          'dialogs': find.byType(AppDialog).evaluate().length,
+        };
+        await closeDialogs(tester);
+        expect(shown, {'advice': 0, 'overlay': 0, 'dialogs': 0});
+      }, client);
+    });
+
+    testWidgets('the weather itself ends as a session change (its reply came '
+        'after B signed in): no fallback advice as B', (tester) async {
+      weatherReply = () async {
+        await signInAsB();
+        throw SessionChangedException();
+      };
+      await http.runWithClient(() async {
+        await start(tester);
+        await releaseWeather(tester);
+
+        final shown = {
+          'advice': advice.map((a) => a.$1).toList(),
+          'overlay': overlay().evaluate().length,
+          'failed': failed.evaluate().length,
+        };
+        await closeDialogs(tester);
+        expect(shown, {'advice': <String>[], 'overlay': 0, 'failed': 0});
+      }, client);
+    });
+
+    testWidgets('one session, the weather fails: the advice still goes out '
+        'as A, leaving the temperature to the backend', (tester) async {
+      // Not a retried error, so the provider fails at once.
+      weatherReply = () async => throw Exception('no location');
+      await http.runWithClient(() async {
+        await start(tester);
+        await releaseWeather(tester);
+
+        expect(advice.map((a) => a.$1), ['A']);
+        expect(advice.single.$2['temperature_c'], isNull);
+        expect(overlay(), findsNothing);
+        expect(find.byType(SwipeActionCard), findsNWidgets(3));
+      }, client);
+    });
+
+    testWidgets('one session, the weather never answers: after its 5s limit '
+        'the advice goes out as A', (tester) async {
+      await http.runWithClient(() async {
+        await start(tester);
+        await tester.pump(const Duration(seconds: 6));
+        await tester.pump();
+
+        expect(advice.map((a) => a.$1), ['A']);
+        expect(advice.single.$2['temperature_c'], isNull);
+        expect(overlay(), findsNothing);
+      }, client);
+    });
+
+    testWidgets("the advice' reply landing after B signed in fills nothing "
+        'in (the withAuth contract)', (tester) async {
+      final reply = Completer<http.Response>();
+      adviceReply = () => reply.future;
+      await http.runWithClient(() async {
+        await start(tester);
+        await releaseWeather(tester);
+        expect(advice.map((a) => a.$1), ['A']);
+
+        await signInAsB();
+        reply.complete(
+          jsonResponse(
+            envelope({
+              'selected_garment_ids': [1, 2, 3],
+              'items': <Object?>[],
+            }),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final shown = {
+          'advice': advice.length,
+          'overlay': overlay().evaluate().length,
+          'filled': find.byType(SwipeActionCard).evaluate().length,
+          'failed': failed.evaluate().length,
+        };
+        await closeDialogs(tester);
+        expect(shown, {'advice': 1, 'overlay': 0, 'filled': 0, 'failed': 0});
+      }, client);
+    });
+
+    testWidgets('one session, a 500: the error shows and Go works again', (
+      tester,
+    ) async {
+      adviceReply = () async => jsonResponse(envelope(null), status: 500);
+      await http.runWithClient(() async {
+        await start(tester);
+        await releaseWeather(tester);
+
+        expect(failed, findsOneWidget);
+        expect(overlay(), findsNothing);
+        await closeDialogs(tester);
+
+        adviceReply = () async => jsonResponse(
+          envelope({
+            'selected_garment_ids': [1, 2, 3],
+            'items': <Object?>[],
+          }),
+        );
+        await tester.tap(find.widgetWithText(AccentPillButton, 'Go'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+        expect(advice.map((a) => a.$1), ['A', 'A']);
+        expect(find.byType(SwipeActionCard), findsNWidgets(3));
+      }, client);
+    });
+
+    testWidgets('one session, an unrecoverable 401: Session Expired, not the '
+        'failure dialog', (tester) async {
+      adviceReply = () async => http.Response('{}', 401);
+      await http.runWithClient(() async {
+        await start(tester);
+        await releaseWeather(tester);
+        await tester.pump();
+
+        final shown = {
+          'sessionExpired': find.text('Session Expired').evaluate().length,
+          'failed': failed.evaluate().length,
+        };
+        await closeDialogs(tester);
+        expect(shown, {'sessionExpired': 1, 'failed': 0});
+        expect(overlay(), findsNothing);
+      }, client);
+    });
+  });
 }
 
 class _FakeWeather extends WeatherNotifier {
@@ -2328,3 +2737,24 @@ int _lockedCount(WidgetTester tester) => tester
     .widgetList<SwipeActionCard>(find.byType(SwipeActionCard))
     .where((card) => card.actions.first.icon == Icons.lock_outline)
     .length;
+
+WeatherData _weatherData() => WeatherData(
+  location: 'Test City',
+  temp: 30,
+  high: 28,
+  low: 18,
+  condition: 'Clear',
+  weeklyCodes: const [0],
+  weeklyHighs: const [28],
+  weeklyLows: const [18],
+  timestamp: DateTime.now().millisecondsSinceEpoch,
+);
+
+/// Weather whose reading comes from [_read] (to hold it or fail it).
+class _HeldWeather extends WeatherNotifier {
+  _HeldWeather(this._read);
+  final Future<WeatherData> Function() _read;
+
+  @override
+  Future<WeatherData> build() => _read();
+}

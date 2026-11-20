@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/auth_handler.dart';
+import '../../../../core/services/base_service.dart';
 import '../../../../core/utils/api_error_text.dart';
 import '../../../../core/utils/auto_save_controller.dart';
 import '../../../../core/utils/debug_log.dart';
@@ -8,8 +9,9 @@ import '../../../../l10n/generated/app_localizations.dart';
 import 'error_dialog.dart';
 import 'save_changes_dialog.dart';
 
-// The UI half of [AutoSaveController]. The `is AuthExpiredException` checks
-// inspect an error value from the controller, not a `catch` clause.
+// The UI half of [AutoSaveController]. The `is AuthExpiredException` /
+// `is SessionChangedException` checks inspect an error value from the
+// controller, not a `catch` clause.
 
 /// [AutoSaveController.onError] handler: an error dialog whose Retry
 /// re-requests the save.
@@ -24,6 +26,8 @@ Future<void> showAutoSaveErrorDialog(
     await AuthExpiredHandler.handle(context);
     return;
   }
+  // Its session ended meanwhile; whatever ended it owns the UI now.
+  if (error is SessionChangedException) return;
   debugLog('auto-save failed: $error');
   final l10n = AppLocalizations.of(context);
   await showErrorDialog(
@@ -56,6 +60,8 @@ Future<bool> confirmLeaveAfterAutoSave(
       await AuthExpiredHandler.handle(context);
       return false;
     }
+    // Stay: whatever ended its session is taking the user elsewhere.
+    if (error is SessionChangedException) return false;
     debugLog('auto-save failed before leaving: $error');
     final l10n = AppLocalizations.of(context);
     final choice = await showSaveChangesDialog(

@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/daily_outfit_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
+import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/outfit_details_page.dart';
@@ -1237,6 +1238,146 @@ void main() {
         await cancel(tester);
         expect(regenerates, isEmpty);
       }, () => groupClient(groupId, 1, [], regenerates));
+    });
+  });
+
+  // C1: a regenerate whose session ends before its outcome is known — not a
+  // failure, and not "still rendering" for the page that sent it.
+  group('regenerate across a session end', () {
+    final failed = find.text('Failed to generate outfit');
+    final stillRendering = find.textContaining('Still in progress');
+    final sessionExpired = find.text('Session Expired');
+
+    Future<void> closeDialogs(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        final buttons = find.byKey(AppDialog.dismissButtonKey);
+        if (buttons.evaluate().isEmpty) break;
+        await tester.tap(buttons.last);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+      }
+      while (tester.takeException() != null) {}
+    }
+
+    Future<void> startRegenerate(WidgetTester tester) async {
+      useTallSurface(tester);
+      await pumpApp(tester, OutfitDetailsPage(outfit: _outfit()));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.refresh).first);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Regenerate').last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    void expireSession(WidgetTester tester) => unawaited(
+      AuthExpiredHandler.handle(tester.element(find.byType(OutfitDetailsPage))),
+    );
+
+    testWidgets('the reply landing after the session ended: no failure or '
+        '"still rendering" over Session Expired, nothing sent again', (
+      tester,
+    ) async {
+      final reply = Completer<http.Response>();
+      var posts = 0;
+      await http.runWithClient(
+        () async {
+          await startRegenerate(tester);
+          expect(posts, 1);
+          expireSession(tester);
+          await tester.pump();
+          await tester.pump();
+          reply.complete(
+            jsonResponse(
+              envelope({
+                'outfit_id': 1,
+                'group_id': 3,
+                'result_image_url': 'https://img.example/1b.png',
+                'garment_ids': <int>[],
+              }),
+            ),
+          );
+          for (var i = 0; i < 10; i++) {
+            await tester.pump(const Duration(seconds: 1));
+          }
+
+          final shown = {
+            'failed': failed.evaluate().length,
+            'stillRendering': stillRendering.evaluate().length,
+            'sessionExpired': sessionExpired.evaluate().length,
+            'posts': posts,
+          };
+          await closeDialogs(tester);
+          expect(shown, {
+            'failed': 0,
+            'stillRendering': 0,
+            'sessionExpired': 1,
+            'posts': 1,
+          });
+        },
+        () => MockClient((request) async {
+          final path = request.url.path;
+          if (path.endsWith('/regenerate')) {
+            posts++;
+            return reply.future;
+          }
+          if (isPointsSummaryPath(path)) {
+            return jsonResponse(envelope(pointsSummaryJson(balance: 3)));
+          }
+          return jsonResponse(envelope({'items': []}));
+        }),
+      );
+    });
+
+    testWidgets('the session ending while its status is polled: no delayed '
+        '"still rendering" over Session Expired, no new render', (
+      tester,
+    ) async {
+      var posts = 0;
+      var checks = 0;
+      await http.runWithClient(
+        () async {
+          await startRegenerate(tester);
+          for (var i = 0; i < 2; i++) {
+            await tester.pump(const Duration(seconds: 1));
+          }
+          expect(checks, greaterThan(0));
+          expireSession(tester);
+          for (var i = 0; i < 12; i++) {
+            await tester.pump(const Duration(seconds: 1));
+          }
+
+          final shown = {
+            'failed': failed.evaluate().length,
+            'stillRendering': stillRendering.evaluate().length,
+            'sessionExpired': sessionExpired.evaluate().length,
+            'posts': posts,
+          };
+          await closeDialogs(tester);
+          expect(shown, {
+            'failed': 0,
+            'stillRendering': 0,
+            'sessionExpired': 1,
+            'posts': 1,
+          });
+        },
+        () => MockClient((request) async {
+          final path = request.url.path;
+          if (path.endsWith('/regenerate')) {
+            posts++;
+            throw TimeoutException('slow');
+          }
+          if (path.contains('/outfit/generations/')) {
+            checks++;
+            return jsonResponse(envelope({'status': 'processing'}));
+          }
+          if (isPointsSummaryPath(path)) {
+            return jsonResponse(envelope(pointsSummaryJson(balance: 3)));
+          }
+          return jsonResponse(envelope({'items': []}));
+        }),
+      );
     });
   });
 }
