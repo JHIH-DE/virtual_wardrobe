@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_effects.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 /// One tab of the frosted bottom nav bars ([WardrobeNavBar], [ExploreNavBar]).
@@ -266,17 +267,7 @@ class NavBarGlass extends StatelessWidget {
               ),
             ),
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.navBarGlassSheen,
-                    AppColors.navBarGlassSheen.withValues(alpha: 0),
-                  ],
-                  stops: const [0, 0.5],
-                ),
-              ),
+              decoration: BoxDecoration(gradient: AppEffects.glassSheen),
               child: Material(type: MaterialType.transparency, child: child),
             ),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/profile_service.dart';
 import '../../../data/profile_data.dart';
@@ -81,7 +82,7 @@ class _PlusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.accentTint,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppDimens.pillRadius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

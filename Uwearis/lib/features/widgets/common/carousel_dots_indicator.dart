@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 enum CarouselDotsVariant {
@@ -38,7 +39,7 @@ class CarouselDotsIndicator extends StatelessWidget {
               children: List.generate(count, (index) {
                 final isActive = index == currentIndex;
                 return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: AppDurations.standard,
                   margin: const EdgeInsets.symmetric(horizontal: 3),
                   width: isActive ? 18 : 6,
                   height: 6,

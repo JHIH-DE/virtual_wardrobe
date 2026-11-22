@@ -207,7 +207,10 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
       const _Spec('SpaceSwitchButton (toolbar leading · tap to expand)'),
       Align(
         alignment: Alignment.centerLeft,
-        child: SpaceSwitchButton(label: _l10n.explore, onPressed: () {}),
+        child: SpaceSwitchButton(
+          label: SpaceSwitchButton.exploreLabel,
+          onPressed: () {},
+        ),
       ),
     ];
   }
@@ -326,7 +329,7 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
       AppCardShell(
         title: _l10n.startPackingTripTitle,
         subtitle: _l10n.startPackingTripHint,
-        actionIcon: Icons.info_outline,
+        actionIcon: const Icon(Icons.info_outline),
         onAction: () {},
       ),
       const _Spec('AppListCard · leading + arrow'),
@@ -342,7 +345,7 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         onTap: () {},
         leading: const Icon(Icons.auto_awesome_outlined, color: AppColors.icon),
         showArrow: true,
-        child: Text(_l10n.styleTaste, style: AppTextStyle.bold16),
+        child: Text(_l10n.outfitInsights, style: AppTextStyle.bold16),
       ),
       const _Spec('GarmentListCard · minimum height, long name'),
       GarmentListCard(garment: _sampleGarment, onTap: () {}),

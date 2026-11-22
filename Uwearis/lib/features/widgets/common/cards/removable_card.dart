@@ -122,7 +122,9 @@ class _RemovableCardState extends State<RemovableCard> with RouteAware {
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceTranslucentMedium,
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(
+                                AppDimens.pillRadius,
+                              ),
                             ),
                             child: Text(
                               l10n.remove.toUpperCase(),

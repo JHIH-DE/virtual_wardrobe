@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 
 /// For a details page whose body opens with the item's name instead of a
@@ -65,7 +66,7 @@ mixin FadingToolbarTitle<T extends StatefulWidget> on State<T> {
       valueListenable: _showsToolbarTitle,
       builder: (context, shows, _) => AnimatedOpacity(
         opacity: shows ? 1 : 0,
-        duration: const Duration(milliseconds: 200),
+        duration: AppDurations.standard,
         curve: Curves.easeOut,
         child: Text(
           text,

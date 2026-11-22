@@ -81,6 +81,48 @@ void main() {
     expect(selected, {'smart_casual'});
   });
 
+  testWidgets('All is the first chip of its row, not beside the title', (
+    tester,
+  ) async {
+    var selected = {'Blue'};
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showChipGroupsSheet(
+              context,
+              groups: [
+                FilterGroup.toggleAll(
+                  label: 'Color',
+                  options: const ['All', 'Blue', 'Extremely Long Green'],
+                  selected: () => selected,
+                  onChanged: (next) => selected = next,
+                ),
+              ],
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final all = tester.getTopLeft(find.text('All'));
+    expect(all.dy, greaterThan(tester.getBottomLeft(find.text('Color')).dy));
+    expect(all.dy, tester.getTopLeft(find.text('Blue')).dy);
+    expect(all.dx, lessThan(tester.getTopLeft(find.text('Blue')).dx));
+    expect(
+      all.dx,
+      lessThan(tester.getTopLeft(find.text('Extremely Long Green')).dx),
+    );
+
+    await tester.tap(find.text('All'));
+    await tester.pump();
+    expect(selected, {'All'});
+  });
+
   group('FilterButton widget', () {
     testWidgets('shows the filtered dot only when isFiltered', (tester) async {
       Widget btn(bool filtered) => FilterButton(

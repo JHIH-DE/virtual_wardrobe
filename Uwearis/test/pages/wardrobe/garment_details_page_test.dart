@@ -380,6 +380,104 @@ void main() {
       });
     });
 
+    group('AI-detected brand', () {
+      final brandField = find.byWidgetPredicate(
+        (w) =>
+            w is AppTextField &&
+            w.hint == 'What is the brand of this clothing?',
+      );
+      String brandText(WidgetTester tester) =>
+          tester.widget<AppTextField>(brandField).controller!.text;
+
+      Future<void> pumpWithAnalysis(
+        WidgetTester tester,
+        Map<String, dynamic> analysis, {
+        Garment garment = _draftGarment,
+      }) async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          GarmentDetailsPage(
+            initialGarment: garment,
+            initialAnalysisData: {
+              'name': 'TNF Check Shirt',
+              'category': 'Top',
+              ...analysis,
+            },
+          ),
+        );
+        await tester.pump();
+      }
+
+      testWidgets('add mode fills an empty brand field', (tester) async {
+        await runWithEmptyCloset(() async {
+          await pumpWithAnalysis(tester, {'brand': '  The North Face '});
+          expect(brandText(tester), 'The North Face');
+        });
+      });
+
+      testWidgets('a null brand leaves the field empty', (tester) async {
+        await runWithEmptyCloset(() async {
+          await pumpWithAnalysis(tester, {'brand': null});
+          expect(brandText(tester), '');
+        });
+      });
+
+      testWidgets('an AI brand past 100 code points is cut to fit', (
+        tester,
+      ) async {
+        await runWithEmptyCloset(() async {
+          await pumpWithAnalysis(tester, {'brand': 'B' * 130});
+          expect(brandText(tester), 'B' * 100);
+        });
+      });
+
+      testWidgets('never replaces a brand already in the field', (
+        tester,
+      ) async {
+        await runWithEmptyCloset(() async {
+          await pumpWithAnalysis(tester, {
+            'brand': 'The North Face',
+          }, garment: _draftGarment.copyWith(brand: 'Uniqlo'));
+          expect(brandText(tester), 'Uniqlo');
+        });
+      });
+
+      testWidgets('the brand field stops at 100 characters', (tester) async {
+        await runWithEmptyCloset(() async {
+          await pumpWithAnalysis(tester, {});
+          await tester.enterText(
+            find.descendant(
+              of: brandField,
+              matching: find.byType(EditableText),
+            ),
+            'x' * 120,
+          );
+          await tester.pump();
+          expect(brandText(tester).length, 100);
+        });
+      });
+
+      // The backend counts code points: 👍🏽 is one character on screen but
+      // two code points, so 60 of them would be 120.
+      testWidgets('the brand field caps code points, not on-screen '
+          'characters, and never splits one', (tester) async {
+        await runWithEmptyCloset(() async {
+          await pumpWithAnalysis(tester, {});
+          await tester.enterText(
+            find.descendant(
+              of: brandField,
+              matching: find.byType(EditableText),
+            ),
+            '👍🏽' * 60,
+          );
+          await tester.pump();
+          expect(brandText(tester), '👍🏽' * 50);
+          expect(brandText(tester).runes.length, 100);
+        });
+      });
+    });
+
     testWidgets('closure shows only on an Outer, saves right away, and is '
         'dropped when the category changes', (tester) async {
       const jacket = Garment(

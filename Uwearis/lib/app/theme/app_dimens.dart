@@ -70,4 +70,10 @@ abstract class AppDimens {
   static const double actionButtonHeight = 48;
   // Matches the cards (AppCardShell) the buttons sit beside.
   static const double actionButtonRadius = cardRadius;
+
+  // Dialogs and bottom sheets (a sheet rounds its top corners only).
+  static const double dialogRadius = 24;
+
+  // Fully rounded ends, whatever the height.
+  static const double pillRadius = 999;
 }

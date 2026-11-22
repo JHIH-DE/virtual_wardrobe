@@ -21,7 +21,8 @@ class AppCardShell extends StatelessWidget {
   /// Sits to the right of [title] / [subtitle], vertically centered.
   final Widget? trailing;
 
-  final IconData? actionIcon;
+  /// Usually an [Icon]; [InfoGlyph] for an info action.
+  final Widget? actionIcon;
   final VoidCallback? onAction;
   final String? actionTooltip;
 
@@ -99,7 +100,7 @@ class AppCardShell extends StatelessWidget {
     );
   }
 
-  Widget _buildWithHeader(IconData? actionIcon) {
+  Widget _buildWithHeader(Widget? actionIcon) {
     final trailing = this.trailing;
     final child = this.child;
     return Column(

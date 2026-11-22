@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
-import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/daily_outfit_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/outfits_provider.dart';
@@ -28,7 +27,6 @@ import '../../widgets/outfit/outfit_garment_section.dart';
 import '../../widgets/outfit/outfit_image.dart';
 import '../../widgets/outfit/outfit_tag_row.dart';
 import '../../widgets/outfit/outfit_tags_sheet.dart';
-import '../../widgets/outfit/outfit_title.dart';
 import 'outfit_details_page.dart';
 
 /// Swipes between today's daily outfit options (not one group's versions
@@ -93,19 +91,17 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
               builder: (bodyContext) => ListView(
                 padding: EdgeInsets.fromLTRB(
                   20,
-                  20,
+                  8,
                   20,
                   BottomActionButton.scrollClearance(bodyContext),
                 ),
                 children: [
-                  Text(_titleFor(current), style: AppTextStyle.bold20),
-                  const SizedBox(height: 8),
                   OutfitTagsHeader(
                     seasons: current.seasons,
                     style: current.style,
                     onEdit: _isSavingTags ? null : () => _editTags(current),
                   ),
-                  const SizedBox(height: AppDimens.cardHeaderGap),
+                  const SizedBox(height: 4),
                   _buildOutfitImage(options, current),
                   if (options.length > 1) ...[
                     const SizedBox(height: 10),
@@ -203,17 +199,6 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
     return null;
   }
 
-  String _titleFor(Outfit outfit) => outfitDisplayTitle(
-    _l10n,
-    groupName: _groupNameFor(
-      outfit,
-      ref.watch(outfitsProvider).value ?? const [],
-    ),
-    name: outfit.name,
-    seasons: outfit.seasons,
-    style: outfit.style,
-  );
-
   void _onPageChanged(int index) {
     setState(() => _currentIndex = index);
     widget.onIndexChanged?.call(index);
@@ -231,6 +216,12 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
         cached: ref.read(garmentsProvider).value ?? const [],
         outfitId: outfit.id,
       );
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return;
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
+      return;
     } catch (e) {
       debugLog('TodayOutfitPage: failed to load garments for ${outfit.id}: $e');
       garments = const [];

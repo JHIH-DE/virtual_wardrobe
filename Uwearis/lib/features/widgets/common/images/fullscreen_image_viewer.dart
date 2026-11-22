@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'refreshable_network_image.dart';
 
+import '../../../../app/theme/app_durations.dart';
+
 /// The app's full-screen photo viewer: pinch to zoom, tap anywhere to close.
 /// [BoxFit.cover] crops an outfit photo's sides (it's wider than a phone
 /// screen) rather than letterboxing it.
@@ -33,8 +35,8 @@ Future<void> showFullscreenImageWidget(
     context,
     PageRouteBuilder(
       opaque: true,
-      transitionDuration: const Duration(milliseconds: 200),
-      reverseTransitionDuration: const Duration(milliseconds: 200),
+      transitionDuration: AppDurations.standard,
+      reverseTransitionDuration: AppDurations.standard,
       pageBuilder: (_, _, _) =>
           _FullscreenImagePage(image: image, backgroundColor: backgroundColor),
       transitionsBuilder: (_, animation, _, child) =>

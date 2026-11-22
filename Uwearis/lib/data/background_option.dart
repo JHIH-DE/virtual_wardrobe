@@ -1,55 +1,79 @@
-/// A Create Outfit background with a bundled preview image.
-class BackgroundOption {
-  final String id;
-  final String label;
-  final String assetPath;
+/// The background picker's tabs, in display order. A value the app doesn't
+/// know yet (one the backend added later) is [other], so it never vanishes.
+enum BackgroundCategory {
+  indoor('indoor'),
+  urban('urban'),
+  nature('nature'),
+  other('');
 
-  /// Must match the backend's background table (`0` = Default Fitting Room).
-  final int backgroundId;
+  final String apiValue;
+  const BackgroundCategory(this.apiValue);
+
+  /// Missing → [indoor] (a backend from before categories); unknown → [other].
+  static BackgroundCategory fromApiValue(String? value) {
+    if (value == null || value.isEmpty) return indoor;
+    for (final c in values) {
+      if (c != other && c.apiValue == value) return c;
+    }
+    return other;
+  }
+}
+
+/// A try-on background from `GET /backgrounds`. Its [id] is the
+/// `background_id` sent to generate; ids differ between environments, so
+/// never hard-code one.
+class BackgroundOption {
+  final int id;
+
+  /// A stable code (`tokyo_street_1`), not a display name.
+  final String name;
+
+  /// The display name, in the account's backend `locale`; null from a
+  /// backend that predates it.
+  final String? label;
+  final BackgroundCategory category;
+
+  /// Signed preview URL; null when the background has no image yet.
+  final String? imageUrl;
+  final String? imageCacheKey;
 
   const BackgroundOption({
     required this.id,
-    required this.label,
-    required this.assetPath,
-    required this.backgroundId,
+    required this.name,
+    this.label,
+    this.category = BackgroundCategory.indoor,
+    this.imageUrl,
+    this.imageCacheKey,
   });
 
-  static const List<BackgroundOption> all = [
-    BackgroundOption(
-      id: 'fitting_room',
-      label: 'Fitting Room',
-      assetPath: 'assets/images/fitting_room.png',
-      backgroundId: 0,
-    ),
-    BackgroundOption(
-      id: 'tokyo_street',
-      label: 'Tokyo Street',
-      assetPath: 'assets/images/tokyo_street.png',
-      backgroundId: 7,
-    ),
-    BackgroundOption(
-      id: 'new_york_street',
-      label: 'New York Street',
-      assetPath: 'assets/images/new_york_street.png',
-      backgroundId: 5,
-    ),
-    BackgroundOption(
-      id: 'paris_street',
-      label: 'Paris Street',
-      assetPath: 'assets/images/paris_street.png',
-      backgroundId: 6,
-    ),
-    BackgroundOption(
-      id: 'marina_bay',
-      label: 'Marina Bay',
-      assetPath: 'assets/images/marina_bay.png',
-      backgroundId: 3,
-    ),
-    BackgroundOption(
-      id: 'mediterranean_town',
-      label: 'Mediterranean Town',
-      assetPath: 'assets/images/mediterranean_town.png',
-      backgroundId: 4,
-    ),
-  ];
+  /// The backend's Default Fitting Room, which always exists.
+  static const int defaultId = 0;
+
+  factory BackgroundOption.fromJson(Map<String, dynamic> json) {
+    return BackgroundOption(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String? ?? '',
+      label: json['label'] as String?,
+      category: BackgroundCategory.fromApiValue(json['category'] as String?),
+      imageUrl: json['image_url'] as String?,
+      imageCacheKey: json['image_cache_key'] as String?,
+    );
+  }
+
+  /// [name] as words (`tokyo_street` → `Tokyo Street`), for a background the
+  /// app has no translated label for yet.
+  String get fallbackLabel => name
+      .split('_')
+      .where((w) => w.isNotEmpty)
+      .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+}
+
+/// The background an outfit starts on: Default Fitting Room, else the first
+/// listed. Looked up by id — the backend may reorder the list.
+BackgroundOption? defaultBackground(List<BackgroundOption> backgrounds) {
+  for (final b in backgrounds) {
+    if (b.id == BackgroundOption.defaultId) return b;
+  }
+  return backgrounds.isEmpty ? null : backgrounds.first;
 }

@@ -9,6 +9,12 @@ import 'app_colors.dart';
 ///  - `leadingDistribution: even`: the tall CJK line box otherwise pushes
 ///    Latin text above centre.
 class AppTextStyle {
+  /// How far below its line box's centre `NotoSansTC` draws Latin caps, at
+  /// [fontSize]: the box spans ascent 1.16em / descent 0.288em, caps are
+  /// 0.733em tall, so they centre 0.0695em low. Shift a badge set beside or
+  /// around such text by this to centre it on the letters, not the box.
+  static double capCentreDrop(double fontSize) => fontSize * 0.0695;
+
   /// The "Uwearis" wordmark. Not `const`: [GoogleFonts.sora] loads the font
   /// at call time. Only the w700 file is bundled (assets/google_fonts/).
   static TextStyle get brandTitle => GoogleFonts.sora(

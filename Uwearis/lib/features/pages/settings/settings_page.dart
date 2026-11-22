@@ -9,7 +9,6 @@ import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/providers/locale_provider.dart';
-import '../../../core/providers/outfits_provider.dart';
 import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/services/auth_handler.dart';
@@ -27,7 +26,6 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/cards/app_list_card.dart';
 import '../../widgets/common/images/app_spinner.dart';
-import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/app_snack_bar.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
@@ -39,7 +37,6 @@ import '../common/login_page.dart';
 import 'my_outfit_profile_page.dart';
 import 'personal_details_page.dart';
 import 'points_page.dart';
-import 'style_taste_page.dart';
 
 /// Tells a chosen `null` locale (System Default) apart from a dismissed
 /// sheet, which also pops `null`.
@@ -177,7 +174,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _buildPersonalDetailsCard(),
       _buildPointsCard(),
       _buildOutfitProfileCard(),
-      _buildStyleTasteCard(),
       _buildLanguageCard(),
       _buildHelpAndLegalCard(),
       if (AppConfig.enableDebugTools) _buildDebugToolsCard(),
@@ -251,28 +247,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       leading: _buildLeadingIcon(LucideIcons300.personStanding),
       showArrow: true,
       child: Text(_l10n.myOutfitProfileTitle, style: AppTextStyle.bold16),
-    );
-  }
-
-  Widget _buildStyleTasteCard() {
-    // Unknown (loading / failed) counts as having outfits, so the card is
-    // never locked by mistake.
-    final hasOutfits = ref.watch(outfitsProvider).value?.isNotEmpty ?? true;
-    return AppListCard(
-      enabled: hasOutfits,
-      onTap: _openStyleTaste,
-      leading: _buildLeadingIcon(LucideIcons300.sparkles),
-      showArrow: true,
-      child: Text(_l10n.styleTaste, style: AppTextStyle.bold16),
-    );
-  }
-
-  /// The page's load runs the AI style analysis.
-  Future<void> _openStyleTaste() async {
-    if (!await ensureAiConsent(context) || !mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const StyleTastePage()),
     );
   }
 

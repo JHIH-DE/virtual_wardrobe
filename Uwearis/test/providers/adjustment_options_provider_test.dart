@@ -26,37 +26,35 @@ void main() {
     LocaleNotifier.forgetBackendLocale();
   });
 
-  test(
-    'hides shirt / outer buttons "partly unbuttoned" and hem "front tuck"',
-    () async {
-      final client = MockClient((request) async {
-        final data = request.url.path.endsWith('/adjustment-options')
-            ? [
-                _def('shirt_buttons', [1, 2, 3]),
-                _def('outer_buttons', [1, 2, 3]),
-                _def('hem', [1, 2, 3]),
-                _def('zipper', [1, 3]),
-              ]
-            : <String, dynamic>{};
-        return http.Response(
-          jsonEncode({'success': true, 'message': 'ok', 'data': data}),
-          200,
-          headers: {'content-type': 'application/json'},
-        );
-      });
+  test('hides outer buttons "partly unbuttoned" and hem "front tuck"; shirt '
+      'buttons keep all three', () async {
+    final client = MockClient((request) async {
+      final data = request.url.path.endsWith('/adjustment-options')
+          ? [
+              _def('shirt_buttons', [1, 2, 3]),
+              _def('outer_buttons', [1, 2, 3]),
+              _def('hem', [1, 2, 3]),
+              _def('zipper', [1, 3]),
+            ]
+          : <String, dynamic>{};
+      return http.Response(
+        jsonEncode({'success': true, 'message': 'ok', 'data': data}),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
 
-      final table = await http.runWithClient(() async {
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
-        return container.read(adjustmentOptionsProvider('en').future);
-      }, () => client);
+    final table = await http.runWithClient(() async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      return container.read(adjustmentOptionsProvider('en').future);
+    }, () => client);
 
-      List<int> codes(String key) =>
-          table[key]!.options.map((o) => o.code).toList();
-      expect(codes('shirt_buttons'), [1, 3]);
-      expect(codes('outer_buttons'), [1, 3]);
-      expect(codes('hem'), [1, 2]);
-      expect(codes('zipper'), [1, 3]);
-    },
-  );
+    List<int> codes(String key) =>
+        table[key]!.options.map((o) => o.code).toList();
+    expect(codes('shirt_buttons'), [1, 2, 3]);
+    expect(codes('outer_buttons'), [1, 3]);
+    expect(codes('hem'), [1, 2]);
+    expect(codes('zipper'), [1, 3]);
+  });
 }

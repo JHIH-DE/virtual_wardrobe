@@ -5,6 +5,7 @@ import '../../features/pages/common/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../providers/adjustment_options_provider.dart';
+import '../providers/backgrounds_provider.dart';
 import '../providers/sub_category_provider.dart';
 import '../providers/daily_outfit_provider.dart';
 import '../providers/garment_outfits_provider.dart';
@@ -66,6 +67,7 @@ void invalidateSignedInProviders(BuildContext context) {
   final container = ProviderScope.containerOf(context, listen: false);
   container.invalidate(profileProvider);
   container.invalidate(adjustmentOptionsProvider);
+  container.invalidate(backgroundsProvider);
   container.invalidate(subCategoryCatalogProvider);
   container.invalidate(pointsProvider);
   container.invalidate(garmentsProvider);

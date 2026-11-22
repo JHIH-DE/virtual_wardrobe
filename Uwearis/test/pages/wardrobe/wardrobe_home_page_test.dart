@@ -821,11 +821,20 @@ void main() {
       await tester.pump();
       await tester.pump();
 
+      int todayIndex() => tester
+          .widget<CarouselDotsIndicator>(
+            find.descendant(
+              of: find.byType(TodayOutfitPage),
+              matching: find.byType(CarouselDotsIndicator),
+            ),
+          )
+          .currentIndex;
+
       await tester.tap(find.byType(PageView));
       await _pumpRoute(tester);
 
       expect(find.byType(TodayOutfitPage), findsOneWidget);
-      expect(find.text('Office'), findsOneWidget);
+      expect(todayIndex(), 0);
 
       await tester.drag(
         find.descendant(
@@ -835,7 +844,7 @@ void main() {
         const Offset(-800, 0),
       );
       await _pumpRoute(tester);
-      expect(find.text('Weekend'), findsOneWidget);
+      expect(todayIndex(), 1);
 
       await tester.pageBack();
       await _pumpRoute(tester);

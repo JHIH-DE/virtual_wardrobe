@@ -1,10 +1,10 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../buttons/action_button.dart';
+import 'dialog_glass_panel.dart';
 
 /// Where [AppDialog] puts the button that only closes it (pops `null`,
 /// which every caller reads as cancel).
@@ -97,71 +97,46 @@ class AppDialog extends StatelessWidget {
         ),
     ];
 
-    final radius = BorderRadius.circular(24);
+    final radius = BorderRadius.circular(AppDimens.dialogRadius);
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       shadowColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: radius),
-      clipBehavior: Clip.antiAlias,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [AppColors.dialogGlassTop, AppColors.dialogGlassBottom],
-            ),
-            border: Border.all(color: AppColors.borderSubtle),
-          ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.navBarGlassSheen,
-                  AppColors.navBarGlassSheen.withValues(alpha: 0),
-                ],
-                stops: const [0, 0.5],
-              ),
-            ),
-            child: SizedBox(
-              width: 320,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyle.bold20,
-                    ),
-                    const SizedBox(height: 16),
-                    // Scrolls when long (enlarged text, a full disclosure) so the
-                    // buttons below always stay on screen.
-                    Flexible(
-                      child: SingleChildScrollView(
-                        child:
-                            content ??
-                            Text(
-                              body!,
-                              textAlign: TextAlign.center,
-                              style: AppTextStyle.medium16,
-                            ),
-                      ),
-                    ),
-                    for (final (i, button) in buttons.indexed) ...[
-                      SizedBox(height: i == 0 ? 16 : 12),
-                      button,
-                    ],
-                  ],
+      // DialogGlassPanel clips itself to the same radius.
+      child: DialogGlassPanel(
+        borderRadius: radius,
+        child: SizedBox(
+          width: 320,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyle.bold20,
                 ),
-              ),
+                const SizedBox(height: 16),
+                // Scrolls when long (enlarged text, a full disclosure) so the
+                // buttons below always stay on screen.
+                Flexible(
+                  child: SingleChildScrollView(
+                    child:
+                        content ??
+                        Text(
+                          body!,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyle.medium16,
+                        ),
+                  ),
+                ),
+                for (final (i, button) in buttons.indexed) ...[
+                  SizedBox(height: i == 0 ? 16 : 12),
+                  button,
+                ],
+              ],
             ),
           ),
         ),

@@ -69,7 +69,13 @@ class AppToolBar extends StatelessWidget implements PreferredSizeWidget {
       children: [
         text,
         const SizedBox(width: 8),
-        CountPill(count: titleCount!),
+        Transform.translate(
+          offset: Offset(
+            0,
+            AppTextStyle.capCentreDrop(AppTextStyle.bold22.fontSize!),
+          ),
+          child: CountPill(count: titleCount!),
+        ),
       ],
     );
   }

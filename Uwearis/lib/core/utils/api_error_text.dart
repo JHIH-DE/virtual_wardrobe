@@ -31,6 +31,10 @@ String apiErrorMessage(
 /// 402: not enough points for an AI feature; nothing was charged.
 const insufficientPointsErrorCode = 'INSUFFICIENT_POINTS';
 
+/// 404 from generate: the background was deleted after the list loaded;
+/// nothing was charged.
+const backgroundNotFoundErrorCode = 'BACKGROUND_NOT_FOUND';
+
 bool isInsufficientPoints(Object error) =>
     error is ApiException && error.errorCode == insufficientPointsErrorCode;
 
@@ -51,6 +55,8 @@ String? sharedErrorCodeMessage(AppLocalizations l10n, String? errorCode) {
       return l10n.tryOnNotCounted;
     case 'INVALID_GARMENT_ADJUSTMENT':
       return l10n.errorInvalidGarmentAdjustment;
+    case backgroundNotFoundErrorCode:
+      return l10n.errorBackgroundNotFound;
     case insufficientPointsErrorCode:
       // Only promise a grant the backend says is coming; unknown (no
       // balance read yet) counts as none.

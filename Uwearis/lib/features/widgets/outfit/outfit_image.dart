@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/services/outfit_service.dart';
 import '../../../core/utils/image_cache_bust.dart';
@@ -92,7 +93,7 @@ class OutfitImage extends StatelessWidget {
             placeholderBuilder:
                 placeholderBuilder ??
                 (_) => Container(color: AppColors.surface),
-            fadeInDuration: const Duration(milliseconds: 200),
+            fadeInDuration: AppDurations.standard,
             errorLabel: errorLabel,
             onRefreshUrl: () => fetchFreshOutfitImageUrl(groupId, outfitId),
           );

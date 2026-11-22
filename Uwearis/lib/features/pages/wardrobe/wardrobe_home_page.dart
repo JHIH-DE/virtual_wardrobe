@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../app/explore_shell.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/providers/daily_outfit_provider.dart';
@@ -440,7 +441,7 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
       child: Align(
         alignment: Alignment.centerLeft,
         child: SpaceSwitchButton(
-          label: _l10n.explore,
+          label: SpaceSwitchButton.exploreLabel,
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const ExploreShell()),
@@ -520,7 +521,7 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.headerChipBackground,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppDimens.pillRadius),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -610,7 +611,7 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
                           errorIconSize: 48,
                           placeholderBuilder: (_) =>
                               Container(color: AppColors.surface),
-                          fadeInDuration: const Duration(milliseconds: 200),
+                          fadeInDuration: AppDurations.standard,
                           onRefreshUrl: () => fetchFreshOutfitImageUrl(
                             option.groupId,
                             option.id,

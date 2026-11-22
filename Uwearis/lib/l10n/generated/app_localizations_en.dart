@@ -166,31 +166,47 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t generate your virtual model. Please try again.';
 
   @override
-  String get styleTaste => 'Style Taste';
+  String get outfitInsightsStyleTab => 'Style';
+
+  @override
+  String get outfitInsightsTemperatureTab => 'Temperature';
+
+  @override
+  String get moreInfo => 'More info';
+
+  @override
+  String get outfitInsights => 'Outfit Insights';
+
+  @override
+  String get temperatureCoverageCardTitle => 'Outfits by Temperature';
+
+  @override
+  String get temperatureCoverageCardSubtitle =>
+      'See your outfit options for each temperature.';
+
+  @override
+  String temperatureBandBelow(String max) {
+    return 'Below $max°C';
+  }
+
+  @override
+  String temperatureBandAbove(String min) {
+    return '$min°C and above';
+  }
+
+  @override
+  String temperatureBandRange(String min, String max) {
+    return '$min–$max°C';
+  }
 
   @override
   String get styleTasteDetailsLabel => 'Style Insights';
 
   @override
-  String get styleTasteHeroSubtitle =>
-      'Based on your saved outfits and feedback, Uwearis is learning your style taste.';
-
-  @override
-  String get styleTasteDimensionsInfoTitle => 'What these mean';
-
-  @override
-  String get styleTasteRadarCardTitle => 'Your Style Taste';
-
-  @override
-  String get styleTasteRadarCardSubtitle =>
-      'A visual summary of your style preferences.';
+  String get styleTasteRadarCardTitle => 'Style Profile';
 
   @override
   String get styleProfileCardTitle => 'Style Distribution';
-
-  @override
-  String get styleProfileCardSubtitle =>
-      'How your outfits break down by style.';
 
   @override
   String get styleProfileOther => 'Other';
@@ -455,10 +471,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteStyleBalanceHigh => 'Mixed';
 
   @override
-  String get styleTasteStyleBalanceExplanation =>
-      'Your preference for mixing different styles.';
-
-  @override
   String get styleTasteColorPairingTitle => 'Color Pairing';
 
   @override
@@ -466,10 +478,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get styleTasteColorPairingHigh => 'Contrast';
-
-  @override
-  String get styleTasteColorPairingExplanation =>
-      'Your preference for combining colors.';
 
   @override
   String get styleTasteFitPreferenceTitle => 'Fit Preference';
@@ -481,10 +489,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteFitPreferenceHigh => 'Relaxed';
 
   @override
-  String get styleTasteFitPreferenceExplanation =>
-      'Your preferred clothing fit.';
-
-  @override
   String get styleTasteLayeringTitle => 'Layering';
 
   @override
@@ -492,10 +496,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get styleTasteLayeringHigh => 'Layered';
-
-  @override
-  String get styleTasteLayeringExplanation =>
-      'Your preference for layered looks.';
 
   @override
   String get styleTasteAccessoriesTitle => 'Accessories';
@@ -507,14 +507,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleTasteAccessoriesHigh => 'Expressive';
 
   @override
-  String get styleTasteAccessoriesExplanation =>
-      'Your preference for using accessories.';
-
-  @override
   String get navHome => 'Home';
-
-  @override
-  String get wardrobe => 'Wardrobe';
 
   @override
   String get explore => 'Explore';
@@ -803,7 +796,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingHomeEllipsis => 'Loading Home…';
 
   @override
-  String get loadingStyleTasteEllipsis => 'Loading Style Taste…';
+  String get loadingOutfitInsightsEllipsis => 'Loading Outfit Insights…';
 
   @override
   String get noOutfitImageYet => 'No outfit image yet';
@@ -1292,6 +1285,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chooseBackgroundTitle => 'Choose a background';
+
+  @override
+  String get backgroundCategoryAll => 'All';
+
+  @override
+  String get backgroundCategoryIndoor => 'Indoor';
+
+  @override
+  String get backgroundCategoryUrban => 'Outdoor';
+
+  @override
+  String get backgroundCategoryNature => 'Nature';
+
+  @override
+  String get backgroundCategoryOther => 'Other';
+
+  @override
+  String get backgroundsLoadFailed =>
+      'Couldn\'t load the backgrounds. Please try again.';
+
+  @override
+  String get errorBackgroundNotFound =>
+      'This background is no longer available. Please choose another one.';
 
   @override
   String get clear => 'Clear';

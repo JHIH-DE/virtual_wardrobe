@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
 /// Item-count badge. Deliberately not [AppColors.accent], which signals
@@ -18,13 +19,19 @@ class CountPill extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppDimens.pillRadius),
         border: Border.all(color: AppColors.borderStrong),
       ),
-      child: Text(
-        '$count',
-        textScaler: TextScaler.noScaling,
-        style: AppTextStyle.medium14,
+      child: Transform.translate(
+        offset: Offset(
+          0,
+          -AppTextStyle.capCentreDrop(AppTextStyle.medium14.fontSize!),
+        ),
+        child: Text(
+          '$count',
+          textScaler: TextScaler.noScaling,
+          style: AppTextStyle.medium14,
+        ),
       ),
     );
   }

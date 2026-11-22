@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
+import '../../../../app/theme/app_durations.dart';
 import '../../../../app/theme/app_text_styles.dart';
 
 enum NumberStepperVariant {
@@ -168,7 +169,7 @@ class _NumberStepperState extends State<NumberStepper> {
         padding: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(AppDimens.pillRadius),
           boxShadow: const [
             BoxShadow(color: AppColors.overlaySubtle, blurRadius: 4),
           ],
@@ -190,7 +191,7 @@ class _NumberStepperState extends State<NumberStepper> {
 
     if (!_isPill) return content;
     return AnimatedOpacity(
-      duration: const Duration(milliseconds: 200),
+      duration: AppDurations.standard,
       opacity: _revealed ? 1 : _restOpacity,
       child: content,
     );

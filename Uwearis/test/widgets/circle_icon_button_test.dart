@@ -10,12 +10,14 @@ void main() {
   );
 
   Color iconColor(WidgetTester tester) =>
-      tester.widget<Icon>(find.byType(Icon)).color!;
+      IconTheme.of(tester.element(find.byType(Icon))).color!;
 
   testWidgets('enabled: black glyph and taps fire onPressed', (tester) async {
     var taps = 0;
     await tester.pumpWidget(
-      host(CircleIconButton(icon: Icons.add, onPressed: () => taps++)),
+      host(
+        CircleIconButton(icon: const Icon(Icons.add), onPressed: () => taps++),
+      ),
     );
 
     expect(iconColor(tester), AppColors.icon);
@@ -30,7 +32,7 @@ void main() {
     await tester.pumpWidget(
       host(
         CircleIconButton(
-          icon: Icons.add,
+          icon: const Icon(Icons.add),
           enabled: false,
           onPressed: () => taps++,
         ),
@@ -47,7 +49,7 @@ void main() {
   testWidgets('the glass disc fades from a light centre to a darker edge, so '
       'it reads on both the cream page and a white card', (tester) async {
     await tester.pumpWidget(
-      host(CircleIconButton(icon: Icons.add, onPressed: () {})),
+      host(CircleIconButton(icon: const Icon(Icons.add), onPressed: () {})),
     );
 
     final gradients = tester
@@ -66,7 +68,7 @@ void main() {
 
   testWidgets('tooltip wraps the button and labels it', (tester) async {
     await tester.pumpWidget(
-      host(CircleIconButton(icon: Icons.add, tooltip: 'Replan')),
+      host(CircleIconButton(icon: const Icon(Icons.add), tooltip: 'Replan')),
     );
 
     expect(find.byTooltip('Replan'), findsOneWidget);
@@ -77,7 +79,7 @@ void main() {
     await tester.pumpWidget(
       host(
         CircleIconButton(
-          icon: Icons.add,
+          icon: const Icon(Icons.add),
           discAlignment: Alignment.centerRight,
           onPressed: () {},
         ),

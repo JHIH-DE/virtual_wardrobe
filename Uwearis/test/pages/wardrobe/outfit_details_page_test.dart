@@ -248,6 +248,48 @@ void main() {
     }, () => client);
   });
 
+  testWidgets('when every garment fails to load, the section offers Retry', (
+    tester,
+  ) async {
+    // Garment id 781 unique to this test: GarmentService caches garments.
+    var garmentFails = true;
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/garments/781')) {
+        if (garmentFails) return jsonResponse(envelope({}), status: 404);
+        return jsonResponse(
+          envelope({
+            'id': 781,
+            'name': 'Wool Coat',
+            'category': 'Outer',
+            'sub_category': '',
+            'upload_url': '',
+            'object_name': '',
+            'image_url': '',
+          }),
+        );
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(outfit: _outfit(garmentIds: [781])),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Failed to Load'), findsOneWidget);
+
+      garmentFails = false;
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Wool Coat'), findsOneWidget);
+      expect(find.text('Failed to Load'), findsNothing);
+    }, () => client);
+  });
+
   testWidgets(
     'a soft-deleted garment shows a warning badge that clears once restored',
     (tester) async {
@@ -367,6 +409,72 @@ void main() {
         await tester.pump();
 
         expect(find.text('Wool Scarf'), findsOneWidget);
+        expect(garmentRequests, 1);
+      }, () => client);
+    },
+  );
+
+  testWidgets(
+    "a load for the same garments that's still in flight is not fetched "
+    'again, and its result is shown',
+    (tester) async {
+      // Group (760) and garment (761) ids unique to this test: GarmentService
+      // and OutfitService are caching singletons shared across tests.
+      const groupId = 760;
+      final garmentReply = Completer<http.Response>();
+      var garmentRequests = 0;
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith('/$groupId')) {
+          return jsonResponse(
+            envelope({
+              'outfits': [
+                {
+                  'id': 1,
+                  'group_id': groupId,
+                  'image_url': 'https://img.example/1.png',
+                  'garment_ids': [761],
+                },
+              ],
+            }),
+          );
+        }
+        if (path.endsWith('/garments/761')) {
+          garmentRequests++;
+          return garmentReply.future;
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: _outfit(garmentIds: [761], groupId: groupId),
+          ),
+        );
+        // _loadGroupOutfits lands while initState's load is still waiting.
+        await tester.pump();
+        await tester.pump();
+
+        garmentReply.complete(
+          jsonResponse(
+            envelope({
+              'id': 761,
+              'name': 'Linen Shirt',
+              'category': 'Top',
+              'sub_category': '',
+              'upload_url': '',
+              'object_name': '',
+              'image_url': '',
+            }),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('Linen Shirt'), findsOneWidget);
         expect(garmentRequests, 1);
       }, () => client);
     },
@@ -692,6 +800,93 @@ void main() {
         await tester.pump(const Duration(seconds: 1));
         await tester.pump();
       }, stubClient);
+    },
+  );
+
+  testWidgets(
+    'after "+ Add Version", a slower garment load for a version the swipe '
+    'passed does not replace the new version\'s garments',
+    (tester) async {
+      useTallSurface(tester);
+      // Group (750) and garment (751–754) ids unique to this test:
+      // OutfitService and GarmentService are caching singletons.
+      const groupId = 750;
+      final passedVersionGarment = Completer<http.Response>();
+      http.Response garment(int id) => jsonResponse(
+        envelope({
+          'id': id,
+          'name': 'Garment $id',
+          'category': 'Top',
+          'sub_category': '',
+          'upload_url': '',
+          'object_name': '',
+          'image_url': '',
+        }),
+      );
+      final client = MockClient((request) async {
+        final path = request.url.path;
+        if (path.endsWith('/$groupId')) {
+          return jsonResponse(
+            envelope({
+              'outfits': [
+                for (final id in [1, 2, 3])
+                  {
+                    'id': id,
+                    'group_id': groupId,
+                    'image_url': 'https://img.example/$id.png',
+                    'garment_ids': [750 + id],
+                  },
+              ],
+            }),
+          );
+        }
+        if (path.endsWith('/garments/752')) return passedVersionGarment.future;
+        for (final id in [751, 753, 754]) {
+          if (path.endsWith('/garments/$id')) return garment(id);
+        }
+        return jsonResponse(envelope({'items': []}));
+      });
+
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: _outfit(groupId: groupId, garmentIds: [751]),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('1 / 3'), findsOneWidget);
+        expect(find.text('Garment 751'), findsOneWidget);
+
+        await tester.tap(find.widgetWithText(AccentPillButton, 'Add Version'));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        Navigator.of(tester.element(find.byType(CreateOutfitPage))).pop(
+          Outfit(
+            id: 4,
+            groupId: groupId,
+            imageUrl: 'https://img.example/4.png',
+            garmentIds: const [754],
+          ),
+        );
+        // Frame by frame, as on a device, so the swipe passes every page.
+        for (var i = 0; i < 60; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        expect(find.text('4 / 4'), findsOneWidget);
+        expect(find.text('Garment 754'), findsOneWidget);
+
+        // Version 2's load, started as the animation passed it, lands last.
+        passedVersionGarment.complete(garment(752));
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('Garment 754'), findsOneWidget);
+        expect(find.text('Garment 752'), findsNothing);
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pump();
+      }, () => client);
     },
   );
 

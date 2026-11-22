@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
 import '../app_divider.dart';
 
@@ -11,6 +12,9 @@ class PickerSheetHeader extends StatelessWidget {
   final String? description;
   final Widget? trailing;
 
+  /// Under the title, above the divider — e.g. the sheet's filter tabs.
+  final Widget? bottom;
+
   /// False for a second header further down the same sheet.
   final bool dragHandle;
 
@@ -19,6 +23,7 @@ class PickerSheetHeader extends StatelessWidget {
     super.key,
     this.description,
     this.trailing,
+    this.bottom,
     this.dragHandle = true,
   });
 
@@ -46,6 +51,7 @@ class PickerSheetHeader extends StatelessWidget {
             ),
           ),
         ],
+        if (bottom != null) ...[const SizedBox(height: 12), bottom!],
         const AppDivider(spacing: 8, color: AppColors.dividerSubtle),
       ],
     );
@@ -63,7 +69,7 @@ class SheetDragHandle extends StatelessWidget {
         height: 4,
         decoration: BoxDecoration(
           color: AppColors.overlaySubtle,
-          borderRadius: BorderRadius.circular(99),
+          borderRadius: BorderRadius.circular(AppDimens.pillRadius),
         ),
       ),
     );
@@ -84,7 +90,9 @@ Future<T?> showPickerSheet<T>(
     useSafeArea: fitContent,
     backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppDimens.dialogRadius),
+      ),
     ),
     builder: (sheetContext) =>
         Padding(padding: padding, child: builder(sheetContext)),

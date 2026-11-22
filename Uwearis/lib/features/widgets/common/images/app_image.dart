@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_durations.dart';
 import 'refreshable_network_image.dart';
 
 /// One photo from a local path, `file://` URI or http(s) URL; the network
@@ -68,7 +69,7 @@ class AppImage extends StatelessWidget {
         memCacheHeight: _decodeHeight,
         fit: fit,
         placeholderBuilder: (_) => Container(color: AppColors.surface),
-        fadeInDuration: const Duration(milliseconds: 200),
+        fadeInDuration: AppDurations.standard,
         errorIcon: Icons.broken_image,
         onRefreshUrl: onRefreshUrl,
         onUrlRefreshed: onUrlRefreshed,

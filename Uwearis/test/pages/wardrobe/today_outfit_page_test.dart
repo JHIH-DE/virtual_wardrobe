@@ -87,7 +87,6 @@ void main() {
       await _settle(tester);
 
       expect(find.text("Today's Outfit"), findsOneWidget);
-      expect(find.text('Weekend'), findsOneWidget);
       expect(find.text('Jeans'), findsOneWidget);
       expect(find.text('Tee'), findsNothing);
 
@@ -95,7 +94,6 @@ void main() {
       await _settle(tester);
 
       expect(reported, [2]);
-      expect(find.text('Weekend'), findsNothing);
       expect(find.text('Garments (2)'), findsOneWidget);
       expect(find.text('Tee'), findsOneWidget);
       expect(find.text('Jeans'), findsOneWidget);
@@ -105,12 +103,13 @@ void main() {
       await _settle(tester);
 
       expect(reported.last, 0);
-      expect(find.text('Office'), findsOneWidget);
+      expect(find.text('Garments (1)'), findsOneWidget);
+      expect(find.text('Tee'), findsOneWidget);
+      expect(find.text('Jeans'), findsNothing);
     }, _garmentClient);
   });
 
-  testWidgets("shows a renamed group's name, which daily outfits don't "
-      'carry themselves', (tester) async {
+  testWidgets('shows no outfit or group name', (tester) async {
     await http.runWithClient(() async {
       await pumpApp(
         tester,
@@ -123,7 +122,7 @@ void main() {
       );
       await _settle(tester);
 
-      expect(find.text('Monday Look'), findsOneWidget);
+      expect(find.text('Monday Look'), findsNothing);
       expect(find.text('Office'), findsNothing);
     }, _garmentClient);
   });

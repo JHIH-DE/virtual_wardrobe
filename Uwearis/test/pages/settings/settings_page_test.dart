@@ -8,20 +8,16 @@ import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/app/theme/app_colors.dart';
-import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/services/garment_service.dart';
 import 'package:uwearis/core/utils/user_acknowledgement.dart';
-import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/common/login_page.dart';
 import 'package:uwearis/features/pages/settings/my_outfit_profile_page.dart';
 import 'package:uwearis/features/pages/settings/settings_page.dart';
-import 'package:uwearis/features/pages/settings/style_taste_page.dart';
 import 'package:uwearis/features/widgets/common/profile_avatar.dart';
 
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
-import '../../helpers/seeded_notifiers.dart';
 
 void main() {
   setUp(() {
@@ -132,7 +128,6 @@ void main() {
         expect(find.text('Temperature Preference'), findsNothing);
         expect(find.text('Lifestyle'), findsNothing);
         expect(find.text('Personal Details'), findsOneWidget);
-        expect(find.text('Style Taste'), findsOneWidget);
         expect(find.text('Language'), findsOneWidget);
       });
     });
@@ -153,44 +148,6 @@ void main() {
         expect(find.byType(MyOutfitProfilePage), findsNothing);
         expect(find.byType(SettingsPage), findsOneWidget);
       });
-    });
-  });
-
-  group('Style Taste', () {
-    Future<void> pumpWithOutfits(WidgetTester tester, List<Outfit> outfits) {
-      return runWithProfile(() async {
-        useTallSurface(tester);
-        await pumpApp(
-          tester,
-          const SettingsPage(),
-          overrides: [
-            outfitsProvider.overrideWith(() => SeededOutfitsNotifier(outfits)),
-          ],
-        );
-        await tester.pumpAndSettle();
-      });
-    }
-
-    Finder dimmedStyleTaste() => find.ancestor(
-      of: find.text('Style Taste'),
-      matching: find.byType(Opacity),
-    );
-
-    testWidgets('is locked when the user has no outfits', (tester) async {
-      await pumpWithOutfits(tester, const []);
-
-      expect(dimmedStyleTaste(), findsOneWidget);
-      await tester.tap(find.text('Style Taste'));
-      await tester.pumpAndSettle();
-      expect(find.byType(StyleTastePage), findsNothing);
-    });
-
-    testWidgets('is enabled once the user has an outfit', (tester) async {
-      await pumpWithOutfits(tester, [
-        Outfit(id: 1, imageUrl: '', garmentIds: const [1]),
-      ]);
-
-      expect(dimmedStyleTaste(), findsNothing);
     });
   });
 
@@ -439,25 +396,6 @@ void main() {
         await tester.pumpAndSettle();
         expect(await UserAcknowledgement.aiConsent.isGranted(), isTrue);
       });
-    });
-  });
-
-  testWidgets('declining AI consent keeps Style Taste closed', (tester) async {
-    UserAcknowledgement.debugGrantedOverride = false;
-    addTearDown(() => UserAcknowledgement.debugGrantedOverride = true);
-    await runWithProfile(() async {
-      useTallSurface(tester);
-      await pumpApp(tester, const SettingsPage());
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Style Taste'));
-      await tester.pumpAndSettle();
-      expect(find.text('How AI Features Use Your Data'), findsOneWidget);
-
-      await tester.tap(find.text('Not Now'));
-      await tester.pumpAndSettle();
-      expect(find.byType(StyleTastePage), findsNothing);
-      expect(find.byType(SettingsPage), findsOneWidget);
     });
   });
 }

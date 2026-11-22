@@ -97,7 +97,7 @@ void main() {
               padding: const EdgeInsets.all(20),
               title: 'Your Style Taste',
               subtitle: 'A visual summary of your style preferences.',
-              actionIcon: Icons.info_outline,
+              actionIcon: const Icon(Icons.info_outline),
               onAction: () => taps++,
               child: const SizedBox(height: 40),
             ),

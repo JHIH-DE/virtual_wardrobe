@@ -388,7 +388,7 @@ class _PointsPageState extends ConsumerState<PointsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: filled ? AppColors.accent : AppColors.accentTint,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppDimens.pillRadius),
       ),
       child: Text(
         label,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uwearis/app/theme/app_text_styles.dart';
 import 'package:uwearis/features/widgets/common/buttons/action_disc_button.dart';
 import 'package:uwearis/features/widgets/common/app_tool_bar.dart';
 import 'package:uwearis/features/widgets/common/cards/count_pill.dart';
 
+import '../helpers/text_scale_harness.dart';
 import '../helpers/widget_harness.dart';
 
 void main() {
@@ -24,6 +26,24 @@ void main() {
     expect(find.text('Outfits'), findsOneWidget);
     expect(find.byType(CountPill), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
+  });
+
+  testWidgets('the count pill centres on the title\'s letters, and its '
+      'number on the pill', (tester) async {
+    await loadAppFont();
+    await pumpBar(tester, const AppToolBar(title: 'Outfits', titleCount: 25));
+
+    final title = tester.getRect(find.text('Outfits'));
+    final pill = tester.getRect(find.byType(CountPill));
+    final number = tester.getRect(find.text('25'));
+    expect(
+      pill.center.dy - title.center.dy,
+      closeTo(AppTextStyle.capCentreDrop(22), 0.01),
+    );
+    expect(
+      pill.center.dy - number.center.dy,
+      closeTo(AppTextStyle.capCentreDrop(14), 0.01),
+    );
   });
 
   testWidgets('an explicit titleWidget wins over titleCount', (tester) async {

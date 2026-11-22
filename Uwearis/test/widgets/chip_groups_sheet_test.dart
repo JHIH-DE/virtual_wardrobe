@@ -48,7 +48,7 @@ void main() {
 
   group('showChipGroupsSheet — filter (toggleAll) group', () {
     testWidgets(
-      'the "All" pill sits beside the title, above the option chips',
+      'the "All" pill leads the option chips\' row, under the title',
       (tester) async {
         var seasons = {'All'};
         await open(
@@ -73,15 +73,20 @@ void main() {
         expect(chipWithText('Summer'), findsOneWidget);
         expect(chipWithText('Winter'), findsOneWidget);
 
-        // "All" sits on the title's row, the options below it.
-        final titleY = tester.getCenter(find.text('Season')).dy;
-        final allY = tester.getCenter(chipWithText('All')).dy;
-        expect((allY - titleY).abs(), lessThan(30));
-
         expect(
-          tester.getTopLeft(chipWithText('Summer')).dy,
-          greaterThan(tester.getBottomLeft(chipWithText('All')).dy),
+          tester.getTopLeft(chipWithText('All')).dy,
+          greaterThan(tester.getBottomLeft(find.text('Season')).dy),
         );
+        for (final option in ['Summer', 'Winter']) {
+          expect(
+            tester.getTopLeft(chipWithText(option)).dy,
+            tester.getTopLeft(chipWithText('All')).dy,
+          );
+          expect(
+            tester.getTopLeft(chipWithText(option)).dx,
+            greaterThan(tester.getTopLeft(chipWithText('All')).dx),
+          );
+        }
       },
     );
 
@@ -113,11 +118,11 @@ void main() {
       expect(rowAlignmentOf(tester, 'Red'), MainAxisAlignment.spaceBetween);
     });
 
-    testWidgets('a sparse row (2 short chips) stays left-aligned', (
+    testWidgets('a sparse row (All + 1 short chip) stays left-aligned', (
       tester,
     ) async {
       useNarrowSurface(tester);
-      await openColorSheet(tester, const ['Red', 'Tan']);
+      await openColorSheet(tester, const ['Red']);
       expect(
         rowAlignmentOf(tester, 'Red'),
         isNot(MainAxisAlignment.spaceBetween),

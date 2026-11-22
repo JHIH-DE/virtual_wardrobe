@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../core/utils/date_locale.dart';
@@ -128,7 +129,9 @@ class _TripLegDateRangePickerDialogState
     final canConfirm = _rangeStart != null && _rangeEnd != null;
     return Dialog(
       backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.dialogRadius),
+      ),
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),

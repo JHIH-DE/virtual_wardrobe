@@ -47,10 +47,9 @@ extension GarmentAdjustmentKeyApi on GarmentAdjustmentKey {
 }
 
 /// Options the backend offers that the app doesn't show (product choice):
-/// shirt / outer buttons "partly unbuttoned" and hem "front tuck". The backend's
-/// own default may still be one of them — Default is never sent as a code.
+/// outer buttons "partly unbuttoned" and hem "front tuck". The backend's own
+/// default may still be one of them — Default is never sent as a code.
 final Map<String, Set<int>> hiddenAdjustmentCodes = {
-  GarmentAdjustmentKey.shirtButtons.apiValue: {2},
   GarmentAdjustmentKey.outerButtons.apiValue: {2},
   GarmentAdjustmentKey.hem.apiValue: {3},
 };

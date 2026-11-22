@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/sub_category_provider.dart';
@@ -708,7 +709,7 @@ class _PersonalDetailsPageState extends ConsumerState<PersonalDetailsPage> {
       behavior: HitTestBehavior.opaque,
       onTap: () => _setUnitSystem(value),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: AppDurations.fast,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
         decoration: BoxDecoration(
           color: selected ? AppColors.surface : Colors.transparent,

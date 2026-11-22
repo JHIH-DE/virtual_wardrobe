@@ -149,28 +149,46 @@ class AppLocalizationsZh extends AppLocalizations {
   String get virtualModelGenerateFailed => '虚拟模特生成失败，请稍后再试。';
 
   @override
-  String get styleTaste => '風格品味';
+  String get outfitInsightsStyleTab => '風格';
+
+  @override
+  String get outfitInsightsTemperatureTab => '溫度';
+
+  @override
+  String get moreInfo => '更多資訊';
+
+  @override
+  String get outfitInsights => '穿搭洞察';
+
+  @override
+  String get temperatureCoverageCardTitle => '溫度與穿搭';
+
+  @override
+  String get temperatureCoverageCardSubtitle => '查看各溫度區間可用的穿搭。';
+
+  @override
+  String temperatureBandBelow(String max) {
+    return '$max°C 以下';
+  }
+
+  @override
+  String temperatureBandAbove(String min) {
+    return '$min°C 以上';
+  }
+
+  @override
+  String temperatureBandRange(String min, String max) {
+    return '$min~$max°C';
+  }
 
   @override
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
-
-  @override
-  String get styleTasteDimensionsInfoTitle => '這些代表什麼';
-
-  @override
-  String get styleTasteRadarCardTitle => '你的風格品味';
-
-  @override
-  String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
+  String get styleTasteRadarCardTitle => '風格偏好';
 
   @override
   String get styleProfileCardTitle => '風格分布';
-
-  @override
-  String get styleProfileCardSubtitle => '你的穿搭依風格的分布情況。';
 
   @override
   String get styleProfileOther => '其他';
@@ -417,9 +435,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteStyleBalanceHigh => '混搭';
 
   @override
-  String get styleTasteStyleBalanceExplanation => '你混搭不同風格的偏好。';
-
-  @override
   String get styleTasteColorPairingTitle => '色彩搭配';
 
   @override
@@ -427,9 +442,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get styleTasteColorPairingHigh => '對比色';
-
-  @override
-  String get styleTasteColorPairingExplanation => '你搭配顏色的偏好。';
 
   @override
   String get styleTasteFitPreferenceTitle => '版型偏好';
@@ -441,9 +453,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteFitPreferenceHigh => '寬鬆';
 
   @override
-  String get styleTasteFitPreferenceExplanation => '你偏好的衣物版型。';
-
-  @override
   String get styleTasteLayeringTitle => '層次穿搭';
 
   @override
@@ -451,9 +460,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get styleTasteLayeringHigh => '多層次';
-
-  @override
-  String get styleTasteLayeringExplanation => '你偏好疊穿造型的程度。';
 
   @override
   String get styleTasteAccessoriesTitle => '配件';
@@ -465,13 +471,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get styleTasteAccessoriesHigh => '豐富';
 
   @override
-  String get styleTasteAccessoriesExplanation => '你使用配件的偏好。';
-
-  @override
   String get navHome => '首頁';
-
-  @override
-  String get wardrobe => '衣櫥';
 
   @override
   String get explore => '探索';
@@ -747,7 +747,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingHomeEllipsis => '載入首頁中…';
 
   @override
-  String get loadingStyleTasteEllipsis => '載入風格品味中…';
+  String get loadingOutfitInsightsEllipsis => '載入穿搭洞察中…';
 
   @override
   String get noOutfitImageYet => '尚無穿搭圖片';
@@ -1228,6 +1228,27 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chooseBackgroundTitle => '選擇背景';
+
+  @override
+  String get backgroundCategoryAll => '全部';
+
+  @override
+  String get backgroundCategoryIndoor => '室內';
+
+  @override
+  String get backgroundCategoryUrban => '室外';
+
+  @override
+  String get backgroundCategoryNature => '自然';
+
+  @override
+  String get backgroundCategoryOther => '其他';
+
+  @override
+  String get backgroundsLoadFailed => '無法載入背景，請再試一次。';
+
+  @override
+  String get errorBackgroundNotFound => '這個背景已經無法使用，請選擇其他背景。';
 
   @override
   String get clear => '清除';
@@ -2229,28 +2250,46 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get virtualModelGenerateFailed => '虛擬模特兒生成失敗，請稍後再試。';
 
   @override
-  String get styleTaste => '風格品味';
+  String get outfitInsightsStyleTab => '風格';
+
+  @override
+  String get outfitInsightsTemperatureTab => '溫度';
+
+  @override
+  String get moreInfo => '更多資訊';
+
+  @override
+  String get outfitInsights => '穿搭洞察';
+
+  @override
+  String get temperatureCoverageCardTitle => '溫度與穿搭';
+
+  @override
+  String get temperatureCoverageCardSubtitle => '查看各溫度區間可用的穿搭。';
+
+  @override
+  String temperatureBandBelow(String max) {
+    return '$max°C 以下';
+  }
+
+  @override
+  String temperatureBandAbove(String min) {
+    return '$min°C 以上';
+  }
+
+  @override
+  String temperatureBandRange(String min, String max) {
+    return '$min~$max°C';
+  }
 
   @override
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
-  String get styleTasteHeroSubtitle => '根據你收藏的穿搭與回饋，Uwearis 正在學習你的風格品味。';
-
-  @override
-  String get styleTasteDimensionsInfoTitle => '這些代表什麼';
-
-  @override
-  String get styleTasteRadarCardTitle => '你的風格品味';
-
-  @override
-  String get styleTasteRadarCardSubtitle => '你的風格偏好視覺化總覽。';
+  String get styleTasteRadarCardTitle => '風格偏好';
 
   @override
   String get styleProfileCardTitle => '風格分布';
-
-  @override
-  String get styleProfileCardSubtitle => '你的穿搭依風格的分布情況。';
 
   @override
   String get styleProfileOther => '其他';
@@ -2497,9 +2536,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteStyleBalanceHigh => '混搭';
 
   @override
-  String get styleTasteStyleBalanceExplanation => '你混搭不同風格的偏好。';
-
-  @override
   String get styleTasteColorPairingTitle => '色彩搭配';
 
   @override
@@ -2507,9 +2543,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleTasteColorPairingHigh => '對比色';
-
-  @override
-  String get styleTasteColorPairingExplanation => '你搭配顏色的偏好。';
 
   @override
   String get styleTasteFitPreferenceTitle => '版型偏好';
@@ -2521,9 +2554,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteFitPreferenceHigh => '寬鬆';
 
   @override
-  String get styleTasteFitPreferenceExplanation => '你偏好的衣物版型。';
-
-  @override
   String get styleTasteLayeringTitle => '層次穿搭';
 
   @override
@@ -2531,9 +2561,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get styleTasteLayeringHigh => '多層次';
-
-  @override
-  String get styleTasteLayeringExplanation => '你偏好疊穿造型的程度。';
 
   @override
   String get styleTasteAccessoriesTitle => '配件';
@@ -2545,13 +2572,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get styleTasteAccessoriesHigh => '豐富';
 
   @override
-  String get styleTasteAccessoriesExplanation => '你使用配件的偏好。';
-
-  @override
   String get navHome => '首頁';
-
-  @override
-  String get wardrobe => '衣櫥';
 
   @override
   String get explore => '探索';
@@ -2827,7 +2848,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loadingHomeEllipsis => '載入首頁中…';
 
   @override
-  String get loadingStyleTasteEllipsis => '載入風格品味中…';
+  String get loadingOutfitInsightsEllipsis => '載入穿搭洞察中…';
 
   @override
   String get noOutfitImageYet => '尚無穿搭圖片';
@@ -3308,6 +3329,27 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get chooseBackgroundTitle => '選擇背景';
+
+  @override
+  String get backgroundCategoryAll => '全部';
+
+  @override
+  String get backgroundCategoryIndoor => '室內';
+
+  @override
+  String get backgroundCategoryUrban => '室外';
+
+  @override
+  String get backgroundCategoryNature => '自然';
+
+  @override
+  String get backgroundCategoryOther => '其他';
+
+  @override
+  String get backgroundsLoadFailed => '無法載入背景，請再試一次。';
+
+  @override
+  String get errorBackgroundNotFound => '這個背景已經無法使用，請選擇其他背景。';
 
   @override
   String get clear => '清除';

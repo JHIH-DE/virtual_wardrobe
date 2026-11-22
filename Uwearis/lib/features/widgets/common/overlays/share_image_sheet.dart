@@ -29,7 +29,9 @@ Future<void> showShareImageSheet(
     isScrollControlled: true,
     backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppDimens.dialogRadius),
+      ),
     ),
     builder: (_) => _ShareImageSheet(
       title: title,

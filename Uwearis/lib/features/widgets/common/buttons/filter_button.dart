@@ -21,9 +21,9 @@ class FilterGroup {
   final void Function(String option) onToggle;
   final String? emptyMessage;
 
-  /// Renders [FilterButton.allOption] beside the title instead of in the
-  /// chip row. Set by [FilterGroup.toggleAll].
-  final bool headerAll;
+  /// Pins [FilterButton.allOption] as the row's first chip, labelled
+  /// `filterAll`. Set by [FilterGroup.toggleAll].
+  final bool leadingAll;
 
   FilterGroup({
     required this.label,
@@ -32,7 +32,7 @@ class FilterGroup {
     required this.onToggle,
     this.labelOf,
     this.emptyMessage,
-    this.headerAll = false,
+    this.leadingAll = false,
   });
 
   /// An 'All'-sentinel multi-select group; [onChanged] receives the next set
@@ -53,7 +53,7 @@ class FilterGroup {
       onToggle: (option) =>
           onChanged(FilterButton.toggleWithAll(selected(), option)),
       emptyMessage: emptyMessage,
-      headerAll: true,
+      leadingAll: true,
     );
   }
 }
@@ -167,42 +167,26 @@ class _ChipGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final options = group.headerAll
+    final rest = group.leadingAll
         ? group.options
               .where((o) => o != FilterButton.allOption)
               .toList(growable: false)
         : group.options;
-    final showAllChip = group.headerAll && options.isNotEmpty;
+    final options = group.leadingAll && rest.isNotEmpty
+        ? [FilterButton.allOption, ...rest]
+        : rest;
+    final labelOf = group.labelOf ?? (String o) => o;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(group.label, style: AppTextStyle.bold16),
-            if (showAllChip) ...[
-              const SizedBox(width: 10),
-              SelectableChip(
-                label: l10n.filterAll,
-                selected: group.selected().contains(FilterButton.allOption),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                onTap: () {
-                  group.onToggle(FilterButton.allOption);
-                  onChanged();
-                },
-              ),
-            ],
-          ],
-        ),
+        Text(group.label, style: AppTextStyle.bold16),
         const AppDivider(
           topSpacing: 8,
           bottomSpacing: 12,
           color: AppColors.dividerSubtle,
         ),
-        options.isEmpty
+        rest.isEmpty
             ? Text(
                 group.emptyMessage ??
                     l10n.noOptionsAvailable(group.label.toLowerCase()),
@@ -212,7 +196,10 @@ class _ChipGroup extends StatelessWidget {
               )
             : _JustifiedChips(
                 options: options,
-                labelOf: group.labelOf ?? (o) => o,
+                labelOf: (o) => group.leadingAll && o == FilterButton.allOption
+                    ? l10n.filterAll
+                    : labelOf(o),
+                pinFirst: group.leadingAll,
                 selected: group.selected,
                 onToggle: group.onToggle,
                 onChanged: onChanged,
@@ -234,9 +221,13 @@ class _JustifiedChips extends StatefulWidget {
   final void Function(String option) onToggle;
   final VoidCallback onChanged;
 
+  /// Keeps `options.first` first instead of in the widest-first order.
+  final bool pinFirst;
+
   const _JustifiedChips({
     required this.options,
     required this.labelOf,
+    required this.pinFirst,
     required this.selected,
     required this.onToggle,
     required this.onChanged,
@@ -299,6 +290,13 @@ class _JustifiedChipsState extends State<_JustifiedChips> {
   }
 
   List<String> _orderOptions(List<String> options) {
+    if (widget.pinFirst && options.isNotEmpty) {
+      return [options.first, ..._sortWidestFirst(options.skip(1))];
+    }
+    return _sortWidestFirst(options);
+  }
+
+  List<String> _sortWidestFirst(Iterable<String> options) {
     return [...options]..sort(
       (a, b) => _estimateWidth(
         widget.labelOf(b),

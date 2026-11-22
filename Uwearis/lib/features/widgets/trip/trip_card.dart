@@ -73,7 +73,7 @@ class TripCard extends StatelessWidget {
                                 _handleAction(context, action),
                             // AppPopupMenu handles the tap.
                             trigger: const CircleIconButton(
-                              icon: Icons.more_vert,
+                              icon: Icon(Icons.more_vert),
                               discAlignment: Alignment.centerRight,
                             ),
                             items: [

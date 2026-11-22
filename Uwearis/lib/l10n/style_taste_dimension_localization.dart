@@ -55,22 +55,4 @@ extension StyleTasteDimensionLocalization on StyleTasteDimension {
         return l10n.styleTasteAccessoriesHigh;
     }
   }
-
-  /// Static, same-for-everyone explanation for the "What these mean" dialog
-  /// (unlike the API's per-user [StyleTastePreference.description]).
-  String explanation(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    switch (this) {
-      case StyleTasteDimension.styleBalance:
-        return l10n.styleTasteStyleBalanceExplanation;
-      case StyleTasteDimension.colorPairing:
-        return l10n.styleTasteColorPairingExplanation;
-      case StyleTasteDimension.fitPreference:
-        return l10n.styleTasteFitPreferenceExplanation;
-      case StyleTasteDimension.layering:
-        return l10n.styleTasteLayeringExplanation;
-      case StyleTasteDimension.accessories:
-        return l10n.styleTasteAccessoriesExplanation;
-    }
-  }
 }

@@ -14,6 +14,10 @@ class SpaceSwitchButton extends StatefulWidget {
   final String label;
   final FutureOr<void> Function() onPressed;
 
+  /// The two spaces' names, the same in every language (product choice).
+  static const exploreLabel = 'Explore';
+  static const wardrobeLabel = 'Wardrobe';
+
   static const expandDuration = Duration(milliseconds: 240);
 
   // Lets the full label read before the route transition covers it.

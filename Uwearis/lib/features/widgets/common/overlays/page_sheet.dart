@@ -29,7 +29,9 @@ Future<T?> pageSheet<T>(
     // Material 3 otherwise caps sheet width at 640.
     constraints: const BoxConstraints(),
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppDimens.dialogRadius),
+      ),
     ),
     builder: (sheetContext) => SizedBox(
       height: media.size.height - sheetTop,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -31,7 +32,7 @@ class GarmentCard extends StatelessWidget {
       child: SizedBox(
         height: AppDimens.garmentCardHeight,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: AppDurations.fast,
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(AppDimens.cardRadius),
@@ -88,7 +89,7 @@ class GarmentCard extends StatelessWidget {
                           top: 8,
                           right: 8,
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
+                            duration: AppDurations.fast,
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(

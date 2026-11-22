@@ -375,11 +375,59 @@ abstract class AppLocalizations {
   /// **'Couldn\'t generate your virtual model. Please try again.'**
   String get virtualModelGenerateFailed;
 
-  /// No description provided for @styleTaste.
+  /// No description provided for @outfitInsightsStyleTab.
   ///
   /// In en, this message translates to:
-  /// **'Style Taste'**
-  String get styleTaste;
+  /// **'Style'**
+  String get outfitInsightsStyleTab;
+
+  /// No description provided for @outfitInsightsTemperatureTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature'**
+  String get outfitInsightsTemperatureTab;
+
+  /// No description provided for @moreInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'More info'**
+  String get moreInfo;
+
+  /// No description provided for @outfitInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfit Insights'**
+  String get outfitInsights;
+
+  /// No description provided for @temperatureCoverageCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Outfits by Temperature'**
+  String get temperatureCoverageCardTitle;
+
+  /// No description provided for @temperatureCoverageCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'See your outfit options for each temperature.'**
+  String get temperatureCoverageCardSubtitle;
+
+  /// No description provided for @temperatureBandBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Below {max}°C'**
+  String temperatureBandBelow(String max);
+
+  /// No description provided for @temperatureBandAbove.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}°C and above'**
+  String temperatureBandAbove(String min);
+
+  /// No description provided for @temperatureBandRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}–{max}°C'**
+  String temperatureBandRange(String min, String max);
 
   /// No description provided for @styleTasteDetailsLabel.
   ///
@@ -387,41 +435,17 @@ abstract class AppLocalizations {
   /// **'Style Insights'**
   String get styleTasteDetailsLabel;
 
-  /// No description provided for @styleTasteHeroSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Based on your saved outfits and feedback, Uwearis is learning your style taste.'**
-  String get styleTasteHeroSubtitle;
-
-  /// No description provided for @styleTasteDimensionsInfoTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'What these mean'**
-  String get styleTasteDimensionsInfoTitle;
-
   /// No description provided for @styleTasteRadarCardTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your Style Taste'**
+  /// **'Style Profile'**
   String get styleTasteRadarCardTitle;
-
-  /// No description provided for @styleTasteRadarCardSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'A visual summary of your style preferences.'**
-  String get styleTasteRadarCardSubtitle;
 
   /// No description provided for @styleProfileCardTitle.
   ///
   /// In en, this message translates to:
   /// **'Style Distribution'**
   String get styleProfileCardTitle;
-
-  /// No description provided for @styleProfileCardSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'How your outfits break down by style.'**
-  String get styleProfileCardSubtitle;
 
   /// No description provided for @styleProfileOther.
   ///
@@ -897,12 +921,6 @@ abstract class AppLocalizations {
   /// **'Mixed'**
   String get styleTasteStyleBalanceHigh;
 
-  /// No description provided for @styleTasteStyleBalanceExplanation.
-  ///
-  /// In en, this message translates to:
-  /// **'Your preference for mixing different styles.'**
-  String get styleTasteStyleBalanceExplanation;
-
   /// No description provided for @styleTasteColorPairingTitle.
   ///
   /// In en, this message translates to:
@@ -920,12 +938,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contrast'**
   String get styleTasteColorPairingHigh;
-
-  /// No description provided for @styleTasteColorPairingExplanation.
-  ///
-  /// In en, this message translates to:
-  /// **'Your preference for combining colors.'**
-  String get styleTasteColorPairingExplanation;
 
   /// No description provided for @styleTasteFitPreferenceTitle.
   ///
@@ -945,12 +957,6 @@ abstract class AppLocalizations {
   /// **'Relaxed'**
   String get styleTasteFitPreferenceHigh;
 
-  /// No description provided for @styleTasteFitPreferenceExplanation.
-  ///
-  /// In en, this message translates to:
-  /// **'Your preferred clothing fit.'**
-  String get styleTasteFitPreferenceExplanation;
-
   /// No description provided for @styleTasteLayeringTitle.
   ///
   /// In en, this message translates to:
@@ -968,12 +974,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Layered'**
   String get styleTasteLayeringHigh;
-
-  /// No description provided for @styleTasteLayeringExplanation.
-  ///
-  /// In en, this message translates to:
-  /// **'Your preference for layered looks.'**
-  String get styleTasteLayeringExplanation;
 
   /// No description provided for @styleTasteAccessoriesTitle.
   ///
@@ -993,23 +993,11 @@ abstract class AppLocalizations {
   /// **'Expressive'**
   String get styleTasteAccessoriesHigh;
 
-  /// No description provided for @styleTasteAccessoriesExplanation.
-  ///
-  /// In en, this message translates to:
-  /// **'Your preference for using accessories.'**
-  String get styleTasteAccessoriesExplanation;
-
   /// No description provided for @navHome.
   ///
   /// In en, this message translates to:
   /// **'Home'**
   String get navHome;
-
-  /// No description provided for @wardrobe.
-  ///
-  /// In en, this message translates to:
-  /// **'Wardrobe'**
-  String get wardrobe;
 
   /// No description provided for @explore.
   ///
@@ -1545,11 +1533,11 @@ abstract class AppLocalizations {
   /// **'Loading Home…'**
   String get loadingHomeEllipsis;
 
-  /// No description provided for @loadingStyleTasteEllipsis.
+  /// No description provided for @loadingOutfitInsightsEllipsis.
   ///
   /// In en, this message translates to:
-  /// **'Loading Style Taste…'**
-  String get loadingStyleTasteEllipsis;
+  /// **'Loading Outfit Insights…'**
+  String get loadingOutfitInsightsEllipsis;
 
   /// No description provided for @noOutfitImageYet.
   ///
@@ -2504,6 +2492,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a background'**
   String get chooseBackgroundTitle;
+
+  /// No description provided for @backgroundCategoryAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get backgroundCategoryAll;
+
+  /// No description provided for @backgroundCategoryIndoor.
+  ///
+  /// In en, this message translates to:
+  /// **'Indoor'**
+  String get backgroundCategoryIndoor;
+
+  /// No description provided for @backgroundCategoryUrban.
+  ///
+  /// In en, this message translates to:
+  /// **'Outdoor'**
+  String get backgroundCategoryUrban;
+
+  /// No description provided for @backgroundCategoryNature.
+  ///
+  /// In en, this message translates to:
+  /// **'Nature'**
+  String get backgroundCategoryNature;
+
+  /// Background picker tab for a category the app does not know yet
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get backgroundCategoryOther;
+
+  /// No description provided for @backgroundsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the backgrounds. Please try again.'**
+  String get backgroundsLoadFailed;
+
+  /// 404 BACKGROUND_NOT_FOUND
+  ///
+  /// In en, this message translates to:
+  /// **'This background is no longer available. Please choose another one.'**
+  String get errorBackgroundNotFound;
 
   /// No description provided for @clear.
   ///

@@ -42,7 +42,9 @@ class AccentPillButton extends StatelessWidget {
         minimumSize: const Size(0, pillHeight),
         padding: const EdgeInsets.symmetric(horizontal: 18),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimens.pillRadius),
+        ),
       ),
       child: Text(
         label,

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_dimens.dart';
+import '../../../../app/theme/app_durations.dart';
 import 'action_button.dart';
 
 /// A screen's primary action, for `Scaffold.bottomNavigationBar`. Hides
@@ -45,7 +46,7 @@ class BottomActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: AppDurations.standard,
       // The default transition keys by child key, so a quick hidden →
       // visible → hidden flip hits "Duplicate keys found".
       transitionBuilder: (child, animation) =>

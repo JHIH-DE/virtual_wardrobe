@@ -12,6 +12,7 @@ import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/carousel_dots_indicator.dart';
 import '../../widgets/common/buttons/action_disc_button.dart';
 import '../../widgets/common/buttons/pill_button.dart';
+import '../../widgets/common/buttons/segmented_switch.dart';
 import '../../widgets/common/buttons/settings_button.dart';
 import '../../widgets/common/buttons/space_switch_button.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
@@ -43,7 +44,7 @@ class ExploreHomePage extends StatelessWidget {
           child: Align(
             alignment: Alignment.centerLeft,
             child: SpaceSwitchButton(
-              label: l10n.wardrobe,
+              label: SpaceSwitchButton.wardrobeLabel,
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -485,59 +486,14 @@ class _GenderSwitch extends StatefulWidget {
 }
 
 class _GenderSwitchState extends State<_GenderSwitch> {
-  static const double _height = 32;
-
   bool _isMen = true;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: _height),
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_height / 2),
-        border: Border.all(color: AppColors.borderSubtle),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _segment(widget.men, selected: _isMen, isMen: true),
-            _segment(widget.women, selected: !_isMen, isMen: false),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _segment(String label, {required bool selected, required bool isMen}) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => setState(() => _isMen = isMen),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(_height / 2),
-          ),
-          child: Text(
-            label,
-            maxLines: 1,
-            style: AppTextStyle.semibold14.copyWith(
-              color: selected
-                  ? AppColors.textOnPrimary
-                  : AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
+    return SegmentedSwitch(
+      labels: [widget.men, widget.women],
+      selectedIndex: _isMen ? 0 : 1,
+      onSelected: (i) => setState(() => _isMen = i == 0),
     );
   }
 }

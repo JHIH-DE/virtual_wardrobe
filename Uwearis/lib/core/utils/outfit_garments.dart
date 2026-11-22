@@ -1,4 +1,6 @@
 import '../../data/garment.dart';
+import '../services/auth_handler.dart';
+import '../services/base_service.dart';
 import '../services/garment_service.dart';
 import 'debug_log.dart';
 import 'signed_url.dart';
@@ -14,7 +16,10 @@ const List<GarmentCategory> _garmentCategoryDisplayOrder = [
 
 /// Resolves an outfit's garments in display order, reusing [cached] unless
 /// its signed URL expired. Pass the raw closet, not `.active`: deleted
-/// garments must still resolve. A garment that fails to load is dropped.
+/// garments must still resolve. A garment that fails to load is dropped;
+/// when every fetch failed and nothing else resolved, the last error is
+/// thrown instead, so the caller can offer a retry. Auth expiry and a
+/// session change always propagate.
 Future<List<Garment>> loadOutfitGarments(
   Iterable<int> garmentIds, {
   required List<Garment> cached,
@@ -24,6 +29,7 @@ Future<List<Garment>> loadOutfitGarments(
     for (final g in cached)
       if (g.id != null) g.id!: g,
   };
+  Object? lastError;
   final results = await Future.wait(
     garmentIds.map((id) async {
       final cachedGarment = cachedById[id];
@@ -36,13 +42,21 @@ Future<List<Garment>> loadOutfitGarments(
       if (isFresh) return cachedGarment;
       try {
         return await GarmentService().getGarment(id, includeDeleted: true);
+      } on AuthExpiredException {
+        rethrow;
+      } on SessionChangedException {
+        rethrow;
       } catch (e) {
         debugLog('Failed to load garment $id for outfit $outfitId: $e');
+        lastError = e;
         return null;
       }
     }),
   );
-  return _sortGarmentsByCategory(results.whereType<Garment>());
+  final loaded = results.whereType<Garment>();
+  final error = lastError;
+  if (loaded.isEmpty && error != null) throw error;
+  return _sortGarmentsByCategory(loaded);
 }
 
 List<Garment> _sortGarmentsByCategory(Iterable<Garment> garments) {

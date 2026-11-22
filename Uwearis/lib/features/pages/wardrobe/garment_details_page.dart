@@ -28,6 +28,7 @@ import '../../widgets/common/buttons/bottom_action_button.dart';
 import '../../widgets/common/cards/app_list_card.dart';
 import '../../widgets/common/cards/card_corner_badge.dart';
 import '../../widgets/common/fields/app_text_field.dart';
+import '../../widgets/common/fields/code_point_limit_formatter.dart';
 import '../../widgets/common/fields/labeled_field.dart';
 import '../../widgets/common/fields/picker_field.dart';
 import '../../widgets/common/fields/tappable_field_decorator.dart';
@@ -121,6 +122,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _brandCtrl = TextEditingController();
+  // The backend's limit; longer is a 422.
+  static const int _maxBrandLength = 100;
   final _priceCtrl = TextEditingController();
   final _bagBodyWidthCtrl = TextEditingController();
 
@@ -1142,6 +1145,7 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
         AppTextField(
           controller: _brandCtrl,
           hint: _l10n.brandHint,
+          inputFormatters: const [CodePointLimitFormatter(_maxBrandLength)],
           onChanged: (_) => _onEdited(typing: true),
           onSubmitted: (_) => _onTextFieldBlur(),
         ),
@@ -1223,6 +1227,17 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     }
     if (analysisData['name'] != null) {
       _nameCtrl.text = analysisData['name'].toString();
+    }
+    // A suggestion only: never over what the user already typed.
+    final aiBrand = analysisData['brand'];
+    if (aiBrand is String &&
+        aiBrand.trim().isNotEmpty &&
+        _brandCtrl.text.trim().isEmpty) {
+      // Set in code, so the field's formatter doesn't cap it.
+      _brandCtrl.text = CodePointLimitFormatter.truncate(
+        aiBrand.trim(),
+        _maxBrandLength,
+      );
     }
     final String? catStr = analysisData['category']?.toString().toLowerCase();
     if (catStr != null) {
@@ -1326,7 +1341,8 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
     if (confirmed && mounted) _runReanalysis();
   }
 
-  /// Keeps the name (the user may have renamed it); the result auto-saves
+  /// Keeps the name and brand (the user may have changed them, and the
+  /// confirm says the brand stays); the result auto-saves
   /// like any other edit. Also the error dialog's retry.
   Future<void> _runReanalysis() async {
     final id = _id;
@@ -1337,7 +1353,11 @@ class _GarmentDetailsPageState extends ConsumerState<GarmentDetailsPage> {
       final metadata = await GarmentService().reanalyzeGarment(id);
       if (!mounted || run != _reanalysisRun) return;
       setState(() {
-        _applyAnalysisData({...metadata}..remove('name'));
+        _applyAnalysisData(
+          {...metadata}
+            ..remove('name')
+            ..remove('brand'),
+        );
         _thickness = (metadata['thickness'] as num?)?.toInt() ?? _thickness;
         _formality = (metadata['formality'] as num?)?.toInt() ?? _formality;
       });

@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
+import '../../../../app/theme/app_durations.dart';
 import '../buttons/action_disc_button.dart';
 
 /// One round button revealed behind a [SwipeActionCard].
@@ -67,7 +68,7 @@ class _SwipeActionCardState extends State<SwipeActionCard>
   /// positive shows [leadingActions].
   late final AnimationController _controller = AnimationController.unbounded(
     vsync: this,
-    duration: const Duration(milliseconds: 200),
+    duration: AppDurations.standard,
   );
 
   static double _widthOf(List<SwipeAction> actions) =>

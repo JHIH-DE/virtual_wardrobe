@@ -11,12 +11,15 @@ import '../../../core/utils/debug_log.dart';
 import '../../../data/outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
+import '../../widgets/common/buttons/action_disc_button.dart';
 import '../../widgets/common/buttons/outfit_season_style_filter.dart';
+import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
 import '../../widgets/common/wardrobe_nav_bar.dart';
 import '../../widgets/common/wardrobe_tab_async.dart';
 import '../../widgets/outfit/outfit_grid.dart';
+import '../../widgets/outfit/outfit_insights_sheet.dart';
 import 'create_outfit_page.dart';
 import 'outfit_details_page.dart';
 
@@ -107,9 +110,25 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
       centerTitle: false,
       showBackButton: false,
       actions: [
+        if (all.isNotEmpty)
+          ActionDiscButton(
+            tooltip: l10n.outfitInsights,
+            icon: const Icon(
+              Icons.bar_chart,
+              size: ActionDisc.iconSize,
+              color: AppColors.icon,
+            ),
+            onPressed: _openOutfitInsights,
+          ),
         _filter.buildButton(l10n, all, onChanged: () => setState(() {})),
       ],
     );
+  }
+
+  /// The sheet's load runs the AI style analysis.
+  Future<void> _openOutfitInsights() async {
+    if (!await ensureAiConsent(context) || !mounted) return;
+    showOutfitInsightsSheet(context);
   }
 
   @override

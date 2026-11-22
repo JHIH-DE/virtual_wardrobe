@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/garment_adjustment.dart';
 import '../../data/outfit.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../services/api_exception.dart';
 import '../services/auth_handler.dart';
 import '../services/base_service.dart';
 import '../services/outfit_service.dart';
@@ -24,6 +25,8 @@ import 'try_on_status.dart';
 mixin TryOnMixin<T extends StatefulWidget> on State<T> {
   bool isOutfitLoading = false;
   String? tryOnErrorMessage;
+  // The backend `error_code` of a definitive failure, beside its message.
+  String? tryOnErrorCode;
   String? tryOnResultUrl;
   int tryOnGroupId = 0;
   int tryOnOutfitId = 0;
@@ -76,6 +79,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     setState(() {
       isOutfitLoading = true;
       tryOnErrorMessage = null;
+      tryOnErrorCode = null;
       tryOnResultUrl = null;
     });
 
@@ -167,6 +171,9 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
       final l10n = AppLocalizations.of(context);
       setState(() {
         isOutfitLoading = false;
+        tryOnErrorCode = !stillRunning && e is ApiException
+            ? e.errorCode
+            : null;
         tryOnErrorMessage = !stillRunning
             ? apiErrorMessage(l10n, e, fallback: l10n.failedToGenerateOutfit)
             : _statusUnavailable
@@ -245,6 +252,7 @@ mixin TryOnMixin<T extends StatefulWidget> on State<T> {
     setState(() {
       isOutfitLoading = false;
       tryOnErrorMessage = null;
+      tryOnErrorCode = null;
       tryOnResultUrl = null;
       tryOnGroupId = 0;
       tryOnOutfitId = 0;

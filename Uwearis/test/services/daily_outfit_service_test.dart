@@ -182,4 +182,58 @@ void main() {
       );
     });
   });
+
+  group('getTemperatureCoverage', () {
+    test('GETs temperature-coverage and parses the bands', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return _jsonResponse(
+          _envelope({
+            'temperature_offset_c': 0.0,
+            'usable_outfit_count': 55,
+            'enough_count': 3,
+            'bands': [
+              {
+                'min_c': null,
+                'max_c': 12,
+                'outfit_count': 5,
+                'status': 'enough',
+              },
+              {'min_c': 15, 'max_c': 18, 'outfit_count': 0, 'status': 'none'},
+              {'min_c': 33, 'max_c': null, 'outfit_count': 2, 'status': 'few'},
+            ],
+          }),
+        );
+      });
+
+      final coverage = await http.runWithClient(
+        () => DailyOutfitService().getTemperatureCoverage(),
+        () => client,
+      );
+
+      expect(captured.method, 'GET');
+      expect(captured.url.toString(), '$_base/temperature-coverage');
+      expect(coverage.usableOutfitCount, 55);
+      expect(coverage.enoughCount, 3);
+      expect(coverage.bands, hasLength(3));
+      expect(coverage.bands.first.minC, isNull);
+      expect(coverage.bands.first.maxC, 12);
+      expect(coverage.bands[1].outfitCount, 0);
+    });
+
+    test('throws when data is missing', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(_envelope(null)),
+      );
+
+      await expectLater(
+        http.runWithClient(
+          () => DailyOutfitService().getTemperatureCoverage(),
+          () => client,
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
 }

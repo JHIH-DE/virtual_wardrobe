@@ -68,7 +68,9 @@ class _GarmentDetailDialogState extends State<GarmentDetailDialog> {
     final garment = widget.garment;
     return Dialog(
       backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDimens.dialogRadius),
+      ),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => Navigator.of(context).pop(),

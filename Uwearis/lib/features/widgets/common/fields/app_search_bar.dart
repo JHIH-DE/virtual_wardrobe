@@ -35,7 +35,7 @@ class AppSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const border = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(999)),
+      borderRadius: BorderRadius.all(Radius.circular(AppDimens.pillRadius)),
       borderSide: BorderSide(color: AppColors.borderSubtle),
     );
     final height = this.height;

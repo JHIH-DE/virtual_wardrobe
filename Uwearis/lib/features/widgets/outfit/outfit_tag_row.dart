@@ -51,7 +51,10 @@ class OutfitTagsHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          CircleIconButton(icon: Icons.sell_outlined, onPressed: onEdit),
+          CircleIconButton(
+            icon: const Icon(Icons.sell_outlined),
+            onPressed: onEdit,
+          ),
           const SizedBox(width: 2),
           Expanded(
             child: seasons.isEmpty && style.isEmpty

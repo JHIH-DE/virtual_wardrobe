@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_durations.dart';
 
 /// A collapsible section's chevron: the back button's `<` glyph rotated,
 /// since Material has no up/down version of it.
@@ -13,7 +14,7 @@ class ExpandArrowIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 150),
+      duration: AppDurations.fast,
       child: RotatedBox(
         key: ValueKey(expanded),
         quarterTurns: expanded ? 1 : 3,

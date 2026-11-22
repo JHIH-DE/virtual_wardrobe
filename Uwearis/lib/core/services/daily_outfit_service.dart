@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../../data/outfit.dart';
+import '../../data/temperature_coverage.dart';
 import '../config/app_config.dart';
 import '../utils/debug_log.dart';
 import 'base_service.dart';
@@ -83,5 +84,23 @@ class DailyOutfitService with BaseService {
       throw Exception('generate: response missing data object');
     }
     return _parseOutfits(data, op: 'generate');
+  }
+
+  /// Per temperature band, how many outfits [generate] could pick from.
+  /// Free, no AI.
+  Future<TemperatureCoverage> getTemperatureCoverage() async {
+    debugLog('--- getTemperatureCoverage ---');
+    final uri = Uri.parse('$_baseUrl/temperature-coverage');
+    final res = await withAuth(
+      (token) => http
+          .get(uri, headers: authHeaders(token))
+          .timeout(const Duration(seconds: 15)),
+      retryOnTimeout: true,
+    );
+    final data = decodeMap(res, op: 'getTemperatureCoverage')['data'];
+    if (data is! Map<String, dynamic>) {
+      throw Exception('getTemperatureCoverage: response missing data object');
+    }
+    return TemperatureCoverage.fromJson(data);
   }
 }

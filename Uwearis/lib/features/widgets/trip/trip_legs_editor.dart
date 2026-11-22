@@ -136,7 +136,7 @@ class _TripLegsEditorState extends State<TripLegsEditor> {
               ),
             ),
             CircleIconButton(
-              icon: Icons.close,
+              icon: const Icon(Icons.close),
               discAlignment: Alignment.centerRight,
               tooltip: MaterialLocalizations.of(context).deleteButtonTooltip,
               enabled: widget.allowsEmpty || _legs.length > 1,

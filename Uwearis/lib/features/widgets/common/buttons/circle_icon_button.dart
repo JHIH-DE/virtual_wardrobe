@@ -12,7 +12,8 @@ import '../../../../app/theme/app_dimens.dart';
 /// A null [onPressed] keeps the active look without handling taps — e.g. as
 /// an `AppPopupMenu` trigger, which handles the tap itself.
 class CircleIconButton extends StatelessWidget {
-  final IconData icon;
+  /// Usually an [Icon]; sized and coloured through [IconTheme].
+  final Widget icon;
   final VoidCallback? onPressed;
   final bool enabled;
   final String? tooltip;
@@ -97,7 +98,10 @@ class CircleIconButton extends StatelessWidget {
                     child: SizedBox.square(
                       dimension: size,
                       child: Center(
-                        child: Icon(icon, size: size / 2, color: color),
+                        child: IconTheme.merge(
+                          data: IconThemeData(size: size / 2, color: color),
+                          child: icon,
+                        ),
                       ),
                     ),
                   ),

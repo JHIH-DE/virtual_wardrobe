@@ -87,6 +87,15 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool _isLoadingGarments = false;
   // Lets [_loadGarments] skip re-fetching the set it already has.
   Set<int>? _loadedGarmentIds;
+  // Only the latest [_loadGarments] may apply: a swipe/animation loads every
+  // page it passes, and those loads can land out of order.
+  int _garmentsRequest = 0;
+  // The id set the latest in-flight load is fetching; only read while
+  // [_isLoadingGarments].
+  Set<int>? _loadingGarmentIds;
+  // The latest load failed; [_garments] is cleared so another version's
+  // set isn't shown under this photo.
+  Object? _garmentsError;
   // Guards against re-entering _openCreateAnotherVersion.
   bool _isAddingVersion = false;
   // [isNew] only: Save was tapped, so leaving no longer prompts.
@@ -881,6 +890,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       garmentCount: _current.garmentIds.length,
       isLoading: _isLoadingGarments && !_isRegenerating,
       onGarmentTap: _openGarmentDetail,
+      error: _garmentsError,
+      onRetry: _loadGarments,
     );
   }
 
@@ -913,28 +924,57 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   }
 
   /// Called from several uncoordinated places; skips the fetch (and its
-  /// loading flicker) when the id set is already loaded.
+  /// loading flicker) when the id set is already loaded or being loaded.
   Future<void> _loadGarments() async {
+    final outfitId = _current.id;
     final idsToLoad = _current.garmentIds.toSet();
-    if (_garments != null && setEquals(_loadedGarmentIds, idsToLoad)) return;
+    // The latest load already fetches this set: let it land instead of
+    // superseding it with an identical fetch.
+    if (_isLoadingGarments && setEquals(_loadingGarmentIds, idsToLoad)) return;
+    // Bumped before the early return too, so a load still in flight for
+    // another version can't overwrite the set already showing.
+    final request = ++_garmentsRequest;
+    if (_garments != null && setEquals(_loadedGarmentIds, idsToLoad)) {
+      if (_isLoadingGarments) setState(() => _isLoadingGarments = false);
+      return;
+    }
 
-    setState(() => _isLoadingGarments = true);
+    _loadingGarmentIds = idsToLoad;
+    setState(() {
+      _isLoadingGarments = true;
+      _garmentsError = null;
+    });
     try {
       final garments = await loadOutfitGarments(
         idsToLoad,
         cached: ref.read(garmentsProvider).value ?? const [],
-        outfitId: _current.id,
+        outfitId: outfitId,
       );
-      if (mounted) {
+      if (mounted && request == _garmentsRequest) {
         setState(() {
           _garments = garments;
           _loadedGarmentIds = idsToLoad;
         });
       }
+    } on AuthExpiredException {
+      if (mounted && request == _garmentsRequest) {
+        await AuthExpiredHandler.handle(context);
+      }
+    } on SessionChangedException {
+      // Its session ended meanwhile; whatever ended it owns the UI now.
     } catch (e) {
-      debugLog('Failed to load garments for outfit ${_current.id}: $e');
+      debugLog('Failed to load garments for outfit $outfitId: $e');
+      if (mounted && request == _garmentsRequest) {
+        setState(() {
+          _garments = null;
+          _loadedGarmentIds = null;
+          _garmentsError = e;
+        });
+      }
     } finally {
-      if (mounted) setState(() => _isLoadingGarments = false);
+      if (mounted && request == _garmentsRequest) {
+        setState(() => _isLoadingGarments = false);
+      }
     }
   }
 

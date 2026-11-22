@@ -10,6 +10,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/core/providers/adjustment_options_provider.dart';
+import 'package:uwearis/core/providers/backgrounds_provider.dart';
+import 'package:uwearis/data/background_option.dart';
+import 'package:uwearis/features/widgets/common/fields/chip_tab_row.dart';
+import 'package:uwearis/features/widgets/common/images/app_image.dart';
+import 'package:uwearis/features/widgets/common/images/app_spinner.dart';
+import 'package:uwearis/features/widgets/outfit/outfit_background_field.dart';
 import 'package:uwearis/core/providers/sub_category_provider.dart';
 import 'package:uwearis/data/garment_sub_category.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
@@ -95,6 +101,45 @@ final _adjustmentTable = {
     d.key: d,
 };
 
+/// Part of the backend's list (2026-11-22), in its display order: grouped
+/// indoor → urban → nature, each with the backend's `label`. No preview URLs,
+/// so the sheet never reaches the network.
+const _backgrounds = [
+  BackgroundOption(id: 0, name: 'default_fitting_room', label: 'Fitting Room'),
+  BackgroundOption(id: 8, name: 'coffeehouse', label: 'Coffeehouse'),
+  BackgroundOption(id: 9, name: 'living_room', label: 'Living Room'),
+  BackgroundOption(
+    id: 7,
+    name: 'tokyo_street_1',
+    label: 'Tokyo Street 1',
+    category: BackgroundCategory.urban,
+  ),
+  BackgroundOption(
+    id: 16,
+    name: 'tokyo_street_2',
+    label: 'Tokyo Street 2',
+    category: BackgroundCategory.urban,
+  ),
+  BackgroundOption(
+    id: 5,
+    name: 'new_york_street_1',
+    label: 'New York Street 1',
+    category: BackgroundCategory.urban,
+  ),
+  BackgroundOption(
+    id: 6,
+    name: 'paris_street_1',
+    label: 'Paris Street 1',
+    category: BackgroundCategory.urban,
+  ),
+  BackgroundOption(
+    id: 20,
+    name: 'beach',
+    label: 'Beach',
+    category: BackgroundCategory.nature,
+  ),
+];
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -112,13 +157,19 @@ void main() {
     _garment(id: 3, category: GarmentCategory.shoes, name: 'Sneakers'),
   ];
 
-  List<Override> closetOverride([List<Garment>? pool]) => [
+  List<Override> closetOverride([
+    List<Garment>? pool,
+    Future<List<BackgroundOption>> Function()? loadBackgrounds,
+  ]) => [
     garmentsProvider.overrideWith(
       () => SeededGarmentsNotifier(pool ?? closet, refreshReseeds: true),
     ),
     adjustmentOptionsProvider.overrideWith((ref, _) async => _adjustmentTable),
     subCategoryCatalogProvider.overrideWith(
       (ref, _) async => SubCategoryCatalog(const {}),
+    ),
+    backgroundsProvider.overrideWith(
+      (ref, _) => (loadBackgrounds ?? () async => _backgrounds)(),
     ),
   ];
 
@@ -1248,10 +1299,7 @@ void main() {
       expect(find.text('Fitting Room'), findsOneWidget);
       expect(find.text('Choose a background'), findsNothing);
       // Name only — no thumbnail in the field itself.
-      expect(
-        find.image(const AssetImage('assets/images/fitting_room.png')),
-        findsNothing,
-      );
+      expect(find.byType(AppImage), findsNothing);
 
       await tester.ensureVisible(find.text('Fitting Room'));
       await tester.tap(find.text('Fitting Room'));
@@ -1260,13 +1308,515 @@ void main() {
       // Only the current background carries the checkmark.
       expect(find.byIcon(Icons.check), findsOneWidget);
 
-      await tester.tap(find.text('Tokyo Street'));
+      await tester.tap(find.text('Outdoor'));
+      await tester.pump();
+      await tester.tap(find.text('Tokyo Street 1'));
       await tester.pumpAndSettle();
       expect(find.text('Choose a background'), findsNothing);
-      expect(find.text('Tokyo Street'), findsOneWidget);
+      expect(find.text('Tokyo Street 1'), findsOneWidget);
       expect(find.text('Fitting Room'), findsNothing);
     },
   );
+
+  group('backgrounds from GET /backgrounds', () {
+    Finder field() => find.byType(OutfitBackgroundField);
+
+    Future<void> openSheet(WidgetTester tester) async {
+      await tester.ensureVisible(field());
+      await tester.tap(field());
+      await tester.pumpAndSettle();
+    }
+
+    /// New-outfit flow: every generate body is kept, and generate answers
+    /// [generateError] (a plain 400 by default) so the page stays put.
+    MockClient backend(
+      List<Map<String, dynamic>> generated, {
+      Map<String, dynamic>? generateError,
+    }) => MockClient((request) async {
+      final path = request.url.path;
+      if (request.method == 'POST' && path.endsWith('/outfit')) {
+        return jsonResponse(envelope({'group_id': 9}));
+      }
+      if (path.endsWith('/generate')) {
+        generated.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return generateError != null
+            ? jsonResponse(generateError, status: 404)
+            : jsonResponse(envelope(null), status: 400);
+      }
+      return jsonResponse(envelope({'items': []}));
+    });
+
+    Future<void> tapCreate(WidgetTester tester) async {
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Outfit'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+
+    Future<void> dismissDialog(WidgetTester tester) async {
+      await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the sheet keeps the backend\'s order and names a '
+        'background the app has no label for', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(
+          null,
+          () async => const [
+            BackgroundOption(id: 0, name: 'default_fitting_room'),
+            BackgroundOption(id: 8, name: 'coffeehouse'),
+            BackgroundOption(id: 9, name: 'rooftop_garden'),
+            BackgroundOption(id: 7, name: 'tokyo_street'),
+          ],
+        ),
+      );
+      await tester.pump();
+      await openSheet(tester);
+
+      double x(String label) => tester.getTopLeft(find.text(label)).dx;
+      expect(x('Coffeehouse'), lessThan(x('Rooftop Garden')));
+      expect(x('Rooftop Garden'), lessThan(x('Tokyo Street')));
+    });
+
+    testWidgets('the default is found by id, not position; without a pick it '
+        'is sent as shown, a pick sends its id', (tester) async {
+      useTallSurface(tester);
+      final generated = <Map<String, dynamic>>[];
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(initialGarments: [closet[0], closet[1], closet[2]]),
+          overrides: closetOverride(
+            null,
+            () async => const [
+              BackgroundOption(id: 7, name: 'tokyo_street_1', label: 'Tokyo'),
+              BackgroundOption(
+                id: 0,
+                name: 'default_fitting_room',
+                label: 'Fitting Room',
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        expect(
+          find.descendant(of: field(), matching: find.text('Fitting Room')),
+          findsOneWidget,
+        );
+
+        await tapCreate(tester);
+        await dismissDialog(tester);
+
+        await openSheet(tester);
+        await tester.tap(find.text('Tokyo'));
+        await tester.pumpAndSettle();
+        await tapCreate(tester);
+        await dismissDialog(tester);
+      }, () => backend(generated));
+
+      expect(generated, hasLength(2));
+      expect(generated[0]['background_id'], 0);
+      expect(generated[1]['background_id'], 7);
+    });
+
+    testWidgets('a version whose background is no longer listed starts on '
+        'the default and counts it as unchanged', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(
+          initialGarments: [closet[0], closet[1], closet[2]],
+          targetGroupId: 40,
+          initialBackgroundId: 2,
+        ),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+      expect(
+        find.descendant(of: field(), matching: find.text('Fitting Room')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Version'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Nothing Changed Yet'), findsOneWidget);
+    });
+
+    testWidgets('a list that fails to load leaves the field empty; a tap '
+        'says so and Retry opens the sheet', (tester) async {
+      useTallSurface(tester);
+      var loads = 0;
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(null, () async {
+          if (loads++ == 0) throw Exception('offline');
+          return _backgrounds;
+        }),
+      );
+      await tester.pump();
+      expect(find.text('Fitting Room'), findsNothing);
+
+      await openSheet(tester);
+      expect(
+        find.text("Couldn't load the backgrounds. Please try again."),
+        findsOneWidget,
+      );
+      expect(find.text('Choose a background'), findsNothing);
+
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choose a background'), findsOneWidget);
+      expect(loads, 2);
+    });
+
+    testWidgets('the sheet opens on All, lists only the categories present, '
+        'and switches tabs', (tester) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        CreateOutfitPage(
+          initialGarments: [closet[0], closet[1], closet[2]],
+          targetGroupId: 40,
+          initialBackgroundId: 7,
+        ),
+        overrides: closetOverride(),
+      );
+      await tester.pump();
+      await openSheet(tester);
+
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Indoor'), findsOneWidget);
+      expect(find.text('Outdoor'), findsOneWidget);
+      expect(find.text('Nature'), findsOneWidget);
+      expect(find.text('Other'), findsNothing);
+      // The tabs belong to the header: above its divider, not under it.
+      final header = find.byType(PickerSheetHeader);
+      expect(
+        tester.getBottomLeft(find.text('Indoor')).dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.descendant(of: header, matching: find.byType(AppDivider)),
+              )
+              .dy,
+        ),
+      );
+      // Tokyo Street 1 also shows in the field under the sheet.
+      expect(find.text('Tokyo Street 2'), findsOneWidget);
+      expect(find.text('Coffeehouse'), findsOneWidget);
+
+      await tester.tap(find.text('Nature'));
+      await tester.pump();
+      expect(find.text('Beach'), findsOneWidget);
+      expect(find.text('Tokyo Street 2'), findsNothing);
+    });
+
+    testWidgets('a category the app doesn\'t know gets an Other tab', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(
+          null,
+          () async => [
+            ..._backgrounds,
+            BackgroundOption.fromJson(const {
+              'id': 30,
+              'name': 'space_station',
+              'label': 'Space Station',
+              'category': 'space',
+            }),
+          ],
+        ),
+      );
+      await tester.pump();
+      await openSheet(tester);
+
+      await tester.scrollUntilVisible(
+        find.text('Other'),
+        200,
+        scrollable: find.descendant(
+          of: find.byType(ChipTabRow<BackgroundCategory?>),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.tap(find.text('Other'));
+      await tester.pump();
+      expect(find.text('Space Station'), findsOneWidget);
+    });
+
+    testWidgets('picking Beach sends its id', (tester) async {
+      useTallSurface(tester);
+      final generated = <Map<String, dynamic>>[];
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(initialGarments: [closet[0], closet[1], closet[2]]),
+          overrides: closetOverride(),
+        );
+        await tester.pump();
+        await openSheet(tester);
+        await tester.tap(find.text('Nature'));
+        await tester.pump();
+        await tester.tap(find.text('Beach'));
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(of: field(), matching: find.text('Beach')),
+          findsOneWidget,
+        );
+        await tapCreate(tester);
+        await dismissDialog(tester);
+      }, () => backend(generated));
+
+      expect(generated.single['background_id'], 20);
+    });
+
+    testWidgets('an empty list says so instead of opening an empty sheet', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(null, () async => const []),
+      );
+      await tester.pump();
+      await openSheet(tester);
+
+      expect(
+        find.text("Couldn't load the backgrounds. Please try again."),
+        findsOneWidget,
+      );
+      expect(find.text('Choose a background'), findsNothing);
+    });
+
+    testWidgets('after a reload fails, the picker still opens on the list '
+        'already shown', (tester) async {
+      useTallSurface(tester);
+      final generated = <Map<String, dynamic>>[];
+      var loads = 0;
+      await http.runWithClient(
+        () async {
+          await pumpApp(
+            tester,
+            CreateOutfitPage(
+              initialGarments: [closet[0], closet[1], closet[2]],
+            ),
+            overrides: closetOverride(null, () async {
+              if (loads++ == 0) return _backgrounds;
+              throw Exception('offline');
+            }),
+          );
+          await tester.pump();
+          // BACKGROUND_NOT_FOUND reloads the list, and the reload fails.
+          await tapCreate(tester);
+          await dismissDialog(tester);
+          expect(loads, 2);
+
+          await openSheet(tester);
+          expect(find.text('Choose a background'), findsOneWidget);
+          expect(
+            find.text("Couldn't load the backgrounds. Please try again."),
+            findsNothing,
+          );
+        },
+        () => backend(
+          generated,
+          generateError: {
+            'success': false,
+            'error_code': 'BACKGROUND_NOT_FOUND',
+          },
+        ),
+      );
+    });
+
+    testWidgets('the field shows a spinner until the list arrives', (
+      tester,
+    ) async {
+      useTallSurface(tester);
+      final list = Completer<List<BackgroundOption>>();
+      await pumpApp(
+        tester,
+        const CreateOutfitPage(),
+        overrides: closetOverride(null, () => list.future),
+      );
+      await tester.pump();
+      expect(
+        find.descendant(of: field(), matching: find.byType(AppSpinner)),
+        findsOneWidget,
+      );
+
+      list.complete(_backgrounds);
+      await tester.pump();
+      await tester.pump();
+      expect(
+        find.descendant(of: field(), matching: find.byType(AppSpinner)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: field(), matching: find.text('Fitting Room')),
+        findsOneWidget,
+      );
+    });
+
+    MockClient versionBackend(
+      List<Map<String, dynamic>> generated, {
+      Map<String, dynamic>? generateError,
+    }) => MockClient((request) async {
+      if (request.url.path.endsWith('/generate')) {
+        generated.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return generateError != null
+            ? jsonResponse(generateError, status: 404)
+            : jsonResponse(envelope(null), status: 400);
+      }
+      return jsonResponse(envelope(null), status: 400);
+    });
+
+    Future<void> tapCreateVersion(WidgetTester tester) async {
+      await tester.tap(
+        find.widgetWithText(BottomActionButton, 'Create Version'),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+
+    testWidgets('a version still sends its source\'s background while the '
+        'list is unavailable', (tester) async {
+      useTallSurface(tester);
+      final generated = <Map<String, dynamic>>[];
+      await http.runWithClient(() async {
+        await pumpApp(
+          tester,
+          CreateOutfitPage(
+            initialGarments: [closet[0], closet[1], closet[2]],
+            targetGroupId: 40,
+            initialBackgroundId: 7,
+          ),
+          overrides: closetOverride(
+            null,
+            () async => throw Exception('offline'),
+          ),
+        );
+        await tester.pump();
+        await _pickAdjustment(tester, 'Tee', 'Rolled');
+        await tapCreateVersion(tester);
+      }, () => versionBackend(generated));
+
+      expect(generated.single['background_id'], 7);
+    });
+
+    testWidgets('a version background generate reports gone is not sent '
+        'again, even before the reload lands', (tester) async {
+      useTallSurface(tester);
+      final generated = <Map<String, dynamic>>[];
+      var loads = 0;
+      await http.runWithClient(
+        () async {
+          await pumpApp(
+            tester,
+            CreateOutfitPage(
+              initialGarments: [closet[0], closet[1], closet[2]],
+              targetGroupId: 40,
+              initialBackgroundId: 7,
+            ),
+            // The reload never lands, so the stale list (still holding
+            // Tokyo Street) is all the page has.
+            overrides: closetOverride(
+              null,
+              () => loads++ == 0
+                  ? Future.value(_backgrounds)
+                  : Completer<List<BackgroundOption>>().future,
+            ),
+          );
+          await tester.pump();
+          await _pickAdjustment(tester, 'Tee', 'Rolled');
+          await tapCreateVersion(tester);
+          await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+          await tester.pumpAndSettle();
+          expect(
+            find.descendant(of: field(), matching: find.text('Fitting Room')),
+            findsOneWidget,
+          );
+          await tapCreateVersion(tester);
+        },
+        () => versionBackend(
+          generated,
+          generateError: {
+            'success': false,
+            'error_code': 'BACKGROUND_NOT_FOUND',
+          },
+        ),
+      );
+
+      // The second goes out on the Fitting Room the field now shows.
+      expect(generated, hasLength(2));
+      expect(generated[0]['background_id'], 7);
+      expect(generated[1]['background_id'], 0);
+    });
+
+    testWidgets('BACKGROUND_NOT_FOUND says so, reloads the list and drops '
+        'the pick', (tester) async {
+      useTallSurface(tester);
+      final generated = <Map<String, dynamic>>[];
+      var loads = 0;
+      await http.runWithClient(
+        () async {
+          await pumpApp(
+            tester,
+            CreateOutfitPage(
+              initialGarments: [closet[0], closet[1], closet[2]],
+            ),
+            overrides: closetOverride(null, () async {
+              loads++;
+              return _backgrounds;
+            }),
+          );
+          await tester.pump();
+          await openSheet(tester);
+          await tester.tap(find.text('Outdoor'));
+          await tester.pump();
+          await tester.tap(find.text('Tokyo Street 1'));
+          await tester.pumpAndSettle();
+
+          await tapCreate(tester);
+          expect(
+            find.text(
+              'This background is no longer available. Please choose '
+              'another one.',
+            ),
+            findsOneWidget,
+          );
+          await dismissDialog(tester);
+        },
+        () => backend(
+          generated,
+          generateError: {
+            'success': false,
+            'error_code': 'BACKGROUND_NOT_FOUND',
+          },
+        ),
+      );
+
+      expect(generated.single['background_id'], 7);
+      expect(loads, 2);
+      expect(
+        find.descendant(of: field(), matching: find.text('Fitting Room')),
+        findsOneWidget,
+      );
+    });
+  });
 
   testWidgets('Stop Waiting asks first, then leaves; the render that lands '
       'afterwards is kept and refreshes Outfits', (tester) async {
@@ -1425,10 +1975,12 @@ void main() {
           reason: 'no count on the button',
         );
         // A version identical to its source isn't rendered.
-        await tester.ensureVisible(find.text('Tokyo Street'));
-        await tester.tap(find.text('Tokyo Street'));
+        await tester.ensureVisible(find.text('Tokyo Street 1'));
+        await tester.tap(find.text('Tokyo Street 1'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Paris Street'));
+        await tester.tap(find.text('Outdoor'));
+        await tester.pump();
+        await tester.tap(find.text('Paris Street 1'));
         await tester.pumpAndSettle();
         await tester.tap(
           find.widgetWithText(BottomActionButton, 'Create Version'),
@@ -2370,7 +2922,7 @@ void main() {
 
       expect(find.text('Add Version'), findsOneWidget);
       expect(find.byTooltip('Match a Look'), findsOneWidget);
-      expect(find.text('Tokyo Street'), findsOneWidget);
+      expect(find.text('Tokyo Street 1'), findsOneWidget);
 
       // Unchanged: the tap explains instead of re-rendering the source.
       await tester.tap(
@@ -2382,10 +2934,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Nothing Changed Yet'), findsNothing);
 
-      await tester.ensureVisible(find.text('Tokyo Street'));
-      await tester.tap(find.text('Tokyo Street'));
+      await tester.ensureVisible(find.text('Tokyo Street 1'));
+      await tester.tap(find.text('Tokyo Street 1'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Paris Street'));
+      await tester.tap(find.text('Outdoor'));
+      await tester.pump();
+      await tester.tap(find.text('Paris Street 1'));
       await tester.pumpAndSettle();
 
       expect(
@@ -2511,10 +3065,12 @@ void main() {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
 
-        await tester.ensureVisible(find.text('Tokyo Street'));
-        await tester.tap(find.text('Tokyo Street'));
+        await tester.ensureVisible(find.text('Tokyo Street 1'));
+        await tester.tap(find.text('Tokyo Street 1'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Paris Street'));
+        await tester.tap(find.text('Outdoor'));
+        await tester.pump();
+        await tester.tap(find.text('Paris Street 1'));
         await tester.pumpAndSettle();
         await tester.tap(
           find.widgetWithText(BottomActionButton, 'Create Version'),

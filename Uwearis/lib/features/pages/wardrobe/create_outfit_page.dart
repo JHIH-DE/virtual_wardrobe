@@ -10,6 +10,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_dimens.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/providers/adjustment_options_provider.dart';
+import '../../../core/providers/backgrounds_provider.dart';
 import '../../../core/providers/points_provider.dart';
 import '../../../core/providers/garments_provider.dart';
 import '../../../core/providers/locale_provider.dart';
@@ -125,13 +126,15 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   // this set.
   final Set<int> _aiPickedIds = {};
 
-  // Null when [CreateOutfitPage.initialBackgroundId] is unset or unknown.
-  BackgroundOption? _initialBackground;
-  late BackgroundOption _background;
-  // [_background] always has a default; this tells an explicit pick apart
-  // from "never touched" (only an explicit pick, or version mode's initial
-  // background, is sent).
-  bool _backgroundCustomized = false;
+  // An explicit pick; null = never touched, which shows (and sends) version
+  // mode's initial background or the Fitting Room default.
+  int? _pickedBackgroundId;
+  // Ids generate answered BACKGROUND_NOT_FOUND for: never shown or sent
+  // again, even while the list still holds them until its reload lands.
+  final Set<int> _goneBackgroundIds = {};
+  bool _backgroundPickerInFlight = false;
+  // One list reload shared by every preview whose signed URL failed at once.
+  Future<List<BackgroundOption>>? _backgroundRefresh;
   // Version mode only enables Create once the pick differs from these.
   late final Set<int> _initialGarmentIds;
 
@@ -306,10 +309,6 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
         ? OutfitSelection.fromGarments(widget.initialGarments)
         : OutfitSelection();
     _initialGarmentIds = _selectedGarmentIds().toSet();
-    _initialBackground = BackgroundOption.all
-        .where((b) => b.backgroundId == widget.initialBackgroundId)
-        .firstOrNull;
-    _background = _initialBackground ?? BackgroundOption.all.first;
     // No closet refresh here: Add Garment checks freshness itself, so
     // opening the page doesn't block on a reload.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -514,12 +513,11 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
 
       // Read before the await: the page may be gone when the render lands.
       final outfits = ref.read(outfitsProvider.notifier);
+      final backgroundId = _resolveBackground().toSend;
       final outfit = await performTryOn(
         ids,
         groupId: widget.targetGroupId,
-        backgroundId: _backgroundCustomized || _initialBackground != null
-            ? _background.backgroundId
-            : null,
+        backgroundId: backgroundId,
         adjustments: _effectiveAdjustments(),
         onLandedAfterLeave: (_) => unawaited(outfits.refresh()),
         confirmRetryWhileUnknown: () => showRetryWhileUnknownDialog(context),
@@ -534,6 +532,14 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       } else if (tryOnResultUrl != null) {
         await _showTryOnResult(ids);
       } else if (tryOnErrorMessage != null) {
+        if (tryOnErrorCode == backgroundNotFoundErrorCode) {
+          // Deleted after the list loaded: reload it, and drop a pick of it.
+          ref.invalidate(backgroundsProvider);
+          setState(() {
+            if (backgroundId != null) _goneBackgroundIds.add(backgroundId);
+            _pickedBackgroundId = null;
+          });
+        }
         showErrorDialog(context, message: tryOnErrorMessage!);
         resetTryOnState();
       }
@@ -583,11 +589,131 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   /// A new version identical to its source would just be a re-render —
   /// Regenerate already covers that. Version mode starts with no
   /// adjustment picks, so any pick is a change.
-  bool get _isUnchangedVersion =>
-      _isVersionMode &&
-      setEquals(_selectedGarmentIds().toSet(), _initialGarmentIds) &&
-      _effectiveAdjustments().isEmpty &&
-      _background.id == (_initialBackground ?? BackgroundOption.all.first).id;
+  bool get _isUnchangedVersion {
+    if (!_isVersionMode) return false;
+    final background = _resolveBackground();
+    return setEquals(_selectedGarmentIds().toSet(), _initialGarmentIds) &&
+        _effectiveAdjustments().isEmpty &&
+        background.shown?.id == background.starting?.id;
+  }
+
+  /// The list for the displayed language (its labels follow it).
+  FutureProvider<List<BackgroundOption>> get _backgroundsSource =>
+      backgroundsFor(context);
+
+  /// One read of the list: what the picker offers, what the field shows and
+  /// what generate sends. Sent is always what's shown — the Fitting Room
+  /// default included. Only until the list is in does version mode send its
+  /// source's background unseen: a slow or failed list is no reason to lose
+  /// that scene, and a deleted one comes back as BACKGROUND_NOT_FOUND.
+  _BackgroundChoice _resolveBackground() {
+    final loaded = ref.read(_backgroundsSource).value;
+    final visible = loaded == null
+        ? null
+        : [
+            for (final b in loaded)
+              if (!_goneBackgroundIds.contains(b.id)) b,
+          ];
+    BackgroundOption? byId(int? id) =>
+        id == null ? null : visible?.where((b) => b.id == id).firstOrNull;
+    final starting =
+        byId(widget.initialBackgroundId) ??
+        (visible == null ? null : defaultBackground(visible));
+    final shown = byId(_pickedBackgroundId) ?? starting;
+    final initial = widget.initialBackgroundId;
+    final toSend = visible != null
+        ? shown?.id
+        : _pickedBackgroundId ??
+              (initial != null && !_goneBackgroundIds.contains(initial)
+                  ? initial
+                  : null);
+    return (visible: visible, shown: shown, starting: starting, toSend: toSend);
+  }
+
+  /// Waits for the list only when there's none yet (a failed refresh keeps
+  /// the one already shown); the guard covers that wait.
+  Future<void> _openBackgroundPicker() async {
+    if (_backgroundPickerInFlight) return;
+    _backgroundPickerInFlight = true;
+    try {
+      if (_resolveBackground().visible == null) {
+        try {
+          await ref.read(_backgroundsSource.future);
+        } on AuthExpiredException {
+          if (!mounted) return;
+          await AuthExpiredHandler.handle(context);
+          return;
+        } on SessionChangedException {
+          return;
+        } catch (e) {
+          debugLog('CreateOutfitPage._openBackgroundPicker failed: $e');
+          if (mounted) _showBackgroundsLoadFailed(e);
+          return;
+        }
+      }
+      // A render started during the wait owns the screen now.
+      if (!mounted || isOutfitLoading) return;
+      final background = _resolveBackground();
+      final visible = background.visible ?? const [];
+      if (visible.isEmpty) {
+        _showBackgroundsLoadFailed(null);
+        return;
+      }
+      final picked = await showBackgroundPickerSheet(
+        context,
+        options: visible,
+        selectedId: background.shown?.id,
+        onRefreshImageUrl: _refreshBackgroundImageUrl,
+      );
+      if (picked == null || !mounted || isOutfitLoading) return;
+      setState(() => _pickedBackgroundId = picked.id);
+    } finally {
+      _backgroundPickerInFlight = false;
+    }
+  }
+
+  /// [error] null: the list loaded but holds nothing to offer.
+  void _showBackgroundsLoadFailed(Object? error) {
+    showErrorDialog(
+      context,
+      message: error == null
+          ? _l10n.backgroundsLoadFailed
+          : apiErrorMessage(
+              _l10n,
+              error,
+              fallback: _l10n.backgroundsLoadFailed,
+            ),
+      onRetry: () {
+        // Runs after the dialog closes; the page may be gone by then.
+        if (!mounted) return;
+        ref.invalidate(_backgroundsSource);
+        _openBackgroundPicker();
+      },
+    );
+  }
+
+  Future<String?> _refreshBackgroundImageUrl(
+    BackgroundOption background,
+  ) async {
+    if (!mounted) return null;
+    try {
+      final backgrounds = await (_backgroundRefresh ??= ref
+          .refresh(_backgroundsSource.future)
+          .whenComplete(() => _backgroundRefresh = null));
+      return backgrounds
+          .where((b) => b.id == background.id)
+          .firstOrNull
+          ?.imageUrl;
+    } on AuthExpiredException {
+      if (mounted) await AuthExpiredHandler.handle(context);
+      return null;
+    } on SessionChangedException {
+      return null;
+    } catch (e) {
+      debugLog('CreateOutfitPage._refreshBackgroundImageUrl failed: $e');
+      return null;
+    }
+  }
 
   AppToolBar _buildAppBar() {
     return AppToolBar(
@@ -615,6 +741,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
   Widget build(BuildContext context) {
     // _garmentPool / _garmentPoolLoading read it via ref.read.
     ref.watch(garmentsProvider);
+    // The background getters read it via ref.read; loaded up front so the
+    // picker opens at once.
+    ref.watch(_backgroundsSource);
     // Also prefetches, so Adjust Details opens without a wait.
     final adjustmentTable = ref.watch(_adjustmentOptions).value;
     // A system back mid-render takes the same Stop Waiting confirm.
@@ -700,13 +829,9 @@ class _CreateOutfitPageState extends ConsumerState<CreateOutfitPage>
       _hInset(const AppDivider(spacing: AppDimens.sectionSpacing)),
       _hInset(
         OutfitBackgroundField(
-          selected: _background,
-          onSelected: isOutfitLoading
-              ? null
-              : (background) => setState(() {
-                  _background = background;
-                  _backgroundCustomized = true;
-                }),
+          selected: _resolveBackground().shown,
+          isLoading: ref.read(_backgroundsSource).isLoading,
+          onTap: isOutfitLoading ? null : _openBackgroundPicker,
         ),
       ),
     ];
@@ -1586,3 +1711,12 @@ class _ReferenceLookCard extends StatelessWidget {
     );
   }
 }
+
+/// See [_CreateOutfitPageState._resolveBackground]. [visible] is null while the
+/// list loads or after it failed to; so are [shown] and [starting].
+typedef _BackgroundChoice = ({
+  List<BackgroundOption>? visible,
+  BackgroundOption? shown,
+  BackgroundOption? starting,
+  int? toSend,
+});

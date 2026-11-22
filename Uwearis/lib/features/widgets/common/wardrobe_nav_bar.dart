@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'nav_bar_tab.dart';
@@ -196,7 +197,7 @@ class _WardrobeNavBarState extends State<WardrobeNavBar> {
       barrierDismissible: true,
       barrierLabel: l10n.quickActions,
       barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 150),
+      transitionDuration: AppDurations.fast,
       pageBuilder: (context, _, _) => SafeArea(
         child: Align(
           alignment: Alignment.bottomCenter,

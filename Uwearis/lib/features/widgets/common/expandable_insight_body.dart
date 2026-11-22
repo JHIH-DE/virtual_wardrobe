@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_durations.dart';
 import '../../../app/theme/app_text_styles.dart';
 import 'expand_arrow_icon.dart';
 
@@ -41,7 +42,7 @@ class ExpandableInsightBody extends StatelessWidget {
             ],
           ),
           AnimatedCrossFade(
-            duration: const Duration(milliseconds: 150),
+            duration: AppDurations.fast,
             crossFadeState: expanded
                 ? CrossFadeState.showFirst
                 : CrossFadeState.showSecond,
