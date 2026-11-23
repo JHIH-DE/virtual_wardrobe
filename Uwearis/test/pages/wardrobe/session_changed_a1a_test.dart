@@ -23,6 +23,7 @@ import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
 import '../../helpers/seeded_notifiers.dart';
+import 'package:uwearis/data/outfit_group.dart';
 
 // Finding #1, batch A1-a: Outfit / Garment Details actions whose reply
 // lands after their session ended get SessionChangedException. Each entry
@@ -37,15 +38,16 @@ class _FakeOutfits extends OutfitsNotifier {
   final List<Outfit> _seed;
 
   @override
-  Future<List<Outfit>> build() async => _seed;
+  Future<List<OutfitGroup>> build() async =>
+      _seed.map(singleVersionGroup).toList();
 
   @override
   Future<void> refresh() async => _outfitWrites.add('refresh');
 
   @override
-  void removeOutfit(int id) {
-    _outfitWrites.add('removeOutfit $id');
-    super.removeOutfit(id);
+  void removeGroup(int groupId) {
+    _outfitWrites.add('removeGroup $groupId');
+    super.removeGroup(groupId);
   }
 
   @override
@@ -194,7 +196,7 @@ const _savedGarment = Garment(
 );
 
 List<Outfit> _outfitsIn(ProviderContainer c) =>
-    c.read(outfitsProvider).value ?? const [];
+    outfitGroupCovers(c.read(outfitsProvider).value ?? const []);
 
 /// No removal or rename reached My Outfits.
 void _expectNoOutfitWrites(ProviderContainer c) {
@@ -386,7 +388,7 @@ final _entries = <_Entry>[
     rolledBack: (tester, c) {
       expect(find.text('Renamed'), findsNothing, reason: 'title unchanged');
       _expectNoOutfitWrites(c);
-      expect(_outfitsIn(c).single.groupName, isNull);
+      expect(c.read(outfitsProvider).value!.single.name, isNull);
     },
   ),
   _Entry(

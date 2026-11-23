@@ -429,6 +429,48 @@ abstract class AppLocalizations {
   /// **'{min}–{max}°C'**
   String temperatureBandRange(String min, String max);
 
+  /// No description provided for @temperatureBandNameFreezing.
+  ///
+  /// In en, this message translates to:
+  /// **'Freezing'**
+  String get temperatureBandNameFreezing;
+
+  /// No description provided for @temperatureBandNameCold.
+  ///
+  /// In en, this message translates to:
+  /// **'Cold'**
+  String get temperatureBandNameCold;
+
+  /// No description provided for @temperatureBandNameChilly.
+  ///
+  /// In en, this message translates to:
+  /// **'Chilly'**
+  String get temperatureBandNameChilly;
+
+  /// No description provided for @temperatureBandNameCool.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool'**
+  String get temperatureBandNameCool;
+
+  /// No description provided for @temperatureBandNameMild.
+  ///
+  /// In en, this message translates to:
+  /// **'Mild'**
+  String get temperatureBandNameMild;
+
+  /// No description provided for @temperatureBandNameWarm.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm'**
+  String get temperatureBandNameWarm;
+
+  /// No description provided for @temperatureBandNameHot.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot'**
+  String get temperatureBandNameHot;
+
   /// No description provided for @styleTasteDetailsLabel.
   ///
   /// In en, this message translates to:
@@ -674,18 +716,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add Version'**
   String get addVersionTitle;
-
-  /// No description provided for @versionLimitReachedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Version limit reached'**
-  String get versionLimitReachedTitle;
-
-  /// No description provided for @versionLimitReachedBody.
-  ///
-  /// In en, this message translates to:
-  /// **'You can keep up to 10 versions for each outfit. Delete a version to create a new one.'**
-  String get versionLimitReachedBody;
 
   /// No description provided for @createOutfit.
   ///
@@ -2673,17 +2703,59 @@ abstract class AppLocalizations {
   /// **'Select Your City'**
   String get selectYourCityHint;
 
-  /// No description provided for @seasonLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Season'**
-  String get seasonLabel;
-
   /// No description provided for @styleLabel.
   ///
   /// In en, this message translates to:
   /// **'Style'**
   String get styleLabel;
+
+  /// No description provided for @outfitVersionsClearFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Filter'**
+  String get outfitVersionsClearFilter;
+
+  /// No description provided for @outfitTemperatureLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Suitable Temperature'**
+  String get outfitTemperatureLabel;
+
+  /// No description provided for @outfitTemperatureLowest.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowest'**
+  String get outfitTemperatureLowest;
+
+  /// No description provided for @outfitTemperatureHighest.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest'**
+  String get outfitTemperatureHighest;
+
+  /// No description provided for @outfitTemperatureNoLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'No limit'**
+  String get outfitTemperatureNoLimit;
+
+  /// No description provided for @outfitTemperatureResetAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get outfitTemperatureResetAuto;
+
+  /// No description provided for @outfitTemperatureAutoPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Will be recalculated from the garments.'**
+  String get outfitTemperatureAutoPending;
+
+  /// No description provided for @outfitTemperatureCustomize.
+  ///
+  /// In en, this message translates to:
+  /// **'Set My Own'**
+  String get outfitTemperatureCustomize;
 
   /// No description provided for @styleAuto.
   ///

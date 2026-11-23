@@ -357,8 +357,9 @@ void main() {
     }, () => backend.client);
 
     OutfitsNotifier notifier() => container.read(outfitsProvider.notifier);
-    List<int> ids() =>
-        container.read(outfitsProvider).value!.map((o) => o.id).toList();
+    List<int> ids() => outfitGroupCovers(
+      container.read(outfitsProvider).value!,
+    ).map((o) => o.id).toList();
 
     Future<({Future<void> done})> heldRefresh() async {
       backend.hold = true;
@@ -371,7 +372,7 @@ void main() {
       return run(() async {
         final refresh = (await heldRefresh()).done;
         backend.items.removeAt(0);
-        notifier().removeOutfit(1);
+        notifier().removeGroup(1);
 
         await backend.release([0]);
         await refresh;
@@ -383,13 +384,20 @@ void main() {
     test('an outfit edit made while a refresh is in flight survives it', () {
       return run(() async {
         final refresh = (await heldRefresh()).done;
-        final current = container.read(outfitsProvider).value!.first;
+        final current = outfitGroupCovers(
+          container.read(outfitsProvider).value!,
+        ).first;
         notifier().updateOutfitFavorite(current.id, isFavorite: true);
 
         await backend.release([0]);
         await refresh;
 
-        expect(container.read(outfitsProvider).value!.first.isFavorite, isTrue);
+        expect(
+          outfitGroupCovers(
+            container.read(outfitsProvider).value!,
+          ).first.isFavorite,
+          isTrue,
+        );
       });
     });
 
@@ -401,10 +409,7 @@ void main() {
         await backend.release([0]);
         await refresh;
 
-        expect(
-          container.read(outfitsProvider).value!.last.groupName,
-          'Weekend',
-        );
+        expect(container.read(outfitsProvider).value!.last.name, 'Weekend');
       });
     });
 
@@ -718,7 +723,9 @@ void main() {
         container = ProviderContainer();
         addTearDown(container.dispose);
         container.listen(outfitsProvider, (_, _) {});
-        final shown = (await container.read(outfitsProvider.future)).first;
+        final shown = (await container.read(
+          outfitsProvider.future,
+        )).first.cover!;
         final outfits = container.read(outfitsProvider.notifier);
 
         // The old URL expired, so the page re-fetches...
@@ -733,7 +740,9 @@ void main() {
         await backend.release([0]);
         await refresh;
 
-        final o = container.read(outfitsProvider).value!.single;
+        final o = outfitGroupCovers(
+          container.read(outfitsProvider).value!,
+        ).single;
         expect(o.isFavorite, isTrue);
         expect(o.imageUrl, 'https://new/1');
       }, () => backend.client);

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../data/garment_adjustment.dart';
 import '../../data/outfit.dart';
+import '../../data/outfit_group.dart';
 import '../../data/try_on_generation.dart';
 import '../config/app_config.dart';
 import '../utils/analytics.dart';
@@ -15,8 +16,8 @@ import 'base_service.dart';
 import 'points_service.dart';
 
 /// OutfitGroup + Outfit API. Every outfit lives in a group; `generate`
-/// creates and renders in one synchronous call. [getAllOutfits] and
-/// [getOutfitsByGarments] return flat lists.
+/// creates and renders in one synchronous call. [getAllOutfitGroups] returns
+/// whole groups; [getOutfitsByGarments] a flat list of versions.
 ///
 /// Singleton only for [_groupCache]; every mutation invalidates its group.
 class OutfitService with BaseService {
@@ -25,7 +26,7 @@ class OutfitService with BaseService {
   factory OutfitService() => _instance;
   OutfitService._internal();
 
-  final Map<int, List<Outfit>> _groupCache = {};
+  final Map<int, OutfitGroup> _groupCache = {};
 
   static final StreamController<void> _garmentLinkChanges =
       StreamController<void>.broadcast();
@@ -87,12 +88,12 @@ class OutfitService with BaseService {
   /// Every group of [type], walking all pages of [size] (the backend's max
   /// is 100). A failed or malformed page fails the whole call — never a
   /// partial list.
-  Future<List<Outfit>> getAllOutfits({
+  Future<List<OutfitGroup>> getAllOutfitGroups({
     String type = 'general',
     int size = 100,
     String? sort,
   }) async {
-    debugLog('--- getAllOutfits: type=$type size=$size sort=$sort ---');
+    debugLog('--- getAllOutfitGroups: type=$type size=$size sort=$sort ---');
     // `total` counts groups, empty ones included, so paging compares it
     // with groups seen — not with the outfits returned.
     final groups = <Map<String, dynamic>>[];
@@ -112,11 +113,11 @@ class OutfitService with BaseService {
             .timeout(const Duration(seconds: 15)),
         retryOnTimeout: true,
       );
-      final envelope = decodeMap(res, op: 'getAllOutfits');
+      final envelope = decodeMap(res, op: 'getAllOutfitGroups');
       final data = envelope['data'];
       final items = data is Map<String, dynamic> ? data['items'] : null;
       if (items is! List) {
-        throw Exception('getAllOutfits: response missing items list');
+        throw Exception('getAllOutfitGroups: response missing items list');
       }
 
       // Offset paging over `created_at` alone: a group created or deleted
@@ -139,36 +140,15 @@ class OutfitService with BaseService {
         break;
       }
       if (page >= _maxOutfitPages) {
-        throw Exception('getAllOutfits: more than $_maxOutfitPages pages');
+        throw Exception('getAllOutfitGroups: more than $_maxOutfitPages pages');
       }
     }
 
-    // One representative per group; it carries the group's real version
-    // count (Outfit.versionCount) for totals like Style Taste's stat.
-    final outfits = <Outfit>[];
-    for (final group in groups) {
-      final groupOutfits = group['outfits'];
-      if (groupOutfits is List) {
-        final parsed = groupOutfits
-            .whereType<Map<String, dynamic>>()
-            .map(Outfit.fromJson)
-            .toList();
-        if (parsed.isEmpty) continue;
-        final coverOutfitId = (group['cover_outfit_id'] as num?)?.toInt();
-        final groupName = group['name'] as String?;
-        final representative = groupRepresentative(parsed, coverOutfitId);
-        outfits.add(
-          representative.copyWith(
-            versionCount: parsed.length,
-            coverOutfitId: coverOutfitId,
-            clearCoverOutfitId: coverOutfitId == null,
-            groupName: groupName,
-            clearGroupName: groupName == null,
-          ),
-        );
-      }
-    }
-    return outfits;
+    return [
+      for (final group in groups)
+        if (OutfitGroup.fromJson(group) case final g when g.versions.isNotEmpty)
+          g,
+    ];
   }
 
   /// A runaway backstop (10,000 groups at size 100), not a product limit.
@@ -385,6 +365,7 @@ class OutfitService with BaseService {
     String? name,
     List<String>? style,
     List<String>? season,
+    OutfitTemperatureEdit? suitableTemperature,
   }) async {
     debugLog('--- updateOutfit: groupId=$groupId outfitId=$outfitId ---');
     final uri = Uri.parse('$_baseUrl/$groupId/$outfitId');
@@ -393,6 +374,11 @@ class OutfitService with BaseService {
       'name': ?name,
       'style': ?style,
       'season': ?season,
+      // The backend takes both or neither; two nulls = back to automatic.
+      if (suitableTemperature != null) ...{
+        'suitable_temp_min_c': suitableTemperature.minC,
+        'suitable_temp_max_c': suitableTemperature.maxC,
+      },
     };
     final res = await withAuth(
       (token) => http
@@ -423,20 +409,20 @@ class OutfitService with BaseService {
     _garmentLinkChanges.add(null);
   }
 
-  /// Every version in [groupId]. Served from [_groupCache] unless an image
-  /// URL has expired.
-  /// [forceRefresh] skips the cache, e.g. to see whether a render that timed
-  /// out on the client has since landed.
-  Future<List<Outfit>> getGroupOutfits(
+  /// [groupId] with every version. Served from [_groupCache] unless an
+  /// image URL in it has expired. [forceRefresh] skips the cache, e.g. to see
+  /// whether a render that timed out on the client has since landed.
+  Future<OutfitGroup> getOutfitGroup(
     int groupId, {
     bool forceRefresh = false,
   }) async {
     final cached = forceRefresh ? null : _groupCache[groupId];
-    if (cached != null && !anySignedUrlExpired(cached.map((o) => o.imageUrl))) {
+    if (cached != null &&
+        !anySignedUrlExpired(cached.versions.map((o) => o.imageUrl))) {
       return cached;
     }
 
-    debugLog('--- getGroupOutfits: groupId=$groupId ---');
+    debugLog('--- getOutfitGroup: groupId=$groupId ---');
     final uri = Uri.parse('$_baseUrl/$groupId');
     final res = await withAuth(
       (token) => http
@@ -444,36 +430,18 @@ class OutfitService with BaseService {
           .timeout(const Duration(seconds: 15)),
       retryOnTimeout: true,
     );
-    final envelope = decodeMap(res, op: 'getGroupOutfits');
+    final envelope = decodeMap(res, op: 'getOutfitGroup');
     final data = envelope['data'];
-    final outfits = data is Map<String, dynamic> ? data['outfits'] : null;
-    if (outfits is! List) {
-      throw Exception('getGroupOutfits: response missing outfits list');
+    if (data is! Map<String, dynamic> || data['outfits'] is! List) {
+      throw Exception('getOutfitGroup: response missing outfits list');
     }
-    final coverOutfitId = data is Map<String, dynamic>
-        ? (data['cover_outfit_id'] as num?)?.toInt()
-        : null;
-    final groupName = data is Map<String, dynamic>
-        ? data['name'] as String?
-        : null;
-    final result = outfits
-        .whereType<Map<String, dynamic>>()
-        .map(Outfit.fromJson)
-        .map(
-          (o) => o.copyWith(
-            coverOutfitId: coverOutfitId,
-            clearCoverOutfitId: coverOutfitId == null,
-            groupName: groupName,
-            clearGroupName: groupName == null,
-          ),
-        )
-        .toList();
-    _groupCache[groupId] = result;
-    return result;
+    final group = OutfitGroup.fromJson(data, groupId: groupId);
+    _groupCache[groupId] = group;
+    return group;
   }
 
   /// Partial update. [coverOutfitId] is the group's representative in
-  /// [getAllOutfits] and must already be rendered.
+  /// [getAllOutfitGroups] and must already be rendered.
   Future<void> updateGroup(
     int groupId, {
     String? name,
@@ -494,7 +462,6 @@ class OutfitService with BaseService {
           .timeout(const Duration(seconds: 15)),
     );
     decodeMap(res, op: 'updateGroup');
-    // name/coverOutfitId are copied onto every cached Outfit.
     _groupCache.remove(groupId);
   }
 

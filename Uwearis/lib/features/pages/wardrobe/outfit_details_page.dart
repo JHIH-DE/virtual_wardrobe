@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ import '../../../core/utils/remaining_points.dart';
 import '../../../core/utils/try_on_request.dart';
 import '../../../data/garment.dart';
 import '../../../data/outfit.dart';
+import '../../../data/outfit_group.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_popup_menu.dart';
 import '../../widgets/common/app_tool_bar.dart';
@@ -33,7 +35,6 @@ import '../../widgets/common/carousel_dots_indicator.dart';
 import '../../widgets/common/images/fullscreen_image_viewer.dart';
 import '../../widgets/common/images/refreshable_network_image.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
-import '../../widgets/common/overlays/app_dialog.dart';
 import '../../widgets/common/overlays/confirm_dialog.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
@@ -50,12 +51,20 @@ import '../../widgets/outfit/outfit_tags_sheet.dart';
 import '../../widgets/outfit/outfit_title.dart';
 import 'create_outfit_page.dart';
 
-enum _OutfitMenuAction { rename, share, delete }
+enum _OutfitMenuAction { showAllVersions, rename, share, delete }
 
 enum _VersionMenuAction { setCover, regenerate, delete }
 
 class OutfitDetailsPage extends ConsumerStatefulWidget {
   final Outfit outfit;
+
+  /// [outfit]'s group when the caller already has it (the Outfits list):
+  /// every version shows at once instead of after a fetch.
+  final OutfitGroup? group;
+
+  /// Set when opened from a filtered Outfits list (with [group]): only the
+  /// versions it accepts show, until the menu's Clear Filter.
+  final bool Function(Outfit version)? versionFilter;
 
   /// Freshly rendered from Add Outfit: shows a "Save" action, and leaving
   /// before saving prompts (Don't Save deletes the whole group).
@@ -68,6 +77,8 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
   const OutfitDetailsPage({
     super.key,
     required this.outfit,
+    this.group,
+    this.versionFilter,
     this.isNew = false,
     this.showEditOutfitWhenSaved = true,
   });
@@ -120,19 +131,43 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   static const int _maxVersions = 10;
   int _currentIndex = 0;
-  final PageController _pageController = PageController();
+  late final PageController _pageController = PageController(
+    initialPage: _currentIndex,
+  );
 
   // False until [_loadGroupOutfits] resolves, so the counter / version-only
   // menu items don't pop in after a single-version first render.
   bool _versionsResolved = false;
 
+  /// Ids of the versions in the carousel when [OutfitDetailsPage.
+  /// versionFilter] hides some; null shows all. Versions added here join it,
+  /// and an edited version stays until the page closes.
+  Set<int>? _shownIds;
+
+  /// The carousel's versions; [_currentIndex] indexes this. Version limits,
+  /// cover and delete still go by the whole group in [_versions].
+  List<Outfit> get _shown => _shownIds == null
+      ? _versions
+      : [
+          for (final v in _versions)
+            if (_shownIds!.contains(v.id)) v,
+        ];
+
   /// The version shown in the carousel; photo, favorite, garments and the
   /// version actions apply to it.
-  Outfit get _current => _versions[_currentIndex];
+  Outfit get _current => _shown[_currentIndex];
 
-  /// The group's representative (same pick as [OutfitService.getAllOutfits]),
+  /// [_current]'s position in [_versions].
+  int get _currentVersionIndex =>
+      _versions.indexWhere((v) => v.id == _current.id);
+
+  // Group-level, from [OutfitDetailsPage.group] or the group fetch.
+  String? _groupName;
+  int? _coverOutfitId;
+
+  /// The group's representative (same pick as [OutfitGroup.cover]),
   /// so the title doesn't change per swipe.
-  Outfit get _primary => groupRepresentative(_versions, _current.coverOutfitId);
+  Outfit get _primary => groupRepresentative(_versions, _coverOutfitId);
 
   List<String> get _effectiveSeasons => _current.seasons;
   List<String> get _effectiveStyle => _current.style;
@@ -141,11 +176,36 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   /// app-bar Delete already covers deleting the group.
   bool get _hasMultipleVersions => _versionsResolved && _versions.length >= 2;
 
+  bool get _atVersionLimit => _versions.length >= _maxVersions;
+
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   @override
   void initState() {
     super.initState();
+    final group = widget.group;
+    if (!widget.isNew && group != null && group.versions.isNotEmpty) {
+      final versions = group.versions;
+      _groupName = group.name;
+      _coverOutfitId = group.coverOutfitId;
+      _versions
+        ..clear()
+        ..addAll(versions);
+      final filter = widget.versionFilter;
+      if (filter != null) {
+        final ids = {
+          widget.outfit.id,
+          for (final v in versions)
+            if (filter(v)) v.id,
+        };
+        if (ids.length < versions.length) _shownIds = ids;
+      }
+      _currentIndex = math.max(
+        0,
+        _shown.indexWhere((o) => o.id == widget.outfit.id),
+      );
+      _versionsResolved = true;
+    }
     if (widget.outfit.garmentIds.isNotEmpty) _loadGarments();
     if (widget.isNew) {
       _isResolvingSavedStatus = !widget.showEditOutfitWhenSaved;
@@ -164,20 +224,29 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   Future<void> _loadGroupOutfits() async {
     try {
-      final outfits = await OutfitService().getGroupOutfits(
-        widget.outfit.groupId,
-      );
+      final group = await OutfitService().getOutfitGroup(widget.outfit.groupId);
+      final outfits = group.versions;
       if (!mounted) return;
       if (outfits.isEmpty) {
         setState(() => _versionsResolved = true);
         return;
       }
-      // Order isn't guaranteed; stay on the version the page opened with.
-      final matchedIndex = outfits.indexWhere((o) => o.id == widget.outfit.id);
+      // Order isn't guaranteed; stay on the version showing.
+      final currentId = _current.id;
+      final filter = widget.versionFilter;
       setState(() {
+        _groupName = group.name;
+        _coverOutfitId = group.coverOutfitId;
         _versions
           ..clear()
           ..addAll(outfits);
+        if (_shownIds != null && filter != null) {
+          _shownIds!.addAll([
+            for (final v in outfits)
+              if (filter(v)) v.id,
+          ]);
+        }
+        final matchedIndex = _shown.indexWhere((o) => o.id == currentId);
         _currentIndex = matchedIndex >= 0 ? matchedIndex : 0;
         _versionsResolved = true;
       });
@@ -243,6 +312,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   AppToolBar _buildAppBar() {
     final items = [
+      if (_shownIds != null)
+        AppPopupMenu.item(
+          value: _OutfitMenuAction.showAllVersions,
+          icon: const Icon(
+            Icons.filter_alt_off_outlined,
+            size: 20,
+            color: AppColors.icon,
+          ),
+          label: _l10n.outfitVersionsClearFilter,
+        ),
       if (_isSaved)
         AppPopupMenu.item(
           value: _OutfitMenuAction.rename,
@@ -292,6 +371,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   void _handleMenuAction(_OutfitMenuAction action) {
     switch (action) {
+      case _OutfitMenuAction.showAllVersions:
+        _showAllVersions();
+        break;
       case _OutfitMenuAction.rename:
         _showRenameDialog();
         break;
@@ -323,13 +405,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   /// Opens Add Outfit in version mode on this version's garments and
   /// background; the version it renders is swiped into view here.
-  /// At [_maxVersions] the pill stays and explains the limit instead.
+  /// At [_maxVersions] the pill is disabled.
   Future<void> _openCreateAnotherVersion() async {
-    if (_isAddingVersion) return;
-    if (_versions.length >= _maxVersions) {
-      await _showVersionLimitDialog();
-      return;
-    }
+    if (_isAddingVersion || _atVersionLimit) return;
     setState(() => _isAddingVersion = true);
     final outfit = await Navigator.push<Outfit>(
       context,
@@ -352,7 +430,8 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     final outfits = ref.read(outfitsProvider.notifier);
     setState(() {
       _versions.add(outfit);
-      _currentIndex = _versions.length - 1;
+      _shownIds?.add(outfit.id);
+      _currentIndex = _shown.length - 1;
     });
     _loadGarments();
     if (_pageController.hasClients) {
@@ -365,20 +444,11 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     await outfits.refresh();
   }
 
-  Future<void> _showVersionLimitDialog() {
-    return showDialog<void>(
-      context: context,
-      builder: (ctx) => AppDialog(
-        title: _l10n.versionLimitReachedTitle,
-        body: _l10n.versionLimitReachedBody,
-      ),
-    );
-  }
-
   Widget _buildInfoCard() {
     return OutfitTagsHeader(
-      seasons: _effectiveSeasons,
       style: _effectiveStyle,
+      temperatureMinC: _current.suitableTempMinC,
+      temperatureMaxC: _current.suitableTempMaxC,
       onEdit: _isSavingTags ? null : _openEditTagsSheet,
     );
   }
@@ -388,20 +458,21 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   Future<void> _openEditTagsSheet() async {
     if (_isSavingTags) return;
     final target = _current;
-    final index = _currentIndex;
-    final tags = await showOutfitTagsSheet(context, target);
-    if (tags == null || !mounted) return;
-    await _saveTags(index, target, seasons: tags.seasons, styles: tags.style);
+    final index = _currentVersionIndex;
+    final edits = await showOutfitTagsSheet(context, target);
+    if (edits == null || !mounted) return;
+    await _saveTags(index, target, edits);
   }
 
   /// Optimistic; a failure rolls back to [target] and offers Retry.
-  Future<void> _saveTags(
-    int index,
-    Outfit target, {
-    required List<String> seasons,
-    required List<String> styles,
-  }) async {
-    final updated = target.copyWith(seasons: seasons, style: styles);
+  Future<void> _saveTags(int index, Outfit target, OutfitTagEdits edits) async {
+    final updated = target.copyWith(
+      style: edits.style,
+      suitableTemperature: optimisticOutfitTemperature(
+        target,
+        edits.temperature,
+      ),
+    );
     // Read before the await so the sync still lands if the page is popped
     // meanwhile. Each is a no-op when it doesn't hold this version.
     final outfits = ref.read(outfitsProvider.notifier);
@@ -420,14 +491,27 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
     var retry = false;
     try {
-      await OutfitService().updateOutfit(
+      final saved = await OutfitService().updateOutfit(
         target.groupId,
         target.id,
-        season: seasons,
-        style: styles,
+        style: edits.style,
+        suitableTemperature: edits.temperature,
       );
-      outfits.updateOutfitTags(target.id, seasons: seasons, style: styles);
-      dailyOutfits.updateOutfit(updated);
+      // Going back to automatic is only known from the reply.
+      final settled = updated.copyWith(
+        suitableTemperature: saved.suitableTemperature,
+      );
+      if (mounted &&
+          index < _versions.length &&
+          identical(_versions[index], updated)) {
+        setState(() => _versions[index] = settled);
+      }
+      outfits.updateOutfitTags(
+        target.id,
+        style: edits.style,
+        suitableTemperature: settled.suitableTemperature,
+      );
+      dailyOutfits.updateOutfit(settled);
     } on AuthExpiredException {
       if (!mounted) return;
       setState(rollBack);
@@ -448,9 +532,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (mounted) setState(() => _isSavingTags = false);
     }
     // After the finally, or it would clear _isSavingTags under the retry.
-    if (retry && mounted) {
-      await _saveTags(index, target, seasons: seasons, styles: styles);
-    }
+    if (retry && mounted) await _saveTags(index, target, edits);
   }
 
   void _shareOutfit() {
@@ -467,9 +549,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     );
   }
 
-  Future<String?> _refreshImageUrlFor(int index) async {
-    if (index >= _versions.length) return null;
-    final outfit = _versions[index];
+  Future<String?> _refreshImageUrlFor(Outfit outfit) async {
     final fresh = await fetchFreshOutfitImageUrl(outfit.groupId, outfit.id);
     // By id: the list may have been reloaded or a version deleted meanwhile.
     final i = _versions.indexWhere((v) => v.id == outfit.id);
@@ -525,16 +605,13 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     }
   }
 
-  /// Group-level, so it's applied to every entry in [_versions].
   Future<void> _setCover() async {
     if (_isSettingCover) return;
     final target = _current;
-    final previous = List<Outfit>.from(_versions);
+    final previous = _coverOutfitId;
     setState(() {
       _isSettingCover = true;
-      for (var i = 0; i < _versions.length; i++) {
-        _versions[i] = _versions[i].copyWith(coverOutfitId: target.id);
-      }
+      _coverOutfitId = target.id;
     });
     try {
       await OutfitService().updateGroup(
@@ -544,28 +621,16 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       unawaited(ref.read(outfitsProvider.notifier).refresh());
     } on AuthExpiredException {
       if (!mounted) return;
-      setState(() {
-        _versions
-          ..clear()
-          ..addAll(previous);
-      });
+      setState(() => _coverOutfitId = previous);
       await AuthExpiredHandler.handle(context);
     } on SessionChangedException {
       // Its session ended meanwhile; whatever ended it owns the UI now.
       if (!mounted) return;
-      setState(() {
-        _versions
-          ..clear()
-          ..addAll(previous);
-      });
+      setState(() => _coverOutfitId = previous);
     } catch (e) {
       if (!mounted) return;
       debugLog('OutfitDetailsPage._setCover failed: $e');
-      setState(() {
-        _versions
-          ..clear()
-          ..addAll(previous);
-      });
+      setState(() => _coverOutfitId = previous);
       showErrorDialog(
         context,
         message: apiErrorMessage(_l10n, e, fallback: _l10n.outfitUpdateFailed),
@@ -607,7 +672,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     final key = retryingUnknown && !_regenerateStatusUnavailable
         ? _regenerateKey!
         : newIdempotencyKey();
-    final index = _currentIndex;
+    final index = _currentVersionIndex;
     // All read before the await: the page may be gone when it lands.
     final overlay = Overlay.of(context, rootOverlay: true);
     final points = ref.read(pointsProvider.notifier);
@@ -701,9 +766,9 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     setState(() => _currentIndex = index);
                     _loadGarments();
                   },
-                  itemCount: _versions.length,
+                  itemCount: _shown.length,
                   itemBuilder: (_, index) {
-                    final outfit = _versions[index];
+                    final outfit = _shown[index];
                     // Survives URL re-signing; versioned by _regenerateImage.
                     final cacheKey = outfit.displayImageCacheKey;
                     return GestureDetector(
@@ -711,7 +776,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                         context,
                         imageUrl: outfit.imageUrl,
                         cacheKey: cacheKey,
-                        onRefreshUrl: () => _refreshImageUrlFor(index),
+                        onRefreshUrl: () => _refreshImageUrlFor(outfit),
                       ),
                       child: RefreshableNetworkImage(
                         key: ValueKey(cacheKey),
@@ -719,7 +784,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                         cacheKey: cacheKey,
                         fit: BoxFit.cover,
                         errorLabel: _l10n.failedToLoadImage,
-                        onRefreshUrl: () => _refreshImageUrlFor(index),
+                        onRefreshUrl: () => _refreshImageUrlFor(outfit),
                       ),
                     );
                   },
@@ -739,7 +804,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                     bottom: 8,
                     child: AccentPillButton(
                       label: _l10n.addVersionButton,
-                      enabled: !_isAddingVersion,
+                      enabled: !_isAddingVersion && !_atVersionLimit,
                       onPressed: _openCreateAnotherVersion,
                     ),
                   ),
@@ -793,16 +858,25 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
   bool get _canAddVersion => _isSaved && widget.showEditOutfitWhenSaved;
 
   Widget _buildVersionIndicator() {
-    if (!_versionsResolved || _versions.length < 2) {
+    final shown = _shown;
+    if (!_versionsResolved || shown.length < 2) {
       return const SizedBox(height: AppDimens.sectionSpacing);
     }
     return Padding(
       padding: const EdgeInsets.only(top: 6, bottom: AppDimens.sectionSpacing),
       child: CarouselDotsIndicator(
-        count: _versions.length,
+        count: shown.length,
         currentIndex: _currentIndex,
       ),
     );
+  }
+
+  void _showAllVersions() {
+    setState(() {
+      _currentIndex = _currentVersionIndex;
+      _shownIds = null;
+    });
+    if (_pageController.hasClients) _pageController.jumpToPage(_currentIndex);
   }
 
   Widget _buildRegenerateBadge() {
@@ -1011,9 +1085,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     try {
       await OutfitService().deleteGroup(widget.outfit.groupId);
       if (!mounted) return;
-      for (final version in _versions) {
-        ref.read(outfitsProvider.notifier).removeOutfit(version.id);
-      }
+      ref.read(outfitsProvider.notifier).removeGroup(widget.outfit.groupId);
       Navigator.pop(context, false);
     } on AuthExpiredException {
       if (!mounted) return;
@@ -1048,9 +1120,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     setState(() => _isDeleting = true);
     try {
       await OutfitService().deleteGroup(widget.outfit.groupId);
-      for (final version in _versions) {
-        ref.read(outfitsProvider.notifier).removeOutfit(version.id);
-      }
+      ref.read(outfitsProvider.notifier).removeGroup(widget.outfit.groupId);
       final feedback = ref.read(outfitFeedbackProvider.notifier);
       if (mounted) Navigator.pop(context);
       feedback.state = OutfitFeedbackKind.deleted;
@@ -1095,15 +1165,17 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
       if (!mounted) return;
       setState(() {
         _versions.remove(target);
-        _currentIndex = _currentIndex.clamp(0, _versions.length - 1);
+        // The last shown version is gone: show the rest of the group.
+        if (_shownIds != null && _shown.isEmpty) _shownIds = null;
+        _currentIndex = _currentIndex.clamp(0, _shown.length - 1);
       });
       if (_pageController.hasClients) {
         _pageController.jumpToPage(_currentIndex);
       }
       _loadGarments();
-      // Not removeOutfit: if [target] was the group's card representative,
-      // the card must switch to another version, not disappear. Unawaited:
-      // the list re-fetch mustn't keep this page's actions disabled.
+      // Re-fetched so the card shows the backend's cover once [target] was
+      // it. Unawaited: the list re-fetch mustn't keep this page's actions
+      // disabled.
       unawaited(ref.read(outfitsProvider.notifier).refresh());
     } on AuthExpiredException {
       if (!mounted) return;
@@ -1124,7 +1196,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   String get _title => outfitDisplayTitle(
     _l10n,
-    groupName: _primary.groupName,
+    groupName: _groupName,
     name: _primary.name,
     seasons: _effectiveSeasons,
     style: _effectiveStyle,
@@ -1142,12 +1214,7 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
     try {
       await OutfitService().updateGroup(_primary.groupId, name: result);
       if (!mounted) return;
-      // Group-level: every version shares it.
-      setState(() {
-        for (var i = 0; i < _versions.length; i++) {
-          _versions[i] = _versions[i].copyWith(groupName: result);
-        }
-      });
+      setState(() => _groupName = result);
       ref
           .read(outfitsProvider.notifier)
           .updateGroupName(_primary.groupId, name: result);

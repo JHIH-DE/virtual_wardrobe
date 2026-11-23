@@ -33,6 +33,7 @@ import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
 import '../../helpers/seeded_notifiers.dart';
+import 'package:uwearis/data/outfit_group.dart';
 
 // Finding #1, batch A2 (provider futures): entry points that wait on a
 // provider's load before opening a page. A load that ends after its session
@@ -41,7 +42,7 @@ import '../../helpers/seeded_notifiers.dart';
 
 class _FakeOutfits extends OutfitsNotifier {
   @override
-  Future<List<Outfit>> build() async => const [];
+  Future<List<OutfitGroup>> build() async => const [];
 
   @override
   Future<void> refresh() async {}

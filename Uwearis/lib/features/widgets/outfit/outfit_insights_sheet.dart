@@ -229,7 +229,7 @@ class _OutfitInsightsSheetContentState
         ref
             .watch(outfitsProvider)
             .value
-            ?.fold<int>(0, (sum, o) => sum + o.versionCount) ??
+            ?.fold<int>(0, (sum, g) => sum + g.versionCount) ??
         0;
 
     return styleProfileAsync.when(

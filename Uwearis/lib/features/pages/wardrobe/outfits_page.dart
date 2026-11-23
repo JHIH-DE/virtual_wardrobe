@@ -8,11 +8,11 @@ import '../../../core/providers/outfits_provider.dart';
 import '../../../core/services/auth_handler.dart';
 import '../../../core/services/base_service.dart';
 import '../../../core/utils/debug_log.dart';
-import '../../../data/outfit.dart';
+import '../../../data/outfit_group.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/action_disc_button.dart';
-import '../../widgets/common/buttons/outfit_season_style_filter.dart';
+import '../../widgets/common/buttons/outfit_temperature_style_filter.dart';
 import '../../widgets/common/overlays/ai_consent_dialog.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
 import '../../widgets/common/overlays/feedback_overlay.dart';
@@ -31,7 +31,7 @@ class OutfitsPage extends ConsumerStatefulWidget {
 }
 
 class _OutfitsPageState extends ConsumerState<OutfitsPage> {
-  final _filter = OutfitSeasonStyleFilter();
+  final _filter = OutfitTemperatureStyleFilter();
 
   @override
   void initState() {
@@ -102,15 +102,15 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
     }
   }
 
-  AppToolBar _buildAppBar(List<Outfit> all) {
+  AppToolBar _buildAppBar(List<OutfitGroup> groups) {
     final l10n = AppLocalizations.of(context);
     return AppToolBar(
       title: l10n.navOutfits,
-      titleCount: _filter.apply(all).length,
+      titleCount: _filter.applyToGroups(groups).length,
       centerTitle: false,
       showBackButton: false,
       actions: [
-        if (all.isNotEmpty)
+        if (groups.isNotEmpty)
           ActionDiscButton(
             tooltip: l10n.outfitInsights,
             icon: const Icon(
@@ -120,7 +120,9 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
             ),
             onPressed: _openOutfitInsights,
           ),
-        _filter.buildButton(l10n, all, onChanged: () => setState(() {})),
+        _filter.buildButton(l10n, [
+          for (final g in groups) ...g.versions,
+        ], onChanged: () => setState(() {})),
       ],
     );
   }
@@ -133,14 +135,15 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final outfitsAsync = ref.watch(outfitsProvider);
+    final groupsAsync = ref.watch(outfitsProvider);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      appBar: _buildAppBar(outfitsAsync.value ?? []),
-      body: outfitsAsync.wardrobeTabBody(
+      appBar: _buildAppBar(groupsAsync.value ?? const []),
+      body: groupsAsync.wardrobeTabBody(
         onRetry: () => ref.read(outfitsProvider.notifier).refresh(),
-        data: (all) => OutfitGrid(
-          outfits: _filter.apply(all),
+        data: (groups) => OutfitGrid(
+          outfits: _filter.applyToGroups(groups),
+          groupNameOf: (o) => groupOf(o, groups)?.name,
           onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
           emptyIcon: Icons.style_outlined,
           emptyTitle: AppLocalizations.of(context).noOutfitsYet,
@@ -157,7 +160,11 @@ class _OutfitsPageState extends ConsumerState<OutfitsPage> {
           onOutfitTap: (outfit) => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => OutfitDetailsPage(outfit: outfit),
+              builder: (_) => OutfitDetailsPage(
+                outfit: outfit,
+                group: groupOf(outfit, groups),
+                versionFilter: _filter.versionFilter,
+              ),
             ),
           ),
         ),

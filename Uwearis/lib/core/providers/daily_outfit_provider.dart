@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/outfit.dart';
+import '../../data/outfit_group.dart';
 import '../services/api_exception.dart';
 import '../services/auth_handler.dart';
 import '../services/daily_outfit_service.dart';
@@ -144,7 +145,7 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
 
     // Same candidates the backend picks from: completed outfits with a
     // try-on image.
-    final outfits = await ref.read(outfitsProvider.future);
+    final outfits = outfitGroupCovers(await ref.read(outfitsProvider.future));
     if (!_isCurrent(generation)) return const [];
     final candidateIds =
         outfits
@@ -193,11 +194,11 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
     }
   }
 
-  static Map<int, String?>? _candidatesOf(List<Outfit>? outfits) =>
-      outfits == null
+  static Map<int, String?>? _candidatesOf(List<OutfitGroup>? groups) =>
+      groups == null
       ? null
       : {
-          for (final o in outfits)
+          for (final o in outfitGroupCovers(groups))
             if (o.status == 'completed' && o.imageUrl.isNotEmpty)
               o.id: o.resultImageCacheKey,
         };
@@ -310,24 +311,37 @@ class DailyOutfitNotifier extends AsyncNotifier<List<Outfit>> {
   }
 
   /// Optimistic tag update for Today's Outfit's tag sheet; syncs
-  /// [outfitsProvider] once saved. Rolls back and rethrows on failure.
+  /// [outfitsProvider] once saved. A null [temperature] leaves it as is.
+  /// Rolls back and rethrows on failure.
   Future<void> updateOutfitTags(
     Outfit target, {
-    required List<String> seasons,
     required List<String> style,
+    OutfitTemperatureEdit? temperature,
   }) async {
     final generation = _generation;
-    final updated = target.copyWith(seasons: seasons, style: style);
+    final updated = target.copyWith(
+      style: style,
+      suitableTemperature: optimisticOutfitTemperature(target, temperature),
+    );
     final outfits = ref.read(outfitsProvider.notifier);
     updateOutfit(updated);
     try {
-      await OutfitService().updateOutfit(
+      final saved = await OutfitService().updateOutfit(
         target.groupId,
         target.id,
-        season: seasons,
         style: style,
+        suitableTemperature: temperature,
       );
-      outfits.updateOutfitTags(target.id, seasons: seasons, style: style);
+      // Going back to automatic is only known from the reply.
+      final settled = updated.copyWith(
+        suitableTemperature: saved.suitableTemperature,
+      );
+      if (_isCurrent(generation)) updateOutfit(settled);
+      outfits.updateOutfitTags(
+        target.id,
+        style: style,
+        suitableTemperature: settled.suitableTemperature,
+      );
     } catch (_) {
       if (_isCurrent(generation)) updateOutfit(target);
       rethrow;

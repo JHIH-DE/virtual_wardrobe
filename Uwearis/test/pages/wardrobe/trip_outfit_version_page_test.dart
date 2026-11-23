@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/data/outfit_group.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_outfit_version_page.dart';
 import 'package:uwearis/features/widgets/common/carousel_dots_indicator.dart';
 
@@ -55,6 +56,7 @@ void main() {
     Outfit seed, {
     Set<int> packedGarmentIds = const {},
     Set<int> addedOutfitIds = const {},
+    OutfitGroup? group,
   }) async {
     tester.view.physicalSize = const Size(1000, 3000);
     tester.view.devicePixelRatio = 1.0;
@@ -71,6 +73,7 @@ void main() {
                 MaterialPageRoute(
                   builder: (_) => TripOutfitVersionPage(
                     outfit: seed,
+                    group: group,
                     packedGarmentIds: packedGarmentIds,
                     addedOutfitIds: addedOutfitIds,
                   ),
@@ -92,6 +95,30 @@ void main() {
     return () => popped;
   }
 
+  testWidgets('a group passed in shows every version at once, on the tapped '
+      'one, even if the group fetch fails', (tester) async {
+    Outfit version(int id) =>
+        Outfit(id: id, groupId: 41, imageUrl: '', garmentIds: const [1]);
+    // The group fetch fails, so whatever shows came from the group passed in.
+    final client = MockClient((_) async => http.Response('', 500));
+    await http.runWithClient(() async {
+      await pumpPage(
+        tester,
+        version(72),
+        group: OutfitGroup(
+          groupId: 41,
+          name: 'Layers',
+          versions: [version(71), version(72), version(73)],
+        ),
+      );
+      final dots = tester.widget<CarouselDotsIndicator>(
+        find.byType(CarouselDotsIndicator),
+      );
+      expect(dots.count, 3);
+      expect(dots.currentIndex, 1);
+    }, () => client);
+  });
+
   testWidgets(
     'swiping between versions moves the carousel dots and updates the garments, '
     'and Add to Trip pops with the version on screen',
@@ -101,6 +128,7 @@ void main() {
           return jsonResponse(
             envelope({
               'group_id': 40,
+              'name': 'Weekend Layers',
               'outfits': [
                 _outfitJson(65, 40, [1]),
                 // 99 isn't in the closet, so it can't be packed.
@@ -115,13 +143,7 @@ void main() {
       await http.runWithClient(() async {
         final popped = await pumpPage(
           tester,
-          Outfit(
-            id: 65,
-            groupId: 40,
-            groupName: 'Weekend Layers',
-            imageUrl: '',
-            garmentIds: const [1],
-          ),
+          Outfit(id: 65, groupId: 40, imageUrl: '', garmentIds: const [1]),
         );
 
         // Like Outfit Details: no visible toolbar title, the name opens the

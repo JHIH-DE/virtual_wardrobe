@@ -10,14 +10,20 @@ import 'outfit_title.dart';
 
 class OutfitCard extends StatelessWidget {
   final Outfit outfit;
+  final String? groupName;
   final VoidCallback onTap;
 
-  const OutfitCard({super.key, required this.outfit, required this.onTap});
+  const OutfitCard({
+    super.key,
+    required this.outfit,
+    this.groupName,
+    required this.onTap,
+  });
 
   /// Same title as Outfit Details shows.
   String _label(AppLocalizations l10n) => outfitDisplayTitle(
     l10n,
-    groupName: outfit.groupName,
+    groupName: groupName,
     name: outfit.name,
     seasons: outfit.seasons,
     style: outfit.style,

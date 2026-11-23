@@ -97,8 +97,9 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
                 ),
                 children: [
                   OutfitTagsHeader(
-                    seasons: current.seasons,
                     style: current.style,
+                    temperatureMinC: current.suitableTempMinC,
+                    temperatureMaxC: current.suitableTempMaxC,
                     onEdit: _isSavingTags ? null : () => _editTags(current),
                   ),
                   const SizedBox(height: 4),
@@ -188,17 +189,6 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
     );
   }
 
-  /// Daily outfits lack the group name; look it up in the Outfits list.
-  String? _groupNameFor(Outfit outfit, List<Outfit> outfits) {
-    if (outfit.groupName != null) return outfit.groupName;
-    for (final o in outfits) {
-      if (o.groupId == outfit.groupId && o.groupName != null) {
-        return o.groupName;
-      }
-    }
-    return null;
-  }
-
   void _onPageChanged(int index) {
     setState(() => _currentIndex = index);
     widget.onIndexChanged?.call(index);
@@ -241,20 +231,24 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
 
   Future<void> _editTags(Outfit target) async {
     if (_isSavingTags) return;
-    final tags = await showOutfitTagsSheet(context, target);
-    if (tags == null || !mounted) return;
-    await _saveTags(target, tags);
+    final edits = await showOutfitTagsSheet(context, target);
+    if (edits == null || !mounted) return;
+    await _saveTags(target, edits);
   }
 
   /// A failure rolls back (in [DailyOutfitNotifier.updateOutfitTags]) and
   /// offers Retry.
-  Future<void> _saveTags(Outfit target, OutfitTags tags) async {
+  Future<void> _saveTags(Outfit target, OutfitTagEdits edits) async {
     setState(() => _isSavingTags = true);
     var retry = false;
     try {
       await ref
           .read(dailyOutfitProvider.notifier)
-          .updateOutfitTags(target, seasons: tags.seasons, style: tags.style);
+          .updateOutfitTags(
+            target,
+            style: edits.style,
+            temperature: edits.temperature,
+          );
     } on AuthExpiredException {
       if (!mounted) return;
       await AuthExpiredHandler.handle(context);
@@ -273,7 +267,7 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
       if (mounted) setState(() => _isSavingTags = false);
     }
     // After the finally, or it would clear _isSavingTags under the retry.
-    if (retry && mounted) await _saveTags(target, tags);
+    if (retry && mounted) await _saveTags(target, edits);
   }
 
   Future<void> _toggleFavorite(Outfit target) async {
@@ -313,12 +307,8 @@ class _TodayOutfitPageState extends ConsumerState<TodayOutfitPage> {
       context,
       MaterialPageRoute(
         builder: (_) => OutfitDetailsPage(
-          outfit: outfit.copyWith(
-            groupName: _groupNameFor(
-              outfit,
-              ref.read(outfitsProvider).value ?? const [],
-            ),
-          ),
+          outfit: outfit,
+          group: groupOf(outfit, ref.read(outfitsProvider).value),
         ),
       ),
     );

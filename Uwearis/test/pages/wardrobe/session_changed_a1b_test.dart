@@ -30,6 +30,7 @@ import '../../helpers/mock_http.dart';
 import '../../helpers/scripted_auth_storage.dart';
 import '../../helpers/widget_harness.dart';
 import '../../helpers/seeded_notifiers.dart';
+import 'package:uwearis/data/outfit_group.dart';
 
 // Finding #1, batch A1-b: Home / Today / Trips / Settings actions whose
 // reply lands after their session ended get SessionChangedException. Each
@@ -52,7 +53,8 @@ class _FakeOutfits extends OutfitsNotifier {
   final List<Outfit> _seed;
 
   @override
-  Future<List<Outfit>> build() async => _seed;
+  Future<List<OutfitGroup>> build() async =>
+      _seed.map(singleVersionGroup).toList();
 
   @override
   Future<void> refresh() async {}
@@ -240,7 +242,7 @@ final _entries = <_Entry>[
     trigger: (tester) async {
       await tester.tap(find.byIcon(Icons.sell_outlined));
       await _settle(tester);
-      await tester.tap(find.text('Winter'));
+      await tester.tap(find.text('Classic'));
       await _settle(tester);
       await tester.tapAt(const Offset(10, 10)); // closing the sheet saves
       await _settle(tester);
@@ -250,8 +252,8 @@ final _entries = <_Entry>[
     okReply: () => jsonResponse(envelope({'outfit_id': 10, 'group_id': 1})),
     failure: find.text("Couldn't update this outfit. Please try again."),
     rolledBack: (tester, c) {
-      expect(find.text('Winter'), findsNothing, reason: 'tags');
-      expect(c.read(dailyOutfitProvider).value!.single.seasons, isEmpty);
+      expect(find.text('Classic'), findsNothing, reason: 'tags');
+      expect(c.read(dailyOutfitProvider).value!.single.style, isEmpty);
       final button = tester.widget<CircleIconButton>(
         find.ancestor(
           of: find.byIcon(Icons.sell_outlined),

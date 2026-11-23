@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uwearis/core/providers/garment_outfits_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
-import 'package:uwearis/data/outfit.dart';
 import 'package:uwearis/features/pages/wardrobe/garment_outfits_page.dart';
 import 'package:uwearis/features/pages/wardrobe/trip_outfit_selection_page.dart';
 
 import '../../helpers/widget_harness.dart';
+import 'package:uwearis/data/outfit_group.dart';
 
 class _Outfits extends OutfitsNotifier {
   @override
-  Future<List<Outfit>> build() async => const [];
+  Future<List<OutfitGroup>> build() async => const [];
 
   @override
   Future<void> refreshIfNeeded() async {}

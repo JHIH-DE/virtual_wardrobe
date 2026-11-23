@@ -17,6 +17,8 @@ import 'package:uwearis/core/services/auth_handler.dart';
 import 'package:uwearis/core/services/auth_storage.dart';
 import 'package:uwearis/core/utils/user_acknowledgement.dart';
 import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/data/outfit_group.dart';
+import 'package:uwearis/features/widgets/common/fields/number_stepper.dart';
 import 'package:uwearis/features/pages/wardrobe/create_outfit_page.dart';
 import 'package:uwearis/features/pages/wardrobe/outfit_details_page.dart';
 import 'package:uwearis/features/widgets/common/buttons/accent_pill_button.dart';
@@ -81,6 +83,120 @@ void main() {
   // benign error response keeps the seed version showing.
   http.Client stubClient() =>
       MockClient((_) async => jsonResponse(envelope({'items': []})));
+
+  testWidgets('a group passed in shows every version at once, on the tapped '
+      'one, even if the group fetch fails', (tester) async {
+    Outfit version(int id) =>
+        Outfit(id: id, groupId: 3, imageUrl: 'https://img.example/$id.png');
+    // The group fetch fails, so whatever shows came from the group passed in.
+    await http.runWithClient(() async {
+      useTallSurface(tester);
+      await pumpApp(
+        tester,
+        OutfitDetailsPage(
+          outfit: version(2),
+          group: OutfitGroup(
+            groupId: 3,
+            name: 'Weekend',
+            versions: [version(1), version(2), version(3)],
+          ),
+        ),
+      );
+      await tester.pump();
+      final dots = tester.widget<CarouselDotsIndicator>(
+        find.byType(CarouselDotsIndicator),
+      );
+      expect(dots.count, 3);
+      expect(dots.currentIndex, 1);
+      expect(find.text('Weekend'), findsWidgets);
+    }, () => MockClient((_) async => http.Response('', 500)));
+  });
+
+  group('opened from a filtered list', () {
+    Outfit version(int id) =>
+        Outfit(id: id, groupId: 3, imageUrl: 'https://img.example/$id.png');
+    final threeVersions = OutfitGroup(
+      groupId: 3,
+      versions: [version(1), version(2), version(3)],
+    );
+    http.Client failingClient() =>
+        MockClient((_) async => http.Response('', 500));
+
+    CarouselDotsIndicator? dots(WidgetTester tester) {
+      final f = find.byType(CarouselDotsIndicator);
+      return f.evaluate().isEmpty ? null : tester.widget(f);
+    }
+
+    testWidgets('shows only the matching versions until Clear Filter', (
+      tester,
+    ) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: version(3),
+            group: threeVersions,
+            versionFilter: (o) => o.id != 1,
+          ),
+        );
+        await tester.pump();
+        expect(dots(tester)!.count, 2);
+        expect(dots(tester)!.currentIndex, 1);
+        expect(find.textContaining('versions'), findsNothing);
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.tap(find.text('Clear Filter'));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(dots(tester)!.count, 3);
+        expect(dots(tester)!.currentIndex, 2, reason: 'stays on version 3');
+
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Clear Filter'), findsNothing);
+      }, failingClient);
+    });
+
+    testWidgets('the tapped version always shows, even if it no longer '
+        'matches', (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: version(2),
+            group: threeVersions,
+            versionFilter: (_) => false,
+          ),
+        );
+        await tester.pump();
+        expect(dots(tester), isNull);
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Clear Filter'), findsOneWidget);
+      }, failingClient);
+    });
+
+    testWidgets('no Clear Filter when every version matches', (tester) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: version(1),
+            group: threeVersions,
+            versionFilter: (_) => true,
+          ),
+        );
+        await tester.pump();
+        expect(dots(tester)!.count, 3);
+        await tester.tap(find.byIcon(Icons.more_vert));
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.text('Clear Filter'), findsNothing);
+      }, failingClient);
+    });
+  });
 
   testWidgets('untagged outfit shows the "My Collection" fallback', (
     tester,
@@ -713,8 +829,7 @@ void main() {
 
   // The version cap is enforced client-side only.
   testWidgets(
-    '"+ Add Version" past the version cap explains the limit instead of '
-    'opening the picker',
+    '"+ Add Version" is greyed out at the version cap and opens nothing',
     (tester) async {
       // Unique group id: OutfitService caches per group.
       const groupId = 703;
@@ -747,20 +862,10 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        await tester.tap(find.widgetWithText(AccentPillButton, 'Add Version'));
-        await tester.pump();
-        await tester.pump();
+        final pill = find.widgetWithText(AccentPillButton, 'Add Version');
+        expect(tester.widget<AccentPillButton>(pill).enabled, isFalse);
 
-        expect(find.text('Version limit reached'), findsOneWidget);
-        expect(
-          find.text(
-            'You can keep up to 10 versions for each outfit. Delete a '
-            'version to create a new one.',
-          ),
-          findsOneWidget,
-        );
-        // Dismiss, then confirm the picker never opened underneath.
-        await tester.tap(find.byKey(AppDialog.dismissButtonKey));
+        await tester.tap(pill, warnIfMissed: false);
         await tester.pump();
         await tester.pump();
         expect(find.byType(CreateOutfitPage), findsNothing);
@@ -901,9 +1006,27 @@ void main() {
 
     http.Client tagsClient() => MockClient((request) async {
       if (request.method == 'PATCH') {
-        patches.add(jsonDecode(request.body) as Map<String, dynamic>);
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        patches.add(body);
         if (fail) return jsonResponse({'success': false}, status: 500);
-        return jsonResponse(envelope({'id': 1, 'group_id': 3}));
+        final min = body['suitable_temp_min_c'];
+        final max = body['suitable_temp_max_c'];
+        final reset =
+            body.containsKey('suitable_temp_min_c') &&
+            min == null &&
+            max == null;
+        return jsonResponse(
+          envelope({
+            'id': 1,
+            'group_id': 3,
+            // Going back to automatic: the backend recalculates.
+            'suitable_temp_min_c': reset ? 15 : min,
+            'suitable_temp_max_c': reset ? 21 : max,
+            'suitable_temp_source': reset || min == null && max == null
+                ? 'auto'
+                : 'manual',
+          }),
+        );
       }
       return jsonResponse(envelope({'items': []}));
     });
@@ -916,11 +1039,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
     }
 
-    Future<void> openSheet(WidgetTester tester) async {
+    Future<void> openSheet(WidgetTester tester, {Outfit? outfit}) async {
       useTallSurface(tester);
       await pumpApp(
         tester,
-        OutfitDetailsPage(outfit: _outfit(style: ['street'])),
+        OutfitDetailsPage(outfit: outfit ?? _outfit(style: ['street'])),
       );
       await tester.pump();
       await tester.pump();
@@ -933,20 +1056,138 @@ void main() {
       await settle(tester);
     }
 
+    Finder stepperFor(String label) => find.descendant(
+      of: find.ancestor(of: find.text(label), matching: find.byType(Row)).first,
+      matching: find.byType(NumberStepper),
+    );
+
+    Finder stepButton(String label, IconData icon) =>
+        find.descendant(of: stepperFor(label), matching: find.byIcon(icon));
+
+    Outfit withTemperature(
+      int? min,
+      int? max,
+      OutfitTemperatureSource source,
+    ) => _outfit(
+      style: ['street'],
+    ).copyWith(suitableTemperature: (minC: min, maxC: max, source: source));
+
+    testWidgets('adjusting an automatic range PATCHes it as a manual one and '
+        'the header shows it', (tester) async {
+      await http.runWithClient(() async {
+        await openSheet(
+          tester,
+          outfit: withTemperature(15, 21, OutfitTemperatureSource.auto),
+        );
+        expect(find.text('Reset'), findsNothing);
+
+        await tester.tap(stepButton('Highest', Icons.add_circle_outline));
+        await tester.tap(stepButton('Highest', Icons.add_circle_outline));
+        await settle(tester);
+        expect(find.text('Reset'), findsOneWidget);
+
+        await dismissSheet(tester);
+        expect(patches.single['suitable_temp_min_c'], 15);
+        expect(patches.single['suitable_temp_max_c'], 23);
+        expect(find.text('15°C - 23°C'), findsOneWidget);
+      }, tagsClient);
+    });
+
+    testWidgets('a step past either end reads "No limit" and is sent as '
+        'null', (tester) async {
+      await http.runWithClient(() async {
+        await openSheet(
+          tester,
+          outfit: withTemperature(25, 50, OutfitTemperatureSource.manual),
+        );
+        await tester.tap(stepButton('Highest', Icons.add_circle_outline));
+        await settle(tester);
+        expect(find.text('No limit'), findsOneWidget);
+        // The other end can't open too: that would be "automatic".
+        final lowerMin = tester.widget<NumberStepper>(stepperFor('Lowest'));
+        expect(lowerMin.onDecrement, isNotNull);
+
+        await dismissSheet(tester);
+        expect(patches.single['suitable_temp_min_c'], 25);
+        expect(patches.single.containsKey('suitable_temp_max_c'), isTrue);
+        expect(patches.single['suitable_temp_max_c'], isNull);
+        expect(find.text('25°C and above'), findsOneWidget);
+      }, tagsClient);
+    });
+
+    testWidgets('the lowest can never reach the highest', (tester) async {
+      await http.runWithClient(() async {
+        await openSheet(
+          tester,
+          outfit: withTemperature(20, 21, OutfitTemperatureSource.manual),
+        );
+        final lowest = tester.widget<NumberStepper>(stepperFor('Lowest'));
+        final highest = tester.widget<NumberStepper>(stepperFor('Highest'));
+        expect(lowest.onIncrement, isNull);
+        expect(highest.onDecrement, isNull);
+      }, tagsClient);
+    });
+
+    testWidgets('Reset on a manual range sends two nulls and shows '
+        'the recalculated range', (tester) async {
+      await http.runWithClient(() async {
+        await openSheet(
+          tester,
+          outfit: withTemperature(18, 27, OutfitTemperatureSource.manual),
+        );
+        expect(find.text('Reset'), findsOneWidget);
+
+        await tester.tap(find.text('Reset'));
+        await settle(tester);
+        expect(find.byType(NumberStepper), findsNothing);
+        expect(find.text('Reset'), findsNothing);
+
+        await dismissSheet(tester);
+        expect(patches.single.containsKey('suitable_temp_min_c'), isTrue);
+        expect(patches.single['suitable_temp_min_c'], isNull);
+        expect(patches.single['suitable_temp_max_c'], isNull);
+        expect(find.text('15°C - 21°C'), findsOneWidget);
+      }, tagsClient);
+    });
+
+    testWidgets('Set My Own after a reset keeps the manual range unsent', (
+      tester,
+    ) async {
+      await http.runWithClient(() async {
+        await openSheet(
+          tester,
+          outfit: withTemperature(18, 27, OutfitTemperatureSource.manual),
+        );
+        await tester.tap(find.text('Reset'));
+        await settle(tester);
+        await tester.tap(find.text('Set My Own'));
+        await settle(tester);
+        await dismissSheet(tester);
+
+        expect(patches, isEmpty);
+      }, tagsClient);
+    });
+
     testWidgets('has no Save button; a changed selection is PATCHed once the '
         'sheet closes and shows right away', (tester) async {
       await http.runWithClient(() async {
         await openSheet(tester);
         expect(find.widgetWithText(ElevatedButton, 'Save'), findsNothing);
+        expect(find.text('Season'), findsNothing);
+        expect(find.text('Summer'), findsNothing);
 
-        await tester.tap(find.text('Summer'));
         await tester.tap(find.text('Classic'));
         await settle(tester);
         expect(patches, isEmpty);
 
         await dismissSheet(tester);
         expect(patches, hasLength(1));
-        expect(patches.single['season'], ['summer']);
+        expect(patches.single.containsKey('season'), isFalse);
+        expect(
+          patches.single.containsKey('suitable_temp_min_c'),
+          isFalse,
+          reason: 'temperature untouched',
+        );
         expect((patches.single['style'] as List).toSet(), {
           'street',
           'classic',
@@ -960,7 +1201,13 @@ void main() {
     testWidgets('a saved edit syncs the daily outfit and My Outfits', (
       tester,
     ) async {
-      final seed = _outfit(style: ['street']);
+      final seed = _outfit(style: ['street']).copyWith(
+        suitableTemperature: (
+          minC: 15,
+          maxC: 21,
+          source: OutfitTemperatureSource.auto,
+        ),
+      );
       await http.runWithClient(() async {
         useTallSurface(tester);
         await pumpApp(
@@ -983,23 +1230,29 @@ void main() {
         await tester.tap(find.byIcon(Icons.sell_outlined));
         await settle(tester);
 
-        await tester.tap(find.text('Summer'));
+        await tester.tap(stepButton('Lowest', Icons.add_circle_outline));
         await settle(tester);
         await dismissSheet(tester);
 
         final daily = container.read(dailyOutfitProvider).value!.single;
-        final mine = container.read(outfitsProvider).value!.single;
-        expect(daily.seasons, ['summer']);
+        final mine = outfitGroupCovers(
+          container.read(outfitsProvider).value!,
+        ).single;
+        expect(daily.suitableTemperature, (
+          minC: 16,
+          maxC: 21,
+          source: OutfitTemperatureSource.manual,
+        ));
         expect(daily.style, ['street']);
-        expect(mine.seasons, ['summer']);
+        expect(mine.suitableTempMinC, 16);
       }, tagsClient);
     });
 
     testWidgets('closing without a change sends nothing', (tester) async {
       await http.runWithClient(() async {
         await openSheet(tester);
-        await tester.tap(find.text('Summer'));
-        await tester.tap(find.text('Summer')); // toggled back off
+        await tester.tap(find.text('Classic'));
+        await tester.tap(find.text('Classic')); // toggled back off
         await settle(tester);
         await dismissSheet(tester);
 
@@ -1091,7 +1344,12 @@ void main() {
         container.read(dailyOutfitProvider).value!.single.isFavorite,
         isFalse,
       );
-      expect(container.read(outfitsProvider).value!.single.isFavorite, isFalse);
+      expect(
+        outfitGroupCovers(
+          container.read(outfitsProvider).value!,
+        ).single.isFavorite,
+        isFalse,
+      );
     }, () => client);
   });
 

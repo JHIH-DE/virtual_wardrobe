@@ -125,33 +125,78 @@ class FilterButton extends StatelessWidget {
 }
 
 /// Grouped-chip multi-select sheet. No confirm button: selection applies
-/// through each [FilterGroup.onToggle] as the user taps.
+/// through each [FilterGroup.onToggle] as the user taps. [leading] sections
+/// come before the groups (each opening with a [ChipSheetSectionHeader]) and
+/// keep their own state; the sheet then grows to fit them.
 Future<void> showChipGroupsSheet(
   BuildContext context, {
   required List<FilterGroup> groups,
+  List<Widget> leading = const [],
 }) {
   final l10n = AppLocalizations.of(context);
+  final sections = <Widget Function(VoidCallback rebuild)>[
+    for (final f in leading) (_) => f,
+    for (final g in groups)
+      (rebuild) => _ChipGroup(group: g, l10n: l10n, onChanged: rebuild),
+  ];
   return showPickerSheet<void>(
     context,
+    fitContent: leading.isNotEmpty,
     padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
     builder: (sheetContext) => StatefulBuilder(
       builder: (ctx, setSheetState) {
         void rebuild() => setSheetState(() {});
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SheetDragHandle(),
-            const SizedBox(height: 20),
-            for (var i = 0; i < groups.length; i++) ...[
-              _ChipGroup(group: groups[i], l10n: l10n, onChanged: rebuild),
-              if (i != groups.length - 1) const SizedBox(height: 32),
+        return SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SheetDragHandle(),
+              const SizedBox(height: 20),
+              for (var i = 0; i < sections.length; i++) ...[
+                sections[i](rebuild),
+                if (i != sections.length - 1) const SizedBox(height: 32),
+              ],
             ],
-          ],
+          ),
         );
       },
     ),
   );
+}
+
+/// A section title in [showChipGroupsSheet]: bold label, optional
+/// [trailing] beside it, then a divider.
+class ChipSheetSectionHeader extends StatelessWidget {
+  final String label;
+  final Widget? trailing;
+
+  const ChipSheetSectionHeader(this.label, {super.key, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = Text(label, style: AppTextStyle.bold16);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (trailing == null)
+          title
+        else
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [title, trailing!],
+          ),
+        const AppDivider(
+          topSpacing: 8,
+          bottomSpacing: 12,
+          color: AppColors.dividerSubtle,
+        ),
+      ],
+    );
+  }
 }
 
 class _ChipGroup extends StatelessWidget {
@@ -180,12 +225,7 @@ class _ChipGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(group.label, style: AppTextStyle.bold16),
-        const AppDivider(
-          topSpacing: 8,
-          bottomSpacing: 12,
-          color: AppColors.dividerSubtle,
-        ),
+        ChipSheetSectionHeader(group.label),
         rest.isEmpty
             ? Text(
                 group.emptyMessage ??

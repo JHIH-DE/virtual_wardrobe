@@ -2,15 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../data/outfit.dart';
+import '../../data/outfit_group.dart';
 import '../services/outfit_service.dart';
 import '../utils/signed_url.dart';
 import 'list_refetch_guard.dart';
 import 'retry_policy.dart';
 
-final outfitsProvider = AsyncNotifierProvider<OutfitsNotifier, List<Outfit>>(
-  OutfitsNotifier.new,
-  retry: appRetryPolicy,
-);
+final outfitsProvider =
+    AsyncNotifierProvider<OutfitsNotifier, List<OutfitGroup>>(
+      OutfitsNotifier.new,
+      retry: appRetryPolicy,
+    );
+
+/// One representative per group, in [groups]' order: its cover.
+List<Outfit> outfitGroupCovers(List<OutfitGroup> groups) => [
+  for (final g in groups) ?g.cover,
+];
 
 /// Feedback for OutfitsPage to show once navigation lands back there — the
 /// details page that caused it has already popped itself away.
@@ -20,14 +27,22 @@ final outfitFeedbackProvider = StateProvider<OutfitFeedbackKind?>(
   (ref) => null,
 );
 
-class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
-  final _guard = ListRefetchGuard<Outfit>();
+/// [outfit]'s group in [groups], if listed.
+OutfitGroup? groupOf(Outfit outfit, List<OutfitGroup>? groups) {
+  for (final g in groups ?? const <OutfitGroup>[]) {
+    if (g.groupId == outfit.groupId) return g;
+  }
+  return null;
+}
 
-  // `general` outfits only (getAllOutfits' default type). The sort is pinned
-  // rather than left to the backend default: Home's _latestOwnOutfit relies
-  // on state.first being the newest.
-  static Future<List<Outfit>> _fetch() =>
-      OutfitService().getAllOutfits(sort: 'created_at_desc');
+class OutfitsNotifier extends AsyncNotifier<List<OutfitGroup>> {
+  final _guard = ListRefetchGuard<OutfitGroup>();
+
+  // `general` groups only (getAllOutfitGroups' default type). The sort is
+  // pinned rather than left to the backend default: Home's
+  // _latestOwnOutfit relies on state.first being the newest.
+  static Future<List<OutfitGroup>> _fetch() =>
+      OutfitService().getAllOutfitGroups(sort: 'created_at_desc');
 
   // The latest favorite write per outfit, so an optimistic toggle settling
   // late can't undo a newer one (another screen's).
@@ -35,7 +50,7 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
   int _favoriteWriteCount = 0;
 
   @override
-  Future<List<Outfit>> build() async {
+  Future<List<OutfitGroup>> build() async {
     ref.onDispose(() {
       _guard.reset();
       _favoriteWrites.clear();
@@ -47,7 +62,9 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
   /// True if any cached signed image URL has expired (or is about to).
   bool get isStale =>
       (state.value?.isNotEmpty ?? false) &&
-      anySignedUrlExpired(state.value!.map((o) => o.imageUrl));
+      anySignedUrlExpired(
+        state.value!.expand((g) => g.versions).map((o) => o.imageUrl),
+      );
 
   Future<void> refreshIfNeeded() async {
     if (state.isLoading) return;
@@ -58,17 +75,29 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
 
   Future<void> refresh() => _guard.refresh(_fetch, (s) => state = s);
 
-  void _edit(List<Outfit> Function(List<Outfit>) edit) {
+  void _edit(List<OutfitGroup> Function(List<OutfitGroup>) edit) {
     state = AsyncData(_guard.edit(state.value ?? [], edit));
   }
 
-  void removeOutfit(int id) =>
-      _edit((list) => list.where((o) => o.id != id).toList());
+  void removeGroup(int groupId) =>
+      _edit((list) => list.where((g) => g.groupId != groupId).toList());
+
+  /// Drops one version; a group left without any goes too.
+  void removeOutfitVersion(int outfitId) => _edit(
+    (list) => [
+      for (final g in list)
+        if (!g.versions.any((o) => o.id == outfitId))
+          g
+        else if (g.versions.length > 1)
+          g.copyWith(
+            versions: g.versions.where((o) => o.id != outfitId).toList(),
+          ),
+    ],
+  );
 
   // Field-level, not a whole-Outfit replace: callers hold copies from other
-  // endpoints (a group's versions, today's plan) without this list's
-  // versionCount / group fields, and maybe an older signed image URL than a
-  // refresh's reply the edit is replayed onto.
+  // endpoints (a group's versions, today's plan), maybe with an older signed
+  // image URL than a refresh's reply the edit is replayed onto.
   /// A favorite already confirmed by the server.
   void updateOutfitFavorite(int outfitId, {required bool isFavorite}) {
     updateOutfitFavoriteOptimistically(outfitId, isFavorite: isFavorite);
@@ -101,18 +130,29 @@ class OutfitsNotifier extends AsyncNotifier<List<Outfit>> {
 
   void updateOutfitTags(
     int outfitId, {
-    required List<String> seasons,
     required List<String> style,
-  }) =>
-      _editOutfit(outfitId, (o) => o.copyWith(seasons: seasons, style: style));
+    required OutfitTemperature suitableTemperature,
+  }) => _editOutfit(
+    outfitId,
+    (o) => o.copyWith(style: style, suitableTemperature: suitableTemperature),
+  );
 
-  void _editOutfit(int outfitId, Outfit Function(Outfit) update) =>
-      _edit((list) => [for (final o in list) o.id == outfitId ? update(o) : o]);
+  void _editOutfit(int outfitId, Outfit Function(Outfit) update) => _edit(
+    (list) => [
+      for (final g in list)
+        g.versions.any((o) => o.id == outfitId)
+            ? g.copyWith(
+                versions: [
+                  for (final o in g.versions) o.id == outfitId ? update(o) : o,
+                ],
+              )
+            : g,
+    ],
+  );
 
-  /// The name is group-level, shared by every version in the group.
   void updateGroupName(int groupId, {required String name}) => _edit(
-    (list) => list
-        .map((o) => o.groupId == groupId ? o.copyWith(groupName: name) : o)
-        .toList(),
+    (list) => [
+      for (final g in list) g.groupId == groupId ? g.copyWith(name: name) : g,
+    ],
   );
 }

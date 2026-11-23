@@ -52,6 +52,7 @@ class _TripOutfitSelectionPageState
       MaterialPageRoute(
         builder: (_) => TripOutfitVersionPage(
           outfit: outfit,
+          group: groupOf(outfit, ref.read(outfitsProvider).value),
           packedGarmentIds: widget.packedGarmentIds,
           addedOutfitIds: widget.addedOutfitIds,
         ),
@@ -63,7 +64,8 @@ class _TripOutfitSelectionPageState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final outfitsAsync = ref.watch(outfitsProvider);
+    final groupsAsync = ref.watch(outfitsProvider);
+    final outfitsAsync = groupsAsync.whenData(outfitGroupCovers);
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
       appBar: AppToolBar(title: l10n.selectAnOutfitTitle),
@@ -75,6 +77,7 @@ class _TripOutfitSelectionPageState
         ),
         data: (outfits) => OutfitGrid(
           outfits: outfits,
+          groupNameOf: (o) => groupOf(o, groupsAsync.value)?.name,
           onRefresh: () => ref.read(outfitsProvider.notifier).refresh(),
           emptyMessage: l10n.noOutfitsYet,
           padding: AppDimens.pageGridPadding,

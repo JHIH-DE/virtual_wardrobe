@@ -31,6 +31,8 @@ import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 import '../../helpers/fake_auth.dart';
 import '../../helpers/mock_http.dart';
 import '../../helpers/widget_harness.dart';
+import 'package:uwearis/data/outfit_group.dart';
+import '../../helpers/seeded_notifiers.dart';
 
 class _FakeDailyOutfitNotifier extends DailyOutfitNotifier {
   _FakeDailyOutfitNotifier(this._outfits);
@@ -207,12 +209,13 @@ class _FakeOutfitsNotifier extends OutfitsNotifier {
   List<Outfit> outfits;
 
   @override
-  Future<List<Outfit>> build() async => outfits;
+  Future<List<OutfitGroup>> build() async =>
+      outfits.map(singleVersionGroup).toList();
 
   @override
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = AsyncData(outfits);
+    state = AsyncData(outfits.map(singleVersionGroup).toList());
   }
 }
 
@@ -1064,8 +1067,9 @@ void main() {
       await settle(tester);
     }
 
-    bool? providerFavorite() =>
-        container.read(outfitsProvider).value?.single.isFavorite;
+    bool? providerFavorite() => outfitGroupCovers(
+      container.read(outfitsProvider).value ?? const [],
+    ).singleOrNull?.isFavorite;
 
     testWidgets('favorite → stale refresh answers → PATCH succeeds: Outfits '
         'ends favorited', (tester) async {

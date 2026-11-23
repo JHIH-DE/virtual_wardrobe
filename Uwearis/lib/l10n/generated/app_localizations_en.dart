@@ -200,6 +200,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get temperatureBandNameFreezing => 'Freezing';
+
+  @override
+  String get temperatureBandNameCold => 'Cold';
+
+  @override
+  String get temperatureBandNameChilly => 'Chilly';
+
+  @override
+  String get temperatureBandNameCool => 'Cool';
+
+  @override
+  String get temperatureBandNameMild => 'Mild';
+
+  @override
+  String get temperatureBandNameWarm => 'Warm';
+
+  @override
+  String get temperatureBandNameHot => 'Hot';
+
+  @override
   String get styleTasteDetailsLabel => 'Style Insights';
 
   @override
@@ -336,13 +357,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addVersionTitle => 'Add Version';
-
-  @override
-  String get versionLimitReachedTitle => 'Version limit reached';
-
-  @override
-  String get versionLimitReachedBody =>
-      'You can keep up to 10 versions for each outfit. Delete a version to create a new one.';
 
   @override
   String get createOutfit => 'Create Outfit';
@@ -1379,10 +1393,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectYourCityHint => 'Select Your City';
 
   @override
-  String get seasonLabel => 'Season';
+  String get styleLabel => 'Style';
 
   @override
-  String get styleLabel => 'Style';
+  String get outfitVersionsClearFilter => 'Clear Filter';
+
+  @override
+  String get outfitTemperatureLabel => 'Suitable Temperature';
+
+  @override
+  String get outfitTemperatureLowest => 'Lowest';
+
+  @override
+  String get outfitTemperatureHighest => 'Highest';
+
+  @override
+  String get outfitTemperatureNoLimit => 'No limit';
+
+  @override
+  String get outfitTemperatureResetAuto => 'Reset';
+
+  @override
+  String get outfitTemperatureAutoPending =>
+      'Will be recalculated from the garments.';
+
+  @override
+  String get outfitTemperatureCustomize => 'Set My Own';
 
   @override
   String get styleAuto => 'Auto';

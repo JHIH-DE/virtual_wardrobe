@@ -267,7 +267,7 @@ void main() {
     test('deleting an outfit in today\'s plan re-reads it', () {
       return run(() async {
         await OutfitService().deleteGroup(1);
-        outfits().removeOutfit(1);
+        outfits().removeGroup(1);
         await _settle();
 
         expect(daily(), isNot(contains(1)));
@@ -278,7 +278,7 @@ void main() {
         "card list doesn't change)", () {
       return run(() async {
         await OutfitService().deleteOutfit(1, 11);
-        outfits().removeOutfit(11); // what Outfit Details does
+        outfits().removeOutfitVersion(11); // what Outfit Details does
         await _settle();
 
         expect(daily(), [1]);
@@ -361,8 +361,12 @@ void main() {
         final gets = await dailyGetsDuring(
           () async => outfits().updateOutfitTags(
             2,
-            seasons: ['Summer'],
             style: ['Casual'],
+            suitableTemperature: (
+              minC: 18,
+              maxC: 27,
+              source: OutfitTemperatureSource.manual,
+            ),
           ),
         );
         expect(gets, 0);
@@ -407,7 +411,7 @@ void main() {
       return run(() async {
         final gets = await dailyGetsDuring(() async {
           await OutfitService().deleteGroup(2);
-          outfits().removeOutfit(2); // what Outfit Details does
+          outfits().removeGroup(2); // what Outfit Details does
         });
         expect(gets, 1);
       });
@@ -686,7 +690,7 @@ void main() {
           await OutfitService().deleteOutfit(99, 9101);
           await OutfitService().deleteOutfit(99, 9102);
           await OutfitService().regenerateOutfit(1, 11);
-          outfits().removeOutfit(2); // a card change too
+          outfits().removeGroup(2); // a card change too
           await _settle();
           await backend.releaseDaily();
         });
@@ -772,7 +776,7 @@ void main() {
       return run(() async {
         final r = (await heldRefresh()).done;
         await OutfitService().deleteGroup(1); // planned: 1 and 11
-        outfits().removeOutfit(1);
+        outfits().removeGroup(1);
         await _settle();
 
         await answerRefresh(r);
@@ -785,7 +789,7 @@ void main() {
       return run(() async {
         final r = (await heldRefresh()).done;
         await OutfitService().deleteOutfit(1, 11);
-        outfits().removeOutfit(11);
+        outfits().removeOutfitVersion(11);
         await _settle();
 
         await answerRefresh(r);

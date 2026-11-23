@@ -8,8 +8,10 @@ import 'package:http/testing.dart';
 import 'package:uwearis/core/config/app_config.dart';
 import 'package:uwearis/core/services/api_exception.dart';
 import 'package:uwearis/core/services/auth_handler.dart';
+import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/services/outfit_service.dart';
 import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/data/outfit_group.dart';
 
 import '../helpers/fake_auth.dart';
 
@@ -103,7 +105,7 @@ void main() {
     });
   });
 
-  group('getAllOutfits', () {
+  group('getAllOutfitGroups → outfitGroupCovers', () {
     test('builds the query string from type/size/sort, from page 1', () async {
       late http.Request captured;
       final client = MockClient((request) async {
@@ -120,11 +122,8 @@ void main() {
       });
 
       await http.runWithClient(
-        () => OutfitService().getAllOutfits(
-          type: 'general',
-          size: 30,
-          sort: 'created_at_asc',
-        ),
+        () =>
+            _allOutfitCovers(type: 'general', size: 30, sort: 'created_at_asc'),
         () => client,
       );
 
@@ -159,16 +158,13 @@ void main() {
         );
 
         final outfits = await http.runWithClient(
-          () => OutfitService().getAllOutfits(),
+          () => _allOutfitCovers(),
           () => client,
         );
 
         expect(outfits, hasLength(1));
         final rep = outfits.single;
         expect(rep.id, 66, reason: 'should show the cover, not the lowest id');
-        expect(rep.versionCount, 2);
-        expect(rep.coverOutfitId, 66);
-        expect(rep.groupName, 'Weekend Look');
       },
     );
 
@@ -194,13 +190,11 @@ void main() {
         );
 
         final outfits = await http.runWithClient(
-          () => OutfitService().getAllOutfits(),
+          () => _allOutfitCovers(),
           () => client,
         );
 
         expect(outfits.single.id, 65);
-        expect(outfits.single.coverOutfitId, isNull);
-        expect(outfits.single.groupName, isNull);
       },
     );
 
@@ -226,15 +220,13 @@ void main() {
       );
 
       final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
+        () => _allOutfitCovers(),
         () => client,
       );
 
       expect(outfits.single.id, 65);
       // The group's own value is still carried, even though it matched
       // no version.
-      expect(outfits.single.coverOutfitId, 99);
-      expect(outfits.single.versionCount, 3);
     });
 
     test('skips a group whose outfits list is empty', () async {
@@ -249,14 +241,14 @@ void main() {
       );
 
       final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
+        () => _allOutfitCovers(),
         () => client,
       );
       expect(outfits, isEmpty);
     });
   });
 
-  group('getAllOutfits pagination', () {
+  group('getAllOutfitGroups pagination', () {
     /// [count] groups, newest (highest group_id) first — the backend's
     /// `created_at_desc` order. Each holds one outfit with id = group id.
     List<Map<String, dynamic>> groupsNewestFirst(int count) => [
@@ -314,7 +306,7 @@ void main() {
           '$expectedRequests request(s)', () async {
         final requests = <http.Request>[];
         final outfits = await http.runWithClient(
-          () => OutfitService().getAllOutfits(sort: 'created_at_desc'),
+          () => _allOutfitCovers(sort: 'created_at_desc'),
           () => pagedBackend(groupsNewestFirst(count), requests: requests),
         );
 
@@ -342,7 +334,7 @@ void main() {
       test('a $label total: stops at the first short page', () async {
         final requests = <http.Request>[];
         final outfits = await http.runWithClient(
-          () => OutfitService().getAllOutfits(),
+          () => _allOutfitCovers(),
           () => pagedBackend(
             groupsNewestFirst(150),
             requests: requests,
@@ -359,7 +351,7 @@ void main() {
         'after it', () async {
       final requests = <http.Request>[];
       final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
+        () => _allOutfitCovers(),
         () => pagedBackend(
           groupsNewestFirst(200),
           requests: requests,
@@ -374,7 +366,7 @@ void main() {
     test('a total larger than what exists: stops at the short page', () async {
       final requests = <http.Request>[];
       final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
+        () => _allOutfitCovers(),
         () => pagedBackend(
           groupsNewestFirst(150),
           requests: requests,
@@ -391,7 +383,7 @@ void main() {
       final requests = <http.Request>[];
       final firstPage = groupsNewestFirst(250).sublist(0, 100);
       final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
+        () => _allOutfitCovers(),
         () => pagedBackend(
           groupsNewestFirst(250),
           requests: requests,
@@ -410,7 +402,7 @@ void main() {
       final requests = <http.Request>[];
       final groups = groupsNewestFirst(150);
       final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
+        () => _allOutfitCovers(),
         () => pagedBackend(
           groups,
           requests: requests,
@@ -437,7 +429,7 @@ void main() {
       }
       final requests = <http.Request>[];
       final outfits = await http.runWithClient(
-        () => OutfitService().getAllOutfits(),
+        () => _allOutfitCovers(),
         () => pagedBackend(groups, requests: requests),
       );
 
@@ -450,7 +442,7 @@ void main() {
       final requests = <http.Request>[];
       expect(
         http.runWithClient(
-          () => OutfitService().getAllOutfits(),
+          () => _allOutfitCovers(),
           () => pagedBackend(
             groupsNewestFirst(10100),
             requests: requests,
@@ -465,7 +457,7 @@ void main() {
       final requests = <http.Request>[];
       expect(
         http.runWithClient(
-          () => OutfitService().getAllOutfits(),
+          () => _allOutfitCovers(),
           () => pagedBackend(
             groupsNewestFirst(150),
             requests: requests,
@@ -487,7 +479,7 @@ void main() {
       final requests = <http.Request>[];
       expect(
         http.runWithClient(
-          () => OutfitService().getAllOutfits(),
+          () => _allOutfitCovers(),
           () => pagedBackend(
             groupsNewestFirst(150),
             requests: requests,
@@ -500,37 +492,32 @@ void main() {
     });
   });
 
-  group('getGroupOutfits', () {
-    test(
-      'attaches the group cover_outfit_id and name to every outfit',
-      () async {
-        final client = MockClient(
-          (request) async => _jsonResponse(
-            _envelope({
-              'group_id': 12,
-              'type': 'general',
-              'name': 'My Weekend Fit',
-              'cover_outfit_id': 101,
-              'outfits': [
-                _outfitJson(outfitId: 101, groupId: 12),
-                _outfitJson(outfitId: 102, groupId: 12),
-              ],
-            }),
-          ),
-        );
+  group('getOutfitGroup versions', () {
+    test('reads the group cover_outfit_id and name', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(
+          _envelope({
+            'group_id': 12,
+            'type': 'general',
+            'name': 'My Weekend Fit',
+            'cover_outfit_id': 101,
+            'outfits': [
+              _outfitJson(outfitId: 101, groupId: 12),
+              _outfitJson(outfitId: 102, groupId: 12),
+            ],
+          }),
+        ),
+      );
 
-        final outfits = await http.runWithClient(
-          () => OutfitService().getGroupOutfits(12),
-          () => client,
-        );
+      final group = await http.runWithClient(
+        () => OutfitService().getOutfitGroup(12),
+        () => client,
+      );
 
-        expect(outfits, hasLength(2));
-        for (final o in outfits) {
-          expect(o.coverOutfitId, 101);
-          expect(o.groupName, 'My Weekend Fit');
-        }
-      },
-    );
+      expect(group.versions, hasLength(2));
+      expect(group.coverOutfitId, 101);
+      expect(group.name, 'My Weekend Fit');
+    });
 
     // OutfitService is a singleton with a per-group cache, so each test uses
     // its own group id.
@@ -549,8 +536,8 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        final first = await OutfitService().getGroupOutfits(501);
-        final second = await OutfitService().getGroupOutfits(501);
+        final first = await _groupVersions(501);
+        final second = await _groupVersions(501);
         expect(second, same(first));
       }, () => client);
 
@@ -584,8 +571,8 @@ void main() {
         });
 
         await http.runWithClient(() async {
-          await OutfitService().getGroupOutfits(502);
-          final second = await OutfitService().getGroupOutfits(502);
+          await _groupVersions(502);
+          final second = await _groupVersions(502);
           expect(second.single.imageUrl, 'https://img.example/1-fresh.jpg');
         }, () => client);
 
@@ -611,9 +598,9 @@ void main() {
         });
 
         await http.runWithClient(() async {
-          await OutfitService().getGroupOutfits(503);
+          await _groupVersions(503);
           OutfitService().clearGroupCache();
-          await OutfitService().getGroupOutfits(503);
+          await _groupVersions(503);
         }, () => client);
 
         expect(requests, 2);
@@ -621,7 +608,7 @@ void main() {
     );
   });
 
-  group('mutations invalidate the cached getGroupOutfits result', () {
+  group('mutations invalidate the cached getOutfitGroup result', () {
     test('generateOutfit (adding a version to an existing group)', () async {
       var groupOutfitsRequests = 0;
       final client = MockClient((request) async {
@@ -642,9 +629,9 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        await OutfitService().getGroupOutfits(601);
+        await _groupVersions(601);
         await OutfitService().generateOutfit(garmentIds: [1], groupId: 601);
-        await OutfitService().getGroupOutfits(601);
+        await _groupVersions(601);
       }, () => client);
 
       expect(groupOutfitsRequests, 2);
@@ -670,9 +657,9 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        await OutfitService().getGroupOutfits(602);
+        await _groupVersions(602);
         await OutfitService().regenerateOutfit(602, 1);
-        await OutfitService().getGroupOutfits(602);
+        await _groupVersions(602);
       }, () => client);
 
       expect(groupOutfitsRequests, 2);
@@ -698,9 +685,9 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        await OutfitService().getGroupOutfits(604);
+        await _groupVersions(604);
         await OutfitService().updateOutfit(604, 1, isFavorite: true);
-        await OutfitService().getGroupOutfits(604);
+        await _groupVersions(604);
       }, () => client);
 
       expect(groupOutfitsRequests, 2);
@@ -724,9 +711,9 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        await OutfitService().getGroupOutfits(605);
+        await _groupVersions(605);
         await OutfitService().deleteOutfit(605, 1);
-        await OutfitService().getGroupOutfits(605);
+        await _groupVersions(605);
       }, () => client);
 
       expect(groupOutfitsRequests, 2);
@@ -752,9 +739,9 @@ void main() {
         });
 
         await http.runWithClient(() async {
-          await OutfitService().getGroupOutfits(606);
+          await _groupVersions(606);
           await OutfitService().updateGroup(606, name: 'Renamed');
-          await OutfitService().getGroupOutfits(606);
+          await _groupVersions(606);
         }, () => client);
 
         expect(groupOutfitsRequests, 2);
@@ -779,10 +766,10 @@ void main() {
       });
 
       await http.runWithClient(() async {
-        await OutfitService().getGroupOutfits(607);
+        await _groupVersions(607);
         await OutfitService().deleteGroup(607);
         // Re-hitting the mocked endpoint proves the cache entry was evicted.
-        await OutfitService().getGroupOutfits(607);
+        await _groupVersions(607);
       }, () => client);
 
       expect(groupOutfitsRequests, 2);
@@ -1161,7 +1148,94 @@ void main() {
       );
     });
   });
+
+  group('getAllOutfitGroups', () {
+    test('keeps every version of each group and drops empty groups', () async {
+      final client = MockClient(
+        (request) async => _jsonResponse(
+          _envelope({
+            'items': [
+              {
+                'group_id': 901,
+                'name': 'Weekend Look',
+                'cover_outfit_id': 912,
+                'outfits': [
+                  _outfitJson(outfitId: 911, groupId: 901),
+                  _outfitJson(outfitId: 912, groupId: 901),
+                ],
+              },
+              {'group_id': 902, 'outfits': <Object>[]},
+            ],
+          }),
+        ),
+      );
+
+      final groups = await http.runWithClient(
+        () => OutfitService().getAllOutfitGroups(),
+        () => client,
+      );
+
+      expect(groups.map((g) => g.groupId), [901]);
+      final g = groups.single;
+      expect(g.versions.map((o) => o.id), [911, 912]);
+      expect(g.name, 'Weekend Look');
+      expect(g.cover!.id, 912);
+    });
+  });
+
+  group('getOutfitGroup', () {
+    test('returns the group and serves the next call from the cache', () async {
+      var calls = 0;
+      final client = MockClient((request) async {
+        calls++;
+        return _jsonResponse(
+          _envelope({
+            'group_id': 903,
+            'name': 'Office',
+            'cover_outfit_id': null,
+            'outfits': [
+              _outfitJson(outfitId: 931, groupId: 903),
+              _outfitJson(outfitId: 932, groupId: 903),
+            ],
+          }),
+        );
+      });
+
+      final OutfitGroup first = await http.runWithClient(
+        () => OutfitService().getOutfitGroup(903),
+        () => client,
+      );
+      final second = await http.runWithClient(
+        () => OutfitService().getOutfitGroup(903),
+        () => client,
+      );
+
+      expect(calls, 1);
+      expect(second, same(first));
+      expect(first.name, 'Office');
+      expect(first.versions.map((o) => o.id), [931, 932]);
+      expect(first.cover!.id, 931);
+    });
+  });
 }
+
+/// A group's versions as the pages hold them.
+Future<List<Outfit>> _groupVersions(
+  int groupId, {
+  bool forceRefresh = false,
+}) async => (await OutfitService().getOutfitGroup(
+  groupId,
+  forceRefresh: forceRefresh,
+)).versions;
+
+/// What the Outfits list shows: one representative per group.
+Future<List<Outfit>> _allOutfitCovers({
+  String type = 'general',
+  int size = 100,
+  String? sort,
+}) async => outfitGroupCovers(
+  await OutfitService().getAllOutfitGroups(type: type, size: size, sort: sort),
+);
 
 /// Marks a field the fake backend leaves out of its reply.
 const Object _omit = Object();

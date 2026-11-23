@@ -21,6 +21,9 @@ class OutfitGrid extends StatelessWidget {
   final List<Outfit> outfits;
   final Future<void> Function() onRefresh;
   final void Function(Outfit) onOutfitTap;
+
+  /// The card title's group name; versions don't carry it.
+  final String? Function(Outfit outfit)? groupNameOf;
   final String emptyMessage;
   final EdgeInsets padding;
 
@@ -38,6 +41,7 @@ class OutfitGrid extends StatelessWidget {
     required this.outfits,
     required this.onRefresh,
     required this.onOutfitTap,
+    this.groupNameOf,
     required this.emptyMessage,
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 16),
     this.emptyIcon,
@@ -71,6 +75,7 @@ class OutfitGrid extends StatelessWidget {
                 final outfit = outfits[index];
                 return OutfitCard(
                   outfit: outfit,
+                  groupName: groupNameOf?.call(outfit),
                   onTap: () => onOutfitTap(outfit),
                 );
               },

@@ -282,8 +282,14 @@ class _ComponentGalleryPageState extends State<ComponentGalleryPage> {
         ),
         const _Spec('OutfitTagRow (collapses to +N)'),
         const OutfitTagRow(
-          seasons: ['spring', 'summer', 'autumn', 'winter'],
-          style: ['smart_casual', 'minimalist', 'streetwear', 'business'],
+          style: [
+            'smart_casual',
+            'minimal',
+            'streetwear',
+            'business',
+            'classic',
+            'vintage',
+          ],
         ),
         const _Spec('SelectableChip · default (selected / unselected)'),
         Wrap(

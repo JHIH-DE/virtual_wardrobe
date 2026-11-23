@@ -516,7 +516,7 @@ class _TripSuitcasePageState extends ConsumerState<TripSuitcasePage> {
   /// Hidden until the user's outfits have loaded and there is one; an
   /// outfit whose garments are all packed can still be added to the trip.
   bool get _hasSavedOutfits =>
-      (ref.watch(outfitsProvider).value ?? const <Outfit>[]).isNotEmpty;
+      (ref.watch(outfitsProvider).value ?? const []).isNotEmpty;
 
   Widget _buildBody(List<Garment> closetGarments) {
     if (_loading) return const Center(child: AppSpinner());

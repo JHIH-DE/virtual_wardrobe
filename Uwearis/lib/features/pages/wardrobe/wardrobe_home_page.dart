@@ -114,7 +114,8 @@ class _WardrobeHomePageState extends ConsumerState<WardrobeHomePage>
       ? _todayOutfits[_todayOutfitIndex]
       : null;
 
-  List<Outfit> get _ownOutfits => _trustedValue(outfitsProvider) ?? const [];
+  List<Outfit> get _ownOutfits =>
+      outfitGroupCovers(_trustedValue(outfitsProvider) ?? const []);
 
   /// Shown in place of Today's Outfit when today has no plan. `.first` is
   /// the newest because [OutfitsNotifier] fetches `created_at_desc`.

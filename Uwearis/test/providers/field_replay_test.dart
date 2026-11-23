@@ -10,6 +10,7 @@ import 'package:uwearis/core/providers/garments_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/data/outfit_group.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
@@ -59,8 +60,12 @@ class _OutfitBackend {
       if (body.containsKey('is_favorite')) {
         outfit['is_favorite'] = body['is_favorite'];
       }
-      if (body.containsKey('season')) outfit['season'] = body['season'];
       if (body.containsKey('style')) outfit['style'] = body['style'];
+      if (body.containsKey('suitable_temp_min_c')) {
+        outfit['suitable_temp_min_c'] = body['suitable_temp_min_c'];
+        outfit['suitable_temp_max_c'] = body['suitable_temp_max_c'];
+        outfit['suitable_temp_source'] = 'manual';
+      }
       return jsonResponse(envelope({...outfit}));
     }
     final snapshot = jsonDecode(jsonEncode(groups));
@@ -117,7 +122,9 @@ void main() {
     late _OutfitBackend backend;
     late ProviderContainer container;
 
-    Outfit shown() => container.read(outfitsProvider).value!.single;
+    Outfit shown() =>
+        outfitGroupCovers(container.read(outfitsProvider).value!).single;
+    OutfitGroup shownGroup() => container.read(outfitsProvider).value!.single;
 
     Future<void> run(Future<void> Function() body) {
       backend = _OutfitBackend([_groupJson(1)])..plan = [_outfitJson(1)];
@@ -159,9 +166,9 @@ void main() {
         expect(o.isFavorite, isTrue);
         expect(o.imageUrl, 'https://new/1');
         expect(o.resultImageCacheKey, 'key-new');
-        expect(o.versionCount, 3);
-        expect(o.groupName, 'Weekend');
-        expect(o.coverOutfitId, 1);
+        expect(shownGroup().versionCount, 3);
+        expect(shownGroup().name, 'Weekend');
+        expect(shownGroup().coverOutfitId, 1);
       });
     });
 
@@ -172,19 +179,23 @@ void main() {
             .read(dailyOutfitProvider.notifier)
             .updateOutfitTags(
               container.read(dailyOutfitProvider).value!.single,
-              seasons: ['Summer'],
               style: ['Casual'],
+              temperature: (minC: 18, maxC: 27),
             );
 
         await backend.releaseList();
         await refresh;
 
         final o = shown();
-        expect(o.seasons, ['Summer']);
         expect(o.style, ['Casual']);
+        expect(o.suitableTemperature, (
+          minC: 18,
+          maxC: 27,
+          source: OutfitTemperatureSource.manual,
+        ));
         expect(o.resultImageCacheKey, 'key-new');
         expect(o.imageUrl, 'https://new/1');
-        expect(o.versionCount, 3);
+        expect(shownGroup().versionCount, 3);
       });
     });
 
@@ -200,9 +211,9 @@ void main() {
 
         final o = shown();
         expect(o.isFavorite, isTrue);
-        expect(o.versionCount, 3, reason: "Style Taste's total uses it");
-        expect(o.groupName, 'Weekend');
-        expect(o.coverOutfitId, 1);
+        expect(shownGroup().versionCount, 3);
+        expect(shownGroup().name, 'Weekend');
+        expect(shownGroup().coverOutfitId, 1);
       });
     });
 
@@ -216,8 +227,8 @@ void main() {
         await daily.toggleOutfitFavorite(today()); // on
         await daily.updateOutfitTags(
           today(),
-          seasons: ['Winter'],
           style: ['Formal'],
+          temperature: (minC: 5, maxC: 12),
         );
         container
             .read(outfitsProvider.notifier)
@@ -229,9 +240,10 @@ void main() {
 
         final o = shown();
         expect(o.isFavorite, isFalse);
-        expect(o.seasons, ['Winter']);
         expect(o.style, ['Formal']);
-        expect(o.groupName, 'Office');
+        expect(o.suitableTempMinC, 5);
+        expect(o.suitableTempMaxC, 12);
+        expect(shownGroup().name, 'Office');
         expect(o.imageUrl, 'https://new/1');
         expect(o.resultImageCacheKey, 'key-new');
       });

@@ -73,19 +73,25 @@ const _coverage = TemperatureCoverage(
   enoughCount: 3,
   bands: [
     TemperatureBand(
+      key: 'freezing',
+      label: 'Freezing',
       minC: null,
-      maxC: 12,
+      maxC: 0,
       outfitCount: 5,
       status: TemperatureCoverageStatus.enough,
     ),
     TemperatureBand(
+      key: 'cool',
+      label: 'Cool',
       minC: 15,
-      maxC: 18,
+      maxC: 20,
       outfitCount: 0,
       status: TemperatureCoverageStatus.none,
     ),
     TemperatureBand(
-      minC: 33,
+      key: 'hot',
+      label: 'Hot',
+      minC: 29,
       maxC: null,
       outfitCount: 2,
       status: TemperatureCoverageStatus.few,
@@ -172,9 +178,12 @@ void main() {
       await tester.tap(find.text('Temperature'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Below 12°C'), findsOneWidget);
-      expect(find.text('15–18°C'), findsOneWidget);
-      expect(find.text('33°C and above'), findsOneWidget);
+      for (final name in ['Freezing', 'Cool', 'Hot']) {
+        expect(find.text(name), findsOneWidget);
+      }
+      expect(find.text('Below 0°C'), findsOneWidget);
+      expect(find.text('15–20°C'), findsOneWidget);
+      expect(find.text('29°C and above'), findsOneWidget);
       expect(find.text('5'), findsOneWidget);
       expect(find.text('0'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
@@ -301,8 +310,9 @@ void main() {
         await tester.tap(find.text(tempTab));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
-        final range = find.text(isEn ? '15–18°C' : '15~18°C');
+        final range = find.text(isEn ? '15–20°C' : '15~20°C');
         expect(renderedLineCount(tester, range), 1);
+        expect(isTruncated(tester, find.text('Cool')), isFalse);
       });
     }
   });

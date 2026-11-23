@@ -41,16 +41,17 @@ class TemperatureCoverageCard extends StatelessWidget {
       children: [
         for (final band in coverage.bands)
           _TemperatureBandRow(
+            key: band.key == null ? null : ValueKey<String>(band.key!),
             band: band,
-            label: bandLabel(l10n, band),
+            range: bandRange(l10n, band),
             fraction: maxCount == 0 ? 0 : band.outfitCount / maxCount,
           ),
       ],
     );
   }
 
-  /// "Below 12°C", "12–15°C", "33°C and above".
-  static String bandLabel(AppLocalizations l10n, TemperatureBand band) {
+  /// "Below 0°C", "15–20°C", "29°C and above".
+  static String bandRange(AppLocalizations l10n, TemperatureBand band) {
     final min = band.minC;
     final max = band.maxC;
     if (min == null && max != null) {
@@ -72,12 +73,13 @@ class TemperatureCoverageCard extends StatelessWidget {
 
 class _TemperatureBandRow extends StatelessWidget {
   final TemperatureBand band;
-  final String label;
+  final String range;
   final double fraction;
 
   const _TemperatureBandRow({
+    super.key,
     required this.band,
-    required this.label,
+    required this.range,
     required this.fraction,
   });
 
@@ -85,8 +87,9 @@ class _TemperatureBandRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final name = band.label;
     return Semantics(
-      label: '$label, ${band.outfitCount}',
+      label: '${name == null ? range : '$name $range'}, ${band.outfitCount}',
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -95,7 +98,23 @@ class _TemperatureBandRow extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Text(label, style: AppTextStyle.medium14)),
+                Expanded(
+                  child: name == null
+                      ? Text(range, style: AppTextStyle.medium14)
+                      : Wrap(
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(name, style: AppTextStyle.medium14),
+                            Text(
+                              range,
+                              style: AppTextStyle.regular14.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '${band.outfitCount}',

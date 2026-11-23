@@ -46,9 +46,6 @@ void main() {
       expect(outfit.style, isEmpty);
       expect(outfit.backgroundId, isNull);
       expect(outfit.isFavorite, isFalse);
-      // Set by OutfitService from the group wrapper, not the outfit payload.
-      expect(outfit.coverOutfitId, isNull);
-      expect(outfit.groupName, isNull);
     });
 
     test('parses ids given as strings, same as ints', () {
@@ -148,6 +145,16 @@ void main() {
       final outfit = Outfit.fromJson({'outfit_id': 1, 'is_favorite': 1});
       expect(outfit.isFavorite, isTrue);
     });
+
+    test('reads the suitable temperature range; null ends stay open', () {
+      final outfit = Outfit.fromJson({
+        'outfit_id': 1,
+        'suitable_temp_min_c': 15.0,
+        'suitable_temp_max_c': null,
+      });
+      expect(outfit.suitableTempMinC, 15);
+      expect(outfit.suitableTempMaxC, isNull);
+    });
   });
 
   group('Outfit.copyWith', () {
@@ -167,35 +174,15 @@ void main() {
       expect(updated.imageUrl, original.imageUrl);
     });
 
-    test('coverOutfitId is left untouched when omitted', () {
-      final withCover = build().copyWith(coverOutfitId: 55);
-      final untouched = withCover.copyWith(name: 'Renamed');
-      expect(untouched.coverOutfitId, 55);
+    test('keeps the suitable temperature range', () {
+      final outfit = Outfit.fromJson({
+        'outfit_id': 1,
+        'suitable_temp_min_c': 15,
+        'suitable_temp_max_c': 21,
+      }).copyWith(style: ['classic']);
+      expect(outfit.suitableTempMinC, 15);
+      expect(outfit.suitableTempMaxC, 21);
     });
-
-    test(
-      'clearCoverOutfitId nulls it out even though coverOutfitId itself is omitted',
-      () {
-        final withCover = build().copyWith(coverOutfitId: 55);
-        final cleared = withCover.copyWith(clearCoverOutfitId: true);
-        expect(cleared.coverOutfitId, isNull);
-      },
-    );
-
-    test('groupName is left untouched when omitted', () {
-      final withName = build().copyWith(groupName: 'Weekend Look');
-      final untouched = withName.copyWith(isFavorite: true);
-      expect(untouched.groupName, 'Weekend Look');
-    });
-
-    test(
-      'clearGroupName nulls it out even though groupName itself is omitted',
-      () {
-        final withName = build().copyWith(groupName: 'Weekend Look');
-        final cleared = withName.copyWith(clearGroupName: true);
-        expect(cleared.groupName, isNull);
-      },
-    );
   });
 
   group('Outfit.toJson', () {

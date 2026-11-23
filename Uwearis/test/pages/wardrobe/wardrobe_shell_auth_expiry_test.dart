@@ -25,6 +25,7 @@ import 'package:uwearis/features/widgets/common/overlays/app_dialog.dart';
 
 import '../../helpers/points_fixture.dart';
 import '../../helpers/widget_harness.dart';
+import 'package:uwearis/data/outfit_group.dart';
 
 /// What every signed-in fetch answers for the account currently signed in —
 /// a dead session fails them all at once, as the backend does.
@@ -55,7 +56,7 @@ class _Garments extends GarmentsNotifier {
 
 class _Outfits extends OutfitsNotifier {
   @override
-  Future<List<Outfit>> build() => _fetch(const <Outfit>[]);
+  Future<List<OutfitGroup>> build() => _fetch(const <OutfitGroup>[]);
 }
 
 class _Trips extends TripsNotifier {

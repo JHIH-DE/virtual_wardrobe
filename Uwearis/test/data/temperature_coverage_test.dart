@@ -28,6 +28,27 @@ void main() {
       expect(c.bands.last.maxC, isNull);
     });
 
+    test('reads key and label; a blank or missing label is null', () {
+      final c = TemperatureCoverage.fromJson({
+        'enough_count': 3,
+        'bands': [
+          {
+            'key': 'cool',
+            'label': '微涼',
+            'min_c': 15,
+            'max_c': 20,
+            'outfit_count': 42,
+            'status': 'enough',
+          },
+          {'key': 'mild', 'label': '  ', 'min_c': 20, 'max_c': 25},
+          {'min_c': 25, 'max_c': 29},
+        ],
+      });
+
+      expect(c.bands.map((b) => b.key), ['cool', 'mild', null]);
+      expect(c.bands.map((b) => b.label), ['微涼', null, null]);
+    });
+
     test('an unknown status falls back to the count', () {
       final c = TemperatureCoverage.fromJson({
         'enough_count': 3,

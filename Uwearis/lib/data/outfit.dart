@@ -37,6 +37,35 @@ extension OutfitGroupTypeApi on OutfitGroupType {
 
 /// One outfit from `/api/v1/outfit`. `regenerate` overwrites its image in
 /// place rather than creating a new version.
+/// An outfit's suitable temperature: `[minC, maxC)`, null = open end.
+typedef OutfitTemperature = ({
+  int? minC,
+  int? maxC,
+  OutfitTemperatureSource source,
+});
+
+/// What a PATCH sends for the suitable temperature: a manual range, or both
+/// null to go back to the automatic one.
+typedef OutfitTemperatureEdit = ({int? minC, int? maxC});
+
+enum OutfitTemperatureSource {
+  /// Calculated from the garments; follows garment edits.
+  auto('auto'),
+
+  /// Set by the user.
+  manual('manual');
+
+  final String apiValue;
+  const OutfitTemperatureSource(this.apiValue);
+
+  static OutfitTemperatureSource? fromApiValue(String? value) {
+    for (final s in values) {
+      if (s.apiValue == value) return s;
+    }
+    return null;
+  }
+}
+
 class Outfit {
   final int id;
   final int groupId;
@@ -55,18 +84,19 @@ class Outfit {
   final int? backgroundId;
   final bool isFavorite;
 
-  /// Versions in this outfit's group — only set on the per-group
-  /// representatives `OutfitService.getAllOutfits` returns; 1 elsewhere.
-  final int versionCount;
+  /// Day-average °C range the daily pick accepts this outfit for,
+  /// `[min, max)`; null = open on that side.
+  final int? suitableTempMinC;
+  final int? suitableTempMaxC;
 
-  /// Group-level cover choice, attached by `OutfitService` from the group
-  /// wrapper (not in `OutfitOut`). Null = backend default (lowest id).
-  final int? coverOutfitId;
+  /// A manual range is never recalculated from the garments.
+  final OutfitTemperatureSource suitableTempSource;
 
-  /// Group-level name (distinct from [name]), attached by `OutfitService`
-  /// from the group wrapper. The backend seeds it once from the first
-  /// rendered outfit.
-  final String? groupName;
+  OutfitTemperature get suitableTemperature => (
+    minC: suitableTempMinC,
+    maxC: suitableTempMaxC,
+    source: suitableTempSource,
+  );
 
   Outfit({
     required this.id,
@@ -82,9 +112,9 @@ class Outfit {
     this.errorMessage,
     this.backgroundId,
     this.isFavorite = false,
-    this.versionCount = 1,
-    this.coverOutfitId,
-    this.groupName,
+    this.suitableTempMinC,
+    this.suitableTempMaxC,
+    this.suitableTempSource = OutfitTemperatureSource.auto,
   });
 
   /// The cache key every widget displaying this outfit's image should use:
@@ -100,11 +130,7 @@ class Outfit {
     String? resultImageCacheKey,
     List<String>? seasons,
     List<String>? style,
-    int? versionCount,
-    int? coverOutfitId,
-    bool clearCoverOutfitId = false,
-    String? groupName,
-    bool clearGroupName = false,
+    OutfitTemperature? suitableTemperature,
   }) {
     return Outfit(
       id: id,
@@ -120,11 +146,13 @@ class Outfit {
       errorMessage: errorMessage,
       backgroundId: backgroundId,
       isFavorite: isFavorite ?? this.isFavorite,
-      versionCount: versionCount ?? this.versionCount,
-      coverOutfitId: clearCoverOutfitId
-          ? null
-          : (coverOutfitId ?? this.coverOutfitId),
-      groupName: clearGroupName ? null : (groupName ?? this.groupName),
+      suitableTempMinC: suitableTemperature != null
+          ? suitableTemperature.minC
+          : suitableTempMinC,
+      suitableTempMaxC: suitableTemperature != null
+          ? suitableTemperature.maxC
+          : suitableTempMaxC,
+      suitableTempSource: suitableTemperature?.source ?? suitableTempSource,
     );
   }
 
@@ -175,6 +203,13 @@ class Outfit {
       errorMessage: json['error_message'] as String?,
       backgroundId: (json['background_id'] as num?)?.toInt(),
       isFavorite: json['is_favorite'] == true || json['is_favorite'] == 1,
+      suitableTempMinC: (json['suitable_temp_min_c'] as num?)?.toInt(),
+      suitableTempMaxC: (json['suitable_temp_max_c'] as num?)?.toInt(),
+      suitableTempSource:
+          OutfitTemperatureSource.fromApiValue(
+            json['suitable_temp_source'] as String?,
+          ) ??
+          OutfitTemperatureSource.auto,
     );
   }
 
@@ -192,6 +227,25 @@ class Outfit {
       'error_message': errorMessage,
       'background_id': backgroundId,
       'is_favorite': isFavorite,
+      'suitable_temp_min_c': suitableTempMinC,
+      'suitable_temp_max_c': suitableTempMaxC,
+      'suitable_temp_source': suitableTempSource.apiValue,
     };
   }
+}
+
+/// What [target] shows while [edit] is being saved: a manual range at once;
+/// a reset to automatic keeps the current numbers until the reply.
+OutfitTemperature optimisticOutfitTemperature(
+  Outfit target,
+  OutfitTemperatureEdit? edit,
+) {
+  if (edit == null || (edit.minC == null && edit.maxC == null)) {
+    return target.suitableTemperature;
+  }
+  return (
+    minC: edit.minC,
+    maxC: edit.maxC,
+    source: OutfitTemperatureSource.manual,
+  );
 }

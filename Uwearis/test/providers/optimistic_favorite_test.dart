@@ -242,7 +242,9 @@ void main() {
       }, () => backend.client);
     }
 
-    bool fav() => container.read(outfitsProvider).value!.single.isFavorite;
+    bool fav() => outfitGroupCovers(
+      container.read(outfitsProvider).value!,
+    ).single.isFavorite;
 
     test('favorite → stale refresh answers → PATCH succeeds', () {
       return run((n) async {
@@ -256,7 +258,7 @@ void main() {
         n.settleOutfitFavorite(5, t, isFavorite: true);
         expect(fav(), isTrue);
         expect(
-          container.read(outfitsProvider).value!.single.groupName,
+          container.read(outfitsProvider).value!.single.name,
           'Weekend',
           reason: 'still a field-level write (F3)',
         );

@@ -5,47 +5,52 @@ import '../../../data/outfit.dart';
 import '../../../data/style_type.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../common/buttons/filter_button.dart';
+import 'outfit_temperature_editor.dart';
 import 'outfit_title.dart';
 
-/// An outfit's tags in the backend's form (lowercase seasons, snake_case
-/// styles).
-typedef OutfitTags = ({List<String> seasons, List<String> style});
+/// What the tags sheet changed: the full style list, and the suitable
+/// temperature edit (null = unchanged).
+typedef OutfitTagEdits = ({
+  List<String> style,
+  OutfitTemperatureEdit? temperature,
+});
 
-/// Season/Style multi-select for [outfit] — the filter sheets' chip chrome,
-/// plain multi-select (no "All"). Resolves once the sheet closes, however
-/// it's dismissed: the new tags, or null if nothing changed.
-Future<OutfitTags?> showOutfitTagsSheet(
+/// The suitable temperature and a Style multi-select (the filter sheets'
+/// chip chrome, no "All") for [outfit]. Resolves once the sheet closes,
+/// however it's dismissed: the edits, or null if nothing changed.
+Future<OutfitTagEdits?> showOutfitTagsSheet(
   BuildContext context,
   Outfit outfit,
 ) async {
   final l10n = AppLocalizations.of(context);
-  final initialSeasons = outfit.seasons.map(normalizeOutfitTag).toSet();
   final initialStyles = outfit.style.map(normalizeOutfitTag).toSet();
-  final selectedSeasons = {...initialSeasons};
   final selectedStyles = {...initialStyles};
-
-  FilterGroup tagGroup(String label, List<String> options, Set<String> sel) {
-    return FilterGroup(
-      label: label,
-      options: options,
-      labelOf: (v) => outfitTagLabel(l10n, v),
-      selected: () => sel,
-      onToggle: (option) {
-        if (!sel.remove(option)) sel.add(option);
-      },
-    );
-  }
+  OutfitTemperatureEdit? temperature;
 
   await showChipGroupsSheet(
     context,
+    leading: [
+      OutfitTemperatureEditor(
+        initial: outfit.suitableTemperature,
+        onChanged: (edit) => temperature = edit,
+      ),
+    ],
     groups: [
-      tagGroup(l10n.seasonLabel, seasonOptions, selectedSeasons),
-      tagGroup(l10n.styleLabel, styleOptions, selectedStyles),
+      FilterGroup(
+        label: l10n.styleLabel,
+        options: styleOptions,
+        labelOf: (v) => outfitTagLabel(l10n, v),
+        selected: () => selectedStyles,
+        onToggle: (option) {
+          if (!selectedStyles.remove(option)) selectedStyles.add(option);
+        },
+      ),
     ],
   );
-  if (setEquals(selectedSeasons, initialSeasons) &&
-      setEquals(selectedStyles, initialStyles)) {
-    return null;
-  }
-  return (seasons: selectedSeasons.toList(), style: selectedStyles.toList());
+  final styleChanged = !setEquals(selectedStyles, initialStyles);
+  if (!styleChanged && temperature == null) return null;
+  return (
+    style: styleChanged ? selectedStyles.toList() : outfit.style,
+    temperature: temperature,
+  );
 }

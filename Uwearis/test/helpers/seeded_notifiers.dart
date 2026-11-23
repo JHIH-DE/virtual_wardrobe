@@ -5,6 +5,7 @@ import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/core/providers/trips_provider.dart';
 import 'package:uwearis/data/garment.dart';
 import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/data/outfit_group.dart';
 import 'package:uwearis/data/trip.dart';
 
 // Provider fakes whose build() serves a fixed list instead of fetching:
@@ -32,19 +33,30 @@ class SeededGarmentsNotifier extends GarmentsNotifier {
 
 /// See [SeededGarmentsNotifier] for [refreshReseeds].
 class SeededOutfitsNotifier extends OutfitsNotifier {
-  SeededOutfitsNotifier(this.seed, {this.refreshReseeds = false});
+  /// Each outfit in [outfits] becomes its own one-version group.
+  SeededOutfitsNotifier(List<Outfit> outfits, {bool refreshReseeds = false})
+    : this.groups(
+        outfits.map(singleVersionGroup).toList(),
+        refreshReseeds: refreshReseeds,
+      );
 
-  final List<Outfit> seed;
+  SeededOutfitsNotifier.groups(this.seed, {this.refreshReseeds = false});
+
+  final List<OutfitGroup> seed;
   final bool refreshReseeds;
 
   @override
-  Future<List<Outfit>> build() async => seed;
+  Future<List<OutfitGroup>> build() async => seed;
 
   @override
   Future<void> refresh() => refreshReseeds ? _reseed() : super.refresh();
 
   Future<void> _reseed() async => state = AsyncData(seed);
 }
+
+/// [outfit] as the only version of an unnamed group.
+OutfitGroup singleVersionGroup(Outfit outfit) =>
+    OutfitGroup(groupId: outfit.groupId, versions: [outfit]);
 
 class SeededDailyOutfitNotifier extends DailyOutfitNotifier {
   SeededDailyOutfitNotifier(this.seed);

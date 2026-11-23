@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +12,7 @@ import '../../../core/services/outfit_service.dart';
 import '../../../core/utils/debug_log.dart';
 import '../../../data/garment.dart';
 import '../../../data/outfit.dart';
+import '../../../data/outfit_group.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/buttons/bottom_action_button.dart';
@@ -25,6 +28,10 @@ import '../../widgets/outfit/outfit_title.dart';
 /// read-only (no favourite / regenerate / cover / delete).
 class TripOutfitVersionPage extends ConsumerStatefulWidget {
   final Outfit outfit;
+
+  /// [outfit]'s group when the caller already has it: every version shows
+  /// at once instead of after a fetch.
+  final OutfitGroup? group;
   final Set<int> packedGarmentIds;
 
   /// Versions already in the trip can't be added again.
@@ -33,6 +40,7 @@ class TripOutfitVersionPage extends ConsumerStatefulWidget {
   const TripOutfitVersionPage({
     super.key,
     required this.outfit,
+    this.group,
     this.packedGarmentIds = const {},
     this.addedOutfitIds = const {},
   });
@@ -47,8 +55,11 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
   // Just the tapped outfit until [_loadVersions] resolves.
   late final List<Outfit> _versions = [widget.outfit];
   int _currentIndex = 0;
-  final PageController _pageController = PageController();
+  late final PageController _pageController = PageController(
+    initialPage: _currentIndex,
+  );
   bool _versionsResolved = false;
+  String? _groupName;
 
   // A second tap during the pop transition would pop the page underneath
   // (the outfit grid) too, with this result.
@@ -61,6 +72,19 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
   @override
   void initState() {
     super.initState();
+    final group = widget.group;
+    _groupName = group?.name;
+    if (group != null && group.versions.isNotEmpty) {
+      final versions = group.versions;
+      _versions
+        ..clear()
+        ..addAll(versions);
+      _currentIndex = math.max(
+        0,
+        versions.indexWhere((o) => o.id == widget.outfit.id),
+      );
+      _versionsResolved = true;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(garmentsProvider.notifier).refreshIfNeeded();
       _loadVersions();
@@ -75,13 +99,13 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
 
   Future<void> _loadVersions() async {
     try {
-      final outfits = await OutfitService().getGroupOutfits(
-        widget.outfit.groupId,
-      );
+      final group = await OutfitService().getOutfitGroup(widget.outfit.groupId);
+      final outfits = group.versions;
       if (!mounted || outfits.isEmpty) return;
-      // Order isn't guaranteed; stay on the tapped version.
-      final matchedIndex = outfits.indexWhere((o) => o.id == widget.outfit.id);
+      // Order isn't guaranteed; stay on the version showing.
+      final matchedIndex = outfits.indexWhere((o) => o.id == _current.id);
       setState(() {
+        _groupName = group.name;
         _versions
           ..clear()
           ..addAll(outfits);
@@ -125,7 +149,7 @@ class _TripOutfitVersionPageState extends ConsumerState<TripOutfitVersionPage>
     final canAdd = !alreadyAdded && !hasNotOwned;
     final name = outfitDisplayTitle(
       _l10n,
-      groupName: widget.outfit.groupName ?? _current.groupName,
+      groupName: _groupName,
       name: _current.name,
       seasons: _current.seasons,
       style: _current.style,

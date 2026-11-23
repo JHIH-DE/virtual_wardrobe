@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:uwearis/core/providers/daily_outfit_provider.dart';
 import 'package:uwearis/core/providers/outfits_provider.dart';
 import 'package:uwearis/data/outfit.dart';
+import 'package:uwearis/data/outfit_group.dart';
 import 'package:uwearis/features/pages/wardrobe/today_outfit_page.dart';
 import 'package:uwearis/features/widgets/outfit/outfit_tag_row.dart';
 
@@ -47,13 +48,15 @@ final _options = [
     garmentIds: [2],
     seasons: ['summer'],
     style: ['smart_casual', 'street'],
+    suitableTempMinC: 21,
+    suitableTempMaxC: 27,
   ),
   Outfit(id: 30, groupId: 3, imageUrl: '', garmentIds: [1, 2]),
 ];
 
-List<Override> _overrides({List<Outfit> myOutfits = const []}) => [
+List<Override> _overrides({List<OutfitGroup> myGroups = const []}) => [
   dailyOutfitProvider.overrideWith(() => SeededDailyOutfitNotifier(_options)),
-  outfitsProvider.overrideWith(() => SeededOutfitsNotifier(myOutfits)),
+  outfitsProvider.overrideWith(() => SeededOutfitsNotifier.groups(myGroups)),
 ];
 
 Future<void> _settle(WidgetTester tester) async {
@@ -115,8 +118,12 @@ void main() {
         tester,
         const TodayOutfitPage(),
         overrides: _overrides(
-          myOutfits: [
-            Outfit(id: 10, groupId: 1, groupName: 'Monday Look', imageUrl: ''),
+          myGroups: [
+            OutfitGroup(
+              groupId: 1,
+              name: 'Monday Look',
+              versions: [Outfit(id: 10, groupId: 1, imageUrl: '')],
+            ),
           ],
         ),
       );
@@ -138,9 +145,8 @@ void main() {
     expect(find.byIcon(Icons.more_horiz), findsNothing);
   });
 
-  testWidgets('shows season and style tags beside the edit-tags button', (
-    tester,
-  ) async {
+  testWidgets('shows the suitable temperature and style tags, not seasons, '
+      'beside the edit-tags button', (tester) async {
     await http.runWithClient(() async {
       await pumpApp(
         tester,
@@ -149,7 +155,9 @@ void main() {
       );
       await _settle(tester);
 
-      expect(find.text('Summer'), findsOneWidget);
+      expect(find.text('Summer'), findsNothing);
+      expect(find.text('21°C - 27°C'), findsOneWidget);
+      expect(find.byIcon(Icons.thermostat_rounded), findsOneWidget);
       expect(find.text('Smart Casual'), findsOneWidget);
       expect(find.text('Street'), findsOneWidget);
       expect(find.byIcon(Icons.sell_outlined), findsOneWidget);
@@ -185,7 +193,7 @@ void main() {
       await pumpApp(
         tester,
         const TodayOutfitPage(),
-        overrides: _overrides(myOutfits: [_options[0]]),
+        overrides: _overrides(myGroups: [singleVersionGroup(_options[0])]),
       );
       final container = ProviderScope.containerOf(
         tester.element(find.byType(TodayOutfitPage)),
@@ -195,17 +203,21 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.sell_outlined));
       await _settle(tester);
-      await tester.tap(find.text('Winter'));
+      await tester.tap(find.text('Classic'));
       await _settle(tester);
       await tester.tapAt(const Offset(10, 10));
       await _settle(tester);
 
-      expect(patches.single['season'], ['winter']);
-      expect(find.text('Winter'), findsOneWidget);
-      expect(container.read(dailyOutfitProvider).value!.first.seasons, [
-        'winter',
+      expect(patches.single.containsKey('season'), isFalse);
+      expect(patches.single['style'], ['classic']);
+      expect(find.text('Classic'), findsOneWidget);
+      expect(container.read(dailyOutfitProvider).value!.first.style, [
+        'classic',
       ]);
-      expect(container.read(outfitsProvider).value!.single.seasons, ['winter']);
+      expect(
+        outfitGroupCovers(container.read(outfitsProvider).value!).single.style,
+        ['classic'],
+      );
     }, () => client);
   });
 }

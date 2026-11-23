@@ -38,12 +38,19 @@ class TemperatureCoverage {
 
 /// `[minC, maxC)` of the day's average temperature; a null end is open.
 class TemperatureBand {
+  /// Fixed band id (`freezing` … `hot`).
+  final String? key;
+
+  /// Band name in the user's language, from the backend ("微涼", "Cool").
+  final String? label;
   final double? minC;
   final double? maxC;
   final int outfitCount;
   final TemperatureCoverageStatus status;
 
   const TemperatureBand({
+    this.key,
+    this.label,
     required this.minC,
     required this.maxC,
     required this.outfitCount,
@@ -55,7 +62,10 @@ class TemperatureBand {
     required int enoughCount,
   }) {
     final count = (json['outfit_count'] as num?)?.toInt() ?? 0;
+    final label = (json['label'] as String?)?.trim();
     return TemperatureBand(
+      key: json['key'] as String?,
+      label: label == null || label.isEmpty ? null : label,
       minC: (json['min_c'] as num?)?.toDouble(),
       maxC: (json['max_c'] as num?)?.toDouble(),
       outfitCount: count,

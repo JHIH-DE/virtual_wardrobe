@@ -86,9 +86,9 @@ Future<TryOnCheckResult> checkTryOnStatus(String key) async {
 /// The render a new-outfit draft group already holds, if any — how a backend
 /// without the status endpoint can still answer "did it land?".
 Future<Outfit?> landedInDraft(int draftGroupId) async {
-  final outfits = await OutfitService().getGroupOutfits(
+  final group = await OutfitService().getOutfitGroup(
     draftGroupId,
     forceRefresh: true,
   );
-  return outfits.isEmpty ? null : outfits.last;
+  return group.versions.isEmpty ? null : group.versions.last;
 }

@@ -7,7 +7,7 @@ import '../../../core/services/auth_handler.dart';
 import '../../../data/outfit.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
-import '../../widgets/common/buttons/outfit_season_style_filter.dart';
+import '../../widgets/common/buttons/outfit_temperature_style_filter.dart';
 import '../../widgets/common/images/app_spinner.dart';
 import '../../widgets/common/overlays/error_state_widget.dart';
 import '../../widgets/outfit/outfit_grid.dart';
@@ -23,7 +23,7 @@ class GarmentOutfitsPage extends ConsumerStatefulWidget {
 }
 
 class _GarmentOutfitsPageState extends ConsumerState<GarmentOutfitsPage> {
-  final _filter = OutfitSeasonStyleFilter();
+  final _filter = OutfitTemperatureStyleFilter();
 
   @override
   void initState() {

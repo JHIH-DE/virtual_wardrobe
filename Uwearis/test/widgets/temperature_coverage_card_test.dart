@@ -12,19 +12,24 @@ const _coverage = TemperatureCoverage(
   enoughCount: 3,
   bands: [
     TemperatureBand(
+      key: 'freezing',
+      label: '零下',
       minC: null,
-      maxC: 12,
+      maxC: 0,
       outfitCount: 1,
       status: TemperatureCoverageStatus.few,
     ),
     TemperatureBand(
-      minC: 18,
-      maxC: 21,
+      key: 'chilly',
+      label: 'Chilly',
+      minC: 10,
+      maxC: 15,
       outfitCount: 42,
       status: TemperatureCoverageStatus.enough,
     ),
     TemperatureBand(
-      minC: 33,
+      key: 'hot',
+      minC: 29,
       maxC: null,
       outfitCount: 0,
       status: TemperatureCoverageStatus.none,
@@ -51,9 +56,11 @@ void main() {
 
         final isEn = c.locale.languageCode == 'en';
         for (final label in [
-          isEn ? 'Below 12°C' : '12°C 以下',
-          isEn ? '18–21°C' : '18~21°C',
-          isEn ? '33°C and above' : '33°C 以上',
+          '零下',
+          'Chilly',
+          isEn ? 'Below 0°C' : '0°C 以下',
+          isEn ? '10–15°C' : '10~15°C',
+          isEn ? '29°C and above' : '29°C 以上',
         ]) {
           expect(isTruncated(tester, find.text(label)), isFalse);
           expectNoBrokenWords(tester, find.text(label));
@@ -61,5 +68,25 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+  });
+
+  testWidgets('a band without a backend label shows its range alone', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const Scaffold(body: TemperatureCoverageCard(coverage: _coverage)),
+    );
+    await tester.pumpAndSettle();
+
+    final hotRow = find.byKey(const ValueKey('hot'));
+    expect(
+      find.descendant(of: hotRow, matching: find.byType(Text)),
+      findsNWidgets(2), // range + count
+    );
+    expect(
+      find.descendant(of: hotRow, matching: find.text('29°C and above')),
+      findsOneWidget,
+    );
   });
 }

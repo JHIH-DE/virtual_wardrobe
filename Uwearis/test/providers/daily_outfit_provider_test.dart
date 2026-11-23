@@ -10,15 +10,19 @@ import 'package:uwearis/data/outfit.dart';
 
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
+import 'package:uwearis/data/outfit_group.dart';
+import '../helpers/seeded_notifiers.dart';
 
 class _FakeOutfitsNotifier extends OutfitsNotifier {
   _FakeOutfitsNotifier(this._initial);
   final List<Outfit> _initial;
 
   @override
-  Future<List<Outfit>> build() async => _initial;
+  Future<List<OutfitGroup>> build() async =>
+      _initial.map(singleVersionGroup).toList();
 
-  void set(List<Outfit> outfits) => state = AsyncData(outfits);
+  void set(List<Outfit> outfits) =>
+      state = AsyncData(outfits.map(singleVersionGroup).toList());
 }
 
 Outfit _outfit(int id) =>
@@ -238,7 +242,9 @@ void main() {
       expect(backend.favorites, {2});
       expect(c.read(dailyOutfitProvider).value![1].isFavorite, isTrue);
       expect(
-        c.read(outfitsProvider).value!.firstWhere((o) => o.id == 2).isFavorite,
+        outfitGroupCovers(
+          c.read(outfitsProvider).value!,
+        ).firstWhere((o) => o.id == 2).isFavorite,
         isTrue,
       );
     });
@@ -275,7 +281,9 @@ void main() {
 
       expect(c.read(dailyOutfitProvider).value![0].isFavorite, isFalse);
       expect(
-        c.read(outfitsProvider).value!.firstWhere((o) => o.id == 1).isFavorite,
+        outfitGroupCovers(
+          c.read(outfitsProvider).value!,
+        ).firstWhere((o) => o.id == 1).isFavorite,
         isFalse,
       );
     });
@@ -288,12 +296,22 @@ void main() {
       await expectLater(
         c
             .read(dailyOutfitProvider.notifier)
-            .updateOutfitTags(target, seasons: ['winter'], style: ['street']),
+            .updateOutfitTags(
+              target,
+              style: ['street'],
+              temperature: (minC: 18, maxC: 27),
+            ),
         throwsA(anything),
       );
 
-      expect(c.read(dailyOutfitProvider).value!.single.seasons, isEmpty);
-      expect(c.read(outfitsProvider).value!.single.seasons, isEmpty);
+      final shown = c.read(dailyOutfitProvider).value!.single;
+      expect(shown.style, isEmpty);
+      expect(shown.suitableTempMinC, isNull);
+      expect(shown.suitableTempSource, OutfitTemperatureSource.auto);
+      expect(
+        outfitGroupCovers(c.read(outfitsProvider).value!).single.style,
+        isEmpty,
+      );
     });
   });
 }

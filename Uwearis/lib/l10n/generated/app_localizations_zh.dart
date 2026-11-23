@@ -182,6 +182,27 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get temperatureBandNameFreezing => '零下';
+
+  @override
+  String get temperatureBandNameCold => '寒冷';
+
+  @override
+  String get temperatureBandNameChilly => '偏冷';
+
+  @override
+  String get temperatureBandNameCool => '微涼';
+
+  @override
+  String get temperatureBandNameMild => '溫和';
+
+  @override
+  String get temperatureBandNameWarm => '偏暖';
+
+  @override
+  String get temperatureBandNameHot => '炎熱';
+
+  @override
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
@@ -306,12 +327,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addVersionTitle => '新增版本';
-
-  @override
-  String get versionLimitReachedTitle => '已達版本上限';
-
-  @override
-  String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
   String get createOutfit => '建立造型';
@@ -1320,10 +1335,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectYourCityHint => '選擇你的城市';
 
   @override
-  String get seasonLabel => '季節';
+  String get styleLabel => '風格';
 
   @override
-  String get styleLabel => '風格';
+  String get outfitVersionsClearFilter => '解除篩選';
+
+  @override
+  String get outfitTemperatureLabel => '適合溫度';
+
+  @override
+  String get outfitTemperatureLowest => '最低';
+
+  @override
+  String get outfitTemperatureHighest => '最高';
+
+  @override
+  String get outfitTemperatureNoLimit => '不限';
+
+  @override
+  String get outfitTemperatureResetAuto => '重設';
+
+  @override
+  String get outfitTemperatureAutoPending => '將依衣物重新計算。';
+
+  @override
+  String get outfitTemperatureCustomize => '自行設定';
 
   @override
   String get styleAuto => '自動';
@@ -2283,6 +2319,27 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   }
 
   @override
+  String get temperatureBandNameFreezing => '零下';
+
+  @override
+  String get temperatureBandNameCold => '寒冷';
+
+  @override
+  String get temperatureBandNameChilly => '偏冷';
+
+  @override
+  String get temperatureBandNameCool => '微涼';
+
+  @override
+  String get temperatureBandNameMild => '溫和';
+
+  @override
+  String get temperatureBandNameWarm => '偏暖';
+
+  @override
+  String get temperatureBandNameHot => '炎熱';
+
+  @override
   String get styleTasteDetailsLabel => '風格洞察';
 
   @override
@@ -2407,12 +2464,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get addVersionTitle => '新增版本';
-
-  @override
-  String get versionLimitReachedTitle => '已達版本上限';
-
-  @override
-  String get versionLimitReachedBody => '每套穿搭最多可保留 10 個版本，請先刪除一個版本再新增。';
 
   @override
   String get createOutfit => '建立造型';
@@ -3421,10 +3472,31 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get selectYourCityHint => '選擇你的城市';
 
   @override
-  String get seasonLabel => '季節';
+  String get styleLabel => '風格';
 
   @override
-  String get styleLabel => '風格';
+  String get outfitVersionsClearFilter => '解除篩選';
+
+  @override
+  String get outfitTemperatureLabel => '適合溫度';
+
+  @override
+  String get outfitTemperatureLowest => '最低';
+
+  @override
+  String get outfitTemperatureHighest => '最高';
+
+  @override
+  String get outfitTemperatureNoLimit => '不限';
+
+  @override
+  String get outfitTemperatureResetAuto => '重設';
+
+  @override
+  String get outfitTemperatureAutoPending => '將依衣物重新計算。';
+
+  @override
+  String get outfitTemperatureCustomize => '自行設定';
 
   @override
   String get styleAuto => '自動';
