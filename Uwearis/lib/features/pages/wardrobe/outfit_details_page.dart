@@ -51,7 +51,7 @@ import '../../widgets/outfit/outfit_tags_sheet.dart';
 import '../../widgets/outfit/outfit_title.dart';
 import 'create_outfit_page.dart';
 
-enum _OutfitMenuAction { showAllVersions, rename, share, delete }
+enum _OutfitMenuAction { rename, share, delete }
 
 enum _VersionMenuAction { setCover, regenerate, delete }
 
@@ -63,7 +63,7 @@ class OutfitDetailsPage extends ConsumerStatefulWidget {
   final OutfitGroup? group;
 
   /// Set when opened from a filtered Outfits list (with [group]): only the
-  /// versions it accepts show, until the menu's Clear Filter.
+  /// versions it accepts show, until Disable Filter.
   final bool Function(Outfit version)? versionFilter;
 
   /// Freshly rendered from Add Outfit: shows a "Save" action, and leaving
@@ -312,16 +312,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   AppToolBar _buildAppBar() {
     final items = [
-      if (_shownIds != null)
-        AppPopupMenu.item(
-          value: _OutfitMenuAction.showAllVersions,
-          icon: const Icon(
-            Icons.filter_alt_off_outlined,
-            size: 20,
-            color: AppColors.icon,
-          ),
-          label: _l10n.outfitVersionsClearFilter,
-        ),
       if (_isSaved)
         AppPopupMenu.item(
           value: _OutfitMenuAction.rename,
@@ -371,9 +361,6 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
 
   void _handleMenuAction(_OutfitMenuAction action) {
     switch (action) {
-      case _OutfitMenuAction.showAllVersions:
-        _showAllVersions();
-        break;
       case _OutfitMenuAction.rename:
         _showRenameDialog();
         break;
@@ -802,11 +789,19 @@ class _OutfitDetailsPageState extends ConsumerState<OutfitDetailsPage> {
                   Positioned(
                     left: 12,
                     bottom: 8,
-                    child: AccentPillButton(
-                      label: _l10n.addVersionButton,
-                      enabled: !_isAddingVersion && !_atVersionLimit,
-                      onPressed: _openCreateAnotherVersion,
-                    ),
+                    // While filtered, the hidden versions come first: a
+                    // new version is added to the whole group.
+                    child: _shownIds != null
+                        ? AccentPillButton(
+                            key: const ValueKey('outfit-details-clear-filter'),
+                            label: _l10n.outfitVersionsClearFilter,
+                            onPressed: _showAllVersions,
+                          )
+                        : AccentPillButton(
+                            label: _l10n.addVersionButton,
+                            enabled: !_isAddingVersion && !_atVersionLimit,
+                            onPressed: _openCreateAnotherVersion,
+                          ),
                   ),
                 if (!_isRegenerating && _isSaved)
                   Positioned(

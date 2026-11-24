@@ -2712,7 +2712,7 @@ abstract class AppLocalizations {
   /// No description provided for @outfitVersionsClearFilter.
   ///
   /// In en, this message translates to:
-  /// **'Clear Filter'**
+  /// **'Disable Filter'**
   String get outfitVersionsClearFilter;
 
   /// No description provided for @outfitTemperatureLabel.

@@ -515,7 +515,7 @@
   "selectYourCityHint": "Select Your City",
 
   "styleLabel": "Style",
-  "outfitVersionsClearFilter": "Clear Filter",
+  "outfitVersionsClearFilter": "Disable Filter",
   "outfitTemperatureLabel": "Suitable Temperature",
   "outfitTemperatureLowest": "Lowest",
   "outfitTemperatureHighest": "Highest",

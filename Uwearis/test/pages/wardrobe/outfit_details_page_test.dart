@@ -119,6 +119,7 @@ void main() {
       groupId: 3,
       versions: [version(1), version(2), version(3)],
     );
+    const clearFilterPill = ValueKey('outfit-details-clear-filter');
     http.Client failingClient() =>
         MockClient((_) async => http.Response('', 500));
 
@@ -127,9 +128,8 @@ void main() {
       return f.evaluate().isEmpty ? null : tester.widget(f);
     }
 
-    testWidgets('shows only the matching versions until Clear Filter', (
-      tester,
-    ) async {
+    testWidgets('shows only the matching versions; the ⋯ menu has no '
+        'Disable Filter', (tester) async {
       await http.runWithClient(() async {
         useTallSurface(tester);
         await pumpApp(
@@ -147,14 +147,41 @@ void main() {
 
         await tester.tap(find.byIcon(Icons.more_vert));
         await tester.pump(const Duration(milliseconds: 500));
-        await tester.tap(find.text('Clear Filter'));
+        expect(find.text('Rename'), findsOneWidget);
+        expect(
+          find.text('Disable Filter'),
+          findsOneWidget,
+          reason: 'pill only',
+        );
+      }, failingClient);
+    });
+
+    testWidgets('in place of Add Version, Disable Filter clears the filter', (
+      tester,
+    ) async {
+      await http.runWithClient(() async {
+        useTallSurface(tester);
+        await pumpApp(
+          tester,
+          OutfitDetailsPage(
+            outfit: version(3),
+            group: threeVersions,
+            versionFilter: (o) => o.id != 1,
+          ),
+        );
+        await tester.pump();
+        expect(find.byKey(clearFilterPill), findsOneWidget);
+        expect(find.text('Add Version'), findsNothing);
+
+        await tester.tap(find.byKey(clearFilterPill));
         await tester.pump(const Duration(milliseconds: 500));
         expect(dots(tester)!.count, 3);
         expect(dots(tester)!.currentIndex, 2, reason: 'stays on version 3');
-
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pump(const Duration(milliseconds: 500));
-        expect(find.text('Clear Filter'), findsNothing);
+        expect(find.byKey(clearFilterPill), findsNothing);
+        expect(
+          find.widgetWithText(AccentPillButton, 'Add Version'),
+          findsOneWidget,
+        );
       }, failingClient);
     });
 
@@ -172,13 +199,15 @@ void main() {
         );
         await tester.pump();
         expect(dots(tester), isNull);
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pump(const Duration(milliseconds: 500));
-        expect(find.text('Clear Filter'), findsOneWidget);
+        expect(
+          find.byKey(clearFilterPill),
+          findsOneWidget,
+          reason: 'one version shown: no dots, but the filter still is',
+        );
       }, failingClient);
     });
 
-    testWidgets('no Clear Filter when every version matches', (tester) async {
+    testWidgets('no Disable Filter when every version matches', (tester) async {
       await http.runWithClient(() async {
         useTallSurface(tester);
         await pumpApp(
@@ -191,9 +220,8 @@ void main() {
         );
         await tester.pump();
         expect(dots(tester)!.count, 3);
-        await tester.tap(find.byIcon(Icons.more_vert));
-        await tester.pump(const Duration(milliseconds: 500));
-        expect(find.text('Clear Filter'), findsNothing);
+        expect(find.byKey(clearFilterPill), findsNothing);
+        expect(find.text('Disable Filter'), findsNothing);
       }, failingClient);
     });
   });

@@ -1396,7 +1396,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleLabel => 'Style';
 
   @override
-  String get outfitVersionsClearFilter => 'Clear Filter';
+  String get outfitVersionsClearFilter => 'Disable Filter';
 
   @override
   String get outfitTemperatureLabel => 'Suitable Temperature';
