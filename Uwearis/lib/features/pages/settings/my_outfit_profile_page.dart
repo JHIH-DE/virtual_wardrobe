@@ -237,7 +237,6 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
     final baseModelUrl = ProfileData.isRealPhotoUrl(data.baseModelUrl)
         ? data.baseModelUrl
         : null;
-    final canGenerate = hasBodyRef && !baseModelBusy;
     return GeneratedImageCard(
       imageUrl: baseModelUrl,
       hasAssignment: true,
@@ -250,17 +249,21 @@ class _MyOutfitProfilePageState extends ConsumerState<MyOutfitProfilePage>
       onUrlRefreshed: (oldUrl, freshUrl) => ref
           .read(profileProvider.notifier)
           .setBaseModelUrlIfCurrent(oldUrl, freshUrl),
-      onGenerate: generateBaseModel,
-      generateEnabled: canGenerate,
-      generateDisabledMessage: hasBodyRef
+      onGenerate: hasBodyRef ? generateBaseModel : _openReferencePhotos,
+      generateEnabled: !hasBodyRef || !baseModelBusy,
+      generateMessage: hasBodyRef
           ? null
           : _l10n.virtualModelGenerateRequiresBodyRefHint,
-      generateLabel: _l10n.virtualModelGenerateAction,
-      cornerAction: AccentPillButton(
-        key: const ValueKey('editPhotosAction'),
-        label: _l10n.edit,
-        onPressed: _openReferencePhotos,
-      ),
+      generateLabel: hasBodyRef
+          ? _l10n.virtualModelGenerateAction
+          : _l10n.virtualModelAddPhotosAction,
+      cornerAction: hasBodyRef || baseModelUrl != null
+          ? AccentPillButton(
+              key: const ValueKey('editPhotosAction'),
+              label: _l10n.edit,
+              onPressed: _openReferencePhotos,
+            )
+          : null,
     );
   }
 

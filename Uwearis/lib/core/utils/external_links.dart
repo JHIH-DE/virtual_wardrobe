@@ -17,6 +17,14 @@ Future<void> openPrivacyPolicy(BuildContext context) =>
 Future<void> openTermsOfService(BuildContext context) =>
     _openPage(context, AppConfig.termsOfServiceUrl);
 
+/// A magazine item's product page on the seller's site.
+Future<void> openProductPage(BuildContext context, String url) =>
+    _openPage(context, url);
+
+/// A source a magazine story credits (a video, a brand's site).
+Future<void> openMagazineSource(BuildContext context, String url) =>
+    _openPage(context, url);
+
 /// In-app browser (SFSafariViewController / Custom Tabs), so the user stays
 /// in the app.
 Future<void> _openPage(BuildContext context, String url) async {

@@ -29,7 +29,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Welcome to Uwearis'), findsOneWidget);
+      expect(find.text('Your first outfit\nstarts here'), findsOneWidget);
       expect(find.text('About You'), findsOneWidget);
       expect(find.text('My Virtual Model'), findsOneWidget);
       expect(find.text('Top'), findsOneWidget);

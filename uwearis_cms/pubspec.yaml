@@ -1,0 +1,33 @@
+name: uwearis_cms
+description: "Uwearis magazine CMS (Flutter Web)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  # The App package: the magazine widgets (lib/features/widgets/magazine/),
+  # its data models, theme and l10n, so the preview is the App's own layout.
+  uwearis:
+    path: ../Uwearis
+  google_sign_in: ^7.2.0
+  google_sign_in_web: ^1.0.0
+  google_fonts: ^8.1.0
+  http: ^1.2.2
+  intl: ^0.20.2
+  file_picker: ^10.3.3
+  # Browser canvas, to downscale photos before upload.
+  web: ^1.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

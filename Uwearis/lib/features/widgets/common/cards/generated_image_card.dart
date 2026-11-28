@@ -37,6 +37,9 @@ class GeneratedImageCard extends StatelessWidget {
   /// Shown above the button while [generateEnabled] is false.
   final String? generateDisabledMessage;
 
+  /// Shown above the button in any state.
+  final String? generateMessage;
+
   /// Shown under the broken-image icon if [imageUrl] fails to load.
   final String? errorLabel;
 
@@ -79,6 +82,7 @@ class GeneratedImageCard extends StatelessWidget {
     this.generateLabel,
     this.generateEnabled = true,
     this.generateDisabledMessage,
+    this.generateMessage,
     this.errorLabel,
     this.noImageMessage,
     this.noAssignmentTitle,
@@ -196,11 +200,30 @@ class GeneratedImageCard extends StatelessWidget {
               ),
             );
     }
-    return AccentPillButton(
+    final button = AccentPillButton(
       label: generateLabel!,
       enabled: generateEnabled,
       disabledMessage: generateDisabledMessage,
       onPressed: onGenerate,
+    );
+    final message = generateMessage;
+    if (message == null) return button;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTextStyle.regular13.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        button,
+      ],
     );
   }
 

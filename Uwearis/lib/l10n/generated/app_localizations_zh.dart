@@ -137,6 +137,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get virtualModelGenerateAction => '生成';
 
   @override
+  String get virtualModelAddPhotosAction => '添加';
+
+  @override
   String get virtualModelGenerateNewAction => '生成新的合成照';
 
   @override
@@ -158,7 +161,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moreInfo => '更多資訊';
 
   @override
-  String get outfitInsights => '穿搭洞察';
+  String get outfitInsights => '穿搭分析';
 
   @override
   String get temperatureCoverageCardTitle => '溫度與穿搭';
@@ -203,7 +206,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get temperatureBandNameHot => '炎熱';
 
   @override
-  String get styleTasteDetailsLabel => '風格洞察';
+  String get styleTasteDetailsLabel => '風格分析';
 
   @override
   String get styleTasteRadarCardTitle => '風格偏好';
@@ -513,13 +516,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exploreWomen => '女裝';
 
   @override
-  String get exploreIssueKicker => '第 014 期 — 2026 年 11 月';
+  String exploreIssueKicker(int number, String date) {
+    return '第 $number 期 — $date';
+  }
 
   @override
-  String get exploreIssueTitle => '戶外特輯';
+  String exploreIssueNumber(int number) {
+    return '第 $number 期';
+  }
 
   @override
-  String get exploreIssueSubtitle => '日常也能穿的戶外風格。';
+  String get exploreNoIssue => '下一期雜誌即將推出。';
+
+  @override
+  String get exploreNoStories => '這裡還沒有文章。';
 
   @override
   String get exploreStyleGuide => '穿搭指南';
@@ -529,30 +539,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exploreLifestyle => '生活風格';
-
-  @override
-  String get exploreEditBlazerTitle => '一件外套，三種穿法';
-
-  @override
-  String get exploreEditBlazerSubtitle => '更聰明地打理一週穿搭。';
-
-  @override
-  String get exploreEditTrailKicker => '山徑出發';
-
-  @override
-  String get exploreEditTrailTitle => '山徑的層次穿搭';
-
-  @override
-  String get exploreEditTrailSubtitle => '輕量外套配上刷毛，跟著你一起移動。';
-
-  @override
-  String get exploreEditWorkwearKicker => '週末穿搭';
-
-  @override
-  String get exploreEditWorkwearTitle => '粗獷也能很放鬆';
-
-  @override
-  String get exploreEditWorkwearSubtitle => '大地色系配上粗獷靴款，適合悠閒的週末。';
 
   @override
   String get exploreRead => '閱讀';
@@ -571,6 +557,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exploreIvorySneakersPairing => '可搭配你的直筒牛仔褲。';
+
+  @override
+  String get magazineShop => '前往購買';
 
   @override
   String get finishOutfit => 'AI 造型';
@@ -762,7 +751,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingHomeEllipsis => '載入首頁中…';
 
   @override
-  String get loadingOutfitInsightsEllipsis => '載入穿搭洞察中…';
+  String get loadingOutfitInsightsEllipsis => '載入穿搭分析中…';
 
   @override
   String get noOutfitImageYet => '尚無穿搭圖片';
@@ -1531,10 +1520,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewFullOutfit => '查看完整穿搭';
 
   @override
-  String get gettingStartedWelcomeTitle => '歡迎使用 Uwearis';
+  String get gettingStartedWelcomeTitle => '你的第一套穿搭，\n從這裡開始';
 
   @override
-  String get gettingStartedWelcomeSubtitle => '設定你的個人資料並建立衣櫥，解鎖專屬的穿搭預覽。';
+  String get gettingStartedWelcomeSubtitle => '完成幾個步驟，打造專屬於你的衣櫥。';
 
   @override
   String get gettingStartedGetStartedButton => '開始設定';
@@ -2139,6 +2128,55 @@ class AppLocalizationsZh extends AppLocalizations {
   String pointsBalanceAfter(String balance) {
     return '余额 $balance';
   }
+
+  @override
+  String editorialPageLabel(int current, int total) {
+    return '第 $current 页，共 $total 页';
+  }
+
+  @override
+  String get editorialStoryUnavailable => '这个版本的 App 无法显示这篇内容。';
+
+  @override
+  String get debugToolsEditorialStoryPreview => 'Editorial 版型总览';
+
+  @override
+  String get editorialMakeItYoursTitle => '用你的衣橱穿出来';
+
+  @override
+  String get editorialMakeItYoursBody => '不一定要买新衣服，用你现有的衣橱也能打造这种风格。';
+
+  @override
+  String get magazineSponsorGifted => '品牌提供';
+
+  @override
+  String get magazineSponsorCollaboration => '合作';
+
+  @override
+  String get magazineSponsorAdvertisement => '广告';
+
+  @override
+  String magazineSponsorLine(String kind, String brand) {
+    return '$kind｜$brand';
+  }
+
+  @override
+  String get magazineCredits => '出处信息';
+
+  @override
+  String get magazineCreditsAuthor => '撰文';
+
+  @override
+  String get magazineCreditsSources => '参考来源';
+
+  @override
+  String get magazineCreditsPhotography => '摄影';
+
+  @override
+  String get magazineCreditsPartner => '合作关系';
+
+  @override
+  String get magazineCreditsAiImages => 'AI 生成影像';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -2274,6 +2312,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get virtualModelGenerateAction => '生成';
 
   @override
+  String get virtualModelAddPhotosAction => '新增';
+
+  @override
   String get virtualModelGenerateNewAction => '生成新的合成照';
 
   @override
@@ -2295,7 +2336,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get moreInfo => '更多資訊';
 
   @override
-  String get outfitInsights => '穿搭洞察';
+  String get outfitInsights => '穿搭分析';
 
   @override
   String get temperatureCoverageCardTitle => '溫度與穿搭';
@@ -2340,7 +2381,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get temperatureBandNameHot => '炎熱';
 
   @override
-  String get styleTasteDetailsLabel => '風格洞察';
+  String get styleTasteDetailsLabel => '風格分析';
 
   @override
   String get styleTasteRadarCardTitle => '風格偏好';
@@ -2650,13 +2691,20 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get exploreWomen => '女裝';
 
   @override
-  String get exploreIssueKicker => '第 014 期 — 2026 年 11 月';
+  String exploreIssueKicker(int number, String date) {
+    return '第 $number 期 — $date';
+  }
 
   @override
-  String get exploreIssueTitle => '戶外特輯';
+  String exploreIssueNumber(int number) {
+    return '第 $number 期';
+  }
 
   @override
-  String get exploreIssueSubtitle => '日常也能穿的戶外風格。';
+  String get exploreNoIssue => '下一期雜誌即將推出。';
+
+  @override
+  String get exploreNoStories => '這裡還沒有文章。';
 
   @override
   String get exploreStyleGuide => '穿搭指南';
@@ -2666,30 +2714,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exploreLifestyle => '生活風格';
-
-  @override
-  String get exploreEditBlazerTitle => '一件外套，三種穿法';
-
-  @override
-  String get exploreEditBlazerSubtitle => '更聰明地打理一週穿搭。';
-
-  @override
-  String get exploreEditTrailKicker => '山徑出發';
-
-  @override
-  String get exploreEditTrailTitle => '山徑的層次穿搭';
-
-  @override
-  String get exploreEditTrailSubtitle => '輕量外套配上刷毛，跟著你一起移動。';
-
-  @override
-  String get exploreEditWorkwearKicker => '週末穿搭';
-
-  @override
-  String get exploreEditWorkwearTitle => '粗獷也能很放鬆';
-
-  @override
-  String get exploreEditWorkwearSubtitle => '大地色系配上粗獷靴款，適合悠閒的週末。';
 
   @override
   String get exploreRead => '閱讀';
@@ -2708,6 +2732,9 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get exploreIvorySneakersPairing => '可搭配你的直筒牛仔褲。';
+
+  @override
+  String get magazineShop => '前往購買';
 
   @override
   String get finishOutfit => 'AI 造型';
@@ -2899,7 +2926,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get loadingHomeEllipsis => '載入首頁中…';
 
   @override
-  String get loadingOutfitInsightsEllipsis => '載入穿搭洞察中…';
+  String get loadingOutfitInsightsEllipsis => '載入穿搭分析中…';
 
   @override
   String get noOutfitImageYet => '尚無穿搭圖片';
@@ -3668,10 +3695,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get viewFullOutfit => '查看完整穿搭';
 
   @override
-  String get gettingStartedWelcomeTitle => '歡迎使用 Uwearis';
+  String get gettingStartedWelcomeTitle => '你的第一套穿搭，\n從這裡開始';
 
   @override
-  String get gettingStartedWelcomeSubtitle => '設定你的個人資料並建立衣櫥，解鎖專屬的穿搭預覽。';
+  String get gettingStartedWelcomeSubtitle => '完成幾個步驟，打造專屬於你的衣櫥。';
 
   @override
   String get gettingStartedGetStartedButton => '開始設定';
@@ -4276,4 +4303,53 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String pointsBalanceAfter(String balance) {
     return '餘額 $balance';
   }
+
+  @override
+  String editorialPageLabel(int current, int total) {
+    return '第 $current 頁，共 $total 頁';
+  }
+
+  @override
+  String get editorialStoryUnavailable => '這個版本的 App 無法顯示這篇內容。';
+
+  @override
+  String get debugToolsEditorialStoryPreview => 'Editorial 版型總覽';
+
+  @override
+  String get editorialMakeItYoursTitle => '用你的衣櫃穿出來';
+
+  @override
+  String get editorialMakeItYoursBody => '不一定要買新衣服，用你現有的衣櫃也能打造這種風格。';
+
+  @override
+  String get magazineSponsorGifted => '品牌提供';
+
+  @override
+  String get magazineSponsorCollaboration => '合作';
+
+  @override
+  String get magazineSponsorAdvertisement => '廣告';
+
+  @override
+  String magazineSponsorLine(String kind, String brand) {
+    return '$kind｜$brand';
+  }
+
+  @override
+  String get magazineCredits => '出處資訊';
+
+  @override
+  String get magazineCreditsAuthor => '撰文';
+
+  @override
+  String get magazineCreditsSources => '參考來源';
+
+  @override
+  String get magazineCreditsPhotography => '攝影';
+
+  @override
+  String get magazineCreditsPartner => '合作關係';
+
+  @override
+  String get magazineCreditsAiImages => 'AI 生成影像';
 }

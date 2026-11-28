@@ -6,7 +6,7 @@ class AppConfig {
   static const String apiPath = '/api/$apiVersion';
   static String get fullApiUrl => '$baseUrl$apiPath';
 
-  static const bool enableDebugTools = false;
+  static const bool enableDebugTools = true;
   static const bool enableExplore = true;
 
   // TODO(launch): placeholders — replace with the live pages and mailbox

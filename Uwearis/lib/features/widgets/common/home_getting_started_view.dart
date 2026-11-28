@@ -6,7 +6,7 @@ import '../../../app/theme/app_text_styles.dart';
 import '../../../data/garment.dart';
 import '../../../l10n/garment_localization.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import 'buttons/accent_pill_button.dart';
+import 'buttons/action_button.dart';
 import 'cards/app_card_shell.dart';
 
 /// Home's setup checklist for a user who hasn't finished onboarding (see
@@ -54,11 +54,6 @@ class HomeGettingStartedView extends StatelessWidget {
   static const double _cardPadding = 20;
   static const double _rowGap = 16;
 
-  /// [AccentPillButton]'s tap box extends past its pill on each side;
-  /// subtracted so the visible gaps match [_cardPadding].
-  static const double _pillTapInset =
-      (AppDimens.minTouchTarget - AccentPillButton.pillHeight) / 2;
-
   bool get _virtualModelReady => hasProfilePhoto && hasFullBodyPhoto;
   bool get _closetReady => hasTop && hasBottom && hasShoes;
 
@@ -66,17 +61,20 @@ class HomeGettingStartedView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           l10n.gettingStartedWelcomeTitle,
-          textAlign: TextAlign.center,
-          style: AppTextStyle.bold24,
+          style: AppTextStyle.bold24.copyWith(
+            fontSize: 30,
+            height: 1.15,
+            letterSpacing: -0.3,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           l10n.gettingStartedWelcomeSubtitle,
-          textAlign: TextAlign.center,
-          style: AppTextStyle.regular14.copyWith(
+          style: AppTextStyle.regular16.copyWith(
             color: AppColors.textSecondary,
             height: 1.4,
           ),
@@ -89,12 +87,7 @@ class HomeGettingStartedView extends StatelessWidget {
 
   Widget _buildChecklistCard(BuildContext context, AppLocalizations l10n) {
     return AppCardShell(
-      padding: const EdgeInsets.fromLTRB(
-        _cardPadding,
-        _cardPadding,
-        _cardPadding,
-        _cardPadding - _pillTapInset,
-      ),
+      padding: const EdgeInsets.all(_cardPadding),
       child: Column(
         children: [
           _ChecklistRow(
@@ -123,11 +116,8 @@ class HomeGettingStartedView extends StatelessWidget {
           ),
           const SizedBox(height: _rowGap),
           _ChecklistRow(label: l10n.createOutfit, done: hasCreatedOutfit),
-          const SizedBox(height: _cardPadding - _pillTapInset),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [_buildCtaButton(l10n)],
-          ),
+          const SizedBox(height: _cardPadding),
+          _buildCtaButton(l10n),
         ],
       ),
     );
@@ -145,7 +135,7 @@ class HomeGettingStartedView extends StatelessWidget {
     } else {
       onPressed = onCreateOutfit;
     }
-    return AccentPillButton(
+    return ActionButton(
       label: hasAboutYou
           ? l10n.gettingStartedNextButton
           : l10n.gettingStartedGetStartedButton,

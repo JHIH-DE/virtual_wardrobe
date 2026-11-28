@@ -128,7 +128,7 @@ class AppColors {
   ); // strong full-screen scrim (e.g. camera cutout mask), black @60%
   static const Color mastheadSky = Color(
     0xFFF4EEED,
-  ); // explore_00.png's sky, so a scrim over it blends in
+  ); // Explore masthead's light scrim behind its text
   static const Color onPhotoMuted = Color(
     0x80FFFFFF,
   ); // white @50%, e.g. an inactive carousel dot on a photo

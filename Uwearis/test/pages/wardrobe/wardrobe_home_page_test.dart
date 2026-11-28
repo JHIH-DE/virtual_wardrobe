@@ -420,7 +420,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Thursday, Sep 17'), findsNothing);
-      expect(find.text('Welcome to Uwearis'), findsOneWidget);
+      expect(find.text('Your first outfit\nstarts here'), findsOneWidget);
       expect(find.text('My Virtual Model'), findsOneWidget);
       expect(find.text('Get Started'), findsOneWidget);
       expect(find.text("Today's Outfit"), findsNothing);
@@ -489,7 +489,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Thursday, Sep 17'), findsNothing);
-      expect(find.text('Welcome to Uwearis'), findsOneWidget);
+      expect(find.text('Your first outfit\nstarts here'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
       expect(find.text('Create Outfit'), findsOneWidget);
       expect(find.text("Today's Outfit"), findsNothing);
@@ -513,7 +513,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
-      expect(find.text('Welcome to Uwearis'), findsNothing);
+      expect(find.text('Your first outfit\nstarts here'), findsNothing);
     },
   );
 
@@ -540,7 +540,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
-      expect(find.text('Welcome to Uwearis'), findsNothing);
+      expect(find.text('Your first outfit\nstarts here'), findsNothing);
     },
   );
 
@@ -568,7 +568,7 @@ void main() {
 
       // A trip alone doesn't satisfy the closet requirement, so Getting
       // Started still shows, from the top.
-      expect(find.text('Welcome to Uwearis'), findsOneWidget);
+      expect(find.text('Your first outfit\nstarts here'), findsOneWidget);
       expect(find.text('My Virtual Model'), findsOneWidget);
     },
   );
@@ -596,7 +596,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Welcome to Uwearis'), findsNothing);
+      expect(find.text('Your first outfit\nstarts here'), findsNothing);
       expect(find.text("Today's Outfit"), findsOneWidget);
     },
   );
@@ -641,7 +641,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Welcome to Uwearis'), findsNothing);
+    expect(find.text('Your first outfit\nstarts here'), findsNothing);
     expect(find.text('No outfit image yet'), findsNothing);
     expect(find.text("Today's Outfit"), findsNothing);
     expect(find.text('Your Latest Outfit'), findsNothing);
@@ -676,7 +676,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Next'), findsNothing);
-      expect(find.text('Welcome to Uwearis'), findsNothing);
+      expect(find.text('Your first outfit\nstarts here'), findsNothing);
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
     },
   );
@@ -707,7 +707,7 @@ void main() {
 
       expect(find.text('Create Outfit'), findsNothing);
       expect(find.text('Next'), findsNothing);
-      expect(find.text('Welcome to Uwearis'), findsNothing);
+      expect(find.text('Your first outfit\nstarts here'), findsNothing);
       expect(find.text('Thursday, Sep 17'), findsOneWidget);
     },
   );
@@ -759,7 +759,7 @@ void main() {
 
     // Mid-refetch: must not fall through to A's stale value.
     expect(find.text('Thursday, Sep 17'), findsNothing);
-    expect(find.text('Welcome to Uwearis'), findsNothing);
+    expect(find.text('Your first outfit\nstarts here'), findsNothing);
 
     await tester.pump(delay);
     await _pumpRoute(tester);
@@ -888,7 +888,7 @@ void main() {
 
       await tester.pump(delay);
       expect(find.byType(PageView), findsOneWidget);
-      expect(find.text('Welcome to Uwearis'), findsNothing);
+      expect(find.text('Your first outfit\nstarts here'), findsNothing);
     },
   );
 
@@ -942,7 +942,7 @@ void main() {
 
       expect(find.text('Retry'), findsOneWidget);
       expect(find.text('Next'), findsNothing);
-      expect(find.text('Welcome to Uwearis'), findsNothing);
+      expect(find.text('Your first outfit\nstarts here'), findsNothing);
 
       await tester.tap(find.text('Retry'));
       await tester.pump();

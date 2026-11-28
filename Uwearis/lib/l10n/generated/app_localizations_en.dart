@@ -152,6 +152,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get virtualModelGenerateAction => 'Generate';
 
   @override
+  String get virtualModelAddPhotosAction => 'Add';
+
+  @override
   String get virtualModelGenerateNewAction => 'Generate Virtual Model';
 
   @override
@@ -548,13 +551,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exploreWomen => 'Women';
 
   @override
-  String get exploreIssueKicker => 'Issue 014 — Nov 2026';
+  String exploreIssueKicker(int number, String date) {
+    return 'Issue $number — $date';
+  }
 
   @override
-  String get exploreIssueTitle => 'The Outdoor Issue';
+  String exploreIssueNumber(int number) {
+    return 'Issue $number';
+  }
 
   @override
-  String get exploreIssueSubtitle => 'Outdoor style for everyday life.';
+  String get exploreNoIssue => 'The next issue is on its way.';
+
+  @override
+  String get exploreNoStories => 'No stories here yet.';
 
   @override
   String get exploreStyleGuide => 'Style Guide';
@@ -564,33 +574,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exploreLifestyle => 'Lifestyle';
-
-  @override
-  String get exploreEditBlazerTitle => 'One blazer, three ways';
-
-  @override
-  String get exploreEditBlazerSubtitle =>
-      'A smarter way to dress for the week.';
-
-  @override
-  String get exploreEditTrailKicker => 'Trail Ready';
-
-  @override
-  String get exploreEditTrailTitle => 'Layers for the trail';
-
-  @override
-  String get exploreEditTrailSubtitle =>
-      'Light shells and soft fleece that move with you.';
-
-  @override
-  String get exploreEditWorkwearKicker => 'Weekend Look';
-
-  @override
-  String get exploreEditWorkwearTitle => 'Rugged meets relaxed';
-
-  @override
-  String get exploreEditWorkwearSubtitle =>
-      'Earthy tones and rugged boots for slow weekends.';
 
   @override
   String get exploreRead => 'Read';
@@ -609,6 +592,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exploreIvorySneakersPairing => 'Pairs with your straight jeans.';
+
+  @override
+  String get magazineShop => 'Shop';
 
   @override
   String get finishOutfit => 'AI Styling';
@@ -1597,11 +1583,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewFullOutfit => 'View Full Outfit';
 
   @override
-  String get gettingStartedWelcomeTitle => 'Welcome to Uwearis';
+  String get gettingStartedWelcomeTitle => 'Your first outfit\nstarts here';
 
   @override
   String get gettingStartedWelcomeSubtitle =>
-      'Set up your profile and build your closet to unlock personalized outfit previews.';
+      'A few steps to make your wardrobe yours.';
 
   @override
   String get gettingStartedGetStartedButton => 'Get Started';
@@ -2282,4 +2268,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String pointsBalanceAfter(String balance) {
     return 'Balance $balance';
   }
+
+  @override
+  String editorialPageLabel(int current, int total) {
+    return 'Page $current of $total';
+  }
+
+  @override
+  String get editorialStoryUnavailable =>
+      'This story can\'t be shown in this version of the app.';
+
+  @override
+  String get debugToolsEditorialStoryPreview => 'Editorial Layout Catalog';
+
+  @override
+  String get editorialMakeItYoursTitle => 'Make It Yours';
+
+  @override
+  String get editorialMakeItYoursBody =>
+      'You don\'t need new clothes to wear this look — start from what\'s already in your wardrobe.';
+
+  @override
+  String get magazineSponsorGifted => 'Gifted';
+
+  @override
+  String get magazineSponsorCollaboration => 'Collaboration';
+
+  @override
+  String get magazineSponsorAdvertisement => 'Advertisement';
+
+  @override
+  String magazineSponsorLine(String kind, String brand) {
+    return '$kind | $brand';
+  }
+
+  @override
+  String get magazineCredits => 'Credits';
+
+  @override
+  String get magazineCreditsAuthor => 'Words';
+
+  @override
+  String get magazineCreditsSources => 'Sources';
+
+  @override
+  String get magazineCreditsPhotography => 'Photography';
+
+  @override
+  String get magazineCreditsPartner => 'Partnership';
+
+  @override
+  String get magazineCreditsAiImages => 'AI-generated images';
 }

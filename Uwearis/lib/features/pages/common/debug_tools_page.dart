@@ -8,7 +8,9 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/common/app_tool_bar.dart';
 import '../../widgets/common/cards/app_list_card.dart';
 import '../../widgets/common/overlays/error_dialog.dart';
+import '../explore/editorial_story_page.dart';
 import 'component_gallery_page.dart';
+import 'editorial_story_preview.dart';
 
 /// Previews of hard-to-trigger UI states and crash-reporting checks; reachable
 /// from Settings only when `AppConfig.enableDebugTools` is true.
@@ -50,6 +52,33 @@ class DebugToolsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppDimens.sectionSpacing),
+          for (final (story, title) in [
+            (
+              editorialLayoutGallery(Localizations.localeOf(context)),
+              l10n.debugToolsEditorialStoryPreview,
+            ),
+            for (final story in editorialMockStories(
+              Localizations.localeOf(context),
+            ))
+              (story, story.summary.title ?? ''),
+          ]) ...[
+            AppListCard(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  fullscreenDialog: true,
+                  builder: (context) => EditorialStoryReader(story: story),
+                ),
+              ),
+              leading: const Icon(
+                Icons.auto_stories_outlined,
+                color: AppColors.icon,
+              ),
+              showArrow: true,
+              child: Text(title, style: AppTextStyle.bold16),
+            ),
+            const SizedBox(height: AppDimens.sectionSpacing),
+          ],
           AppListCard(
             onTap: () => Future<void>.microtask(
               () => throw StateError('Crashlytics test error'),

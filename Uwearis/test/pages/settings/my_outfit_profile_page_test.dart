@@ -106,8 +106,9 @@ void main() {
 
   group('virtual model', () {
     testWidgets(
-      'no photos and no model: Generate is disabled with the body-photo '
-      'hint, Edit stays available, and temperature still works',
+      'no photos and no model: the body-photo hint sits above an enabled '
+      'Add that opens the reference photos page, no Edit, and temperature '
+      'still works',
       (tester) async {
         _useTallSurface(tester);
         final patches = <Map<String, dynamic>>[];
@@ -122,18 +123,28 @@ void main() {
             find.text(_l10n.virtualModelGenerateRequiresBodyRefHint),
             findsOneWidget,
           );
-          expect(
-            tester.widget<AccentPillButton>(_generatePill).enabled,
-            isFalse,
+          expect(_generatePill, findsNothing);
+          expect(_editPhotosPill, findsNothing);
+          final hint = tester.getRect(
+            find.text(_l10n.virtualModelGenerateRequiresBodyRefHint),
           );
-          expect(
-            tester.widget<AccentPillButton>(_editPhotosPill).enabled,
-            isTrue,
+          final add = find.ancestor(
+            of: find.text(_l10n.virtualModelAddPhotosAction),
+            matching: find.byType(AccentPillButton),
           );
+          expect(tester.widget<AccentPillButton>(add).enabled, isTrue);
+          final preview = tester.getRect(find.byType(GeneratedImageCard));
+          expect(hint.center.dx, closeTo(preview.center.dx, 1));
+          expect(tester.getCenter(add).dx, closeTo(preview.center.dx, 1));
+          expect(hint.bottom, lessThan(tester.getRect(add).top));
 
           await tester.tap(find.byIcon(Icons.add_circle_outline));
           await tester.pumpAndSettle();
           expect(find.text('+1°C'), findsOneWidget);
+
+          await tester.tap(add);
+          await tester.pumpAndSettle();
+          expect(find.byType(ReferencePhotosPage), findsOneWidget);
         }, () => _profileClient(patches));
         expect(patches, [
           {'temperature_offset_c': 1},
@@ -460,7 +471,7 @@ void main() {
                       ? _FakeProfileNotifier.complete.copyWith(
                           baseModelUrl: 'https://example.com/model.jpg',
                         )
-                      : _FakeProfileNotifier.empty,
+                      : _FakeProfileNotifier.complete,
                 ),
               ),
             ],

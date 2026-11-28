@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uwearis/features/pages/explore/explore_home_page.dart';
 import 'package:uwearis/features/pages/settings/settings_page.dart';
 
+import '../helpers/magazine_fakes.dart';
 import '../helpers/fake_auth.dart';
 import '../helpers/mock_http.dart';
 import '../helpers/widget_harness.dart';
@@ -20,7 +21,11 @@ void main() {
       'bell', (tester) async {
     await http.runWithClient(
       () async {
-        await pumpApp(tester, const ExploreHomePage());
+        await pumpApp(
+          tester,
+          const ExploreHomePage(),
+          overrides: [fakeMagazineHomeOverride()],
+        );
         expect(find.byIcon(Icons.notifications_none), findsNothing);
 
         await tester.tap(find.byTooltip('Settings'));

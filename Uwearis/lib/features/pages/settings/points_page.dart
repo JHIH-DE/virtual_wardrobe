@@ -59,7 +59,7 @@ class _PointsPageState extends ConsumerState<PointsPage> {
   // Plus grants [points] per day, not once.
   static final _plus = _Plan(
     name: (l) => l.pointsPlusTitle,
-    points: 75,
+    points: 60,
     priceNtd: 199,
     isSubscription: true,
   );

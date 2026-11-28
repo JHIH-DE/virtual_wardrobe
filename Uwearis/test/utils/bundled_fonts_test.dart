@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uwearis/app/theme/app_text_styles.dart';
+import 'package:uwearis/app/theme/editorial_typography.dart';
 
 // main.dart disables runtime fetching, so every GoogleFonts style the app
 // uses must resolve from assets/google_fonts/; a missing file surfaces here
@@ -21,6 +22,11 @@ void main() {
       'assets', () async {
     AppTextStyle.editorialHeadline;
     AppTextStyle.editorialSubtitle;
+    // Every serif role in Editorial Stories.
+    EditorialTypography.coverTitle;
+    EditorialTypography.quote;
+    EditorialTypography.editorialNumber;
+    EditorialTypography.chapterNumber;
     await expectLater(GoogleFonts.pendingFonts(), completes);
   });
 

@@ -316,7 +316,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(MyOutfitProfilePage), findsOneWidget);
-      expect(find.text(_l10n.edit), findsOneWidget);
+      expect(find.text(_l10n.virtualModelAddPhotosAction), findsOneWidget);
     }, backend);
   });
 

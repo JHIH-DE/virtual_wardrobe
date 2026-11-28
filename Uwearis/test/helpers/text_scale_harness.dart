@@ -12,6 +12,19 @@ Future<void> loadAppFont() async {
   await loader.load();
 }
 
+/// Loads Explore's editorial serif (Newsreader, the two bundled weights) for
+/// layout tests of magazine text.
+Future<void> loadEditorialFont() async {
+  for (final (family, file) in [
+    ('Newsreader_regular', 'Regular'),
+    ('Newsreader_600', 'SemiBold'),
+  ]) {
+    final loader = FontLoader(family)
+      ..addFont(rootBundle.load('assets/google_fonts/Newsreader-$file.ttf'));
+    await loader.load();
+  }
+}
+
 /// One screen configuration a text-scale layout test runs under.
 typedef LayoutCase = ({double width, double scale, Locale locale});
 

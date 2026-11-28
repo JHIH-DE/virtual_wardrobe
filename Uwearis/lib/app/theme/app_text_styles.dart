@@ -30,7 +30,7 @@ class AppTextStyle {
 
   /// Explore's editorial serif. Only the w400 and w600 files are bundled;
   /// Chinese falls back to NotoSansTC at the same weight.
-  static TextStyle _editorial(
+  static TextStyle editorialSerif(
     double size,
     FontWeight weight, {
     double? height,
@@ -50,12 +50,12 @@ class AppTextStyle {
       );
 
   static TextStyle get editorialHeadline =>
-      _editorial(34, FontWeight.w600, height: 1.1, letterSpacing: -0.5);
+      editorialSerif(34, FontWeight.w600, height: 1.1, letterSpacing: -0.5);
 
   static TextStyle get editorialSectionTitle =>
-      _editorial(24, FontWeight.w600, height: 1.15, letterSpacing: -0.3);
+      editorialSerif(24, FontWeight.w600, height: 1.15, letterSpacing: -0.3);
 
-  static TextStyle get editorialSubtitle => _editorial(
+  static TextStyle get editorialSubtitle => editorialSerif(
     18,
     FontWeight.w400,
     height: 1.25,
@@ -63,7 +63,7 @@ class AppTextStyle {
   );
 
   static TextStyle get editorialCardTitle =>
-      _editorial(16, FontWeight.w600, height: 1.2);
+      editorialSerif(16, FontWeight.w600, height: 1.2);
 
   // ── Bold (w700) ────────────────────────────────────────────────────────
 

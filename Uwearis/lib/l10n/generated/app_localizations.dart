@@ -351,6 +351,12 @@ abstract class AppLocalizations {
   /// **'Generate'**
   String get virtualModelGenerateAction;
 
+  /// No description provided for @virtualModelAddPhotosAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get virtualModelAddPhotosAction;
+
   /// No description provided for @virtualModelGenerateNewAction.
   ///
   /// In en, this message translates to:
@@ -1077,23 +1083,29 @@ abstract class AppLocalizations {
   /// **'Women'**
   String get exploreWomen;
 
-  /// No description provided for @exploreIssueKicker.
+  /// Explore masthead: issue number and publish month
   ///
   /// In en, this message translates to:
-  /// **'Issue 014 — Nov 2026'**
-  String get exploreIssueKicker;
+  /// **'Issue {number} — {date}'**
+  String exploreIssueKicker(int number, String date);
 
-  /// No description provided for @exploreIssueTitle.
+  /// No description provided for @exploreIssueNumber.
   ///
   /// In en, this message translates to:
-  /// **'The Outdoor Issue'**
-  String get exploreIssueTitle;
+  /// **'Issue {number}'**
+  String exploreIssueNumber(int number);
 
-  /// No description provided for @exploreIssueSubtitle.
+  /// No description provided for @exploreNoIssue.
   ///
   /// In en, this message translates to:
-  /// **'Outdoor style for everyday life.'**
-  String get exploreIssueSubtitle;
+  /// **'The next issue is on its way.'**
+  String get exploreNoIssue;
+
+  /// No description provided for @exploreNoStories.
+  ///
+  /// In en, this message translates to:
+  /// **'No stories here yet.'**
+  String get exploreNoStories;
 
   /// No description provided for @exploreStyleGuide.
   ///
@@ -1112,54 +1124,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lifestyle'**
   String get exploreLifestyle;
-
-  /// No description provided for @exploreEditBlazerTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'One blazer, three ways'**
-  String get exploreEditBlazerTitle;
-
-  /// No description provided for @exploreEditBlazerSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'A smarter way to dress for the week.'**
-  String get exploreEditBlazerSubtitle;
-
-  /// No description provided for @exploreEditTrailKicker.
-  ///
-  /// In en, this message translates to:
-  /// **'Trail Ready'**
-  String get exploreEditTrailKicker;
-
-  /// No description provided for @exploreEditTrailTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Layers for the trail'**
-  String get exploreEditTrailTitle;
-
-  /// No description provided for @exploreEditTrailSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Light shells and soft fleece that move with you.'**
-  String get exploreEditTrailSubtitle;
-
-  /// No description provided for @exploreEditWorkwearKicker.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekend Look'**
-  String get exploreEditWorkwearKicker;
-
-  /// No description provided for @exploreEditWorkwearTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Rugged meets relaxed'**
-  String get exploreEditWorkwearTitle;
-
-  /// No description provided for @exploreEditWorkwearSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Earthy tones and rugged boots for slow weekends.'**
-  String get exploreEditWorkwearSubtitle;
 
   /// No description provided for @exploreRead.
   ///
@@ -1196,6 +1160,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pairs with your straight jeans.'**
   String get exploreIvorySneakersPairing;
+
+  /// No description provided for @magazineShop.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop'**
+  String get magazineShop;
 
   /// No description provided for @finishOutfit.
   ///
@@ -3090,13 +3060,13 @@ abstract class AppLocalizations {
   /// No description provided for @gettingStartedWelcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to Uwearis'**
+  /// **'Your first outfit\nstarts here'**
   String get gettingStartedWelcomeTitle;
 
   /// No description provided for @gettingStartedWelcomeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Set up your profile and build your closet to unlock personalized outfit previews.'**
+  /// **'A few steps to make your wardrobe yours.'**
   String get gettingStartedWelcomeSubtitle;
 
   /// No description provided for @gettingStartedGetStartedButton.
@@ -4190,6 +4160,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Balance {balance}'**
   String pointsBalanceAfter(String balance);
+
+  /// No description provided for @editorialPageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {current} of {total}'**
+  String editorialPageLabel(int current, int total);
+
+  /// No description provided for @editorialStoryUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This story can\'t be shown in this version of the app.'**
+  String get editorialStoryUnavailable;
+
+  /// No description provided for @debugToolsEditorialStoryPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Editorial Layout Catalog'**
+  String get debugToolsEditorialStoryPreview;
+
+  /// No description provided for @editorialMakeItYoursTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make It Yours'**
+  String get editorialMakeItYoursTitle;
+
+  /// No description provided for @editorialMakeItYoursBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t need new clothes to wear this look — start from what\'s already in your wardrobe.'**
+  String get editorialMakeItYoursBody;
+
+  /// No description provided for @magazineSponsorGifted.
+  ///
+  /// In en, this message translates to:
+  /// **'Gifted'**
+  String get magazineSponsorGifted;
+
+  /// No description provided for @magazineSponsorCollaboration.
+  ///
+  /// In en, this message translates to:
+  /// **'Collaboration'**
+  String get magazineSponsorCollaboration;
+
+  /// No description provided for @magazineSponsorAdvertisement.
+  ///
+  /// In en, this message translates to:
+  /// **'Advertisement'**
+  String get magazineSponsorAdvertisement;
+
+  /// No description provided for @magazineSponsorLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} | {brand}'**
+  String magazineSponsorLine(String kind, String brand);
+
+  /// No description provided for @magazineCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get magazineCredits;
+
+  /// No description provided for @magazineCreditsAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get magazineCreditsAuthor;
+
+  /// No description provided for @magazineCreditsSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get magazineCreditsSources;
+
+  /// No description provided for @magazineCreditsPhotography.
+  ///
+  /// In en, this message translates to:
+  /// **'Photography'**
+  String get magazineCreditsPhotography;
+
+  /// No description provided for @magazineCreditsPartner.
+  ///
+  /// In en, this message translates to:
+  /// **'Partnership'**
+  String get magazineCreditsPartner;
+
+  /// No description provided for @magazineCreditsAiImages.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-generated images'**
+  String get magazineCreditsAiImages;
 }
 
 class _AppLocalizationsDelegate

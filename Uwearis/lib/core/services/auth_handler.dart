@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/pages/common/login_page.dart';
 import '../../features/widgets/common/overlays/app_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../providers/magazine_provider.dart';
 import '../providers/adjustment_options_provider.dart';
 import '../providers/backgrounds_provider.dart';
 import '../providers/sub_category_provider.dart';
@@ -80,6 +81,8 @@ void invalidateSignedInProviders(BuildContext context) {
   container.invalidate(styleProfileProvider);
   container.invalidate(styleTasteProfileProvider);
   container.invalidate(weatherProvider);
+  container.invalidate(magazineHomeProvider);
+  container.invalidate(magazineStoryProvider);
 }
 
 class AuthExpiredHandler {

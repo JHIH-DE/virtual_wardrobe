@@ -3,6 +3,17 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_dimens.dart';
 import '../../../../app/theme/app_text_styles.dart';
+import '../../../../app/theme/editorial_typography.dart';
+
+/// How an [AccentPillButton] is coloured.
+enum AccentPillButtonVariant {
+  /// The app's accent: section-level call-outs everywhere else.
+  accent,
+
+  /// Near-black ink: a call to action inside Explore's magazine (The Edit),
+  /// which keeps to its editorial palette.
+  editorial,
+}
 
 /// Solid accent pill for section-level call-outs. Disabled, it takes the
 /// same grey fill + hint label as a disabled [ActionButton] primary.
@@ -16,6 +27,7 @@ class AccentPillButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool enabled;
   final String? disabledMessage;
+  final AccentPillButtonVariant variant;
 
   /// Visible pill height at default text scale.
   static const double pillHeight = 36;
@@ -26,11 +38,16 @@ class AccentPillButton extends StatelessWidget {
     this.onPressed,
     this.enabled = true,
     this.disabledMessage,
+    this.variant = AccentPillButtonVariant.accent,
   });
 
   @override
   Widget build(BuildContext context) {
-    final background = enabled ? AppColors.accent : AppColors.borderSubtle;
+    final background = !enabled
+        ? AppColors.borderSubtle
+        : variant == AccentPillButtonVariant.editorial
+        ? AppColors.primary
+        : AppColors.accent;
     final foreground = enabled ? AppColors.textOnPrimary : AppColors.hintText;
     final pill = TextButton(
       onPressed: enabled ? onPressed : null,
@@ -48,7 +65,11 @@ class AccentPillButton extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTextStyle.bold14.copyWith(color: foreground),
+        style:
+            (variant == AccentPillButtonVariant.editorial
+                    ? EditorialTypography.cta.style
+                    : AppTextStyle.bold14)
+                .copyWith(color: foreground),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

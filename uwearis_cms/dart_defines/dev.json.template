@@ -1,0 +1,4 @@
+{
+  "GOOGLE_CLIENT_ID": "<Web OAuth client id, the same one as the App's GOOGLE_CLIENT_ID>",
+  "API_BASE_URL": "http://localhost:8000"
+}

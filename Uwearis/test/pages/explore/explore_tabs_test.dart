@@ -9,10 +9,15 @@ import 'package:uwearis/features/pages/explore/search_page.dart';
 import 'package:uwearis/features/widgets/common/app_tool_bar.dart';
 import 'package:uwearis/features/widgets/common/explore_nav_bar.dart';
 
+import '../../helpers/magazine_fakes.dart';
 import '../../helpers/widget_harness.dart';
 
 Future<void> _pumpShell(WidgetTester tester) async {
-  await pumpApp(tester, const ExploreShell());
+  await pumpApp(
+    tester,
+    const ExploreShell(),
+    overrides: [fakeMagazineHomeOverride()],
+  );
   await tester.pump();
 }
 

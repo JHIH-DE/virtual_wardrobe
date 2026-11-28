@@ -85,14 +85,22 @@ double longestWordWidth(RenderObject root) {
   var widest = 0.0;
   void visit(RenderObject node) {
     if (node is RenderParagraph) {
-      widest = math.max(
-        widest,
-        longestLatinWordWidth(
-          node.text.toPlainText(),
-          node.text.style,
-          node.textScaler,
-        ),
-      );
+      // Each run at its own style: a rich text's runs may differ in face.
+      void measureSpan(InlineSpan span, TextStyle? inherited) {
+        if (span is! TextSpan) return;
+        final style = inherited?.merge(span.style) ?? span.style;
+        if (span.text case final text?) {
+          widest = math.max(
+            widest,
+            longestLatinWordWidth(text, style, node.textScaler),
+          );
+        }
+        for (final child in span.children ?? const <InlineSpan>[]) {
+          measureSpan(child, style);
+        }
+      }
+
+      measureSpan(node.text, null);
     }
     node.visitChildren(visit);
   }

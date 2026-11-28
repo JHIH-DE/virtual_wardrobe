@@ -21,7 +21,7 @@ class AppCardShell extends StatelessWidget {
   /// Sits to the right of [title] / [subtitle], vertically centered.
   final Widget? trailing;
 
-  /// Usually an [Icon]; [InfoGlyph] for an info action.
+  /// Usually an [Icon].
   final Widget? actionIcon;
   final VoidCallback? onAction;
   final String? actionTooltip;

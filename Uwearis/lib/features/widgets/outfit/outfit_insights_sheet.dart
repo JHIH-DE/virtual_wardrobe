@@ -19,7 +19,6 @@ import '../../../l10n/style_type_localization.dart';
 import '../common/app_divider.dart';
 import '../common/buttons/segmented_switch.dart';
 import '../common/cards/app_card_shell.dart';
-import '../common/info_glyph.dart';
 import '../common/cards/style_profile_pie_chart.dart';
 import '../common/cards/style_taste_radar_chart.dart';
 import '../common/images/app_spinner.dart';
@@ -172,7 +171,7 @@ class _OutfitInsightsSheetContentState
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       blurRadius: 16,
       title: l10n.styleTasteRadarCardTitle,
-      actionIcon: preferences.isEmpty ? null : const InfoGlyph(),
+      actionIcon: preferences.isEmpty ? null : const Icon(Icons.info_outline),
       actionTooltip: l10n.moreInfo,
       onAction: () => _showStyleInsightsDialog(preferences),
       child: LayoutBuilder(
